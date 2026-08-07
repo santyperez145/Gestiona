@@ -2798,6 +2798,89 @@ export type Database = {
           },
         ]
       }
+      coupon_usages: {
+        Row: {
+          coupon_id: string
+          customer_email: string | null
+          discount_ars: number
+          id: string
+          order_id: string | null
+          org_id: string
+          store_customer_id: string | null
+          used_at: string
+        }
+        Insert: {
+          coupon_id: string
+          customer_email?: string | null
+          discount_ars?: number
+          id?: string
+          order_id?: string | null
+          org_id: string
+          store_customer_id?: string | null
+          used_at?: string
+        }
+        Update: {
+          coupon_id?: string
+          customer_email?: string | null
+          discount_ars?: number
+          id?: string
+          order_id?: string | null
+          org_id?: string
+          store_customer_id?: string | null
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_usages_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "cupones_descuadrados"
+            referencedColumns: ["coupon_id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_iva"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_store_customer_id_fkey"
+            columns: ["store_customer_id"]
+            isOneToOne: false
+            referencedRelation: "store_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupons: {
         Row: {
           active: boolean
@@ -2809,6 +2892,8 @@ export type Database = {
           id: string
           influencer_id: string | null
           max_uses: number | null
+          max_uses_per_customer: number | null
+          min_order_value: number | null
           org_id: string
           user_id: string
           valid_from: string | null
@@ -2824,6 +2909,8 @@ export type Database = {
           id?: string
           influencer_id?: string | null
           max_uses?: number | null
+          max_uses_per_customer?: number | null
+          min_order_value?: number | null
           org_id: string
           user_id: string
           valid_from?: string | null
@@ -2839,6 +2926,8 @@ export type Database = {
           id?: string
           influencer_id?: string | null
           max_uses?: number | null
+          max_uses_per_customer?: number | null
+          min_order_value?: number | null
           org_id?: string
           user_id?: string
           valid_from?: string | null
@@ -18988,6 +19077,48 @@ export type Database = {
           },
         ]
       }
+      cupones_descuadrados: {
+        Row: {
+          code: string | null
+          contador: number | null
+          coupon_id: string | null
+          diferencia: number | null
+          org_id: string | null
+          registrados: number | null
+        }
+        Insert: {
+          code?: string | null
+          contador?: never
+          coupon_id?: string | null
+          diferencia?: never
+          org_id?: string | null
+          registrados?: never
+        }
+        Update: {
+          code?: string | null
+          contador?: never
+          coupon_id?: string | null
+          diferencia?: never
+          org_id?: string | null
+          registrados?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       deal_outcome_stats: {
         Row: {
           avg_days: number | null
@@ -20184,7 +20315,12 @@ export type Database = {
       check_overdue_debts: { Args: never; Returns: undefined }
       check_rotting_deals: { Args: { p_org_id: string }; Returns: number }
       check_store_coupon: {
-        Args: { p_code: string; p_slug: string; p_subtotal: number }
+        Args: {
+          p_code: string
+          p_email?: string
+          p_slug: string
+          p_subtotal: number
+        }
         Returns: Json
       }
       complete_inventory_transfer: {
@@ -21046,6 +21182,10 @@ export type Database = {
         Returns: Json
       }
       user_org_ids: { Args: { _user_id: string }; Returns: string[] }
+      usos_de_cupon_por_persona: {
+        Args: { p_coupon_id: string; p_email: string }
+        Returns: number
+      }
       vencer_reservas: { Args: never; Returns: number }
       z_nivel_servicio: { Args: { p_nivel: number }; Returns: number }
     }

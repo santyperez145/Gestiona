@@ -80,6 +80,8 @@ const EMPTY_FORM = {
   discountType: "percent" as "percent" | "fixed",
   discountValue: "",
   maxUses: "",
+  minOrderValue: "",
+  maxPorPersona: "",
   validUntil: "",
   active: true,
 };
@@ -181,6 +183,10 @@ export default function CouponsPage() {
       discount_percent: form.discountType === "percent" ? Number(form.discountValue) : 0,
       discount_fixed_ars: form.discountType === "fixed" ? Number(form.discountValue) : 0,
       max_uses: form.maxUses ? Number(form.maxUses) : null,
+      // Vacío = sin condición. Un 0 significaría "mínimo cero", que es lo mismo
+      // que no tener mínimo pero se lee distinto en la tabla.
+      min_order_value: form.minOrderValue ? Number(form.minOrderValue) : null,
+      max_uses_per_customer: form.maxPorPersona ? Number(form.maxPorPersona) : null,
       valid_until: form.validUntil || null,
       active: form.active,
     };
@@ -441,6 +447,40 @@ export default function CouponsPage() {
                 value={form.maxUses}
                 onChange={e => setForm(f => ({ ...f, maxUses: e.target.value }))}
               />
+            </div>
+
+            {/* Compra mínima — sin esto, un cupón de $10.000 fijo se usa en una
+                compra de $12.000 y el comercio regala el 83% de la venta. */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">
+                Compra mínima (vacío = sin mínimo)
+              </label>
+              <Input
+                type="number"
+                placeholder="Sin mínimo"
+                value={form.minOrderValue}
+                onChange={e => setForm(f => ({ ...f, minOrderValue: e.target.value }))}
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Se mide sobre los productos, sin contar el envío.
+              </p>
+            </div>
+
+            {/* Límite por persona — sin esto, uno solo consume todos los usos. */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">
+                Usos por persona (vacío = sin límite)
+              </label>
+              <Input
+                type="number"
+                placeholder="Sin límite"
+                value={form.maxPorPersona}
+                onChange={e => setForm(f => ({ ...f, maxPorPersona: e.target.value }))}
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Se identifica por email. Con esto puesto, el comprador tiene que
+                cargarlo antes de aplicar el cupón.
+              </p>
             </div>
 
             {/* Valid until */}

@@ -8,6 +8,7 @@ import { AR_PROVINCES } from "@/lib/shippingCalc";
 import { quoteStoreShipping, createStoreOrder } from "@/lib/publicDataSource";
 import { trackBeginCheckout } from "./tracking";
 import { precioConMedioDePago, porcentajeDe, nombreMedio } from "@/lib/paymentDiscount";
+import { normalizarEmail } from "@/lib/couponRules";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -76,7 +77,14 @@ export default function StoreCheckout() {
     setCuponError(null);
     const { data, error: rpcErr } = await supabase.rpc("check_store_coupon", {
       p_slug: store.slug, p_code: cupon.trim(),
+      // El subtotal de MERCADERÍA, ya con la promo aplicada y sin el envío: un
+      // cupón de "mínimo $50.000" no se puede activar sumando flete, o el
+      // comercio termina subsidiando el envío para llegar a su propio piso.
       p_subtotal: Math.max(0, subtotal - promo2x),
+      // Sin el email, un cupón de "una vez por persona" no se puede evaluar y
+      // la base lo rechaza. Se manda normalizado, igual que lo guarda el libro
+      // de usos.
+      p_email: normalizarEmail(form.email),
     });
     setValidandoCupon(false);
 
