@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  evaluarCupon, mensajeRechazo, normalizarEmail, type ReglasCupon,
+  evaluarCupon, calcularEfecto, mensajeRechazo, normalizarEmail, type ReglasCupon,
 } from "@/lib/couponRules";
 
 const fmt = (n: number) => `$${n.toLocaleString("es-AR")}`;
@@ -107,6 +107,66 @@ describe("normalizarEmail", () => {
     expect(normalizarEmail("")).toBeNull();
     expect(normalizarEmail("   ")).toBeNull();
     expect(normalizarEmail(null)).toBeNull();
+  });
+});
+
+describe("calcularEfecto — descuento de mercadería", () => {
+  it("porcentaje", () => {
+    expect(calcularEfecto({ descuentoPct: 20 }, 50_000).mercaderia).toBe(10_000);
+  });
+
+  it("monto fijo", () => {
+    expect(calcularEfecto({ descuentoFijo: 5_000 }, 50_000).mercaderia).toBe(5_000);
+  });
+
+  it("el porcentaje gana sobre el fijo cuando están los dos", () => {
+    // Es como lo resuelve el SQL: son campos excluyentes en la práctica, pero
+    // si alguien carga los dos tiene que haber un ganador definido.
+    expect(calcularEfecto({ descuentoPct: 10, descuentoFijo: 9_999 }, 50_000).mercaderia).toBe(5_000);
+  });
+
+  it("un fijo mayor que la compra no devuelve plata", () => {
+    expect(calcularEfecto({ descuentoFijo: 10_000 }, 8_000).mercaderia).toBe(8_000);
+  });
+});
+
+describe("calcularEfecto — envío gratis (A5)", () => {
+  it("bonifica el envío entero", () => {
+    const e = calcularEfecto({ bonificaEnvio: true }, 50_000, 12_000);
+    expect(e.envio).toBe(12_000);
+    expect(e.mercaderia).toBe(0);
+    expect(e.total).toBe(12_000);
+  });
+
+  // Un "envío gratis" sin tope a Tierra del Fuego puede costar más que la
+  // venta. Con tope, el comprador paga la diferencia.
+  it("el tope limita lo que absorbe el comercio", () => {
+    expect(calcularEfecto({ bonificaEnvio: true, topeEnvio: 8_000 }, 50_000, 20_000).envio).toBe(8_000);
+  });
+
+  it("el tope no infla un envío barato", () => {
+    expect(calcularEfecto({ bonificaEnvio: true, topeEnvio: 8_000 }, 50_000, 3_000).envio).toBe(3_000);
+  });
+
+  it("sobre un envío que ya es gratis no bonifica nada", () => {
+    // Retiro en tienda, o umbral de envío gratis ya alcanzado.
+    expect(calcularEfecto({ bonificaEnvio: true }, 200_000, 0).total).toBe(0);
+  });
+
+  it("un cupón que no bonifica envío deja el flete intacto", () => {
+    expect(calcularEfecto({ descuentoPct: 20 }, 50_000, 12_000).envio).toBe(0);
+  });
+
+  it("se combinan descuento y envío, y el total es lo que le cuesta al comercio", () => {
+    const e = calcularEfecto({ descuentoPct: 10, bonificaEnvio: true }, 50_000, 12_000);
+    expect(e).toEqual({ mercaderia: 5_000, envio: 12_000, total: 17_000 });
+  });
+});
+
+describe("mensajeRechazo — sin efecto", () => {
+  it("explica por qué el cupón de envío no hace nada", () => {
+    expect(mensajeRechazo({ aplica: false, motivo: "sin_efecto" }, fmt))
+      .toBe("Este cupón bonifica el envío y tu pedido no tiene costo de envío");
   });
 });
 

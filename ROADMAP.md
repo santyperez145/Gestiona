@@ -138,7 +138,7 @@ mal en producción hoy.
 | ~~A2~~ | ✅ **Reserva de stock entre la orden y el pago** | Hecho (sesión 98). `stock_disponible()` = stock − reservas vigentes; un trigger aparta al crear la orden y otro suelta al pagar o al fallar. Verificado: el segundo comprador de la última unidad **no puede** crear la orden. | |
 | ~~A3~~ | ✅ **IVA discriminado en la orden** | Hecho (sesión 98). Un trigger lo calcula desde la configuración de la organización; se recalcularon las 6 órdenes viejas: **$268.934 de IVA** que no estaban discriminados sobre $1.549.574 facturados. Destraba A4 y el circuito AFIP. | |
 | ~~A4~~ | ✅ **Cupones con mínimo y límite por persona** | Hecho (sesión 98). `min_order_value` y `max_uses_per_customer`, más `coupon_usages` como libro de quién usó qué. El mínimo se mide sobre la mercadería, sin envío. | |
-| A5 | **No hay cupón de envío gratis** | `promotions.type` contempla `free_shipping` y no se aplica en ningún lado. | Es el cupón más usado del comercio argentino. |
+| ~~A5~~ | ✅ **Cupón de envío gratis** | Hecho (sesión 98). `coupons.free_shipping` con tope opcional. Se descuenta del envío y queda anotado en `shipping_discount_ars`, no mezclado con el descuento de mercadería. Un cupón que no bonifica nada —retiro en tienda— se rechaza en vez de consumirse. | |
 | A6 | **No hay devoluciones ni reembolsos de órdenes online** | `/devoluciones` existe para la gestión, no para `ecommerce_orders`. No hay reintegro por MercadoPago. | Una devolución hoy se hace a mano en los dos sistemas, y el stock no vuelve. |
 | A7 | **Las promociones no registran uso** | `promotion_usages` existe con su trigger de conteo, y la tienda online no inserta nada. | El comercio no puede medir si una promo funcionó. |
 

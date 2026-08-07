@@ -33,6 +33,8 @@ interface Coupon {
   code: string;
   discount_percent: number;
   discount_fixed_ars: number;
+  free_shipping: boolean;
+  free_shipping_max_ars: number | null;
   max_uses: number | null;
   current_uses: number;
   valid_from: string;
@@ -63,9 +65,16 @@ const STATUS_CONFIG = {
 };
 
 function formatDiscount(c: Coupon): string {
-  if (c.discount_percent > 0) return `${c.discount_percent}% OFF`;
-  if (c.discount_fixed_ars > 0) return `${formatARS(c.discount_fixed_ars)} OFF`;
-  return "—";
+  // Un cupón puede descontar mercadería, bonificar el envío, o las dos cosas.
+  const partes: string[] = [];
+  if (c.discount_percent > 0) partes.push(`${c.discount_percent}% OFF`);
+  else if (c.discount_fixed_ars > 0) partes.push(`${formatARS(c.discount_fixed_ars)} OFF`);
+  if (c.free_shipping) {
+    partes.push(c.free_shipping_max_ars
+      ? `Envío hasta ${formatARS(c.free_shipping_max_ars)}`
+      : "Envío gratis");
+  }
+  return partes.length > 0 ? partes.join(" + ") : "—";
 }
 
 function generateCode(): string {
@@ -82,6 +91,10 @@ const EMPTY_FORM = {
   maxUses: "",
   minOrderValue: "",
   maxPorPersona: "",
+  // A5: el cupón más usado del comercio argentino. Puede ir solo o sumado a un
+  // descuento de mercadería.
+  freeShipping: false,
+  topeEnvio: "",
   validUntil: "",
   active: true,
 };
@@ -173,7 +186,10 @@ export default function CouponsPage() {
   };
 
   const handleSave = async () => {
-    if (!activeOrg || !user || !form.code.trim() || !form.discountValue) return;
+    // Un cupón de envío gratis no lleva porcentaje ni monto: el descuento es el
+    // flete. Exigir un valor ahí haría imposible cargarlo.
+    if (!activeOrg || !user || !form.code.trim()) return;
+    if (!form.discountValue && !form.freeShipping) return;
     setSaving(true);
 
     const payload = {
@@ -187,6 +203,9 @@ export default function CouponsPage() {
       // que no tener mínimo pero se lee distinto en la tabla.
       min_order_value: form.minOrderValue ? Number(form.minOrderValue) : null,
       max_uses_per_customer: form.maxPorPersona ? Number(form.maxPorPersona) : null,
+      free_shipping: form.freeShipping,
+      // Vacío = se bonifica el envío entero.
+      free_shipping_max_ars: form.freeShipping && form.topeEnvio ? Number(form.topeEnvio) : null,
       valid_until: form.validUntil || null,
       active: form.active,
     };
@@ -438,6 +457,45 @@ export default function CouponsPage() {
               </div>
             </div>
 
+            {/* Envío gratis — A5. Es el cupón más usado del comercio argentino:
+                el envío es de las primeras razones por las que se abandona un
+                carrito. Puede ir solo o sumado al descuento de arriba. */}
+            <div className="rounded-xl border border-border/40 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm">Bonifica el envío</label>
+                  <p className="text-[10px] text-muted-foreground">
+                    El comprador ve “Gratis” y el costo lo absorbe el negocio.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, freeShipping: !f.freeShipping }))}
+                  className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${form.freeShipping ? "bg-primary" : "bg-border/60"}`}
+                >
+                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${form.freeShipping ? "translate-x-4" : "translate-x-0.5"}`} />
+                </button>
+              </div>
+
+              {form.freeShipping && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">
+                    Bonificar hasta (vacío = el envío completo)
+                  </label>
+                  <Input
+                    type="number"
+                    placeholder="Sin tope"
+                    value={form.topeEnvio}
+                    onChange={e => setForm(f => ({ ...f, topeEnvio: e.target.value }))}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Un envío a Tierra del Fuego puede costar más que la venta. Con
+                    tope, el comprador paga la diferencia.
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Max uses */}
             <div>
               <label className="text-xs text-muted-foreground mb-1.5 block">Usos máximos (vacío = ilimitado)</label>
@@ -506,10 +564,20 @@ export default function CouponsPage() {
             </div>
 
             {/* Preview */}
-            {form.code && form.discountValue && (
+            {form.code && (form.discountValue || form.freeShipping) && (
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 text-xs">
                 <p className="font-semibold text-primary mb-0.5">Vista previa:</p>
-                <p>Código <span className="font-mono font-bold">{form.code}</span> → {form.discountType === "percent" ? `${form.discountValue}% de descuento` : `${formatARS(Number(form.discountValue))} de descuento`}</p>
+                <p>
+                  Código <span className="font-mono font-bold">{form.code}</span> →{" "}
+                  {[
+                    form.discountValue && (form.discountType === "percent"
+                      ? `${form.discountValue}% de descuento`
+                      : `${formatARS(Number(form.discountValue))} de descuento`),
+                    form.freeShipping && (form.topeEnvio
+                      ? `envío bonificado hasta ${formatARS(Number(form.topeEnvio))}`
+                      : "envío gratis"),
+                  ].filter(Boolean).join(" + ")}
+                </p>
                 {form.maxUses && <p className="text-muted-foreground mt-0.5">Máx {form.maxUses} uso{Number(form.maxUses) !== 1 ? "s" : ""}</p>}
                 {form.validUntil && <p className="text-muted-foreground">Hasta {new Date(form.validUntil).toLocaleDateString("es-AR")}</p>}
               </div>

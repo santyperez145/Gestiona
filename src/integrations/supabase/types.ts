@@ -2806,6 +2806,7 @@ export type Database = {
           id: string
           order_id: string | null
           org_id: string
+          shipping_discount_ars: number
           store_customer_id: string | null
           used_at: string
         }
@@ -2816,6 +2817,7 @@ export type Database = {
           id?: string
           order_id?: string | null
           org_id: string
+          shipping_discount_ars?: number
           store_customer_id?: string | null
           used_at?: string
         }
@@ -2826,6 +2828,7 @@ export type Database = {
           id?: string
           order_id?: string | null
           org_id?: string
+          shipping_discount_ars?: number
           store_customer_id?: string | null
           used_at?: string
         }
@@ -2889,6 +2892,8 @@ export type Database = {
           current_uses: number
           discount_fixed_ars: number | null
           discount_percent: number | null
+          free_shipping: boolean
+          free_shipping_max_ars: number | null
           id: string
           influencer_id: string | null
           max_uses: number | null
@@ -2906,6 +2911,8 @@ export type Database = {
           current_uses?: number
           discount_fixed_ars?: number | null
           discount_percent?: number | null
+          free_shipping?: boolean
+          free_shipping_max_ars?: number | null
           id?: string
           influencer_id?: string | null
           max_uses?: number | null
@@ -2923,6 +2930,8 @@ export type Database = {
           current_uses?: number
           discount_fixed_ars?: number | null
           discount_percent?: number | null
+          free_shipping?: boolean
+          free_shipping_max_ars?: number | null
           id?: string
           influencer_id?: string | null
           max_uses?: number | null
@@ -5512,6 +5521,7 @@ export type Database = {
           carrier: string | null
           cart_session_id: string | null
           coupon_code: string | null
+          coupon_discount_ars: number
           created_at: string
           customer_email: string
           customer_id: string | null
@@ -5531,6 +5541,7 @@ export type Database = {
           payment_status: string
           shipping_address: Json
           shipping_cost: number
+          shipping_discount_ars: number
           shipping_label: string | null
           shipping_quoted_at: string | null
           shipping_service: string | null
@@ -5550,6 +5561,7 @@ export type Database = {
           carrier?: string | null
           cart_session_id?: string | null
           coupon_code?: string | null
+          coupon_discount_ars?: number
           created_at?: string
           customer_email: string
           customer_id?: string | null
@@ -5569,6 +5581,7 @@ export type Database = {
           payment_status?: string
           shipping_address?: Json
           shipping_cost?: number
+          shipping_discount_ars?: number
           shipping_label?: string | null
           shipping_quoted_at?: string | null
           shipping_service?: string | null
@@ -5588,6 +5601,7 @@ export type Database = {
           carrier?: string | null
           cart_session_id?: string | null
           coupon_code?: string | null
+          coupon_discount_ars?: number
           created_at?: string
           customer_email?: string
           customer_id?: string | null
@@ -5607,6 +5621,7 @@ export type Database = {
           payment_status?: string
           shipping_address?: Json
           shipping_cost?: number
+          shipping_discount_ars?: number
           shipping_label?: string | null
           shipping_quoted_at?: string | null
           shipping_service?: string | null
@@ -20318,6 +20333,7 @@ export type Database = {
         Args: {
           p_code: string
           p_email?: string
+          p_shipping?: number
           p_slug: string
           p_subtotal: number
         }

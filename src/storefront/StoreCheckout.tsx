@@ -67,35 +67,10 @@ export default function StoreCheckout() {
 
   // ── Cupón ───────────────────────────────────────────────────────────────
   const [cupon, setCupon] = useState("");
-  const [cuponAplicado, setCuponAplicado] = useState<{ code: string; discount: number } | null>(null);
+  const [cuponAplicado, setCuponAplicado] = useState<
+    { code: string; discount: number; shippingDiscount: number } | null>(null);
   const [cuponError, setCuponError] = useState<string | null>(null);
   const [validandoCupon, setValidandoCupon] = useState(false);
-
-  const aplicarCupon = async () => {
-    if (!cupon.trim() || !store) return;
-    setValidandoCupon(true);
-    setCuponError(null);
-    const { data, error: rpcErr } = await supabase.rpc("check_store_coupon", {
-      p_slug: store.slug, p_code: cupon.trim(),
-      // El subtotal de MERCADERÍA, ya con la promo aplicada y sin el envío: un
-      // cupón de "mínimo $50.000" no se puede activar sumando flete, o el
-      // comercio termina subsidiando el envío para llegar a su propio piso.
-      p_subtotal: Math.max(0, subtotal - promo2x),
-      // Sin el email, un cupón de "una vez por persona" no se puede evaluar y
-      // la base lo rechaza. Se manda normalizado, igual que lo guarda el libro
-      // de usos.
-      p_email: normalizarEmail(form.email),
-    });
-    setValidandoCupon(false);
-
-    const res = data as any;
-    if (rpcErr || !res?.valid) {
-      setCuponAplicado(null);
-      setCuponError(res?.reason ?? "No se pudo validar el cupón");
-      return;
-    }
-    setCuponAplicado({ code: res.code, discount: Number(res.discount) || 0 });
-  };
 
   // ── Envío ───────────────────────────────────────────────────────────────
   // La tienda puede cotizar por zona y peso, no sólo un precio plano. Las
@@ -168,7 +143,81 @@ export default function StoreCheckout() {
   // Mientras no haya cotización se usa el costo del contexto, que es el plano.
   const envio = opcion ? Number(opcion.price) : (opciones.length > 0 ? 0 : shippingCost);
 
+  // ── Validación del cupón ────────────────────────────────────────────────
+  // Va acá abajo porque necesita el envío ya cotizado: desde A5 un cupón puede
+  // bonificarlo, y uno que bonifica el envío sobre un pedido con retiro en
+  // tienda no descuenta nada. La base es la autoridad; esto sólo pregunta.
+  const chequearCupon = async (codigo: string) => {
+    const { data, error: rpcErr } = await supabase.rpc("check_store_coupon", {
+      p_slug: store!.slug,
+      p_code: codigo,
+      // El subtotal de MERCADERÍA, ya con la promo aplicada y sin el envío: un
+      // cupón de "mínimo $50.000" no se puede activar sumando flete, o el
+      // comercio termina subsidiando el envío para llegar a su propio piso.
+      p_subtotal: Math.max(0, subtotal - promo2x),
+      // Sin el email, un cupón de "una vez por persona" no se puede evaluar y
+      // la base lo rechaza. Se manda normalizado, igual que lo guarda el libro
+      // de usos.
+      p_email: normalizarEmail(form.email),
+      p_shipping: envio,
+    });
+    if (rpcErr) return null;
+    return data as any;
+  };
+
+  const aplicarCupon = async () => {
+    if (!cupon.trim() || !store) return;
+    setValidandoCupon(true);
+    setCuponError(null);
+    const res = await chequearCupon(cupon.trim());
+    setValidandoCupon(false);
+
+    if (!res?.valid) {
+      setCuponAplicado(null);
+      setCuponError(res?.reason ?? "No se pudo validar el cupón");
+      return;
+    }
+    setCuponAplicado({
+      code: res.code,
+      discount: Number(res.discount) || 0,
+      shippingDiscount: Number(res.shipping_discount) || 0,
+    });
+  };
+
+  // Un cupón deja de aplicar sin que el comprador toque el campo: cambia de
+  // opción a retiro en tienda, o suma un producto y cruza el umbral de envío
+  // gratis. Si no se revalida, el resumen muestra un descuento que
+  // `create_store_order` va a rechazar al confirmar.
+  const codigoAplicado = cuponAplicado?.code ?? null;
+  useEffect(() => {
+    if (!codigoAplicado || !store) return;
+    let cancelado = false;
+    // El email está entre las entradas —hace falta para el límite por persona—
+    // y se escribe letra por letra. Sin esta espera sería una consulta por
+    // tecla.
+    const t = setTimeout(() => { chequearCupon(codigoAplicado).then(res => {
+      if (cancelado) return;
+      if (!res?.valid) {
+        setCuponAplicado(null);
+        setCuponError(res?.reason ?? "El cupón dejó de aplicar a este pedido");
+        return;
+      }
+      setCuponAplicado({
+        code: res.code,
+        discount: Number(res.discount) || 0,
+        shippingDiscount: Number(res.shipping_discount) || 0,
+      });
+    }); }, 400);
+    return () => { cancelado = true; clearTimeout(t); };
+    // `chequearCupon` se recrea en cada render; las entradas que importan son
+    // éstas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codigoAplicado, envio, subtotal, promo2x, store?.slug, form.email]);
+
   const descuento = cuponAplicado?.discount ?? 0;
+  // Nunca más que el envío cotizado: el cupón bonifica flete, no devuelve plata.
+  const bonifEnvio = Math.min(cuponAplicado?.shippingDiscount ?? 0, envio);
+  const envioACobrar = envio - bonifEnvio;
 
   // Mismo orden que `create_store_order`: primero la promo "llevando 2"
   // —que es un precio, no una rebaja—, después el cupón sobre lo que queda, y
@@ -194,7 +243,7 @@ export default function StoreCheckout() {
   );
 
   const descuentoPago = ahorroPorMedio(form.metodo);
-  const totalFinal = Math.max(0, baseMercaderia - descuentoPago) + envio;
+  const totalFinal = Math.max(0, baseMercaderia - descuentoPago) + envioACobrar;
 
   // Inicio de checkout: Meta y GA lo usan para medir abandono.
   // Solo al montar, no en cada cambio del carrito.
@@ -562,7 +611,16 @@ export default function StoreCheckout() {
                   <span className="block text-[11px] truncate max-w-[160px]">{opcion.label}</span>
                 )}
               </span>
-              <span>{envio === 0 ? "Gratis" : fmt(envio)}</span>
+              <span>
+                {/* Con el envío bonificado se muestra lo que costaba tachado:
+                    el cupón tiene que verse, si no parece que no hizo nada. */}
+                {bonifEnvio > 0 && (
+                  <span className="line-through mr-1.5" style={{ color: "hsl(var(--st-muted))" }}>
+                    {fmt(envio)}
+                  </span>
+                )}
+                {envioACobrar === 0 ? "Gratis" : fmt(envioACobrar)}
+              </span>
             </div>
             <div className="flex justify-between font-semibold text-base pt-1">
               <span>Total</span><span>{fmt(totalFinal)}</span>
