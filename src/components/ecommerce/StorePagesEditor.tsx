@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Plus, Trash2, Loader2, ExternalLink, Save } from "lucide-react";
+import LegalPagesPanel from "./LegalPagesPanel";
 
 interface PageRow {
   id: string;
@@ -140,6 +141,16 @@ export default function StorePagesEditor({ storeId, storeSlug }: { storeId: stri
   }
 
   return (
+    <div className="space-y-4">
+    {/* Va arriba de todo y no en una pestaña aparte: las dos páginas que
+        genera son obligatorias, y esconderlas sería repetir el motivo por el
+        que la plantilla quedó sin completar dos años. */}
+    <LegalPagesPanel
+      storeId={storeId}
+      existentes={pages.map(p => ({ slug: p.slug, content: p.content }))}
+      onAplicado={cargar}
+    />
+
     <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
       {/* Listado */}
       <div className="space-y-2">
@@ -275,6 +286,7 @@ export default function StorePagesEditor({ storeId, storeSlug }: { storeId: stri
           Elegí una página de la izquierda para editarla.
         </div>
       )}
+    </div>
     </div>
   );
 }

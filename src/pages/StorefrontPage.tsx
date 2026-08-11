@@ -22,6 +22,7 @@ import StorePage from "@/storefront/StorePage";
 import StoreOrder from "@/storefront/StoreOrder";
 import StoreAccount from "@/storefront/StoreAccount";
 import StoreCartRecovery from "@/storefront/StoreCartRecovery";
+import StoreArrepentimiento from "@/storefront/StoreArrepentimiento";
 import { StoreAuthProvider } from "@/storefront/storeAuth";
 import { WishlistProvider } from "@/storefront/wishlist";
 import { Store, Loader2 } from "lucide-react";
@@ -97,6 +98,9 @@ function StoreShell() {
         <Route path="cuenta" element={<StoreAccount />} />
         <Route path="carrito/:token" element={<StoreCartRecovery />} />
         <Route path="pagina/:pageSlug" element={<StorePage />} />
+        {/* Res. 424/2020: el botón de arrepentimiento va accesible desde la
+            primera pantalla. El link vive en la barra de arriba del header. */}
+        <Route path="arrepentimiento" element={<StoreArrepentimiento />} />
         <Route path="*" element={<StoreHome />} />
       </Routes>
     </StoreLayout>

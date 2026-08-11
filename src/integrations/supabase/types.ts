@@ -5527,6 +5527,7 @@ export type Database = {
           customer_id: string | null
           customer_name: string
           customer_phone: string | null
+          delivered_at: string | null
           delivery_days_max: number | null
           delivery_days_min: number | null
           discount_amount: number
@@ -5539,6 +5540,7 @@ export type Database = {
           payment_id: string | null
           payment_method: string
           payment_status: string
+          shipped_at: string | null
           shipping_address: Json
           shipping_cost: number
           shipping_discount_ars: number
@@ -5567,6 +5569,7 @@ export type Database = {
           customer_id?: string | null
           customer_name: string
           customer_phone?: string | null
+          delivered_at?: string | null
           delivery_days_max?: number | null
           delivery_days_min?: number | null
           discount_amount?: number
@@ -5579,6 +5582,7 @@ export type Database = {
           payment_id?: string | null
           payment_method?: string
           payment_status?: string
+          shipped_at?: string | null
           shipping_address?: Json
           shipping_cost?: number
           shipping_discount_ars?: number
@@ -5607,6 +5611,7 @@ export type Database = {
           customer_id?: string | null
           customer_name?: string
           customer_phone?: string | null
+          delivered_at?: string | null
           delivery_days_max?: number | null
           delivery_days_min?: number | null
           discount_amount?: number
@@ -5619,6 +5624,7 @@ export type Database = {
           payment_id?: string | null
           payment_method?: string
           payment_status?: string
+          shipped_at?: string | null
           shipping_address?: Json
           shipping_cost?: number
           shipping_discount_ars?: number
@@ -11986,6 +11992,7 @@ export type Database = {
           stock: number
           supplier_id: string | null
           tags: string[] | null
+          tax_rate: number | null
           tiendanube_id: string | null
           tiendanube_product_id: string | null
           total_cost_usd: number
@@ -12031,6 +12038,7 @@ export type Database = {
           stock?: number
           supplier_id?: string | null
           tags?: string[] | null
+          tax_rate?: number | null
           tiendanube_id?: string | null
           tiendanube_product_id?: string | null
           total_cost_usd?: number
@@ -12076,6 +12084,7 @@ export type Database = {
           stock?: number
           supplier_id?: string | null
           tags?: string[] | null
+          tax_rate?: number | null
           tiendanube_id?: string | null
           tiendanube_product_id?: string | null
           total_cost_usd?: number
@@ -13728,6 +13737,7 @@ export type Database = {
           customer_email: string | null
           customer_id: string | null
           customer_name: string
+          ecommerce_order_id: string | null
           id: string
           org_id: string
           product_id: string | null
@@ -13741,6 +13751,8 @@ export type Database = {
           resolved_at: string | null
           rma_number: string
           status: string
+          tipo: string
+          variant_id: string | null
         }
         Insert: {
           condition?: string
@@ -13748,6 +13760,7 @@ export type Database = {
           customer_email?: string | null
           customer_id?: string | null
           customer_name: string
+          ecommerce_order_id?: string | null
           id?: string
           org_id: string
           product_id?: string | null
@@ -13761,6 +13774,8 @@ export type Database = {
           resolved_at?: string | null
           rma_number: string
           status?: string
+          tipo?: string
+          variant_id?: string | null
         }
         Update: {
           condition?: string
@@ -13768,6 +13783,7 @@ export type Database = {
           customer_email?: string | null
           customer_id?: string | null
           customer_name?: string
+          ecommerce_order_id?: string | null
           id?: string
           org_id?: string
           product_id?: string | null
@@ -13781,6 +13797,8 @@ export type Database = {
           resolved_at?: string | null
           rma_number?: string
           status?: string
+          tipo?: string
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -13788,6 +13806,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_requests_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_requests_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_iva"
             referencedColumns: ["id"]
           },
           {
@@ -13860,12 +13892,27 @@ export type Database = {
             referencedRelation: "return_reasons"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "return_requests_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_requests_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       returns: {
         Row: {
           amount_ars: number
           created_at: string
+          ecommerce_order_id: string | null
           id: string
           notes: string | null
           org_id: string
@@ -13881,6 +13928,7 @@ export type Database = {
         Insert: {
           amount_ars?: number
           created_at?: string
+          ecommerce_order_id?: string | null
           id?: string
           notes?: string | null
           org_id: string
@@ -13896,6 +13944,7 @@ export type Database = {
         Update: {
           amount_ars?: number
           created_at?: string
+          ecommerce_order_id?: string | null
           id?: string
           notes?: string | null
           org_id?: string
@@ -13909,6 +13958,20 @@ export type Database = {
           variant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "returns_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_iva"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "returns_org_id_fkey"
             columns: ["org_id"]
@@ -20427,10 +20490,12 @@ export type Database = {
         }
         Returns: Json
       }
+      decimales_de_moneda: { Args: { p_moneda: string }; Returns: number }
       desglosar_iva: {
         Args: { p_importe: number; p_incluido: boolean; p_tasa: number }
         Returns: Json
       }
+      dias_para_arrepentirse: { Args: { p_order_id: string }; Returns: number }
       end_expired_promotions: { Args: never; Returns: number }
       eval_territory_conditions: {
         Args: { p_attributes: Json; p_conditions: Json }
@@ -20929,6 +20994,10 @@ export type Database = {
         Args: { p_ip?: unknown; p_token: string; p_user_agent?: string }
         Returns: Json
       }
+      prorratear: {
+        Args: { p_moneda?: string; p_pesos: number[]; p_total: number }
+        Returns: number[]
+      }
       purge_expired_oauth_states: { Args: never; Returns: number }
       quote_store_shipping: {
         Args: {
@@ -21019,6 +21088,10 @@ export type Database = {
         }
         Returns: string
       }
+      redondear_moneda: {
+        Args: { p_importe: number; p_moneda?: string }
+        Returns: number
+      }
       registrar_conteo: {
         Args: { p_cantidad: number; p_count_id: string; p_product_id: string }
         Returns: Json
@@ -21036,6 +21109,19 @@ export type Database = {
         }
         Returns: Json
       }
+      request_store_return: {
+        Args: {
+          p_email: string
+          p_motivo?: string
+          p_order_number: string
+          p_product_id?: string
+          p_qty?: number
+          p_slug: string
+          p_tipo: string
+          p_variant_id?: string
+        }
+        Returns: Json
+      }
       resolve_stock_reservation: {
         Args: { p_reservation_id: string; p_status: string }
         Returns: undefined
@@ -21047,6 +21133,18 @@ export type Database = {
           p_product_id: string
           p_qty: number
           p_variant_id: string
+        }
+        Returns: Json
+      }
+      return_store_order_item: {
+        Args: {
+          p_notes?: string
+          p_order_id: string
+          p_product_id: string
+          p_qty?: number
+          p_reason?: string
+          p_refund_method?: string
+          p_variant_id?: string
         }
         Returns: Json
       }

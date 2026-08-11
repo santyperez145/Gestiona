@@ -148,6 +148,27 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         ...(font ? { fontFamily: font.stack } : {}),
       }}
     >
+      {/* ── Barra legal ──────────────────────────────────────────────────
+          La Res. 424/2020 no pide que el botón de arrepentimiento sea
+          "accesible": pide que esté **en la primera pantalla**. Por eso va
+          acá arriba y no en el pie, que es donde la intuición lo pondría y
+          donde lo tiene la mayoría de las tiendas —incumpliendo—. Ocupa una
+          línea de 24px y es lo que Defensa del Consumidor mira primero. */}
+      <div
+        className="text-[11px] border-b"
+        style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))" }}
+      >
+        <div className="max-w-6xl mx-auto px-4 py-1 flex justify-end">
+          <Link
+            to={`${base}/arrepentimiento`}
+            className="hover:underline"
+            style={{ color: "hsl(var(--st-muted))" }}
+          >
+            Botón de arrepentimiento
+          </Link>
+        </div>
+      </div>
+
       {/* ── Header ───────────────────────────────────────────────────── */}
       <header
         className="sticky top-0 z-40 border-b backdrop-blur"
@@ -361,8 +382,24 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             )}
           </div>
         </div>
-        <div className="border-t py-4 text-center text-xs" style={{ borderColor: "hsl(var(--st-border))", color: "hsl(var(--st-muted))" }}>
-          © {new Date().getFullYear()} {store?.name}
+        {/* Defensa del Consumidor exige que el comprador sepa dónde reclamar
+            si el comercio no le responde. Va acá abajo, junto al copyright,
+            porque es información de cierre y no una acción — a diferencia del
+            botón de arrepentimiento, que sí tiene que estar arriba. */}
+        <div className="border-t py-4 text-center text-xs space-y-2" style={{ borderColor: "hsl(var(--st-border))", color: "hsl(var(--st-muted))" }}>
+          <p className="flex flex-wrap justify-center gap-x-3 gap-y-1">
+            <Link to={`${base}/arrepentimiento`} className="hover:underline">
+              Botón de arrepentimiento
+            </Link>
+            <span aria-hidden>·</span>
+            <a
+              href="https://autogestion.produccion.gob.ar/consumidores"
+              target="_blank" rel="noopener noreferrer" className="hover:underline"
+            >
+              Defensa del Consumidor
+            </a>
+          </p>
+          <p>© {new Date().getFullYear()} {store?.name}</p>
         </div>
       </footer>
 
