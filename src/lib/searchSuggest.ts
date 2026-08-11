@@ -18,7 +18,7 @@
  * Todo se resuelve sobre el catálogo que ya está en memoria: no hay una
  * consulta más por tecla apretada.
  */
-import { normalizeText, queryTokens, matchesAllTokens } from "./searchText";
+import { normalizeText, queryTokens, matchesAllTokens, matchesAllTokensAprox } from "./searchText";
 
 export interface ProductoBuscable {
   id: string;
@@ -99,8 +99,18 @@ export function sugerenciasDeBusqueda(
   }
 
   // ── Productos ────────────────────────────────────────────────────────
-  const productosMatch = universo
-    .filter(p => matchesAllTokens(`${p.name} ${p.brand ?? ""}`, tokens))
+  //
+  // B10 — primero literal; **sólo si no hay ninguna** se cae a lo aproximado.
+  // Nunca se mezclan: un resultado difuso arriba de uno exacto es peor que no
+  // tener difuso. Antes "lataffa" no encontraba nada teniendo 30 Lattafa, y no
+  // lo encontraba de la peor forma —"sin resultados" le dice al comprador que
+  // no lo tenemos—.
+  const literales = universo.filter(p =>
+    matchesAllTokens(`${p.name} ${p.brand ?? ""}`, tokens));
+  const aproximados = literales.length > 0 ? literales : universo.filter(p =>
+    matchesAllTokensAprox(`${p.name} ${p.brand ?? ""}`, tokens));
+
+  const productosMatch = aproximados
     .map(p => {
       const nombre = normalizeText(p.name);
       // Empieza con lo buscado > lo contiene al principio de una palabra > resto.

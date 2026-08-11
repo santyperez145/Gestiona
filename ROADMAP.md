@@ -172,7 +172,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | **B7** | **Reseñas con foto** | Hay reseñas verificadas, sin imagen. | ML |
 | **B8** | **Comparador y "visto recientemente"** | No existe. | ML |
 | **B9** | **Filtros por atributo en el catálogo** | Sólo categoría, precio y género. La ficha olfativa está **vacía en las 30 filas**, así que un filtro por familia filtraría sobre nada: primero hay que cargar los datos. | Tiendanube |
-| **B10** | **Búsqueda con corrección de tipeo** | Ya sugiere mientras se escribe, pero exige que los términos coincidan. "lataffa" no encuentra nada. | ML |
+| ~~B10~~ | ~~Búsqueda con corrección de tipeo~~ | ✅ Sesión 110. Damerau-Levenshtein con tolerancia **por largo del término** (≤3 exacto, 4-6 un error, ≥7 dos): con tolerancia fija "oud" matchearía "sud". Literal primero y difuso **sólo si no hay ninguna** — nunca mezclados. Verificado contra producción: "lataffa" trae 7 Lattafa, "zapatillas" trae 0. | ML |
 | **B11** | **Envío a domicilio con cálculo por código postal real** | Se cotiza por provincia. El CP se pide y no afina la tarifa. | Todas |
 | **B12** | **Retiro en punto de entrega (pickup points)** | Hay retiro en local. Faltan sucursales de correo. | Tiendanube, ML |
 | **B13** | **Carrito persistente entre dispositivos** | Vive en `localStorage`: se pierde al cambiar de teléfono a compu aunque haya sesión. | Shopify |
