@@ -221,6 +221,39 @@ tiene y ML menos.
 | **E2** | **El stock del local es el stock de la tienda, con reserva** | Ya está la reserva (A2) y el multi-depósito. Falta cerrarlo: vender en el mostrador algo que está reservado por una orden online tiene que avisar. |
 | **E3** | **Un cliente, una ficha** | El CRM ya cruza las cinco tablas por `customer_id`. Falta que el comprador online y el del mostrador sean la misma persona automáticamente, con su historial completo en las dos direcciones. |
 
+#### F. Cumplimiento legal — lo que no es opcional
+
+Sale del relevamiento completo en **[docs/LEGAL.md](docs/LEGAL.md)**, que va
+requisito por requisito contra el código. Esto no es paridad con la competencia:
+es lo que hace falta para vender sin exponerse. **No es asesoramiento legal** —
+cada punto conviene validarlo con un profesional.
+
+Ordenado por riesgo dividido esfuerzo, que no es el orden en que se descubrieron:
+
+| # | Qué | Norma | Estado |
+|---|---|---|---|
+| **F1** | **Página de política de privacidad**, con qué datos se guardan, para qué, cuánto tiempo y **que se alojan en Estados Unidos** | Ley 25.326 arts. 6 y 12 | 🔴 No existe. Hay términos, cambios y devoluciones, FAQ y "sobre nosotros" — falta ésta. Es lo más barato de la lista. |
+| **F2** | **Botón de arrepentimiento en la primera pantalla** de la tienda | Res. 424/2020 | 🔴 El backend está entero (`request_store_return`, sesión 107). Falta la UI, y tiene que estar **en la home**, no en el pie. |
+| **F3** | **Datos del proveedor**: razón social, CUIT y domicilio | Ley 24.240 art. 4 | 🟠 Revisar a mano el texto de los términos actuales. |
+| **F4** | **Link a Ventanilla Única Federal de Reclamos** en el pie | Comercio electrónico | 🔴 No existe. Es un link. |
+| **F5** | **Consentimiento de marketing con fecha y origen**, sin marcar por defecto | Ley 25.326 art. 27 | 🟠 Se mandan campañas por email y WhatsApp sin registrar cuándo aceptó la persona. |
+| **F6** | **Baja visible en WhatsApp**, como ya la hay en email | Ley 25.326 art. 27 | 🟠 `drip-unsubscribe` cubre email; WhatsApp no dice cómo darse de baja. |
+| **F7** | **Registro No Llame** antes de una campaña telefónica | Ley 26.951 | 🟠 No se consulta. |
+| **F8** | **El comercio ve cuándo soporte entró a su cuenta** | Transparencia | 🟠 `admin_audit_logs` ya lo registra; falta mostrárselo. Es D6. |
+| **F9** | **Contrato de tratamiento de datos** plataforma ↔ comercio | Ley 25.326 art. 25 | 🔴 La plataforma es *encargada*, el comercio *responsable*. Necesita abogado. |
+| **F10** | **El costo del envío de vuelta lo paga el vendedor** | Ley 24.240 art. 34 | 🟠 La devolución registra el producto, no el flete. |
+| **F11** | **Acotar la garantía a 6 meses** en el reclamo por falla | Ley 24.240 art. 11 | 🟠 Hoy acepta un reclamo sin límite de tiempo. Es el error barato, pero conviene cerrarlo. |
+| **F12** | **CFT y precio de contado** si algún día hay cuotas con interés | Res. 51/2017 | 🟠 Hoy sólo hay "sin interés", donde el CFT es 0%. El código no distingue las dos cosas. |
+| **F13** | **Procedimiento escrito de incidente de seguridad** | Res. AAIP 47/2018 | 🔴 Sin procedimiento no se cumple ningún plazo. |
+| **F14** | **Consultar por el descuento según medio de pago** | Ley 25.065 art. 37 | 🟠 No es una decisión de producto. |
+| **F15** | **Factura electrónica de verdad** | RG 4291 | 🔴 Ya está como A-pendiente; acá se anota que además es el riesgo fiscal más grande del sistema hoy. |
+| **F16** | **Comprobante fiscal argentino de la suscripción** al comercio | ARCA | 🟠 Stripe cobra y no se emite nada. |
+| **F17** | **Portabilidad: que un comercio se lleve su negocio entero** | — | 🟠 Es D5. Retenerlo por falta de herramienta es un problema legal, no sólo comercial. |
+
+⚠️ **F1 a F4 son cuatro páginas y un link.** Juntos sacan del rojo casi todo lo
+que Defensa del Consumidor y la AAIP detectan de oficio, y no dependen de
+ningún trámite externo. Todo lo demás puede esperar; eso no.
+
 ---
 
 ## 8. Riesgos
@@ -653,6 +686,54 @@ Falta (ver `docs/MERCADOLIBRE.md`): botón de publicar en la ficha del producto
 con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
+
+### Sesión 108 — Relevamiento legal de las tres superficies (2026-08-11)
+
+Se venía construyendo funcionalidad sin revisar contra qué normativa. La sesión
+anterior encodeó el arrepentimiento en el RPC; ésta fue a ver **qué más falta**,
+requisito por requisito, en la tienda, el CRM y el panel de plataforma.
+
+Resultado en [docs/LEGAL.md](docs/LEGAL.md) y como bloque **F** en §5 (17 ítems).
+Lo que hay que saber sin leerlo entero:
+
+**Lo más caro es también lo más barato de arreglar.** Los cuatro ítems en rojo
+que Defensa del Consumidor y la AAIP detectan de oficio —política de privacidad,
+botón de arrepentimiento en la home, datos del proveedor, link a la Ventanilla
+Única— son **cuatro páginas y un link**. Ninguno depende de un trámite externo.
+
+**No hay política de privacidad.** Medido contra `store_pages`: hay
+`terminos-y-condiciones`, `cambios-y-devoluciones`, `preguntas-frecuentes` y
+`sobre-nosotros`, las cuatro publicadas. Falta la de privacidad, que la Ley
+25.326 exige apenas se recolecta un email — y se recolectan varios.
+
+**Los datos se alojan en Estados Unidos y eso hay que declararlo.** Supabase
+corre en AWS `us-east-1`. Para la AAIP, Estados Unidos **no** tiene nivel
+adecuado de protección, así que la transferencia necesita cláusulas o
+consentimiento informado. Es un párrafo en la política de privacidad, pero hay
+que escribirlo a propósito: nadie lo descubre solo.
+
+**El descuento por medio de pago toca la Ley 25.065.** El art. 37 prohíbe cobrar
+más por tarjeta. Un descuento por transferencia es práctica extendida y hubo
+cambios normativos, pero la lectura no es unánime. Se anota como **F14 y se
+deriva a un profesional**: no es una decisión que deba tomar el código, y menos
+en silencio.
+
+**El marco de plataforma no está escrito.** La plataforma es *encargada* del
+tratamiento y el comercio *responsable* (art. 25). No hay contrato entre los dos
+que diga qué puede hacer la plataforma con los datos de los clientes del
+comercio. Va de la mano con que el comercio pueda ver cuándo soporte entró a su
+cuenta —`admin_audit_logs` ya lo registra, falta mostrárselo— y con poder llevarse
+su negocio entero al irse.
+
+**Lo que ya estaba bien, y conviene no romper:** RLS por organización verificada
+con roles reales, MFA sin excepción para staff, credenciales fuera del navegador
+con tablas de cero policies, export y borrado de datos por persona, baja de las
+secuencias de email, y la separación entre `store_customers` y `customers` — que
+es lo que evita que el comprador de un perfume termine siendo usuario del SaaS.
+
+El documento aclara arriba de todo que **no es asesoramiento legal**. Lo que
+aporta es dónde está cada cosa en el código, para que la consulta al abogado sea
+corta y concreta en vez de empezar de cero.
 
 ### Sesión 103 — Las promociones, también online (2026-08-06)
 

@@ -16,6 +16,13 @@ Tres superficies separadas, y esa separación es deliberada:
 Ser staff de plataforma **no** otorga permisos dentro de una organización. Ver
 [docs/permisos.md](docs/permisos.md).
 
+⚠️ **Antes de tocar precios, datos de clientes o el panel de plataforma, leer
+[docs/LEGAL.md](docs/LEGAL.md).** Es el relevamiento contra la normativa
+argentina, requisito por requisito. Lo que más sorprende: **no hay política de
+privacidad publicada** y **el botón de arrepentimiento tiene que estar en la
+primera pantalla**, no en el pie. Los cuatro ítems en rojo son cuatro páginas y
+un link, y son los que se detectan de oficio.
+
 ¿Arrancando de cero? [docs/GUIA.md](docs/GUIA.md) explica la plataforma y el
 código para alguien sin experiencia, con un orden de estudio y ejercicios sobre
 los archivos de este repo.
