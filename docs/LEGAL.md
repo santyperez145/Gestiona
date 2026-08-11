@@ -13,8 +13,8 @@ con el estado medido contra la base cuando se pudo.
 
 | | Qué | Riesgo |
 |---|---|---|
-| 🔴 **L1** | **No hay política de privacidad publicada.** Hay términos, cambios y devoluciones, FAQ y "sobre nosotros" — falta la de privacidad. Ley 25.326 la exige apenas se recolecta un email. | Multa de la AAIP y, en la práctica, rechazo de MercadoPago al revisar la cuenta. |
-| 🔴 **L2** | **El botón de arrepentimiento no está en la primera pantalla.** La Res. 424/2020 exige que sea visible en la home, no en el pie ni dentro de una página. El RPC ya existe (sesión 107); falta la UI. | Es de las infracciones que Defensa del Consumidor detecta de oficio. |
+| 🟡 **L1** | **No había política de privacidad.** Ley 25.326 la exige apenas se recolecta un email. **Sesión 109:** el generador la escribe con los datos del comercio y los proveedores reales; falta que el dueño la revise y publique. | Multa de la AAIP y, en la práctica, rechazo de MercadoPago al revisar la cuenta. |
+| ✅ **L2** | **Botón de arrepentimiento en la primera pantalla.** Resuelto en la sesión 108: barra superior, a 4px del tope, verificado en 1280 y en 375. | — |
 | 🟠 **L3** | **El descuento por medio de pago toca la Ley 25.065.** Art. 37: no se puede cobrar más por tarjeta. Un descuento por transferencia es la práctica habitual, pero la lectura no es unánime. | Necesita opinión profesional, no una decisión de producto. |
 | 🟠 **L4** | **No hay registro de consentimiento para marketing.** Se mandan campañas por email y WhatsApp sin guardar cuándo y cómo la persona aceptó. | Ley 25.326 art. 27 y Ley 26.951 (No Llame). |
 | 🟠 **L5** | **No hay contrato de tratamiento de datos entre la plataforma y el comercio.** La plataforma es *encargada* del tratamiento; el comercio es el *responsable*. | Ley 25.326 art. 25. |
@@ -27,14 +27,14 @@ con el estado medido contra la base cuando se pudo.
 
 | Requisito | Estado |
 |---|---|
-| **Botón de arrepentimiento visible en la primera pantalla** (Res. 424/2020) | 🔴 Falta la UI. El backend está: `request_store_return` distingue arrepentimiento (10 días corridos, sin causa) de falla (garantía), y no corta el plazo si no se registró la entrega. |
+| **Botón de arrepentimiento visible en la primera pantalla** (Res. 424/2020) | ✅ Barra superior de la tienda, verificado a 4px del tope en 1280 y 375. `request_store_return` distingue arrepentimiento (10 días corridos, sin causa) de falla (garantía), y no corta el plazo si no se registró la entrega. |
 | **10 días corridos desde la entrega, sin expresar causa** (art. 34) | ✅ En el RPC. `dias_para_arrepentirse` cuenta desde `delivered_at`. |
 | **El costo de devolución lo paga el vendedor** (art. 34) | 🟠 No está modelado. La devolución registra el monto del producto, no el flete. |
 | **Garantía legal: 6 meses producto nuevo** (art. 11) | ✅ El tipo `falla` no tiene ventana de 10 días. ⚠️ Tampoco valida los 6 meses: hoy acepta un reclamo de garantía sin límite. Es el error barato, pero conviene acotarlo. |
 | **Información cierta y detallada** (art. 4) | 🟠 10 de 60 productos publicados **sin foto** y 33 con descripción de menos de 80 caracteres. El panel de calidad los rankea. |
 | **Términos y condiciones accesibles** | ✅ Publicados. |
-| **Datos del proveedor: razón social, CUIT, domicilio** (art. 4) | 🟠 No verificado que estén en los términos. **Hay que revisarlo a mano.** |
-| **Link a Ventanilla Única Federal de Reclamos** | 🔴 No existe. Es exigible para comercio electrónico. |
+| **Datos del proveedor: razón social, CUIT, domicilio** (art. 4) | 🟡 **Verificado: los términos publicados eran la plantilla semilla intacta** — decían "Mi Tienda Online" y cerraban con "Completá acá tu razón social, CUIT, domicilio y un medio de contacto". El generador de la sesión 109 los reescribe con los datos reales; falta que el dueño los cargue y publique. |
+| **Link a Ventanilla Única Federal de Reclamos** | ✅ En el pie de la tienda y al final del formulario de arrepentimiento (sesión 108). |
 
 ### 1.2 Precios y publicidad
 
@@ -69,13 +69,13 @@ con el estado medido contra la base cuando se pudo.
 
 | Requisito | Estado |
 |---|---|
-| **Política de privacidad publicada** | 🔴 No existe. Es el ítem L1. |
+| **Política de privacidad publicada** | 🟡 El generador la escribe, incluida la declaración de que los datos se alojan en Estados Unidos. Falta revisarla y publicarla. |
 | **Registro de la base de datos ante la AAIP** (art. 21) | 🔴 Trámite del comercio, no del código. **Pero la plataforma debería avisarlo en el onboarding**, porque casi ningún comercio chico sabe que existe. |
 | **Consentimiento registrado para marketing** (art. 27) | 🟠 Se mandan campañas sin guardar cuándo y cómo la persona aceptó. Falta una columna de consentimiento con fecha y origen. |
 | **Registro No Llame** (Ley 26.951) | 🟠 Las campañas de WhatsApp y los avisos por teléfono no consultan el registro. Aplica a llamadas y mensajes con fin publicitario. |
 | **Derecho de acceso en 10 días** (art. 14) | 🟠 El export existe pero no hay un canal donde la persona lo pida ni un plazo medido. |
 | **Aviso en cada comunicación de que puede pedir la baja** (art. 27) | 🟠 En email sí; en WhatsApp **no**. |
-| **Transferencia internacional de datos** (art. 12) | 🟠 Los datos viven en Supabase (AWS `us-east-1`). Estados Unidos **no** tiene nivel adecuado de protección según la AAIP, así que la transferencia necesita cláusulas contractuales o consentimiento informado. **Esto hay que resolverlo en la política de privacidad.** |
+| **Transferencia internacional de datos** (art. 12) | 🟡 Los datos viven en Supabase (AWS `us-east-1`). Estados Unidos **no** tiene nivel adecuado de protección según la AAIP. La política generada lo declara explícitamente y lo apoya en el consentimiento informado al comprar. |
 | **Medidas de seguridad** (Res. AAIP 47/2018) | ✅ En buena forma: RLS, MFA obligatorio para staff de plataforma, credenciales fuera del navegador, tablas de tokens con cero policies. |
 | **Notificación de incidentes** | 🔴 No hay procedimiento escrito. La AAIP recomienda notificar; no hay plazo legal duro, pero sin procedimiento no se cumple ninguno. |
 

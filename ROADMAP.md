@@ -232,10 +232,10 @@ Ordenado por riesgo dividido esfuerzo, que no es el orden en que se descubrieron
 
 | # | Qué | Norma | Estado |
 |---|---|---|---|
-| **F1** | **Página de política de privacidad**, con qué datos se guardan, para qué, cuánto tiempo y **que se alojan en Estados Unidos** | Ley 25.326 arts. 6 y 12 | 🔴 No existe. Hay términos, cambios y devoluciones, FAQ y "sobre nosotros" — falta ésta. Es lo más barato de la lista. |
-| **F2** | **Botón de arrepentimiento en la primera pantalla** de la tienda | Res. 424/2020 | 🔴 El backend está entero (`request_store_return`, sesión 107). Falta la UI, y tiene que estar **en la home**, no en el pie. |
-| **F3** | **Datos del proveedor**: razón social, CUIT y domicilio | Ley 24.240 art. 4 | 🟠 Revisar a mano el texto de los términos actuales. |
-| **F4** | **Link a Ventanilla Única Federal de Reclamos** en el pie | Comercio electrónico | 🔴 No existe. Es un link. |
+| **F1** | **Página de política de privacidad**, con qué datos se guardan, para qué, cuánto tiempo y **que se alojan en Estados Unidos** | Ley 25.326 arts. 6 y 12 | 🟡 **Sesión 109:** el generador la escribe con los proveedores reales y la declaración de transferencia. Falta que el dueño cargue sus datos, la revise y la publique. |
+| **F2** | **Botón de arrepentimiento en la primera pantalla** de la tienda | Res. 424/2020 | ✅ **Sesión 108.** Barra superior, a 4px del tope, verificado en 1280 y 375. |
+| **F3** | **Datos del proveedor**: razón social, CUIT y domicilio | Ley 24.240 art. 4 | 🟡 **Verificado: los términos publicados eran la plantilla semilla intacta.** El generador los reescribe; falta cargar los datos y publicar. |
+| **F4** | **Link a Ventanilla Única Federal de Reclamos** en el pie | Comercio electrónico | ✅ **Sesión 108.** En el pie y en el formulario de arrepentimiento. |
 | **F5** | **Consentimiento de marketing con fecha y origen**, sin marcar por defecto | Ley 25.326 art. 27 | 🟠 Se mandan campañas por email y WhatsApp sin registrar cuándo aceptó la persona. |
 | **F6** | **Baja visible en WhatsApp**, como ya la hay en email | Ley 25.326 art. 27 | 🟠 `drip-unsubscribe` cubre email; WhatsApp no dice cómo darse de baja. |
 | **F7** | **Registro No Llame** antes de una campaña telefónica | Ley 26.951 | 🟠 No se consulta. |
@@ -253,6 +253,12 @@ Ordenado por riesgo dividido esfuerzo, que no es el orden en que se descubrieron
 ⚠️ **F1 a F4 son cuatro páginas y un link.** Juntos sacan del rojo casi todo lo
 que Defensa del Consumidor y la AAIP detectan de oficio, y no dependen de
 ningún trámite externo. Todo lo demás puede esperar; eso no.
+
+**Al cierre de la sesión 109, F2 y F4 están hechos y F1 y F3 quedan a un paso:**
+el texto lo genera el panel de Páginas de la tienda, y lo que falta es que el
+dueño cargue razón social, CUIT, domicilio y email, lea lo generado y publique.
+Se crean como **borrador** a propósito — publicar un texto legal por él sería
+firmarlo en su nombre.
 
 ---
 
