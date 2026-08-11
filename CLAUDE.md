@@ -719,6 +719,22 @@ respetar al tocarlo:
   Ordena por urgencia, no por facturación, y el KPI es el **GMV en riesgo**
   medido con el mes **anterior**: el que está en riesgo hoy factura cero.
 
+**El dinero se redondea en un solo lugar** (`redondear_moneda` en SQL,
+`rounding.ts` en el cliente). No hay más `round(x, 2)` sueltos para importes
+nuevos: los decimales los define la moneda. Y el redondeo es media unidad
+hacia arriba **en valor absoluto** — `Math.round(-0.5)` da `-0`, así que un
+reintegro se redondeaba para el lado equivocado.
+
+Cuando un total se reparte entre líneas, va por `prorratear()`: garantiza que
+las partes sumen exactamente el total, con el resto a la última. Tres partes
+iguales de $100 dejan un centavo colgado, y ese centavo es la diferencia entre
+que una factura cierre y que no.
+
+**El IVA es por producto** (`products.tax_rate`). **NULL significa "la de la
+organización", no cero** — cero es exento, una tasa válida y distinta. Eso
+también decide cómo se guarda desde la UI: `parseFloat('') || null` convertiría
+un 0 legítimo en NULL y el exento pasaría a gravado.
+
 ⚠️ **Lo que se aprendió verificando, y cuesta caro repetir:**
 
 - **Un bloque `DO $` corre como superusuario y bypassa la RLS.** Un test de
@@ -735,6 +751,15 @@ respetar al tocarlo:
 - **Antes de dropear un RPC público, comprobar con grep quién lo llama** en
   `src`, `api` y las edge functions. Agregar una columna al **final** de la
   firma no rompe a quien lee por nombre de campo.
+- **Antes de construir algo del ROADMAP, medirlo contra la base.** A10
+  ("historial de precios") figuraba como faltante y estaba entero: 656 filas,
+  627 con autor, trigger y gráfico en pantalla. Empezar por el código lo habría
+  construido dos veces.
+- **`LIKE '%_iva%'` matchea "inactiva".** El `_` es comodín de un carácter. Para
+  buscar un nombre de columna que empieza con guión bajo hay que escaparlo.
+- **Verificar en los dos sentidos.** Una búsqueda difusa que "encuentra" no
+  sirve si encuentra todo: se prueba que traiga *y* que no traiga de más. Lo
+  mismo para un permiso: que deje pasar a quien corresponde y frene al resto.
 
 Ya resueltas (sesiones 87–91): reseñas de compra verificada, páginas de
 contenido, banners con vigencia, filtro por rango de precio, lista de deseos,
