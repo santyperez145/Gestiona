@@ -11992,6 +11992,7 @@ export type Database = {
           stock: number
           supplier_id: string | null
           tags: string[] | null
+          tax_rate: number | null
           tiendanube_id: string | null
           tiendanube_product_id: string | null
           total_cost_usd: number
@@ -12037,6 +12038,7 @@ export type Database = {
           stock?: number
           supplier_id?: string | null
           tags?: string[] | null
+          tax_rate?: number | null
           tiendanube_id?: string | null
           tiendanube_product_id?: string | null
           total_cost_usd?: number
@@ -12082,6 +12084,7 @@ export type Database = {
           stock?: number
           supplier_id?: string | null
           tags?: string[] | null
+          tax_rate?: number | null
           tiendanube_id?: string | null
           tiendanube_product_id?: string | null
           total_cost_usd?: number
@@ -20487,6 +20490,7 @@ export type Database = {
         }
         Returns: Json
       }
+      decimales_de_moneda: { Args: { p_moneda: string }; Returns: number }
       desglosar_iva: {
         Args: { p_importe: number; p_incluido: boolean; p_tasa: number }
         Returns: Json
@@ -20990,6 +20994,10 @@ export type Database = {
         Args: { p_ip?: unknown; p_token: string; p_user_agent?: string }
         Returns: Json
       }
+      prorratear: {
+        Args: { p_moneda?: string; p_pesos: number[]; p_total: number }
+        Returns: number[]
+      }
       purge_expired_oauth_states: { Args: never; Returns: number }
       quote_store_shipping: {
         Args: {
@@ -21079,6 +21087,10 @@ export type Database = {
           p_variant_name: string
         }
         Returns: string
+      }
+      redondear_moneda: {
+        Args: { p_importe: number; p_moneda?: string }
+        Returns: number
       }
       registrar_conteo: {
         Args: { p_cantidad: number; p_count_id: string; p_product_id: string }

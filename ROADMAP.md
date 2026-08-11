@@ -141,9 +141,9 @@ en producción.
 | ~~A5~~ | ~~Cupón de envío gratis~~ | ✅ Aplicado en la base como `20260806000033_cupon_de_envio_gratis` desde la otra PC. ⚠️ **El archivo todavía no está commiteado**: hasta que lo esté, ese trabajo no está versionado y `db push` aborta. | Parcial. El **cupón** ya puede bonificar envío (`shipping_discount`), y la tienda tiene `free_shipping_above` global. Falta la promoción automática **acotada a categoría o producto** — "envío gratis en perfumes" sin código. |
 | ~~A6~~ | ~~Devoluciones de órdenes online~~ | ✅ Sesión 106, la capa de datos: `returns.ecommerce_order_id` + `return_store_order_item`, que repone el stock por `record_stock_movement` y no deja devolver más de lo comprado ni tocar una orden impaga. **Falta la UI y el reintegro real por MercadoPago**, que necesita el token del comercio y va en una Edge Function. |
 | ~~A7~~ | ~~Las promociones no registran uso~~ | ✅ Sesión 105. Se registra el ahorro atribuible a la promoción —no el descuento total— para que la métrica no dependa de cómo pagó el comprador. |
-| **A8** | **Precios con IVA discriminado por producto** | El IVA de la orden ya sale, pero es una tasa única. Un catálogo con productos a 21% y a 10,5% factura mal. |
-| **A9** | **Redondeo declarado** | Cada cálculo redondea con `round()`, sin una política única. Shopify define redondeo por moneda. Con multi-moneda esto se vuelve un bug. |
-| **A10** | **Historial de precios** | No se guarda cuándo cambió un precio ni quién lo cambió. Sin eso no se puede auditar un reclamo de "me cobraron distinto". |
+| ~~A8~~ | ~~Precios con IVA discriminado por producto~~ | ✅ Sesión 110. `products.tax_rate`, **NULL = la de la organización** (0 es exento, que es distinto). El IVA se calcula por línea y se suma; los descuentos de orden se prorratean con `prorratear()` para que las bases sumen el total; el envío va a la tasa de la organización porque es un servicio. Verificado con tres alícuotas en una orden: 268,57 contra 520,66 de la tasa única. |
+| ~~A9~~ | ~~Redondeo declarado~~ | ✅ Sesión 110. `decimales_de_moneda` / `redondear_moneda` / `prorratear` en SQL, espejados en `src/lib/rounding.ts` con 19 tests. Media unidad hacia arriba **en valor absoluto** (`Math.round(-0.5)` da `-0`, y un reintegro se redondeaba para el lado equivocado). B6 ya no está bloqueado por esto. |
+| ~~A10~~ | ~~Historial de precios~~ | ✅ **Ya estaba hecho y este ROADMAP lo daba por faltante.** Medido: `price_history` tiene 656 filas, 627 con autor, último cambio 2026-08-07, trigger `trg_record_price_change` y `PriceSparkline` mostrándolo. |
 
 **Hacia dónde va el modelo de descuentos.** Un descuento tiene *condiciones de
 orden* (mínimo, primera compra, segmento) y *efectos de línea* (porcentaje,
@@ -152,6 +152,10 @@ igualar a Shopify es el campo **`combines_with`** por promoción: hoy la regla e
 "gana el mejor, nunca la suma", que es más segura pero no deja hacer "10% off +
 envío gratis" a propósito. Si se agrega, va como campo explícito por promoción —
 **nunca aflojando la regla general**.
+
+---
+
+**El bloque A está cerrado.** Lo que queda de plata es fiscal (C1, AFIP contra el organismo) y de producto, no bugs de cálculo.
 
 ---
 

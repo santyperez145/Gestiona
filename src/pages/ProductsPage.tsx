@@ -1572,6 +1572,11 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [supplierId, setSupplierId] = useState<string>(product?.supplier_id || '');
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
   const [discountPriceARS, setDiscountPriceARS] = useState(product?.discount_price_ars?.toString() || '');
+  // A8 — alicuota propia del producto. Vacio significa "la de la organizacion",
+  // que NO es lo mismo que 0: cero es exento, una tasa valida y distinta.
+  const [taxRate, setTaxRate] = useState(
+    product?.tax_rate === null || product?.tax_rate === undefined ? '' : String(product.tax_rate),
+  );
   const [price2xARS, setPrice2xARS] = useState(product?.price_2x_ars?.toString() || '');
   const [stock, setStock] = useState(product?.stock?.toString() || '0');
   const [description, setDescription] = useState(product?.description || '');
@@ -1835,6 +1840,9 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
         cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
         sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
+        // Se distingue el vacio del cero a proposito: `parseFloat('') || null`
+        // convertiria un 0 legitimo en null y el exento pasaria a gravado.
+        tax_rate: taxRate.trim() === '' ? null : Number(taxRate),
         price_2x_ars: isVaper ? (parseFloat(price2xARS) || null) : null,
         profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
         stock: variantTotal,
@@ -2335,6 +2343,25 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
             )}
           </div>
           <Input type="number" min="0" value={discountPriceARS} onChange={e => { setDiscountPriceARS(e.target.value); setManualDiscountPrice(true); }} placeholder="Auto-calculado" className="bg-muted border-border" />
+        </div>
+
+        {/* A8 — la orden discriminaba IVA con una tasa unica para todo. Un
+            catalogo con 21% y 10,5% mezclados facturaba mal en silencio. */}
+        <div>
+          <label className="text-sm text-muted-foreground">Alícuota de IVA</label>
+          <Input
+            type="number" min="0" max="100" step="0.5" value={taxRate}
+            onChange={e => setTaxRate(e.target.value)}
+            placeholder="La de la organización"
+            className="bg-muted border-border"
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            {taxRate.trim() === ''
+              ? 'Vacío usa la tasa configurada en Impuestos.'
+              : Number(taxRate) === 0
+                ? 'Exento: no se le calcula IVA.'
+                : `Se factura al ${taxRate}%.`}
+          </p>
         </div>
       </div>
 
