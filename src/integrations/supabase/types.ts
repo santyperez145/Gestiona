@@ -5527,6 +5527,7 @@ export type Database = {
           customer_id: string | null
           customer_name: string
           customer_phone: string | null
+          delivered_at: string | null
           delivery_days_max: number | null
           delivery_days_min: number | null
           discount_amount: number
@@ -5539,6 +5540,7 @@ export type Database = {
           payment_id: string | null
           payment_method: string
           payment_status: string
+          shipped_at: string | null
           shipping_address: Json
           shipping_cost: number
           shipping_discount_ars: number
@@ -5567,6 +5569,7 @@ export type Database = {
           customer_id?: string | null
           customer_name: string
           customer_phone?: string | null
+          delivered_at?: string | null
           delivery_days_max?: number | null
           delivery_days_min?: number | null
           discount_amount?: number
@@ -5579,6 +5582,7 @@ export type Database = {
           payment_id?: string | null
           payment_method?: string
           payment_status?: string
+          shipped_at?: string | null
           shipping_address?: Json
           shipping_cost?: number
           shipping_discount_ars?: number
@@ -5607,6 +5611,7 @@ export type Database = {
           customer_id?: string | null
           customer_name?: string
           customer_phone?: string | null
+          delivered_at?: string | null
           delivery_days_max?: number | null
           delivery_days_min?: number | null
           discount_amount?: number
@@ -5619,6 +5624,7 @@ export type Database = {
           payment_id?: string | null
           payment_method?: string
           payment_status?: string
+          shipped_at?: string | null
           shipping_address?: Json
           shipping_cost?: number
           shipping_discount_ars?: number
@@ -13728,6 +13734,7 @@ export type Database = {
           customer_email: string | null
           customer_id: string | null
           customer_name: string
+          ecommerce_order_id: string | null
           id: string
           org_id: string
           product_id: string | null
@@ -13741,6 +13748,8 @@ export type Database = {
           resolved_at: string | null
           rma_number: string
           status: string
+          tipo: string
+          variant_id: string | null
         }
         Insert: {
           condition?: string
@@ -13748,6 +13757,7 @@ export type Database = {
           customer_email?: string | null
           customer_id?: string | null
           customer_name: string
+          ecommerce_order_id?: string | null
           id?: string
           org_id: string
           product_id?: string | null
@@ -13761,6 +13771,8 @@ export type Database = {
           resolved_at?: string | null
           rma_number: string
           status?: string
+          tipo?: string
+          variant_id?: string | null
         }
         Update: {
           condition?: string
@@ -13768,6 +13780,7 @@ export type Database = {
           customer_email?: string | null
           customer_id?: string | null
           customer_name?: string
+          ecommerce_order_id?: string | null
           id?: string
           org_id?: string
           product_id?: string | null
@@ -13781,6 +13794,8 @@ export type Database = {
           resolved_at?: string | null
           rma_number?: string
           status?: string
+          tipo?: string
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -13788,6 +13803,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_requests_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_requests_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_iva"
             referencedColumns: ["id"]
           },
           {
@@ -13858,6 +13887,20 @@ export type Database = {
             columns: ["reason_id"]
             isOneToOne: false
             referencedRelation: "return_reasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_requests_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_requests_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -20448,6 +20491,7 @@ export type Database = {
         Args: { p_importe: number; p_incluido: boolean; p_tasa: number }
         Returns: Json
       }
+      dias_para_arrepentirse: { Args: { p_order_id: string }; Returns: number }
       end_expired_promotions: { Args: never; Returns: number }
       eval_territory_conditions: {
         Args: { p_attributes: Json; p_conditions: Json }
@@ -21049,6 +21093,19 @@ export type Database = {
           p_email: string
           p_product_id: string
           p_slug: string
+          p_variant_id?: string
+        }
+        Returns: Json
+      }
+      request_store_return: {
+        Args: {
+          p_email: string
+          p_motivo?: string
+          p_order_number: string
+          p_product_id?: string
+          p_qty?: number
+          p_slug: string
+          p_tipo: string
           p_variant_id?: string
         }
         Returns: Json
