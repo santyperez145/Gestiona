@@ -1,92 +1,77 @@
 /**
- * usePriceList — Compute adjusted prices for a given price list.
+ * usePriceList — el precio que le corresponde a un cliente según su lista.
  *
- * Given a list of products and a selected price list, returns the adjusted
- * ARS price for each product. Used in POS and product display.
+ * La cuenta **no está acá**: vive en `src/lib/priceListCalc.ts`, testeada. Este
+ * hook sólo trae los datos y se los pasa.
  *
- * Priority order:
- *   1. Product-specific override in `price_list_items` (if set)
- *   2. Global discount_pct of the price list applied to `sale_price_ars`
- *   3. Base `sale_price_ars` (no adjustment)
+ * ⚠️ Antes la cuenta estaba duplicada acá y en la página de listas, sobre dos
+ * generaciones de columnas distintas, y no coincidían: este hook leía
+ * `price_lists.discount_pct` mientras la página escribía `discount_value`. Una
+ * lista "Mayorista 20%" creada desde el menú cobraba el precio completo en el
+ * POS, en silencio.
  *
  * Usage:
- *   const { getPrice, loading } = usePriceList(priceListId);
- *
- *   // In POS item renderer:
- *   const price = getPrice(product); // returns adjusted ARS price
+ *   const { getPrice, meta } = usePriceList(priceListId);
+ *   const precio = getPrice(product, cantidad);
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
-interface PriceListItem {
-  product_id: string;
-  price_ars: number | null;
-  discount_pct: number | null;
-  min_qty: number;
-}
-
-interface PriceListMeta {
-  id: string;
-  name: string;
-  discount_pct: number;
-  is_default: boolean;
-}
+import {
+  precioDeLista, type ListaDePrecios, type ItemDeLista,
+} from "@/lib/priceListCalc";
 
 interface UsePriceListReturn {
-  /** True while fetching price list data */
   loading: boolean;
-  /** Price list metadata */
-  meta: PriceListMeta | null;
+  meta: ListaDePrecios | null;
   /**
-   * Get the adjusted price for a product.
-   * Returns the modified ARS price, or the product's base price if no list is active.
+   * Precio unitario ajustado. La cantidad importa: una lista puede tener
+   * tramos ("desde 12 unidades, 30%").
    */
-  getPrice: (product: { id: string; sale_price_ars?: number | null }) => number;
-  /** The per-product override map */
-  items: Record<string, PriceListItem>;
+  getPrice: (product: { id: string; sale_price_ars?: number | null }, cantidad?: number) => number;
+  items: ItemDeLista[];
 }
 
 export function usePriceList(priceListId: string | null | undefined): UsePriceListReturn {
   const [loading, setLoading] = useState(false);
-  const [meta, setMeta] = useState<PriceListMeta | null>(null);
-  const [items, setItems] = useState<Record<string, PriceListItem>>({});
+  const [meta, setMeta] = useState<ListaDePrecios | null>(null);
+  const [items, setItems] = useState<ItemDeLista[]>([]);
 
   useEffect(() => {
     if (!priceListId) {
       setMeta(null);
-      setItems({});
+      setItems([]);
       return;
     }
+    let cancelado = false;
     setLoading(true);
     Promise.all([
-      supabase.from("price_lists").select("id,name,discount_pct,is_default").eq("id", priceListId).single(),
-      supabase.from("price_list_items").select("product_id,price_ars,discount_pct,min_qty").eq("price_list_id", priceListId),
+      supabase.from("price_lists")
+        .select("id,name,discount_type,discount_value,is_default,is_active,valid_from,valid_until")
+        .eq("id", priceListId).single(),
+      supabase.from("price_list_items")
+        .select("product_id,custom_price,discount_pct,min_quantity")
+        .eq("price_list_id", priceListId),
     ]).then(([listRes, itemsRes]) => {
-      if (listRes.data) setMeta(listRes.data as PriceListMeta);
-      if (itemsRes.data) {
-        const map: Record<string, PriceListItem> = {};
-        (itemsRes.data as PriceListItem[]).forEach(i => { map[i.product_id] = i; });
-        setItems(map);
+      if (cancelado) return;
+      // Un error acá no puede volverse "esta lista no descuenta": sería cobrarle
+      // el precio de mostrador a un mayorista sin avisarle a nadie.
+      if (listRes.error) {
+        console.error("No se pudo leer la lista de precios", listRes.error);
       }
-    }).finally(() => setLoading(false));
+      if (itemsRes.error) {
+        console.error("No se pudieron leer los precios de la lista", itemsRes.error);
+      }
+      setMeta((listRes.data as ListaDePrecios) ?? null);
+      setItems((itemsRes.data as ItemDeLista[]) ?? []);
+    }).finally(() => { if (!cancelado) setLoading(false); });
+
+    return () => { cancelado = true; };
   }, [priceListId]);
 
   const getPrice = useCallback(
-    (product: { id: string; sale_price_ars?: number | null }): number => {
-      const base = Number(product.sale_price_ars ?? 0);
-      if (!meta || !priceListId) return base;
-
-      const override = items[product.id];
-      if (override) {
-        if (override.price_ars != null) return override.price_ars;
-        if (override.discount_pct != null) return Math.round(base * (1 - override.discount_pct / 100));
-      }
-
-      // Apply global list discount
-      if (meta.discount_pct > 0) return Math.round(base * (1 - meta.discount_pct / 100));
-      return base;
-    },
-    [meta, items, priceListId]
+    (product: { id: string; sale_price_ars?: number | null }, cantidad = 1): number =>
+      precioDeLista(Number(product.sale_price_ars ?? 0), meta, items, product.id, cantidad).precio,
+    [meta, items],
   );
 
   return { loading, meta, items, getPrice };

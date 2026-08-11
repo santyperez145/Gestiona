@@ -135,7 +135,9 @@ function PLForm({ open, list, orgId, onClose, onSaved }: PLFormProps) {
     setLoading(true);
     const payload = {
       org_id: orgId, name: name.trim(), description: description.trim() || null,
-      currency, is_default: isDefault, active,
+      // ⚠️ La columna es `is_active`. Decía `active`, que no existe, y PostgREST
+      // rechazaba el insert entero: por eso había cero listas en la base.
+      currency, is_default: isDefault, is_active: active,
       valid_from: validFrom || null, valid_until: validUntil || null,
       applies_to: appliesTo, customer_segment: segment.trim() || null,
       discount_type: discountType, discount_value: parseFloat(discountValue) || 0,

@@ -19,6 +19,7 @@ import {
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { usePriceList } from "@/hooks/usePriceList";
+import { listaVigente, etiquetaDescuento } from "@/lib/priceListCalc";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { useVibration } from "@/hooks/useVibration";
 // fuse.js loaded dynamically to avoid Rollup TDZ (const kt) in production builds
@@ -1897,10 +1898,10 @@ export default function POSPage() {
         )}
 
         {/* Price list badge — shown when customer has an active price list */}
-        {activePriceList && activePriceList.discount_pct > 0 && (
+        {activePriceList && listaVigente(activePriceList) && (
           <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-blue-500/15 border border-blue-500/30 text-blue-300">
             <Tag className="w-3.5 h-3.5 shrink-0" />
-            <span>Lista: <strong>{activePriceList.name}</strong> · -{activePriceList.discount_pct}% aplicado en precios</span>
+            <span>Lista: <strong>{activePriceList.name}</strong> · {etiquetaDescuento(activePriceList)} aplicado en precios</span>
           </div>
         )}
 
