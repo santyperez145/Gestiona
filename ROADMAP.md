@@ -26,25 +26,34 @@ sirve a ese negocio.
 
 ## 2. Contra quién compite
 
-**Tiendanube y Empretienda**, no Salesforce ni Odoo. Son plataformas de tienda
-online con panel de gestión, en el mismo mercado y con el mismo tipo de cliente.
+⚠️ **Esta sección estuvo mal planteada y se corrigió en la sesión 111.** El
+posicionamiento, la competencia real y qué habría que medir viven ahora en
+**[docs/ESTRATEGIA.md](docs/ESTRATEGIA.md)**, que separa lo medido de lo
+supuesto. Acá queda sólo lo que afecta decisiones de código.
 
-Dónde Gestiona es distinto:
+**Lo que hay que dejar de decir: "Tiendanube no tiene POS".** Según un análisis
+externo lo lanzó en Argentina en 2026, y **no se pudo verificar desde acá**.
+Hasta chequearlo, no se usa como argumento: un dato viejo tira abajo la
+credibilidad de todo lo demás.
 
-| | Gestiona | Tiendanube / Empretienda |
-|---|---|---|
-| Gestión de stock, costos y márgenes | Núcleo del producto | Básica |
-| POS con caja física | Sí | No |
-| Importación: costo USD, aduana, tipo de cambio | Sí | No |
-| Canjes con influencers | Sí | No |
-| Ficha de perfume (familia, notas, duración) | Sí | No |
-| Tienda online | Sí | Su núcleo, más maduro |
-| Ecosistema de apps y temas | No | Sí |
-| Marca y confianza instalada | No | Sí |
+**La categoría ya existe.** Hay varios productos argentinos haciendo "ERP +
+tienda" —Contabilium, VentaWeb, Axon, Max24, sin verificar—. Eso es buena
+noticia: no hay que convencer a nadie de que el problema es real. Y es mala:
+**"gestión + tienda" ya no alcanza como diferencial**.
 
-La ventaja no es tener tienda online — eso ya lo hacen mejor. Es que **el mismo
-sistema que te vende online te lleva el stock, el costo en dólares y la caja**,
-sin exportar planillas entre dos herramientas.
+Dónde este sistema es realmente distinto, y por qué es difícil de copiar:
+
+| | Acá | Plataforma de ecommerce | ERP / sistema de gestión |
+|---|---|---|---|
+| **Costo real de la mercadería** (USD, aduana, tipo de cambio) | ✅ `total_cost_usd` | ❌ no lo conoce | ✅ |
+| **Comisión del medio de pago y del marketplace** | ✅ | ✅ | ❌ no la conoce |
+| **Costo de envío por zona** | ✅ | ✅ | parcial |
+| **IVA por producto** | ✅ desde A8 | parcial | ✅ |
+| **→ Margen real por canal** | ✅ **tiene los cuatro términos** | ❌ le falta el costo | ❌ le faltan las comisiones |
+
+Ese es el punto: **el margen real por canal necesita las cuatro cosas a la vez**,
+y cada familia de producto tiene dos o tres. Acá están las cuatro porque el
+proyecto nació importando. Es el ítem **E4**.
 
 ---
 
@@ -91,7 +100,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | 418 unitarios + 16 E2E de la tienda. Falta E2E del POS y el panel |
+| Tests | Anda | **811 unitarios** (`npm test`, 2026-08-13) + 16 E2E de la tienda. Falta E2E del POS y el panel |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -224,6 +233,7 @@ tiene y ML menos.
 | **E1** | **Precio único entre mostrador y online, con margen a la vista** | Hoy hay cuatro superficies de precio y se llegó a ellas de a una. Una pantalla que muestre, por producto, qué precio ve cada canal y cuánto margen deja **después** de comisión, envío e IVA, no existe en ninguna. |
 | **E2** | **El stock del local es el stock de la tienda, con reserva** | Ya está la reserva (A2) y el multi-depósito. Falta cerrarlo: vender en el mostrador algo que está reservado por una orden online tiene que avisar. |
 | **E3** | **Un cliente, una ficha** | El CRM ya cruza las cinco tablas por `customer_id`. Falta que el comprador online y el del mostrador sean la misma persona automáticamente, con su historial completo en las dos direcciones. |
+| **E4** | ⭐ **Margen real por canal** | **El diferencial más defendible que tiene el producto, y sale casi gratis de lo que ya está.** Un mismo producto deja márgenes distintos en el mostrador, en la tienda y en ML, y hoy nadie se lo dice al comerciante. Requiere las cuatro puntas —costo real, comisión, envío, IVA— y **acá están las cuatro** (ver §2). Una pantalla por producto: qué precio ve cada canal y cuánto queda después de todo. Después, la frase que vale: *"tu tienda propia te deja 7 puntos más que ML en este producto"*. |
 
 #### F. Cumplimiento legal — lo que no es opcional
 
@@ -264,6 +274,25 @@ dueño cargue razón social, CUIT, domicilio y email, lea lo generado y publique
 Se crean como **borrador** a propósito — publicar un texto legal por él sería
 firmarlo en su nombre.
 
+#### G. Instrumentación — lo que no se mide no existe
+
+Se sabe todo del negocio del comercio y **nada del uso de la plataforma**. Los
+datos ya están en la base; falta juntarlos. Detalle y por qué importa cada uno
+en [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §6.
+
+| # | Qué | De dónde sale |
+|---|---|---|
+| **G1** | **Tiempo hasta la primera venta** de una organización nueva | `memberships.created_at` → primera `sales` |
+| **G2** | **Tiempo hasta publicar la tienda** | → primera `ecommerce_orders` |
+| **G3** | **Adopción omnicanal**: % que usa POS **y** tienda | cruce por `org_id` |
+| **G4** | **GMV por comercio** | `sales` + `ecommerce_orders` |
+| **G5** | **Activas vs. que pagan** | `memberships`, `subscriptions` |
+| **G6** | **Serie temporal de riesgo de abandono** | `platform_org_health` ya ordena por urgencia; falta la serie |
+
+⚠️ **G3 es la que representa la tesis del producto.** Si los comercios usan sólo
+la tienda o sólo la gestión, el diferencial de §2 no se está usando y hay que
+saberlo antes de construir encima.
+
 ---
 
 ## 8. Riesgos
@@ -277,6 +306,8 @@ firmarlo en su nombre.
 | R05 | Costo de IA sin techo | Media | Alto | Falta límite por plan |
 | R06 | Cotización de envío mal calculada contra el correo real | Media | Alto | Verificar contra un contrato real antes de escalar |
 | R07 | Un solo desarrollador | Alta | Alto | CLAUDE.md, docs/ y commits largos a propósito |
+| R08 | **Un solo comercio usándolo.** El multi-tenant está probado, no usado: un segundo comercio real destapa supuestos que ningún test encuentra | Alta | **Crítico** | Ninguna todavía. Es el riesgo más grande del proyecto y no se resuelve con código — ver [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §5 |
+| R09 | Un dato viejo de este repo citado como actual afuera (pasó: "418 tests" cuando eran 811) | Media | Medio | Los números medidos van con la fecha o con el comando al lado |
 | R08 | Supabase caído | Baja | Crítico | PITR activo; sin runbook escrito |
 
 ---

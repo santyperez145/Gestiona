@@ -1,9 +1,20 @@
 # Gestiona — contexto para Claude Code
 
-Plataforma multi-tenant tipo Tiendanube/Empretienda: sistema de gestión completo
-(stock, POS, finanzas, multi-tienda, canjes con influencers, marketing) **más**
-tiendas online que venden de verdad, **más** un panel desde el que se administran
-todas las organizaciones y se cobra comisión por venta.
+**El sistema donde el negocio es uno solo, aunque venda por muchos lados.** El
+mostrador, la tienda online y los marketplaces comparten el mismo stock, los
+mismos clientes, los mismos costos y la misma verdad sobre cuánto se ganó.
+
+En concreto: sistema de gestión completo (stock, POS, finanzas, multi-tienda,
+canjes con influencers, marketing) **más** tiendas online que venden de verdad,
+**más** un panel desde el que se administran todas las organizaciones y se cobra
+comisión por venta.
+
+⚠️ **La tienda no es el producto**, y describirlo como "alternativa a
+Tiendanube" orienta mal las decisiones: lleva a competir donde se pierde. El
+diferencial es que **el margen real por canal necesita cuatro datos a la vez**
+—costo con aduana, comisión del medio de pago, envío e IVA— y acá están los
+cuatro porque el proyecto nació importando. Un ecommerce no sabe el costo; un
+ERP no sabe la comisión. Ver [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md).
 
 Tres superficies separadas, y esa separación es deliberada:
 
@@ -125,6 +136,16 @@ función nueva que manda emails, antes de que llegara a producción. Si uno fall
 se arregla el código o se documenta el motivo en la allowlist — nunca se afloja
 el test.
 
+**Los números medidos van con la fecha o con el comando al lado.** Este repo es
+público y su documentación se lee de afuera: un análisis externo citó "418 tests
+unitarios" tomándolo de una línea vieja de `ROADMAP.md` cuando ya eran 811. Un
+número sin fecha se convierte en el dato que otros repiten.
+
+**Antes de afirmar algo sobre un competidor, verificarlo o marcarlo como no
+verificado.** "Tiendanube no tiene POS" era cierto y puede haber dejado de serlo
+en 2026. En `docs/ESTRATEGIA.md` cada afirmación va marcada ✅ medido, 📌 criterio
+o ❓ sin verificar, y esa separación se mantiene.
+
 **Los mensajes de commit son largos a propósito.** Explican *por qué* se hizo
 así y *qué encontró la verificación*, no qué archivos cambiaron. El estado del
 proyecto vive ahí y en `ROADMAP.md`; `git log --oneline -20` es el resumen.
@@ -157,8 +178,8 @@ el `NODE_OPTIONS` no es opcional, sin él se queda sin memoria a los 6 minutos
 `lint` tolera ~140 warnings de `exhaustive-deps`: son deuda conocida y **no se
 tocan en masa** (provoca loops de refetch). Errores: cero.
 
-**Los flujos se cubren con Playwright, los cálculos con vitest.** Los 377
-unitarios verifican cuentas; los bugs que costaron plata fueron todos de
+**Los flujos se cubren con Playwright, los cálculos con vitest.** Los **811**
+unitarios (`npm test`, 2026-08-13) verifican cuentas; los bugs que costaron plata fueron todos de
 integración y ninguno los habría agarrado. Los E2E viven en `e2e/` y leen la
 base de producción, así que son **de sólo lectura**: ninguno crea una orden.
 
