@@ -29,10 +29,12 @@ Ser staff de plataforma **no** otorga permisos dentro de una organización. Ver
 
 ⚠️ **Antes de tocar precios, datos de clientes o el panel de plataforma, leer
 [docs/LEGAL.md](docs/LEGAL.md).** Es el relevamiento contra la normativa
-argentina, requisito por requisito. Lo que más sorprende: **no hay política de
-privacidad publicada** y **el botón de arrepentimiento tiene que estar en la
-primera pantalla**, no en el pie. Los cuatro ítems en rojo son cuatro páginas y
-un link, y son los que se detectan de oficio.
+argentina, requisito por requisito. El botón de arrepentimiento y el link a
+Defensa del Consumidor ya están (sesión 108), y el generador de páginas legales
+escribe la política de privacidad y los términos (sesión 109) — **falta que el
+dueño cargue razón social, CUIT y domicilio, y publique**. Se generan como
+borrador a propósito: publicar un texto legal por él sería firmarlo en su
+nombre.
 
 ¿Arrancando de cero? [docs/GUIA.md](docs/GUIA.md) explica la plataforma y el
 código para alguien sin experiencia, con un orden de estudio y ejercicios sobre
@@ -497,6 +499,22 @@ del script. Si falla con `Import ... 521`, es esm.sh caído — reintentar.
 
 El detalle vive en los mensajes de commit, que son largos a propósito. Para el
 estado al día, `git log --oneline -20`.
+
+⚠️ **Antes de elegir qué construir, leer `ROADMAP.md` §5 "El camino".** Los
+bloques A–G son un **catálogo agrupado por tema**, no un plan, y agrupar por
+tema hace que todo parezca igual de urgente. El plan son las cinco fases, cada
+una con una condición de salida verificable, más la lista de lo **congelado** y
+lo **bloqueado por fuera del código**.
+
+La regla que ordena todo: **cada fase existe para destrabar la siguiente.** Hoy
+la fase 0 es "que se le pueda vender a alguien" y está frenada por el
+certificado de homologación de AFIP, que es un trámite gratis. Elegir un ítem
+del bloque B porque parece divertido es exactamente lo que este orden viene a
+evitar.
+
+⚠️ **Al cruzar los bloques aparecieron cuatro pares que eran el mismo trabajo
+con dos letras** (C1/F15, D1/F16, D5/F17, D6/F8). Antes de agregar un ítem
+nuevo, buscar si ya está con otro nombre.
 
 Pendientes conocidos al 2026-07-31:
 

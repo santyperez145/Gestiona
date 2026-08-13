@@ -128,11 +128,152 @@ el comprador ve sin cuenta · **comisión por transacción cobrada de verdad** �
 **cuotas reales de MercadoPago en la ficha** (consultadas a la cuenta del
 comercio, no declaradas) · **7 temas y tipografía elegible** · dominio propio.
 
-### Falta, en orden de impacto
+### El camino
 
-Revisado contra Tiendanube, Empretienda, Shopify y MercadoLibre. Cada ítem dice
-**qué hace la competencia**, **qué hay hoy acá** y **por qué importa**. El estado
-está medido contra la base, no supuesto.
+⚠️ **Los bloques A–G son un catálogo, no un plan.** Están agrupados por tema
+porque se fueron agregando en momentos distintos, y agrupar por tema hace que
+todo parezca igual de urgente. Al cruzarlos (sesión 112) aparecieron **cuatro
+pares que eran el mismo trabajo con dos letras** —C1/F15, D1/F16, D5/F17,
+D6/F8— y dos ítems ya hechos que seguían contando. El pendiente real es **53**.
+
+Esta sección es el plan. Los bloques quedan abajo como referencia detallada.
+
+**El criterio que ordena todo, y no es "impacto":** cada fase existe para
+**destrabar la siguiente**, y tiene una condición de salida verificable. Sin eso,
+53 ítems ordenados por impacto siguen siendo 53 ítems.
+
+---
+
+#### 📍 Dónde estamos
+
+✅ **Medido (2026-08-13).** El sistema funciona y cobra: dos compras reales
+acreditadas con comisión de plataforma, stock que sólo mueve la base, RLS
+verificada con roles reales, 811 tests, bloque A cerrado.
+
+Y hay **un** comercio usándolo, que es el dueño. Todo lo demás del ROADMAP
+mejora un producto que todavía no demostró que alguien más lo quiera (R08).
+
+---
+
+#### FASE 0 — Que se le pueda vender a alguien
+
+**Por qué primero:** no se puede dar de alta un comercio ajeno hoy. Sin factura
+no es un sistema de gestión argentino, y sin política de privacidad ni datos del
+proveedor se le estaría pidiendo que incumpla desde el día uno.
+
+| Qué | Estado |
+|---|---|
+| **C1** AFIP contra el organismo (= F15) | 🔴 El más importante y el más largo. Frenado por un certificado de homologación **que es gratis y hay que pedir**. |
+| **F1 + F3** Política de privacidad y datos del proveedor | 🟡 El generador ya los escribe. Falta cargar razón social, CUIT, domicilio y email, revisar y publicar. |
+| **F5** Consentimiento de marketing con fecha y origen | 🟠 Una columna y un checkbox. Antes de mandarle campañas a clientes de otro comercio. |
+| **F11** Acotar la garantía a 6 meses | 🟠 Barato. |
+| **F10** El envío de vuelta lo paga el vendedor | 🟠 Falta modelarlo en la devolución. |
+
+> **Condición de salida:** se emitió **una factura electrónica real** y un
+> comercio nuevo puede darse de alta sin incumplir nada.
+
+---
+
+#### FASE 1 — Que alguien más lo pueda usar, y que se pueda medir
+
+**Por qué segundo:** es la fase que responde R08. Y no se puede saber si
+funcionó sin instrumentación, así que van juntas.
+
+| Qué | Estado |
+|---|---|
+| **D2** Onboarding guiado | 🔴 `StoreReadinessPanel` dice qué falta; no hay paso a paso. Es lo que convierte "funciona" en "otro lo puede usar". |
+| **G1–G5** Instrumentación | 🔴 Los datos ya están en la base. Sin esto no hay condición de salida medible. |
+| **D4** Límites del plan aplicados | 🟠 Sólo productos. Faltan usuarios, tiendas y órdenes/mes. |
+| **D1** Comprobante fiscal de la suscripción (= F16) | 🟠 Depende de C1. |
+
+> **Condición de salida:** **un segundo comercio real** cargó su stock, publicó
+> su tienda y cobró — y `G1` dice cuánto tardó desde el alta hasta su primera
+> venta. Ese número es el que hay que bajar después.
+
+---
+
+#### FASE 2 — Que el diferencial se vea
+
+**Por qué tercero:** recién acá conviene construir lo que distingue al producto.
+Antes sería construirlo para una sola persona.
+
+| Qué | Estado |
+|---|---|
+| **E4** ⭐ Margen real por canal | El diferencial más defendible, y sale casi gratis: los cuatro datos ya están (ver §2). |
+| **C7** MercadoLibre completo | *"Vendé en el local, en tu tienda y en ML con el mismo stock"* es concreto y verificable. Falta publicar desde la ficha, importar órdenes y el cron multi-org. |
+| **E1** Precio único entre mostrador y online, con margen a la vista | Consecuencia natural de E4. |
+| **E2** El stock del local es el de la tienda | Casi hecho: falta avisar al vender en mostrador algo reservado online. |
+| **C9** Multi-depósito real en la tienda | La tienda vende contra el total, no contra el depósito que despacha. |
+
+> **Condición de salida:** un comercio vende por **dos canales con un solo
+> stock** y puede ver, por producto, cuál le deja más margen.
+
+---
+
+#### FASE 3 — Que aguante más de un comercio
+
+**Por qué cuarto:** son cosas que sólo duelen cuando hay varios. Construirlas
+antes es seguro de un incendio que todavía no puede pasar.
+
+| Qué |
+|---|
+| **D6** Entrar como el comercio, auditado y visible (= F8) |
+| **C11** Auditoría de quién cambió un precio o un stock dentro de la organización |
+| **D8** Backup y restauración por organización |
+| **D5** Exportar la organización entera (= F17) — retenerla por falta de herramienta es problema legal, no comercial |
+| **D3** Anuncios a los comercios · **D7** Estado del servicio |
+| **F9** Contrato de tratamiento de datos — necesita abogado, no commit |
+
+---
+
+#### FASE 4 — Conversión de la tienda
+
+Todo el bloque B menos lo congelado. **Va último a propósito:** mejora la
+conversión de tiendas que todavía no existen. Con dos comercios, mover B3 acá
+arriba puede ser correcto — pero que sea una decisión, no una inercia.
+
+Los primeros serían **B3** (checkout en un paso), **B5** (avisos de "en camino"
+y "entregado", que ya tienen `shipped_at`/`delivered_at` desde la sesión 107) y
+**B13** (carrito entre dispositivos).
+
+---
+
+#### 🧊 Congelado — no se toca
+
+📌 **Criterio.** Esta lista vale tanto como el plan: el modo de falla de este
+proyecto no es quedarse corto, es agregar. Hay 84 páginas.
+
+| Qué | Por qué |
+|---|---|
+| **B6** Multi-moneda | A9 lo destrabó técnicamente. No lo pidió nadie. |
+| **B7** Reseñas con foto · **B8** Comparador · **B14** Preventa | Detalle de tienda antes de tener tiendas. |
+| **B9** Filtros por atributo | La ficha olfativa está vacía en las 30 filas: filtraría sobre nada. |
+| **C5** Push · **C6** Automatizaciones visuales · **C10** Reportes programados | Módulos nuevos sobre un producto con 84 páginas. |
+| **F7** No Llame · **F12** CFT · **F13** Procedimiento de incidente | Se activan cuando exista campaña telefónica, cuotas con interés y más de un comercio. |
+| Marketplace de apps · LATAM · contabilidad completa · B2B | Ver [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §8. |
+
+---
+
+#### ⛔ Bloqueado por fuera del código
+
+Ninguno lo destraba una sesión de programación. **Conviene destrabar los de
+arriba primero**, porque C1 frena la fase 0 entera:
+
+| Qué | Quién lo destraba |
+|---|---|
+| **C1** Certificado de homologación de AFIP | Trámite, gratis |
+| **F1/F3** Razón social, CUIT, domicilio | El dueño, 5 minutos |
+| **B1** Tarifas de envío reales · **B2/B11/B12** Etiqueta por API, CP real, sucursales | Contrato con el correo |
+| **C2** Contar el inventario físico | 15 productos con Kardex ≠ stock |
+| **C3** Pesar una caja real · **C4** 10 fotos y 33 descripciones | El dueño |
+| **F9** Contrato de datos · **F14** Ley 25.065 | Un abogado |
+
+---
+
+### Los bloques, en detalle
+
+Lo que sigue es la referencia: cada ítem dice **qué hace la competencia**, **qué
+hay hoy acá** y **por qué importa**, con el estado medido contra la base.
 
 ---
 
@@ -247,22 +388,22 @@ Ordenado por riesgo dividido esfuerzo, que no es el orden en que se descubrieron
 | # | Qué | Norma | Estado |
 |---|---|---|---|
 | **F1** | **Página de política de privacidad**, con qué datos se guardan, para qué, cuánto tiempo y **que se alojan en Estados Unidos** | Ley 25.326 arts. 6 y 12 | 🟡 **Sesión 109:** el generador la escribe con los proveedores reales y la declaración de transferencia. Falta que el dueño cargue sus datos, la revise y la publique. |
-| **F2** | **Botón de arrepentimiento en la primera pantalla** de la tienda | Res. 424/2020 | ✅ **Sesión 108.** Barra superior, a 4px del tope, verificado en 1280 y 375. |
+| ~~F2~~ | ~~Botón de arrepentimiento en la primera pantalla~~ | Res. 424/2020 | ✅ **Sesión 108.** Barra superior, a 4px del tope, verificado en 1280 y 375. |
 | **F3** | **Datos del proveedor**: razón social, CUIT y domicilio | Ley 24.240 art. 4 | 🟡 **Verificado: los términos publicados eran la plantilla semilla intacta.** El generador los reescribe; falta cargar los datos y publicar. |
-| **F4** | **Link a Ventanilla Única Federal de Reclamos** en el pie | Comercio electrónico | ✅ **Sesión 108.** En el pie y en el formulario de arrepentimiento. |
+| ~~F4~~ | ~~Link a Ventanilla Única Federal de Reclamos~~ | Comercio electrónico | ✅ **Sesión 108.** En el pie y en el formulario de arrepentimiento. |
 | **F5** | **Consentimiento de marketing con fecha y origen**, sin marcar por defecto | Ley 25.326 art. 27 | 🟠 Se mandan campañas por email y WhatsApp sin registrar cuándo aceptó la persona. |
 | **F6** | **Baja visible en WhatsApp**, como ya la hay en email | Ley 25.326 art. 27 | 🟠 `drip-unsubscribe` cubre email; WhatsApp no dice cómo darse de baja. |
 | **F7** | **Registro No Llame** antes de una campaña telefónica | Ley 26.951 | 🟠 No se consulta. |
-| **F8** | **El comercio ve cuándo soporte entró a su cuenta** | Transparencia | 🟠 `admin_audit_logs` ya lo registra; falta mostrárselo. Es D6. |
+| **F8** | → **es D6**, no es otro trabajo | Transparencia | 🟠 `admin_audit_logs` ya lo registra; falta mostrárselo. Es D6. |
 | **F9** | **Contrato de tratamiento de datos** plataforma ↔ comercio | Ley 25.326 art. 25 | 🔴 La plataforma es *encargada*, el comercio *responsable*. Necesita abogado. |
 | **F10** | **El costo del envío de vuelta lo paga el vendedor** | Ley 24.240 art. 34 | 🟠 La devolución registra el producto, no el flete. |
 | **F11** | **Acotar la garantía a 6 meses** en el reclamo por falla | Ley 24.240 art. 11 | 🟠 Hoy acepta un reclamo sin límite de tiempo. Es el error barato, pero conviene cerrarlo. |
 | **F12** | **CFT y precio de contado** si algún día hay cuotas con interés | Res. 51/2017 | 🟠 Hoy sólo hay "sin interés", donde el CFT es 0%. El código no distingue las dos cosas. |
 | **F13** | **Procedimiento escrito de incidente de seguridad** | Res. AAIP 47/2018 | 🔴 Sin procedimiento no se cumple ningún plazo. |
 | **F14** | **Consultar por el descuento según medio de pago** | Ley 25.065 art. 37 | 🟠 No es una decisión de producto. |
-| **F15** | **Factura electrónica de verdad** | RG 4291 | 🔴 Ya está como A-pendiente; acá se anota que además es el riesgo fiscal más grande del sistema hoy. |
-| **F16** | **Comprobante fiscal argentino de la suscripción** al comercio | ARCA | 🟠 Stripe cobra y no se emite nada. |
-| **F17** | **Portabilidad: que un comercio se lleve su negocio entero** | — | 🟠 Es D5. Retenerlo por falta de herramienta es un problema legal, no sólo comercial. |
+| **F15** | → **es C1**, no es otro trabajo | RG 4291 | 🔴 Ya está como A-pendiente; acá se anota que además es el riesgo fiscal más grande del sistema hoy. |
+| **F16** | → **es D1**, no es otro trabajo | ARCA | 🟠 Stripe cobra y no se emite nada. |
+| **F17** | → **es D5**, no es otro trabajo | — | 🟠 Es D5. Retenerlo por falta de herramienta es un problema legal, no sólo comercial. |
 
 ⚠️ **F1 a F4 son cuatro páginas y un link.** Juntos sacan del rojo casi todo lo
 que Defensa del Consumidor y la AAIP detectan de oficio, y no dependen de
