@@ -763,3 +763,185 @@
     pointer-events: none;
   }
 }
+
+/* 2026 visual system: quiet chrome, clear hierarchy, operational density. */
+@layer utilities {
+  .workspace-shell {
+    background: hsl(var(--background));
+  }
+
+  .workspace-sidebar {
+    box-shadow: 10px 0 28px -24px hsl(222 35% 12% / 0.35);
+  }
+
+  .light .workspace-sidebar {
+    background: hsl(0 0% 100% / 0.94);
+    box-shadow: 8px 0 24px -24px hsl(222 35% 12% / 0.3);
+  }
+
+  .workspace-nav-link {
+    min-height: 34px;
+    border: 1px solid transparent;
+  }
+
+  .workspace-nav-link-active {
+    background: hsl(var(--primary) / 0.11) !important;
+    border-color: hsl(var(--primary) / 0.14);
+    color: hsl(var(--primary)) !important;
+  }
+
+  .light .workspace-nav-link-active {
+    background: hsl(var(--primary) / 0.09) !important;
+    border-color: hsl(var(--primary) / 0.16);
+  }
+
+  .workspace-topbar {
+    min-height: 56px;
+    box-shadow: 0 1px 0 hsl(var(--border) / 0.55);
+  }
+
+  .light .workspace-topbar {
+    background: hsl(0 0% 100% / 0.9);
+    border-bottom-color: hsl(220 18% 86% / 0.85);
+  }
+
+  .workspace-command-search {
+    background: hsl(var(--card) / 0.88);
+    box-shadow: 0 1px 1px hsl(222 30% 10% / 0.04);
+  }
+
+  .light .workspace-command-search {
+    background: hsl(220 24% 98%);
+  }
+
+  .workspace-primary-action {
+    min-height: 34px;
+    box-shadow: 0 5px 12px -8px hsl(var(--primary) / 0.85);
+  }
+
+  .workspace-content {
+    min-height: calc(100vh - 56px);
+  }
+
+  .workspace-page-header {
+    align-items: flex-start;
+    padding-bottom: 1.15rem;
+    border-bottom: 1px solid hsl(var(--border) / 0.7);
+  }
+
+  .page-header__context {
+    color: hsl(var(--muted-foreground) / 0.7);
+  }
+
+  .page-header__icon {
+    box-shadow: 0 3px 10px -6px hsl(var(--primary) / 0.7);
+  }
+
+  .page-header__title {
+    letter-spacing: -0.025em;
+  }
+
+  .page-header__actions > * {
+    max-width: 100%;
+  }
+
+  .workspace-metric-card,
+  .workspace-kpi-card {
+    min-height: 104px;
+    background: hsl(var(--card));
+    border-color: hsl(var(--border) / 0.86);
+  }
+
+  .light .workspace-metric-card,
+  .light .workspace-kpi-card {
+    background: hsl(0 0% 100%);
+    box-shadow: 0 1px 2px hsl(222 20% 10% / 0.04), 0 8px 18px -14px hsl(222 20% 10% / 0.18);
+  }
+
+  .workspace-page .rounded-xl {
+    border-radius: 8px;
+  }
+
+  .workspace-page table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .workspace-page thead th {
+    background: hsl(var(--muted) / 0.62);
+    color: hsl(var(--muted-foreground));
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .workspace-page tbody tr {
+    transition: background-color 120ms ease;
+  }
+
+  .workspace-page tbody tr:hover {
+    background: hsl(var(--primary) / 0.035);
+  }
+
+  .workspace-page tbody td {
+    border-bottom-color: hsl(var(--border) / 0.7);
+  }
+
+  .workspace-quick-actions {
+    align-items: center;
+  }
+
+  .workspace-quick-actions a,
+  .workspace-quick-actions button {
+    min-height: 34px;
+    border-radius: 7px !important;
+  }
+
+  .light .workspace-page input.bg-muted,
+  .light .workspace-page textarea.bg-muted,
+  .light .workspace-page [role="combobox"].bg-muted {
+    background: hsl(0 0% 100%);
+  }
+
+  .workspace-platform {
+    --primary: 263 72% 58%;
+    --ring: 263 72% 58%;
+  }
+
+  .workspace-platform-topbar {
+    box-shadow: 0 1px 0 hsl(263 72% 58% / 0.08), 0 8px 24px -24px hsl(263 72% 58% / 0.9);
+  }
+
+  .light .workspace-platform-topbar {
+    background: hsl(0 0% 100% / 0.94);
+    border-bottom-color: hsl(263 72% 58% / 0.22);
+  }
+
+  .workspace-platform-main {
+    min-height: calc(100vh - 104px);
+  }
+
+  @media (max-width: 767px) {
+    .workspace-page-header {
+      gap: 1rem;
+      padding-bottom: 1rem;
+    }
+
+    .page-header__actions {
+      width: 100%;
+      max-width: none;
+      justify-content: flex-start;
+    }
+
+    .page-header__actions > * {
+      flex: 0 1 auto;
+    }
+
+    .workspace-metric-card,
+    .workspace-kpi-card {
+      min-height: 96px;
+    }
+  }
+}

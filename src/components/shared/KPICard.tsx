@@ -39,7 +39,7 @@ export default function KPICard({
       onClick={onClick}
       className={cn(
         /* Base */
-        "relative group overflow-hidden rounded-[8px]",
+        "workspace-kpi-card relative group overflow-hidden rounded-[8px]",
         "bg-card border border-border/80",
         "shadow-kpi transition-all duration-200",
         /* Hover */

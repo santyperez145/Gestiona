@@ -632,7 +632,7 @@ export default function ProductsPage() {
   const outOfStockCount = products.filter(p => p.stock <= 0).length;
 
   return (
-    <div className="space-y-5 pb-12">
+    <div className="workspace-page workspace-products space-y-5 pb-12">
       <PageHeader
         icon={Package}
         title="Productos"

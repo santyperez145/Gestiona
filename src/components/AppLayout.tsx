@@ -195,7 +195,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     : 'bg-muted text-muted-foreground border-border';
 
   return (
-    <div className="flex min-h-screen">
+    <div className="workspace-shell flex min-h-screen">
       {/* ── Idle session lock overlay ────────────────────────────── */}
       {idleLocked && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md">
@@ -218,7 +218,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
-      <aside className={`
+      <aside className={`workspace-sidebar
         fixed inset-y-0 left-0 z-50 gradient-sidebar border-r border-sidebar-border flex flex-col shrink-0
         transform transition-all duration-300 ease-out h-screen
         w-[240px] md:w-[68px] ${collapsed ? 'lg:w-[68px]' : 'lg:w-[240px]'}
@@ -284,11 +284,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         to={to}
                         onClick={() => setMobileOpen(false)}
                         title={effectiveCollapsed ? label : undefined}
-                        className={`group relative flex items-center gap-2.5 py-[7px] rounded-[7px] text-[13px] font-medium transition-all duration-150 ${
+                        className={`workspace-nav-link group relative flex items-center gap-2.5 py-[7px] rounded-[7px] text-[13px] font-medium transition-all duration-150 ${
                           effectiveCollapsed ? 'justify-center px-0' : 'px-2.5'
                         } ${
                           active
-                            ? "bg-gradient-to-r from-primary/14 to-primary/3 text-primary"
+                            ? "workspace-nav-link-active bg-gradient-to-r from-primary/14 to-primary/3 text-primary"
                             : "text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
                         }`}
                       >
@@ -372,9 +372,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className={`flex-1 overflow-auto w-full min-h-screen bg-background transition-all duration-300 md:ml-[68px] ${collapsed ? 'lg:ml-[68px]' : 'lg:ml-[240px]'}`}>
+      <main className={`workspace-main flex-1 overflow-auto w-full min-h-screen bg-background transition-all duration-300 md:ml-[68px] ${collapsed ? 'lg:ml-[68px]' : 'lg:ml-[240px]'}`}>
         {/* Desktop command bar: a stable orientation point across every module. */}
-        <header className="hidden md:flex sticky top-0 z-30 h-14 items-center gap-4 border-b border-border/70 px-6 topbar-surface">
+        <header className="workspace-topbar hidden md:flex sticky top-0 z-30 h-14 items-center gap-4 border-b border-border/70 px-6 topbar-surface">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/65">
               <span>{currentSectionLabel}</span>
@@ -386,7 +386,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
-            className="hidden lg:flex h-8 w-[220px] items-center gap-2 rounded-[7px] border border-border/80 bg-card/70 px-2.5 text-left text-[11px] text-muted-foreground/70 transition-colors hover:border-primary/45 hover:text-foreground"
+            className="workspace-command-search hidden lg:flex h-8 w-[220px] items-center gap-2 rounded-[7px] border border-border/80 bg-card/70 px-2.5 text-left text-[11px] text-muted-foreground/70 transition-colors hover:border-primary/45 hover:text-foreground"
             aria-label="Buscar en Gestiona"
           >
             <Search className="h-3.5 w-3.5 shrink-0" />
@@ -400,7 +400,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
           <Link
             to="/ventas"
-            className="inline-flex h-8 items-center gap-1.5 rounded-[7px] bg-primary px-3 text-[11px] font-semibold text-primary-foreground shadow-gold transition-all hover:brightness-105"
+            className="workspace-primary-action inline-flex h-8 items-center gap-1.5 rounded-[7px] bg-primary px-3 text-[11px] font-semibold text-primary-foreground shadow-gold transition-all hover:brightness-105"
           >
             <DollarSign className="h-3.5 w-3.5" />
             Nueva venta
@@ -408,7 +408,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <PresenceAvatars maxVisible={3} size={24} className="hidden lg:flex" />
         </header>
         {/* Mobile-only header — hidden from md upward, where the icon rail is always visible */}
-        <div className="md:hidden sticky top-0 z-30 border-b border-border/30 px-4 h-12 flex items-center gap-3"
+        <div className="workspace-mobile-bar md:hidden sticky top-0 z-30 border-b border-border/30 px-4 h-12 flex items-center gap-3"
           style={{ background: 'hsl(var(--sidebar-background) / 0.92)', backdropFilter: 'blur(16px) saturate(160%)' }}>
           <button
             onClick={() => setMobileOpen(true)}
@@ -502,7 +502,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <div className="p-4 md:p-6 lg:p-8 max-w-[1380px] mx-auto animate-fade-in">
+        <div className="workspace-content p-4 md:p-6 lg:p-8 max-w-[1380px] mx-auto animate-fade-in">
           {children}
         </div>
         {/* Floating page guide — rendered per-route, no-op if no guide exists */}

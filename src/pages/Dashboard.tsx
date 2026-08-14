@@ -1202,7 +1202,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-5 pb-12">
+    <div className="workspace-page workspace-dashboard space-y-5 pb-12">
       {/* Offline/slow network banner */}
       {!online && (
         <div className="flex items-center gap-2.5 px-4 py-2.5 mb-4 rounded-xl border border-orange-500/30 bg-orange-500/8 text-sm text-orange-300">
@@ -1370,7 +1370,7 @@ export default function Dashboard() {
       )}
 
       {/* Quick Actions */}
-      <div className="flex flex-wrap gap-2 mb-4 mt-3">
+      <div className="workspace-quick-actions flex flex-wrap gap-2 mb-4 mt-3">
         {[
           { label: "Nueva Venta", icon: DollarSign, path: "/ventas", color: "text-primary" },
           { label: "POS", icon: ShoppingBag, path: "/caja", color: "text-emerald-400" },

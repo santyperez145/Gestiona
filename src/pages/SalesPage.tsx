@@ -626,7 +626,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="workspace-page workspace-sales space-y-6 pb-12">
       <PageHeader
         icon={ShoppingCart}
         title="Ventas"

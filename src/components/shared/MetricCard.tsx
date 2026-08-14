@@ -32,7 +32,7 @@ export default function MetricCard({
     <div
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden rounded-[8px] border border-border/80 bg-card px-4 py-3.5",
+        "workspace-metric-card group relative overflow-hidden rounded-[8px] border border-border/80 bg-card px-4 py-3.5",
         "shadow-kpi transition-all duration-200 hover:-translate-y-px hover:border-primary/35 hover:shadow-card",
         live && "border-emerald-500/35 ring-1 ring-emerald-500/10",
         onClick && "cursor-pointer",

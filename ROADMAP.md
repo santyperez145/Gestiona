@@ -18,6 +18,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de rediseno 2 (2026-08-14):** dashboard ordenado por Business Core, tarjetas metricas reutilizables, panel `FocoDelDia` con jerarquia de gestion y contraste corregido para el modo claro. DashStack aporta criterio de composicion; los datos y la logica siguen siendo los del producto.
 
+**Slice de rediseno 3 (2026-08-14):** consolidacion del workspace de gestion y plataforma. El shell de organizacion ahora separa mejor navegacion, busqueda global, estado operativo y accion primaria; `PageHeader`, `MetricCard` y `KPICard` comparten una misma superficie; Productos, Ventas y Dashboard reciben jerarquia de tablas, toolbars y acciones; Plataforma conserva violeta como superficie de staff. Se toma de los kits de ecommerce/admin la densidad, el uso de tablas y la composicion por bloques, pero no se copian pantallas ni se agregan datos ficticios. Validado con typecheck, lint sin errores, 823 tests y build.
+
 ---
 
 ## 1. Qué es

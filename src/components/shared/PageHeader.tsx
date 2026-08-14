@@ -21,14 +21,14 @@ const BADGE: Record<BadgeVariant, string> = {
 
 export default function PageHeader({ icon: Icon, title, description, actions, badge }: PageHeaderProps) {
   return (
-    <div className="page-header flex flex-col sm:flex-row sm:items-start justify-between gap-5 mb-6 md:mb-8">
+    <div className="page-header workspace-page-header flex flex-col sm:flex-row sm:items-start justify-between gap-5 mb-6 md:mb-8">
 
       {/* ── Left: icon + title + accent bar ─────────────────────── */}
       <div className="min-w-0">
 
         {/* Compact context line keeps the title readable at a glance. */}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-primary/10 text-primary ring-1 ring-primary/15">
+        <div className="page-header__context flex items-center gap-2 mb-2">
+          <span className="page-header__icon flex h-7 w-7 items-center justify-center rounded-[7px] bg-primary/10 text-primary ring-1 ring-primary/15">
             <Icon className="w-3.5 h-3.5" />
           </span>
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70 font-display">
@@ -39,7 +39,7 @@ export default function PageHeader({ icon: Icon, title, description, actions, ba
         {/* Title */}
         <div className="flex items-end gap-3 flex-wrap">
           <h1 className={cn(
-            "text-[1.65rem] md:text-[1.95rem] font-display font-bold tracking-[-0.03em] leading-none",
+            "page-header__title text-[1.65rem] md:text-[1.95rem] font-display font-bold tracking-[-0.03em] leading-none",
             "text-foreground",
           )}>
             {title}
@@ -56,7 +56,7 @@ export default function PageHeader({ icon: Icon, title, description, actions, ba
 
         {/* Description */}
         {description && (
-          <p className="mt-2 text-[13px] text-muted-foreground/75 leading-relaxed max-w-[560px]">
+          <p className="page-header__description mt-2 text-[13px] text-muted-foreground/75 leading-relaxed max-w-[560px]">
             {description}
           </p>
         )}
@@ -66,7 +66,7 @@ export default function PageHeader({ icon: Icon, title, description, actions, ba
       {/* w-full en mobile; en desktop se limita a 62% para que el título
           nunca colapse, y flex-wrap deja que las toolbars largas envuelvan. */}
       {actions && (
-        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto sm:max-w-[62%] sm:justify-end sm:pt-1">
+        <div className="page-header__actions flex items-center gap-2 flex-wrap w-full sm:w-auto sm:max-w-[70%] sm:justify-end sm:pt-1">
           {actions}
         </div>
       )}

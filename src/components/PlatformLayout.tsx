@@ -50,10 +50,10 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   const visible = NAV.filter(item => !item.roles || canPlatform(...item.roles));
 
   return (
-    <div className="platform-surface min-h-screen bg-background">
+    <div className="platform-surface workspace-platform min-h-screen bg-background">
       {/* ── Barra de identidad de plataforma ──────────────────────────── */}
       <header
-        className="sticky top-0 z-40 border-b border-violet-500/25 topbar-surface"
+        className="workspace-platform-topbar sticky top-0 z-40 border-b border-violet-500/25 topbar-surface"
       >
         <div className="px-4 sm:px-6 h-14 flex items-center gap-3">
           <div className="flex items-center gap-2 min-w-0">
@@ -118,7 +118,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
         </nav>
       </header>
 
-      <main className="px-4 sm:px-6 py-6 md:py-8 max-w-[1600px] mx-auto">{children}</main>
+      <main className="workspace-platform-main px-4 sm:px-6 py-6 md:py-8 max-w-[1600px] mx-auto">{children}</main>
 
       <footer className="px-6 py-4 border-t border-border/30 mt-8">
         <p className="text-[10px] text-muted-foreground/40 font-mono">

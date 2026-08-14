@@ -847,6 +847,9 @@ La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de inf
 - El dashboard abre con cuatro metricas de Business Core y deja el resto en una segunda capa visual. Las tarjetas metricas viven en componentes reutilizables para que Ventas, Stock, Finanzas y Plataforma no inventen estilos paralelos.
 - Mobile no es una version comprimida: tablas tienen scroll explicito, acciones llegan a 40px y la navegacion conserva Resumen, POS, Ventas, Productos y Clientes.
 - Los kits de Figma son referencias de criterio. La implementacion vive en los componentes y tokens del repo para que todas las superficies evolucionen juntas.
+- El shell de organizacion debe priorizar lectura y accion: sidebar silencioso, breadcrumb visible, busqueda global, estado operativo y una accion primaria. Las tarjetas metricas no son decoracion: deben tener una sola lectura y una fuente temporal clara.
+- `PageHeader`, `MetricCard` y `KPICard` son la base compartida. Antes de crear una tarjeta, toolbar o encabezado nuevo, buscar si el componente existente puede resolverlo. Las tablas de Productos, Ventas y Plataforma deben conservar scroll horizontal en mobile y estados legibles sin depender del modo oscuro.
+- Las referencias de ecommerce/admin se usan para jerarquia, densidad, filtros, tablas y composicion. No se copian assets ni pantallas: el contenido, los estados y el lenguaje tienen que responder al Business Core de Gestiona.
 
 El slice de rediseno se verifica con screenshot en desktop y mobile, typecheck, lint, test y build antes de avanzar a otra superficie.
 
