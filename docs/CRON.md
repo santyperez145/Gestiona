@@ -1,12 +1,15 @@
 # Cron jobs
 
-Los trabajos programados viven en `pg_cron` dentro de la base y llaman Edge
-Functions por HTTP.
+Los trabajos programados viven en `pg_cron` dentro de la base. La mayoría llama
+Edge Functions por HTTP; `snapshot-platform-org-health` es la excepción
+deliberada: ejecuta una función `SECURITY DEFINER` local para capturar una
+fotografía diaria de riesgo, sin depender de una API externa.
 
 ## Cómo funciona
 
-Todos pasan por un único helper, `public.invoke_edge_function(nombre)`, que lee
-la URL del proyecto y la clave publicable del **vault** de Supabase:
+Los jobs que llaman Edge Functions pasan por un único helper,
+`public.invoke_edge_function(nombre)`, que lee la URL del proyecto y la clave
+publicable del **vault** de Supabase:
 
 ```sql
 SELECT public.invoke_edge_function('check-stock-alerts');
@@ -67,9 +70,16 @@ ORDER BY created DESC
 LIMIT 10;
 ```
 
-Para probar uno a mano sin esperar al horario:
+Para probar una Edge Function a mano sin esperar al horario:
 
 ```sql
 SELECT public.invoke_edge_function('check-stock-alerts');
 -- esperar unos segundos y mirar net._http_response
+```
+
+La serie de riesgo se puede refrescar sin HTTP (normalmente no hace falta,
+porque se actualiza a las 03:15 ART):
+
+```sql
+SELECT public.capture_platform_org_health_snapshot();
 ```

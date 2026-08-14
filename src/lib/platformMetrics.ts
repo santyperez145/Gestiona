@@ -129,6 +129,26 @@ export interface PlatformAiActionMetrics {
   rows: PlatformAiActionRow[];
 }
 
+export interface PlatformRiskSeriesRow {
+  snapshot_date: string | null;
+  en_riesgo: number | null;
+  cayendo: number | null;
+  dormido: number | null;
+  sin_activar: number | null;
+  comercios_en_riesgo: number | null;
+  gmv_en_riesgo: number | null;
+}
+
+export interface PlatformRiskSeriesMetrics {
+  observations: number;
+  latest: PlatformRiskSeriesRow | null;
+  previous: PlatformRiskSeriesRow | null;
+  riskOrganizations: number;
+  riskOrganizationChange: number | null;
+  atRiskGmv: number;
+  rows: PlatformRiskSeriesRow[];
+}
+
 export interface PlatformMetrics {
   totalOrganizations: number;
   onboardedOrganizations: number;
@@ -287,6 +307,25 @@ export function calculateAiActionMetrics(rows: PlatformAiActionRow[]): PlatformA
       if (totalDiff !== 0) return totalDiff;
       return numberOrZero(b.recommendations_applied) - numberOrZero(a.recommendations_applied);
     }),
+  };
+}
+
+export function calculateRiskSeriesMetrics(rows: PlatformRiskSeriesRow[]): PlatformRiskSeriesMetrics {
+  const ordered = [...rows].sort((a, b) => (a.snapshot_date || "").localeCompare(b.snapshot_date || ""));
+  const latest = ordered.length ? ordered[ordered.length - 1] : null;
+  const previous = ordered.length > 1 ? ordered[ordered.length - 2] : null;
+  const riskOrganizations = numberOrZero(latest?.comercios_en_riesgo);
+
+  return {
+    observations: ordered.length,
+    latest,
+    previous,
+    riskOrganizations,
+    riskOrganizationChange: previous
+      ? riskOrganizations - numberOrZero(previous.comercios_en_riesgo)
+      : null,
+    atRiskGmv: numberOrZero(latest?.gmv_en_riesgo),
+    rows: ordered,
   };
 }
 

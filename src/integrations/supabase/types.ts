@@ -19626,6 +19626,18 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_org_risk_series: {
+        Row: {
+          cayendo: number | null
+          comercios_en_riesgo: number | null
+          dormido: number | null
+          en_riesgo: number | null
+          gmv_en_riesgo: number | null
+          sin_activar: number | null
+          snapshot_date: string | null
+        }
+        Relationships: []
+      }
       platform_revenue_monthly: {
         Row: {
           active_orgs: number | null
@@ -20483,6 +20495,10 @@ export type Database = {
       can_review_product: {
         Args: { p_product_id: string; p_slug: string }
         Returns: Json
+      }
+      capture_platform_org_health_snapshot: {
+        Args: { p_snapshot_date?: string }
+        Returns: number
       }
       cancelar_conteo: { Args: { p_count_id: string }; Returns: undefined }
       cerrar_conteo: { Args: { p_count_id: string }; Returns: Json }

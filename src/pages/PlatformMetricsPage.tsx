@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, BarChart3, CheckCircle2, Clock3, Globe2, MonitorSmartphone, PackageCheck, RefreshCw, Search, ShoppingBag, Sparkles, Store, Users } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { isMissingRelation } from "@/lib/publicDataSource";
-import { calculateAiActionMetrics, calculateChannelMetrics, calculatePlatformMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformHealthRow, type PlatformStockAccuracyRow } from "@/lib/platformMetrics";
+import { calculateAiActionMetrics, calculateChannelMetrics, calculatePlatformMetrics, calculateRiskSeriesMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformHealthRow, type PlatformRiskSeriesRow, type PlatformStockAccuracyRow } from "@/lib/platformMetrics";
 
 const SIGNALS: Record<string, { label: string; className: string }> = {
   sin_activar: { label: "Sin activar", className: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
@@ -32,6 +33,10 @@ function formatARS(value: number) {
 
 function formatDate(value: string | null) {
   return value ? new Date(value).toLocaleDateString("es-AR") : "Sin fecha";
+}
+
+function formatSnapshotDate(value: string | null) {
+  return value ? new Date(`${value}T12:00:00`).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "Sin fecha";
 }
 
 function formatDays(value: number | null, emptyLabel = "Sin cobro") {
@@ -65,23 +70,26 @@ export default function PlatformMetricsPage() {
   const [channelRows, setChannelRows] = useState<PlatformActivationRow[]>([]);
   const [stockRows, setStockRows] = useState<PlatformStockAccuracyRow[]>([]);
   const [aiActionRows, setAiActionRows] = useState<PlatformAiActionRow[]>([]);
+  const [riskSeriesRows, setRiskSeriesRows] = useState<PlatformRiskSeriesRow[]>([]);
   const [channelViewUnavailable, setChannelViewUnavailable] = useState(false);
   const [stockViewUnavailable, setStockViewUnavailable] = useState(false);
   const [aiActionViewUnavailable, setAiActionViewUnavailable] = useState(false);
+  const [riskSeriesUnavailable, setRiskSeriesUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = usePersistedState<"funnel" | "health" | "activation" | "channels" | "stock" | "ai">("gestiona.view.platform.metrics-tab", "funnel");
+  const [tab, setTab] = usePersistedState<"funnel" | "health" | "activation" | "channels" | "stock" | "ai" | "risk">("gestiona.view.platform.metrics-tab", "funnel");
   const [search, setSearch] = usePersistedState("gestiona.view.platform.metrics-search", "");
   const [signalFilter, setSignalFilter] = usePersistedState("gestiona.view.platform.metrics-signal", "all");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [healthResult, channelResult, stockResult, aiActionResult] = await Promise.all([
+    const [healthResult, channelResult, stockResult, aiActionResult, riskSeriesResult] = await Promise.all([
       supabase.from("platform_org_health").select("*").order("gmv_30d", { ascending: false }),
       supabase.from("platform_org_activation").select("*").order("org_creada", { ascending: false }),
       supabase.from("platform_org_stock_accuracy").select("*").order("productos_descuadrados", { ascending: false }),
       supabase.from("platform_org_ai_actions").select("*").order("recommendations_total", { ascending: false }),
+      supabase.from("platform_org_risk_series").select("*").order("snapshot_date", { ascending: true }),
     ]);
     if (healthResult.error) {
       setError(healthResult.error.message);
@@ -128,6 +136,19 @@ export default function PlatformMetricsPage() {
       setAiActionRows((aiActionResult.data || []) as PlatformAiActionRow[]);
       setAiActionViewUnavailable(false);
     }
+    if (riskSeriesResult.error) {
+      if (isMissingRelation(riskSeriesResult.error)) {
+        setRiskSeriesUnavailable(true);
+        setRiskSeriesRows([]);
+      } else {
+        setError(riskSeriesResult.error.message);
+        setRiskSeriesRows([]);
+        setRiskSeriesUnavailable(false);
+      }
+    } else {
+      setRiskSeriesRows((riskSeriesResult.data || []) as PlatformRiskSeriesRow[]);
+      setRiskSeriesUnavailable(false);
+    }
     setLoading(false);
   }, []);
 
@@ -137,6 +158,7 @@ export default function PlatformMetricsPage() {
   const channelMetrics = useMemo(() => calculateChannelMetrics(channelRows), [channelRows]);
   const stockMetrics = useMemo(() => calculateStockAccuracyMetrics(stockRows), [stockRows]);
   const aiActionMetrics = useMemo(() => calculateAiActionMetrics(aiActionRows), [aiActionRows]);
+  const riskSeriesMetrics = useMemo(() => calculateRiskSeriesMetrics(riskSeriesRows), [riskSeriesRows]);
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
     return metrics.activationTimes.filter(row => {
@@ -184,6 +206,7 @@ export default function PlatformMetricsPage() {
           <TabsTrigger value="channels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Canales</TabsTrigger>
           <TabsTrigger value="stock" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Inventario</TabsTrigger>
           <TabsTrigger value="ai" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Recomendaciones IA</TabsTrigger>
+          <TabsTrigger value="risk" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Riesgo</TabsTrigger>
         </TabsList>
 
         <TabsContent value="funnel" className="mt-5 space-y-5">
@@ -403,6 +426,44 @@ export default function PlatformMetricsPage() {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="risk" className="mt-5 space-y-5">
+          {riskSeriesUnavailable ? (
+            <div className="flex items-start gap-3 border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div><p className="font-semibold">Serie de riesgo pendiente</p><p className="mt-1 text-xs text-muted-foreground">La base todavía no expone `platform_org_risk_series`. No se reconstruye una tendencia con ventanas de hoy.</p></div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <KPICard label="En riesgo hoy" value={riskSeriesMetrics.riskOrganizations} icon={AlertTriangle} color={riskSeriesMetrics.riskOrganizations > 0 ? "destructive" : "success"} sub="riesgo, caída o dormido" />
+                <KPICard label="Cambio diario" value={riskSeriesMetrics.riskOrganizationChange === null ? "Sin base" : `${riskSeriesMetrics.riskOrganizationChange > 0 ? "+" : ""}${riskSeriesMetrics.riskOrganizationChange}`} icon={Activity} color={riskSeriesMetrics.riskOrganizationChange !== null && riskSeriesMetrics.riskOrganizationChange > 0 ? "destructive" : "success"} sub="contra la observación anterior" />
+                <KPICard label="GMV en riesgo" value={formatARS(riskSeriesMetrics.atRiskGmv)} icon={ShoppingBag} color="warning" sub="base previa de riesgo y caída" />
+                <KPICard label="Observaciones" value={riskSeriesMetrics.observations} icon={Clock3} color="blue" sub={riskSeriesMetrics.latest ? `desde ${formatSnapshotDate(riskSeriesMetrics.rows[0]?.snapshot_date || null)}` : "la serie empieza al medir"} />
+              </div>
+
+              <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
+                <div className="flex items-start gap-3"><Activity className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" /><div><p className="font-semibold text-violet-200">Historia capturada, no retrospectiva inventada</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">La foto se toma todos los días a las 03:15 de Argentina. Riesgo suma organizaciones sin ventas tras haber cobrado, en caída fuerte o dormidas; `sin activar` se conserva fuera del total porque pide onboarding, no una acción de churn.</p></div></div>
+              </section>
+
+              <div className="rounded-[10px] border border-border/60 bg-card p-5">
+                <div className="mb-5"><h2 className="font-semibold text-sm">Evolución de comercios en riesgo</h2><p className="mt-1 text-xs text-muted-foreground">La comparación aparece desde la segunda observación diaria. La ficha Salud conserva el detalle para actuar por organización.</p></div>
+                {loading ? <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">Cargando serie de riesgo...</div> : riskSeriesMetrics.observations < 2 ? <div className="flex h-[240px] items-center justify-center text-center text-sm text-muted-foreground">La primera observación real se registró hoy. La tendencia estará disponible después de la próxima captura diaria.</div> : (
+                  <ResponsiveContainer width="100%" height={240}>
+                    <AreaChart data={riskSeriesMetrics.rows} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
+                      <defs><linearGradient id="platformRiskGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f97316" stopOpacity={0.3} /><stop offset="95%" stopColor="#f97316" stopOpacity={0} /></linearGradient></defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                      <XAxis dataKey="snapshot_date" tickFormatter={formatSnapshotDate} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                      <Tooltip labelFormatter={formatSnapshotDate} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                      <Area type="monotone" dataKey="comercios_en_riesgo" name="Comercios en riesgo" stroke="#f97316" fill="url(#platformRiskGradient)" strokeWidth={2} dot={{ r: 3, fill: "#f97316" }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 )}
               </div>
             </>

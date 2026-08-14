@@ -197,7 +197,7 @@ Lo mínimo, y ninguno es difícil porque los datos ya están en la base:
 | **Adopción omnicanal** | El % que usa POS **y** tienda. Es la métrica que representa la tesis del producto: si es baja, el diferencial no se está usando. | cruce por `org_id` |
 | **GMV por comercio** | Cuánto vende cada uno usando esto. | `sales` + `ecommerce_orders` |
 | **Organizaciones activas / que pagan** | La diferencia entre las dos es el negocio. | `memberships`, `subscriptions` |
-| **Riesgo de abandono** | Qué comercios bajaron su actividad. `platform_org_health` ya hace algo parecido y ordena por urgencia. | ya existe, falta la serie temporal |
+| **Riesgo de abandono** | Qué comercios bajaron su actividad. `platform_org_health` ya hace algo parecido y ordena por urgencia. | ✅ `platform_org_risk_series` parte de snapshots diarios reales; la tendencia crece desde su primera captura. |
 | **Stock accuracy** | Si el stock actual no coincide con el Kardex, la promesa omnicanal se cae aunque la tienda sea linda. | `stock_movements` vs `products` / `product_variants` |
 | **AI Action Rate** | Mide si la inteligencia produce acciones, no si alguien abrió un chat. | ✅ Recomendador de ofertas: `apply_ai_offer_recommendation` → `platform_org_ai_actions`; no incluye chats ni sugerencias efímeras. |
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateAiActionMetrics, calculateChannelMetrics, calculatePlatformMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformHealthRow, type PlatformStockAccuracyRow, withActivationTimes, withChannelActivationTimes } from "@/lib/platformMetrics";
+import { calculateAiActionMetrics, calculateChannelMetrics, calculatePlatformMetrics, calculateRiskSeriesMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformHealthRow, type PlatformRiskSeriesRow, type PlatformStockAccuracyRow, withActivationTimes, withChannelActivationTimes } from "@/lib/platformMetrics";
 
 const baseRow = (overrides: Partial<PlatformHealthRow> = {}): PlatformHealthRow => ({
   org_id: "org-1",
@@ -80,6 +80,17 @@ const baseAiActionRow = (overrides: Partial<PlatformAiActionRow> = {}): Platform
   first_recommendation_at: "2026-08-01T00:00:00.000Z",
   last_recommendation_at: "2026-08-14T00:00:00.000Z",
   last_applied_at: "2026-08-13T00:00:00.000Z",
+  ...overrides,
+});
+
+const baseRiskSeriesRow = (overrides: Partial<PlatformRiskSeriesRow> = {}): PlatformRiskSeriesRow => ({
+  snapshot_date: "2026-08-14",
+  en_riesgo: 2,
+  cayendo: 1,
+  dormido: 1,
+  sin_activar: 3,
+  comercios_en_riesgo: 4,
+  gmv_en_riesgo: 200000,
   ...overrides,
 });
 
@@ -212,5 +223,24 @@ describe("platformMetrics", () => {
     expect(metrics.recommendationsDismissed).toBe(6);
     expect(metrics.recommendationsPending).toBe(2);
     expect(metrics.actionRatePct).toBe(33.3);
+  });
+
+  it("ordena la serie de riesgo y no inventa una variación sin día anterior", () => {
+    const metrics = calculateRiskSeriesMetrics([
+      baseRiskSeriesRow({ snapshot_date: "2026-08-14", comercios_en_riesgo: 4 }),
+      baseRiskSeriesRow({ snapshot_date: "2026-08-12", comercios_en_riesgo: 2, gmv_en_riesgo: 100000 }),
+      baseRiskSeriesRow({ snapshot_date: "2026-08-13", comercios_en_riesgo: 3, gmv_en_riesgo: 150000 }),
+    ]);
+    expect(metrics.observations).toBe(3);
+    expect(metrics.latest?.snapshot_date).toBe("2026-08-14");
+    expect(metrics.previous?.snapshot_date).toBe("2026-08-13");
+    expect(metrics.riskOrganizations).toBe(4);
+    expect(metrics.riskOrganizationChange).toBe(1);
+    expect(metrics.atRiskGmv).toBe(200000);
+  });
+
+  it("deja la variación en null cuando sólo existe la primera observación real", () => {
+    const metrics = calculateRiskSeriesMetrics([baseRiskSeriesRow()]);
+    expect(metrics.riskOrganizationChange).toBeNull();
   });
 });

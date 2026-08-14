@@ -52,6 +52,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 18 (2026-08-14):** G8 deja de confundir una sugerencia con una acción. El recomendador de ofertas devuelve el id persistido y `Aplicar` invoca `apply_ai_offer_recommendation`: la base verifica owner/admin, producto activo, descuento máximo y margen mínimo antes de fijar una oferta o destacar un producto, sin tocar stock. La recomendación queda `applied` sólo después de ese cambio; el cliente sólo puede descartarla. `platform_org_ai_actions` expone al staff de plataforma el denominador, aplicadas, pendientes, descartadas y tasa agregada por organización, y `/platform/metricas` lo muestra en una pestaña propia. El alcance es deliberado: mide el recomendador de ofertas persistido, no chats ni sugerencias efímeras. Validado contra la base vinculada con RPC ejecutado como owner/admin, vista y permiso inspeccionados y filas ZZ en cero; typecheck, lint sin errores, 891 tests y build/PWA. Las 55 Edge Functions, incluido el recomendador, quedaron desplegadas.
 
+**Slice funcional 19 (2026-08-14):** G6 deja de mirar sólo la señal de hoy. `platform_org_health_source` concentra la definición de salud y `capture_platform_org_health_snapshot` guarda la fotografía diaria por organización; una serie protegida agrega en riesgo, cayendo, dormido, sin activar y GMV expuesto para `/platform/metricas`. La primera captura real registró 4 organizaciones y el cron corre todos los días a las 03:15 ART. No hay backfill: hasta la próxima captura se muestra una única observación, no una tendencia inventada. Validado contra la base vinculada con captura sintética limpiada, primera captura real, cron, permisos de anon/authenticated y lectura como platform admin; typecheck, lint sin errores, 893 tests y build/PWA.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -293,7 +295,7 @@ funcionó sin instrumentación, así que van juntas.
 | Qué | Estado |
 |---|---|
 | **D2** Onboarding guiado | 🔴 `StoreReadinessPanel` dice qué falta; no hay paso a paso. Es lo que convierte "funciona" en "otro lo puede usar". |
-| **G1–G8** Instrumentación | 🟠 G1–G5, G7 y G8 ya tienen vistas o eventos medibles; G6 sigue sin serie temporal de riesgo. Falta observar su uso sostenido con un segundo comercio. |
+| **G1–G8** Instrumentación | 🟡 G1–G8 ya tienen vistas o eventos medibles. Falta que la serie de G6 acumule días y observar uso sostenido con un segundo comercio. |
 | **D4** Límites del plan aplicados | 🟠 Sólo productos. Faltan usuarios, tiendas y órdenes/mes. |
 | **D1** Comprobante fiscal de la suscripción (= F16) | 🟠 Depende de C1. |
 
@@ -545,7 +547,7 @@ en [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §6.
 | **G3** | **Adopción omnicanal**: % que usa POS **y** tienda | `platform_org_activation`, `sales.source = 'pos'` + orden online confirmada |
 | **G4** | **GMV por comercio** | `sales` + `ecommerce_orders` |
 | **G5** | **Activas vs. que pagan** | `memberships`, `subscriptions` |
-| **G6** | **Serie temporal de riesgo de abandono** | `platform_org_health` ya ordena por urgencia; falta la serie |
+| **G6** | **Serie temporal de riesgo de abandono** | ✅ `platform_org_risk_series` desde snapshots diarios factuales; sin backfill de historia previa. |
 | **G7** | **Stock accuracy**: % de productos cuyo stock actual coincide con Kardex | ✅ `platform_org_stock_accuracy`: `stock_movements` vs `products`/`product_variants`; sin Kardex queda fuera del porcentaje |
 | **G8** | **AI Action Rate**: recomendaciones de IA que terminan en acción | ✅ `platform_org_ai_actions`: aplicadas / recomendaciones persistidas por el recomendador de ofertas; los descartes no entran en el numerador. |
 
