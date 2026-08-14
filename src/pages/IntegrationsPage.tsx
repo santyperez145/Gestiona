@@ -365,6 +365,7 @@ export default function IntegrationsPage() {
       />
 
       <Tabs
+        className="workspace-tabs-layout"
         defaultValue={initialTab}
         onValueChange={(v) => {
           const next = new URLSearchParams(searchParams);
@@ -372,7 +373,7 @@ export default function IntegrationsPage() {
           setSearchParams(next, { replace: true });
         }}
       >
-        <TabsList>
+        <TabsList className="workspace-tabs-nav mb-0">
           <TabsTrigger value="conexiones" className="gap-1.5"><Link2 className="w-3.5 h-3.5" />Conexiones</TabsTrigger>
           <TabsTrigger value="apikeys" className="gap-1.5"><KeyRound className="w-3.5 h-3.5" />API Keys</TabsTrigger>
           <TabsTrigger value="webhooks" className="gap-1.5"><Webhook className="w-3.5 h-3.5" />Webhooks</TabsTrigger>

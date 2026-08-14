@@ -475,8 +475,8 @@ export default function ReportsPage() {
         <KPICard label="Ventas registradas" value={filtered.sales.length} icon={Receipt} color="blue" sub={`${filtered.purchases.length} compras`} />
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="mb-4 flex-wrap">
+      <Tabs defaultValue="overview" className="workspace-tabs-layout w-full">
+        <TabsList className="workspace-tabs-nav mb-0 flex-wrap">
           <TabsTrigger value="overview">Resumen</TabsTrigger>
           <TabsTrigger value="income">Estado de Resultados</TabsTrigger>
           <TabsTrigger value="inventory">Inventario Valorado</TabsTrigger>

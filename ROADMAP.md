@@ -32,6 +32,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de rediseno 9 (2026-08-14):** pasada de consolidacion sobre las vistas ya redisenadas. `PageHeader` limita las acciones para proteger la jerarquia del titulo; el Dashboard reubica `Business Core` junto a `FocoDelDia`, usa una toolbar de accesos consistente y aplica un ritmo vertical unico a sus widgets. La primera lectura queda orientada a ventas, margen, stock, caja y tareas, mientras que el analisis secundario conserva sus datos y acciones mas abajo. Se eliminaron emojis de acciones en favor de iconos del sistema y se mantuvo el scroll controlado en mobile. No se tocan consultas, permisos, stock ni calculos. Validado con typecheck, lint sin errores, 823 tests y build.
 
+**Slice de rediseno 10 (2026-08-14):** navegacion interna para reducir paginas interminables. Reportes y Analytics convierten sus tiras extensas de tabs en un rail lateral sticky en desktop y una franja horizontal desplazable en mobile; Integraciones adopta el mismo shell. Ajustes agrega un indice lateral de anclas para marca, finanzas, mensajeria, alertas, descuentos, suscripcion, impuestos, sistema y herramientas. La navegacion solo reorganiza la lectura: conserva consultas, permisos, estados, formularios y acciones existentes. Validado con typecheck, lint sin errores, 823 tests y build.
+
 ---
 
 ## 1. Qué es

@@ -557,8 +557,8 @@ export default function AnalyticsPage() {
         />
       </div>
 
-      <Tabs defaultValue="trend" className="w-full">
-        <TabsList className="flex-wrap h-auto gap-1 bg-muted/60 p-1 rounded-xl">
+      <Tabs defaultValue="trend" className="workspace-tabs-layout w-full">
+        <TabsList className="workspace-tabs-nav flex-wrap h-auto gap-1">
           <TabsTrigger value="trend" className="text-xs">Tendencia</TabsTrigger>
           <TabsTrigger value="forecast" className="text-xs">📈 Forecast</TabsTrigger>
           <TabsTrigger value="demand" className="text-xs">🔮 Demanda</TabsTrigger>

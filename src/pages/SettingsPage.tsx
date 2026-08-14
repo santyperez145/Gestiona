@@ -538,10 +538,25 @@ export default function SettingsPage() {
       </div>
       <p className="text-muted-foreground mb-6 md:mb-8">Configuración general de {businessName}</p>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        <div className="space-y-4 md:space-y-6">
-          {/* Brand */}
-          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+      <div className="workspace-settings-layout">
+        <nav className="workspace-settings-nav" aria-label="Secciones de ajustes">
+          <p className="workspace-settings-nav__label">Secciones</p>
+          <a href="#settings-brand"><Building2 className="w-3.5 h-3.5" />Marca y apariencia</a>
+          <a href="#settings-finance"><Palette className="w-3.5 h-3.5" />Finanzas y precios</a>
+          <a href="#settings-whatsapp"><MessageCircle className="w-3.5 h-3.5" />Mensajería</a>
+          <a href="#settings-notifications"><Bell className="w-3.5 h-3.5" />Alertas</a>
+          <a href="#settings-pricing"><CreditCard className="w-3.5 h-3.5" />Descuentos</a>
+          <a href="#settings-subscription"><ShoppingBag className="w-3.5 h-3.5" />Suscripción</a>
+          <a href="#settings-taxes"><Receipt className="w-3.5 h-3.5" />Impuestos</a>
+          <a href="#settings-system"><Database className="w-3.5 h-3.5" />Sistema y seguridad</a>
+          <a href="#settings-tools"><Cloud className="w-3.5 h-3.5" />Herramientas</a>
+        </nav>
+
+        <div className="workspace-settings-content">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+          <div className="space-y-4 md:space-y-6">
+            {/* Brand */}
+          <div id="settings-brand" className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <Building2 className="w-4 h-4 text-primary" />Marca del Negocio
             </h2>
@@ -736,7 +751,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Financial params */}
-          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4 md:space-y-5">
+          <div id="settings-finance" className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4 md:space-y-5">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <Palette className="w-4 h-4 text-primary" />Parámetros Financieros
             </h2>
@@ -823,7 +838,7 @@ export default function SettingsPage() {
           </div>
 
           {/* WhatsApp message templates */}
-          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+          <div id="settings-whatsapp" className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
                 <MessageCircle className="w-4 h-4 text-green-400" />Plantillas de WhatsApp
@@ -856,7 +871,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Notification preferences */}
-          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
+          <div id="settings-notifications" className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
                 <Bell className="w-4 h-4 text-primary" />Notificaciones
@@ -882,7 +897,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Push notifications */}
-          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
+          <div id="settings-push" className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
                 <Smartphone className="w-4 h-4 text-primary" />Notificaciones Push (PWA)
@@ -911,7 +926,7 @@ export default function SettingsPage() {
           </div>
 
           {/* SMTP Email Config */}
-          <div className="bg-card border border-blue-500/20 rounded-[10px] p-4 md:p-6 space-y-4">
+          <div id="settings-email" className="bg-card border border-blue-500/20 rounded-[10px] p-4 md:p-6 space-y-4">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
                 <Mail className="w-4 h-4 text-blue-400" />Email SMTP Propio
@@ -1045,7 +1060,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Payment method discounts */}
-          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+          <div id="settings-pricing" className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-primary" />Descuentos por Medio de Pago
             </h2>
@@ -1095,10 +1110,10 @@ export default function SettingsPage() {
 
         <div className="space-y-4 md:space-y-6">
           {/* Subscription */}
-          <SubscriptionPanel session={session} />
+          <div id="settings-subscription"><SubscriptionPanel session={session} /></div>
 
           {/* Taxes */}
-          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
+          <div id="settings-taxes" className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2"><Receipt className="w-4 h-4 text-primary" />Impuestos (Argentina)</h2>
               <Switch checked={taxEnabled} onCheckedChange={setTaxEnabled} />
@@ -1130,7 +1145,7 @@ export default function SettingsPage() {
           </div>
 
           {/* System info */}
-          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
+          <div id="settings-system" className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
             <h2 className="font-display font-semibold text-[14px] tracking-tight mb-3 flex items-center gap-2"><Database className="w-4 h-4 text-primary" />Sistema</h2>
             <SystemInfoSection businessName={businessName} productCount={productCount} userEmail={user?.email} />
           </div>
@@ -1171,6 +1186,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          <div id="settings-tools" className="space-y-4 md:space-y-6">
           {/* USD Real-time Quote */}
           <USDQuoteSection userId={user!.id} onApply={(rate) => setExchangeRate(String(rate))} />
 
@@ -1200,7 +1216,10 @@ export default function SettingsPage() {
 
           {/* Sucursales management */}
           <SucursalesSection orgId={orgForTemplates?.id} />
+          </div>
         </div>
+      </div>
+      </div>
       </div>
     </div>
   );
