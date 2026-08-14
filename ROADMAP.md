@@ -42,6 +42,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice transversal 14 (2026-08-14):** las vistas de trabajo dejan de olvidar su contexto al cambiar de modulo o pestaña. `usePersistedState` centraliza la persistencia de tabs, secciones y filtros en `localStorage`, con claves por organizacion y sincronizacion entre pestañas del navegador. Se aplica a Inicio/Dashboard, Ajustes, Reportes, Analytics, Finanzas, Inventario, Compras, Marketing, Clientes/CRM, Fidelidad, Alertas, Integraciones y superficies de plataforma. La URL sigue siendo la autoridad para rutas compartibles; el almacenamiento local conserva la preferencia visual y nunca reemplaza datos, permisos ni estado transaccional. Validado con typecheck, lint sin errores, 826 tests y build.
 
+**Slice funcional 15 (2026-08-14):** Fase 1 deja de depender de consultas manuales para saber si una organizacion llego a usar el producto. `/platform/metricas` consume la vista protegida `platform_org_health` y muestra el funnel real de alta, onboarding, catalogo, tienda activa y primer cobro; calcula tiempo promedio y mediana desde el alta hasta el primer cobro; agrupa las señales de salud y permite filtrar organizaciones para que soporte actue sobre onboarding roto o riesgo de baja. Los calculos viven en `src/lib/platformMetrics.ts` y se prueban sin datos ficticios. La pantalla identifica como pendientes, sin maquillarlas, la fecha exacta de publicacion, la adopcion POS + tienda, stock accuracy y AI Action Rate. Validado con typecheck, lint sin errores, 832 tests y build.
+
 ---
 
 ## 1. Qué es
@@ -230,7 +232,7 @@ seguridad, backups, observabilidad y métricas. Traducido a este ROADMAP:
 
 ✅ **Medido (2026-08-13).** El sistema funciona y cobra: dos compras reales
 acreditadas con comisión de plataforma, stock que sólo mueve la base, RLS
-verificada con roles reales, 811 tests, bloque A cerrado.
+verificada con roles reales, 832 tests (2026-08-14), bloque A cerrado.
 
 Y hay **un** comercio usándolo, que es el dueño. Todo lo demás del ROADMAP
 mejora un producto que todavía no demostró que alguien más lo quiera (R08).
