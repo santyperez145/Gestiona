@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toCSV, EXPORTABLE_TABLES } from "@/lib/orgDataExport";
+import { exportReadme, summarizeExport, toCSV, type ExportTableResult } from "@/lib/orgDataExport";
 
 describe("toCSV", () => {
   it("devuelve cadena vacía sin filas", () => {
@@ -46,14 +46,30 @@ describe("toCSV", () => {
   });
 });
 
-describe("EXPORTABLE_TABLES", () => {
-  it("no tiene duplicados", () => {
-    expect(new Set(EXPORTABLE_TABLES).size).toBe(EXPORTABLE_TABLES.length);
+describe("manifiesto del export", () => {
+  const tables: ExportTableResult[] = [
+    { table: "products", status: "exported", row_count: 2, rows: [{ id: "1" }] },
+    { table: "sales", status: "empty", row_count: 0, rows: [] },
+    { table: "ecommerce_orders", status: "truncated", row_count: 50_000, available_row_count: 50_001, rows: [], reason: "Se alcanzó el límite" },
+    { table: "shipments", status: "error", row_count: 0, rows: [], reason: "No se pudo leer la tabla (42P01)" },
+  ];
+
+  it("cuenta exportadas, vacías, truncadas y fallidas sin esconder ninguna", () => {
+    expect(summarizeExport(tables)).toEqual({ exported: 1, empty: 1, truncated: 1, failed: 1 });
   });
 
-  it("incluye las tablas centrales del negocio", () => {
-    for (const t of ["products", "sales", "customers", "expenses", "debts"]) {
-      expect(EXPORTABLE_TABLES).toContain(t as never);
-    }
+  it("explica las limitaciones y nombra la tabla con observación", () => {
+    const readme = exportReadme({
+      schema_version: 1,
+      generated_at: "2026-08-14T12:00:00.000Z",
+      org_id: "org-1",
+      max_rows_per_table: 50_000,
+      tables,
+      excluded_credentials: ["afip_credentials"],
+    }, "Mi negocio", summarizeExport(tables));
+
+    expect(readme).toContain("no es una copia completa");
+    expect(readme).toContain("shipments: error");
+    expect(readme).toContain("credenciales de acceso");
   });
 });

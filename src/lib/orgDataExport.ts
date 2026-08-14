@@ -1,27 +1,38 @@
 /**
- * Export completo de los datos de la organización (derecho de acceso,
- * Ley 25.326 art. 14 — y la salida sana si algún día querés migrar).
+ * Export portable de la organización.
  *
- * El backup que existía cubría 7 tablas en un Excel. Este recorre todo lo que
- * la organización tiene cargado y arma un ZIP de CSVs, uno por tabla.
- *
- * La lista de tablas NO está hardcodeada: se leen las que el usuario puede ver
- * según la RLS. Como cada consulta pasa por las policies, este export nunca
- * puede devolver datos de otra organización.
+ * La lectura la hace la Edge Function, no el navegador: exportar la base de un
+ * negocio entero requiere que la persona sea su dueña. El manifiesto es parte
+ * del contrato: una tabla que falló o se truncó jamás se disfraza de vacía.
  */
 import { supabase } from "@/integrations/supabase/client";
 
-/** Tablas exportables: las que tienen datos del negocio, por org_id. */
-export const EXPORTABLE_TABLES = [
-  "products", "product_variants", "product_perfume_details",
-  "sales", "purchases", "purchase_orders", "purchase_order_items",
-  "customers", "customer_notes", "customer_segments", "customer_subscriptions",
-  "debts", "debt_payments", "expenses", "suppliers", "supplier_payments",
-  "invoices", "quotes", "promotions", "coupons", "price_lists", "price_list_items",
-  "marketing_posts", "influencers", "influencer_exchanges",
-  "locations", "stock_reservations", "price_history", "stock_movements",
-  "financial_movements", "deals", "crm_activities", "tasks", "audit_logs",
-] as const;
+export type ExportStatus = "exported" | "empty" | "truncated" | "error";
+
+export interface ExportTableResult {
+  table: string;
+  status: ExportStatus;
+  row_count: number;
+  available_row_count?: number;
+  rows: Record<string, unknown>[];
+  reason?: string;
+}
+
+export interface OrganizationExport {
+  schema_version: number;
+  generated_at: string;
+  org_id: string;
+  max_rows_per_table: number;
+  tables: ExportTableResult[];
+  excluded_credentials: string[];
+}
+
+export interface ExportSummary {
+  exported: number;
+  empty: number;
+  truncated: number;
+  failed: number;
+}
 
 /** Convierte filas a CSV con comillas y escapes correctos. */
 export function toCSV(rows: Record<string, unknown>[]): string {
@@ -42,36 +53,60 @@ export interface ExportProgress {
   total: number;
 }
 
+export function summarizeExport(tables: Pick<ExportTableResult, "status">[]): ExportSummary {
+  return tables.reduce<ExportSummary>((summary, table) => {
+    summary[table.status === "error" ? "failed" : table.status] += 1;
+    return summary;
+  }, { exported: 0, empty: 0, truncated: 0, failed: 0 });
+}
+
+export function exportReadme(
+  data: OrganizationExport,
+  businessName: string,
+  summary: ExportSummary,
+): string {
+  const observations = data.tables
+    .filter(table => table.status === "error" || table.status === "truncated")
+    .map(table => `- ${table.table}: ${table.status}${table.reason ? ` — ${table.reason}` : ""}`);
+
+  return [
+    `Export de datos — ${businessName || "Gestiona"}`,
+    `Fecha: ${new Date(data.generated_at).toLocaleString("es-AR")}`,
+    "",
+    "Un archivo CSV por tabla exportada, codificado en UTF-8 y separado por comas.",
+    `Tablas con filas: ${summary.exported}; vacías: ${summary.empty}; truncadas: ${summary.truncated}; con error: ${summary.failed}.`,
+    "El archivo export-manifest.json es la fuente de verdad de cobertura y errores.",
+    "",
+    "Esto no es una copia completa de la base ni un mecanismo de restauración.",
+    "Incluye solamente relaciones operativas cuyo dato pertenece directamente a la organización; las relaciones hijas sin org_id propio pueden requerir una migración asistida.",
+    "Las credenciales de acceso (OAuth, AFIP, API, sesiones, push y webhooks) quedan fuera deliberadamente.",
+    "",
+    "Observaciones:",
+    ...(observations.length ? observations : ["- Sin tablas truncadas ni errores de lectura."]),
+    "",
+    "Generado para portabilidad y derecho de acceso de datos. Conservá el manifiesto junto con los CSV.",
+  ].join("\n");
+}
+
 /**
- * Descarga todas las tablas de la org. Devuelve un mapa nombre → CSV.
- * Las tablas que no existen o que la RLS no deja leer se saltean en silencio:
- * un export parcial es mejor que ninguno.
+ * Pide al servidor una exportación autorizada. No convierte un error de acceso
+ * ni una relación ausente en una tabla vacía.
  */
 export async function collectOrgData(
   orgId: string,
   onProgress?: (p: ExportProgress) => void,
-): Promise<Record<string, string>> {
-  const out: Record<string, string> = {};
-  const total = EXPORTABLE_TABLES.length;
-
-  for (let i = 0; i < total; i++) {
-    const table = EXPORTABLE_TABLES[i];
-    onProgress?.({ table, done: i, total });
-    try {
-      const { data, error } = await supabase
-        .from(table as never)
-        .select("*")
-        .eq("org_id", orgId)
-        .limit(50000);
-      if (error || !data?.length) continue;
-      out[table] = toCSV(data as Record<string, unknown>[]);
-    } catch {
-      // tabla inexistente o sin permiso — se omite
-    }
+): Promise<OrganizationExport> {
+  onProgress?.({ table: "Solicitando datos al servidor…", done: 0, total: 1 });
+  const { data, error } = await supabase.functions.invoke("export-organization-data", {
+    body: { orgId },
+  });
+  if (error) throw error;
+  const result = data as OrganizationExport | { error?: string } | null;
+  if (!result || !("tables" in result) || !Array.isArray(result.tables)) {
+    throw new Error("La exportación no devolvió un manifiesto válido");
   }
-
-  onProgress?.({ table: "", done: total, total });
-  return out;
+  onProgress?.({ table: "", done: 1, total: 1 });
+  return result;
 }
 
 /** Arma el ZIP y dispara la descarga. */
@@ -79,29 +114,26 @@ export async function downloadOrgExport(
   orgId: string,
   businessName: string,
   onProgress?: (p: ExportProgress) => void,
-): Promise<number> {
-  const csvs = await collectOrgData(orgId, onProgress);
-  const names = Object.keys(csvs);
-  if (!names.length) return 0;
+): Promise<ExportSummary> {
+  const data = await collectOrgData(orgId, onProgress);
+  const summary = summarizeExport(data.tables);
 
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const stamp = new Date().toISOString().slice(0, 10);
 
-  names.forEach(t => zip.file(`${t}.csv`, csvs[t]));
-  zip.file(
-    "LEEME.txt",
-    [
-      `Export de datos — ${businessName || "Gestiona"}`,
-      `Fecha: ${new Date().toLocaleString("es-AR")}`,
-      ``,
-      `Un archivo CSV por tabla, codificado en UTF-8 y separado por comas.`,
-      `Solo se incluyen las tablas que tenían datos (${names.length} de ${EXPORTABLE_TABLES.length}).`,
-      ``,
-      `Generado para el derecho de acceso de la Ley 25.326 de Protección`,
-      `de Datos Personales, y como copia de respaldo portable.`,
-    ].join("\n"),
-  );
+  data.tables
+    .filter(table => table.status === "exported" || table.status === "truncated")
+    .forEach(table => zip.file(`${table.table}.csv`, toCSV(table.rows)));
+  zip.file("export-manifest.json", JSON.stringify({
+    schema_version: data.schema_version,
+    generated_at: data.generated_at,
+    org_id: data.org_id,
+    max_rows_per_table: data.max_rows_per_table,
+    tables: data.tables.map(({ rows: _rows, ...table }) => table),
+    excluded_credentials: data.excluded_credentials,
+  }, null, 2));
+  zip.file("LEEME.txt", exportReadme(data, businessName, summary));
 
   const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
   const url = URL.createObjectURL(blob);
@@ -110,5 +142,5 @@ export async function downloadOrgExport(
   a.download = `gestiona-export-${stamp}.zip`;
   a.click();
   URL.revokeObjectURL(url);
-  return names.length;
+  return summary;
 }

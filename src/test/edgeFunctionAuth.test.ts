@@ -138,6 +138,18 @@ describe('autenticación de Edge Functions', () => {
     expect(platformAction?.source).toContain('No se pudo registrar el magic link');
   });
 
+  it('el export portable exige dueño y nunca devuelve credenciales de acceso', () => {
+    const exportOrg = functions.find(f => f.name === 'export-organization-data');
+    expect(exportOrg).toBeDefined();
+    expect(exportOrg?.source).toContain('requireUser');
+    expect(exportOrg?.source).toContain('membership?.role !== "owner"');
+    expect(exportOrg?.source).toContain('EXCLUDED_CREDENTIAL_STORES');
+    expect(exportOrg?.source).toContain('SECRET_SETTINGS_COLUMNS');
+    expect(exportOrg?.source).toContain('SETTINGS_EXPORT_COLUMNS');
+    expect(exportOrg?.source).toContain('count: "exact"');
+    expect(exportOrg?.source).toContain('count === null');
+  });
+
   // Nota: no hay acá un test de "filtra la service_role key al cliente".
   // Se intentó por regex y daba falsos positivos en cualquier función que crea
   // un cliente admin y devuelve una respuesta cerca — que son casi todas. Un

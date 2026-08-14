@@ -1615,7 +1615,7 @@ function ExpenseCategoriesSection({ userId }: { userId: string }) {
 
 function BackupExport({ userId }: { userId: string }) {
   const [busy, setBusy] = useState(false);
-  const { activeOrg } = useOrg();
+  const { activeOrg, activeRole } = useOrg();
   const activeOrgId = activeOrg?.id;
   const [exportingAll, setExportingAll] = useState(false);
   const [exportStep, setExportStep] = useState("");
@@ -1626,13 +1626,18 @@ function BackupExport({ userId }: { userId: string }) {
     setExportStep("");
     try {
       const { downloadOrgExport } = await import("@/lib/orgDataExport");
-      const n = await downloadOrgExport(
+      const result = await downloadOrgExport(
         activeOrgId,
         activeOrg?.name ?? "",
         p => setExportStep(p.table),
       );
-      if (n === 0) toast.info("No hay datos para exportar todavía");
-      else toast.success(`Export listo · ${n} tabla${n > 1 ? "s" : ""}`);
+      if (result.failed || result.truncated) {
+        toast.warning("Export descargado con observaciones", {
+          description: `${result.failed} con error y ${result.truncated} truncada${result.truncated === 1 ? "" : "s"}. Revisá export-manifest.json.`,
+        });
+      } else {
+        toast.success(`Export listo · ${result.exported} tabla${result.exported === 1 ? "" : "s"} con filas`);
+      }
     } catch (e: any) {
       toast.error("Falló el export: " + (e?.message ?? "error desconocido"));
     } finally {
@@ -1695,9 +1700,9 @@ function BackupExport({ userId }: { userId: string }) {
   return (
     <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
       <h2 className="font-display font-semibold text-[14px] tracking-tight mb-3 flex items-center gap-2">
-        <Download className="w-4 h-4 text-primary" />Backup y Exportación
+        <Download className="w-4 h-4 text-primary" />Exportación de datos
       </h2>
-      <p className="text-xs text-muted-foreground mb-4">Descargá toda tu base de datos para análisis externo o respaldo.</p>
+      <p className="text-xs text-muted-foreground mb-4">Descargá datos operativos para análisis externo o portabilidad.</p>
       <div className="flex flex-col sm:flex-row gap-2">
         <Button onClick={exportExcel} disabled={busy} variant="outline" className="flex-1">
           <FileSpreadsheet className="w-4 h-4 mr-2" />Excel (.xlsx)
@@ -1707,25 +1712,28 @@ function BackupExport({ userId }: { userId: string }) {
         </Button>
       </div>
 
-      {/* Export completo — derecho de acceso (Ley 25.326) */}
+      {/* Export portátil — derecho de acceso y portabilidad. */}
       <div className="mt-4 pt-4 border-t border-border/60 space-y-2">
-        <p className="text-sm font-medium">Export completo (ZIP)</p>
+        <p className="text-sm font-medium">Export de la organización (ZIP)</p>
         <p className="text-xs text-muted-foreground">
-          Un CSV por tabla con todo lo que tiene cargado la organización — no solo
-          las 6 planillas de arriba. Sirve como respaldo portable y cubre el
-          derecho de acceso de la Ley 25.326.
+          Solo el dueño puede pedirlo. Incluye CSVs de datos operativos y un manifiesto
+          que declara cada tabla vacía, truncada o que no pudo leerse. Las credenciales
+          OAuth, AFIP, API y sesiones quedan excluidas.
         </p>
         <Button
           onClick={handleFullExport}
-          disabled={exportingAll || !activeOrgId}
+          disabled={exportingAll || !activeOrgId || activeRole !== "owner"}
           variant="outline"
           className="w-full"
         >
           <Download className="w-4 h-4 mr-2" />
           {exportingAll
             ? (exportStep ? `Exportando ${exportStep}…` : "Preparando…")
-            : "Descargar todo (.zip)"}
+            : "Descargar export (.zip)"}
         </Button>
+        {activeRole !== "owner" && (
+          <p className="text-xs text-muted-foreground">La exportación completa sólo está disponible para el dueño de la organización.</p>
+        )}
       </div>
     </div>
   );

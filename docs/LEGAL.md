@@ -91,7 +91,7 @@ con el estado medido contra la base cuando se pudo.
 | **Separación de superficies** | ✅ Ser staff de plataforma no da permisos dentro de una organización. |
 | **Facturación de la suscripción** | 🟠 Stripe cobra y **no se emite comprobante fiscal argentino** al comercio. Si la plataforma factura desde Argentina, es una obligación de ARCA, no una opción. |
 | **Comisión por venta informada** | 🟠 El 5% se cobra vía `marketplace_fee`. Tiene que estar en los términos del servicio con el comercio, y hay que confirmar cuál es la cuenta de MercadoPago que la recibe. |
-| **Baja del servicio y portabilidad** | 🟠 Hay export por Ley 25.326 para personas. **No hay forma de que un comercio se lleve su negocio entero** (D5 del ROADMAP). Retenerlo por falta de herramienta es un problema legal, no sólo comercial. |
+| **Baja del servicio y portabilidad** | 🟡 El dueño puede descargar un ZIP de datos operativos con CSV por tabla y un manifiesto que declara cobertura, errores y truncamientos. Las credenciales de acceso quedan fuera y todavía no hay importador/restauración ni garantía para relaciones hijas sin `org_id` propio (D5 del ROADMAP). Retenerlo por falta de herramienta sigue siendo un problema legal y comercial. |
 
 ---
 
