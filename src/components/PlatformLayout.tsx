@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Crown, Building2, Users, DollarSign, Headphones, Server,
-  Percent, ArrowLeft, LogOut, TrendingUp,
+  Percent, ArrowLeft, LogOut, TrendingUp, BarChart3,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
@@ -28,6 +28,7 @@ const NAV: NavItem[] = [
   { to: '/platform', label: 'Resumen', icon: Crown },
   { to: '/platform/orgs', label: 'Organizaciones', icon: Building2 },
   { to: '/platform/usuarios', label: 'Usuarios', icon: Users },
+  { to: '/platform/metricas', label: 'Métricas', icon: BarChart3 },
   { to: '/platform/planes', label: 'Planes', icon: DollarSign, roles: ['finance'] },
   { to: '/platform/negocio', label: 'Negocio', icon: TrendingUp, roles: ['finance'] },
   { to: '/platform/comisiones', label: 'Comisiones', icon: Percent, roles: ['finance'] },
@@ -50,23 +51,22 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   const visible = NAV.filter(item => !item.roles || canPlatform(...item.roles));
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="platform-surface workspace-platform min-h-screen bg-background">
       {/* ── Barra de identidad de plataforma ──────────────────────────── */}
       <header
-        className="sticky top-0 z-40 border-b border-violet-500/25"
-        style={{
-          background: 'linear-gradient(to bottom, hsl(258 40% 10% / 0.96), hsl(228 32% 4% / 0.96))',
-          backdropFilter: 'blur(16px) saturate(160%)',
-        }}
+        className="workspace-platform-topbar sticky top-0 z-40 border-b border-violet-500/25 topbar-surface"
       >
-        <div className="px-4 sm:px-6 h-12 flex items-center gap-3">
+        <div className="px-4 sm:px-6 h-14 flex items-center gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-6 h-6 rounded-[6px] bg-violet-500/15 border border-violet-500/30 flex items-center justify-center shrink-0">
               <Crown className="w-3.5 h-3.5 text-violet-300" />
             </div>
-            <span className="font-display font-semibold text-[13px] tracking-tight text-violet-100 truncate">
-              Plataforma Gestiona
-            </span>
+            <div className="min-w-0">
+              <span className="block font-display font-semibold text-[13px] tracking-tight text-violet-100 truncate">
+                Plataforma Gestiona
+              </span>
+              <span className="hidden sm:block text-[9px] uppercase tracking-[0.14em] text-violet-300/50">Control operativo</span>
+            </div>
             {platformRole && (
               <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-px rounded-[4px] bg-violet-500/15 text-violet-300 border border-violet-500/25 shrink-0">
                 {ROLE_LABEL[platformRole] || platformRole}
@@ -95,31 +95,29 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
         </div>
 
         {/* ── Nav de secciones ────────────────────────────────────────── */}
-        <nav className="px-2 sm:px-4 flex items-center gap-0.5 overflow-x-auto scrollbar-none">
+      </header>
+
+      <div className="platform-workspace-shell">
+        <nav className="platform-sidebar" aria-label="Secciones de plataforma">
+          <p className="platform-sidebar__label">Control de plataforma</p>
           {visible.map(({ to, label, icon: Icon }) => {
             const active = to === '/platform' ? pathname === '/platform' : pathname.startsWith(to);
             return (
               <Link
                 key={to}
                 to={to}
-                className={`relative flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium whitespace-nowrap transition-colors ${
-                  active
-                    ? 'text-violet-200'
-                    : 'text-violet-200/45 hover:text-violet-200/80'
-                }`}
+                className={`platform-sidebar__link ${active ? 'is-active' : ''}`}
+                aria-current={active ? 'page' : undefined}
               >
-                <Icon className="w-3.5 h-3.5" />
-                {label}
-                {active && (
-                  <span className="absolute left-2 right-2 -bottom-px h-[2px] rounded-t-full bg-violet-400 shadow-[0_0_8px_hsl(258_90%_66%/0.7)]" />
-                )}
+                <Icon className="w-4 h-4 shrink-0" />
+                <span>{label}</span>
               </Link>
             );
           })}
         </nav>
-      </header>
 
-      <main className="px-4 sm:px-6 py-5 max-w-[1600px] mx-auto">{children}</main>
+        <main className="workspace-platform-main">{children}</main>
+      </div>
 
       <footer className="px-6 py-4 border-t border-border/30 mt-8">
         <p className="text-[10px] text-muted-foreground/40 font-mono">

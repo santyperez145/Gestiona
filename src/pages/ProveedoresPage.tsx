@@ -21,6 +21,7 @@ import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { addSupplierPaymentDB, formatARS } from "@/lib/supabaseStore";
 import SupplierPOModal from "@/components/shared/SupplierPOModal";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 type Supplier = {
   id: string;
@@ -85,7 +86,10 @@ export default function ProveedoresPage() {
   const [savingDebt, setSavingDebt] = useState(false);
   const [selectedDebtIds, setSelectedDebtIds] = useState<Set<string>>(new Set());
   const [bulkPayLoading, setBulkPayLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'proveedores' | 'aging' | 'pagos' | 'analytics'>('proveedores');
+  const [activeTab, setActiveTab] = usePersistedState<'proveedores' | 'aging' | 'pagos' | 'analytics'>(
+    orgViewKey("suppliers.tab", activeOrg?.id),
+    "proveedores",
+  );
   const [allPurchases, setAllPurchases] = useState<any[]>([]);
   const [poOpen, setPoOpen] = useState(false);
   const [poSupplierId, setPoSupplierId] = useState<string | undefined>(undefined);

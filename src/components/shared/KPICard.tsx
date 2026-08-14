@@ -39,18 +39,18 @@ export default function KPICard({
       onClick={onClick}
       className={cn(
         /* Base */
-        "relative group overflow-hidden rounded-[10px]",
-        "bg-card border border-border/60",
+        "workspace-kpi-card relative group overflow-hidden rounded-[8px]",
+        "bg-card border border-border/80",
         "shadow-kpi transition-all duration-200",
         /* Hover */
-        "hover:border-border/80 hover:-translate-y-[2px]",
+        "hover:border-primary/30 hover:-translate-y-px",
         c.glow,
         onClick && "cursor-pointer select-none",
       )}
     >
       {/* ── Left accent bar ─────────────────────────────── */}
       <div className={cn(
-        "absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[10px] transition-all duration-300",
+        "absolute left-0 top-0 bottom-0 w-[2px] transition-all duration-300",
         c.bar,
         "opacity-80 group-hover:opacity-100",
       )} />
@@ -72,7 +72,7 @@ export default function KPICard({
 
         {/* ── Value — large mono number ────────────────── */}
         <p className={cn(
-          "text-[1.6rem] font-bold leading-none tracking-tight data-num animate-number-up",
+        "text-[1.5rem] font-bold leading-none tracking-tight data-num animate-number-up",
           c.value,
         )}>
           {value}

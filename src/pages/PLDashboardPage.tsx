@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import FinancialScenariosTab from "@/components/finance/FinancialScenariosTab";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 // StoreFilter scopes sales/expenses to the selected sucursal via `location_id`.
 // Purchases carry no location_id, so they are not scoped by store.
 
@@ -69,7 +70,10 @@ export default function PLDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [months, setMonths] = useState(12);
   const [selectedYm, setSelectedYm] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("mensual");
+  const [activeTab, setActiveTab] = usePersistedState(
+    orgViewKey("pl-dashboard.tab", activeOrg?.id),
+    "mensual",
+  );
   const { from: dateFrom, to: dateTo, inRange } = useDateRangeFilter();
   const { storeId } = useStoreFilter();
 
@@ -277,7 +281,7 @@ export default function PLDashboardPage() {
       </div>
 
       {/* ── Tabs ────────────────────────────────────────────────────────────── */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={value => setActiveTab(value)}>
         <TabsList>
           <TabsTrigger value="mensual">P&amp;L Mensual</TabsTrigger>
           <TabsTrigger value="ytd">YTD</TabsTrigger>

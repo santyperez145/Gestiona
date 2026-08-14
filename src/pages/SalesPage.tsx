@@ -23,6 +23,7 @@ import { logAudit } from "@/lib/auditLog";
 import { useUserRole } from "@/lib/useUserRole";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 const PAGE_SIZE = 20;
 
@@ -69,6 +70,7 @@ function createLineItem(): SaleLineItem {
 export default function SalesPage() {
   usePageTitle("Ventas");
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
   // If vendedor, only show their own sales
   const sellerFilter = !isAdmin ? (localStorage.getItem('gestiona.pos.seller') || null) : null;
@@ -83,7 +85,7 @@ export default function SalesPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [datePreset, setDatePreset] = useState<string>("all");
-  const [filterCat, setFilterCat] = useState('all');
+  const [filterCat, setFilterCat] = usePersistedState(orgViewKey("sales.category-filter", activeOrg?.id), 'all');
 
   const applyPreset = (preset: string) => {
     setDatePreset(preset);
@@ -131,15 +133,15 @@ export default function SalesPage() {
     return map;
   }, [products]);
 
-  const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<"list" | "by_customer" | "by_session" | "by_product" | "by_date">("list");
+  const [search, setSearch] = usePersistedState(orgViewKey("sales.search", activeOrg?.id), '');
+  const [viewMode, setViewMode] = usePersistedState<"list" | "by_customer" | "by_session" | "by_product" | "by_date">(orgViewKey("sales.view", activeOrg?.id), "list");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
-  const [filterMethod, setFilterMethod] = useState('all');
-  const [filterSellerName, setFilterSellerName] = useState('all');
+  const [filterPaid, setFilterPaid] = usePersistedState<'all' | 'paid' | 'pending'>(orgViewKey("sales.payment-filter", activeOrg?.id), 'all');
+  const [filterMethod, setFilterMethod] = usePersistedState(orgViewKey("sales.method-filter", activeOrg?.id), 'all');
+  const [filterSellerName, setFilterSellerName] = usePersistedState(orgViewKey("sales.seller-filter", activeOrg?.id), 'all');
   const [saleSort, setSaleSort] = useState<{ col: "date" | "total_ars" | "customer_name" | "product_name"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
-  const [filterHasNote, setFilterHasNote] = useState(false);
+  const [filterHasNote, setFilterHasNote] = usePersistedState(orgViewKey("sales.note-filter", activeOrg?.id), false);
   const [commPct, setCommPct] = useState(5);
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
 
@@ -626,7 +628,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="workspace-page workspace-sales space-y-6 pb-12">
       <PageHeader
         icon={ShoppingCart}
         title="Ventas"
@@ -679,7 +681,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         todaySales.forEach((s: any) => { if (s.product_name) prodCount[s.product_name] = (prodCount[s.product_name] || 0) + Number(s.quantity || 1); });
         const topProd = Object.entries(prodCount).sort((a, b) => b[1] - a[1])[0];
         return (
-          <div className="mb-4 flex items-center gap-3 flex-wrap rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm">
+          <div className="workspace-sales-today mb-4 flex items-center gap-3 flex-wrap rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm">
             <span className="text-primary font-semibold text-xs uppercase tracking-wide">Hoy</span>
             <span className="font-bold text-primary">{formatARS(todayTotal)}</span>
             <span className="text-emerald-400 text-xs">{formatARS(todayProfit)} ganancia</span>
@@ -702,22 +704,23 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
 
       {/* Seller mode banner */}
       {sellerFilter && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-2.5 text-sm text-blue-300">
+        <div className="workspace-sales-seller mb-4 flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-2.5 text-sm text-blue-300">
           <Users className="w-4 h-4 shrink-0" />
           <span>Mostrando solo tus ventas como <strong>{sellerFilter}</strong>. Los admins ven todas.</span>
         </div>
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="workspace-sales-kpis grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Total facturado" value={formatARS(totalSales)} icon={DollarSign} color="primary" sub={`${filtered.length} venta${filtered.length !== 1 ? 's' : ''}`} trend={prevPeriod && delta(totalSales, prevPeriod.totalSales) !== undefined ? { value: delta(totalSales, prevPeriod.totalSales)!, label: "vs período ant." } : undefined} />
         <KPICard label="Ganancia neta" value={formatARS(totalProfit)} icon={TrendingUp} color="success" sub={formatUSD(totalProfitUSD)} trend={prevPeriod && delta(totalProfit, prevPeriod.totalProfit) !== undefined ? { value: delta(totalProfit, prevPeriod.totalProfit)!, label: "vs período ant." } : undefined} />
         <KPICard label="Margen promedio" value={`${marginPct.toFixed(1)}%`} icon={Percent} color={marginPct >= 30 ? "success" : marginPct >= 15 ? "warning" : "destructive"} />
         <KPICard label="Cobradas / Deben" value={`${paidCount} / ${debtCount}`} icon={Ticket} color={debtCount > 0 ? "warning" : "success"} sub={debtCount > 0 ? `${formatARS(filtered.filter(s => !s.paid).reduce((a, s) => a + Number(s.total_ars), 0))} pendiente` : "todo cobrado"} trend={prevPeriod && delta(filtered.length, prevPeriod.count) !== undefined ? { value: delta(filtered.length, prevPeriod.count)!, label: "ventas vs ant." } : undefined} />
       </div>
 
-      {/* Payment method breakdown */}
-      {filtered.length > 0 && (() => {
+      <div className="workspace-sales-insights">
+        {/* Payment method breakdown */}
+        {filtered.length > 0 && (() => {
         const byMethod: Record<string, { total: number; count: number }> = {};
         filtered.forEach(s => {
           const m = s.payment_method || 'efectivo';
@@ -727,7 +730,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         });
         const sorted = Object.entries(byMethod).sort((a, b) => b[1].total - a[1].total);
         return (
-          <div className="mb-5 bg-card border border-border/60 rounded-[10px] p-4">
+          <div className="workspace-sales-payment-breakdown bg-card border border-border/60 rounded-[10px] p-4">
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Desglose por método de pago</h3>
             <div className="space-y-2 pb-12">
               {sorted.map(([method, data]) => {
@@ -764,8 +767,8 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         );
       })()}
 
-      {/* Daily sparkline */}
-      {(() => {
+        {/* Daily sparkline */}
+        {(() => {
         const dailyMap: Record<string, number> = {};
         filtered.forEach(s => { const d = String(s.date).slice(0, 10); dailyMap[d] = (dailyMap[d] || 0) + Number(s.total_ars); });
         const days = Object.keys(dailyMap).sort();
@@ -773,7 +776,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         const maxVal = Math.max(...days.map(d => dailyMap[d]));
         const show = days.slice(-30);
         return (
-          <div className="mb-5 bg-card border border-border/60 rounded-[10px] p-4">
+          <div className="workspace-sales-trend bg-card border border-border/60 rounded-[10px] p-4">
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Tendencia diaria ({show.length} días)</h3>
             <div className="flex items-end gap-0.5 h-14 overflow-x-auto">
               {show.map(d => {
@@ -794,10 +797,11 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             </div>
           </div>
         );
-      })()}
+        })()}
+      </div>
 
       {/* Date presets */}
-      <div className="flex flex-wrap gap-1.5 mb-3">
+      <div className="workspace-sales-presets flex flex-wrap gap-1.5 mb-3">
         {[
           { key: "all", label: "Todas" },
           { key: "today", label: "Hoy" },
@@ -815,7 +819,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-5">
+      <div className="workspace-sales-filters flex flex-wrap gap-2 mb-5">
         <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar producto o cliente..."
@@ -900,7 +904,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             </div>
           );
         })()}
-        <div className="flex rounded-lg border border-border overflow-hidden h-9">
+        <div className="workspace-sales-view-switcher flex rounded-lg border border-border overflow-hidden h-9">
           <button
             onClick={() => setViewMode("list")}
             className={`px-3 flex items-center gap-1.5 text-xs transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}

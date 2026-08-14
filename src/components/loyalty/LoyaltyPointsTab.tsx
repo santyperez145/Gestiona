@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders, FileSpreadsheet, Tag, AlertCircle, Medal } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
 
@@ -203,7 +204,10 @@ export default function LoyaltyPointsTab() {
 
   const ptVal = Number(pointValueArs) || 100;
 
-  const [activeTab, setActiveTab] = useState<'puntos' | 'canjes' | 'tiers' | 'configuracion'>('puntos');
+  const [activeTab, setActiveTab] = usePersistedState<'puntos' | 'canjes' | 'tiers' | 'configuracion'>(
+    orgViewKey("loyalty-points.tab", activeOrg?.id),
+    "puntos",
+  );
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;

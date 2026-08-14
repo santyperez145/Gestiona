@@ -52,6 +52,7 @@ const OnboardingPage         = lazy(() => import("@/pages/OnboardingPage"));
 const TeamPage               = lazy(() => import("@/pages/TeamPage"));
 const InvitationAcceptPage   = lazy(() => import("@/pages/InvitationAcceptPage"));
 const PlatformAdminPage      = lazy(() => import("@/pages/PlatformAdminPage"));
+const PlatformMetricsPage   = lazy(() => import("@/pages/PlatformMetricsPage"));
 const PlatformCommissionsPage = lazy(() => import("@/pages/PlatformCommissionsPage"));
 const PlatformBusinessPage = lazy(() => import("@/pages/PlatformBusinessPage"));
 const AnalyticsPage          = lazy(() => import("@/pages/AnalyticsPage"));
@@ -193,6 +194,7 @@ function PlatformRoutes() {
           <Route index element={<PlatformAdminPage section="overview" />} />
           <Route path="orgs" element={<PlatformAdminPage section="orgs" />} />
           <Route path="usuarios" element={<PlatformAdminPage section="users" />} />
+          <Route path="metricas" element={<PlatformMetricsPage />} />
           <Route path="planes" element={<PlatformAdminPage section="plans" />} />
           <Route path="negocio" element={<PlatformBusinessPage />} />
           <Route path="comisiones" element={<PlatformCommissionsPage />} />
@@ -391,7 +393,7 @@ const isChunkError = (err: unknown) => {
 };
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="gestiona-theme">
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="gestiona-theme">
   <Sentry.ErrorBoundary fallback={({ error }) => {
     if (isChunkError(error)) {
       // Deploy nuevo: los chunks viejos ya no existen. Limpiamos caches + SW

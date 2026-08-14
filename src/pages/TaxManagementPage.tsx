@@ -18,6 +18,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 interface TaxRate {
   id: string;
@@ -122,7 +123,10 @@ export default function TaxManagementPage() {
   const [withholdings, setWithholdings] = useState<WithholdingRecord[]>([]);
   const [iibbRegs, setIibbRegs]         = useState<IibbRegistration[]>([]);
   const [loading, setLoading]           = useState(true);
-  const [activeTab, setActiveTab]       = useState("declarations");
+  const [activeTab, setActiveTab]       = usePersistedState(
+    orgViewKey("taxes.tab", orgId),
+    "declarations",
+  );
   const [seeding, setSeeding]           = useState(false);
 
   // Declaration dialog

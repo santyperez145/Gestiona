@@ -3,8 +3,52 @@
 Este documento dice qué es el producto, qué funciona hoy y qué sigue.
 Lo que está acá tiene que ser verificable: nada de porcentajes inventados ni de
 mercados a los que no vamos.
+---
+## 0.1 Lenguaje visual y experiencia
+
+El rediseño visual acompana la tesis del sistema operativo omnicanal: la interfaz debe ayudar a operar, comparar y decidir. Los kits de Figma se usan como referencia de jerarquia y densidad, no como una copia de pantallas.
+
+- La organizacion abre en workspace claro y neutral, con ambar para acciones y violeta reservado al panel de plataforma; dark mode sigue disponible.
+- El shell mantiene orientacion visible, busqueda global, accion primaria y estado operativo en todas las superficies.
+- Las tarjetas tienen radio de hasta 8px, sombra discreta y una sola responsabilidad. No se agregan bloques decorativos que compitan con ventas, stock, margen o caja.
+- El dashboard prioriza Business Core: ventas, margen real, stock, caja y tareas de hoy. Cada cifra lleva periodo o fuente.
+- Mobile conserva los cinco accesos criticos: Resumen, POS, Ventas, Productos y Clientes. Las tablas se desplazan sin romper la pagina.
+
+**Slice de rediseno 1 (2026-08-14):** tokens visuales, modo claro por defecto, topbar operativo de organizacion, headers de pagina y chrome de plataforma. La salida se valida con screenshots desktop/mobile y la puerta completa del repo.
+
+**Slice de rediseno 2 (2026-08-14):** dashboard ordenado por Business Core, tarjetas metricas reutilizables, panel `FocoDelDia` con jerarquia de gestion y contraste corregido para el modo claro. DashStack aporta criterio de composicion; los datos y la logica siguen siendo los del producto.
+
+**Slice de rediseno 3 (2026-08-14):** consolidacion del workspace de gestion y plataforma. El shell de organizacion ahora separa mejor navegacion, busqueda global, estado operativo y accion primaria; `PageHeader`, `MetricCard` y `KPICard` comparten una misma superficie; Productos, Ventas y Dashboard reciben jerarquia de tablas, toolbars y acciones; Plataforma conserva violeta como superficie de staff. Se toma de los kits de ecommerce/admin la densidad, el uso de tablas y la composicion por bloques, pero no se copian pantallas ni se agregan datos ficticios. Validado con typecheck, lint sin errores, 823 tests y build.
+
+**Slice de rediseno 4 (2026-08-14):** la tienda publica deja de ser una grilla suelta y pasa a tener una jerarquia de ecommerce completa: hero, confianza, categorias, filas de producto, filtros, cards, header, footer y carrito comparten reglas visuales y responsive. `StoreLayout` conserva la separacion legal y de tema; `StoreHome`, `StoreProducts` y `ProductCard` solo reciben composicion y estados visuales, sin mover la fuente de productos, los precios ni el stock. La produccion fue comprobada antes del cambio con 42 productos visibles en el catalogo indicado. Validado con typecheck, lint sin errores, 823 tests y build.
+
+**Slice de rediseno 5 (2026-08-14):** el POS recibe una jerarquia de mostrador: acciones y busqueda en la barra superior, categorias en una franja estable, productos como unidades escaneables y carrito separado como superficie de cobro. El total y `Confirmar venta` quedan anclados visualmente, mientras que descuentos, cliente, medios de pago, kits, turno, offline y variantes conservan sus caminos actuales. No se toca el contrato de ventas ni la autoridad de stock de la base. Validado con typecheck, lint sin errores, 823 tests y build.
+
+**Slice de rediseno 6 (2026-08-14):** Clientes/CRM recibe una jerarquia de ficha 360: segmentos, riesgo, valor y filtros quedan visibles antes de abrir un registro; la lista se vuelve mas escaneable y el detalle se expande en contexto con sus acciones. Se aplican patrones de CRM, dashboard y marketplace de las referencias de Figma como criterio de densidad, filtros y estados, sin copiar pantallas ni introducir datos ficticios. El cambio es visual y conserva las lecturas, permisos y acciones existentes. Validado con typecheck, lint sin errores, 823 tests y build.
+
+**Slice de rediseno 7 (2026-08-14):** Ventas pasa a una composicion de centro operativo: KPIs primero, metodos de cobro y tendencia en un bloque de insights equilibrado, y debajo presets de periodo, filtros y vistas agrupadas en una toolbar con scroll controlado. El responsive conserva la lectura en una columna y no altera calculos, permisos, exportaciones ni agrupaciones existentes. Validado con typecheck, lint sin errores, 823 tests y build.
+
+**Slice de rediseno 8 (2026-08-14):** Productos se consolida como workspace de inventario: acciones extensas quedan contenidas, KPIs separan inventario de riesgo, aging recibe una superficie propia, filtros se comportan como toolbar y las vistas de grilla/tabla mantienen dimensiones estables. La tabla conserva scroll horizontal y encabezado visible; la barra de seleccion masiva se adapta a mobile. No se toca el movimiento de stock, los calculos de margen, permisos, edicion ni exportaciones. Validado con typecheck, lint sin errores, 823 tests y build.
+
+**Slice de rediseno 9 (2026-08-14):** pasada de consolidacion sobre las vistas ya redisenadas. `PageHeader` limita las acciones para proteger la jerarquia del titulo; el Dashboard reubica `Business Core` junto a `FocoDelDia`, usa una toolbar de accesos consistente y aplica un ritmo vertical unico a sus widgets. La primera lectura queda orientada a ventas, margen, stock, caja y tareas, mientras que el analisis secundario conserva sus datos y acciones mas abajo. Se eliminaron emojis de acciones en favor de iconos del sistema y se mantuvo el scroll controlado en mobile. No se tocan consultas, permisos, stock ni calculos. Validado con typecheck, lint sin errores, 823 tests y build.
+
+**Slice de rediseno 10 (2026-08-14):** navegacion interna para reducir paginas interminables. Reportes y Analytics convierten sus tiras extensas de tabs en un rail lateral sticky en desktop y una franja horizontal desplazable en mobile; Integraciones adopta el mismo shell. Ajustes agrega un indice lateral de anclas para marca, finanzas, mensajeria, alertas, descuentos, suscripcion, impuestos, sistema y herramientas. La navegacion solo reorganiza la lectura: conserva consultas, permisos, estados, formularios y acciones existentes. Validado con typecheck, lint sin errores, 823 tests y build.
+
+**Slice de rediseno 11 (2026-08-14):** el Dashboard deja de ser un flujo vertical unico. Un rail interno con estado activo lleva a Resumen, Ventas y metas, Clientes, Inventario, Finanzas e Inteligencia; en mobile se convierte en tabs horizontales desplazables. Cada destino tiene un ancla estable y la navegacion no dispara nuevas consultas ni altera los widgets, calculos o permisos. El siguiente trabajo de producto queda alineado con Fase 1: onboarding medible, limites de plan e instrumentacion, mientras AFIP y la publicacion legal siguen bloqueados por insumos externos. Validado con typecheck, lint sin errores, 823 tests y build.
+
+**Slice de rediseno 12 (2026-08-14):** Ajustes pasa de una pagina continua a seis tabs de dominio: Marca, Finanzas, Mensajeria, Precios, Suscripcion y Sistema. El panel de cada tab se mantiene montado para no perder entradas al cambiar de contexto, pero solo se muestra el dominio activo. Plataforma adopta sidebar violeta sticky en desktop y navegacion horizontal en mobile; sus KPIs quedan en Resumen. Administracion de la organizacion reutiliza el rail de tabs para Rendimiento, Equipo, Permisos, Metas, Auditoria y Actividad. La separacion visual no cruza RLS, roles ni contratos. Validado con typecheck, lint sin errores, 823 tests y build.
+
+**Slice funcional 13 (2026-08-14):** el onboarding del Dashboard deja de ser una lista larga y global. `SetupChecklist` se guarda por organizacion, destaca el siguiente paso con una accion directa y muestra solo los pendientes mas cercanos hasta que el usuario expande el detalle. Usa las mismas señales reales que ya cargaba el dashboard —ajustes, productos, compras, ventas, clientes, canjes y equipo— sin crear datos ficticios ni cambiar permisos. Es una mejora de D2 y deja preparado el siguiente trabajo de Fase 1: instrumentar el tiempo desde alta hasta primera venta. Validado con typecheck, lint sin errores, 823 tests y build.
+
+**Slice transversal 14 (2026-08-14):** las vistas de trabajo dejan de olvidar su contexto al cambiar de modulo o pestaña. `usePersistedState` centraliza la persistencia de tabs, secciones y filtros en `localStorage`, con claves por organizacion y sincronizacion entre pestañas del navegador. Se aplica a Inicio/Dashboard, Ajustes, Reportes, Analytics, Finanzas, Inventario, Compras, Marketing, Clientes/CRM, Fidelidad, Alertas, Integraciones y superficies de plataforma. La URL sigue siendo la autoridad para rutas compartibles; el almacenamiento local conserva la preferencia visual y nunca reemplaza datos, permisos ni estado transaccional. Validado con typecheck, lint sin errores, 826 tests y build.
+
+**Slice funcional 15 (2026-08-14):** Fase 1 deja de depender de consultas manuales para saber si una organizacion llego a usar el producto. `/platform/metricas` consume la vista protegida `platform_org_health` y muestra el funnel real de alta, onboarding, catalogo, tienda activa y primer cobro; calcula tiempo promedio y mediana desde el alta hasta el primer cobro; agrupa las señales de salud y permite filtrar organizaciones para que soporte actue sobre onboarding roto o riesgo de baja. Los calculos viven en `src/lib/platformMetrics.ts` y se prueban sin datos ficticios. La pantalla identifica como pendientes, sin maquillarlas, la fecha exacta de publicacion, la adopcion POS + tienda, stock accuracy y AI Action Rate. Validado con typecheck, lint sin errores, 832 tests y build.
+
+**Slice funcional 16 (2026-08-14):** G2 y G3 dejan de ser una promesa de roadmap. La migracion `20260814000001_platform_activation_channels.sql` agrega `ecommerce_stores.published_at` con trigger de primera publicacion y la vista protegida `platform_org_activation`, que cruza publicacion instrumentada, orden online confirmada y ventas POS marcadas. `/platform/metricas` suma la pestaña Canales con tasas online/POS/omnicanal, tiempos hasta publicar y hasta la primera orden, detalle por organizacion y estados historicos no instrumentados. El POS ahora persiste `source = pos`, y las listas de precios se alinean con el contrato vigente `discount_type/value`, `custom_price` y `min_quantity`. Las fechas historicas sin evento quedan fuera de promedios: no se rellenan con `created_at`. Validado contra la base vinculada con vista, trigger, columna y migracion registradas; `db push --dry-run` al dia; typecheck, lint sin errores, 834 tests y build/PWA.
 
 ---
+
+**Slice funcional 17 (2026-08-14):** G7 y C2 avanzan sobre la misma fuente de verdad. `StockCountTab` deja de escribir `products.stock` y usa el circuito auditado `abrir_conteo` -> `registrar_conteo` -> `cerrar_conteo`; cada ajuste pasa por `record_stock_movement`, y una falla cancela la sesión abierta. La migración `20260814000002_platform_stock_accuracy.sql` agrega la vista protegida `platform_org_stock_accuracy`, que compara el último Kardex con el stock actual, valida productos con variantes, separa productos sin evidencia y cuenta stock negativo. `/platform/metricas` incorpora Inventario con precisión, descuadres, cobertura de Kardex, negativos y último conteo por organización. El porcentaje no convierte productos sin movimiento en coincidencias y C2 sigue dependiendo del conteo físico real del dueño. Validado contra la base vinculada: vista creada, columnas inspeccionadas, `db push --dry-run` al día, typecheck, lint sin errores, 835 tests y build/PWA.
 
 ## 1. Qué es
 
@@ -22,29 +66,43 @@ El caso de uso que lo originó y lo sigue guiando: **importación y venta de
 perfumes y vapers**. Cuando una decisión de producto está en duda, gana la que
 sirve a ese negocio.
 
+📌 **Tesis 2026-08-14.** Gestiona no es una alternativa a Tiendanube: es el
+**sistema operativo para comercios que venden en múltiples canales**. La tienda
+es una superficie. El producto es el núcleo que une inventario, ventas,
+clientes, pagos, costos, impuestos y margen en una sola verdad operativa.
+
 ---
 
 ## 2. Contra quién compite
 
-**Tiendanube y Empretienda**, no Salesforce ni Odoo. Son plataformas de tienda
-online con panel de gestión, en el mismo mercado y con el mismo tipo de cliente.
+⚠️ **Esta sección estuvo mal planteada y se corrigió en la sesión 111.** El
+posicionamiento, la competencia real y qué habría que medir viven ahora en
+**[docs/ESTRATEGIA.md](docs/ESTRATEGIA.md)**, que separa lo medido de lo
+supuesto. Acá queda sólo lo que afecta decisiones de código.
 
-Dónde Gestiona es distinto:
+**Lo que hay que dejar de decir: "Tiendanube no tiene POS".** Según un análisis
+externo lo lanzó en Argentina en 2026, y **no se pudo verificar desde acá**.
+Hasta chequearlo, no se usa como argumento: un dato viejo tira abajo la
+credibilidad de todo lo demás.
 
-| | Gestiona | Tiendanube / Empretienda |
-|---|---|---|
-| Gestión de stock, costos y márgenes | Núcleo del producto | Básica |
-| POS con caja física | Sí | No |
-| Importación: costo USD, aduana, tipo de cambio | Sí | No |
-| Canjes con influencers | Sí | No |
-| Ficha de perfume (familia, notas, duración) | Sí | No |
-| Tienda online | Sí | Su núcleo, más maduro |
-| Ecosistema de apps y temas | No | Sí |
-| Marca y confianza instalada | No | Sí |
+**La categoría ya existe.** Hay varios productos argentinos haciendo "ERP +
+tienda" —Contabilium, VentaWeb, Axon, Max24, sin verificar—. Eso es buena
+noticia: no hay que convencer a nadie de que el problema es real. Y es mala:
+**"gestión + tienda" ya no alcanza como diferencial**.
 
-La ventaja no es tener tienda online — eso ya lo hacen mejor. Es que **el mismo
-sistema que te vende online te lleva el stock, el costo en dólares y la caja**,
-sin exportar planillas entre dos herramientas.
+Dónde este sistema es realmente distinto, y por qué es difícil de copiar:
+
+| | Acá | Plataforma de ecommerce | ERP / sistema de gestión |
+|---|---|---|---|
+| **Costo real de la mercadería** (USD, aduana, tipo de cambio) | ✅ `total_cost_usd` | ❌ no lo conoce | ✅ |
+| **Comisión del medio de pago y del marketplace** | ✅ | ✅ | ❌ no la conoce |
+| **Costo de envío por zona** | ✅ | ✅ | parcial |
+| **IVA por producto** | ✅ desde A8 | parcial | ✅ |
+| **→ Margen real por canal** | ✅ **tiene los cuatro términos** | ❌ le falta el costo | ❌ le faltan las comisiones |
+
+Ese es el punto: **el margen real por canal necesita las cuatro cosas a la vez**,
+y cada familia de producto tiene dos o tres. Acá están las cuatro porque el
+proyecto nació importando. Es el ítem **E4**.
 
 ---
 
@@ -57,6 +115,32 @@ sin exportar planillas entre dos herramientas.
 | Tienda pública | `/tienda/:slug` | comprador anónimo o con cuenta | RPCs `security definer` con columnas saneadas |
 
 La separación es deliberada y está testeada. Ver [docs/permisos.md](docs/permisos.md).
+
+### Brújula de producto
+
+El análisis externo del 2026-08-14 dejó una advertencia útil: el riesgo no es
+quedarse corto, es convertirse en una **ERP feature factory**. A partir de acá,
+una mejora entra al ROADMAP sólo si fortalece uno de estos cinco pilares:
+
+1. **Productos + inventario** — un stock, reservas claras, costos reales.
+2. **POS + caja** — vender aunque internet falle, sincronizar sin duplicar.
+3. **Ecommerce** — la tienda vende de verdad, pero no manda sobre el negocio.
+4. **Clientes + ventas** — una ficha de cliente entre local, web y canales.
+5. **Inteligencia** — no "tener IA"; decir qué hacer y medir si se hizo.
+
+El corazón técnico se llama **Business Core**: productos, órdenes, clientes,
+finanzas e inventario. POS, tienda y marketplaces son canales que escriben y
+leen de ese núcleo; ninguno inventa su propio stock, precio, margen o cobro.
+
+Antes de agregar un ítem nuevo, tiene que responder al menos una pregunta:
+
+- ¿Acerca a un segundo comercio real a su primera venta?
+- ¿Hace más confiable el stock único entre POS, tienda y marketplaces?
+- ¿Hace visible el margen real por canal?
+- ¿Reduce riesgo legal, fiscal, de seguridad o de operación?
+- ¿Mide activación, uso omnicanal, GMV, salud, retención o una acción de IA?
+
+Si la respuesta es "no", va a **Congelado** aunque sea una buena idea.
 
 ---
 
@@ -91,7 +175,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | 418 unitarios + 16 E2E de la tienda. Falta E2E del POS y el panel |
+| Tests | Anda | **811 unitarios** (`npm test`, 2026-08-13) + 16 E2E de la tienda. Falta E2E del POS y el panel |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -119,11 +203,167 @@ el comprador ve sin cuenta · **comisión por transacción cobrada de verdad** �
 **cuotas reales de MercadoPago en la ficha** (consultadas a la cuenta del
 comercio, no declaradas) · **7 temas y tipografía elegible** · dominio propio.
 
-### Falta, en orden de impacto
+### El camino
 
-Revisado contra Tiendanube, Empretienda, Shopify y MercadoLibre. Cada ítem dice
-**qué hace la competencia**, **qué hay hoy acá** y **por qué importa**. El estado
-está medido contra la base, no supuesto.
+⚠️ **Los bloques A–G son un catálogo, no un plan.** Están agrupados por tema
+porque se fueron agregando en momentos distintos, y agrupar por tema hace que
+todo parezca igual de urgente. Al cruzarlos (sesión 112) aparecieron **cuatro
+pares que eran el mismo trabajo con dos letras** —C1/F15, D1/F16, D5/F17,
+D6/F8— y dos ítems ya hechos que seguían contando. El pendiente real es **53**.
+
+Esta sección es el plan. Los bloques quedan abajo como referencia detallada.
+
+**El criterio que ordena todo, y no es "impacto":** cada fase existe para
+**destrabar la siguiente**, y tiene una condición de salida verificable. Sin eso,
+53 ítems ordenados por impacto siguen siendo 53 ítems.
+
+**Objetivo de 90 días (2026-08-14): producto confiable y vendible.** El análisis
+lo pone así: antes de hablar de inversión o de plataforma increíble hay que
+demostrar reliability, ARCA/AFIP, MercadoLibre, POS, checkout, offline,
+seguridad, backups, observabilidad y métricas. Traducido a este ROADMAP:
+
+- Fase 0 no se saltea: **AFIP real + base legal publicada**.
+- Fase 1 no es cosmética: **onboarding + instrumentación + límites de plan**.
+- Fase 2 tiene que probar la tesis: **un stock, dos canales, margen por canal**.
+- La confiabilidad tiene que subir de nivel: **E2E de POS/panel, restore
+  probado, observabilidad de webhooks, crons, pagos y funciones**.
+- La IA no suma por decir "IA": suma cuando recomienda una acción y después se
+  mide si el comercio la ejecutó.
+
+---
+
+#### 📍 Dónde estamos
+
+✅ **Medido (2026-08-14).** El sistema funciona y cobra: dos compras reales
+acreditadas con comisión de plataforma, stock que sólo mueve la base, RLS
+verificada con roles reales, bloque A cerrado. La precisión de inventario ya se
+instrumenta por organización, pero su resultado depende de que cada comercio
+complete el conteo físico.
+
+Y hay **un** comercio usándolo, que es el dueño. Todo lo demás del ROADMAP
+mejora un producto que todavía no demostró que alguien más lo quiera (R08).
+
+---
+
+#### FASE 0 — Que se le pueda vender a alguien
+
+**Por qué primero:** no se puede dar de alta un comercio ajeno hoy. Sin factura
+no es un sistema de gestión argentino, y sin política de privacidad ni datos del
+proveedor se le estaría pidiendo que incumpla desde el día uno.
+
+| Qué | Estado |
+|---|---|
+| **C1** AFIP contra el organismo (= F15) | 🔴 El más importante y el más largo. Frenado por un certificado de homologación **que es gratis y hay que pedir**. |
+| **F1 + F3** Política de privacidad y datos del proveedor | 🟡 El generador ya los escribe. Falta cargar razón social, CUIT, domicilio y email, revisar y publicar. |
+| **F5** Consentimiento de marketing con fecha y origen | 🟠 Una columna y un checkbox. Antes de mandarle campañas a clientes de otro comercio. |
+| **F11** Acotar la garantía a 6 meses | 🟠 Barato. |
+| **F10** El envío de vuelta lo paga el vendedor | 🟠 Falta modelarlo en la devolución. |
+
+> **Condición de salida:** se emitió **una factura electrónica real** y un
+> comercio nuevo puede darse de alta sin incumplir nada.
+
+---
+
+#### FASE 1 — Que alguien más lo pueda usar, y que se pueda medir
+
+**Por qué segundo:** es la fase que responde R08. Y no se puede saber si
+funcionó sin instrumentación, así que van juntas.
+
+| Qué | Estado |
+|---|---|
+| **D2** Onboarding guiado | 🔴 `StoreReadinessPanel` dice qué falta; no hay paso a paso. Es lo que convierte "funciona" en "otro lo puede usar". |
+| **G1–G8** Instrumentación | 🔴 Los datos ya están en la base, salvo las acciones de IA. Sin esto no hay condición de salida medible. |
+| **D4** Límites del plan aplicados | 🟠 Sólo productos. Faltan usuarios, tiendas y órdenes/mes. |
+| **D1** Comprobante fiscal de la suscripción (= F16) | 🟠 Depende de C1. |
+
+> **Condición de salida:** **un segundo comercio real** cargó su stock, publicó
+> su tienda y cobró — y `G1` dice cuánto tardó desde el alta hasta su primera
+> venta. Ese número es el que hay que bajar después.
+
+---
+
+#### FASE 2 — Que el diferencial se vea
+
+**Por qué tercero:** recién acá conviene construir lo que distingue al producto.
+Antes sería construirlo para una sola persona.
+
+| Qué | Estado |
+|---|---|
+| **E4** ⭐ Margen real por canal | El diferencial más defendible, y sale casi gratis: los cuatro datos ya están (ver §2). |
+| **C7** MercadoLibre completo | *"Vendé en el local, en tu tienda y en ML con el mismo stock"* es concreto y verificable. Falta publicar desde la ficha, importar órdenes y el cron multi-org. |
+| **E1** Precio único entre mostrador y online, con margen a la vista | Consecuencia natural de E4. |
+| **E2** El stock del local es el de la tienda | Casi hecho: falta avisar al vender en mostrador algo reservado online. |
+| **C9** Multi-depósito real en la tienda | La tienda vende contra el total, no contra el depósito que despacha. |
+
+> **Condición de salida:** un comercio vende por **dos canales con un solo
+> stock** y puede ver, por producto, cuál le deja más margen.
+
+---
+
+#### FASE 3 — Que aguante más de un comercio
+
+**Por qué cuarto:** son cosas que sólo duelen cuando hay varios. Construirlas
+antes es seguro de un incendio que todavía no puede pasar.
+
+| Qué |
+|---|
+| **D6** Entrar como el comercio, auditado y visible (= F8) |
+| **C11** Auditoría de quién cambió un precio o un stock dentro de la organización |
+| **D8** Backup y restauración por organización |
+| **D5** Exportar la organización entera (= F17) — retenerla por falta de herramienta es problema legal, no comercial |
+| **D3** Anuncios a los comercios · **D7** Estado del servicio |
+| **F9** Contrato de tratamiento de datos — necesita abogado, no commit |
+
+---
+
+#### FASE 4 — Conversión de la tienda
+
+Todo el bloque B menos lo congelado. **Va último a propósito:** mejora la
+conversión de tiendas que todavía no existen. Con dos comercios, mover B3 acá
+arriba puede ser correcto — pero que sea una decisión, no una inercia.
+
+Los primeros serían **B3** (checkout en un paso), **B5** (avisos de "en camino"
+y "entregado", que ya tienen `shipped_at`/`delivered_at` desde la sesión 107) y
+**B13** (carrito entre dispositivos).
+
+---
+
+#### 🧊 Congelado — no se toca
+
+📌 **Criterio.** Esta lista vale tanto como el plan: el modo de falla de este
+proyecto no es quedarse corto, es agregar. Hay 84 páginas.
+
+| Qué | Por qué |
+|---|---|
+| **B6** Multi-moneda | A9 lo destrabó técnicamente. No lo pidió nadie. |
+| **B7** Reseñas con foto · **B8** Comparador · **B14** Preventa | Detalle de tienda antes de tener tiendas. |
+| **B9** Filtros por atributo | La ficha olfativa está vacía en las 30 filas: filtraría sobre nada. |
+| **C5** Push · **C6** Automatizaciones visuales · **C10** Reportes programados | Módulos nuevos sobre un producto con 84 páginas. |
+| **F7** No Llame · **F12** CFT · **F13** Procedimiento de incidente | Se activan cuando exista campaña telefónica, cuotas con interés y más de un comercio. |
+| Marketplace de apps · LATAM · contabilidad completa · B2B | Ver [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §8. |
+
+---
+
+#### ⛔ Bloqueado por fuera del código
+
+Ninguno lo destraba una sesión de programación. **Conviene destrabar los de
+arriba primero**, porque C1 frena la fase 0 entera:
+
+| Qué | Quién lo destraba |
+|---|---|
+| **C1** Certificado de homologación de AFIP | Trámite, gratis |
+| **F1/F3** Razón social, CUIT, domicilio | El dueño, 5 minutos |
+| **B1** Tarifas de envío reales · **B2/B11/B12** Etiqueta por API, CP real, sucursales | Contrato con el correo |
+| **C2** Contar el inventario físico | 15 productos con Kardex ≠ stock |
+| **C3** Pesar una caja real · **C4** 10 fotos y 33 descripciones | El dueño |
+| **F9** Contrato de datos · **F14** Ley 25.065 | Un abogado |
+
+---
+
+### Los bloques, en detalle
+
+Lo que sigue es la referencia: cada ítem dice **qué hace la competencia**, **qué
+hay hoy acá** y **por qué importa**, con el estado medido contra la base.
 
 ---
 
@@ -185,7 +425,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | # | Qué | Estado | Referencia |
 |---|---|---|---|
 | **C1** | **AFIP probado contra el organismo** | Estructura lista, credenciales cerradas. Falta certificado de homologación y una factura emitida. | Todas las argentinas |
-| **C2** | **Contar el inventario físico** | La herramienta está (conteo con asiento). Faltan 15 productos con Kardex ≠ stock. | — |
+| **C2** | **Contar el inventario físico** | La herramienta usa sesiones auditadas y deja visibles los descuadres. Falta que el dueño cuente y corrija los productos reales con Kardex ≠ stock. | — |
 | **C3** | **Cargar el peso de los productos** | 59 de 60 en cero. El botón los estima; falta pesar una caja. | — |
 | **C4** | **Fotos y descripciones** | 10 sin foto, 33 con descripción corta. El panel de calidad los rankea. | ML |
 | **C5** | **App en el celular con notificaciones** | Hay PWA y POS offline. Falta el push de "vendiste" y "sin stock". | Tiendanube app |
@@ -224,6 +464,13 @@ tiene y ML menos.
 | **E1** | **Precio único entre mostrador y online, con margen a la vista** | Hoy hay cuatro superficies de precio y se llegó a ellas de a una. Una pantalla que muestre, por producto, qué precio ve cada canal y cuánto margen deja **después** de comisión, envío e IVA, no existe en ninguna. |
 | **E2** | **El stock del local es el stock de la tienda, con reserva** | Ya está la reserva (A2) y el multi-depósito. Falta cerrarlo: vender en el mostrador algo que está reservado por una orden online tiene que avisar. |
 | **E3** | **Un cliente, una ficha** | El CRM ya cruza las cinco tablas por `customer_id`. Falta que el comprador online y el del mostrador sean la misma persona automáticamente, con su historial completo en las dos direcciones. |
+| **E4** | ⭐ **Margen real por canal** | **El diferencial más defendible que tiene el producto, y sale casi gratis de lo que ya está.** Un mismo producto deja márgenes distintos en el mostrador, en la tienda y en ML, y hoy nadie se lo dice al comerciante. Requiere las cuatro puntas —costo real, comisión, envío, IVA— y **acá están las cuatro** (ver §2). Una pantalla por producto: qué precio ve cada canal y cuánto queda después de todo. Después, la frase que vale: *"tu tienda propia te deja 7 puntos más que ML en este producto"*. |
+
+📌 **Business Copilot no es otro módulo por ahora.** Es la forma en que E1–E4 y
+G1–G8 deberían aparecer: "qué compro esta semana", "qué canal me deja menos
+margen", "qué clientes se están enfriando", "qué promoción liquida stock". Cada
+recomendación tiene que terminar en una acción posible y una métrica de uso; si
+es sólo chat, no es diferencial.
 
 #### F. Cumplimiento legal — lo que no es opcional
 
@@ -237,22 +484,22 @@ Ordenado por riesgo dividido esfuerzo, que no es el orden en que se descubrieron
 | # | Qué | Norma | Estado |
 |---|---|---|---|
 | **F1** | **Página de política de privacidad**, con qué datos se guardan, para qué, cuánto tiempo y **que se alojan en Estados Unidos** | Ley 25.326 arts. 6 y 12 | 🟡 **Sesión 109:** el generador la escribe con los proveedores reales y la declaración de transferencia. Falta que el dueño cargue sus datos, la revise y la publique. |
-| **F2** | **Botón de arrepentimiento en la primera pantalla** de la tienda | Res. 424/2020 | ✅ **Sesión 108.** Barra superior, a 4px del tope, verificado en 1280 y 375. |
+| ~~F2~~ | ~~Botón de arrepentimiento en la primera pantalla~~ | Res. 424/2020 | ✅ **Sesión 108.** Barra superior, a 4px del tope, verificado en 1280 y 375. |
 | **F3** | **Datos del proveedor**: razón social, CUIT y domicilio | Ley 24.240 art. 4 | 🟡 **Verificado: los términos publicados eran la plantilla semilla intacta.** El generador los reescribe; falta cargar los datos y publicar. |
-| **F4** | **Link a Ventanilla Única Federal de Reclamos** en el pie | Comercio electrónico | ✅ **Sesión 108.** En el pie y en el formulario de arrepentimiento. |
+| ~~F4~~ | ~~Link a Ventanilla Única Federal de Reclamos~~ | Comercio electrónico | ✅ **Sesión 108.** En el pie y en el formulario de arrepentimiento. |
 | **F5** | **Consentimiento de marketing con fecha y origen**, sin marcar por defecto | Ley 25.326 art. 27 | 🟠 Se mandan campañas por email y WhatsApp sin registrar cuándo aceptó la persona. |
 | **F6** | **Baja visible en WhatsApp**, como ya la hay en email | Ley 25.326 art. 27 | 🟠 `drip-unsubscribe` cubre email; WhatsApp no dice cómo darse de baja. |
 | **F7** | **Registro No Llame** antes de una campaña telefónica | Ley 26.951 | 🟠 No se consulta. |
-| **F8** | **El comercio ve cuándo soporte entró a su cuenta** | Transparencia | 🟠 `admin_audit_logs` ya lo registra; falta mostrárselo. Es D6. |
+| **F8** | → **es D6**, no es otro trabajo | Transparencia | 🟠 `admin_audit_logs` ya lo registra; falta mostrárselo. Es D6. |
 | **F9** | **Contrato de tratamiento de datos** plataforma ↔ comercio | Ley 25.326 art. 25 | 🔴 La plataforma es *encargada*, el comercio *responsable*. Necesita abogado. |
 | **F10** | **El costo del envío de vuelta lo paga el vendedor** | Ley 24.240 art. 34 | 🟠 La devolución registra el producto, no el flete. |
 | **F11** | **Acotar la garantía a 6 meses** en el reclamo por falla | Ley 24.240 art. 11 | 🟠 Hoy acepta un reclamo sin límite de tiempo. Es el error barato, pero conviene cerrarlo. |
 | **F12** | **CFT y precio de contado** si algún día hay cuotas con interés | Res. 51/2017 | 🟠 Hoy sólo hay "sin interés", donde el CFT es 0%. El código no distingue las dos cosas. |
 | **F13** | **Procedimiento escrito de incidente de seguridad** | Res. AAIP 47/2018 | 🔴 Sin procedimiento no se cumple ningún plazo. |
 | **F14** | **Consultar por el descuento según medio de pago** | Ley 25.065 art. 37 | 🟠 No es una decisión de producto. |
-| **F15** | **Factura electrónica de verdad** | RG 4291 | 🔴 Ya está como A-pendiente; acá se anota que además es el riesgo fiscal más grande del sistema hoy. |
-| **F16** | **Comprobante fiscal argentino de la suscripción** al comercio | ARCA | 🟠 Stripe cobra y no se emite nada. |
-| **F17** | **Portabilidad: que un comercio se lleve su negocio entero** | — | 🟠 Es D5. Retenerlo por falta de herramienta es un problema legal, no sólo comercial. |
+| **F15** | → **es C1**, no es otro trabajo | RG 4291 | 🔴 Ya está como A-pendiente; acá se anota que además es el riesgo fiscal más grande del sistema hoy. |
+| **F16** | → **es D1**, no es otro trabajo | ARCA | 🟠 Stripe cobra y no se emite nada. |
+| **F17** | → **es D5**, no es otro trabajo | — | 🟠 Es D5. Retenerlo por falta de herramienta es un problema legal, no sólo comercial. |
 
 ⚠️ **F1 a F4 son cuatro páginas y un link.** Juntos sacan del rojo casi todo lo
 que Defensa del Consumidor y la AAIP detectan de oficio, y no dependen de
@@ -263,6 +510,32 @@ el texto lo genera el panel de Páginas de la tienda, y lo que falta es que el
 dueño cargue razón social, CUIT, domicilio y email, lea lo generado y publique.
 Se crean como **borrador** a propósito — publicar un texto legal por él sería
 firmarlo en su nombre.
+
+#### G. Instrumentación — lo que no se mide no existe
+
+Se sabe todo del negocio del comercio y **nada del uso de la plataforma**. Los
+datos ya están en la base; falta juntarlos. Detalle y por qué importa cada uno
+en [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §6.
+
+| # | Qué | De dónde sale |
+|---|---|---|
+| **G1** | **Tiempo hasta la primera venta** de una organización nueva | `memberships.created_at` → primera `sales` |
+| **G2** | **Tiempo hasta publicar la tienda** | `ecommerce_stores.published_at` → primera `ecommerce_orders` confirmada |
+| **G3** | **Adopción omnicanal**: % que usa POS **y** tienda | `platform_org_activation`, `sales.source = 'pos'` + orden online confirmada |
+| **G4** | **GMV por comercio** | `sales` + `ecommerce_orders` |
+| **G5** | **Activas vs. que pagan** | `memberships`, `subscriptions` |
+| **G6** | **Serie temporal de riesgo de abandono** | `platform_org_health` ya ordena por urgencia; falta la serie |
+| **G7** | **Stock accuracy**: % de productos cuyo stock actual coincide con Kardex | ✅ `platform_org_stock_accuracy`: `stock_movements` vs `products`/`product_variants`; sin Kardex queda fuera del porcentaje |
+| **G8** | **AI Action Rate**: recomendaciones de IA que terminan en acción | falta evento de recomendación → acción |
+
+⚠️ **G3 es la que representa la tesis del producto.** Si los comercios usan sólo
+la tienda o sólo la gestión, el diferencial de §2 no se está usando y hay que
+saberlo antes de construir encima.
+
+Para hablar con inversores después, G1–G8 no alcanzan solos: también hay que
+tener MRR, ARR, churn, CAC, LTV y margen bruto con fecha y fuente. Si CAC o LTV
+vienen de una planilla externa, se registran igual; lo prohibido es citarlos sin
+fecha.
 
 ---
 
@@ -277,7 +550,9 @@ firmarlo en su nombre.
 | R05 | Costo de IA sin techo | Media | Alto | Falta límite por plan |
 | R06 | Cotización de envío mal calculada contra el correo real | Media | Alto | Verificar contra un contrato real antes de escalar |
 | R07 | Un solo desarrollador | Alta | Alto | CLAUDE.md, docs/ y commits largos a propósito |
-| R08 | Supabase caído | Baja | Crítico | PITR activo; sin runbook escrito |
+| R08 | **Un solo comercio usándolo.** El multi-tenant está probado, no usado: un segundo comercio real destapa supuestos que ningún test encuentra | Alta | **Crítico** | Ninguna todavía. Es el riesgo más grande del proyecto y no se resuelve con código — ver [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §5 |
+| R09 | Un dato viejo de este repo citado como actual afuera (pasó: "418 tests" cuando eran 811) | Media | Medio | Los números medidos van con la fecha o con el comando al lado |
+| R10 | Supabase caído | Baja | Crítico | PITR activo; sin runbook escrito |
 
 ---
 
@@ -1422,5 +1697,5 @@ rango de precio.
 
 ---
 
-*Última revisión: 2026-07-31*
+*Última revisión: 2026-08-14*
 *Para el detalle del día a día: `git log --oneline -20`.*

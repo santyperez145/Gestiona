@@ -45,6 +45,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import InvoiceOCRModal, { OCRPrefillData } from "@/components/purchases/InvoiceOCRModal";
@@ -724,7 +725,10 @@ export default function PurchaseOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [tab, setTab] = useState<"ordenes" | "cotizaciones" | "solicitudes">("ordenes");
+  const [tab, setTab] = usePersistedState<"ordenes" | "cotizaciones" | "solicitudes">(
+    orgViewKey("purchase-orders.tab", orgId),
+    "ordenes",
+  );
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);

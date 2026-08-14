@@ -34,7 +34,7 @@ export default function StoreHome() {
   );
 
   return (
-    <>
+    <div className="storefront-home">
       {/* ── Banners ──────────────────────────────────────────────────── */}
       {/* Si hay banners cargados reemplazan al hero: dos bloques grandes
           seguidos empujan los productos abajo del pliegue. */}
@@ -43,14 +43,15 @@ export default function StoreHome() {
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       {banners.length === 0 && (
       <section
-        className="relative overflow-hidden"
+        className="storefront-hero relative overflow-hidden"
         style={{ background: "hsl(var(--st-surface))", borderBottom: "1px solid hsl(var(--st-border))" }}
       >
         {store?.banner_url && (
           <img src={store.banner_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-25" />
         )}
-        <div className="relative max-w-6xl mx-auto px-4 py-16 sm:py-24 text-center">
-          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight">{store?.name}</h1>
+        <div className="storefront-hero__content relative max-w-6xl mx-auto px-4 py-16 sm:py-24 text-center">
+          <span className="storefront-eyebrow">Catálogo oficial</span>
+          <h1 className="storefront-hero__title text-3xl sm:text-5xl font-bold tracking-tight">{store?.name}</h1>
           {store?.description && (
             <p className="mt-3 text-base sm:text-lg max-w-2xl mx-auto" style={{ color: "hsl(var(--st-muted))" }}>
               {store.description}
@@ -68,8 +69,8 @@ export default function StoreHome() {
       )}
 
       {/* ── Barra de confianza ───────────────────────────────────────── */}
-      <section className="border-b" style={{ borderColor: "hsl(var(--st-border))" }}>
-        <div className={`max-w-6xl mx-auto px-4 py-5 grid grid-cols-1 gap-4 text-sm ${descuentoPago ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
+      <section className="storefront-trust-bar border-b" style={{ borderColor: "hsl(var(--st-border))" }}>
+        <div className={`storefront-trust-bar__inner max-w-6xl mx-auto px-4 py-5 grid grid-cols-1 gap-4 text-sm ${descuentoPago ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
           {[
             // El descuento por medio de pago va primero cuando existe: es la
             // razón más concreta para comprar acá y no en otro lado. Sale de
@@ -83,7 +84,7 @@ export default function StoreHome() {
             { icon: ShieldCheck, t: "Productos originales", s: "Importación propia, con garantía" },
             { icon: Sparkles, t: "Asesoramiento", s: "Te ayudamos a elegir tu fragancia" },
           ].map(({ icon: Icon, t, s }) => (
-            <div key={t} className="flex items-start gap-3">
+            <div key={t} className="storefront-trust-item flex items-start gap-3">
               <Icon className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--st-accent))" }} />
               <div>
                 <p className="font-medium">{t}</p>
@@ -96,9 +97,9 @@ export default function StoreHome() {
 
       {/* ── Categorías ───────────────────────────────────────────────── */}
       {categorias.length > 1 && (
-        <section className="max-w-6xl mx-auto px-4 py-10">
-          <h2 className="text-lg font-semibold mb-4">Categorías</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <section className="storefront-section storefront-categories max-w-6xl mx-auto px-4 py-10">
+          <h2 className="storefront-section__title text-lg font-semibold mb-4">Categorías</h2>
+          <div className="storefront-category-grid grid grid-cols-2 sm:grid-cols-4 gap-3">
             {categorias.map(c => {
               // La foto propia de la categoría manda; si no cargó ninguna, se
               // usa la del primer producto, que es como se veía antes.
@@ -110,7 +111,7 @@ export default function StoreHome() {
                 <Link
                   key={c.slug}
                   to={`${base}/productos?cat=${encodeURIComponent(c.slug)}`}
-                  className="group relative aspect-[4/3] overflow-hidden border"
+                  className="storefront-category-card group relative aspect-[4/3] overflow-hidden border"
                   style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
                 >
                   {cover?.image_url && (
@@ -146,17 +147,17 @@ export default function StoreHome() {
           </p>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
 function Row({ title, items, href }: { title: string; items: ReturnType<typeof useStore>["products"]; href: string }) {
   if (!items.length) return null;
   return (
-    <section className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <Link to={href} className="text-sm hover:underline inline-flex items-center gap-1" style={{ color: "hsl(var(--st-accent))" }}>
+    <section className="storefront-section storefront-product-row max-w-6xl mx-auto px-4 py-8">
+      <div className="storefront-section__heading flex items-center justify-between mb-4">
+        <h2 className="storefront-section__title text-lg font-semibold">{title}</h2>
+        <Link to={href} className="storefront-section__link text-sm hover:underline inline-flex items-center gap-1" style={{ color: "hsl(var(--st-accent))" }}>
           Ver todo <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>

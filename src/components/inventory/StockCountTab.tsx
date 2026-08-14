@@ -214,32 +214,46 @@ export default function StockCountTab() {
   };
 
   const handleConfirm = async () => {
-    const changed = rows.filter(r => r.counted !== "" && Number(r.counted) !== r.product.stock);
-    if (changed.length === 0) { toast.info("No hay diferencias para confirmar"); return; }
-    if (!confirm(`¿Confirmar ajuste de stock para ${changed.length} producto(s)?`)) return;
+    const countedRows = rows.filter(r => r.counted !== "");
+    const changed = countedRows.filter(r => Number(r.counted) !== r.product.stock);
+    if (countedRows.length === 0) { toast.info("Contá al menos un producto antes de cerrar"); return; }
+    if (!confirm(`¿Cerrar la toma de ${countedRows.length} producto(s) y registrar ${changed.length} ajuste(s) auditado(s)?`)) return;
     setSaving(true);
+    let countId: string | null = null;
     try {
-      await Promise.all(changed.map(r =>
-        supabase.from("products").update({ stock: Number(r.counted) }).eq("id", r.product.id)
-      ));
-      // Record adjustment in stock_history if the table exists (best-effort)
-      const note = `Toma física ${new Date().toLocaleDateString("es-AR")}`;
-      await Promise.allSettled(changed.map(r =>
-        supabase.from("stock_history").insert({
-          org_id: activeOrg!.id,
-          product_id: r.product.id,
-          product_name: r.product.name,
-          change: Number(r.counted) - r.product.stock,
-          reason: note,
-          new_stock: Number(r.counted),
-        })
-      ));
-      setConfirmedAt(new Date().toLocaleString("es-AR"));
-      // Reload with updated stocks
+      const { data: opened, error: openError } = await supabase.rpc("abrir_conteo", {
+        p_org_id: activeOrg!.id,
+        p_location_id: null,
+        p_notes: `Toma física ${new Date().toLocaleDateString("es-AR")}`,
+        p_solo_con_stock: false,
+      });
+      if (openError) throw openError;
+
+      const openedPayload = opened as { conteo_id?: unknown } | null;
+      countId = typeof openedPayload?.conteo_id === "string" ? openedPayload.conteo_id : null;
+      if (!countId) throw new Error("La base no devolvió el identificador del conteo");
+
+      for (const row of countedRows) {
+        const { error } = await supabase.rpc("registrar_conteo", {
+          p_count_id: countId,
+          p_product_id: row.product.id,
+          p_cantidad: Number(row.counted),
+        });
+        if (error) throw error;
+      }
+
+      const { data: closed, error: closeError } = await supabase.rpc("cerrar_conteo", { p_count_id: countId });
+      if (closeError) throw closeError;
+
+      const closePayload = closed as { productos_ajustados?: unknown; sin_contar?: unknown } | null;
+      const adjusted = typeof closePayload?.productos_ajustados === "number" ? closePayload.productos_ajustados : changed.length;
+      const uncounted = typeof closePayload?.sin_contar === "number" ? closePayload.sin_contar : rows.length - countedRows.length;
       await load();
-      toast.success(`Ajustados ${changed.length} productos`);
-    } catch {
-      toast.error("Error al guardar ajustes");
+      setConfirmedAt(new Date().toLocaleString("es-AR"));
+      toast.success(`Toma cerrada: ${adjusted} ajustes auditados${uncounted ? `, ${uncounted} sin contar` : ""}`);
+    } catch (error) {
+      if (countId) await supabase.rpc("cancelar_conteo", { p_count_id: countId });
+      toast.error(error instanceof Error ? error.message : "Error al cerrar la toma física");
     } finally {
       setSaving(false);
     }
@@ -279,7 +293,7 @@ export default function StockCountTab() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
-  const changedCount = rows.filter(r => r.counted !== "" && Number(r.counted) !== r.product.stock).length;
+  const countedCount = rows.filter(r => r.counted !== "").length;
 
   return (
     <div className="space-y-6 pb-12">
@@ -335,12 +349,12 @@ export default function StockCountTab() {
           </Button>
           <Button
             size="sm"
-            disabled={changedCount === 0 || saving}
+            disabled={countedCount === 0 || saving}
             onClick={handleConfirm}
             className="gap-1"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <PackageCheck className="w-4 h-4" />}
-            Confirmar ({changedCount})
+            Cerrar toma ({countedCount})
           </Button>
         </div>
       </div>

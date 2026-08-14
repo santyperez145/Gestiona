@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import InventoryAgingTab from "@/components/inventory/InventoryAgingTab";
 import { calcCostARS, calcInventoryValue, calcLayerUnitCostARS } from "@/lib/businessCalc";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 interface ValuationRow {
   product_id: string;
@@ -43,7 +44,10 @@ interface InventoryLayer {
 export default function InventoryValuationPage() {
   usePageTitle("Valuación de Inventario");
   const { activeOrg } = useOrg();
-  const [tab, setTab] = useState<"valuation" | "layers" | "aging" | "snapshots" | "config">("valuation");
+  const [tab, setTab] = usePersistedState<"valuation" | "layers" | "aging" | "snapshots" | "config">(
+    orgViewKey("inventory-valuation.tab", activeOrg?.id),
+    "valuation",
+  );
   const [method, setMethod] = useState("average");
   const [rows, setRows] = useState<ValuationRow[]>([]);
   const [layers, setLayers] = useState<InventoryLayer[]>([]);

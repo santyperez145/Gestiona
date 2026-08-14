@@ -137,7 +137,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   return (
     <div
-      className={`min-h-screen ${font ? "" : theme.rootClass}`}
+      className={`storefront-shell min-h-screen ${font ? "" : theme.rootClass}`}
       style={{
         ...(theme.vars as React.CSSProperties),
         ["--st-radius" as string]: theme.radius,
@@ -155,7 +155,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           donde lo tiene la mayoría de las tiendas —incumpliendo—. Ocupa una
           línea de 24px y es lo que Defensa del Consumidor mira primero. */}
       <div
-        className="text-[11px] border-b"
+        className="storefront-legal-bar text-[11px] border-b"
         style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))" }}
       >
         <div className="max-w-6xl mx-auto px-4 py-1 flex justify-end">
@@ -171,10 +171,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
       {/* ── Header ───────────────────────────────────────────────────── */}
       <header
-        className="sticky top-0 z-40 border-b backdrop-blur"
+        className="storefront-header sticky top-0 z-40 border-b backdrop-blur"
         style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-header) / 0.95)" }}
       >
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center gap-3">
+        <div className="storefront-header__inner max-w-6xl mx-auto px-4 h-16 flex items-center gap-3">
           <button
             className="lg:hidden p-2 -ml-2"
             onClick={() => setMenuOpen(v => !v)}
@@ -184,7 +184,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <Menu className="w-5 h-5" />
           </button>
 
-          <Link to={base} className="flex items-center gap-2 min-w-0 shrink-0">
+          <Link to={base} className="storefront-brand flex items-center gap-2 min-w-0 shrink-0">
             {store?.logo_url
               ? <img src={store.logo_url} alt="" className="h-8 w-8 rounded object-cover" />
               : (
@@ -207,7 +207,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               al logo, el buscador y los dos íconos, y con una categoría más se
               rompería igual en cualquier ancho fijo. Abajo de 1024 viven en el
               menú desplegable, que aguanta las que sean. */}
-          <nav className="hidden lg:flex items-center gap-4 ml-4 text-sm">
+          <nav className="storefront-nav hidden lg:flex items-center gap-4 ml-4 text-sm">
             {nav.map(n => n.hijos.length === 0 ? (
               <LinkDeMenu
                 key={n.label}
@@ -298,7 +298,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         </div>
 
         {menuOpen && (
-          <nav className="lg:hidden border-t px-4 py-2 space-y-1" style={{ borderColor: "hsl(var(--st-border))" }}>
+          <nav className="storefront-mobile-nav lg:hidden border-t px-4 py-2 space-y-1" style={{ borderColor: "hsl(var(--st-border))" }}>
             {nav.map(n => (
               <div key={n.label}>
                 <LinkDeMenu
@@ -333,10 +333,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         )}
       </header>
 
-      <main>{children}</main>
+      <main className="storefront-main">{children}</main>
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
-      <footer className="border-t mt-16" style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))" }}>
+      <footer className="storefront-footer border-t mt-16" style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))" }}>
         <div className="max-w-6xl mx-auto px-4 py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <p className="font-semibold mb-2">{store?.name}</p>
@@ -405,14 +405,14 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
       {/* ── Drawer del carrito ───────────────────────────────────────── */}
       {cartOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
+        <div className="storefront-cart-overlay fixed inset-0 z-50 flex justify-end">
           <button
             className="absolute inset-0 bg-black/50"
             onClick={() => setCartOpen(false)}
             aria-label="Cerrar carrito"
           />
           <aside
-            className="relative w-full max-w-sm h-full flex flex-col shadow-2xl"
+            className="storefront-cart relative w-full max-w-sm h-full flex flex-col shadow-2xl"
             style={{ background: "hsl(var(--st-bg))" }}
           >
             <div className="flex items-center justify-between px-4 h-14 border-b" style={{ borderColor: "hsl(var(--st-border))" }}>

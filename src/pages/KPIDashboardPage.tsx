@@ -17,6 +17,7 @@ import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 // Note: StoreFilter is intentionally not wired here — sales have no location_id
 // in the schema yet (see Dashboard.tsx for the one real store-filter
 // integration, which scopes stock via `location_stock`).
@@ -235,7 +236,10 @@ type Tab = typeof TABS[number];
 export default function KPIDashboardPage() {
   const { orgId } = useOrganization();
   // usePageTitle via PageHeader icon
-  const [activeTab, setActiveTab] = useState<Tab>("Dashboards");
+  const [activeTab, setActiveTab] = usePersistedState<Tab>(
+    orgViewKey("kpi-dashboard.tab", orgId),
+    "Dashboards",
+  );
   const [dashboards, setDashboards] = useState<Dashboard[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);

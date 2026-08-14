@@ -44,6 +44,7 @@ import { PriceSparkline } from "@/components/shared/PriceSparkline";
 import ProfitCalculatorModal from "@/components/shared/ProfitCalculatorModal";
 import { useProductExpiry } from "@/hooks/useProductExpiry";
 import { BarcodePrintSheet } from "@/components/shared/BarcodeLabel";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 const CATEGORY_COLORS: Record<string, string> = {
   perfume_arabe: 'bg-primary/15 text-primary',
@@ -297,14 +298,14 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState<any>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [filterCat, setFilterCat] = useState('all');
-  const [filterStock, setFilterStock] = useState('all');
-  const [filterExpiry, setFilterExpiry] = useState('all');
-  const [filterTag, setFilterTag] = useState('');
-  const [filterMovement, setFilterMovement] = useState('all');
-  const [filterMargin, setFilterMargin] = useState('all');
-  const [filterDiscount, setFilterDiscount] = useState(false);
+  const [search, setSearch] = usePersistedState(orgViewKey("products.search", activeOrg?.id), '');
+  const [filterCat, setFilterCat] = usePersistedState(orgViewKey("products.category-filter", activeOrg?.id), 'all');
+  const [filterStock, setFilterStock] = usePersistedState(orgViewKey("products.stock-filter", activeOrg?.id), 'all');
+  const [filterExpiry, setFilterExpiry] = usePersistedState(orgViewKey("products.expiry-filter", activeOrg?.id), 'all');
+  const [filterTag, setFilterTag] = usePersistedState(orgViewKey("products.tag-filter", activeOrg?.id), '');
+  const [filterMovement, setFilterMovement] = usePersistedState(orgViewKey("products.movement-filter", activeOrg?.id), 'all');
+  const [filterMargin, setFilterMargin] = usePersistedState(orgViewKey("products.margin-filter", activeOrg?.id), 'all');
+  const [filterDiscount, setFilterDiscount] = usePersistedState(orgViewKey("products.discount-filter", activeOrg?.id), false);
   // ── Buscador de perfumes por facetas ──────────────────────────────────────
   const [perfumeDetailsByProduct, setPerfumeDetailsByProduct] = useState<Record<string, any>>({});
   const [facetSheetOpen, setFacetSheetOpen] = useState(false);
@@ -331,7 +332,7 @@ export default function ProductsPage() {
   const [editingThreshold, setEditingThreshold] = useState<{ id: string; value: string } | null>(null);
   const [showAging, setShowAging] = useState(false);
   const [productSort, setProductSort] = useState<{ col: "name" | "sale_price_ars" | "stock" | "margin"; dir: "asc" | "desc" }>({ col: "name", dir: "asc" });
-  const [productView, setProductView] = useState<'list' | 'grid'>('list');
+  const [productView, setProductView] = usePersistedState<'list' | 'grid'>(orgViewKey("products.view", activeOrg?.id), 'list');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const { shareProduct, canShare } = useWebShare();
@@ -632,7 +633,7 @@ export default function ProductsPage() {
   const outOfStockCount = products.filter(p => p.stock <= 0).length;
 
   return (
-    <div className="space-y-5 pb-12">
+    <div className="workspace-page workspace-products space-y-5 pb-12">
       <PageHeader
         icon={Package}
         title="Productos"
@@ -647,7 +648,7 @@ export default function ProductsPage() {
             : undefined
         }
         actions={
-          <div className="flex flex-wrap gap-2">
+          <div className="workspace-products-actions flex flex-wrap gap-2">
             <div className="flex rounded-lg border border-border overflow-hidden h-9">
               <button onClick={() => setProductView('list')} className={`px-2.5 transition-colors ${productView === 'list' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`} title="Vista lista">
                 <List className="w-4 h-4" />
@@ -731,7 +732,7 @@ export default function ProductsPage() {
       />
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="workspace-products-kpis grid grid-cols-2 md:grid-cols-5 gap-3">
         <KPICard label="Total productos" value={products.length} icon={Package} color="primary"
           sub={productLimit ? `${products.length}/${productLimit} del plan` : `${filtered.length} visibles`} />
         <KPICard label="Inversión total" value={formatUSD(totalValue)} icon={DollarSign} color="blue"
@@ -915,7 +916,7 @@ export default function ProductsPage() {
         })).filter(b => b.items.length > 0);
         const totalAtRisk = aged.reduce((s, p) => s + p.valueARS, 0);
         return (
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="workspace-products-aging bg-card border border-border rounded-xl overflow-hidden">
             <div className="flex items-center w-full gap-2 pr-2">
               <button
                 onClick={() => setShowAging(!showAging)}
@@ -983,7 +984,7 @@ export default function ProductsPage() {
         );
       })()}
 
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="workspace-products-filters flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="pl-9 bg-muted border-border h-9 text-sm" />
@@ -1109,9 +1110,9 @@ export default function ProductsPage() {
       {!filtered.length ? (
         <EmptyState icon={Package} title={products.length ? 'Sin resultados' : 'No hay productos aún'} description="Agregá tu primer producto para empezar." actionLabel="Nuevo Producto" onAction={() => setOpen(true)} />
       ) : productView === 'grid' ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+        <div className="workspace-products-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {filteredSorted.map((p: any) => (
-            <div key={p.id} className="bg-card border border-border rounded-xl overflow-hidden group hover:border-primary/40 transition-colors">
+            <div key={p.id} className="workspace-products-grid-card bg-card border border-border rounded-xl overflow-hidden group hover:border-primary/40 transition-colors">
               <div className="relative aspect-square bg-muted/30">
                 {p.image_url
                   ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
@@ -1154,12 +1155,12 @@ export default function ProductsPage() {
       ) : (
         <>
           {Object.entries(grouped).sort(([a],[b]) => a.localeCompare(b)).map(([brand, items]) => (
-            <div key={brand} className="mb-6">
+            <div key={brand} className="workspace-products-brand-group mb-6">
               <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 {brand} <span className="text-xs font-normal">({items.length} · {items.reduce((s: number, p: any) => s + p.stock, 0)} uds)</span>
               </h2>
-              <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="workspace-products-table-shell hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
+                <table className="workspace-products-table w-full text-sm">
                   <thead>
                      <tr className="border-b border-border text-muted-foreground">
                        <th className="p-3 w-8">
@@ -1407,7 +1408,7 @@ export default function ProductsPage() {
                   </tbody>
                 </table>
               </div>
-               <div className="md:hidden space-y-2">
+               <div className="workspace-products-mobile-list md:hidden space-y-2">
                 {items.map((p: any) => (
                   <div key={p.id} className="bg-card border border-border rounded-lg p-3">
                     <div className="flex items-start justify-between mb-2">
@@ -1511,7 +1512,7 @@ export default function ProductsPage() {
 
       {/* Floating bulk action bar */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-border rounded-2xl shadow-xl px-4 py-3 animate-in slide-in-from-bottom-4 duration-200">
+        <div className="workspace-products-bulk-bar fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-border rounded-2xl shadow-xl px-4 py-3 animate-in slide-in-from-bottom-4 duration-200">
           <CheckCheck className="w-4 h-4 text-primary" />
           <span className="text-sm font-medium">{selectedIds.size} producto{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}</span>
           <button onClick={() => setSelectedIds(new Set())} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-muted transition-colors">

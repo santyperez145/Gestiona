@@ -34,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { toast } from "sonner";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -1324,13 +1325,29 @@ export default function CustomersPage() {
   const [settings, setSettings] = useState<any>(null);
   const [profiles, setProfiles] = useState<CustomerProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [segmentFilter, setSegmentFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<"totalSpent" | "purchaseCount" | "lastPurchase" | "avgTicket" | "healthScore" | "clv" | "churnRisk">("totalSpent");
+  const [search, setSearch] = usePersistedState(
+    orgViewKey("customers.search", activeOrg?.id),
+    "",
+  );
+  const [segmentFilter, setSegmentFilter] = usePersistedState(
+    orgViewKey("customers.segment-filter", activeOrg?.id),
+    "all",
+  );
+  const [sortBy, setSortBy] = usePersistedState<"totalSpent" | "purchaseCount" | "lastPurchase" | "avgTicket" | "healthScore" | "clv" | "churnRisk">(
+    orgViewKey("customers.sort", activeOrg?.id),
+    "totalSpent",
+  );
   const [savedSegments, setSavedSegments] = useState<SavedCRMSegment[]>([]);
   const [saveSegmentName, setSaveSegmentName] = useState("");
   const [showSaveInput, setShowSaveInput] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = usePersistedState<string | null>(
+    orgViewKey("customers.selected", activeOrg?.id),
+    null,
+  );
+  const [customerDetailTab, setCustomerDetailTab] = usePersistedState(
+    orgViewKey("customers.detail-tab", `${activeOrg?.id || "default"}.${selectedCustomer || "none"}`),
+    "resumen",
+  );
   // `profile` puede venir parcial: al crear desde una fila sin ficha solo se
   // conoce el nombre, y el `id` decide si se crea o se actualiza.
   const [formModal, setFormModal] = useState<{ open: boolean; profile?: Partial<CustomerProfile> }>({ open: false });
@@ -1360,9 +1377,18 @@ export default function CustomersPage() {
   const [followUpDate, setFollowUpDate] = useState("");
   const [followUpNote, setFollowUpNote] = useState("");
   const [followUpSaving, setFollowUpSaving] = useState(false);
-  const [filterBirthday, setFilterBirthday] = useState("all");
-  const [filterSeller, setFilterSeller] = useState("all");
-  const [filterCompany, setFilterCompany] = useState("all");
+  const [filterBirthday, setFilterBirthday] = usePersistedState(
+    orgViewKey("customers.birthday-filter", activeOrg?.id),
+    "all",
+  );
+  const [filterSeller, setFilterSeller] = usePersistedState(
+    orgViewKey("customers.seller-filter", activeOrg?.id),
+    "all",
+  );
+  const [filterCompany, setFilterCompany] = usePersistedState(
+    orgViewKey("customers.company-filter", activeOrg?.id),
+    "all",
+  );
   const [bulkBdayWaOpen, setBulkBdayWaOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -2058,7 +2084,7 @@ export default function CustomersPage() {
   const avgTicketGlobal = totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="workspace-page workspace-customers space-y-6 pb-12">
       {/* Form modal */}
       {formModal.open && (
         <CustomerFormModal
@@ -2142,7 +2168,7 @@ export default function CustomersPage() {
 
       {/* Top clientes del mes */}
       {topThisMonth.length > 0 && (
-        <div className="bg-card border border-border/60 rounded-[10px] p-4">
+        <div className="workspace-customer-top bg-card border border-border/60 rounded-[10px] p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Crown className="w-4 h-4 text-primary" />
@@ -2198,7 +2224,7 @@ export default function CustomersPage() {
 
       {/* Segmentation Chart */}
       {segmentCounts.length > 0 && (
-        <div className="bg-card border border-border/60 rounded-[10px] p-4 shadow-card">
+        <div className="workspace-customer-segments bg-card border border-border/60 rounded-[10px] p-4 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Segmentación Automática</h2>
           <div className="flex flex-wrap gap-2 mb-4">
             {segmentCounts.map(s => (
@@ -2235,7 +2261,7 @@ export default function CustomersPage() {
         const atRisk = customers.filter(c => c.segment === "En riesgo" || c.segment === "Dormido");
         if (atRisk.length === 0) return null;
         return (
-          <div className="bg-orange-500/5 border border-orange-500/30 rounded-[10px] p-4 mb-6">
+          <div className="workspace-customer-risk bg-orange-500/5 border border-orange-500/30 rounded-[10px] p-4 mb-6">
             <div className="flex items-center gap-2 mb-3">
               <AlertCircle className="w-4 h-4 text-orange-400 shrink-0" />
               <p className="text-sm font-semibold text-orange-400">{atRisk.length} cliente{atRisk.length !== 1 ? "s" : ""} que necesitan reactivación</p>
@@ -2267,7 +2293,7 @@ export default function CustomersPage() {
 
       {/* RFM Analysis Panel */}
       {rfmData.length > 0 && (
-        <div className="bg-card border border-border/60 rounded-[10px] mb-4">
+        <div className="workspace-customer-rfm bg-card border border-border/60 rounded-[10px] mb-4">
           <button
             className="w-full flex items-center justify-between px-4 py-3 text-left"
             onClick={() => setShowRFM(v => !v)}
@@ -2428,7 +2454,7 @@ export default function CustomersPage() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4 flex-wrap">
+      <div className="workspace-customer-filters flex flex-col sm:flex-row gap-3 mb-4 flex-wrap">
         <Input
           placeholder="Buscar cliente..."
           value={search}
@@ -2500,7 +2526,7 @@ export default function CustomersPage() {
       {/* Customer List */}
       {/* Bulk email action bar */}
       {selectedCustomerNames.size > 0 && (
-        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-primary/40 shadow-xl rounded-[10px] px-4 py-3 animate-in slide-in-from-bottom-4">
+        <div className="workspace-customer-bulk-bar fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-primary/40 shadow-xl rounded-[10px] px-4 py-3 animate-in slide-in-from-bottom-4">
           <span className="text-sm font-semibold">{selectedCustomerNames.size} cliente{selectedCustomerNames.size !== 1 ? 's' : ''} seleccionado{selectedCustomerNames.size !== 1 ? 's' : ''}</span>
           <button
             onClick={() => {
@@ -2849,17 +2875,17 @@ export default function CustomersPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-3 pb-12">
+      <div className="workspace-customer-list pb-12">
           {filtered.map(c => {
             const isExpanded = selectedCustomer === c.name;
             return (
               <div
                 key={c.name}
-                className={`bg-card border rounded-lg shadow-card transition-all ${isExpanded ? "border-primary" : "border-border hover:border-primary/30"}`}
+                className={`workspace-customer-row bg-card border rounded-lg shadow-card transition-all ${isExpanded ? "workspace-customer-row-expanded border-primary" : "border-border hover:border-primary/30"}`}
               >
                 {/* Main row */}
                 <div
-                  className="p-4 cursor-pointer"
+                  className="workspace-customer-row__main p-4 cursor-pointer"
                   onClick={() => setSelectedCustomer(isExpanded ? null : c.name)}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -2960,7 +2986,7 @@ export default function CustomersPage() {
 
                 {/* Expanded details — Ficha 360 */}
                 {isExpanded && (
-                  <div className="px-4 pb-4 pt-2 border-t border-border">
+                  <div className="workspace-customer-row__detail px-4 pb-4 pt-2 border-t border-border">
                     {/* Health Score gauge */}
                     {c.purchaseCount > 0 && (
                       <div className="mb-3 bg-muted/40 rounded-[8px] px-4 py-3">
@@ -3142,7 +3168,7 @@ export default function CustomersPage() {
                       </div>
                     )}
 
-                    <Tabs defaultValue="resumen" className="w-full">
+                    <Tabs value={customerDetailTab} onValueChange={setCustomerDetailTab} className="w-full">
                       <TabsList className="h-8 text-xs mb-3">
                         <TabsTrigger value="resumen" className="text-xs h-7 gap-1"><TrendingUp className="w-3 h-3" />Resumen</TabsTrigger>
                         <TabsTrigger value="compras" className="text-xs h-7 gap-1"><Package className="w-3 h-3" />Compras ({rowsOfCustomer(sales as any[], refDe(c)).length})</TabsTrigger>
