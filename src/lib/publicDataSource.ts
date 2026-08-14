@@ -24,12 +24,20 @@ import { supabase } from '@/integrations/supabase/client';
 /** Columnas del catálogo que pueden salir al navegador. Sin costos. */
 const PRODUCT_COLUMNS =
   'id,org_id,user_id,name,brand,category,gender,description,image_url,image_urls,' +
+  'sale_price_ars,discount_price_ars,price_2x_ars,stock,content_ml,total_sold,' +
+  'featured,offer_expires_at,created_at';
+
+/** Columnas extra que sólo expone `store_catalog_products`. */
+const STORE_PRODUCT_COLUMNS =
+  'id,org_id,user_id,name,brand,category,gender,description,image_url,image_urls,' +
   'sale_price_ars,discount_price_ars,price_2x_ars,payment_base_price,promo_price,stock,content_ml,total_sold,' +
   'featured,offer_expires_at,created_at';
 
 /** Las mismas, más los precios de decant que sólo la vista puede calcular. */
 const PRODUCT_COLUMNS_WITH_DECANTS =
   `${PRODUCT_COLUMNS},decant_price_10ml,decant_price_5ml,decant_price_2_5ml`;
+const STORE_PRODUCT_COLUMNS_WITH_DECANTS =
+  `${STORE_PRODUCT_COLUMNS},decant_price_10ml,decant_price_5ml,decant_price_2_5ml`;
 
 interface PgError { code?: string; message?: string }
 
@@ -93,7 +101,7 @@ export async function fetchStoreProducts(orgId: string): Promise<CatalogProduct[
   // tienda pierde los agotados, no los productos.
   const view = await supabase
     .from('store_catalog_products')
-    .select(PRODUCT_COLUMNS_WITH_DECANTS)
+    .select(STORE_PRODUCT_COLUMNS_WITH_DECANTS)
     .eq('org_id', orgId)
     .order('featured', { ascending: false })
     .order('name');
