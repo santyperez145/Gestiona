@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import KPICard from "@/components/shared/KPICard";
 import {
   RotateCcw, Plus, CheckCircle2, XCircle, Clock, Package,
-  Pencil, Trash2, RefreshCcw, DollarSign, AlertCircle, Search, Loader2
+  Pencil, Trash2, RefreshCcw, DollarSign, AlertCircle, Search, Loader2, Truck
 } from "lucide-react";
 import { toast } from "sonner";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
@@ -22,6 +22,8 @@ interface ReturnRequest {
   product_name: string; quantity: number; condition: string; resolution: string | null;
   refund_amount: number | null; refund_method: string | null; status: string;
   reason_text: string | null; created_at: string; resolved_at: string | null;
+  tipo: string; return_shipping_payer: string; return_shipping_amount: number | null;
+  return_shipping_method: string | null;
   return_reasons: { name: string } | null;
   customers: { name: string } | null;
 }
@@ -46,6 +48,9 @@ const CONDITION_LABELS: Record<string, string> = {
 const REFUND_METHOD_LABELS: Record<string, string> = {
   original_payment: "Medio original", cash: "Efectivo", bank_transfer: "Transferencia",
   store_credit: "Crédito", gift_card: "Gift Card",
+};
+const RETURN_SHIPPING_METHOD_LABELS: Record<string, string> = {
+  prepaid_label: "Etiqueta prepaga", reimbursement: "Reintegro", pickup: "Retiro coordinado",
 };
 
 const TABS = ["Solicitudes", "Razones", "Estadísticas"] as const;
@@ -74,7 +79,7 @@ export default function ReturnsPortalTab() {
   /* forms */
   const blankForm = { customer_name: "", customer_email: "", product_name: "", product_id: "", quantity: "1", reason_id: "", reason_text: "", condition: "unknown", notes: "" };
   const [form, setForm] = useState(blankForm);
-  const [approveForm, setApproveForm] = useState({ resolution: "refund", resolution_notes: "", refund_amount: "", refund_method: "original_payment" });
+  const [approveForm, setApproveForm] = useState({ resolution: "refund", resolution_notes: "", refund_amount: "", refund_method: "original_payment", return_shipping_amount: "", return_shipping_method: "prepaid_label" });
   const [reasonForm, setReasonForm] = useState({ name: "", requires_photo: false });
 
   const load = useCallback(async () => {
@@ -122,6 +127,11 @@ export default function ReturnsPortalTab() {
       resolution_notes: approveForm.resolution_notes || null,
       refund_amount: approveForm.refund_amount ? parseFloat(approveForm.refund_amount) : null,
       refund_method: approveForm.refund_method,
+      ...(showApproveDialog.tipo === "arrepentimiento" ? {
+        return_shipping_payer: "seller",
+        return_shipping_amount: approveForm.return_shipping_amount ? parseFloat(approveForm.return_shipping_amount) : null,
+        return_shipping_method: approveForm.return_shipping_method,
+      } : {}),
       approved_at: new Date().toISOString(),
     }).eq("id", showApproveDialog.id);
     if (error) { toast.error(error.message); return; }
@@ -203,7 +213,7 @@ export default function ReturnsPortalTab() {
               <div className="bg-card rounded-xl border overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/20 text-muted-foreground">
-                    <tr>{["RMA", "Cliente", "Producto", "Cant.", "Razón", "Resolución", "Reembolso", "Estado", ""].map(h => <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>)}</tr>
+                    <tr>{["RMA", "Cliente", "Producto", "Cant.", "Razón", "Resolución", "Reembolso", "Vuelta", "Estado", ""].map(h => <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>)}</tr>
                   </thead>
                   <tbody className="divide-y">
                     {filtered.map(r => {
@@ -217,12 +227,17 @@ export default function ReturnsPortalTab() {
                           <td className="px-4 py-3 text-xs text-muted-foreground">{(r.return_reasons as ReturnRequest["return_reasons"])?.name ?? r.reason_text ?? "—"}</td>
                           <td className="px-4 py-3 text-xs">{r.resolution ? RESOLUTION_LABELS[r.resolution] : "—"}</td>
                           <td className="px-4 py-3 text-xs">{r.refund_amount ? `$${r.refund_amount.toLocaleString("es-AR")}` : "—"}</td>
+                          <td className="px-4 py-3 text-xs">
+                            {r.tipo === "arrepentimiento" && r.return_shipping_payer === "seller" ? (
+                              <span className="inline-flex items-center gap-1 text-emerald-600"><Truck className="w-3 h-3" /> Comercio{r.return_shipping_amount != null ? ` · $${r.return_shipping_amount.toLocaleString("es-AR")}` : ""}</span>
+                            ) : "—"}
+                          </td>
                           <td className="px-4 py-3"><Badge className={`${st.color} flex items-center gap-1 text-xs`}>{st.icon}{st.label}</Badge></td>
                           <td className="px-4 py-3">
                             <div className="flex gap-1">
                               {r.status === "pending" && (
                                 <>
-                                  <Button size="sm" variant="outline" className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 text-xs" onClick={() => { setShowApproveDialog(r); setApproveForm({ resolution: "refund", resolution_notes: "", refund_amount: "", refund_method: "original_payment" }); }}>Aprobar</Button>
+                                  <Button size="sm" variant="outline" className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 text-xs" onClick={() => { setShowApproveDialog(r); setApproveForm({ resolution: "refund", resolution_notes: "", refund_amount: "", refund_method: "original_payment", return_shipping_amount: r.return_shipping_amount?.toString() ?? "", return_shipping_method: r.return_shipping_method ?? "prepaid_label" }); }}>Aprobar</Button>
                                   <Button size="sm" variant="outline" className="text-red-400 border-red-400/30 hover:bg-red-400/10 text-xs" onClick={() => { setShowRejectDialog(r); setRejectReason(""); }}>Rechazar</Button>
                                 </>
                               )}
@@ -232,7 +247,7 @@ export default function ReturnsPortalTab() {
                         </tr>
                       );
                     })}
-                    {filtered.length === 0 && <tr><td colSpan={9} className="text-center py-12 text-muted-foreground">Sin solicitudes</td></tr>}
+                    {filtered.length === 0 && <tr><td colSpan={10} className="text-center py-12 text-muted-foreground">Sin solicitudes</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -356,6 +371,15 @@ export default function ReturnsPortalTab() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{Object.entries(REFUND_METHOD_LABELS).map(([k,v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                   </Select>
+                </div>
+              </div>
+            )}
+            {showApproveDialog?.tipo === "arrepentimiento" && (
+              <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-3">
+                <p className="text-sm flex items-center gap-2 text-emerald-700"><Truck className="w-4 h-4" /> El envío de vuelta lo paga el comercio.</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Costo coordinado ($)</Label><Input type="number" min="0" value={approveForm.return_shipping_amount} onChange={e => setApproveForm(p => ({ ...p, return_shipping_amount: e.target.value }))} /></div>
+                  <div><Label>Cómo se resuelve</Label><Select value={approveForm.return_shipping_method} onValueChange={v => setApproveForm(p => ({ ...p, return_shipping_method: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(RETURN_SHIPPING_METHOD_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent></Select></div>
                 </div>
               </div>
             )}

@@ -13764,6 +13764,10 @@ export type Database = {
           refund_method: string | null
           resolution: string | null
           resolved_at: string | null
+          return_shipping_amount: number | null
+          return_shipping_method: string | null
+          return_shipping_notes: string | null
+          return_shipping_payer: string
           rma_number: string
           status: string
           tipo: string
@@ -13787,6 +13791,10 @@ export type Database = {
           refund_method?: string | null
           resolution?: string | null
           resolved_at?: string | null
+          return_shipping_amount?: number | null
+          return_shipping_method?: string | null
+          return_shipping_notes?: string | null
+          return_shipping_payer?: string
           rma_number: string
           status?: string
           tipo?: string
@@ -13810,6 +13818,10 @@ export type Database = {
           refund_method?: string | null
           resolution?: string | null
           resolved_at?: string | null
+          return_shipping_amount?: number | null
+          return_shipping_method?: string | null
+          return_shipping_notes?: string | null
+          return_shipping_payer?: string
           rma_number?: string
           status?: string
           tipo?: string

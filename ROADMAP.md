@@ -257,7 +257,7 @@ proveedor se le estaría pidiendo que incumpla desde el día uno.
 | **F1 + F3** Política de privacidad y datos del proveedor | 🟡 El generador ya los escribe. Falta cargar razón social, CUIT, domicilio y email, revisar y publicar. |
 | **F5** Consentimiento de marketing con fecha y origen | 🟠 Una columna y un checkbox. Antes de mandarle campañas a clientes de otro comercio. |
 | **F11** Acotar la garantía a 6 meses | ✅ `trg_return_requests_warranty_window` aplica seis meses desde la entrega y no castiga una fecha de entrega ausente. |
-| **F10** El envío de vuelta lo paga el vendedor | 🟠 Falta modelarlo en la devolución. |
+| **F10** El envío de vuelta lo paga el vendedor | ✅ El arrepentimiento de una orden online queda a cargo del comercio y el portal registra su costo. |
 
 **Slice funcional 18 (2026-08-14):** F5 deja de ser un booleano sin evidencia.
 El checkout ofrece un consentimiento opcional y desmarcado, registra fecha,
@@ -271,6 +271,12 @@ de consentimiento. No se infiere consentimiento de compras históricas.
 tienda no registró la entrega, el plazo no vence por esa omisión. La migración
 verifica los casos vencido, vigente y sin fecha con datos `ZZ` que borra antes
 de terminar.
+
+**Slice funcional 20 (2026-08-14):** F10 deja trazabilidad del envío de vuelta.
+Un arrepentimiento de una orden online fija el costo a cargo del comercio en la
+base y el portal permite registrar importe y coordinación (etiqueta prepaga,
+reintegro o retiro). Las devoluciones manuales de mostrador no se fuerzan por
+esta regla. La migración verifica el trigger con una orden `ZZ` y no deja restos.
 
 > **Condición de salida:** se emitió **una factura electrónica real** y un
 > comercio nuevo puede darse de alta sin incumplir nada.
