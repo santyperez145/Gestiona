@@ -39,6 +39,15 @@ import { toast } from "sonner";
 
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
+const DASHBOARD_SECTIONS = [
+  { id: "dashboard-overview", label: "Resumen", icon: LayoutDashboard },
+  { id: "dashboard-sales", label: "Ventas y metas", icon: BarChart3 },
+  { id: "dashboard-customers", label: "Clientes", icon: Users },
+  { id: "dashboard-inventory", label: "Inventario", icon: Package },
+  { id: "dashboard-finance", label: "Finanzas", icon: Wallet },
+  { id: "dashboard-intelligence", label: "Inteligencia", icon: Sparkles },
+] as const;
+
 function SellerGoalsWidget({ sellers, orgId }: { sellers: [string, number][]; orgId: string }) {
   const goalsKey = `gestiona.seller_goals.${orgId}`;
   const [sellerGoals, setSellerGoals] = useState<Record<string, number>>(() => {
@@ -362,6 +371,7 @@ export default function Dashboard() {
   const { online, offlineSince, connection } = useNetworkStatus();
   const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any; expenses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeDashboardSection, setActiveDashboardSection] = useState("dashboard-overview");
   const [filterCat, setFilterCat] = useState('all');
   const [reloadKey, setReloadKey] = useState(0);
   const [liveTodaySales, setLiveTodaySales] = useState<{ total: number; count: number } | null>(null);
@@ -1247,6 +1257,27 @@ export default function Dashboard() {
         }
       />
 
+      <div className="workspace-dashboard-layout">
+        <nav className="workspace-dashboard-nav" aria-label="Secciones del dashboard">
+          <p className="workspace-dashboard-nav__label">Vistas</p>
+          {DASHBOARD_SECTIONS.map(section => {
+            const Icon = section.icon;
+            const isActive = activeDashboardSection === section.id;
+            return (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                aria-current={isActive ? "page" : undefined}
+                onClick={() => setActiveDashboardSection(section.id)}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                <span>{section.label}</span>
+              </a>
+            );
+          })}
+        </nav>
+
+        <div className="workspace-dashboard-content">
       {/* Configuración inicial — guía para negocios nuevos (se auto-oculta al completar) */}
       <SetupChecklist
         businessName={rawData?.settings?.business_name || ""}
@@ -1370,7 +1401,7 @@ export default function Dashboard() {
       )}
 
       {/* Business Core: la primera lectura queda junto al foco operativo. */}
-      <section className="workspace-dashboard-core mb-0 mt-0">
+      <section id="dashboard-overview" className="workspace-dashboard-core mb-0 mt-0">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Business Core</p>
@@ -2507,7 +2538,7 @@ export default function Dashboard() {
       })()}
 
       {/* Secondary metrics remain available without competing with the core. */}
-      <section className="mb-6">
+      <section id="dashboard-sales" className="mb-6">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Indicadores del negocio</p>
           <span className="text-[10px] text-muted-foreground/60">Período seleccionado</span>
@@ -2538,6 +2569,8 @@ export default function Dashboard() {
           <span className="text-[10px] text-muted-foreground shrink-0">#{saleEventCount} evento{saleEventCount > 1 ? "s" : ""}</span>
         </div>
       )}
+
+      <div id="dashboard-customers" className="dashboard-section-anchor" aria-hidden="true" />
 
       {/* CRM Follow-ups widget */}
       {pendingFollowUps.length > 0 && (
@@ -2887,6 +2920,8 @@ export default function Dashboard() {
         </div>
       )}
 
+      <div id="dashboard-inventory" className="dashboard-section-anchor" aria-hidden="true" />
+
       {/* Stock Alerts */}
       {(stats.lowStockProducts?.length > 0 || stats.outOfStockProducts?.length > 0) && (
         <div className="bg-card border border-destructive/30 rounded-lg p-4 md:p-5 shadow-card mb-6 md:mb-8">
@@ -3014,8 +3049,12 @@ export default function Dashboard() {
         </div>
       )}
 
+      <div id="dashboard-finance" className="dashboard-section-anchor" aria-hidden="true" />
+
       {/* Financial Tools */}
       <FinancialSection stats={stats} />
+
+      <div id="dashboard-intelligence" className="dashboard-section-anchor" aria-hidden="true" />
 
       {/* Cash Flow + Health + AI */}
       <CashFlowProjector
@@ -3210,6 +3249,8 @@ export default function Dashboard() {
           })()}
         />
       )}
+        </div>
+      </div>
     </div>
   );
 }

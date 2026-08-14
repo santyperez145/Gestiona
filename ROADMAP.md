@@ -34,6 +34,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de rediseno 10 (2026-08-14):** navegacion interna para reducir paginas interminables. Reportes y Analytics convierten sus tiras extensas de tabs en un rail lateral sticky en desktop y una franja horizontal desplazable en mobile; Integraciones adopta el mismo shell. Ajustes agrega un indice lateral de anclas para marca, finanzas, mensajeria, alertas, descuentos, suscripcion, impuestos, sistema y herramientas. La navegacion solo reorganiza la lectura: conserva consultas, permisos, estados, formularios y acciones existentes. Validado con typecheck, lint sin errores, 823 tests y build.
 
+**Slice de rediseno 11 (2026-08-14):** el Dashboard deja de ser un flujo vertical unico. Un rail interno con estado activo lleva a Resumen, Ventas y metas, Clientes, Inventario, Finanzas e Inteligencia; en mobile se convierte en tabs horizontales desplazables. Cada destino tiene un ancla estable y la navegacion no dispara nuevas consultas ni altera los widgets, calculos o permisos. El siguiente trabajo de producto queda alineado con Fase 1: onboarding medible, limites de plan e instrumentacion, mientras AFIP y la publicacion legal siguen bloqueados por insumos externos. Validado con typecheck, lint sin errores, 823 tests y build.
+
 ---
 
 ## 1. Qué es
