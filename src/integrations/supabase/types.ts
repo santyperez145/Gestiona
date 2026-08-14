@@ -19538,6 +19538,16 @@ export type Database = {
           },
         ]
       }
+      organization_support_accesses: {
+        Row: {
+          created_at: string | null
+          event: string | null
+          id: string | null
+          org_id: string | null
+          staff_email: string | null
+        }
+        Relationships: []
+      }
       platform_cron_health: {
         Row: {
           active: boolean | null

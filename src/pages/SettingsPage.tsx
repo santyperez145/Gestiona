@@ -26,6 +26,7 @@ import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import { SupportAccessAuditSection } from "@/components/settings/SupportAccessAuditSection";
 
 // ─── SystemInfoSection ────────────────────────────────────────────────────────
 function SystemInfoSection({ businessName, productCount, userEmail }: { businessName: string; productCount: number; userEmail?: string }) {
@@ -1225,6 +1226,8 @@ export default function SettingsPage() {
               </Button>
             </div>
           </div>
+
+          <SupportAccessAuditSection />
 
           <div id="settings-tools" className="settings-panel settings-panel--system space-y-4 md:space-y-6">
           {/* USD Real-time Quote */}

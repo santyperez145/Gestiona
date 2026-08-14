@@ -115,6 +115,62 @@ Deno.serve(async (req) => {
       } catch { /* silent */ }
     };
 
+    /**
+     * Un magic link puede abrir todas las organizaciones a las que pertenece
+     * su destinatario. Guardamos ese alcance por organización ahora, no al leer
+     * el log: si el miembro se va después, el dueño conserva la evidencia.
+     *
+     * A diferencia del audit log histórico, no se silencian errores acá. Entregar
+     * un enlace sin poder dejar la trazabilidad comprometida sería peor que
+     * devolver un error al operador.
+     */
+    const logMagicLinkAccess = async (targetUserId: string | undefined, details: unknown) => {
+      if (!targetUserId) {
+        const { error } = await admin.from("admin_audit_logs" as any).insert({
+          admin_user_id: user.id,
+          admin_email: user.email,
+          action: "generateMagicLink",
+          details,
+        });
+        if (error) throw new Error(`No se pudo registrar el magic link: ${error.message}`);
+        return;
+      }
+
+      const { data: memberships, error: membershipsError } = await admin
+        .from("memberships")
+        .select("org_id")
+        .eq("user_id", targetUserId);
+      if (membershipsError) {
+        throw new Error(`No se pudo resolver el alcance del magic link: ${membershipsError.message}`);
+      }
+
+      const auditRows: Array<Record<string, unknown>> = (memberships ?? []).map((membership: { org_id: string }) => ({
+        admin_user_id: user.id,
+        admin_email: user.email,
+        action: "generateMagicLink",
+        target_org_id: membership.org_id,
+        target_user_id: targetUserId,
+        details,
+      }));
+
+      // Un comprador de tienda puede no pertenecer a una organización. Se
+      // conserva entonces la auditoría de plataforma, aunque no haya tenant al
+      // que mostrársela.
+      if (auditRows.length === 0) {
+        auditRows.push({
+          admin_user_id: user.id,
+          admin_email: user.email,
+          action: "generateMagicLink",
+          target_org_id: null,
+          target_user_id: targetUserId,
+          details,
+        });
+      }
+
+      const { error } = await admin.from("admin_audit_logs" as any).insert(auditRows);
+      if (error) throw new Error(`No se pudo registrar el magic link: ${error.message}`);
+    };
+
     // ── GET USERS ──────────────────────────────────────────────
     if (action === "getUsers") {
       const { data: authUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });
@@ -397,7 +453,7 @@ Deno.serve(async (req) => {
       });
       if (error) return json({ error: error.message }, 500);
 
-      await logAction("generateMagicLink", { userId, details: { email: targetEmail, type } });
+      await logMagicLinkAccess(userId, { email: targetEmail, type });
       return json({
         ok: true,
         email: targetEmail,

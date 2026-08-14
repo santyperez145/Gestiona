@@ -64,6 +64,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de confiabilidad 24 (2026-08-14):** D8 deja de prometer un backup que no existía. `weekly-backup` recorría el esquema legacy por usuario, no una organización, no tenía restore y se podía invocar sin usuario real. Queda deshabilitada con JWT + `requireUser`, sin `service_role`; el panel conserva sólo los archivos históricos descargables y deriva al export portátil, sin venderlos como restaurables. La política pública deja de afirmar backups periódicos. La guarda de Edge Functions falla si vuelve el acceso global legacy. Se desplegaron las 55 funciones: `weekly-backup` quedó activa con `verify_jwt: true`. Typecheck, lint sin errores, 895 tests y build/PWA completados.
 
+**Slice funcional 25 (2026-08-14):** D6/F8 deja de ser una auditoría que sólo puede ver la plataforma. Al emitir un `generateMagicLink`, la función conserva una fila por cada organización alcanzada; `organization_support_accesses` entrega a sus dueños solamente fecha, correo del staff y el evento, incluso si luego se remueve al miembro. No expone el enlace, usuario/correo destino, `details` ni otras acciones de plataforma; además deja explícito que generar un enlace no demuestra que haya sido abierto. Las migraciones probaron como `authenticated` que un usuario ajeno ve cero filas y el dueño exactamente la suya, verificaron ACL y dejaron cero logs ZZ. La tarjeta vive en Ajustes → Sistema y reporta errores en vez de convertirlos en “sin accesos”. Validado contra la base vinculada con tipo regenerado, typecheck, lint sin errores, 896 tests y build/PWA; sin `.env`, no se abrió una sesión real en el navegador.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -482,7 +484,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | **D3** | **Anuncios a los comercios** | No hay forma de avisar "nueva versión" o "mantenimiento". |
 | **D4** | **Límites del plan aplicados** | 🟡 Productos y usuarios se imponen en la base. Falta resolver órdenes/mes (las filas de `sales` son líneas) y definir un cupo de tiendas. |
 | **D5** | **Exportar la organización entera** | Existe el export por Ley 25.326 para personas, no para llevarse el negocio. |
-| **D6** | **Entrar como el comercio, auditado** | `generateMagicLink` existe y está wireado; falta el registro visible de "soporte entró a tal cuenta". |
+| ~~D6~~ | ~~Entrar como el comercio, auditado~~ | ✅ `generateMagicLink` se audita por organización alcanzada y los dueños ven su generación en Ajustes → Sistema, sin exponer enlace, destinatario ni detalles internos. El registro distingue generación de apertura: no inventa que el staff efectivamente consumió el enlace. |
 | **D7** | **Estado del servicio público** | Si algo se cae, el comercio no tiene dónde mirar. |
 | **D8** | **Backup y restauración por organización** | 🔴 El `weekly-backup` legacy fue deshabilitado: era por usuario, no cubría una organización ni ofrecía restore. Queda export portátil; falta backup gestionado y restauración probada. |
 
@@ -525,7 +527,7 @@ Ordenado por riesgo dividido esfuerzo, que no es el orden en que se descubrieron
 | ~~F5~~ | ~~Consentimiento de marketing con fecha y origen, sin marcar por defecto~~ | Ley 25.326 art. 27 | ✅ `marketing_consent_at/source/order_id` se guarda por checkout opcional; campañas sólo seleccionan contactos con consentimiento. |
 | **F6** | **Baja visible en WhatsApp**, como ya la hay en email | Ley 25.326 art. 27 | 🟠 `drip-unsubscribe` cubre email; WhatsApp no dice cómo darse de baja. |
 | **F7** | **Registro No Llame** antes de una campaña telefónica | Ley 26.951 | 🟠 No se consulta. |
-| **F8** | → **es D6**, no es otro trabajo | Transparencia | 🟠 `admin_audit_logs` ya lo registra; falta mostrárselo. Es D6. |
+| ~~F8~~ | → **es D6**, no es otro trabajo | Transparencia | ✅ El dueño ve la generación del magic link de soporte de su organización, sin enlace ni datos de destino. |
 | **F9** | **Contrato de tratamiento de datos** plataforma ↔ comercio | Ley 25.326 art. 25 | 🔴 La plataforma es *encargada*, el comercio *responsable*. Necesita abogado. |
 | ~~F10~~ | ~~El costo del envío de vuelta lo paga el vendedor~~ | Ley 24.240 art. 34 | ✅ `return_requests` registra pagador, importe, método y notas; el trigger fija `seller` para arrepentimiento de una orden online. |
 | ~~F11~~ | ~~Acotar la garantía a 6 meses en el reclamo por falla~~ | Ley 24.240 art. 11 | ✅ El trigger rechaza sólo reclamos por falla más de seis meses desde `delivered_at`; sin entrega registrada no vence el derecho. |

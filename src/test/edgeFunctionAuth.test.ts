@@ -129,6 +129,15 @@ describe('autenticación de Edge Functions', () => {
     expect(weeklyBackup?.source).not.toContain('user_roles');
   });
 
+  it('magic links conservan el alcance de sus organizaciones en la auditoría', () => {
+    const platformAction = functions.find(f => f.name === 'platform-admin-action');
+    expect(platformAction).toBeDefined();
+    expect(platformAction?.source).toContain('logMagicLinkAccess');
+    expect(platformAction?.source).toContain('.from("memberships")');
+    expect(platformAction?.source).toContain('target_org_id: membership.org_id');
+    expect(platformAction?.source).toContain('No se pudo registrar el magic link');
+  });
+
   // Nota: no hay acá un test de "filtra la service_role key al cliente".
   // Se intentó por regex y daba falsos positivos en cualquier función que crea
   // un cliente admin y devuelve una respuesta cerca — que son casi todas. Un

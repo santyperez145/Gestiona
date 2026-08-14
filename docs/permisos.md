@@ -21,6 +21,13 @@ desde el panel de plataforma — que queda auditado. Antes esto estaba mezclado:
 `useUserRole` devolvía `admin` a cualquier `platform_admin`, así que el staff
 operaba tenants sin dejar rastro. Ya no.
 
+Los dueños de cada organización ven en **Ajustes → Sistema → Registro de
+soporte** cuándo el staff generó un magic link para una cuenta de ese negocio.
+Es una proyección mínima de `admin_audit_logs`: no muestra el enlace, la persona
+destinataria ni los detalles internos. El alcance de la organización se guarda
+al emitir el enlace, por lo que no desaparece si el miembro se va después, y se
+distingue correctamente entre generar un enlace y que alguien lo abra.
+
 ---
 
 ## Roles de organización (`memberships.role`)
