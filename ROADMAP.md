@@ -56,6 +56,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 20 (2026-08-14):** D2 deja de terminar en un panel sin dirección. El onboarding pasa de tres a cuatro pasos y, después de guardar negocio, rubro y marca, ofrece un camino explícito: cargar el primer producto, explorar datos de ejemplo en esa misma organización o ir al panel, cuyo checklist conserva el siguiente pendiente. Elegir productos llega directo a `/productos` y explica la secuencia producto → stock/costo → primera venta; los datos de ejemplo son opt-in, nunca se cargan para quien quiere empezar con datos reales. Todo guardado —organización, ajustes, fin de onboarding y demo— informa cualquier error en lugar de marcar el alta como exitosa. Validado con typecheck, lint sin errores, 893 tests y build/PWA; sin `.env`, no se simuló una organización real desde el navegador.
 
+**Slice funcional 21 (2026-08-14):** D4 deja de confiar en que el navegador respete el cupo. La base aplica `max_products` al insertar productos y `max_users` al crear invitaciones o membresías, serializado por organización para no perder una carrera concurrente. Una invitación vigente reserva asiento; una vencida no, y una aceptación consume su reserva en vez de duplicarla transitoriamente. La interfaz conserva el aviso temprano y no deja pasar una falla al consultar el límite. `max_sales_per_month` queda deliberadamente pendiente: `sales` guarda líneas, no órdenes, y aplicar esa columna sin una unidad de consumo común cobraría varias veces una venta con varios productos. Validado con plan/organización ZZ limpiados, ACL de las funciones internas y un insert como `authenticated`; typecheck, lint sin errores, 893 tests y build/PWA.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -298,7 +300,7 @@ funcionó sin instrumentación, así que van juntas.
 |---|---|
 | **D2** Onboarding guiado | 🟡 El alta ya encadena hacia producto, demo opt-in o panel con checklist. Falta validarlo con el segundo comercio real y reducir su tiempo hasta la primera venta. |
 | **G1–G8** Instrumentación | 🟡 G1–G8 ya tienen vistas o eventos medibles. Falta que la serie de G6 acumule días y observar uso sostenido con un segundo comercio. |
-| **D4** Límites del plan aplicados | 🟠 Sólo productos. Faltan usuarios, tiendas y órdenes/mes. |
+| **D4** Límites del plan aplicados | 🟡 Productos y cupos de equipo ya los impone la base. Faltan definir y aplicar una unidad de órdenes/mes; las tiendas no tienen cupo configurado en `plans`. |
 | **D1** Comprobante fiscal de la suscripción (= F16) | 🟠 Depende de C1. |
 
 > **Condición de salida:** **un segundo comercio real** cargó su stock, publicó
@@ -470,7 +472,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | **D1** | **Facturación fiscal de la suscripción** | Stripe cobra; no se emite comprobante argentino al comercio. |
 | **D2** | **Onboarding guiado** | 🟡 El alta guía al primer trabajo real y el dashboard retoma los pendientes; falta medirlo con el segundo comercio. |
 | **D3** | **Anuncios a los comercios** | No hay forma de avisar "nueva versión" o "mantenimiento". |
-| **D4** | **Límites del plan aplicados** | Sólo productos. Faltan usuarios, tiendas y órdenes/mes. |
+| **D4** | **Límites del plan aplicados** | 🟡 Productos y usuarios se imponen en la base. Falta resolver órdenes/mes (las filas de `sales` son líneas) y definir un cupo de tiendas. |
 | **D5** | **Exportar la organización entera** | Existe el export por Ley 25.326 para personas, no para llevarse el negocio. |
 | **D6** | **Entrar como el comercio, auditado** | `generateMagicLink` existe y está wireado; falta el registro visible de "soporte entró a tal cuenta". |
 | **D7** | **Estado del servicio público** | Si algo se cae, el comercio no tiene dónde mirar. |

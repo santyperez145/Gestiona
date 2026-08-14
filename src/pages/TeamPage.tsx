@@ -98,7 +98,7 @@ export default function TeamPage() {
       const [authRes, membersRes, invitesRes, limit] = await Promise.all([
         supabase.auth.getUser(),
         supabase.from('memberships').select('id', { count: 'exact', head: true }).eq('org_id', activeOrg.id),
-        supabase.from('org_invitations').select('id', { count: 'exact', head: true }).eq('org_id', activeOrg.id).is('accepted_at', null),
+        supabase.from('org_invitations').select('id', { count: 'exact', head: true }).eq('org_id', activeOrg.id).is('accepted_at', null).gt('expires_at', new Date().toISOString()),
         getOrgUserLimit(activeOrg.id),
       ]);
 

@@ -11,10 +11,14 @@ export function usePlanLimits() {
   // Returns true if allowed to proceed, false if limit hit (shows toast)
   const checkProductLimit = useCallback(async (): Promise<boolean> => {
     if (!activeOrg || plan?.max_products == null) return true;
-    const { count } = await supabase
+    const { count, error } = await supabase
       .from('products')
       .select('id', { count: 'exact', head: true })
       .eq('org_id', activeOrg.id);
+    if (error) {
+      toast.error('No se pudo verificar el límite de productos. Intentá de nuevo.');
+      return false;
+    }
     if ((count ?? 0) >= plan.max_products) {
       toast.error(`Límite de ${plan.max_products} productos alcanzado en tu plan ${plan.name}.`, {
         action: { label: 'Ver planes', onClick: () => { window.location.href = '/precios'; } },
@@ -30,11 +34,15 @@ export function usePlanLimits() {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
-    const { count } = await supabase
+    const { count, error } = await supabase
       .from('sales')
       .select('id', { count: 'exact', head: true })
       .eq('org_id', activeOrg.id)
       .gte('created_at', startOfMonth.toISOString());
+    if (error) {
+      toast.error('No se pudo verificar el límite de ventas. Intentá de nuevo.');
+      return false;
+    }
     if ((count ?? 0) >= plan.max_sales_per_month) {
       toast.error(`Límite de ${plan.max_sales_per_month} ventas/mes alcanzado en tu plan ${plan.name}.`, {
         action: { label: 'Ver planes', onClick: () => { window.location.href = '/precios'; } },
@@ -47,10 +55,14 @@ export function usePlanLimits() {
 
   const checkUserLimit = useCallback(async (): Promise<boolean> => {
     if (!activeOrg || plan?.max_users == null) return true;
-    const { count } = await supabase
+    const { count, error } = await supabase
       .from('memberships')
       .select('id', { count: 'exact', head: true })
       .eq('org_id', activeOrg.id);
+    if (error) {
+      toast.error('No se pudo verificar el límite de usuarios. Intentá de nuevo.');
+      return false;
+    }
     if ((count ?? 0) >= plan.max_users) {
       toast.error(`Límite de ${plan.max_users} usuario${plan.max_users !== 1 ? 's' : ''} alcanzado en tu plan ${plan.name}.`, {
         action: { label: 'Ver planes', onClick: () => { window.location.href = '/precios'; } },

@@ -21066,6 +21066,13 @@ export type Database = {
       next_quote_number: { Args: { p_org_id: string }; Returns: string }
       next_store_order_number: { Args: never; Returns: string }
       normalize_person_name: { Args: { p_name: string }; Returns: string }
+      organization_plan_limits: {
+        Args: { p_org_id: string }
+        Returns: {
+          max_products: number
+          max_users: number
+        }[]
+      }
       pending_abandoned_carts: {
         Args: { p_hours?: number }
         Returns: {
