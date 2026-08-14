@@ -294,7 +294,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       >
                         {/* Active left bar — glowing */}
                         {active && (
-                          <div className="absolute left-0 top-[18%] bottom-[18%] w-[3px] rounded-r-full bg-primary shadow-[0_0_8px_hsl(213_78%_56%/0.7)]" />
+                              <div className="absolute left-0 top-[18%] bottom-[18%] w-[3px] rounded-r-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.55)]" />
                         )}
 
                         {/* Icon */}

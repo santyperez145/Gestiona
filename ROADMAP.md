@@ -16,6 +16,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de rediseno 1 (2026-08-14):** tokens visuales, modo claro por defecto, topbar operativo de organizacion, headers de pagina y chrome de plataforma. La salida se valida con screenshots desktop/mobile y la puerta completa del repo.
 
+**Slice de rediseno 2 (2026-08-14):** dashboard ordenado por Business Core, tarjetas metricas reutilizables, panel `FocoDelDia` con jerarquia de gestion y contraste corregido para el modo claro. DashStack aporta criterio de composicion; los datos y la logica siguen siendo los del producto.
+
 ---
 
 ## 1. Qué es

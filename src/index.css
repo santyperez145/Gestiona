@@ -239,6 +239,14 @@
   .panel { border-radius: 8px; box-shadow: var(--shadow-card); }
   .design-surface { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 8px; box-shadow: var(--shadow-card); }
   .topbar-surface { background: hsl(var(--background) / 0.82); backdrop-filter: blur(18px) saturate(140%); }
+
+  /* Existing semantic utilities keep their meaning in the light workspace. */
+  .light .text-emerald-400 { color: hsl(160 84% 28%) !important; }
+  .light .text-yellow-400 { color: hsl(38 86% 34%) !important; }
+  .light .text-blue-400 { color: hsl(211 78% 38%) !important; }
+  .light .text-violet-400 { color: hsl(263 70% 43%) !important; }
+  .light .text-orange-300 { color: hsl(25 82% 36%) !important; }
+  .light .text-orange-400 { color: hsl(25 82% 36%) !important; }
 }
 
 @layer base {

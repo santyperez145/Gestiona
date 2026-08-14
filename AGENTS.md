@@ -844,6 +844,7 @@ La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de inf
 - Cada pantalla debe tener orientacion visible, busqueda global accesible y una accion primaria clara. El topbar de la organizacion es parte del sistema.
 - Las tarjetas son herramientas de lectura o accion, con radio maximo de 8px, jerarquia de borde y sombra discreta. No se anidan tarjetas dentro de tarjetas.
 - Los numeros se alinean y se comparan con periodo, canal, sucursal y variacion. Un KPI sin fecha o fuente no se presenta como verdad.
+- El dashboard abre con cuatro metricas de Business Core y deja el resto en una segunda capa visual. Las tarjetas metricas viven en componentes reutilizables para que Ventas, Stock, Finanzas y Plataforma no inventen estilos paralelos.
 - Mobile no es una version comprimida: tablas tienen scroll explicito, acciones llegan a 40px y la navegacion conserva Resumen, POS, Ventas, Productos y Clientes.
 - Los kits de Figma son referencias de criterio. La implementacion vive en los componentes y tokens del repo para que todas las superficies evolucionen juntas.
 

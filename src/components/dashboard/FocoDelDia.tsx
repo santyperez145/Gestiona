@@ -96,11 +96,12 @@ export default function FocoDelDia(p: Props) {
   return (
     <section className="mb-6 grid gap-4 lg:grid-cols-3">
       {/* ── Cómo viene el mes ────────────────────────────────────────────── */}
-      <div className="bg-card border border-border rounded-xl p-5 shadow-card lg:col-span-1">
-        <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
+      <div className="design-surface relative overflow-hidden p-5 lg:col-span-1">
+        <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
           Ventas del mes
         </p>
-        <p className="text-3xl font-bold mt-1 tabular-nums">{formatARS(p.ventasMes)}</p>
+        <p className="mt-2 text-3xl font-bold tracking-[-0.03em] tabular-nums">{formatARS(p.ventasMes)}</p>
 
         <p className={`text-sm mt-1.5 flex items-center gap-1 ${colorVariacion}`}>
           <FlechaVariacion className="w-4 h-4" />
@@ -125,7 +126,7 @@ export default function FocoDelDia(p: Props) {
       </div>
 
       {/* ── Para hacer ahora ─────────────────────────────────────────────── */}
-      <div className="bg-card border border-border rounded-xl p-5 shadow-card lg:col-span-2">
+      <div className="design-surface p-5 lg:col-span-2">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
             Para hacer ahora

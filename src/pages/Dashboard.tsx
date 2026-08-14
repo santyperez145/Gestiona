@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories, saveSettingsDB } from "@/lib/supabaseStore";
 import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard, Sparkles } from "lucide-react";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
+import MetricCard from "@/components/shared/MetricCard";
 import PageHeader from "@/components/shared/PageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -1154,25 +1155,25 @@ export default function Dashboard() {
   if (loading || !stats) return <DashboardSkeleton />;
 
   const kpiCards = [
-    { label: "Hoy (en vivo)", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${liveTodaySales?.count ?? 0} ventas`; const pct = ((today - lw) / lw) * 100; return `${liveTodaySales?.count ?? 0} ventas · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, color: "text-emerald-400", live: true },
-    { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-emerald-400" : "text-destructive" },
-    { label: "Ganancia Neta (mes)", value: formatARS(stats.netMonthProfitARS), sub: `Bruta - gastos${stats.taxEnabled ? ' - imp.' : ''}`, icon: Zap, color: stats.netMonthProfitARS >= 0 ? "text-emerald-400" : "text-destructive" },
-    { label: "Gastos del Mes", value: formatARS(stats.totalMonthExpenses), sub: `${stats.expensesChartData.length} categorías`, icon: Wallet, color: "text-yellow-400" },
-    { label: "Facturación", value: formatARS(stats.totalSalesARS), sub: `${stats.totalSalesCount} ventas`, icon: DollarSign, color: "text-primary" },
-    { label: "Inversión", value: formatUSD(stats.totalPurchasesUSD), sub: formatARS(stats.totalPurchasesARS), icon: TrendingDown, color: "text-yellow-400" },
-    { label: "Deudas", value: formatARS(stats.totalDebtsARS), sub: `${stats.pendingDebts} activas`, icon: AlertCircle, color: "text-destructive" },
-    { label: "Inventario", value: `${stats.totalStock} uds`, sub: formatUSD(stats.inventoryValueUSD), icon: Package, color: "text-primary" },
-    { label: "Ticket Prom.", value: formatARS(stats.avgSaleARS), sub: "Por venta", icon: ShoppingBag, color: "text-accent" },
-    { label: "Stock Bajo", value: `${stats.lowStock} / ${stats.outOfStock}`, sub: "Bajo / Agotado", icon: BarChart3, color: stats.lowStock > 0 ? "text-destructive" : "text-emerald-400" },
-    { label: "Productos Nuevos", value: stats.newProductsCount, sub: stats.newProductsCount > 0 ? `${stats.newProductNames.join(", ")}${stats.newProductsCount > 3 ? "…" : ""}` : "Últimos 30 días", icon: Sparkles, color: "text-primary" },
-    { label: "Próximos Ingresos", value: stats.upcomingRestocks.length, sub: stats.upcomingRestocks[0] ? `Próx: ${stats.upcomingRestocks[0].name}` : "Sin ingresos programados", icon: Clock, color: "text-accent" },
-    { label: "Clientes", value: stats.uniqueCustomers, sub: "Únicos", icon: Users, color: "text-primary" },
+    { label: "Hoy", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${liveTodaySales?.count ?? 0} ventas`; const pct = ((today - lw) / lw) * 100; return `${liveTodaySales?.count ?? 0} ventas · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, tone: "green", live: true },
+    { label: "Ganancia bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, tone: stats.grossProfitARS >= 0 ? "green" : "red" },
+    { label: "Resultado neto", value: formatARS(stats.netMonthProfitARS), sub: `Bruta - gastos${stats.taxEnabled ? ' - imp.' : ''}`, icon: Zap, tone: stats.netMonthProfitARS >= 0 ? "green" : "red" },
+    { label: "Facturación", value: formatARS(stats.totalSalesARS), sub: `${stats.totalSalesCount} ventas`, icon: DollarSign, tone: "amber" },
+    { label: "Gastos del mes", value: formatARS(stats.totalMonthExpenses), sub: `${stats.expensesChartData.length} categorías`, icon: Wallet, tone: "yellow" },
+    { label: "Inversión", value: formatUSD(stats.totalPurchasesUSD), sub: formatARS(stats.totalPurchasesARS), icon: TrendingDown, tone: "yellow" },
+    { label: "Deudas", value: formatARS(stats.totalDebtsARS), sub: `${stats.pendingDebts} activas`, icon: AlertCircle, tone: "red" },
+    { label: "Inventario", value: `${stats.totalStock} uds`, sub: formatUSD(stats.inventoryValueUSD), icon: Package, tone: "blue" },
+    { label: "Ticket promedio", value: formatARS(stats.avgSaleARS), sub: "Por venta", icon: ShoppingBag, tone: "violet" },
+    { label: "Stock crítico", value: `${stats.lowStock} / ${stats.outOfStock}`, sub: "Bajo / agotado", icon: BarChart3, tone: stats.lowStock > 0 ? "red" : "green" },
+    { label: "Productos nuevos", value: stats.newProductsCount, sub: stats.newProductsCount > 0 ? `${stats.newProductNames.join(", ")}${stats.newProductsCount > 3 ? "…" : ""}` : "Últimos 30 días", icon: Sparkles, tone: "amber" },
+    { label: "Próximos ingresos", value: stats.upcomingRestocks.length, sub: stats.upcomingRestocks[0] ? `Próx: ${stats.upcomingRestocks[0].name}` : "Sin ingresos programados", icon: Clock, tone: "blue" },
+    { label: "Clientes", value: stats.uniqueCustomers, sub: "Únicos", icon: Users, tone: "blue" },
     {
       label: "Forecast 30d (OLS)",
       value: formatARS(forecast30dTotal),
       sub: `Tendencia: ${forecastTrend === "up" ? "↑ alza" : forecastTrend === "down" ? "↓ baja" : "→ estable"} · R²=${forecastR2.toFixed(2)}`,
       icon: Target,
-      color: forecastTrend === "up" ? "text-emerald-400" : forecastTrend === "down" ? "text-destructive" : "text-muted-foreground",
+      tone: forecastTrend === "up" ? "green" : forecastTrend === "down" ? "red" : "neutral",
     },
   ];
 
@@ -1221,7 +1222,7 @@ export default function Dashboard() {
       {/* Header */}
       <PageHeader
         icon={LayoutDashboard}
-        title={`${greeting} 👋`}
+        title={greeting}
         description={filterCat === 'all' ? 'Resumen general de tu negocio' : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
         actions={
           <>
@@ -2479,37 +2480,50 @@ export default function Dashboard() {
         );
       })()}
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-4 mt-5">
-        {kpiCards.map((c, i) => (
-          <div key={c.label} className={`group bg-card border rounded-xl p-3.5 md:p-4 shadow-card hover:border-primary/25 hover:glow-gold transition-all duration-300 ${'live' in c && c.live ? 'border-emerald-500/40 ring-1 ring-success/20 cursor-pointer' : 'border-border'}`}
-            style={{ animationDelay: `${i * 50}ms` }}
-            onClick={() => { if ('live' in c && c.live) setShowTodayDetail(v => !v); }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] md:text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{c.label}</span>
-                {'live' in c && c.live && (
-                  <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 rounded-full px-1.5 py-0.5 leading-none">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    LIVE
-                  </span>
-                )}
-              </div>
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                c.color === 'text-emerald-400' ? 'bg-emerald-500/10' :
-                c.color === 'text-destructive' ? 'bg-destructive/10' :
-                c.color === 'text-yellow-400' ? 'bg-yellow-500/10' :
-                c.color === 'text-accent' ? 'bg-accent/10' : 'bg-primary/10'
-              } group-hover:scale-110 transition-transform duration-200`}>
-                <c.icon className={`w-4 h-4 ${c.color}`} />
-              </div>
-            </div>
-            <p className="text-lg md:text-xl font-bold font-display tracking-tight">{c.value}</p>
-            <p className="text-[10px] md:text-[11px] text-muted-foreground/60 mt-0.5 truncate">{c.sub}</p>
+      {/* Business Core: una primera lectura corta y comparable. */}
+      <section className="mb-6 mt-5">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Business Core</p>
+            <h2 className="mt-1 text-base font-semibold text-foreground">Lo que está pasando</h2>
           </div>
-        ))}
-      </div>
+          <span className="hidden text-[11px] text-muted-foreground sm:block">Actualizado en tiempo real</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {kpiCards.slice(0, 4).map((c, i) => (
+            <MetricCard
+              key={c.label}
+              label={c.label}
+              value={c.value}
+              sub={c.sub}
+              icon={c.icon}
+              tone={c.tone as "amber" | "green" | "red" | "yellow" | "blue" | "violet" | "neutral"}
+              live={"live" in c && c.live === true}
+              onClick={"live" in c && c.live ? () => setShowTodayDetail(v => !v) : undefined}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Secondary metrics remain available without competing with the core. */}
+      <section className="mb-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Indicadores del negocio</p>
+          <span className="text-[10px] text-muted-foreground/60">Período seleccionado</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {kpiCards.slice(4).map(c => (
+            <MetricCard
+              key={c.label}
+              label={c.label}
+              value={c.value}
+              sub={c.sub}
+              icon={c.icon}
+              tone={c.tone as "amber" | "green" | "red" | "yellow" | "blue" | "violet" | "neutral"}
+            />
+          ))}
+        </div>
+      </section>
 
       {/* Realtime last sale banner */}
       {lastSale && saleEventCount > 0 && (
