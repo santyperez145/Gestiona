@@ -30,7 +30,7 @@ con el estado medido contra la base cuando se pudo.
 | **Botón de arrepentimiento visible en la primera pantalla** (Res. 424/2020) | ✅ Barra superior de la tienda, verificado a 4px del tope en 1280 y 375. `request_store_return` distingue arrepentimiento (10 días corridos, sin causa) de falla (garantía), y no corta el plazo si no se registró la entrega. |
 | **10 días corridos desde la entrega, sin expresar causa** (art. 34) | ✅ En el RPC. `dias_para_arrepentirse` cuenta desde `delivered_at`. |
 | **El costo de devolución lo paga el vendedor** (art. 34) | 🟠 No está modelado. La devolución registra el monto del producto, no el flete. |
-| **Garantía legal: 6 meses producto nuevo** (art. 11) | ✅ El tipo `falla` no tiene ventana de 10 días. ⚠️ Tampoco valida los 6 meses: hoy acepta un reclamo de garantía sin límite. Es el error barato, pero conviene acotarlo. |
+| **Garantía legal: 6 meses producto nuevo** (art. 11) | ✅ `trg_return_requests_warranty_window` rechaza reclamos por falla después de seis meses desde `delivered_at`. Si la entrega no se registró, no vence el derecho por una omisión del vendedor. |
 | **Información cierta y detallada** (art. 4) | 🟠 10 de 60 productos publicados **sin foto** y 33 con descripción de menos de 80 caracteres. El panel de calidad los rankea. |
 | **Términos y condiciones accesibles** | ✅ Publicados. |
 | **Datos del proveedor: razón social, CUIT, domicilio** (art. 4) | 🟡 **Verificado: los términos publicados eran la plantilla semilla intacta** — decían "Mi Tienda Online" y cerraban con "Completá acá tu razón social, CUIT, domicilio y un medio de contacto". El generador de la sesión 109 los reescribe con los datos reales; falta que el dueño los cargue y publique. |

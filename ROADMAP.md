@@ -256,7 +256,7 @@ proveedor se le estaría pidiendo que incumpla desde el día uno.
 | **C1** AFIP contra el organismo (= F15) | 🔴 El más importante y el más largo. Frenado por un certificado de homologación **que es gratis y hay que pedir**. |
 | **F1 + F3** Política de privacidad y datos del proveedor | 🟡 El generador ya los escribe. Falta cargar razón social, CUIT, domicilio y email, revisar y publicar. |
 | **F5** Consentimiento de marketing con fecha y origen | 🟠 Una columna y un checkbox. Antes de mandarle campañas a clientes de otro comercio. |
-| **F11** Acotar la garantía a 6 meses | 🟠 Barato. |
+| **F11** Acotar la garantía a 6 meses | ✅ `trg_return_requests_warranty_window` aplica seis meses desde la entrega y no castiga una fecha de entrega ausente. |
 | **F10** El envío de vuelta lo paga el vendedor | 🟠 Falta modelarlo en la devolución. |
 
 **Slice funcional 18 (2026-08-14):** F5 deja de ser un booleano sin evidencia.
@@ -264,6 +264,13 @@ El checkout ofrece un consentimiento opcional y desmarcado, registra fecha,
 origen y orden incluso para invitados, lo propaga al CRM al acreditarse el pago
 y las campañas de email/WhatsApp excluyen por defecto a todo contacto sin fecha
 de consentimiento. No se infiere consentimiento de compras históricas.
+
+**Slice funcional 19 (2026-08-14):** F11 lleva la garantía legal a la base.
+`return_requests` rechaza un reclamo por falla después de seis meses desde
+`delivered_at`, sin confundirlo con el arrepentimiento de diez días. Cuando la
+tienda no registró la entrega, el plazo no vence por esa omisión. La migración
+verifica los casos vencido, vigente y sin fecha con datos `ZZ` que borra antes
+de terminar.
 
 > **Condición de salida:** se emitió **una factura electrónica real** y un
 > comercio nuevo puede darse de alta sin incumplir nada.
