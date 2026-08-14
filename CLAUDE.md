@@ -873,6 +873,11 @@ La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de inf
 - La grilla y la tabla son dos vistas del mismo conjunto filtrado. Cambiar de vista no cambia el resultado, el orden, la selección ni las reglas de permisos.
 - En mobile, los filtros se desplazan dentro de su propia toolbar y la barra de selección masiva no puede tapar el contenido ni dejar acciones fuera de alcance. Stock inline, umbral, oferta y eliminar mantienen sus salvaguardas actuales.
 
+- El Dashboard debe abrir con `FocoDelDia`, `Business Core` y accesos operativos antes de los widgets secundarios. Si una seccion de analisis crece, se desplaza hacia abajo: no se sacrifica la primera lectura por mostrar todo al mismo nivel.
+- El ritmo vertical del Dashboard se gobierna desde `.workspace-dashboard` con `gap`; los widgets no deben acumular `space-y` y margenes propios que generen saltos irregulares. Un nuevo bloque debe funcionar dentro de esa columna sin agregar compensaciones locales.
+- `PageHeader` reserva espacio para titulo y descripcion antes de repartir acciones. Las toolbars largas envuelven en desktop y tienen scroll controlado en mobile; nunca deben empujar el titulo fuera de lectura.
+- Las acciones visibles usan iconos del sistema (`lucide-react`) y texto corto. No usar emojis como parte del control porque rompen la consistencia entre modo claro, modo oscuro y densidades de pantalla.
+
 El slice de rediseno se verifica con screenshot en desktop y mobile, typecheck, lint, test y build antes de avanzar a otra superficie.
 
 ---

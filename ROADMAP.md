@@ -30,6 +30,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de rediseno 8 (2026-08-14):** Productos se consolida como workspace de inventario: acciones extensas quedan contenidas, KPIs separan inventario de riesgo, aging recibe una superficie propia, filtros se comportan como toolbar y las vistas de grilla/tabla mantienen dimensiones estables. La tabla conserva scroll horizontal y encabezado visible; la barra de seleccion masiva se adapta a mobile. No se toca el movimiento de stock, los calculos de margen, permisos, edicion ni exportaciones. Validado con typecheck, lint sin errores, 823 tests y build.
 
+**Slice de rediseno 9 (2026-08-14):** pasada de consolidacion sobre las vistas ya redisenadas. `PageHeader` limita las acciones para proteger la jerarquia del titulo; el Dashboard reubica `Business Core` junto a `FocoDelDia`, usa una toolbar de accesos consistente y aplica un ritmo vertical unico a sus widgets. La primera lectura queda orientada a ventas, margen, stock, caja y tareas, mientras que el analisis secundario conserva sus datos y acciones mas abajo. Se eliminaron emojis de acciones en favor de iconos del sistema y se mantuvo el scroll controlado en mobile. No se tocan consultas, permisos, stock ni calculos. Validado con typecheck, lint sin errores, 823 tests y build.
+
 ---
 
 ## 1. Qué es

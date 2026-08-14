@@ -1202,10 +1202,10 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="workspace-page workspace-dashboard space-y-5 pb-12">
+    <div className="workspace-page workspace-dashboard pb-12">
       {/* Offline/slow network banner */}
       {!online && (
-        <div className="flex items-center gap-2.5 px-4 py-2.5 mb-4 rounded-xl border border-orange-500/30 bg-orange-500/8 text-sm text-orange-300">
+        <div className="workspace-dashboard-network flex items-center gap-2.5 px-4 py-2.5 mb-4 rounded-xl border border-orange-500/30 bg-orange-500/8 text-sm text-orange-300">
           <span className="inline-block w-2 h-2 rounded-full bg-orange-400 animate-pulse shrink-0" />
           <span className="flex-1">
             Sin conexión{offlineSince ? ` desde las ${offlineSince.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}` : ""} — Los datos pueden estar desactualizados.
@@ -1213,7 +1213,7 @@ export default function Dashboard() {
         </div>
       )}
       {online && connection?.effectiveType && ["slow-2g", "2g"].includes(connection.effectiveType) && (
-        <div className="flex items-center gap-2 px-4 py-2 mb-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-xs text-yellow-400">
+        <div className="workspace-dashboard-network flex items-center gap-2 px-4 py-2 mb-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-xs text-yellow-400">
           <AlertCircle className="w-3.5 h-3.5 shrink-0" />
           Conexión lenta ({connection.effectiveType.toUpperCase()}) — algunos datos pueden tardar en cargar.
         </div>
@@ -1369,8 +1369,33 @@ export default function Dashboard() {
         />
       )}
 
+      {/* Business Core: la primera lectura queda junto al foco operativo. */}
+      <section className="workspace-dashboard-core mb-0 mt-0">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Business Core</p>
+            <h2 className="mt-1 text-base font-semibold text-foreground">Lo que está pasando</h2>
+          </div>
+          <span className="hidden text-[11px] text-muted-foreground sm:block">Actualizado en tiempo real</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {kpiCards.slice(0, 4).map((c) => (
+            <MetricCard
+              key={c.label}
+              label={c.label}
+              value={c.value}
+              sub={c.sub}
+              icon={c.icon}
+              tone={c.tone as "amber" | "green" | "red" | "yellow" | "blue" | "violet" | "neutral"}
+              live={"live" in c && c.live === true}
+              onClick={"live" in c && c.live ? () => setShowTodayDetail(v => !v) : undefined}
+            />
+          ))}
+        </div>
+      </section>
+
       {/* Quick Actions */}
-      <div className="workspace-quick-actions flex flex-wrap gap-2 mb-4 mt-3">
+      <div className="workspace-dashboard-quick-actions workspace-quick-actions flex flex-wrap gap-2 mb-4 mt-3">
         {[
           { label: "Nueva Venta", icon: DollarSign, path: "/ventas", color: "text-primary" },
           { label: "POS", icon: ShoppingBag, path: "/caja", color: "text-emerald-400" },
@@ -1390,7 +1415,8 @@ export default function Dashboard() {
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors text-xs text-primary font-medium"
           title="Ver briefing matutino del negocio"
         >
-          ✨ Briefing
+          <Sparkles className="w-3.5 h-3.5" />
+          Briefing
         </button>
         <button
           onClick={() => {
@@ -1400,7 +1426,7 @@ export default function Dashboard() {
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors text-xs text-primary font-medium"
         >
           <Zap className="w-3.5 h-3.5" />
-          💡 Insight del día
+          Insight del día
         </button>
         <button
           onClick={() => { setGeneratingSummary(true); setTimeout(generateMonthlySummary, 100); }}
@@ -1408,7 +1434,7 @@ export default function Dashboard() {
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors text-xs text-muted-foreground font-medium disabled:opacity-50"
         >
           <BarChart3 className="w-3.5 h-3.5" />
-          📅 Resumen del mes
+          Resumen del mes
         </button>
       </div>
 
@@ -2479,31 +2505,6 @@ export default function Dashboard() {
           </div>
         );
       })()}
-
-      {/* Business Core: una primera lectura corta y comparable. */}
-      <section className="mb-6 mt-5">
-        <div className="mb-3 flex items-end justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Business Core</p>
-            <h2 className="mt-1 text-base font-semibold text-foreground">Lo que está pasando</h2>
-          </div>
-          <span className="hidden text-[11px] text-muted-foreground sm:block">Actualizado en tiempo real</span>
-        </div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {kpiCards.slice(0, 4).map((c, i) => (
-            <MetricCard
-              key={c.label}
-              label={c.label}
-              value={c.value}
-              sub={c.sub}
-              icon={c.icon}
-              tone={c.tone as "amber" | "green" | "red" | "yellow" | "blue" | "violet" | "neutral"}
-              live={"live" in c && c.live === true}
-              onClick={"live" in c && c.live ? () => setShowTodayDetail(v => !v) : undefined}
-            />
-          ))}
-        </div>
-      </section>
 
       {/* Secondary metrics remain available without competing with the core. */}
       <section className="mb-6">
