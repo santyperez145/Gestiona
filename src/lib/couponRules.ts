@@ -41,12 +41,21 @@ export interface ReglasCupon {
   /** Tope global del cupón. `null` = sin tope. */
   maxUsos?: number | null;
   usosActuales?: number | null;
+  /** Descuento porcentual sobre la mercadería. */
+  descuentoPct?: number | null;
+  /** Descuento en pesos sobre la mercadería. Se ignora si hay porcentaje. */
+  descuentoFijo?: number | null;
+  /** A5: el cupón bonifica el envío. */
+  bonificaEnvio?: boolean;
+  /** Hasta cuánto bonifica. `null` = el envío completo. */
+  topeEnvio?: number | null;
 }
 
 export type MotivoRechazo =
   | "minimo_no_alcanzado"
   | "limite_por_persona"
-  | "limite_global";
+  | "limite_global"
+  | "sin_efecto";
 
 export interface EvaluacionCupon {
   aplica: boolean;
@@ -95,6 +104,64 @@ export function evaluarCupon(
   return { aplica: true };
 }
 
+export interface EfectoCupon {
+  /** Lo que descuenta de mercadería. */
+  mercaderia: number;
+  /** Lo que bonifica de envío — es plata que absorbe el comercio. */
+  envio: number;
+  /** La suma: lo que el cupón le cuesta al comercio en este pedido. */
+  total: number;
+}
+
+/**
+ * Cuánto hace el cupón en este pedido — A5.
+ *
+ * ── Por qué el envío va aparte y no como un descuento más ─────────────────
+ *
+ * Porque no es lo mismo. El descuento de mercadería sale del margen; la
+ * bonificación de envío es plata que igual hay que pagarle al correo. Sumarlos
+ * en un solo número deja al comercio sin saber cuál de los dos le costó la
+ * venta, y descuadra el IVA: la base imponible es lo que el comprador paga.
+ *
+ * Por eso el envío se descuenta del propio envío —el comprador ve "Gratis"— y
+ * lo bonificado queda anotado aparte.
+ *
+ * ── El tope ───────────────────────────────────────────────────────────────
+ *
+ * Un "envío gratis" sin tope a Tierra del Fuego puede costar más que la venta.
+ * `topeEnvio` bonifica hasta ese monto y el resto lo paga el comprador, que es
+ * como lo hace MercadoLibre. Sin tope se bonifica todo.
+ */
+export function calcularEfecto(
+  reglas: ReglasCupon | null | undefined,
+  subtotalMercaderia: number,
+  costoEnvio = 0,
+): EfectoCupon {
+  const sub = Number(subtotalMercaderia);
+  const base = Number.isFinite(sub) && sub > 0 ? sub : 0;
+  const envioBruto = Number(costoEnvio);
+  const flete = Number.isFinite(envioBruto) && envioBruto > 0 ? envioBruto : 0;
+
+  const pct = Number(reglas?.descuentoPct) || 0;
+  const fijo = Number(reglas?.descuentoFijo) || 0;
+
+  let mercaderia = 0;
+  if (pct > 0) mercaderia = Math.round((base * pct) / 100);
+  else if (fijo > 0) mercaderia = Math.min(fijo, base);
+
+  // El fijo nunca supera la mercadería: un cupón de $10.000 en una compra de
+  // $8.000 no puede devolver plata.
+  mercaderia = Math.min(mercaderia, base);
+
+  let envio = 0;
+  if (reglas?.bonificaEnvio) {
+    const tope = Number(reglas.topeEnvio);
+    envio = Number.isFinite(tope) && tope > 0 ? Math.min(flete, tope) : flete;
+  }
+
+  return { mercaderia, envio, total: mercaderia + envio };
+}
+
 /** Qué se le dice al comprador. Sin jerga y sin culparlo. */
 export function mensajeRechazo(
   e: EvaluacionCupon,
@@ -108,6 +175,11 @@ export function mensajeRechazo(
       return "Ya usaste este cupón el máximo de veces";
     case "limite_global":
       return "El cupón alcanzó su límite de usos";
+    // A5: un cupón de envío gratis sobre un pedido que ya tiene el envío en
+    // cero no descuenta nada. Se avisa en vez de aceptarlo: aceptarlo lo
+    // consumiría a cambio de nada y el comprador no lo podría usar después.
+    case "sin_efecto":
+      return "Este cupón bonifica el envío y tu pedido no tiene costo de envío";
     default:
       return "El cupón no se puede usar en este pedido";
   }
