@@ -67,11 +67,11 @@ export async function listAIRecommendations(status?: string) {
   if (error) throw error;
   return data || [];
 }
-export async function updateRecommendationStatus(id: string, status: 'applied' | 'dismissed') {
-  const updates: any = { status };
-  if (status === 'applied') updates.applied_at = new Date().toISOString();
-  if (status === 'dismissed') updates.dismissed_at = new Date().toISOString();
-  const { error } = await supabase.from('ai_offer_recommendations').update(updates).eq('id', id);
+export async function dismissRecommendation(id: string) {
+  const { error } = await supabase
+    .from('ai_offer_recommendations')
+    .update({ status: 'dismissed', dismissed_at: new Date().toISOString() })
+    .eq('id', id);
   if (error) throw error;
 }
 

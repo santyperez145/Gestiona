@@ -19592,6 +19592,22 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_org_ai_actions: {
+        Row: {
+          action_rate_pct: number | null
+          first_recommendation_at: string | null
+          last_applied_at: string | null
+          last_recommendation_at: string | null
+          org_id: string | null
+          org_name: string | null
+          recommendations_applied: number | null
+          recommendations_dismissed: number | null
+          recommendations_pending: number | null
+          recommendations_total: number | null
+          slug: string | null
+        }
+        Relationships: []
+      }
       platform_org_stock_accuracy: {
         Row: {
           conteos_cerrados: number | null
@@ -20422,6 +20438,10 @@ export type Database = {
           p_org_id: string
         }
         Returns: string
+      }
+      apply_ai_offer_recommendation: {
+        Args: { p_recommendation_id: string }
+        Returns: Json
       }
       asignar_a_ubicacion: {
         Args: { p_bin_id: string; p_cantidad: number; p_product_id: string }

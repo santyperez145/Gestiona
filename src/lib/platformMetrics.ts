@@ -103,6 +103,32 @@ export interface PlatformStockAccuracyMetrics {
   rows: PlatformStockAccuracyRow[];
 }
 
+export interface PlatformAiActionRow {
+  org_id: string | null;
+  org_name: string | null;
+  slug: string | null;
+  recommendations_total: number | null;
+  recommendations_applied: number | null;
+  recommendations_dismissed: number | null;
+  recommendations_pending: number | null;
+  action_rate_pct: number | null;
+  first_recommendation_at: string | null;
+  last_recommendation_at: string | null;
+  last_applied_at: string | null;
+}
+
+export interface PlatformAiActionMetrics {
+  totalOrganizations: number;
+  organizationsWithRecommendations: number;
+  organizationsWithAppliedRecommendation: number;
+  recommendationsTotal: number;
+  recommendationsApplied: number;
+  recommendationsDismissed: number;
+  recommendationsPending: number;
+  actionRatePct: number | null;
+  rows: PlatformAiActionRow[];
+}
+
 export interface PlatformMetrics {
   totalOrganizations: number;
   onboardedOrganizations: number;
@@ -235,6 +261,31 @@ export function calculateStockAccuracyMetrics(rows: PlatformStockAccuracyRow[]):
       const mismatchDiff = numberOrZero(b.productos_descuadrados) - numberOrZero(a.productos_descuadrados);
       if (mismatchDiff !== 0) return mismatchDiff;
       return numberOrZero(a.precision_pct) - numberOrZero(b.precision_pct);
+    }),
+  };
+}
+
+export function calculateAiActionMetrics(rows: PlatformAiActionRow[]): PlatformAiActionMetrics {
+  const recommendationsTotal = rows.reduce((sum, row) => sum + numberOrZero(row.recommendations_total), 0);
+  const recommendationsApplied = rows.reduce((sum, row) => sum + numberOrZero(row.recommendations_applied), 0);
+  const recommendationsDismissed = rows.reduce((sum, row) => sum + numberOrZero(row.recommendations_dismissed), 0);
+  const recommendationsPending = rows.reduce((sum, row) => sum + numberOrZero(row.recommendations_pending), 0);
+
+  return {
+    totalOrganizations: rows.length,
+    organizationsWithRecommendations: rows.filter(row => numberOrZero(row.recommendations_total) > 0).length,
+    organizationsWithAppliedRecommendation: rows.filter(row => numberOrZero(row.recommendations_applied) > 0).length,
+    recommendationsTotal,
+    recommendationsApplied,
+    recommendationsDismissed,
+    recommendationsPending,
+    actionRatePct: recommendationsTotal > 0
+      ? Math.round(recommendationsApplied / recommendationsTotal * 1000) / 10
+      : null,
+    rows: [...rows].sort((a, b) => {
+      const totalDiff = numberOrZero(b.recommendations_total) - numberOrZero(a.recommendations_total);
+      if (totalDiff !== 0) return totalDiff;
+      return numberOrZero(b.recommendations_applied) - numberOrZero(a.recommendations_applied);
     }),
   };
 }

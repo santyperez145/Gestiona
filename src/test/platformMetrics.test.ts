@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateChannelMetrics, calculatePlatformMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformHealthRow, type PlatformStockAccuracyRow, withActivationTimes, withChannelActivationTimes } from "@/lib/platformMetrics";
+import { calculateAiActionMetrics, calculateChannelMetrics, calculatePlatformMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformHealthRow, type PlatformStockAccuracyRow, withActivationTimes, withChannelActivationTimes } from "@/lib/platformMetrics";
 
 const baseRow = (overrides: Partial<PlatformHealthRow> = {}): PlatformHealthRow => ({
   org_id: "org-1",
@@ -65,6 +65,21 @@ const baseStockRow = (overrides: Partial<PlatformStockAccuracyRow> = {}): Platfo
   ultimo_movimiento_at: "2026-08-14T00:00:00.000Z",
   conteos_cerrados: 1,
   ultimo_conteo_at: "2026-08-13T00:00:00.000Z",
+  ...overrides,
+});
+
+const baseAiActionRow = (overrides: Partial<PlatformAiActionRow> = {}): PlatformAiActionRow => ({
+  org_id: "org-1",
+  org_name: "Negocio 1",
+  slug: "negocio-1",
+  recommendations_total: 10,
+  recommendations_applied: 3,
+  recommendations_dismissed: 5,
+  recommendations_pending: 2,
+  action_rate_pct: 30,
+  first_recommendation_at: "2026-08-01T00:00:00.000Z",
+  last_recommendation_at: "2026-08-14T00:00:00.000Z",
+  last_applied_at: "2026-08-13T00:00:00.000Z",
   ...overrides,
 });
 
@@ -168,5 +183,34 @@ describe("platformMetrics", () => {
     expect(metrics.unmeasuredProducts).toBe(6);
     expect(metrics.accuracyPct).toBe(75);
     expect(metrics.rows[0].productos_descuadrados).toBe(2);
+  });
+
+  it("mide AI Action Rate con acciones aplicadas sobre recomendaciones persistidas", () => {
+    const metrics = calculateAiActionMetrics([
+      baseAiActionRow(),
+      baseAiActionRow({
+        org_id: "org-2",
+        recommendations_total: 2,
+        recommendations_applied: 1,
+        recommendations_dismissed: 1,
+        recommendations_pending: 0,
+        action_rate_pct: 50,
+      }),
+      baseAiActionRow({
+        org_id: "org-3",
+        recommendations_total: 0,
+        recommendations_applied: 0,
+        recommendations_dismissed: 0,
+        recommendations_pending: 0,
+        action_rate_pct: null,
+      }),
+    ]);
+    expect(metrics.organizationsWithRecommendations).toBe(2);
+    expect(metrics.organizationsWithAppliedRecommendation).toBe(2);
+    expect(metrics.recommendationsTotal).toBe(12);
+    expect(metrics.recommendationsApplied).toBe(4);
+    expect(metrics.recommendationsDismissed).toBe(6);
+    expect(metrics.recommendationsPending).toBe(2);
+    expect(metrics.actionRatePct).toBe(33.3);
   });
 });

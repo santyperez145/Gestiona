@@ -1,5 +1,4 @@
 ﻿import { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/lib/orgContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, TrendingDown, TrendingUp, Zap, Star, Package, X, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { listAIRecommendations, updateRecommendationStatus } from '@/lib/marketingExtraDB';
+import { dismissRecommendation, listAIRecommendations } from '@/lib/marketingExtraDB';
 
 const TYPE_META: Record<string, { icon: any; color: string; label: string }> = {
   liquidacion: { icon: TrendingDown, color: 'bg-red-500/20 text-red-300', label: 'Liquidación' },
@@ -22,9 +21,9 @@ function fmt(n: number) {
 }
 
 export default function OfferRecommenderPanel() {
-  const { user } = useAuth();
   const { activeOrg } = useOrg();
   const [loading, setLoading] = useState(false);
+  const [applyingId, setApplyingId] = useState<string | null>(null);
   const [recs, setRecs] = useState<any[]>([]);
   const [combos, setCombos] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
@@ -55,18 +54,34 @@ export default function OfferRecommenderPanel() {
   };
 
   const apply = async (rec: any) => {
+    if (!rec._id) {
+      toast.error('La recomendación no se pudo identificar. Generala otra vez antes de aplicarla.');
+      return;
+    }
+    setApplyingId(rec._id);
     try {
-      const updates: any = {};
-      if (rec.precio_sugerido_ars) updates.discount_price_ars = rec.precio_sugerido_ars;
-      if (rec.duracion_horas) updates.offer_expires_at = new Date(Date.now() + rec.duracion_horas * 3600000).toISOString();
-      if (rec.tipo === 'destacado') updates.featured = true;
-      if (Object.keys(updates).length > 0) {
-        const { error } = await supabase.from('products').update(updates).eq('id', rec.product_id);
-        if (error) throw error;
-      }
-      toast.success('Oferta aplicada al producto');
+      const { error } = await supabase.rpc('apply_ai_offer_recommendation', {
+        p_recommendation_id: rec._id,
+      });
+      if (error) throw error;
+      setRecs(current => current.filter(item => item._id !== rec._id));
+      await loadHistory();
+      toast.success('Oferta aplicada y acción registrada');
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e.message || 'No se pudo aplicar la recomendación');
+    } finally {
+      setApplyingId(null);
+    }
+  };
+
+  const dismiss = async (id: string) => {
+    try {
+      await dismissRecommendation(id);
+      setRecs(current => current.filter(item => item._id !== id));
+      await loadHistory();
+      toast.info('Recomendación descartada');
+    } catch (e: any) {
+      toast.error(e.message || 'No se pudo descartar la recomendación');
     }
   };
 
@@ -124,8 +139,11 @@ export default function OfferRecommenderPanel() {
               </div>
               <div className="text-xs text-muted-foreground">📍 Canal: <strong>{r.canal_recomendado?.replace(/_/g, ' ')}</strong></div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => apply(r)} className="flex-1"><Check className="w-3 h-3 mr-1" /> Aplicar</Button>
-                {r._id && <Button size="sm" variant="ghost" onClick={async () => { await updateRecommendationStatus(r._id, 'dismissed'); loadHistory(); toast.info('Descartada'); }}><X className="w-3 h-3" /></Button>}
+                <Button size="sm" onClick={() => apply(r)} disabled={!r._id || applyingId === r._id} className="flex-1">
+                  {applyingId === r._id ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}
+                  Aplicar
+                </Button>
+                {r._id && <Button size="sm" variant="ghost" disabled={applyingId === r._id} onClick={() => dismiss(r._id)}><X className="w-3 h-3" /></Button>}
               </div>
             </Card>
           );

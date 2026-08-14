@@ -50,6 +50,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 17 (2026-08-14):** G7 y C2 avanzan sobre la misma fuente de verdad. `StockCountTab` deja de escribir `products.stock` y usa el circuito auditado `abrir_conteo` -> `registrar_conteo` -> `cerrar_conteo`; cada ajuste pasa por `record_stock_movement`, y una falla cancela la sesión abierta. La migración `20260814000002_platform_stock_accuracy.sql` agrega la vista protegida `platform_org_stock_accuracy`, que compara el último Kardex con el stock actual, valida productos con variantes, separa productos sin evidencia y cuenta stock negativo. `/platform/metricas` incorpora Inventario con precisión, descuadres, cobertura de Kardex, negativos y último conteo por organización. El porcentaje no convierte productos sin movimiento en coincidencias y C2 sigue dependiendo del conteo físico real del dueño. Validado contra la base vinculada: vista creada, columnas inspeccionadas, `db push --dry-run` al día, typecheck, lint sin errores, 835 tests y build/PWA.
 
+**Slice funcional 18 (2026-08-14):** G8 deja de confundir una sugerencia con una acción. El recomendador de ofertas devuelve el id persistido y `Aplicar` invoca `apply_ai_offer_recommendation`: la base verifica owner/admin, producto activo, descuento máximo y margen mínimo antes de fijar una oferta o destacar un producto, sin tocar stock. La recomendación queda `applied` sólo después de ese cambio; el cliente sólo puede descartarla. `platform_org_ai_actions` expone al staff de plataforma el denominador, aplicadas, pendientes, descartadas y tasa agregada por organización, y `/platform/metricas` lo muestra en una pestaña propia. El alcance es deliberado: mide el recomendador de ofertas persistido, no chats ni sugerencias efímeras. Validado contra la base vinculada con RPC ejecutado como owner/admin, vista y permiso inspeccionados y filas ZZ en cero; typecheck, lint sin errores, 891 tests y build/PWA. Las 55 Edge Functions, incluido el recomendador, quedaron desplegadas.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -291,7 +293,7 @@ funcionó sin instrumentación, así que van juntas.
 | Qué | Estado |
 |---|---|
 | **D2** Onboarding guiado | 🔴 `StoreReadinessPanel` dice qué falta; no hay paso a paso. Es lo que convierte "funciona" en "otro lo puede usar". |
-| **G1–G8** Instrumentación | 🔴 Los datos ya están en la base, salvo las acciones de IA. Sin esto no hay condición de salida medible. |
+| **G1–G8** Instrumentación | 🟠 G1–G5, G7 y G8 ya tienen vistas o eventos medibles; G6 sigue sin serie temporal de riesgo. Falta observar su uso sostenido con un segundo comercio. |
 | **D4** Límites del plan aplicados | 🟠 Sólo productos. Faltan usuarios, tiendas y órdenes/mes. |
 | **D1** Comprobante fiscal de la suscripción (= F16) | 🟠 Depende de C1. |
 
@@ -506,13 +508,13 @@ Ordenado por riesgo dividido esfuerzo, que no es el orden en que se descubrieron
 | ~~F2~~ | ~~Botón de arrepentimiento en la primera pantalla~~ | Res. 424/2020 | ✅ **Sesión 108.** Barra superior, a 4px del tope, verificado en 1280 y 375. |
 | **F3** | **Datos del proveedor**: razón social, CUIT y domicilio | Ley 24.240 art. 4 | 🟡 **Verificado: los términos publicados eran la plantilla semilla intacta.** El generador los reescribe; falta cargar los datos y publicar. |
 | ~~F4~~ | ~~Link a Ventanilla Única Federal de Reclamos~~ | Comercio electrónico | ✅ **Sesión 108.** En el pie y en el formulario de arrepentimiento. |
-| **F5** | **Consentimiento de marketing con fecha y origen**, sin marcar por defecto | Ley 25.326 art. 27 | 🟠 Se mandan campañas por email y WhatsApp sin registrar cuándo aceptó la persona. |
+| ~~F5~~ | ~~Consentimiento de marketing con fecha y origen, sin marcar por defecto~~ | Ley 25.326 art. 27 | ✅ `marketing_consent_at/source/order_id` se guarda por checkout opcional; campañas sólo seleccionan contactos con consentimiento. |
 | **F6** | **Baja visible en WhatsApp**, como ya la hay en email | Ley 25.326 art. 27 | 🟠 `drip-unsubscribe` cubre email; WhatsApp no dice cómo darse de baja. |
 | **F7** | **Registro No Llame** antes de una campaña telefónica | Ley 26.951 | 🟠 No se consulta. |
 | **F8** | → **es D6**, no es otro trabajo | Transparencia | 🟠 `admin_audit_logs` ya lo registra; falta mostrárselo. Es D6. |
 | **F9** | **Contrato de tratamiento de datos** plataforma ↔ comercio | Ley 25.326 art. 25 | 🔴 La plataforma es *encargada*, el comercio *responsable*. Necesita abogado. |
-| **F10** | **El costo del envío de vuelta lo paga el vendedor** | Ley 24.240 art. 34 | 🟠 La devolución registra el producto, no el flete. |
-| **F11** | **Acotar la garantía a 6 meses** en el reclamo por falla | Ley 24.240 art. 11 | 🟠 Hoy acepta un reclamo sin límite de tiempo. Es el error barato, pero conviene cerrarlo. |
+| ~~F10~~ | ~~El costo del envío de vuelta lo paga el vendedor~~ | Ley 24.240 art. 34 | ✅ `return_requests` registra pagador, importe, método y notas; el trigger fija `seller` para arrepentimiento de una orden online. |
+| ~~F11~~ | ~~Acotar la garantía a 6 meses en el reclamo por falla~~ | Ley 24.240 art. 11 | ✅ El trigger rechaza sólo reclamos por falla más de seis meses desde `delivered_at`; sin entrega registrada no vence el derecho. |
 | **F12** | **CFT y precio de contado** si algún día hay cuotas con interés | Res. 51/2017 | 🟠 Hoy sólo hay "sin interés", donde el CFT es 0%. El código no distingue las dos cosas. |
 | **F13** | **Procedimiento escrito de incidente de seguridad** | Res. AAIP 47/2018 | 🔴 Sin procedimiento no se cumple ningún plazo. |
 | **F14** | **Consultar por el descuento según medio de pago** | Ley 25.065 art. 37 | 🟠 No es una decisión de producto. |
@@ -545,7 +547,7 @@ en [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §6.
 | **G5** | **Activas vs. que pagan** | `memberships`, `subscriptions` |
 | **G6** | **Serie temporal de riesgo de abandono** | `platform_org_health` ya ordena por urgencia; falta la serie |
 | **G7** | **Stock accuracy**: % de productos cuyo stock actual coincide con Kardex | ✅ `platform_org_stock_accuracy`: `stock_movements` vs `products`/`product_variants`; sin Kardex queda fuera del porcentaje |
-| **G8** | **AI Action Rate**: recomendaciones de IA que terminan en acción | falta evento de recomendación → acción |
+| **G8** | **AI Action Rate**: recomendaciones de IA que terminan en acción | ✅ `platform_org_ai_actions`: aplicadas / recomendaciones persistidas por el recomendador de ofertas; los descartes no entran en el numerador. |
 
 ⚠️ **G3 es la que representa la tesis del producto.** Si los comercios usan sólo
 la tienda o sólo la gestión, el diferencial de §2 no se está usando y hay que

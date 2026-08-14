@@ -208,7 +208,18 @@ ${brandKnow.slice(0, 30).map((b: any) => `- ${b.brand}${b.clone_of ? ` (clon de 
       recommended_channel: o.canal_recomendado, payload: o,
     }));
     if (recsToInsert.length > 0) {
-      await admin.from('ai_offer_recommendations').insert(recsToInsert);
+      const { data: persistedRecommendations, error: persistError } = await admin
+        .from('ai_offer_recommendations')
+        .insert(recsToInsert)
+        .select('id');
+      if (persistError) throw persistError;
+
+      // La interfaz necesita el id persistido para pedir al RPC que aplique la
+      // oferta. Nunca recibe permiso para escribir el precio por su cuenta.
+      args.ofertas = (args.ofertas || []).map((offer: any, index: number) => ({
+        ...offer,
+        _id: persistedRecommendations?.[index]?.id ?? null,
+      }));
     }
 
     return new Response(JSON.stringify(args), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

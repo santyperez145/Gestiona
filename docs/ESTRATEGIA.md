@@ -199,7 +199,7 @@ Lo mínimo, y ninguno es difícil porque los datos ya están en la base:
 | **Organizaciones activas / que pagan** | La diferencia entre las dos es el negocio. | `memberships`, `subscriptions` |
 | **Riesgo de abandono** | Qué comercios bajaron su actividad. `platform_org_health` ya hace algo parecido y ordena por urgencia. | ya existe, falta la serie temporal |
 | **Stock accuracy** | Si el stock actual no coincide con el Kardex, la promesa omnicanal se cae aunque la tienda sea linda. | `stock_movements` vs `products` / `product_variants` |
-| **AI Action Rate** | Mide si la inteligencia produce acciones, no si alguien abrió un chat. | falta evento recomendación → acción |
+| **AI Action Rate** | Mide si la inteligencia produce acciones, no si alguien abrió un chat. | ✅ Recomendador de ofertas: `apply_ai_offer_recommendation` → `platform_org_ai_actions`; no incluye chats ni sugerencias efímeras. |
 
 Va como bloque **G** del ROADMAP.
 
