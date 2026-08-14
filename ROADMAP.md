@@ -48,6 +48,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 ---
 
+**Slice funcional 17 (2026-08-14):** G7 y C2 avanzan sobre la misma fuente de verdad. `StockCountTab` deja de escribir `products.stock` y usa el circuito auditado `abrir_conteo` -> `registrar_conteo` -> `cerrar_conteo`; cada ajuste pasa por `record_stock_movement`, y una falla cancela la sesión abierta. La migración `20260814000002_platform_stock_accuracy.sql` agrega la vista protegida `platform_org_stock_accuracy`, que compara el último Kardex con el stock actual, valida productos con variantes, separa productos sin evidencia y cuenta stock negativo. `/platform/metricas` incorpora Inventario con precisión, descuadres, cobertura de Kardex, negativos y último conteo por organización. El porcentaje no convierte productos sin movimiento en coincidencias y C2 sigue dependiendo del conteo físico real del dueño. Validado contra la base vinculada: vista creada, columnas inspeccionadas, `db push --dry-run` al día, typecheck, lint sin errores, 835 tests y build/PWA.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -232,9 +234,11 @@ seguridad, backups, observabilidad y métricas. Traducido a este ROADMAP:
 
 #### 📍 Dónde estamos
 
-✅ **Medido (2026-08-13).** El sistema funciona y cobra: dos compras reales
+✅ **Medido (2026-08-14).** El sistema funciona y cobra: dos compras reales
 acreditadas con comisión de plataforma, stock que sólo mueve la base, RLS
-verificada con roles reales, 834 tests (2026-08-14), bloque A cerrado.
+verificada con roles reales, bloque A cerrado. La precisión de inventario ya se
+instrumenta por organización, pero su resultado depende de que cada comercio
+complete el conteo físico.
 
 Y hay **un** comercio usándolo, que es el dueño. Todo lo demás del ROADMAP
 mejora un producto que todavía no demostró que alguien más lo quiera (R08).
@@ -421,7 +425,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | # | Qué | Estado | Referencia |
 |---|---|---|---|
 | **C1** | **AFIP probado contra el organismo** | Estructura lista, credenciales cerradas. Falta certificado de homologación y una factura emitida. | Todas las argentinas |
-| **C2** | **Contar el inventario físico** | La herramienta está (conteo con asiento). Faltan 15 productos con Kardex ≠ stock. | — |
+| **C2** | **Contar el inventario físico** | La herramienta usa sesiones auditadas y deja visibles los descuadres. Falta que el dueño cuente y corrija los productos reales con Kardex ≠ stock. | — |
 | **C3** | **Cargar el peso de los productos** | 59 de 60 en cero. El botón los estima; falta pesar una caja. | — |
 | **C4** | **Fotos y descripciones** | 10 sin foto, 33 con descripción corta. El panel de calidad los rankea. | ML |
 | **C5** | **App en el celular con notificaciones** | Hay PWA y POS offline. Falta el push de "vendiste" y "sin stock". | Tiendanube app |
@@ -521,7 +525,7 @@ en [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §6.
 | **G4** | **GMV por comercio** | `sales` + `ecommerce_orders` |
 | **G5** | **Activas vs. que pagan** | `memberships`, `subscriptions` |
 | **G6** | **Serie temporal de riesgo de abandono** | `platform_org_health` ya ordena por urgencia; falta la serie |
-| **G7** | **Stock accuracy**: % de productos cuyo stock actual coincide con Kardex | `stock_movements` vs `products`/`product_variants` |
+| **G7** | **Stock accuracy**: % de productos cuyo stock actual coincide con Kardex | ✅ `platform_org_stock_accuracy`: `stock_movements` vs `products`/`product_variants`; sin Kardex queda fuera del porcentaje |
 | **G8** | **AI Action Rate**: recomendaciones de IA que terminan en acción | falta evento de recomendación → acción |
 
 ⚠️ **G3 es la que representa la tesis del producto.** Si los comercios usan sólo

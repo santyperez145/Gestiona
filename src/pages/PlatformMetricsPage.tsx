@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, BarChart3, CheckCircle2, Clock3, Globe2, MonitorSmartphone, RefreshCw, Search, ShoppingBag, Store, Users } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, CheckCircle2, Clock3, Globe2, MonitorSmartphone, PackageCheck, RefreshCw, Search, ShoppingBag, Store, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { isMissingRelation } from "@/lib/publicDataSource";
-import { calculateChannelMetrics, calculatePlatformMetrics, type PlatformActivationRow, type PlatformHealthRow } from "@/lib/platformMetrics";
+import { calculateChannelMetrics, calculatePlatformMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformHealthRow, type PlatformStockAccuracyRow } from "@/lib/platformMetrics";
 
 const SIGNALS: Record<string, { label: string; className: string }> = {
   sin_activar: { label: "Sin activar", className: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
@@ -63,19 +63,22 @@ export default function PlatformMetricsPage() {
   usePageTitle("Métricas de plataforma");
   const [rows, setRows] = useState<PlatformHealthRow[]>([]);
   const [channelRows, setChannelRows] = useState<PlatformActivationRow[]>([]);
+  const [stockRows, setStockRows] = useState<PlatformStockAccuracyRow[]>([]);
   const [channelViewUnavailable, setChannelViewUnavailable] = useState(false);
+  const [stockViewUnavailable, setStockViewUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = usePersistedState<"funnel" | "health" | "activation" | "channels">("gestiona.view.platform.metrics-tab", "funnel");
+  const [tab, setTab] = usePersistedState<"funnel" | "health" | "activation" | "channels" | "stock">("gestiona.view.platform.metrics-tab", "funnel");
   const [search, setSearch] = usePersistedState("gestiona.view.platform.metrics-search", "");
   const [signalFilter, setSignalFilter] = usePersistedState("gestiona.view.platform.metrics-signal", "all");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [healthResult, channelResult] = await Promise.all([
+    const [healthResult, channelResult, stockResult] = await Promise.all([
       supabase.from("platform_org_health").select("*").order("gmv_30d", { ascending: false }),
       supabase.from("platform_org_activation").select("*").order("org_creada", { ascending: false }),
+      supabase.from("platform_org_stock_accuracy").select("*").order("productos_descuadrados", { ascending: false }),
     ]);
     if (healthResult.error) {
       setError(healthResult.error.message);
@@ -96,6 +99,19 @@ export default function PlatformMetricsPage() {
       setChannelRows((channelResult.data || []) as PlatformActivationRow[]);
       setChannelViewUnavailable(false);
     }
+    if (stockResult.error) {
+      if (isMissingRelation(stockResult.error)) {
+        setStockViewUnavailable(true);
+        setStockRows([]);
+      } else {
+        setError(stockResult.error.message);
+        setStockRows([]);
+        setStockViewUnavailable(false);
+      }
+    } else {
+      setStockRows((stockResult.data || []) as PlatformStockAccuracyRow[]);
+      setStockViewUnavailable(false);
+    }
     setLoading(false);
   }, []);
 
@@ -103,6 +119,7 @@ export default function PlatformMetricsPage() {
 
   const metrics = useMemo(() => calculatePlatformMetrics(rows), [rows]);
   const channelMetrics = useMemo(() => calculateChannelMetrics(channelRows), [channelRows]);
+  const stockMetrics = useMemo(() => calculateStockAccuracyMetrics(stockRows), [stockRows]);
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
     return metrics.activationTimes.filter(row => {
@@ -148,6 +165,7 @@ export default function PlatformMetricsPage() {
           <TabsTrigger value="health" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Salud por organización</TabsTrigger>
           <TabsTrigger value="activation" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Tiempo a primer cobro</TabsTrigger>
           <TabsTrigger value="channels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Canales</TabsTrigger>
+          <TabsTrigger value="stock" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Inventario</TabsTrigger>
         </TabsList>
 
         <TabsContent value="funnel" className="mt-5 space-y-5">
@@ -187,7 +205,7 @@ export default function PlatformMetricsPage() {
 
           <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
             <p className="font-semibold text-violet-200">Instrumentación disponible</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">G1, GMV, onboarding, publicación instrumentada y adopción por canal se calculan desde datos reales. Stock accuracy y AI Action Rate siguen identificados como próximos eventos, sin mostrar aproximaciones como si fueran mediciones.</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">G1, GMV, onboarding, publicación instrumentada, adopción por canal y precisión de inventario se calculan desde datos reales. AI Action Rate sigue identificado como próximo evento, sin mostrar aproximaciones como si fueran mediciones.</p>
           </section>
         </TabsContent>
 
@@ -237,6 +255,45 @@ export default function PlatformMetricsPage() {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="stock" className="mt-5 space-y-5">
+          {stockViewUnavailable ? (
+            <div className="flex items-start gap-3 border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div><p className="font-semibold">Medicion de inventario pendiente</p><p className="mt-1 text-xs text-muted-foreground">La base todavia no expone la vista protegida de precision. No se reemplaza con una lectura aproximada de productos.</p></div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <KPICard label="Precision medida" value={stockMetrics.accuracyPct === null ? "Sin datos" : `${stockMetrics.accuracyPct}%`} icon={PackageCheck} color={stockMetrics.accuracyPct !== null && stockMetrics.accuracyPct >= 98 ? "success" : "warning"} sub={`${stockMetrics.matchingProducts} de ${stockMetrics.measuredProducts} productos`} />
+                <KPICard label="Descuadrados" value={stockMetrics.mismatchingProducts} icon={AlertTriangle} color={stockMetrics.mismatchingProducts > 0 ? "destructive" : "success"} sub="requieren conteo o investigacion" />
+                <KPICard label="Sin Kardex" value={stockMetrics.unmeasuredProducts} icon={ShoppingBag} color={stockMetrics.unmeasuredProducts > 0 ? "warning" : "success"} sub="fuera del porcentaje medido" />
+                <KPICard label="Stock negativo" value={stockMetrics.negativeStockProducts} icon={AlertTriangle} color={stockMetrics.negativeStockProducts > 0 ? "destructive" : "success"} sub="invariante que debe quedar en cero" />
+              </div>
+
+              <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
+                <div className="flex items-start gap-3"><PackageCheck className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" /><div><p className="font-semibold text-violet-200">La plataforma mide evidencia, no supuestos</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">El porcentaje compara el ultimo asiento del Kardex con el stock actual. Los productos sin movimiento quedan visibles como no medidos; las variantes se contrastan contra su propio Kardex y contra el total del producto padre.</p></div></div>
+              </section>
+
+              <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">
+                <div className="border-b border-border/50 px-4 py-3"><h2 className="font-semibold text-sm">Precision por organizacion</h2><p className="mt-1 text-xs text-muted-foreground">Ordenado por cantidad de productos descuadrados para orientar soporte y el proximo conteo fisico.</p></div>
+                {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando salud de inventario...</div> : stockMetrics.rows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Todavia no hay organizaciones para analizar.</div> : (
+                  <div className="divide-y divide-border/50">
+                    {stockMetrics.rows.slice(0, 30).map(row => (
+                      <div key={row.org_id || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.5fr)_repeat(4,minmax(90px,0.6fr))] md:items-center">
+                        <div className="min-w-0"><p className="truncate text-sm font-medium">{row.org_name || "Sin nombre"}</p><p className="truncate text-xs text-muted-foreground">/{row.slug || "sin-slug"} - {row.conteos_cerrados || 0} conteos cerrados</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Precision</p><p className="mt-0.5 text-xs font-semibold">{row.precision_pct === null ? "Sin datos" : `${row.precision_pct}%`}</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Medidos</p><p className="mt-0.5 text-xs font-semibold">{row.productos_medidos || 0}/{row.productos_total || 0}</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Descuadrados</p><p className="mt-0.5 text-xs font-semibold text-red-300">{row.productos_descuadrados || 0}</p></div>
+                        <div className="flex items-center justify-between gap-2 md:block md:text-right"><Badge variant="outline" className={row.productos_stock_negativo ? "border-red-500/30 bg-red-500/10 text-red-300" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"}>{row.productos_stock_negativo ? `${row.productos_stock_negativo} negativos` : "Sin negativos"}</Badge><p className="mt-1 text-[10px] text-muted-foreground">Conteo: {formatDate(row.ultimo_conteo_at)}</p></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="channels" className="mt-5 space-y-5">

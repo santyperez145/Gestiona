@@ -19562,6 +19562,24 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_org_stock_accuracy: {
+        Row: {
+          conteos_cerrados: number | null
+          productos_coinciden: number | null
+          productos_descuadrados: number | null
+          productos_medidos: number | null
+          productos_sin_kardex: number | null
+          productos_stock_negativo: number | null
+          productos_total: number | null
+          precision_pct: number | null
+          org_id: string | null
+          org_name: string | null
+          slug: string | null
+          ultimo_conteo_at: string | null
+          ultimo_movimiento_at: string | null
+        }
+        Relationships: []
+      }
       platform_revenue_monthly: {
         Row: {
           active_orgs: number | null

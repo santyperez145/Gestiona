@@ -74,6 +74,35 @@ export interface PlatformChannelMetrics {
   rows: ChannelActivationRow[];
 }
 
+export interface PlatformStockAccuracyRow {
+  org_id: string | null;
+  org_name: string | null;
+  slug: string | null;
+  productos_total: number | null;
+  productos_medidos: number | null;
+  productos_coinciden: number | null;
+  productos_descuadrados: number | null;
+  productos_sin_kardex: number | null;
+  productos_stock_negativo: number | null;
+  precision_pct: number | null;
+  ultimo_movimiento_at: string | null;
+  conteos_cerrados: number | null;
+  ultimo_conteo_at: string | null;
+}
+
+export interface PlatformStockAccuracyMetrics {
+  totalOrganizations: number;
+  organizationsWithMeasuredStock: number;
+  totalProducts: number;
+  measuredProducts: number;
+  matchingProducts: number;
+  mismatchingProducts: number;
+  unmeasuredProducts: number;
+  negativeStockProducts: number;
+  accuracyPct: number | null;
+  rows: PlatformStockAccuracyRow[];
+}
+
 export interface PlatformMetrics {
   totalOrganizations: number;
   onboardedOrganizations: number;
@@ -181,6 +210,32 @@ export function calculateChannelMetrics(rows: PlatformActivationRow[]): Platform
     averageDaysToFirstOnlineOrder: average(onlineOrderTimes),
     medianDaysToFirstOnlineOrder: median(onlineOrderTimes),
     rows: activationRows,
+  };
+}
+
+export function calculateStockAccuracyMetrics(rows: PlatformStockAccuracyRow[]): PlatformStockAccuracyMetrics {
+  const totalProducts = rows.reduce((sum, row) => sum + numberOrZero(row.productos_total), 0);
+  const measuredProducts = rows.reduce((sum, row) => sum + numberOrZero(row.productos_medidos), 0);
+  const matchingProducts = rows.reduce((sum, row) => sum + numberOrZero(row.productos_coinciden), 0);
+  const mismatchingProducts = rows.reduce((sum, row) => sum + numberOrZero(row.productos_descuadrados), 0);
+  const unmeasuredProducts = rows.reduce((sum, row) => sum + numberOrZero(row.productos_sin_kardex), 0);
+  const negativeStockProducts = rows.reduce((sum, row) => sum + numberOrZero(row.productos_stock_negativo), 0);
+
+  return {
+    totalOrganizations: rows.length,
+    organizationsWithMeasuredStock: rows.filter(row => numberOrZero(row.productos_medidos) > 0).length,
+    totalProducts,
+    measuredProducts,
+    matchingProducts,
+    mismatchingProducts,
+    unmeasuredProducts,
+    negativeStockProducts,
+    accuracyPct: measuredProducts > 0 ? Math.round(matchingProducts / measuredProducts * 1000) / 10 : null,
+    rows: [...rows].sort((a, b) => {
+      const mismatchDiff = numberOrZero(b.productos_descuadrados) - numberOrZero(a.productos_descuadrados);
+      if (mismatchDiff !== 0) return mismatchDiff;
+      return numberOrZero(a.precision_pct) - numberOrZero(b.precision_pct);
+    }),
   };
 }
 

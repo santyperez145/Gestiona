@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateChannelMetrics, calculatePlatformMetrics, type PlatformActivationRow, type PlatformHealthRow, withActivationTimes, withChannelActivationTimes } from "@/lib/platformMetrics";
+import { calculateChannelMetrics, calculatePlatformMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformHealthRow, type PlatformStockAccuracyRow, withActivationTimes, withChannelActivationTimes } from "@/lib/platformMetrics";
 
 const baseRow = (overrides: Partial<PlatformHealthRow> = {}): PlatformHealthRow => ({
   org_id: "org-1",
@@ -48,6 +48,23 @@ const baseChannelRow = (overrides: Partial<PlatformActivationRow> = {}): Platfor
   is_omnichannel: true,
   days_to_store_publish: 2,
   days_to_first_online_order: 5,
+  ...overrides,
+});
+
+const baseStockRow = (overrides: Partial<PlatformStockAccuracyRow> = {}): PlatformStockAccuracyRow => ({
+  org_id: "org-1",
+  org_name: "Negocio 1",
+  slug: "negocio-1",
+  productos_total: 10,
+  productos_medidos: 8,
+  productos_coinciden: 6,
+  productos_descuadrados: 2,
+  productos_sin_kardex: 2,
+  productos_stock_negativo: 1,
+  precision_pct: 75,
+  ultimo_movimiento_at: "2026-08-14T00:00:00.000Z",
+  conteos_cerrados: 1,
+  ultimo_conteo_at: "2026-08-13T00:00:00.000Z",
   ...overrides,
 });
 
@@ -126,5 +143,30 @@ describe("platformMetrics", () => {
     const [activation] = withChannelActivationTimes([row]);
     expect(activation.daysToStorePublish).toBe(2);
     expect(activation.daysToFirstOnlineOrder).toBe(5);
+  });
+
+  it("mide precision solo sobre productos con Kardex y conserva los no medidos", () => {
+    const metrics = calculateStockAccuracyMetrics([
+      baseStockRow(),
+      baseStockRow({
+        org_id: "org-2",
+        productos_total: 4,
+        productos_medidos: 0,
+        productos_coinciden: 0,
+        productos_descuadrados: 0,
+        productos_sin_kardex: 4,
+        productos_stock_negativo: 0,
+        precision_pct: null,
+      }),
+    ]);
+    expect(metrics.totalOrganizations).toBe(2);
+    expect(metrics.organizationsWithMeasuredStock).toBe(1);
+    expect(metrics.totalProducts).toBe(14);
+    expect(metrics.measuredProducts).toBe(8);
+    expect(metrics.matchingProducts).toBe(6);
+    expect(metrics.mismatchingProducts).toBe(2);
+    expect(metrics.unmeasuredProducts).toBe(6);
+    expect(metrics.accuracyPct).toBe(75);
+    expect(metrics.rows[0].productos_descuadrados).toBe(2);
   });
 });
