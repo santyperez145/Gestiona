@@ -1502,6 +1502,7 @@ export default function POSPage() {
           id: txItemId,
           user_id: user.id,
           org_id: orgId,
+          source: "pos",
           product_id: item.productId,
           product_name: item.name,
           quantity: item.quantity,
@@ -1897,10 +1898,10 @@ export default function POSPage() {
         )}
 
         {/* Price list badge — shown when customer has an active price list */}
-        {activePriceList && activePriceList.discount_pct > 0 && (
+        {activePriceList && activePriceList.discount_value > 0 && (
           <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-blue-500/15 border border-blue-500/30 text-blue-300">
             <Tag className="w-3.5 h-3.5 shrink-0" />
-            <span>Lista: <strong>{activePriceList.name}</strong> · -{activePriceList.discount_pct}% aplicado en precios</span>
+            <span>Lista: <strong>{activePriceList.name}</strong> · {activePriceList.discount_type === "percentage" ? `-${activePriceList.discount_value}%` : `-${activePriceList.discount_value} ARS`} aplicado en precios</span>
           </div>
         )}
 

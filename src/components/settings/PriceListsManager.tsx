@@ -26,7 +26,8 @@ interface PriceList {
   id: string;
   name: string;
   description: string | null;
-  discount_pct: number;
+  discount_type: string;
+  discount_value: number;
   currency: string;
   is_default: boolean;
   is_active: boolean;
@@ -69,7 +70,8 @@ export default function PriceListsManager({ orgId }: Props) {
       org_id: orgId,
       name: newName.trim(),
       description: newDesc.trim() || null,
-      discount_pct: pct,
+      discount_type: pct > 0 ? "percentage" : "none",
+      discount_value: pct,
       is_default: false,
       is_active: true,
     });
@@ -100,7 +102,8 @@ export default function PriceListsManager({ orgId }: Props) {
       org_id: orgId,
       name: preset.name,
       description: preset.description,
-      discount_pct: preset.discount_pct,
+      discount_type: "percentage",
+      discount_value: preset.discount_pct,
       is_default: false,
       is_active: true,
     });
@@ -233,7 +236,7 @@ function ListRow({ list, editing, onEdit, onCancelEdit, onSave, onDelete }: {
   onDelete: () => void;
 }) {
   const [name, setName] = useState(list.name);
-  const [pct, setPct] = useState(String(list.discount_pct));
+  const [pct, setPct] = useState(String(list.discount_type === "percentage" ? list.discount_value : 0));
   const [desc, setDesc] = useState(list.description ?? "");
 
   if (editing) {
@@ -249,7 +252,10 @@ function ListRow({ list, editing, onEdit, onCancelEdit, onSave, onDelete }: {
         <Input value={desc} onChange={e => setDesc(e.target.value)} className="h-7 text-xs" placeholder="Descripción" />
         <div className="flex gap-2">
           <Button size="sm" className="h-7 text-xs flex-1 gradient-gold text-primary-foreground"
-            onClick={() => onSave({ name: name.trim(), discount_pct: parseFloat(pct) || 0, description: desc.trim() || null })}>
+            onClick={() => {
+              const value = parseFloat(pct) || 0;
+              onSave({ name: name.trim(), discount_type: value > 0 ? "percentage" : "none", discount_value: value, description: desc.trim() || null });
+            }}>
             <Check className="w-3 h-3 mr-1" />Guardar
           </Button>
           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onCancelEdit}>
@@ -268,8 +274,8 @@ function ListRow({ list, editing, onEdit, onCancelEdit, onSave, onDelete }: {
           <span className="text-sm font-medium">{list.name}</span>
           {list.description && <p className="text-[10px] text-muted-foreground/60 truncate">{list.description}</p>}
         </div>
-        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ml-1 shrink-0 ${list.discount_pct > 0 ? "border-emerald-500/30 text-emerald-400" : "border-border text-muted-foreground"}`}>
-          {list.discount_pct > 0 ? `-${list.discount_pct}%` : "Precio base"}
+        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ml-1 shrink-0 ${list.discount_value > 0 ? "border-emerald-500/30 text-emerald-400" : "border-border text-muted-foreground"}`}>
+          {list.discount_type === "percentage" && list.discount_value > 0 ? `-${list.discount_value}%` : list.discount_type === "fixed" && list.discount_value > 0 ? `-${list.discount_value} ARS` : "Precio base"}
         </Badge>
         {list.is_default && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary shrink-0">Default</Badge>}
       </div>

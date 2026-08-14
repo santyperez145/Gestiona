@@ -44,6 +44,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 15 (2026-08-14):** Fase 1 deja de depender de consultas manuales para saber si una organizacion llego a usar el producto. `/platform/metricas` consume la vista protegida `platform_org_health` y muestra el funnel real de alta, onboarding, catalogo, tienda activa y primer cobro; calcula tiempo promedio y mediana desde el alta hasta el primer cobro; agrupa las señales de salud y permite filtrar organizaciones para que soporte actue sobre onboarding roto o riesgo de baja. Los calculos viven en `src/lib/platformMetrics.ts` y se prueban sin datos ficticios. La pantalla identifica como pendientes, sin maquillarlas, la fecha exacta de publicacion, la adopcion POS + tienda, stock accuracy y AI Action Rate. Validado con typecheck, lint sin errores, 832 tests y build.
 
+**Slice funcional 16 (2026-08-14):** G2 y G3 dejan de ser una promesa de roadmap. La migracion `20260814000001_platform_activation_channels.sql` agrega `ecommerce_stores.published_at` con trigger de primera publicacion y la vista protegida `platform_org_activation`, que cruza publicacion instrumentada, orden online confirmada y ventas POS marcadas. `/platform/metricas` suma la pestaña Canales con tasas online/POS/omnicanal, tiempos hasta publicar y hasta la primera orden, detalle por organizacion y estados historicos no instrumentados. El POS ahora persiste `source = pos`, y las listas de precios se alinean con el contrato vigente `discount_type/value`, `custom_price` y `min_quantity`. Las fechas historicas sin evento quedan fuera de promedios: no se rellenan con `created_at`. Validado contra la base vinculada con vista, trigger, columna y migracion registradas; `db push --dry-run` al dia; typecheck, lint sin errores, 834 tests y build/PWA.
+
 ---
 
 ## 1. Qué es
@@ -232,7 +234,7 @@ seguridad, backups, observabilidad y métricas. Traducido a este ROADMAP:
 
 ✅ **Medido (2026-08-13).** El sistema funciona y cobra: dos compras reales
 acreditadas con comisión de plataforma, stock que sólo mueve la base, RLS
-verificada con roles reales, 832 tests (2026-08-14), bloque A cerrado.
+verificada con roles reales, 834 tests (2026-08-14), bloque A cerrado.
 
 Y hay **un** comercio usándolo, que es el dueño. Todo lo demás del ROADMAP
 mejora un producto que todavía no demostró que alguien más lo quiera (R08).
@@ -514,8 +516,8 @@ en [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §6.
 | # | Qué | De dónde sale |
 |---|---|---|
 | **G1** | **Tiempo hasta la primera venta** de una organización nueva | `memberships.created_at` → primera `sales` |
-| **G2** | **Tiempo hasta publicar la tienda** | → primera `ecommerce_orders` |
-| **G3** | **Adopción omnicanal**: % que usa POS **y** tienda | cruce por `org_id` |
+| **G2** | **Tiempo hasta publicar la tienda** | `ecommerce_stores.published_at` → primera `ecommerce_orders` confirmada |
+| **G3** | **Adopción omnicanal**: % que usa POS **y** tienda | `platform_org_activation`, `sales.source = 'pos'` + orden online confirmada |
 | **G4** | **GMV por comercio** | `sales` + `ecommerce_orders` |
 | **G5** | **Activas vs. que pagan** | `memberships`, `subscriptions` |
 | **G6** | **Serie temporal de riesgo de abandono** | `platform_org_health` ya ordena por urgencia; falta la serie |

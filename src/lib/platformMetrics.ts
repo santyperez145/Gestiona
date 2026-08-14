@@ -27,6 +27,53 @@ export interface ActivationRow extends PlatformHealthRow {
   daysToFirstCharge: number | null;
 }
 
+export interface PlatformActivationRow {
+  org_id: string | null;
+  org_name: string | null;
+  slug: string | null;
+  org_creada: string | null;
+  store_id: string | null;
+  store_slug: string | null;
+  store_is_active: boolean | null;
+  store_published_at: string | null;
+  store_publication_known: boolean | null;
+  first_online_order_at: string | null;
+  online_orders_total: number | null;
+  online_orders_30d: number | null;
+  first_pos_sale_at: string | null;
+  pos_sales_total: number | null;
+  pos_sales_30d: number | null;
+  uses_online: boolean | null;
+  uses_pos: boolean | null;
+  is_omnichannel: boolean | null;
+  days_to_store_publish: number | null;
+  days_to_first_online_order: number | null;
+}
+
+export interface ChannelActivationRow extends PlatformActivationRow {
+  daysToStorePublish: number | null;
+  daysToFirstOnlineOrder: number | null;
+}
+
+export interface PlatformChannelMetrics {
+  totalOrganizations: number;
+  organizationsWithStorePublished: number;
+  organizationsWithStoreActive: number;
+  organizationsWithStorePublicationKnown: number;
+  organizationsWithOnline: number;
+  organizationsWithPos: number;
+  omnichannelOrganizations: number;
+  storePublishedRate: number;
+  onlineRate: number;
+  posRate: number;
+  omnichannelRate: number;
+  averageDaysToStorePublish: number | null;
+  medianDaysToStorePublish: number | null;
+  averageDaysToFirstOnlineOrder: number | null;
+  medianDaysToFirstOnlineOrder: number | null;
+  rows: ChannelActivationRow[];
+}
+
 export interface PlatformMetrics {
   totalOrganizations: number;
   onboardedOrganizations: number;
@@ -63,6 +110,10 @@ function daysBetween(start: string | null, end: string | null): number | null {
   return Math.round((endTime - startTime) / DAY_MS * 10) / 10;
 }
 
+function finiteOrNull(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 export function withActivationTimes(rows: PlatformHealthRow[]): ActivationRow[] {
   return rows.map(row => ({
     ...row,
@@ -77,6 +128,60 @@ function median(values: number[]): number | null {
   return ordered.length % 2 === 0
     ? Math.round(((ordered[middle - 1] + ordered[middle]) / 2) * 10) / 10
     : ordered[middle];
+}
+
+function percentage(value: number, total: number): number {
+  return total ? Math.round(value / total * 100) : 0;
+}
+
+function average(values: number[]): number | null {
+  return values.length
+    ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length * 10) / 10
+    : null;
+}
+
+export function withChannelActivationTimes(rows: PlatformActivationRow[]): ChannelActivationRow[] {
+  return rows.map(row => ({
+    ...row,
+    daysToStorePublish: finiteOrNull(row.days_to_store_publish) ?? daysBetween(row.org_creada, row.store_published_at),
+    daysToFirstOnlineOrder: finiteOrNull(row.days_to_first_online_order) ?? daysBetween(row.org_creada, row.first_online_order_at),
+  }));
+}
+
+export function calculateChannelMetrics(rows: PlatformActivationRow[]): PlatformChannelMetrics {
+  const activationRows = withChannelActivationTimes(rows);
+  const totalOrganizations = rows.length;
+  const organizationsWithStorePublished = rows.filter(row => row.store_publication_known === true).length;
+  const organizationsWithStoreActive = rows.filter(row => row.store_is_active === true).length;
+  const organizationsWithStorePublicationKnown = rows.filter(row => row.store_publication_known === true).length;
+  const organizationsWithOnline = rows.filter(row => row.uses_online === true).length;
+  const organizationsWithPos = rows.filter(row => row.uses_pos === true).length;
+  const omnichannelOrganizations = rows.filter(row => row.is_omnichannel === true).length;
+  const storePublishTimes = activationRows
+    .map(row => row.daysToStorePublish)
+    .filter((value): value is number => value !== null);
+  const onlineOrderTimes = activationRows
+    .map(row => row.daysToFirstOnlineOrder)
+    .filter((value): value is number => value !== null);
+
+  return {
+    totalOrganizations,
+    organizationsWithStorePublished,
+    organizationsWithStoreActive,
+    organizationsWithStorePublicationKnown,
+    organizationsWithOnline,
+    organizationsWithPos,
+    omnichannelOrganizations,
+    storePublishedRate: percentage(organizationsWithStorePublished, totalOrganizations),
+    onlineRate: percentage(organizationsWithOnline, totalOrganizations),
+    posRate: percentage(organizationsWithPos, totalOrganizations),
+    omnichannelRate: percentage(omnichannelOrganizations, totalOrganizations),
+    averageDaysToStorePublish: average(storePublishTimes),
+    medianDaysToStorePublish: median(storePublishTimes),
+    averageDaysToFirstOnlineOrder: average(onlineOrderTimes),
+    medianDaysToFirstOnlineOrder: median(onlineOrderTimes),
+    rows: activationRows,
+  };
 }
 
 export function calculatePlatformMetrics(rows: PlatformHealthRow[]): PlatformMetrics {
@@ -123,4 +228,3 @@ export function calculatePlatformMetrics(rows: PlatformHealthRow[]): PlatformMet
     signalCounts,
   };
 }
-

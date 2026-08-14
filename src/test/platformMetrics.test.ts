@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculatePlatformMetrics, type PlatformHealthRow, withActivationTimes } from "@/lib/platformMetrics";
+import { calculateChannelMetrics, calculatePlatformMetrics, type PlatformActivationRow, type PlatformHealthRow, withActivationTimes, withChannelActivationTimes } from "@/lib/platformMetrics";
 
 const baseRow = (overrides: Partial<PlatformHealthRow> = {}): PlatformHealthRow => ({
   org_id: "org-1",
@@ -24,6 +24,30 @@ const baseRow = (overrides: Partial<PlatformHealthRow> = {}): PlatformHealthRow 
   tiendas_activas: 1,
   variacion_pct: 25,
   senal: "creciendo",
+  ...overrides,
+});
+
+const baseChannelRow = (overrides: Partial<PlatformActivationRow> = {}): PlatformActivationRow => ({
+  org_id: "org-1",
+  org_name: "Negocio 1",
+  slug: "negocio-1",
+  org_creada: "2026-01-01T00:00:00.000Z",
+  store_id: "store-1",
+  store_slug: "negocio-1",
+  store_is_active: true,
+  store_published_at: "2026-01-03T00:00:00.000Z",
+  store_publication_known: true,
+  first_online_order_at: "2026-01-06T00:00:00.000Z",
+  online_orders_total: 3,
+  online_orders_30d: 2,
+  first_pos_sale_at: "2026-01-04T00:00:00.000Z",
+  pos_sales_total: 5,
+  pos_sales_30d: 4,
+  uses_online: true,
+  uses_pos: true,
+  is_omnichannel: true,
+  days_to_store_publish: 2,
+  days_to_first_online_order: 5,
   ...overrides,
 });
 
@@ -68,5 +92,39 @@ describe("platformMetrics", () => {
     expect(metrics.gmvTotal).toBe(0);
     expect(metrics.commission30d).toBe(0);
   });
-});
 
+  it("mide adopcion por canal sobre eventos confirmados", () => {
+    const metrics = calculateChannelMetrics([
+      baseChannelRow(),
+      baseChannelRow({
+        org_id: "org-2",
+        store_is_active: false,
+        store_publication_known: false,
+        store_published_at: null,
+        first_online_order_at: null,
+        uses_online: false,
+        first_pos_sale_at: "2026-01-07T00:00:00.000Z",
+        uses_pos: true,
+        is_omnichannel: false,
+        days_to_store_publish: null,
+        days_to_first_online_order: null,
+      }),
+    ]);
+    expect(metrics.organizationsWithStorePublished).toBe(1);
+    expect(metrics.organizationsWithStoreActive).toBe(1);
+    expect(metrics.organizationsWithStorePublicationKnown).toBe(1);
+    expect(metrics.organizationsWithOnline).toBe(1);
+    expect(metrics.organizationsWithPos).toBe(2);
+    expect(metrics.omnichannelOrganizations).toBe(1);
+    expect(metrics.omnichannelRate).toBe(50);
+    expect(metrics.averageDaysToStorePublish).toBe(2);
+    expect(metrics.averageDaysToFirstOnlineOrder).toBe(5);
+  });
+
+  it("calcula tiempos desde fechas solo cuando la base no envio el espejo numerico", () => {
+    const row = baseChannelRow({ days_to_store_publish: null, days_to_first_online_order: null });
+    const [activation] = withChannelActivationTimes([row]);
+    expect(activation.daysToStorePublish).toBe(2);
+    expect(activation.daysToFirstOnlineOrder).toBe(5);
+  });
+});

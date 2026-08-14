@@ -6,7 +6,7 @@
  *
  * Priority order:
  *   1. Product-specific override in `price_list_items` (if set)
- *   2. Global discount_pct of the price list applied to `sale_price_ars`
+ *   2. Global discount_type/value of the price list applied to `sale_price_ars`
  *   3. Base `sale_price_ars` (no adjustment)
  *
  * Usage:
@@ -20,15 +20,16 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface PriceListItem {
   product_id: string;
-  price_ars: number | null;
+  custom_price: number | null;
   discount_pct: number | null;
-  min_qty: number;
+  min_quantity: number;
 }
 
 interface PriceListMeta {
   id: string;
   name: string;
-  discount_pct: number;
+  discount_type: string;
+  discount_value: number;
   is_default: boolean;
 }
 
@@ -59,8 +60,8 @@ export function usePriceList(priceListId: string | null | undefined): UsePriceLi
     }
     setLoading(true);
     Promise.all([
-      supabase.from("price_lists").select("id,name,discount_pct,is_default").eq("id", priceListId).single(),
-      supabase.from("price_list_items").select("product_id,price_ars,discount_pct,min_qty").eq("price_list_id", priceListId),
+      supabase.from("price_lists").select("id,name,discount_type,discount_value,is_default").eq("id", priceListId).single(),
+      supabase.from("price_list_items").select("product_id,custom_price,discount_pct,min_quantity").eq("price_list_id", priceListId).order("min_quantity", { ascending: false }),
     ]).then(([listRes, itemsRes]) => {
       if (listRes.data) setMeta(listRes.data as PriceListMeta);
       if (itemsRes.data) {
@@ -78,12 +79,13 @@ export function usePriceList(priceListId: string | null | undefined): UsePriceLi
 
       const override = items[product.id];
       if (override) {
-        if (override.price_ars != null) return override.price_ars;
+        if (override.custom_price != null) return override.custom_price;
         if (override.discount_pct != null) return Math.round(base * (1 - override.discount_pct / 100));
       }
 
       // Apply global list discount
-      if (meta.discount_pct > 0) return Math.round(base * (1 - meta.discount_pct / 100));
+      if (meta.discount_type === "percentage" && meta.discount_value > 0) return Math.round(base * (1 - meta.discount_value / 100));
+      if (meta.discount_type === "fixed" && meta.discount_value > 0) return Math.max(0, Math.round(base - meta.discount_value));
       return base;
     },
     [meta, items, priceListId]

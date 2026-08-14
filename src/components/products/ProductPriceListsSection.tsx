@@ -8,7 +8,7 @@
  * Prioridad de precio (misma que `usePriceList`):
  *   1. override.price_ars   → precio fijo
  *   2. override.discount_pct → % sobre el precio de venta
- *   3. discount_pct de la lista
+ *   3. discount_type/value de la lista
  *   4. precio de venta base
  */
 import { useCallback, useEffect, useState } from "react";
@@ -22,7 +22,8 @@ import { toast } from "sonner";
 interface PriceList {
   id: string;
   name: string;
-  discount_pct: number;
+  discount_type: string;
+  discount_value: number;
   is_default: boolean;
   is_active: boolean;
 }
@@ -30,8 +31,9 @@ interface PriceList {
 interface Override {
   id: string;
   price_list_id: string;
-  price_ars: number | null;
+  custom_price: number | null;
   discount_pct: number | null;
+  min_quantity: number;
 }
 
 interface Props {
@@ -52,10 +54,10 @@ export default function ProductPriceListsSection({ productId, orgId, salePriceAR
     if (!orgId) { setLoading(false); return; }
     setLoading(true);
     const [listRes, itemRes] = await Promise.all([
-      supabase.from("price_lists").select("id,name,discount_pct,is_default,is_active")
+      supabase.from("price_lists").select("id,name,discount_type,discount_value,is_default,is_active")
         .eq("org_id", orgId).eq("is_active", true).order("name"),
       productId
-        ? supabase.from("price_list_items").select("id,price_list_id,price_ars,discount_pct").eq("product_id", productId)
+        ? supabase.from("price_list_items").select("id,price_list_id,custom_price,discount_pct,min_quantity").eq("product_id", productId).order("min_quantity", { ascending: false })
         : Promise.resolve({ data: [] as any[] }),
     ]);
     setLists((listRes.data ?? []) as PriceList[]);
@@ -63,7 +65,7 @@ export default function ProductPriceListsSection({ productId, orgId, salePriceAR
     const d: Record<string, { price: string; pct: string }> = {};
     ((itemRes.data ?? []) as Override[]).forEach(o => {
       map[o.price_list_id] = o;
-      d[o.price_list_id] = { price: o.price_ars != null ? String(o.price_ars) : "", pct: o.discount_pct != null ? String(o.discount_pct) : "" };
+      d[o.price_list_id] = { price: o.custom_price != null ? String(o.custom_price) : "", pct: o.discount_pct != null ? String(o.discount_pct) : "" };
     });
     setOverrides(map);
     setDraft(d);
@@ -74,9 +76,10 @@ export default function ProductPriceListsSection({ productId, orgId, salePriceAR
 
   const effectivePrice = (list: PriceList): number => {
     const o = overrides[list.id];
-    if (o?.price_ars != null) return o.price_ars;
+    if (o?.custom_price != null) return o.custom_price;
     if (o?.discount_pct != null) return Math.round(salePriceARS * (1 - o.discount_pct / 100));
-    if (list.discount_pct > 0) return Math.round(salePriceARS * (1 - list.discount_pct / 100));
+    if (list.discount_type === "percentage" && list.discount_value > 0) return Math.round(salePriceARS * (1 - list.discount_value / 100));
+    if (list.discount_type === "fixed" && list.discount_value > 0) return Math.max(0, Math.round(salePriceARS - list.discount_value));
     return salePriceARS;
   };
 
@@ -85,17 +88,18 @@ export default function ProductPriceListsSection({ productId, orgId, salePriceAR
     const d = draft[list.id] ?? { price: "", pct: "" };
     const price = d.price.trim() ? Number(d.price) : null;
     const pct = d.pct.trim() ? Number(d.pct) : null;
+    if (price == null && pct == null) { await clearOverride(list); return; }
     if (price != null && (!Number.isFinite(price) || price < 0)) { toast.error("Precio inválido"); return; }
     if (pct != null && (!Number.isFinite(pct) || pct < 0 || pct > 100)) { toast.error("El descuento debe estar entre 0 y 100"); return; }
 
     setSavingId(list.id);
     const { error } = await supabase.from("price_list_items").upsert({
-      org_id: orgId,
       price_list_id: list.id,
       product_id: productId,
-      price_ars: price,
+      custom_price: price,
       discount_pct: pct,
-    } as any, { onConflict: "price_list_id,product_id" });
+      min_quantity: 1,
+    }, { onConflict: "price_list_id,product_id,min_quantity" });
     setSavingId(null);
     if (error) { toast.error("No se pudo guardar: " + error.message); return; }
     toast.success(`Precio de "${list.name}" actualizado`);
@@ -174,7 +178,7 @@ export default function ProductPriceListsSection({ productId, orgId, salePriceAR
                       type="number" min="0" max="100" inputMode="numeric"
                       value={d.pct}
                       onChange={e => setDraft(prev => ({ ...prev, [list.id]: { price: "", pct: e.target.value } }))}
-                      placeholder={`${list.discount_pct}`}
+                      placeholder={`${list.discount_type === "percentage" ? list.discount_value : 0}`}
                       className="bg-muted border-border h-8 text-xs"
                     />
                   </div>

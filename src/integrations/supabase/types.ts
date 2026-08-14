@@ -5731,6 +5731,7 @@ export type Database = {
           pickup_enabled: boolean
           pickup_instructions: string | null
           primary_color: string
+          published_at: string | null
           shipping_cost: number
           shipping_mode: string
           slug: string
@@ -5768,6 +5769,7 @@ export type Database = {
           pickup_enabled?: boolean
           pickup_instructions?: string | null
           primary_color?: string
+          published_at?: string | null
           shipping_cost?: number
           shipping_mode?: string
           slug: string
@@ -5805,6 +5807,7 @@ export type Database = {
           pickup_enabled?: boolean
           pickup_instructions?: string | null
           primary_color?: string
+          published_at?: string | null
           shipping_cost?: number
           shipping_mode?: string
           slug?: string
@@ -19531,6 +19534,31 @@ export type Database = {
           trial_ends_at: string | null
           ultimo_cobro: string | null
           variacion_pct: number | null
+        }
+        Relationships: []
+      }
+      platform_org_activation: {
+        Row: {
+          days_to_first_online_order: number | null
+          days_to_store_publish: number | null
+          first_online_order_at: string | null
+          first_pos_sale_at: string | null
+          is_omnichannel: boolean | null
+          online_orders_30d: number | null
+          online_orders_total: number | null
+          org_creada: string | null
+          org_id: string | null
+          org_name: string | null
+          pos_sales_30d: number | null
+          pos_sales_total: number | null
+          slug: string | null
+          store_id: string | null
+          store_is_active: boolean | null
+          store_publication_known: boolean | null
+          store_published_at: string | null
+          store_slug: string | null
+          uses_online: boolean | null
+          uses_pos: boolean | null
         }
         Relationships: []
       }

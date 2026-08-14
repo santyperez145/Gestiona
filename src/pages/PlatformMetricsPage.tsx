@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, BarChart3, CheckCircle2, Clock3, RefreshCw, Search, ShoppingBag, Store, Users } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, CheckCircle2, Clock3, Globe2, MonitorSmartphone, RefreshCw, Search, ShoppingBag, Store, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { usePersistedState } from "@/hooks/usePersistedState";
-import { calculatePlatformMetrics, type PlatformHealthRow } from "@/lib/platformMetrics";
+import { isMissingRelation } from "@/lib/publicDataSource";
+import { calculateChannelMetrics, calculatePlatformMetrics, type PlatformActivationRow, type PlatformHealthRow } from "@/lib/platformMetrics";
 
 const SIGNALS: Record<string, { label: string; className: string }> = {
   sin_activar: { label: "Sin activar", className: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
@@ -33,8 +34,8 @@ function formatDate(value: string | null) {
   return value ? new Date(value).toLocaleDateString("es-AR") : "Sin fecha";
 }
 
-function formatDays(value: number | null) {
-  if (value === null) return "Sin cobro";
+function formatDays(value: number | null, emptyLabel = "Sin cobro") {
+  if (value === null) return emptyLabel;
   return `${value.toLocaleString("es-AR", { maximumFractionDigits: 1 })} días`;
 }
 
@@ -61,24 +62,39 @@ function FunnelStep({ label, value, total, tone }: { label: string; value: numbe
 export default function PlatformMetricsPage() {
   usePageTitle("Métricas de plataforma");
   const [rows, setRows] = useState<PlatformHealthRow[]>([]);
+  const [channelRows, setChannelRows] = useState<PlatformActivationRow[]>([]);
+  const [channelViewUnavailable, setChannelViewUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = usePersistedState<"funnel" | "health" | "activation">("gestiona.view.platform.metrics-tab", "funnel");
+  const [tab, setTab] = usePersistedState<"funnel" | "health" | "activation" | "channels">("gestiona.view.platform.metrics-tab", "funnel");
   const [search, setSearch] = usePersistedState("gestiona.view.platform.metrics-search", "");
   const [signalFilter, setSignalFilter] = usePersistedState("gestiona.view.platform.metrics-signal", "all");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const { data, error: queryError } = await supabase
-      .from("platform_org_health")
-      .select("*")
-      .order("gmv_30d", { ascending: false });
-    if (queryError) {
-      setError(queryError.message);
+    const [healthResult, channelResult] = await Promise.all([
+      supabase.from("platform_org_health").select("*").order("gmv_30d", { ascending: false }),
+      supabase.from("platform_org_activation").select("*").order("org_creada", { ascending: false }),
+    ]);
+    if (healthResult.error) {
+      setError(healthResult.error.message);
       setRows([]);
     } else {
-      setRows((data || []) as PlatformHealthRow[]);
+      setRows((healthResult.data || []) as PlatformHealthRow[]);
+    }
+    if (channelResult.error) {
+      if (isMissingRelation(channelResult.error)) {
+        setChannelViewUnavailable(true);
+        setChannelRows([]);
+      } else {
+        setError(channelResult.error.message);
+        setChannelRows([]);
+        setChannelViewUnavailable(false);
+      }
+    } else {
+      setChannelRows((channelResult.data || []) as PlatformActivationRow[]);
+      setChannelViewUnavailable(false);
     }
     setLoading(false);
   }, []);
@@ -86,6 +102,7 @@ export default function PlatformMetricsPage() {
   useEffect(() => { load(); }, [load]);
 
   const metrics = useMemo(() => calculatePlatformMetrics(rows), [rows]);
+  const channelMetrics = useMemo(() => calculateChannelMetrics(channelRows), [channelRows]);
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
     return metrics.activationTimes.filter(row => {
@@ -130,6 +147,7 @@ export default function PlatformMetricsPage() {
           <TabsTrigger value="funnel" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Funnel de activación</TabsTrigger>
           <TabsTrigger value="health" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Salud por organización</TabsTrigger>
           <TabsTrigger value="activation" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Tiempo a primer cobro</TabsTrigger>
+          <TabsTrigger value="channels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Canales</TabsTrigger>
         </TabsList>
 
         <TabsContent value="funnel" className="mt-5 space-y-5">
@@ -169,7 +187,7 @@ export default function PlatformMetricsPage() {
 
           <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
             <p className="font-semibold text-violet-200">Instrumentación disponible</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">G1, GMV, conversión de onboarding y salud por organización ya se calculan desde datos reales. El tiempo de publicación exacto, la adopción POS + tienda, stock accuracy y AI Action Rate quedan identificados como próximos eventos, sin mostrar aproximaciones como si fueran mediciones.</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">G1, GMV, onboarding, publicación instrumentada y adopción por canal se calculan desde datos reales. Stock accuracy y AI Action Rate siguen identificados como próximos eventos, sin mostrar aproximaciones como si fueran mediciones.</p>
           </section>
         </TabsContent>
 
@@ -219,6 +237,62 @@ export default function PlatformMetricsPage() {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="channels" className="mt-5 space-y-5">
+          {channelViewUnavailable ? (
+            <div className="flex items-start gap-3 border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div><p className="font-semibold">Instrumentacion de canales pendiente</p><p className="mt-1 text-xs text-muted-foreground">La base todavia no expone `platform_org_activation`. El panel conserva el resto de las metricas y no reemplaza esta medicion con aproximaciones.</p></div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <KPICard label="Publicacion instrumentada" value={`${channelMetrics.storePublishedRate}%`} icon={Store} color="primary" sub={`${channelMetrics.organizationsWithStoreActive} activas hoy`} />
+                <KPICard label="Usan online" value={`${channelMetrics.onlineRate}%`} icon={Globe2} color="blue" sub={`${channelMetrics.organizationsWithOnline} con orden confirmada`} />
+                <KPICard label="Usan POS" value={`${channelMetrics.posRate}%`} icon={MonitorSmartphone} color="success" sub={`${channelMetrics.organizationsWithPos} con venta POS`} />
+                <KPICard label="Omnicanal" value={`${channelMetrics.omnichannelRate}%`} icon={Activity} color="primary" sub={`${channelMetrics.omnichannelOrganizations} usan ambos canales`} />
+              </div>
+
+              <section className="grid gap-4 lg:grid-cols-2">
+                <div className="rounded-[10px] border border-border/60 bg-card p-5">
+                  <div className="mb-5 flex items-start gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10"><Store className="h-4 w-4 text-violet-400" /></div><div><h2 className="font-semibold">Publicacion y primera venta online</h2><p className="mt-1 text-xs text-muted-foreground">Solo las fechas capturadas por eventos reales entran en el promedio.</p></div></div>
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="border-r border-border/50 pr-4"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Alta -&gt; publicar</p><p className="mt-1 text-xl font-semibold">{formatDays(channelMetrics.averageDaysToStorePublish, "Sin datos")}</p><p className="mt-1 text-[11px] text-muted-foreground">mediana {formatDays(channelMetrics.medianDaysToStorePublish, "Sin datos")}</p></div>
+                    <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Alta -&gt; primera orden</p><p className="mt-1 text-xl font-semibold">{formatDays(channelMetrics.averageDaysToFirstOnlineOrder, "Sin datos")}</p><p className="mt-1 text-[11px] text-muted-foreground">mediana {formatDays(channelMetrics.medianDaysToFirstOnlineOrder, "Sin datos")}</p></div>
+                  </div>
+                  <p className="mt-5 border-t border-border/50 pt-4 text-xs text-muted-foreground">{channelMetrics.organizationsWithStorePublicationKnown} de {channelMetrics.totalOrganizations} organizaciones tienen fecha de publicacion instrumentada. El resto queda fuera del calculo.</p>
+                </div>
+
+                <div className="rounded-[10px] border border-border/60 bg-card p-5">
+                  <div className="mb-5 flex items-start gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10"><Activity className="h-4 w-4 text-emerald-400" /></div><div><h2 className="font-semibold">Adopcion por canal</h2><p className="mt-1 text-xs text-muted-foreground">Una organizacion cuenta como omnicanal cuando tiene al menos una venta POS y una orden online confirmada.</p></div></div>
+                  <div className="space-y-4">
+                    <FunnelStep label="Publicacion instrumentada" value={channelMetrics.organizationsWithStorePublished} total={channelMetrics.totalOrganizations} tone="bg-violet-500" />
+                    <FunnelStep label="Primera orden online" value={channelMetrics.organizationsWithOnline} total={channelMetrics.totalOrganizations} tone="bg-blue-500" />
+                    <FunnelStep label="Venta POS" value={channelMetrics.organizationsWithPos} total={channelMetrics.totalOrganizations} tone="bg-emerald-500" />
+                    <FunnelStep label="Ambos canales" value={channelMetrics.omnichannelOrganizations} total={channelMetrics.totalOrganizations} tone="bg-amber-500" />
+                  </div>
+                </div>
+              </section>
+
+              <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">
+                <div className="border-b border-border/50 px-4 py-3"><h2 className="font-semibold text-sm">Detalle por organizacion</h2><p className="mt-1 text-xs text-muted-foreground">Los contadores diferencian actividad online confirmada de ventas POS explicitamente marcadas.</p></div>
+                {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando adopcion...</div> : channelMetrics.rows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Todavia no hay datos para analizar.</div> : (
+                  <div className="divide-y divide-border/50">
+                    {channelMetrics.rows.slice(0, 30).map(row => (
+                      <div key={row.org_id || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_repeat(4,minmax(90px,0.6fr))] md:items-center">
+                        <div className="min-w-0"><p className="truncate text-sm font-medium">{row.org_name || "Sin nombre"}</p><p className="truncate text-xs text-muted-foreground">/{row.slug || "sin-slug"} - {row.store_slug ? `tienda /${row.store_slug}` : "sin tienda"}</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Online</p><p className="mt-0.5 text-xs font-semibold">{row.online_orders_total || 0} ordenes</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">POS</p><p className="mt-0.5 text-xs font-semibold">{row.pos_sales_total || 0} ventas</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Publicacion</p><p className="mt-0.5 text-xs font-semibold">{row.store_publication_known ? formatDate(row.store_published_at) : "Sin fecha"}</p></div>
+                        <div className="flex items-center justify-between gap-2 md:block md:text-right"><Badge variant="outline" className={row.is_omnichannel ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-border text-muted-foreground"}>{row.is_omnichannel ? "Omnicanal" : row.uses_online ? "Online" : row.uses_pos ? "POS" : "Sin canal"}</Badge><p className="mt-1 text-[10px] text-muted-foreground">{row.store_is_active ? "Tienda activa" : "Tienda inactiva"}</p></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
