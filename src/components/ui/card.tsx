@@ -11,7 +11,7 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
     <div
       ref={ref}
       className={cn(
-        "relative rounded-[10px] border border-border/60 bg-card text-card-foreground",
+        "relative rounded-[8px] border border-border/70 bg-card text-card-foreground",
         "shadow-card",          // custom shadow with inner highlight from index.css
         "overflow-hidden",
         className,

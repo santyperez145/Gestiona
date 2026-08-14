@@ -835,6 +835,22 @@ de cliente, que decían guardarse y no guardaban nada.
 
 ---
 
+## Lenguaje visual y rediseno (2026-08-14)
+
+La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de informacion y la claridad de las acciones, pero no copia pantallas ni assets. El producto tiene que verse como un sistema operativo omnicanal, no como un template de tienda.
+
+- La superficie de organizacion usa un workspace neutral con acciones en ambar; la superficie de plataforma conserva violeta para que nadie confunda tenant con staff.
+- El modo claro es el punto de entrada para leer tablas, metricas y estados. El modo oscuro sigue siendo una opcion completa.
+- Cada pantalla debe tener orientacion visible, busqueda global accesible y una accion primaria clara. El topbar de la organizacion es parte del sistema.
+- Las tarjetas son herramientas de lectura o accion, con radio maximo de 8px, jerarquia de borde y sombra discreta. No se anidan tarjetas dentro de tarjetas.
+- Los numeros se alinean y se comparan con periodo, canal, sucursal y variacion. Un KPI sin fecha o fuente no se presenta como verdad.
+- Mobile no es una version comprimida: tablas tienen scroll explicito, acciones llegan a 40px y la navegacion conserva Resumen, POS, Ventas, Productos y Clientes.
+- Los kits de Figma son referencias de criterio. La implementacion vive en los componentes y tokens del repo para que todas las superficies evolucionen juntas.
+
+El slice de rediseno se verifica con screenshot en desktop y mobile, typecheck, lint, test y build antes de avanzar a otra superficie.
+
+---
+
 ## Acceso directo a la base
 
 Es lo que convierte "creo que el esquema es así" en "lo miré". Sin esto se

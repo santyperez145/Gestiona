@@ -153,6 +153,94 @@
   }
 }
 
+/* 2026 workspace refresh: neutral surfaces, amber actions, predictable depth. */
+@layer base {
+  :root {
+    --background: 220 16% 7%;
+    --foreground: 220 20% 93%;
+    --card: 220 14% 10%;
+    --card-foreground: 220 20% 93%;
+    --popover: 220 14% 12%;
+    --popover-foreground: 220 20% 93%;
+    --primary: 38 92% 58%;
+    --primary-foreground: 30 35% 10%;
+    --secondary: 220 12% 15%;
+    --secondary-foreground: 220 15% 82%;
+    --muted: 220 12% 13%;
+    --muted-foreground: 220 10% 58%;
+    --accent: 38 45% 22%;
+    --accent-foreground: 38 92% 86%;
+    --border: 220 12% 18%;
+    --input: 220 12% 18%;
+    --ring: 38 92% 58%;
+    --radius: 0.5rem;
+    --sidebar-background: 220 16% 5%;
+    --sidebar-foreground: 220 12% 68%;
+    --sidebar-primary: 38 92% 58%;
+    --sidebar-primary-foreground: 30 35% 10%;
+    --sidebar-accent: 220 12% 11%;
+    --sidebar-accent-foreground: 220 20% 93%;
+    --sidebar-border: 220 12% 14%;
+    --sidebar-ring: 38 92% 58%;
+    --gradient-gold: linear-gradient(135deg, hsl(45 96% 64%), hsl(38 92% 58%), hsl(28 82% 48%));
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(38 92% 58% / 0.14), hsl(38 92% 58% / 0.03));
+    --gradient-card: linear-gradient(160deg, hsl(220 14% 11%) 0%, hsl(220 16% 9%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(220 16% 6%) 0%, hsl(220 18% 4%) 100%);
+    --gradient-page: none;
+    --shadow-gold: 0 4px 24px -6px hsl(38 92% 58% / 0.24);
+    --shadow-card: 0 1px 0 hsl(0 0% 100% / 0.04) inset, 0 2px 5px hsl(0 0% 0% / 0.24), 0 10px 24px -14px hsl(0 0% 0% / 0.55);
+    --shadow-elevated: 0 1px 0 hsl(0 0% 100% / 0.06) inset, 0 8px 20px hsl(0 0% 0% / 0.36), 0 24px 48px -18px hsl(0 0% 0% / 0.58);
+    --shadow-kpi: 0 1px 0 hsl(0 0% 100% / 0.05) inset, 0 2px 8px hsl(0 0% 0% / 0.25);
+    --glass-bg: hsl(220 14% 10% / 0.82);
+    --glass-border: hsl(220 12% 24% / 0.55);
+  }
+
+  .light {
+    --background: 220 20% 97%;
+    --foreground: 222 24% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 24% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 24% 12%;
+    --primary: 38 82% 44%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 16% 94%;
+    --secondary-foreground: 222 20% 20%;
+    --muted: 220 16% 94%;
+    --muted-foreground: 222 12% 42%;
+    --accent: 38 65% 93%;
+    --accent-foreground: 30 65% 26%;
+    --border: 220 16% 87%;
+    --input: 220 16% 87%;
+    --ring: 38 82% 44%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 15% 35%;
+    --sidebar-primary: 38 82% 44%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 38 55% 95%;
+    --sidebar-accent-foreground: 222 24% 15%;
+    --sidebar-border: 220 16% 87%;
+    --sidebar-ring: 38 82% 44%;
+    --gradient-gold: linear-gradient(135deg, hsl(45 92% 52%), hsl(38 82% 44%), hsl(28 78% 40%));
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(38 82% 44% / 0.12), hsl(38 82% 44% / 0.03));
+    --gradient-card: linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(220 20% 98.5%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 20% 98%) 100%);
+    --gradient-page: none;
+    --shadow-gold: 0 4px 20px -8px hsl(38 82% 44% / 0.28);
+    --shadow-card: 0 1px 2px hsl(222 20% 10% / 0.04), 0 8px 18px -12px hsl(222 20% 10% / 0.14);
+    --shadow-elevated: 0 4px 12px hsl(222 20% 10% / 0.08), 0 20px 36px -16px hsl(222 20% 10% / 0.16);
+    --shadow-kpi: 0 1px 2px hsl(222 20% 10% / 0.04), 0 5px 12px -10px hsl(222 20% 10% / 0.14);
+    --glass-bg: hsl(0 0% 100% / 0.86);
+    --glass-border: hsl(220 16% 80% / 0.6);
+  }
+}
+
+@layer utilities {
+  .panel { border-radius: 8px; box-shadow: var(--shadow-card); }
+  .design-surface { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 8px; box-shadow: var(--shadow-card); }
+  .topbar-surface { background: hsl(var(--background) / 0.82); backdrop-filter: blur(18px) saturate(140%); }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -652,7 +740,7 @@
   .panel {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
     box-shadow: var(--shadow-card);
     position: relative;

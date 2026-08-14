@@ -3,6 +3,18 @@
 Este documento dice qué es el producto, qué funciona hoy y qué sigue.
 Lo que está acá tiene que ser verificable: nada de porcentajes inventados ni de
 mercados a los que no vamos.
+---
+## 0.1 Lenguaje visual y experiencia
+
+El rediseño visual acompana la tesis del sistema operativo omnicanal: la interfaz debe ayudar a operar, comparar y decidir. Los kits de Figma se usan como referencia de jerarquia y densidad, no como una copia de pantallas.
+
+- La organizacion abre en workspace claro y neutral, con ambar para acciones y violeta reservado al panel de plataforma; dark mode sigue disponible.
+- El shell mantiene orientacion visible, busqueda global, accion primaria y estado operativo en todas las superficies.
+- Las tarjetas tienen radio de hasta 8px, sombra discreta y una sola responsabilidad. No se agregan bloques decorativos que compitan con ventas, stock, margen o caja.
+- El dashboard prioriza Business Core: ventas, margen real, stock, caja y tareas de hoy. Cada cifra lleva periodo o fuente.
+- Mobile conserva los cinco accesos criticos: Resumen, POS, Ventas, Productos y Clientes. Las tablas se desplazan sin romper la pagina.
+
+**Slice de rediseno 1 (2026-08-14):** tokens visuales, modo claro por defecto, topbar operativo de organizacion, headers de pagina y chrome de plataforma. La salida se valida con screenshots desktop/mobile y la puerta completa del repo.
 
 ---
 
@@ -1651,5 +1663,5 @@ rango de precio.
 
 ---
 
-*Última revisión: 2026-07-31*
+*Última revisión: 2026-08-14*
 *Para el detalle del día a día: `git log --oneline -20`.*

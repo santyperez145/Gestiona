@@ -391,7 +391,7 @@ const isChunkError = (err: unknown) => {
 };
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="gestiona-theme">
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="gestiona-theme">
   <Sentry.ErrorBoundary fallback={({ error }) => {
     if (isChunkError(error)) {
       // Deploy nuevo: los chunks viejos ya no existen. Limpiamos caches + SW

@@ -104,7 +104,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useStockAlerts({ orgId: activeOrg?.id, threshold: 5 });
   // ── PWA install prompt + offline detector ────────────────────────────────
   const { canInstall, install, dismiss: dismissInstall } = usePWAInstall();
-  useOnlineStatus(); // fires toasts on online/offline changes automatically
+  const { online } = useOnlineStatus(); // fires toasts on online/offline changes automatically
 
   // ── BroadcastChannel — cross-tab sync ────────────────────────────────────
   // When another tab saves a product/customer/sale, notify the user.
@@ -182,6 +182,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     await signOut();
     toast.success("Sesión cerrada");
   };
+
+  const currentNavItem = allNavItems.find(item => item.to === pathname);
+  const currentPageLabel = currentNavItem?.label ?? (pathname === '/' ? 'Resumen' : 'Gestiona');
+  const currentSectionLabel = currentNavItem ? SECTION_LABELS[currentNavItem.section] : 'Operacion';
 
   const roleLabel = role === 'admin' ? 'Administrador' : role === 'vendedor' ? 'Vendedor' : 'Viewer';
   const roleBadgeClass = role === 'admin'
@@ -368,7 +372,41 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className={`flex-1 overflow-auto w-full transition-all duration-300 md:ml-[68px] ${collapsed ? 'lg:ml-[68px]' : 'lg:ml-[240px]'}`}>
+      <main className={`flex-1 overflow-auto w-full min-h-screen bg-background transition-all duration-300 md:ml-[68px] ${collapsed ? 'lg:ml-[68px]' : 'lg:ml-[240px]'}`}>
+        {/* Desktop command bar: a stable orientation point across every module. */}
+        <header className="hidden md:flex sticky top-0 z-30 h-14 items-center gap-4 border-b border-border/70 px-6 topbar-surface">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/65">
+              <span>{currentSectionLabel}</span>
+              <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
+              <span className="truncate text-foreground/80">{currentPageLabel}</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+            className="hidden lg:flex h-8 w-[220px] items-center gap-2 rounded-[7px] border border-border/80 bg-card/70 px-2.5 text-left text-[11px] text-muted-foreground/70 transition-colors hover:border-primary/45 hover:text-foreground"
+            aria-label="Buscar en Gestiona"
+          >
+            <Search className="h-3.5 w-3.5 shrink-0" />
+            <span className="flex-1">Buscar en Gestiona</span>
+            <kbd className="rounded-[4px] border border-border bg-muted px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">Ctrl K</kbd>
+          </button>
+
+          <div className={`hidden xl:flex items-center gap-2 text-[11px] ${online ? 'text-muted-foreground/75' : 'text-destructive'}`}>
+            <span className={`status-dot ${online ? 'bg-emerald-500' : 'bg-destructive'}`} />
+            {online ? 'Operativo' : 'Sin conexion'}
+          </div>
+          <Link
+            to="/ventas"
+            className="inline-flex h-8 items-center gap-1.5 rounded-[7px] bg-primary px-3 text-[11px] font-semibold text-primary-foreground shadow-gold transition-all hover:brightness-105"
+          >
+            <DollarSign className="h-3.5 w-3.5" />
+            Nueva venta
+          </Link>
+          <PresenceAvatars maxVisible={3} size={24} className="hidden lg:flex" />
+        </header>
         {/* Mobile-only header — hidden from md upward, where the icon rail is always visible */}
         <div className="md:hidden sticky top-0 z-30 border-b border-border/30 px-4 h-12 flex items-center gap-3"
           style={{ background: 'hsl(var(--sidebar-background) / 0.92)', backdropFilter: 'blur(16px) saturate(160%)' }}>

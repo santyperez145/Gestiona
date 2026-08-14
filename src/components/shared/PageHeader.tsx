@@ -21,23 +21,25 @@ const BADGE: Record<BadgeVariant, string> = {
 
 export default function PageHeader({ icon: Icon, title, description, actions, badge }: PageHeaderProps) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 md:mb-8">
+    <div className="page-header flex flex-col sm:flex-row sm:items-start justify-between gap-5 mb-6 md:mb-8">
 
       {/* ── Left: icon + title + accent bar ─────────────────────── */}
       <div className="min-w-0">
 
-        {/* Icon row */}
-        <div className="flex items-center gap-2 mb-1.5">
-          <Icon className="w-[15px] h-[15px] text-primary/60 shrink-0" />
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/50 font-display">
-            {title}
+        {/* Compact context line keeps the title readable at a glance. */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-primary/10 text-primary ring-1 ring-primary/15">
+            <Icon className="w-3.5 h-3.5" />
+          </span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70 font-display">
+            Gestiona / Operacion
           </span>
         </div>
 
         {/* Title */}
         <div className="flex items-end gap-3 flex-wrap">
           <h1 className={cn(
-            "text-[1.7rem] md:text-[2rem] font-display font-bold tracking-[-0.03em] leading-none",
+            "text-[1.65rem] md:text-[1.95rem] font-display font-bold tracking-[-0.03em] leading-none",
             "text-foreground",
           )}>
             {title}
@@ -52,12 +54,9 @@ export default function PageHeader({ icon: Icon, title, description, actions, ba
           )}
         </div>
 
-        {/* Gold accent underline */}
-        <div className="mt-2 h-[2px] w-8 rounded-full bg-primary/50" />
-
         {/* Description */}
         {description && (
-          <p className="mt-2 text-[13px] text-muted-foreground/60 leading-relaxed max-w-[520px]">
+          <p className="mt-2 text-[13px] text-muted-foreground/75 leading-relaxed max-w-[560px]">
             {description}
           </p>
         )}
