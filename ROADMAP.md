@@ -259,6 +259,12 @@ proveedor se le estaría pidiendo que incumpla desde el día uno.
 | **F11** Acotar la garantía a 6 meses | 🟠 Barato. |
 | **F10** El envío de vuelta lo paga el vendedor | 🟠 Falta modelarlo en la devolución. |
 
+**Slice funcional 18 (2026-08-14):** F5 deja de ser un booleano sin evidencia.
+El checkout ofrece un consentimiento opcional y desmarcado, registra fecha,
+origen y orden incluso para invitados, lo propaga al CRM al acreditarse el pago
+y las campañas de email/WhatsApp excluyen por defecto a todo contacto sin fecha
+de consentimiento. No se infiere consentimiento de compras históricas.
+
 > **Condición de salida:** se emitió **una factura electrónica real** y un
 > comercio nuevo puede darse de alta sin incumplir nada.
 

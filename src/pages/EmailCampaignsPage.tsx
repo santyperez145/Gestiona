@@ -217,7 +217,7 @@ export default function EmailCampaignsPage() {
     try {
       const [{ data: camps }, { data: custs }, { data: sales }, { data: unsubs }, { data: coups }, { data: couponSales }, sett] = await Promise.all([
         supabase.from("email_campaigns").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
-        supabase.from("customers").select("id,name,email,birthday").eq("org_id", activeOrg.id).not("email", "is", null),
+        supabase.from("customers").select("id,name,email,birthday").eq("org_id", activeOrg.id).not("email", "is", null).not("marketing_consent_at", "is", null),
         supabase.from("sales").select("customer_name,date").eq("org_id", activeOrg.id).order("date", { ascending: false }),
         supabase.from("email_unsubscribes").select("email").eq("org_id", activeOrg.id),
         supabase.from("coupons").select("id, code").eq("user_id", user.id),

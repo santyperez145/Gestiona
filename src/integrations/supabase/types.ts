@@ -3987,6 +3987,8 @@ export type Database = {
           email: string | null
           id: string
           instagram_handle: string | null
+          marketing_consent_at: string | null
+          marketing_consent_source: string | null
           name: string
           notes: string | null
           org_id: string
@@ -4008,6 +4010,8 @@ export type Database = {
           email?: string | null
           id?: string
           instagram_handle?: string | null
+          marketing_consent_at?: string | null
+          marketing_consent_source?: string | null
           name: string
           notes?: string | null
           org_id: string
@@ -4029,6 +4033,8 @@ export type Database = {
           email?: string | null
           id?: string
           instagram_handle?: string | null
+          marketing_consent_at?: string | null
+          marketing_consent_source?: string | null
           name?: string
           notes?: string | null
           org_id?: string
@@ -5534,6 +5540,8 @@ export type Database = {
           fulfillment_status: string
           id: string
           items: Json
+          marketing_consent_at: string | null
+          marketing_consent_source: string | null
           notes: string | null
           order_number: string
           org_id: string
@@ -5576,6 +5584,8 @@ export type Database = {
           fulfillment_status?: string
           id?: string
           items?: Json
+          marketing_consent_at?: string | null
+          marketing_consent_source?: string | null
           notes?: string | null
           order_number: string
           org_id: string
@@ -5618,6 +5628,8 @@ export type Database = {
           fulfillment_status?: string
           id?: string
           items?: Json
+          marketing_consent_at?: string | null
+          marketing_consent_source?: string | null
           notes?: string | null
           order_number?: string
           org_id?: string
@@ -16527,6 +16539,8 @@ export type Database = {
           email: string
           id: string
           last_login_at: string | null
+          marketing_consent_at: string | null
+          marketing_consent_source: string | null
           name: string | null
           org_id: string
           phone: string | null
@@ -16540,6 +16554,8 @@ export type Database = {
           email: string
           id?: string
           last_login_at?: string | null
+          marketing_consent_at?: string | null
+          marketing_consent_source?: string | null
           name?: string | null
           org_id: string
           phone?: string | null
@@ -16553,6 +16569,8 @@ export type Database = {
           email?: string
           id?: string
           last_login_at?: string | null
+          marketing_consent_at?: string | null
+          marketing_consent_source?: string | null
           name?: string | null
           org_id?: string
           phone?: string | null
@@ -21137,6 +21155,15 @@ export type Database = {
       redondear_moneda: {
         Args: { p_importe: number; p_moneda?: string }
         Returns: number
+      }
+      register_store_marketing_consent: {
+        Args: {
+          p_email: string
+          p_order_number: string
+          p_slug: string
+          p_source?: string
+        }
+        Returns: boolean
       }
       registrar_conteo: {
         Args: { p_cantidad: number; p_count_id: string; p_product_id: string }

@@ -64,6 +64,7 @@ export default function StoreCheckout() {
   }, [customer]);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aceptaMarketing, setAceptaMarketing] = useState(false);
 
   // ── Cupón ───────────────────────────────────────────────────────────────
   const [cupon, setCupon] = useState("");
@@ -311,6 +312,21 @@ export default function StoreCheckout() {
 
     const orderNumber = (data as any)?.order_number;
 
+    // El consentimiento es opcional y se registra después de crear la orden
+    // para poder dejar como evidencia el número de pedido. Si este RPC todavía
+    // no está desplegado, la compra sigue y el contacto queda fuera de campañas.
+    if (aceptaMarketing && orderNumber) {
+      const { error: consentError } = await supabase.rpc("register_store_marketing_consent", {
+        p_slug: store!.slug,
+        p_order_number: orderNumber,
+        p_email: form.email,
+        p_source: "store_checkout",
+      });
+      if (consentError) {
+        console.error("No se pudo registrar el consentimiento de marketing", consentError);
+      }
+    }
+
     // Se cierra la sesión de carrito para que no le llegue un email de
     // "te quedó algo pendiente" a quien acaba de comprar.
     try {
@@ -528,6 +544,21 @@ export default function StoreCheckout() {
               rows={2} className={input} style={inputStyle}
               placeholder="Horario de entrega, referencias, etc."
             />
+          </label>
+
+          <label className="flex items-start gap-3 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={aceptaMarketing}
+              onChange={e => setAceptaMarketing(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Quiero recibir novedades y promociones por email o WhatsApp. Es opcional y puedo darme de baja cuando quiera.{' '}
+              <Link to={`${base}/pagina/politica-de-privacidad`} className="underline">
+                Ver política de privacidad
+              </Link>
+            </span>
           </label>
         </div>
 

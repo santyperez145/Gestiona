@@ -130,7 +130,7 @@ export default function WhatsAppCampaignsPage() {
     try {
       const [{ data: camps }, { data: custs }, { data: sales }, { data: debts }, { data: coups }, { data: couponSales }, sett] = await Promise.all([
         supabase.from("whatsapp_campaigns").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
-        supabase.from("customers").select("id,name,phone,birthday").eq("org_id", activeOrg.id),
+        supabase.from("customers").select("id,name,phone,birthday").eq("org_id", activeOrg.id).not("marketing_consent_at", "is", null),
         supabase.from("sales").select("customer_name,date").eq("org_id", activeOrg.id).order("date", { ascending: false }),
         // Deudas pendientes: la tabla no tiene `paid`/`amount` — el saldo real
         // es remaining_ars (>0 = todavía debe).
