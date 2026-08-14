@@ -868,6 +868,10 @@ La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de inf
 - Los insights de Ventas pueden compartir una grilla equilibrada en desktop y pasar a una columna en mobile. Los gráficos compactos tienen que conservar fecha, período y leyenda suficiente para no presentar una barra como dato sin contexto.
 - Las vistas agrupadas de Ventas (`lista`, `cliente`, `sesion`, `producto`, `fecha`) son modos de lectura del mismo dato; un cambio visual no puede duplicar consultas ni inventar totales alternativos.
 - Las toolbars con muchos filtros deben tener ancho estable, scroll horizontal controlado para presets/vistas y controles táctiles legibles en mobile. El filtro activo debe seguir siendo visible cuando la lista cambia.
+- Productos es un workspace de inventario: primero se leen cantidad, inversión, stock bajo, agotados y vencimientos; después se opera sobre cada ficha. Los KPIs no son decoración y cada alerta debe llevar a un filtro o acción existente.
+- La tabla de Productos conserva scroll horizontal explícito, encabezado estable y columnas legibles para costo, venta, ganancia, stock, días restantes y movimiento. No ocultar un riesgo operativo para ganar espacio visual.
+- La grilla y la tabla son dos vistas del mismo conjunto filtrado. Cambiar de vista no cambia el resultado, el orden, la selección ni las reglas de permisos.
+- En mobile, los filtros se desplazan dentro de su propia toolbar y la barra de selección masiva no puede tapar el contenido ni dejar acciones fuera de alcance. Stock inline, umbral, oferta y eliminar mantienen sus salvaguardas actuales.
 
 El slice de rediseno se verifica con screenshot en desktop y mobile, typecheck, lint, test y build antes de avanzar a otra superficie.
 

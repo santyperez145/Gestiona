@@ -28,6 +28,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de rediseno 7 (2026-08-14):** Ventas pasa a una composicion de centro operativo: KPIs primero, metodos de cobro y tendencia en un bloque de insights equilibrado, y debajo presets de periodo, filtros y vistas agrupadas en una toolbar con scroll controlado. El responsive conserva la lectura en una columna y no altera calculos, permisos, exportaciones ni agrupaciones existentes. Validado con typecheck, lint sin errores, 823 tests y build.
 
+**Slice de rediseno 8 (2026-08-14):** Productos se consolida como workspace de inventario: acciones extensas quedan contenidas, KPIs separan inventario de riesgo, aging recibe una superficie propia, filtros se comportan como toolbar y las vistas de grilla/tabla mantienen dimensiones estables. La tabla conserva scroll horizontal y encabezado visible; la barra de seleccion masiva se adapta a mobile. No se toca el movimiento de stock, los calculos de margen, permisos, edicion ni exportaciones. Validado con typecheck, lint sin errores, 823 tests y build.
+
 ---
 
 ## 1. Qué es

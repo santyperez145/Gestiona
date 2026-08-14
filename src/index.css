@@ -1225,6 +1225,98 @@
     white-space: nowrap;
   }
 
+  .workspace-products {
+    --products-shadow: 0 14px 28px -26px hsl(var(--primary) / 0.78);
+  }
+
+  .workspace-products-actions {
+    max-width: 100%;
+  }
+
+  .workspace-products-actions > * {
+    min-height: 2.25rem;
+  }
+
+  .workspace-products-kpis {
+    align-items: stretch;
+  }
+
+  .workspace-products-kpis > * {
+    min-width: 0;
+  }
+
+  .workspace-products-aging,
+  .workspace-products-table-shell {
+    box-shadow: var(--products-shadow);
+  }
+
+  .workspace-products-filters {
+    align-items: center;
+    padding: 0.75rem;
+    border: 1px solid hsl(var(--border) / 0.76);
+    border-radius: 8px;
+    background: hsl(var(--muted) / 0.28);
+  }
+
+  .workspace-products-filters > .relative {
+    min-width: min(100%, 15rem);
+  }
+
+  .workspace-products-filters input,
+  .workspace-products-filters [role="combobox"] {
+    background: hsl(var(--card) / 0.92);
+  }
+
+  .workspace-products-grid {
+    align-items: stretch;
+  }
+
+  .workspace-products-grid-card {
+    box-shadow: var(--products-shadow);
+    transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+  }
+
+  .workspace-products-grid-card:hover {
+    box-shadow: 0 18px 34px -28px hsl(var(--primary) / 0.95);
+    transform: translateY(-1px);
+  }
+
+  .workspace-products-brand-group > h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-height: 1.5rem;
+  }
+
+  .workspace-products-table-shell {
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  .workspace-products-table {
+    min-width: 70rem;
+  }
+
+  .workspace-products-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .workspace-products-table tbody tr {
+    min-height: 3.5rem;
+  }
+
+  .workspace-products-mobile-list > * {
+    min-height: 6.25rem;
+    box-shadow: var(--products-shadow);
+  }
+
+  .workspace-products-bulk-bar {
+    max-width: min(94vw, 52rem);
+    backdrop-filter: blur(14px);
+    background: hsl(var(--card) / 0.94);
+  }
+
   .light .workspace-page input.bg-muted,
   .light .workspace-page textarea.bg-muted,
   .light .workspace-page [role="combobox"].bg-muted {
@@ -1293,6 +1385,34 @@
 
     .workspace-sales-view-switcher {
       flex: 1 1 100%;
+    }
+
+    .workspace-products-filters {
+      align-items: stretch;
+    }
+
+    .workspace-products-filters > .relative {
+      min-width: 100%;
+    }
+
+    .workspace-products-filters > .flex {
+      width: 100%;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 0.15rem;
+    }
+
+    .workspace-products-filters > .flex > * {
+      flex: 0 0 auto;
+    }
+
+    .workspace-products-bulk-bar {
+      bottom: 0.75rem;
+      max-height: 68vh;
+      overflow-y: auto;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 0.75rem;
     }
   }
 }
