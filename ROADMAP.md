@@ -54,6 +54,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 19 (2026-08-14):** G6 deja de mirar sólo la señal de hoy. `platform_org_health_source` concentra la definición de salud y `capture_platform_org_health_snapshot` guarda la fotografía diaria por organización; una serie protegida agrega en riesgo, cayendo, dormido, sin activar y GMV expuesto para `/platform/metricas`. La primera captura real registró 4 organizaciones y el cron corre todos los días a las 03:15 ART. No hay backfill: hasta la próxima captura se muestra una única observación, no una tendencia inventada. Validado contra la base vinculada con captura sintética limpiada, primera captura real, cron, permisos de anon/authenticated y lectura como platform admin; typecheck, lint sin errores, 893 tests y build/PWA.
 
+**Slice funcional 20 (2026-08-14):** D2 deja de terminar en un panel sin dirección. El onboarding pasa de tres a cuatro pasos y, después de guardar negocio, rubro y marca, ofrece un camino explícito: cargar el primer producto, explorar datos de ejemplo en esa misma organización o ir al panel, cuyo checklist conserva el siguiente pendiente. Elegir productos llega directo a `/productos` y explica la secuencia producto → stock/costo → primera venta; los datos de ejemplo son opt-in, nunca se cargan para quien quiere empezar con datos reales. Todo guardado —organización, ajustes, fin de onboarding y demo— informa cualquier error en lugar de marcar el alta como exitosa. Validado con typecheck, lint sin errores, 893 tests y build/PWA; sin `.env`, no se simuló una organización real desde el navegador.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -294,7 +296,7 @@ funcionó sin instrumentación, así que van juntas.
 
 | Qué | Estado |
 |---|---|
-| **D2** Onboarding guiado | 🔴 `StoreReadinessPanel` dice qué falta; no hay paso a paso. Es lo que convierte "funciona" en "otro lo puede usar". |
+| **D2** Onboarding guiado | 🟡 El alta ya encadena hacia producto, demo opt-in o panel con checklist. Falta validarlo con el segundo comercio real y reducir su tiempo hasta la primera venta. |
 | **G1–G8** Instrumentación | 🟡 G1–G8 ya tienen vistas o eventos medibles. Falta que la serie de G6 acumule días y observar uso sostenido con un segundo comercio. |
 | **D4** Límites del plan aplicados | 🟠 Sólo productos. Faltan usuarios, tiendas y órdenes/mes. |
 | **D1** Comprobante fiscal de la suscripción (= F16) | 🟠 Depende de C1. |
@@ -466,7 +468,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | # | Qué | Estado |
 |---|---|---|
 | **D1** | **Facturación fiscal de la suscripción** | Stripe cobra; no se emite comprobante argentino al comercio. |
-| **D2** | **Onboarding guiado** | `StoreReadinessPanel` dice qué falta; no hay un paso a paso. |
+| **D2** | **Onboarding guiado** | 🟡 El alta guía al primer trabajo real y el dashboard retoma los pendientes; falta medirlo con el segundo comercio. |
 | **D3** | **Anuncios a los comercios** | No hay forma de avisar "nueva versión" o "mantenimiento". |
 | **D4** | **Límites del plan aplicados** | Sólo productos. Faltan usuarios, tiendas y órdenes/mes. |
 | **D5** | **Exportar la organización entera** | Existe el export por Ley 25.326 para personas, no para llevarse el negocio. |

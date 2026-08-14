@@ -6,8 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, LayoutDashboard, Package, Sparkles } from 'lucide-react';
 import { listIndustries } from '@/lib/marketingExtraDB';
+
+type FinishDestination = 'products' | 'dashboard' | 'demo';
+
+function errorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string' && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
 
 export default function OnboardingPage() {
   const { activeOrg, refresh } = useOrg();
@@ -15,20 +25,26 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState(activeOrg?.name?.replace(' Workspace', '') || '');
-  const [industries, setIndustries] = useState<any[]>([]);
+  const [industries, setIndustries] = useState<Awaited<ReturnType<typeof listIndustries>>>([]);
   const [rubroCode, setRubroCode] = useState('perfumes');
   const [color, setColor] = useState('#D4A843');
-  const [loadDemo, setLoadDemo] = useState(false);
+  const [savingDestination, setSavingDestination] = useState<FinishDestination | null>(null);
 
   useEffect(() => {
-    listIndustries().then((rows) => {
-      setIndustries(rows);
-      const def = rows.find((r: any) => r.code === 'perfumes') || rows[0];
-      if (def) { setRubroCode(def.code); setColor(def.default_color); }
-    });
+    if (activeOrg) setName((current) => current || activeOrg.name.replace(' Workspace', ''));
+  }, [activeOrg]);
+
+  useEffect(() => {
+    void listIndustries()
+      .then((rows) => {
+        setIndustries(rows);
+        const def = rows.find((row) => row.code === 'perfumes') || rows[0];
+        if (def) { setRubroCode(def.code); setColor(def.default_color); }
+      })
+      .catch((error: unknown) => toast.error(errorMessage(error, 'No se pudieron cargar los rubros. Podés continuar y corregirlo en Ajustes.')));
   }, []);
 
-  const colorPalette = Array.from(new Set(industries.map((i: any) => i.default_color).concat(['#D4A843','#3B82F6','#10B981','#EF4444','#8B5CF6','#EC4899','#F59E0B'])));
+  const colorPalette = Array.from(new Set(industries.map((industry) => industry.default_color).concat(['#D4A843','#3B82F6','#10B981','#EF4444','#8B5CF6','#EC4899','#F59E0B'])));
 
   if (!activeOrg) {
     return (
@@ -38,37 +54,59 @@ export default function OnboardingPage() {
     );
   }
 
-  const finish = async (withDemo = false) => {
+  const finish = async (destination: FinishDestination) => {
     setSaving(true);
-    const ind = industries.find(i => i.code === rubroCode);
-    const defaultSettings = ind?.default_settings || {};
-    const aiTone = ind?.ai_tone || 'profesional rioplatense argentino';
-    const { error: orgErr } = await supabase
-      .from('organizations')
-      .update({ name, primary_color: color })
-      .eq('id', activeOrg.id);
-    if (orgErr) { toast.error('Error guardando'); setSaving(false); return; }
-    await supabase
-      .from('settings')
-      .update({ business_name: name, primary_color: color, industry_code: rubroCode, ai_tone: aiTone, ...defaultSettings })
-      .eq('org_id', activeOrg.id);
-    await supabase
-      .from('organizations')
-      .update({ onboarding_completed: true })
-      .eq('id', activeOrg.id);
-    localStorage.setItem(`gestiona.onboarded.${activeOrg.id}`, '1');
-    if (withDemo) {
-      setLoadDemo(true);
-      await supabase.functions.invoke('seed-demo', { body: { orgId: activeOrg.id } });
-      setLoadDemo(false);
+    setSavingDestination(destination);
+    try {
+      const businessName = name.trim();
+      const ind = industries.find((industry) => industry.code === rubroCode);
+      const defaultSettings = ind?.default_settings || {};
+      const aiTone = ind?.ai_tone || 'profesional rioplatense argentino';
+      const { error: organizationError } = await supabase
+        .from('organizations')
+        .update({ name: businessName, primary_color: color })
+        .eq('id', activeOrg.id);
+      if (organizationError) throw organizationError;
+
+      const { error: settingsError } = await supabase
+        .from('settings')
+        .update({ business_name: businessName, primary_color: color, industry_code: rubroCode, ai_tone: aiTone, ...defaultSettings })
+        .eq('org_id', activeOrg.id);
+      if (settingsError) throw settingsError;
+
+      const { error: onboardingError } = await supabase
+        .from('organizations')
+        .update({ onboarding_completed: true })
+        .eq('id', activeOrg.id);
+      if (onboardingError) throw onboardingError;
+
+      localStorage.setItem(`gestiona.onboarded.${activeOrg.id}`, '1');
+
+      if (destination === 'demo') {
+        const { error: demoError } = await supabase.functions.invoke('seed-demo', { body: { orgId: activeOrg.id } });
+        if (demoError) throw demoError;
+      }
+
+      await refresh();
+      if (destination === 'products') {
+        toast.success('Listo. Ahora cargá tu primer producto para poder vender.');
+        navigate('/productos?onboarding=1');
+      } else if (destination === 'demo') {
+        toast.success(`¡Listo, ${businessName}! Cargamos datos de ejemplo para explorar.`);
+        navigate('/');
+      } else {
+        toast.success(`¡Listo, ${businessName}! El panel te va a guiar con el siguiente paso.`);
+        navigate('/');
+      }
+    } catch (error) {
+      toast.error(errorMessage(error, 'No se pudo completar la configuración. Revisá tu conexión e intentá de nuevo.'));
+    } finally {
+      setSaving(false);
+      setSavingDestination(null);
     }
-    await refresh();
-    toast.success(`¡Bienvenido a Gestiona, ${name}!`);
-    navigate('/');
-    setSaving(false);
   };
 
-  const STEPS = ['Tu negocio', '¿Qué vendés?', 'Branding'];
+  const STEPS = ['Tu negocio', '¿Qué vendés?', 'Marca', 'Primer paso'];
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'hsl(var(--background))' }}>
@@ -228,17 +266,57 @@ export default function OnboardingPage() {
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setStep(2)} className="flex-1" disabled={saving}>Atrás</Button>
-                  <Button onClick={() => finish(false)} className="flex-1" disabled={saving}>
-                    {saving && !loadDemo ? 'Guardando...' : 'Empezar'} <ArrowRight className="w-4 h-4 ml-1" />
+                  <Button onClick={() => setStep(4)} className="flex-1" disabled={saving}>
+                    Siguiente <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => finish(true)}
-                  disabled={saving}
-                  className="w-full text-[12px] border-dashed text-muted-foreground hover:text-foreground"
-                >
-                  {loadDemo ? 'Cargando datos de ejemplo...' : 'Cargar datos de ejemplo para explorar'}
+              </div>
+            </div>
+          )}
+
+          {/* Step 4 */}
+          {step === 4 && (
+            <div className="space-y-5">
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-1.5">Paso 4 de 4</p>
+                <h1 className="font-display text-[1.5rem] font-bold tracking-tight leading-tight">
+                  Elegí cómo querés empezar
+                </h1>
+                <p className="text-[12px] text-muted-foreground/55 mt-1.5">
+                  El objetivo de hoy es llegar a tu primera venta; después el panel mantiene los pasos que falten a la vista.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => finish('products')}
+                disabled={saving}
+                className="w-full rounded-[9px] border border-primary/35 bg-primary/[0.07] p-4 text-left transition-colors hover:bg-primary/[0.11] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"><Package className="h-4 w-4" /></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Tengo productos para cargar</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Vamos a Productos. Después registrás la compra o el stock inicial y podés hacer la primera venta.</span></span>
+                  {savingDestination === 'products' ? <span className="mt-2 text-[11px] text-primary">Guardando...</span> : <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-primary" />}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => finish('demo')}
+                disabled={saving}
+                className="w-full rounded-[9px] border border-border/60 p-4 text-left transition-colors hover:bg-muted/30 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-300"><Sparkles className="h-4 w-4" /></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Quiero explorar con datos de ejemplo</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Cargamos datos de prueba en esta organización para que puedas recorrer el flujo completo.</span></span>
+                  {savingDestination === 'demo' ? <span className="mt-2 text-[11px] text-muted-foreground">Cargando...</span> : <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground" />}
+                </span>
+              </button>
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setStep(3)} className="flex-1" disabled={saving}>Atrás</Button>
+                <Button variant="ghost" onClick={() => finish('dashboard')} className="flex-1" disabled={saving}>
+                  {savingDestination === 'dashboard' ? 'Guardando...' : 'Ir al panel'} <LayoutDashboard className="ml-1 h-4 w-4" />
                 </Button>
               </div>
             </div>
