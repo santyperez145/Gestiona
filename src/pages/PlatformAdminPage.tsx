@@ -610,31 +610,35 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
         }
       />
 
-      {/* KPIs — Row 1: Business metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard label="Organizaciones" value={stats.orgs} icon={Building2} color="primary"
-          sub={`${stats.trialing} en trial · ${stats.active} activas`} />
-        <KPICard label="MRR" value={`$${stats.mrr.toLocaleString()}`} icon={DollarSign} color="success"
-          sub={`ARR est.: $${stats.arr.toLocaleString()}`} />
-        <KPICard label="Crecimiento 30d" value={`${stats.growth30d >= 0 ? '+' : ''}${stats.growth30d}%`}
-          icon={stats.growth30d >= 0 ? TrendingUp : TrendingDown}
-          color={stats.growth30d >= 0 ? "success" : "destructive"}
-          sub="nuevas orgs vs 30d previos" />
-        <KPICard label="Conversión trial" value={`${stats.trialConversion}%`} icon={TrendingUp}
-          color={stats.trialConversion >= 50 ? "success" : "warning"}
-          sub={`ARPU: $${stats.arpu} · Churn: ${stats.churnRate}%`} />
-      </div>
+      {tab === 'overview' && (
+        <div className="space-y-4">
+          {/* KPIs — Row 1: Business metrics */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <KPICard label="Organizaciones" value={stats.orgs} icon={Building2} color="primary"
+              sub={`${stats.trialing} en trial · ${stats.active} activas`} />
+            <KPICard label="MRR" value={`$${stats.mrr.toLocaleString()}`} icon={DollarSign} color="success"
+              sub={`ARR est.: $${stats.arr.toLocaleString()}`} />
+            <KPICard label="Crecimiento 30d" value={`${stats.growth30d >= 0 ? '+' : ''}${stats.growth30d}%`}
+              icon={stats.growth30d >= 0 ? TrendingUp : TrendingDown}
+              color={stats.growth30d >= 0 ? "success" : "destructive"}
+              sub="nuevas orgs vs 30d previos" />
+            <KPICard label="Conversión trial" value={`${stats.trialConversion}%`} icon={TrendingUp}
+              color={stats.trialConversion >= 50 ? "success" : "warning"}
+              sub={`ARPU: $${stats.arpu} · Churn: ${stats.churnRate}%`} />
+          </div>
 
-      {/* KPIs — Row 2: Health status */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KPICard label="Activos" value={stats.active} icon={CheckCircle2} color="success" sub="pagos al día" />
-        <KPICard label="En trial" value={stats.trialing} icon={Zap} color="blue" sub="períodos de prueba" />
-        <KPICard label="Pago pendiente" value={stats.past_due} icon={Clock} color="warning" sub="requieren acción" />
-        <KPICard label="Cancelados" value={stats.canceled} icon={XCircle} color="destructive" sub="bajas confirmadas" />
-      </div>
+          {/* KPIs — Row 2: Health status */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <KPICard label="Activos" value={stats.active} icon={CheckCircle2} color="success" sub="pagos al día" />
+            <KPICard label="En trial" value={stats.trialing} icon={Zap} color="blue" sub="períodos de prueba" />
+            <KPICard label="Pago pendiente" value={stats.past_due} icon={Clock} color="warning" sub="requieren acción" />
+            <KPICard label="Cancelados" value={stats.canceled} icon={XCircle} color="destructive" sub="bajas confirmadas" />
+          </div>
+        </div>
+      )}
 
       {/* Contenido de la sección — la navegación vive en PlatformLayout */}
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={setTab} className="workspace-platform-tabs w-full">
 
         {/* ── OVERVIEW TAB ── */}
         <TabsContent value="overview" className="mt-4 space-y-4">

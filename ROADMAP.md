@@ -36,6 +36,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de rediseno 11 (2026-08-14):** el Dashboard deja de ser un flujo vertical unico. Un rail interno con estado activo lleva a Resumen, Ventas y metas, Clientes, Inventario, Finanzas e Inteligencia; en mobile se convierte en tabs horizontales desplazables. Cada destino tiene un ancla estable y la navegacion no dispara nuevas consultas ni altera los widgets, calculos o permisos. El siguiente trabajo de producto queda alineado con Fase 1: onboarding medible, limites de plan e instrumentacion, mientras AFIP y la publicacion legal siguen bloqueados por insumos externos. Validado con typecheck, lint sin errores, 823 tests y build.
 
+**Slice de rediseno 12 (2026-08-14):** Ajustes pasa de una pagina continua a seis tabs de dominio: Marca, Finanzas, Mensajeria, Precios, Suscripcion y Sistema. El panel de cada tab se mantiene montado para no perder entradas al cambiar de contexto, pero solo se muestra el dominio activo. Plataforma adopta sidebar violeta sticky en desktop y navegacion horizontal en mobile; sus KPIs quedan en Resumen. Administracion de la organizacion reutiliza el rail de tabs para Rendimiento, Equipo, Permisos, Metas, Auditoria y Actividad. La separacion visual no cruza RLS, roles ni contratos. Validado con typecheck, lint sin errores, 823 tests y build.
+
 ---
 
 ## 1. Qué es

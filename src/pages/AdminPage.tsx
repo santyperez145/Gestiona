@@ -213,6 +213,7 @@ export default function AdminPage() {
 
       {/* ── Tabs ─────────────────────────────────────────────────────── */}
       <Tabs
+        className="workspace-tabs-layout workspace-admin-tabs w-full"
         defaultValue={initialTab}
         onValueChange={(v) => {
           const next = new URLSearchParams(searchParams);
@@ -220,7 +221,7 @@ export default function AdminPage() {
           setSearchParams(next, { replace: true });
         }}
       >
-        <TabsList className="overflow-x-auto">
+        <TabsList className="workspace-tabs-nav overflow-x-auto">
           <TabsTrigger value="overview" className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" />Rendimiento</TabsTrigger>
           <TabsTrigger value="team" className="gap-1.5"><Users className="w-3.5 h-3.5" />Equipo</TabsTrigger>
           <TabsTrigger value="permissions" className="gap-1.5"><Shield className="w-3.5 h-3.5" />Permisos</TabsTrigger>
