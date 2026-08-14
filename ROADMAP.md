@@ -58,6 +58,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 21 (2026-08-14):** D4 deja de confiar en que el navegador respete el cupo. La base aplica `max_products` al insertar productos y `max_users` al crear invitaciones o membresías, serializado por organización para no perder una carrera concurrente. Una invitación vigente reserva asiento; una vencida no, y una aceptación consume su reserva en vez de duplicarla transitoriamente. La interfaz conserva el aviso temprano y no deja pasar una falla al consultar el límite. `max_sales_per_month` queda deliberadamente pendiente: `sales` guarda líneas, no órdenes, y aplicar esa columna sin una unidad de consumo común cobraría varias veces una venta con varios productos. Validado con plan/organización ZZ limpiados, ACL de las funciones internas y un insert como `authenticated`; typecheck, lint sin errores, 893 tests y build/PWA.
 
+**Slice funcional 22 (2026-08-14):** La cobertura E2E del panel suma POS sin crear ventas: carga con una sesión real, descarta el modal local de vendedor cuando aparece, rechaza el carrito vacío y comprueba que `F2` devuelve el foco a la búsqueda con las categorías disponibles. Así protege el render que ya se rompió por el orden de `confirmDisabled` y evita que un flujo de mostrador pase meses sin navegador. El spec es condicional al usuario E2E y Playwright lo detecta junto al resto de las 41 pruebas; falta ejecutarlo con esas credenciales, que no están en este equipo.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -183,7 +185,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **811 unitarios** (`npm test`, 2026-08-13) + 16 E2E de la tienda. Falta E2E del POS y el panel |
+| Tests | Anda | **893 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).

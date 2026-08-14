@@ -13,7 +13,7 @@
  * que los controles estén donde tienen que estar; ninguno despacha una orden
  * real ni sube un certificado. Lo que escriba, va con datos `ZZ` y limpieza.
  */
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 // Sin credenciales no hay sesión que reusar y estos specs no pueden correr. Se
 // saltean enteros en vez de fallar: un test rojo por falta de configuración
@@ -90,5 +90,41 @@ test.describe("clientes", () => {
 
     const filas = page.locator("[role='button'], button").filter({ hasText: /./ });
     expect(await filas.count(), "la página cargó sin controles").toBeGreaterThan(0);
+  });
+});
+
+test.describe("POS", () => {
+  async function abrirPos(page: Page) {
+    await page.goto("/caja");
+
+    // El nombre del vendedor es local a este navegador. Puede aparecer en una
+    // sesión nueva, pero omitirlo no crea ninguna venta ni cambia la base.
+    const vendedor = page.getByRole("heading", { name: "¿Quién atiende hoy?" });
+    if (await vendedor.isVisible()) {
+      await page.getByRole("button", { name: "Omitir", exact: true }).click();
+    }
+
+    await expect(page.getByPlaceholder(/Buscar producto/)).toBeVisible();
+  }
+
+  test("abre sin errores y no permite confirmar un carrito vacío", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    page.on("pageerror", error => errors.push(error.message));
+
+    await abrirPos(page);
+
+    await expect(page.getByRole("button", { name: /Confirmar venta/ })).toBeDisabled();
+    expect(errors, `errores en consola:\n${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("el atajo F2 vuelve a enfocar la búsqueda y conserva las categorías", async ({ page }) => {
+    await abrirPos(page);
+
+    const search = page.getByPlaceholder(/Buscar producto/);
+    await page.keyboard.press("F2");
+    await expect(search).toBeFocused();
+    await expect(page.getByRole("button", { name: "Todo", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Árabe", exact: true })).toBeVisible();
   });
 });
