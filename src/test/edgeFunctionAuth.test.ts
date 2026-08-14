@@ -36,7 +36,6 @@ const ALLOWED_WITHOUT_USER: Record<string, string> = {
   'daily-kpi-alert': 'cron',
   'daily-whatsapp-digest': 'cron',
   'weekly-performance-digest': 'cron',
-  'weekly-backup': 'cron',
   'send-scheduled-campaigns': 'cron',
   'send-drip-emails': 'cron',
   'send-birthday-whatsapp': 'cron',
@@ -120,6 +119,14 @@ describe('autenticación de Edge Functions', () => {
       'excepciones que ya no corresponden a ninguna función: si alguien crea ' +
       'una función con ese nombre, heredaría la excepción sin revisión',
     ).toEqual([]);
+  });
+
+  it('weekly-backup permanece deshabilitado y no vuelve a recorrer datos con service_role', () => {
+    const weeklyBackup = functions.find(f => f.name === 'weekly-backup');
+    expect(weeklyBackup).toBeDefined();
+    expect(weeklyBackup?.source).toContain('requireUser');
+    expect(weeklyBackup?.source).not.toContain('SUPABASE_SERVICE_ROLE_KEY');
+    expect(weeklyBackup?.source).not.toContain('user_roles');
   });
 
   // Nota: no hay acá un test de "filtra la service_role key al cliente".

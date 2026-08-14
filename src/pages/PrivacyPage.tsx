@@ -59,8 +59,8 @@ export default function PrivacyPage() {
         <Section title="5. Almacenamiento y seguridad">
           <p>
             Tus datos se almacenan en servidores de <strong>Supabase</strong> con cifrado en tránsito (HTTPS/TLS) y en
-            reposo. Realizamos backups periódicos. Aplicamos políticas de acceso mínimo (RLS) para que cada organización
-            sólo vea sus propios datos.
+            reposo. Aplicamos políticas de acceso mínimo (RLS) para que cada organización sólo vea sus propios datos y
+            ofrecemos exportación portable de la información accesible por la organización.
           </p>
         </Section>
 

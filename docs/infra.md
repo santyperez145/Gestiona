@@ -34,7 +34,11 @@ Funciones de automatización y observabilidad:
 - `run-automation-flows`
 - `send-email-campaign`, `send-scheduled-campaigns`
 - `daily-kpi-alert`, `weekly-performance-digest`
-- `weekly-backup`
+
+`weekly-backup` está deshabilitada deliberadamente: el mecanismo heredado
+generaba JSON por usuario y no tenía restauración. No se debe presentar el
+export portátil como backup gestionado hasta implementar D8 por organización y
+probar el restore.
 
 ## Secrets necesarios (Supabase)
 
@@ -57,5 +61,5 @@ Funciones de automatización y observabilidad:
 - Revisar estado de cron jobs y últimas ejecuciones
 - Verificar errores de funciones en logs de Supabase
 - Monitorear Sentry para frontend y edge flows críticos
-- Probar restauración de backup regularmente
+- Antes de habilitar backups gestionados, implementar y probar restauración por organización
 - Rotar secrets con política definida

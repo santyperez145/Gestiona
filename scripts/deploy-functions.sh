@@ -101,7 +101,7 @@ NO_JWT=(
   # API publica con su propio esquema de api keys
   "public-api"
   # Crons / tareas programadas
-  "weekly-backup" "check-alerts" "execute-automations" "run-automation-flows"
+  "check-alerts" "execute-automations" "run-automation-flows"
   "check-overdue-debts" "check-stock-alerts" "daily-kpi-alert"
   "weekly-performance-digest" "send-scheduled-campaigns"
   "auto-recurring-expenses" "customer-reactivation-alerts" "fetch-usd-rate"

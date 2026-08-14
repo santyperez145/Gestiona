@@ -34,7 +34,6 @@ $noJwt = @(
     # API publica con su propio esquema de api keys
     "public-api",
     # Crons / tareas programadas
-    "weekly-backup",
     "check-alerts",
     "execute-automations",
     "run-automation-flows",

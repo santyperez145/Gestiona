@@ -62,6 +62,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 23 (2026-08-14):** La salud de los cron deja de depender de una consulta manual de superusuario. `platform_cron_health` resume, sólo para staff de plataforma, el job, horario, actividad, último estado, último éxito y conteos de corridas/fallos de siete días; jamás expone el comando, mensajes de retorno ni respuestas HTTP. `/platform/metricas` suma Operación y ordena primero la última corrida fallida. “Sin ejecuciones” queda como información —por ejemplo para una tarea recién creada— sin inferir un atraso falso al parsear cron. Validado contra la base vinculada como `authenticated` staff: 16 jobs visibles, 15 saludables y una captura diaria aún sin historial; el rol ajeno ve cero filas y `authenticated` conserva sólo `SELECT` sobre la vista. Typecheck, lint sin errores, 894 tests y build/PWA completados.
 
+**Slice de confiabilidad 24 (2026-08-14):** D8 deja de prometer un backup que no existía. `weekly-backup` recorría el esquema legacy por usuario, no una organización, no tenía restore y se podía invocar sin usuario real. Queda deshabilitada con JWT + `requireUser`, sin `service_role`; el panel conserva sólo los archivos históricos descargables y deriva al export portátil, sin venderlos como restaurables. La política pública deja de afirmar backups periódicos. La guarda de Edge Functions falla si vuelve el acceso global legacy. Se desplegaron las 55 funciones: `weekly-backup` quedó activa con `verify_jwt: true`. Typecheck, lint sin errores, 895 tests y build/PWA completados.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -187,7 +189,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **894 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **895 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -482,7 +484,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | **D5** | **Exportar la organización entera** | Existe el export por Ley 25.326 para personas, no para llevarse el negocio. |
 | **D6** | **Entrar como el comercio, auditado** | `generateMagicLink` existe y está wireado; falta el registro visible de "soporte entró a tal cuenta". |
 | **D7** | **Estado del servicio público** | Si algo se cae, el comercio no tiene dónde mirar. |
-| **D8** | **Backup y restauración por organización** | Hay `weekly-backup`. No hay restaurar. |
+| **D8** | **Backup y restauración por organización** | 🔴 El `weekly-backup` legacy fue deshabilitado: era por usuario, no cubría una organización ni ofrecía restore. Queda export portátil; falta backup gestionado y restauración probada. |
 
 ---
 

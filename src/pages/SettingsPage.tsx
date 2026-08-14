@@ -1255,7 +1255,7 @@ export default function SettingsPage() {
           {/* Backup / Export */}
           <BackupExport userId={user!.id} />
 
-          {/* Cloud Backups */}
+          {/* Archivos de respaldo heredados: no se generan hasta resolver D8. */}
           <CloudBackupsSection userId={user!.id} />
 
           {/* Automated Reports & Alerts */}
@@ -1837,14 +1837,15 @@ function CouponsManager({ userId }: { userId: string }) {
   );
 }
 
-// ===== Cloud Backups =====
+// ===== Archivos de backup heredados =====
 function CloudBackupsSection({ userId }: { userId: string }) {
   const [files, setFiles] = useState<Array<{ name: string; created_at?: string; size?: number }>>([]);
   const [loading, setLoading] = useState(false);
-  const [running, setRunning] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const { data, error } = await supabase.storage.from('backups').list(userId, {
         limit: 100, sortBy: { column: 'created_at', order: 'desc' },
@@ -1853,9 +1854,9 @@ function CloudBackupsSection({ userId }: { userId: string }) {
       setFiles((data || []).filter(f => f.name?.endsWith('.json')).map(f => ({
         name: f.name, created_at: f.created_at, size: (f.metadata as Record<string, unknown>)?.size as number | undefined,
       })));
-    } catch (e: any) {
-      // bucket may be empty or RLS denial — silent
+    } catch (e: unknown) {
       setFiles([]);
+      setLoadError(e instanceof Error ? e.message : 'No se pudieron leer los archivos heredados.');
     } finally { setLoading(false); }
   };
 
@@ -1869,33 +1870,27 @@ function CloudBackupsSection({ userId }: { userId: string }) {
     } catch (e: any) { toast.error('Error: ' + e.message); }
   };
 
-  const runManual = async () => {
-    setRunning(true);
-    try {
-      const { error } = await supabase.functions.invoke('weekly-backup');
-      if (error) throw error;
-      toast.success('Backup generado. Refrescando lista…');
-      setTimeout(load, 1500);
-    } catch (e: any) { toast.error('Error: ' + e.message); }
-    finally { setRunning(false); }
-  };
-
   return (
     <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
-          <Cloud className="w-4 h-4 text-primary" />Backups en la Nube
+          <Cloud className="w-4 h-4 text-primary" />Archivos de respaldo heredados
         </h2>
-        <Button size="sm" variant="outline" onClick={runManual} disabled={running}>
-          <RefreshCw className={`w-3.5 h-3.5 mr-1 ${running ? 'animate-spin' : ''}`} />
-          {running ? 'Generando…' : 'Backup ahora'}
+        <Button size="sm" variant="outline" onClick={load} disabled={loading}>
+          <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loading ? 'animate-spin' : ''}`} />
+          Actualizar
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground mb-3">Respaldo automático cada domingo 23:59 UTC. Conservás los últimos 100 archivos.</p>
+      <div className="mb-3 flex items-start gap-2 border border-amber-500/25 bg-amber-500/5 p-3 text-xs text-muted-foreground">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+        <p>Las copias gestionadas están deshabilitadas: el mecanismo anterior era por usuario, no por organización, y no tenía restauración probada. Descargá el export completo de arriba para una copia portable; D8 sigue pendiente.</p>
+      </div>
       {loading ? (
         <p className="text-xs text-muted-foreground">Cargando…</p>
+      ) : loadError ? (
+        <p className="text-xs text-destructive">No se pudieron leer los archivos heredados: {loadError}</p>
       ) : files.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-3">No hay backups todavía. Generá el primero manualmente.</p>
+        <p className="text-xs text-muted-foreground text-center py-3">No hay archivos heredados para esta cuenta.</p>
       ) : (
         <div className="space-y-1.5 max-h-[280px] overflow-y-auto">
           {files.map(f => (
@@ -1903,7 +1898,7 @@ function CloudBackupsSection({ userId }: { userId: string }) {
               <div className="flex-1 min-w-0">
                 <p className="font-mono truncate">{f.name}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  {f.created_at ? new Date(f.created_at).toLocaleString('es-AR') : '—'}
+                  Archivo legacy · {f.created_at ? new Date(f.created_at).toLocaleString('es-AR') : '—'}
                   {f.size ? ` · ${(f.size / 1024).toFixed(1)} KB` : ''}
                 </p>
               </div>

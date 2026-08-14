@@ -4,8 +4,8 @@ project_id = "hummeopatkniwkyrrhwc"
 verify_jwt = true
 
 [functions.weekly-backup]
-verify_jwt = false
+verify_jwt = true
 
 # Cron schedules — run via pg_cron or Supabase Dashboard > Edge Functions > Schedules
 # auto-recurring-expenses: "0 3 1 * *"   (1st of each month at 3 AM UTC)
-# weekly-backup:           "0 4 * * 0"   (every Sunday at 4 AM UTC)
+# weekly-backup queda deshabilitado hasta que D8 tenga backup + restore probado.
