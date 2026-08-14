@@ -864,6 +864,10 @@ La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de inf
 - La ficha 360 se expande en contexto y mantiene sus acciones cerca del cliente. El detalle puede usar una segunda superficie visual, pero no se anidan tarjetas dentro de tarjetas ni se pierde la posicion en la lista.
 - La busqueda y los filtros de CRM forman una toolbar estable; los segmentos guardados se leen como accesos rapidos y la barra de acciones masivas aparece solo cuando hay seleccion. El estado vacio, la carga y el error deben conservar la misma jerarquia.
 - Las referencias de Figma para CRM, dashboards y marketplace orientan densidad, filtros, estados y responsive. No se copian assets ni layouts: el contenido debe seguir expresando el Business Core y las acciones reales de Gestiona.
+- Ventas debe tener una secuencia de lectura estable: resumen de KPIs, insights de cobro/tendencia, presets de período, filtros y finalmente el detalle. No mezclar la toolbar con tarjetas de métricas ni esconder la acción primaria entre filtros.
+- Los insights de Ventas pueden compartir una grilla equilibrada en desktop y pasar a una columna en mobile. Los gráficos compactos tienen que conservar fecha, período y leyenda suficiente para no presentar una barra como dato sin contexto.
+- Las vistas agrupadas de Ventas (`lista`, `cliente`, `sesion`, `producto`, `fecha`) son modos de lectura del mismo dato; un cambio visual no puede duplicar consultas ni inventar totales alternativos.
+- Las toolbars con muchos filtros deben tener ancho estable, scroll horizontal controlado para presets/vistas y controles táctiles legibles en mobile. El filtro activo debe seguir siendo visible cuando la lista cambia.
 
 El slice de rediseno se verifica con screenshot en desktop y mobile, typecheck, lint, test y build antes de avanzar a otra superficie.
 

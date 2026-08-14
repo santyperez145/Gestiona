@@ -26,6 +26,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de rediseno 6 (2026-08-14):** Clientes/CRM recibe una jerarquia de ficha 360: segmentos, riesgo, valor y filtros quedan visibles antes de abrir un registro; la lista se vuelve mas escaneable y el detalle se expande en contexto con sus acciones. Se aplican patrones de CRM, dashboard y marketplace de las referencias de Figma como criterio de densidad, filtros y estados, sin copiar pantallas ni introducir datos ficticios. El cambio es visual y conserva las lecturas, permisos y acciones existentes. Validado con typecheck, lint sin errores, 823 tests y build.
 
+**Slice de rediseno 7 (2026-08-14):** Ventas pasa a una composicion de centro operativo: KPIs primero, metodos de cobro y tendencia en un bloque de insights equilibrado, y debajo presets de periodo, filtros y vistas agrupadas en una toolbar con scroll controlado. El responsive conserva la lectura en una columna y no altera calculos, permisos, exportaciones ni agrupaciones existentes. Validado con typecheck, lint sin errores, 823 tests y build.
+
 ---
 
 ## 1. Qué es

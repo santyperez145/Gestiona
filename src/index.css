@@ -1145,6 +1145,86 @@
     border-radius: 7px !important;
   }
 
+  .workspace-sales {
+    --sales-shadow: 0 14px 28px -26px hsl(var(--primary) / 0.82);
+  }
+
+  .workspace-sales-today,
+  .workspace-sales-seller,
+  .workspace-sales-payment-breakdown,
+  .workspace-sales-trend {
+    box-shadow: var(--sales-shadow);
+  }
+
+  .workspace-sales-kpis {
+    align-items: stretch;
+  }
+
+  .workspace-sales-kpis > * {
+    min-width: 0;
+  }
+
+  .workspace-sales-insights {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .workspace-sales-payment-breakdown,
+  .workspace-sales-trend {
+    min-height: 100%;
+    margin-bottom: 0 !important;
+  }
+
+  .workspace-sales-trend {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .workspace-sales-trend > :nth-child(2) {
+    min-height: 3.5rem;
+  }
+
+  .workspace-sales-presets {
+    align-items: center;
+    padding: 0.25rem;
+    border: 1px solid hsl(var(--border) / 0.76);
+    border-radius: 8px;
+    background: hsl(var(--muted) / 0.28);
+    width: fit-content;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .workspace-sales-presets button {
+    min-height: 2rem;
+    white-space: nowrap;
+  }
+
+  .workspace-sales-filters {
+    align-items: center;
+    padding: 0.75rem;
+    border: 1px solid hsl(var(--border) / 0.76);
+    border-radius: 8px;
+    background: hsl(var(--muted) / 0.28);
+  }
+
+  .workspace-sales-filters input,
+  .workspace-sales-filters [role="combobox"] {
+    background: hsl(var(--card) / 0.92);
+  }
+
+  .workspace-sales-view-switcher {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .workspace-sales-view-switcher button {
+    min-height: 2.25rem;
+    white-space: nowrap;
+  }
+
   .light .workspace-page input.bg-muted,
   .light .workspace-page textarea.bg-muted,
   .light .workspace-page [role="combobox"].bg-muted {
@@ -1188,6 +1268,31 @@
     .workspace-metric-card,
     .workspace-kpi-card {
       min-height: 96px;
+    }
+
+    .workspace-sales-insights {
+      grid-template-columns: 1fr;
+    }
+
+    .workspace-sales-presets {
+      width: 100%;
+      flex-wrap: nowrap;
+    }
+
+    .workspace-sales-filters {
+      align-items: stretch;
+    }
+
+    .workspace-sales-filters > .relative {
+      min-width: 100%;
+    }
+
+    .workspace-sales-filters > * {
+      flex: 1 1 9rem;
+    }
+
+    .workspace-sales-view-switcher {
+      flex: 1 1 100%;
     }
   }
 }
