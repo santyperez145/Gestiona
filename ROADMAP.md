@@ -38,6 +38,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de rediseno 12 (2026-08-14):** Ajustes pasa de una pagina continua a seis tabs de dominio: Marca, Finanzas, Mensajeria, Precios, Suscripcion y Sistema. El panel de cada tab se mantiene montado para no perder entradas al cambiar de contexto, pero solo se muestra el dominio activo. Plataforma adopta sidebar violeta sticky en desktop y navegacion horizontal en mobile; sus KPIs quedan en Resumen. Administracion de la organizacion reutiliza el rail de tabs para Rendimiento, Equipo, Permisos, Metas, Auditoria y Actividad. La separacion visual no cruza RLS, roles ni contratos. Validado con typecheck, lint sin errores, 823 tests y build.
 
+**Slice funcional 13 (2026-08-14):** el onboarding del Dashboard deja de ser una lista larga y global. `SetupChecklist` se guarda por organizacion, destaca el siguiente paso con una accion directa y muestra solo los pendientes mas cercanos hasta que el usuario expande el detalle. Usa las mismas señales reales que ya cargaba el dashboard —ajustes, productos, compras, ventas, clientes, canjes y equipo— sin crear datos ficticios ni cambiar permisos. Es una mejora de D2 y deja preparado el siguiente trabajo de Fase 1: instrumentar el tiempo desde alta hasta primera venta. Validado con typecheck, lint sin errores, 823 tests y build.
+
 ---
 
 ## 1. Qué es

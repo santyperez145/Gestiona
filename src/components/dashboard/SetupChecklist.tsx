@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, Rocket, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, Circle, ChevronDown, ChevronUp, Rocket, X } from "lucide-react";
 
 interface ChecklistItem {
   id: string;
@@ -21,25 +21,35 @@ interface SetupChecklistProps {
   hasCustomers: boolean;
   hasExchanges: boolean;
   hasTeam: boolean;
+  organizationId?: string | null;
   /** Código de rubro del negocio (settings.industry_code). Ajusta qué pasos se muestran. */
   industryCode?: string | null;
 }
 
 const STORAGE_KEY = "gestiona.setup.dismissed";
 
-function isDismissed(): boolean {
-  try { return localStorage.getItem(STORAGE_KEY) === "1"; } catch { return false; }
+function storageKey(organizationId?: string | null) {
+  return `${STORAGE_KEY}.${organizationId || "default"}`;
 }
-function setDismissed() {
-  try { localStorage.setItem(STORAGE_KEY, "1"); } catch { /* noop */ }
+function isDismissed(organizationId?: string | null): boolean {
+  try { return localStorage.getItem(storageKey(organizationId)) === "1"; } catch { return false; }
+}
+function setDismissed(organizationId?: string | null) {
+  try { localStorage.setItem(storageKey(organizationId), "1"); } catch { /* noop */ }
 }
 
 export default function SetupChecklist({
   businessName, hasLogo, hasExchangeRate, hasProducts, hasSales, hasPurchases,
-  hasCustomers, hasExchanges, hasTeam, industryCode,
+  hasCustomers, hasExchanges, hasTeam, organizationId, industryCode,
 }: SetupChecklistProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [dismissed, setLocalDismissed] = useState(isDismissed);
+  const [showAll, setShowAll] = useState(false);
+  const [dismissed, setLocalDismissed] = useState(() => isDismissed(organizationId));
+
+  useEffect(() => {
+    setLocalDismissed(isDismissed(organizationId));
+    setShowAll(false);
+  }, [organizationId]);
 
   // El tipo de cambio (costos en USD) importa sobre todo en rubros que importan
   // producto — perfumes, vapers, tecnología, cosmética. En alimentos/indumentaria
@@ -125,6 +135,8 @@ export default function SetupChecklist({
   const total = items.length;
   const pct = Math.round((doneCount / total) * 100);
   const allDone = doneCount === total;
+  const nextItem = items.find((item) => !item.done);
+  const visibleItems = showAll ? items : items.filter((item) => !item.done).slice(0, 3);
 
   // Hide if all done + dismissed, or manually dismissed
   if (dismissed) return null;
@@ -154,13 +166,18 @@ export default function SetupChecklist({
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button
+            type="button"
+            aria-label={collapsed ? "Mostrar configuracion inicial" : "Ocultar configuracion inicial"}
+            aria-expanded={!collapsed}
             onClick={() => setCollapsed((c) => !c)}
             className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground"
           >
             {collapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
           </button>
           <button
-            onClick={() => { setLocalDismissed(true); setDismissed(); }}
+            type="button"
+            aria-label="Cerrar configuracion inicial"
+            onClick={() => { setLocalDismissed(true); setDismissed(organizationId); }}
             className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
             title="Cerrar"
           >
@@ -169,10 +186,27 @@ export default function SetupChecklist({
         </div>
       </div>
 
+      {!collapsed && nextItem && (
+        <div className="mx-4 mt-3 flex items-center gap-3 rounded-[8px] border border-primary/20 bg-primary/[0.06] p-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/80">Siguiente paso</p>
+            <p className="mt-1 text-[13px] font-semibold leading-tight">{nextItem.label}</p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">{nextItem.desc}</p>
+          </div>
+          <Link
+            to={nextItem.href}
+            className="flex shrink-0 items-center gap-1 rounded-[6px] bg-primary px-2.5 py-2 text-[11px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            <span className="hidden sm:inline">{nextItem.actionLabel}</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
+
       {/* Items */}
       {!collapsed && (
         <div className="divide-y divide-border/40">
-          {items.map((item) => (
+          {visibleItems.map((item) => (
             <div
               key={item.id}
               className={`flex items-start gap-3 px-4 py-3 transition-colors ${item.done ? "opacity-50" : "hover:bg-muted/30"}`}
@@ -200,6 +234,16 @@ export default function SetupChecklist({
               )}
             </div>
           ))}
+          <div className="flex justify-center border-t border-border/40 px-4 py-2">
+            <button
+              type="button"
+              onClick={() => setShowAll((value) => !value)}
+              className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {showAll ? "Ocultar pasos completados" : `Ver todos los pasos (${total})`}
+              {showAll ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+          </div>
         </div>
       )}
 

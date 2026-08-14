@@ -1280,6 +1280,7 @@ export default function Dashboard() {
         <div className="workspace-dashboard-content">
       {/* Configuración inicial — guía para negocios nuevos (se auto-oculta al completar) */}
       <SetupChecklist
+        organizationId={activeOrg?.id}
         businessName={rawData?.settings?.business_name || ""}
         hasLogo={!!rawData?.settings?.logo_url}
         hasExchangeRate={Number(rawData?.settings?.exchange_rate || 0) > 0}
