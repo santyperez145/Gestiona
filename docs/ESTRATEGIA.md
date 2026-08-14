@@ -8,7 +8,7 @@ es ilegible para cualquier otro.
 Acá va la otra mitad: **qué es este producto, contra quién compite y qué habría
 que demostrar para que sea un negocio** y no sólo un sistema que funciona.
 
-Última revisión: 2026-08-13.
+Última revisión: 2026-08-14.
 
 ---
 
@@ -92,7 +92,24 @@ comisión del marketplace. Acá están las dos.
 
 Va como ítem **E4** del ROADMAP.
 
-### 2.4 Lo que ya está y no hay que rehacer
+### 2.4 Business Copilot, no chatbot
+
+📌 **Criterio.** La IA no es defendible si sólo escribe descripciones, fotos o
+resúmenes: eso se copia y ya lo promocionan otros. El diferencial aparece cuando
+la IA trabaja sobre el grafo del negocio y convierte datos en acciones:
+
+- qué comprar antes de quedarse sin stock;
+- qué canal deja menos margen por producto;
+- qué clientes se están enfriando;
+- qué promoción liquida stock sin regalar margen;
+- qué precio conviene mover según costo real, comisión, envío e IVA.
+
+Cada recomendación tiene que tener una acción posible y una métrica posterior.
+Por eso aparece como **AI Action Rate** en el bloque G del ROADMAP. Si no se
+mide si el comercio hizo algo con la recomendación, es una demo de IA, no un
+copiloto de negocio.
+
+### 2.5 Lo que ya está y no hay que rehacer
 
 ✅ **Medido.** El análisis externo recomendaba construir un "stock engine" único
 por el que pasaran todas las operaciones. **Ya existe**: `record_stock_movement`
@@ -181,8 +198,15 @@ Lo mínimo, y ninguno es difícil porque los datos ya están en la base:
 | **GMV por comercio** | Cuánto vende cada uno usando esto. | `sales` + `ecommerce_orders` |
 | **Organizaciones activas / que pagan** | La diferencia entre las dos es el negocio. | `memberships`, `subscriptions` |
 | **Riesgo de abandono** | Qué comercios bajaron su actividad. `platform_org_health` ya hace algo parecido y ordena por urgencia. | ya existe, falta la serie temporal |
+| **Stock accuracy** | Si el stock actual no coincide con el Kardex, la promesa omnicanal se cae aunque la tienda sea linda. | `stock_movements` vs `products` / `product_variants` |
+| **AI Action Rate** | Mide si la inteligencia produce acciones, no si alguien abrió un chat. | falta evento recomendación → acción |
 
 Va como bloque **G** del ROADMAP.
+
+Para una conversación de inversión también hacen falta MRR, ARR, churn, CAC,
+LTV, margen bruto y GMV mensual con fecha. Si salen de herramientas externas o
+de una planilla, se documenta la fuente. Lo que no se hace más es citar un
+número sin fecha.
 
 ---
 

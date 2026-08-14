@@ -1,4 +1,4 @@
-# Gestiona — contexto para Claude Code
+# Gestiona — contexto para Codex
 
 **El sistema donde el negocio es uno solo, aunque venda por muchos lados.** El
 mostrador, la tienda online y los marketplaces comparten el mismo stock, los

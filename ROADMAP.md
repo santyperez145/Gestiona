@@ -22,6 +22,11 @@ El caso de uso que lo originó y lo sigue guiando: **importación y venta de
 perfumes y vapers**. Cuando una decisión de producto está en duda, gana la que
 sirve a ese negocio.
 
+📌 **Tesis 2026-08-14.** Gestiona no es una alternativa a Tiendanube: es el
+**sistema operativo para comercios que venden en múltiples canales**. La tienda
+es una superficie. El producto es el núcleo que une inventario, ventas,
+clientes, pagos, costos, impuestos y margen en una sola verdad operativa.
+
 ---
 
 ## 2. Contra quién compite
@@ -66,6 +71,32 @@ proyecto nació importando. Es el ítem **E4**.
 | Tienda pública | `/tienda/:slug` | comprador anónimo o con cuenta | RPCs `security definer` con columnas saneadas |
 
 La separación es deliberada y está testeada. Ver [docs/permisos.md](docs/permisos.md).
+
+### Brújula de producto
+
+El análisis externo del 2026-08-14 dejó una advertencia útil: el riesgo no es
+quedarse corto, es convertirse en una **ERP feature factory**. A partir de acá,
+una mejora entra al ROADMAP sólo si fortalece uno de estos cinco pilares:
+
+1. **Productos + inventario** — un stock, reservas claras, costos reales.
+2. **POS + caja** — vender aunque internet falle, sincronizar sin duplicar.
+3. **Ecommerce** — la tienda vende de verdad, pero no manda sobre el negocio.
+4. **Clientes + ventas** — una ficha de cliente entre local, web y canales.
+5. **Inteligencia** — no "tener IA"; decir qué hacer y medir si se hizo.
+
+El corazón técnico se llama **Business Core**: productos, órdenes, clientes,
+finanzas e inventario. POS, tienda y marketplaces son canales que escriben y
+leen de ese núcleo; ninguno inventa su propio stock, precio, margen o cobro.
+
+Antes de agregar un ítem nuevo, tiene que responder al menos una pregunta:
+
+- ¿Acerca a un segundo comercio real a su primera venta?
+- ¿Hace más confiable el stock único entre POS, tienda y marketplaces?
+- ¿Hace visible el margen real por canal?
+- ¿Reduce riesgo legal, fiscal, de seguridad o de operación?
+- ¿Mide activación, uso omnicanal, GMV, salud, retención o una acción de IA?
+
+Si la respuesta es "no", va a **Congelado** aunque sea una buena idea.
 
 ---
 
@@ -142,6 +173,19 @@ Esta sección es el plan. Los bloques quedan abajo como referencia detallada.
 **destrabar la siguiente**, y tiene una condición de salida verificable. Sin eso,
 53 ítems ordenados por impacto siguen siendo 53 ítems.
 
+**Objetivo de 90 días (2026-08-14): producto confiable y vendible.** El análisis
+lo pone así: antes de hablar de inversión o de plataforma increíble hay que
+demostrar reliability, ARCA/AFIP, MercadoLibre, POS, checkout, offline,
+seguridad, backups, observabilidad y métricas. Traducido a este ROADMAP:
+
+- Fase 0 no se saltea: **AFIP real + base legal publicada**.
+- Fase 1 no es cosmética: **onboarding + instrumentación + límites de plan**.
+- Fase 2 tiene que probar la tesis: **un stock, dos canales, margen por canal**.
+- La confiabilidad tiene que subir de nivel: **E2E de POS/panel, restore
+  probado, observabilidad de webhooks, crons, pagos y funciones**.
+- La IA no suma por decir "IA": suma cuando recomienda una acción y después se
+  mide si el comercio la ejecutó.
+
 ---
 
 #### 📍 Dónde estamos
@@ -182,7 +226,7 @@ funcionó sin instrumentación, así que van juntas.
 | Qué | Estado |
 |---|---|
 | **D2** Onboarding guiado | 🔴 `StoreReadinessPanel` dice qué falta; no hay paso a paso. Es lo que convierte "funciona" en "otro lo puede usar". |
-| **G1–G5** Instrumentación | 🔴 Los datos ya están en la base. Sin esto no hay condición de salida medible. |
+| **G1–G8** Instrumentación | 🔴 Los datos ya están en la base, salvo las acciones de IA. Sin esto no hay condición de salida medible. |
 | **D4** Límites del plan aplicados | 🟠 Sólo productos. Faltan usuarios, tiendas y órdenes/mes. |
 | **D1** Comprobante fiscal de la suscripción (= F16) | 🟠 Depende de C1. |
 
@@ -376,6 +420,12 @@ tiene y ML menos.
 | **E3** | **Un cliente, una ficha** | El CRM ya cruza las cinco tablas por `customer_id`. Falta que el comprador online y el del mostrador sean la misma persona automáticamente, con su historial completo en las dos direcciones. |
 | **E4** | ⭐ **Margen real por canal** | **El diferencial más defendible que tiene el producto, y sale casi gratis de lo que ya está.** Un mismo producto deja márgenes distintos en el mostrador, en la tienda y en ML, y hoy nadie se lo dice al comerciante. Requiere las cuatro puntas —costo real, comisión, envío, IVA— y **acá están las cuatro** (ver §2). Una pantalla por producto: qué precio ve cada canal y cuánto queda después de todo. Después, la frase que vale: *"tu tienda propia te deja 7 puntos más que ML en este producto"*. |
 
+📌 **Business Copilot no es otro módulo por ahora.** Es la forma en que E1–E4 y
+G1–G8 deberían aparecer: "qué compro esta semana", "qué canal me deja menos
+margen", "qué clientes se están enfriando", "qué promoción liquida stock". Cada
+recomendación tiene que terminar en una acción posible y una métrica de uso; si
+es sólo chat, no es diferencial.
+
 #### F. Cumplimiento legal — lo que no es opcional
 
 Sale del relevamiento completo en **[docs/LEGAL.md](docs/LEGAL.md)**, que va
@@ -429,10 +479,17 @@ en [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §6.
 | **G4** | **GMV por comercio** | `sales` + `ecommerce_orders` |
 | **G5** | **Activas vs. que pagan** | `memberships`, `subscriptions` |
 | **G6** | **Serie temporal de riesgo de abandono** | `platform_org_health` ya ordena por urgencia; falta la serie |
+| **G7** | **Stock accuracy**: % de productos cuyo stock actual coincide con Kardex | `stock_movements` vs `products`/`product_variants` |
+| **G8** | **AI Action Rate**: recomendaciones de IA que terminan en acción | falta evento de recomendación → acción |
 
 ⚠️ **G3 es la que representa la tesis del producto.** Si los comercios usan sólo
 la tienda o sólo la gestión, el diferencial de §2 no se está usando y hay que
 saberlo antes de construir encima.
+
+Para hablar con inversores después, G1–G8 no alcanzan solos: también hay que
+tener MRR, ARR, churn, CAC, LTV y margen bruto con fecha y fuente. Si CAC o LTV
+vienen de una planilla externa, se registran igual; lo prohibido es citarlos sin
+fecha.
 
 ---
 
@@ -449,7 +506,7 @@ saberlo antes de construir encima.
 | R07 | Un solo desarrollador | Alta | Alto | CLAUDE.md, docs/ y commits largos a propósito |
 | R08 | **Un solo comercio usándolo.** El multi-tenant está probado, no usado: un segundo comercio real destapa supuestos que ningún test encuentra | Alta | **Crítico** | Ninguna todavía. Es el riesgo más grande del proyecto y no se resuelve con código — ver [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §5 |
 | R09 | Un dato viejo de este repo citado como actual afuera (pasó: "418 tests" cuando eran 811) | Media | Medio | Los números medidos van con la fecha o con el comando al lado |
-| R08 | Supabase caído | Baja | Crítico | PITR activo; sin runbook escrito |
+| R10 | Supabase caído | Baja | Crítico | PITR activo; sin runbook escrito |
 
 ---
 
