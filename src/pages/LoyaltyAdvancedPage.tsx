@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -112,7 +113,10 @@ const DEFAULT_TIERS = [
 export default function LoyaltyAdvancedPage() {
   usePageTitle("Fidelidad");
   const { orgId } = useOrganization();
-  const [activeTab, setActiveTab] = useState<Tab>("Puntos");
+  const [activeTab, setActiveTab] = usePersistedState<Tab>(
+    orgViewKey("loyalty.tab", orgId),
+    "Puntos",
+  );
   const [program, setProgram] = useState<LoyaltyProgram | null>(null);
   const [tiers, setTiers] = useState<LoyaltyTier[]>([]);
   const [rewards, setRewards] = useState<LoyaltyReward[]>([]);

@@ -21,6 +21,7 @@ import KPICard from "@/components/shared/KPICard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import PredictiveAnalyticsTab from "@/components/analytics/PredictiveAnalyticsTab";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
@@ -190,13 +191,23 @@ export default function AnalyticsPage() {
   usePageTitle("Analytics");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const [analyticsTab, setAnalyticsTab] = usePersistedState(
+    orgViewKey("analytics.tab", activeOrg?.id),
+    "trend",
+  );
   const [rawData, setRawData] = useState<any>(null);
-  const [year, setYear] = useState<"0" | "1">("0");
+  const [year, setYear] = usePersistedState<"0" | "1">(
+    orgViewKey("analytics.year", activeOrg?.id),
+    "0",
+  );
   const [trendFrom, setTrendFrom] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 29); return d.toISOString().slice(0, 10);
   });
   const [trendTo, setTrendTo] = useState(() => new Date().toISOString().slice(0, 10));
-  const [sellerPeriod, setSellerPeriod] = useState<"thisMonth" | "last30" | "thisWeek" | "thisYear">("thisMonth");
+  const [sellerPeriod, setSellerPeriod] = usePersistedState<"thisMonth" | "last30" | "thisWeek" | "thisYear">(
+    orgViewKey("analytics.seller-period", activeOrg?.id),
+    "thisMonth",
+  );
   const { from: dateFrom, to: dateTo, inRange } = useDateRangeFilter();
   const { storeId } = useStoreFilter();
 
@@ -557,7 +568,7 @@ export default function AnalyticsPage() {
         />
       </div>
 
-      <Tabs defaultValue="trend" className="workspace-tabs-layout w-full">
+      <Tabs value={analyticsTab} onValueChange={value => setAnalyticsTab(value as typeof analyticsTab)} className="workspace-tabs-layout w-full">
         <TabsList className="workspace-tabs-nav flex-wrap h-auto gap-1">
           <TabsTrigger value="trend" className="text-xs">Tendencia</TabsTrigger>
           <TabsTrigger value="forecast" className="text-xs">📈 Forecast</TabsTrigger>

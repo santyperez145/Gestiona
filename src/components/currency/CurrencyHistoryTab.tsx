@@ -19,6 +19,7 @@ import {
   DollarSign, TrendingUp, TrendingDown, RefreshCw, Plus,
   Zap, ArrowUpRight, ArrowDownRight, Info, Package, Loader2,
 } from "lucide-react";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 interface ExchangeRate {
   id: string;
@@ -59,7 +60,10 @@ export default function CurrencyHistoryTab() {
   const [updates, setUpdates] = useState<PriceUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
-  const [tab, setTab] = useState("rates");
+  const [tab, setTab] = usePersistedState(
+    orgViewKey("currency-history.tab", orgId),
+    "rates",
+  );
   const [addOpen, setAddOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
 

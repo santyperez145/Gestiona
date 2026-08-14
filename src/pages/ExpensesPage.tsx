@@ -25,6 +25,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { useModulePermissions } from "@/lib/usePermissions";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 function exportExpensesCSV(expenses: any[], getCategoryLabel: (c: string) => string) {
   const header = ['Fecha', 'Descripción', 'Proveedor', 'Categoría', 'Monto (ARS)', 'Recurrente'];
@@ -76,20 +77,36 @@ function printExpensesReport(expenses: any[], getCategoryLabel: (c: string) => s
 export default function ExpensesPage() {
   usePageTitle("Gastos");
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
   const { canCreate, canEdit, canDelete } = useModulePermissions("expenses");
   const [expenses, setExpenses] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
-  const [filterCat, setFilterCat] = useState("all");
-  const [filterVendor, setFilterVendor] = useState("all");
-  const [search, setSearch] = useState("");
-  const [filterMonth, setFilterMonth] = useState(() => {
+  const [filterCat, setFilterCat] = usePersistedState(
+    orgViewKey("expenses.category-filter", activeOrg?.id),
+    "all",
+  );
+  const [filterVendor, setFilterVendor] = usePersistedState(
+    orgViewKey("expenses.vendor-filter", activeOrg?.id),
+    "all",
+  );
+  const [search, setSearch] = usePersistedState(
+    orgViewKey("expenses.search", activeOrg?.id),
+    "",
+  );
+  const [filterMonth, setFilterMonth] = usePersistedState(
+    orgViewKey("expenses.month-filter", activeOrg?.id),
+    (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  });
-  const [activeTab, setActiveTab] = useState<'gastos' | 'presupuesto' | 'recurrentes' | 'tendencia'>('gastos');
+    })(),
+  );
+  const [activeTab, setActiveTab] = usePersistedState<'gastos' | 'presupuesto' | 'recurrentes' | 'tendencia'>(
+    orgViewKey("expenses.tab", activeOrg?.id),
+    "gastos",
+  );
   const [expenseSort, setExpenseSort] = useState<{ col: "date" | "amount_ars" | "category"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
 
   const [budgets, setBudgets] = useState<Record<string, number>>(() => {

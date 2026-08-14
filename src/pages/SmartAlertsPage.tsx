@@ -19,6 +19,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import LegacyAlertRulesTab from "@/components/alerts/LegacyAlertRulesTab";
 
 interface AlertRule {
@@ -79,7 +80,10 @@ function PriorityBadge({ priority }: { priority: string }) {
 export default function SmartAlertsPage() {
   usePageTitle("Alertas");
   const { activeOrg } = useOrg();
-  const [tab, setTab] = useState<"events" | "rules" | "legacy" | "config">("events");
+  const [tab, setTab] = usePersistedState<"events" | "rules" | "legacy" | "config">(
+    orgViewKey("smart-alerts.tab", activeOrg?.id),
+    "events",
+  );
   const [rules, setRules] = useState<AlertRule[]>([]);
   const [events, setEvents] = useState<AlertEvent[]>([]);
   const [loading, setLoading] = useState(false);

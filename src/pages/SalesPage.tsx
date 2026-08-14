@@ -23,6 +23,7 @@ import { logAudit } from "@/lib/auditLog";
 import { useUserRole } from "@/lib/useUserRole";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 const PAGE_SIZE = 20;
 
@@ -69,6 +70,7 @@ function createLineItem(): SaleLineItem {
 export default function SalesPage() {
   usePageTitle("Ventas");
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
   // If vendedor, only show their own sales
   const sellerFilter = !isAdmin ? (localStorage.getItem('gestiona.pos.seller') || null) : null;
@@ -83,7 +85,7 @@ export default function SalesPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [datePreset, setDatePreset] = useState<string>("all");
-  const [filterCat, setFilterCat] = useState('all');
+  const [filterCat, setFilterCat] = usePersistedState(orgViewKey("sales.category-filter", activeOrg?.id), 'all');
 
   const applyPreset = (preset: string) => {
     setDatePreset(preset);
@@ -131,15 +133,15 @@ export default function SalesPage() {
     return map;
   }, [products]);
 
-  const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<"list" | "by_customer" | "by_session" | "by_product" | "by_date">("list");
+  const [search, setSearch] = usePersistedState(orgViewKey("sales.search", activeOrg?.id), '');
+  const [viewMode, setViewMode] = usePersistedState<"list" | "by_customer" | "by_session" | "by_product" | "by_date">(orgViewKey("sales.view", activeOrg?.id), "list");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
-  const [filterMethod, setFilterMethod] = useState('all');
-  const [filterSellerName, setFilterSellerName] = useState('all');
+  const [filterPaid, setFilterPaid] = usePersistedState<'all' | 'paid' | 'pending'>(orgViewKey("sales.payment-filter", activeOrg?.id), 'all');
+  const [filterMethod, setFilterMethod] = usePersistedState(orgViewKey("sales.method-filter", activeOrg?.id), 'all');
+  const [filterSellerName, setFilterSellerName] = usePersistedState(orgViewKey("sales.seller-filter", activeOrg?.id), 'all');
   const [saleSort, setSaleSort] = useState<{ col: "date" | "total_ars" | "customer_name" | "product_name"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
-  const [filterHasNote, setFilterHasNote] = useState(false);
+  const [filterHasNote, setFilterHasNote] = usePersistedState(orgViewKey("sales.note-filter", activeOrg?.id), false);
   const [commPct, setCommPct] = useState(5);
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
 

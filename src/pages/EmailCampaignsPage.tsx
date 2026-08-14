@@ -25,6 +25,7 @@ import { getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import DripSequencesTab from "@/components/marketing/DripSequencesTab";
 
 // ─── Email Templates ──────────────────────────────────────────────────────────
@@ -174,7 +175,10 @@ export default function EmailCampaignsPage() {
   const [preview, setPreview] = useState<Campaign | null>(null);
   const [sending, setSending] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'campaigns' | 'drip'>('campaigns');
+  const [activeTab, setActiveTab] = usePersistedState<'campaigns' | 'drip'>(
+    orgViewKey("email-campaigns.tab", activeOrg?.id),
+    "campaigns",
+  );
 
   // Form state
   const [subject, setSubject] = useState("");

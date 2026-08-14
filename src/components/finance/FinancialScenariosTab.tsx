@@ -20,6 +20,7 @@ import {
   AlertTriangle, Layers, Target,
 } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 interface Scenario {
   id: string;
@@ -175,7 +176,10 @@ function BreakevenCalc() {
 
 export default function FinancialScenariosTab() {
   const { orgId } = useOrganization();
-  const [tab, setTab] = useState<"pnl" | "breakeven" | "cashflow" | "variance">("pnl");
+  const [tab, setTab] = usePersistedState<"pnl" | "breakeven" | "cashflow" | "variance">(
+    orgViewKey("financial-scenarios.tab", orgId),
+    "pnl",
+  );
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [activeScenarioId, setActiveScenarioId] = useState<string>("");
   const [compareScenarioId, setCompareScenarioId] = useState<string>("");

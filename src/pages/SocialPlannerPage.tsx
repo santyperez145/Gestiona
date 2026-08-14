@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,7 +116,10 @@ export default function SocialPlannerPage() {
   const [hashtagSets, setHashtagSets] = useState<HashtagSet[]>([]);
   const [ideas, setIdeas] = useState<ContentIdea[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("posts");
+  const [tab, setTab] = usePersistedState(
+    orgViewKey("social-planner.tab", orgId),
+    "posts",
+  );
 
   // Dialogs
   const [postOpen, setPostOpen] = useState(false);

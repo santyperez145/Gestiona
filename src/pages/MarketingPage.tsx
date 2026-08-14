@@ -19,19 +19,28 @@ import BrandKnowledgeTab from "@/components/marketing/BrandKnowledgeTab";
 import AutomationFlowsTab from "@/components/marketing/AutomationFlowsTab";
 import { listPostTypes, listMarketingThemes } from "@/lib/marketingExtraDB";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import { useOrg } from "@/lib/orgContext";
 
 export default function MarketingPage() {
   usePageTitle("Marketing");
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
   const [posts, setPosts] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = usePersistedState(
+    orgViewKey("marketing.status-filter", activeOrg?.id),
+    "all",
+  );
   const [postTypes, setPostTypes] = useState<any[]>([]);
   const [themes, setThemes] = useState<any[]>([]);
   const [industryCode, setIndustryCode] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'posts' | 'images' | 'calendar' | 'templates' | 'combos' | 'automations' | 'brand'>('posts');
+  const [activeTab, setActiveTab] = usePersistedState<'posts' | 'images' | 'calendar' | 'templates' | 'combos' | 'automations' | 'brand'>(
+    orgViewKey("marketing.tab", activeOrg?.id),
+    "posts",
+  );
 
   const reload = async () => {
     if (!user) return;

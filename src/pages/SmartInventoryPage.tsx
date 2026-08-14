@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 /* ─────────────────────────── types ─────────────────────────── */
 interface ABCRow {
@@ -95,7 +96,10 @@ function RevenueBar({ pct, abc }: { pct: number; abc: "A" | "B" | "C" }) {
 export default function SmartInventoryPage() {
   usePageTitle("Inventario Inteligente");
   const { orgId } = useOrganization();
-  const [activeTab, setActiveTab] = useState<Tab>("Análisis ABC");
+  const [activeTab, setActiveTab] = usePersistedState<Tab>(
+    orgViewKey("smart-inventory.tab", orgId),
+    "Análisis ABC",
+  );
   const [abcData, setAbcData] = useState<ABCRow[]>([]);
   const [signals, setSignals] = useState<DemandSignal[]>([]);
   const [loading, setLoading] = useState(true);

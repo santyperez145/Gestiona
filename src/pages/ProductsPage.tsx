@@ -44,6 +44,7 @@ import { PriceSparkline } from "@/components/shared/PriceSparkline";
 import ProfitCalculatorModal from "@/components/shared/ProfitCalculatorModal";
 import { useProductExpiry } from "@/hooks/useProductExpiry";
 import { BarcodePrintSheet } from "@/components/shared/BarcodeLabel";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 const CATEGORY_COLORS: Record<string, string> = {
   perfume_arabe: 'bg-primary/15 text-primary',
@@ -297,14 +298,14 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState<any>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [filterCat, setFilterCat] = useState('all');
-  const [filterStock, setFilterStock] = useState('all');
-  const [filterExpiry, setFilterExpiry] = useState('all');
-  const [filterTag, setFilterTag] = useState('');
-  const [filterMovement, setFilterMovement] = useState('all');
-  const [filterMargin, setFilterMargin] = useState('all');
-  const [filterDiscount, setFilterDiscount] = useState(false);
+  const [search, setSearch] = usePersistedState(orgViewKey("products.search", activeOrg?.id), '');
+  const [filterCat, setFilterCat] = usePersistedState(orgViewKey("products.category-filter", activeOrg?.id), 'all');
+  const [filterStock, setFilterStock] = usePersistedState(orgViewKey("products.stock-filter", activeOrg?.id), 'all');
+  const [filterExpiry, setFilterExpiry] = usePersistedState(orgViewKey("products.expiry-filter", activeOrg?.id), 'all');
+  const [filterTag, setFilterTag] = usePersistedState(orgViewKey("products.tag-filter", activeOrg?.id), '');
+  const [filterMovement, setFilterMovement] = usePersistedState(orgViewKey("products.movement-filter", activeOrg?.id), 'all');
+  const [filterMargin, setFilterMargin] = usePersistedState(orgViewKey("products.margin-filter", activeOrg?.id), 'all');
+  const [filterDiscount, setFilterDiscount] = usePersistedState(orgViewKey("products.discount-filter", activeOrg?.id), false);
   // ── Buscador de perfumes por facetas ──────────────────────────────────────
   const [perfumeDetailsByProduct, setPerfumeDetailsByProduct] = useState<Record<string, any>>({});
   const [facetSheetOpen, setFacetSheetOpen] = useState(false);
@@ -331,7 +332,7 @@ export default function ProductsPage() {
   const [editingThreshold, setEditingThreshold] = useState<{ id: string; value: string } | null>(null);
   const [showAging, setShowAging] = useState(false);
   const [productSort, setProductSort] = useState<{ col: "name" | "sale_price_ars" | "stock" | "margin"; dir: "asc" | "desc" }>({ col: "name", dir: "asc" });
-  const [productView, setProductView] = useState<'list' | 'grid'>('list');
+  const [productView, setProductView] = usePersistedState<'list' | 'grid'>(orgViewKey("products.view", activeOrg?.id), 'list');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const { shareProduct, canShare } = useWebShare();

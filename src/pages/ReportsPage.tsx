@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 function exportCSV(filename: string, headers: string[], rows: string[][]) {
   const bom = '\uFEFF';
@@ -60,8 +61,16 @@ function getPeriodRange(key: PeriodKey): { from: Date; to: Date; label: string }
 export default function ReportsPage() {
   usePageTitle("Reportes");
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
+  const [reportsTab, setReportsTab] = usePersistedState(
+    orgViewKey("reports.tab", activeOrg?.id),
+    "overview",
+  );
   const [data, setData] = useState<any>(null);
-  const [period, setPeriod] = useState<PeriodKey>('current_month');
+  const [period, setPeriod] = usePersistedState<PeriodKey>(
+    orgViewKey("reports.period", activeOrg?.id),
+    "current_month",
+  );
   const [members, setMembers] = useState<any[]>([]);
   const { saveFile: fsSaveFile, supported: fsSupported } = useFileSystemAccess();
 
@@ -475,7 +484,7 @@ export default function ReportsPage() {
         <KPICard label="Ventas registradas" value={filtered.sales.length} icon={Receipt} color="blue" sub={`${filtered.purchases.length} compras`} />
       </div>
 
-      <Tabs defaultValue="overview" className="workspace-tabs-layout w-full">
+      <Tabs value={reportsTab} onValueChange={value => setReportsTab(value as typeof reportsTab)} className="workspace-tabs-layout w-full">
         <TabsList className="workspace-tabs-nav mb-0 flex-wrap">
           <TabsTrigger value="overview">Resumen</TabsTrigger>
           <TabsTrigger value="income">Estado de Resultados</TabsTrigger>

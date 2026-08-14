@@ -40,6 +40,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 13 (2026-08-14):** el onboarding del Dashboard deja de ser una lista larga y global. `SetupChecklist` se guarda por organizacion, destaca el siguiente paso con una accion directa y muestra solo los pendientes mas cercanos hasta que el usuario expande el detalle. Usa las mismas señales reales que ya cargaba el dashboard —ajustes, productos, compras, ventas, clientes, canjes y equipo— sin crear datos ficticios ni cambiar permisos. Es una mejora de D2 y deja preparado el siguiente trabajo de Fase 1: instrumentar el tiempo desde alta hasta primera venta. Validado con typecheck, lint sin errores, 823 tests y build.
 
+**Slice transversal 14 (2026-08-14):** las vistas de trabajo dejan de olvidar su contexto al cambiar de modulo o pestaña. `usePersistedState` centraliza la persistencia de tabs, secciones y filtros en `localStorage`, con claves por organizacion y sincronizacion entre pestañas del navegador. Se aplica a Inicio/Dashboard, Ajustes, Reportes, Analytics, Finanzas, Inventario, Compras, Marketing, Clientes/CRM, Fidelidad, Alertas, Integraciones y superficies de plataforma. La URL sigue siendo la autoridad para rutas compartibles; el almacenamiento local conserva la preferencia visual y nunca reemplaza datos, permisos ni estado transaccional. Validado con typecheck, lint sin errores, 826 tests y build.
+
 ---
 
 ## 1. Qué es

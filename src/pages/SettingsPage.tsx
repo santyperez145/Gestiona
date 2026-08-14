@@ -25,6 +25,7 @@ import { FormSkeleton } from "@/components/shared/PageSkeleton";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 // ─── SystemInfoSection ────────────────────────────────────────────────────────
 function SystemInfoSection({ businessName, productCount, userEmail }: { businessName: string; productCount: number; userEmail?: string }) {
@@ -85,7 +86,11 @@ const SETTINGS_SECTIONS = [
 export default function SettingsPage() {
   usePageTitle("Ajustes");
   const { user, session } = useAuth();
-  const [settingsSection, setSettingsSection] = useState("brand");
+  const { activeOrg: orgForTemplates } = useOrg();
+  const [settingsSection, setSettingsSection] = usePersistedState(
+    orgViewKey("settings.section", orgForTemplates?.id),
+    "brand",
+  );
   const [exchangeRate, setExchangeRate] = useState('');
   const { rates: liveRatesData, loading: fetchingRate, refresh: fetchBlueRateRaw } = useExchangeRates(false);
   const liveRates = liveRatesData ? {
@@ -165,8 +170,6 @@ export default function SettingsPage() {
   useEffect(() => { checkPushStatus(); }, [checkPushStatus]);
 
   // Notification preferences (localStorage per org)
-  const { activeOrg: orgForTemplates } = useOrg();
-
   const handlePushToggle = async () => {
     if (!orgForTemplates) return;
     setPushLoading(true);

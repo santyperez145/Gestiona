@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState, useMemo, useRef } from "react";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import FocoDelDia from "@/components/dashboard/FocoDelDia";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -367,12 +368,19 @@ export default function Dashboard() {
   usePageTitle("Dashboard");
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
   const { permission, notify } = useNotifications();
   const { online, offlineSince, connection } = useNetworkStatus();
   const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any; expenses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeDashboardSection, setActiveDashboardSection] = useState("dashboard-overview");
-  const [filterCat, setFilterCat] = useState('all');
+  const [activeDashboardSection, setActiveDashboardSection] = usePersistedState(
+    orgViewKey("dashboard.section", activeOrg?.id),
+    "dashboard-overview",
+  );
+  const [filterCat, setFilterCat] = usePersistedState(
+    orgViewKey("dashboard.category", activeOrg?.id),
+    "all",
+  );
   const [reloadKey, setReloadKey] = useState(0);
   const [liveTodaySales, setLiveTodaySales] = useState<{ total: number; count: number } | null>(null);
   const [noSalesAlertDismissed, setNoSalesAlertDismissed] = useState<boolean>(() => sessionStorage.getItem('gestiona.no_sales_dismissed') === new Date().toISOString().slice(0, 10));
@@ -394,7 +402,7 @@ export default function Dashboard() {
     !!sessionStorage.getItem(`gestiona.no_sales_alert.${new Date().toISOString().slice(0, 10)}`)
   );
   const [lastWeekSameDaySales, setLastWeekSameDaySales] = useState<number>(0);
-  const { activeOrg: orgForWeekly } = useOrg();
+  const orgForWeekly = activeOrg;
   const weeklyTargetKey = `gestiona.dashboard.weekly_target.${orgForWeekly?.id || 'default'}`;
   const [weeklyTarget, setWeeklyTarget] = useState<number>(() => Number(localStorage.getItem(`gestiona.dashboard.weekly_target.${typeof localStorage !== 'undefined' ? (localStorage.getItem('gestiona.activeOrgId') || 'default') : 'default'}`) || 0));
   const [editingWeeklyTarget, setEditingWeeklyTarget] = useState(false);
@@ -466,7 +474,7 @@ export default function Dashboard() {
   }, [user]);
 
   // Urgent/overdue tasks widget + tasks due today
-  const { activeOrg: orgForTasks, activeOrg } = useOrg();
+  const { activeOrg: orgForTasks } = useOrg();
 
   // ── Flags para el checklist de configuración inicial (negocios nuevos) ────
   const [setupFlags, setSetupFlags] = useState({ hasCustomers: true, hasExchanges: true, hasTeam: true });

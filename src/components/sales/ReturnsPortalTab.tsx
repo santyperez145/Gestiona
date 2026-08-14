@@ -13,6 +13,7 @@ import {
   Pencil, Trash2, RefreshCcw, DollarSign, AlertCircle, Search, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 /* ─────────────────────────── types ─────────────────────────── */
 interface ReturnReason { id: string; name: string; requires_photo: boolean; is_active: boolean; }
@@ -52,7 +53,10 @@ type Tab = typeof TABS[number];
 
 export default function ReturnsPortalTab() {
   const { orgId } = useOrganization();
-  const [activeTab, setActiveTab] = useState<Tab>("Solicitudes");
+  const [activeTab, setActiveTab] = usePersistedState<Tab>(
+    orgViewKey("returns.tab", orgId),
+    "Solicitudes",
+  );
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
   const [reasons, setReasons] = useState<ReturnReason[]>([]);
   const [products, setProducts] = useState<OurProduct[]>([]);

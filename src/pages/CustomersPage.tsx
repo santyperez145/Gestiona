@@ -34,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { toast } from "sonner";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -1324,13 +1325,29 @@ export default function CustomersPage() {
   const [settings, setSettings] = useState<any>(null);
   const [profiles, setProfiles] = useState<CustomerProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [segmentFilter, setSegmentFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<"totalSpent" | "purchaseCount" | "lastPurchase" | "avgTicket" | "healthScore" | "clv" | "churnRisk">("totalSpent");
+  const [search, setSearch] = usePersistedState(
+    orgViewKey("customers.search", activeOrg?.id),
+    "",
+  );
+  const [segmentFilter, setSegmentFilter] = usePersistedState(
+    orgViewKey("customers.segment-filter", activeOrg?.id),
+    "all",
+  );
+  const [sortBy, setSortBy] = usePersistedState<"totalSpent" | "purchaseCount" | "lastPurchase" | "avgTicket" | "healthScore" | "clv" | "churnRisk">(
+    orgViewKey("customers.sort", activeOrg?.id),
+    "totalSpent",
+  );
   const [savedSegments, setSavedSegments] = useState<SavedCRMSegment[]>([]);
   const [saveSegmentName, setSaveSegmentName] = useState("");
   const [showSaveInput, setShowSaveInput] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = usePersistedState<string | null>(
+    orgViewKey("customers.selected", activeOrg?.id),
+    null,
+  );
+  const [customerDetailTab, setCustomerDetailTab] = usePersistedState(
+    orgViewKey("customers.detail-tab", `${activeOrg?.id || "default"}.${selectedCustomer || "none"}`),
+    "resumen",
+  );
   // `profile` puede venir parcial: al crear desde una fila sin ficha solo se
   // conoce el nombre, y el `id` decide si se crea o se actualiza.
   const [formModal, setFormModal] = useState<{ open: boolean; profile?: Partial<CustomerProfile> }>({ open: false });
@@ -1360,9 +1377,18 @@ export default function CustomersPage() {
   const [followUpDate, setFollowUpDate] = useState("");
   const [followUpNote, setFollowUpNote] = useState("");
   const [followUpSaving, setFollowUpSaving] = useState(false);
-  const [filterBirthday, setFilterBirthday] = useState("all");
-  const [filterSeller, setFilterSeller] = useState("all");
-  const [filterCompany, setFilterCompany] = useState("all");
+  const [filterBirthday, setFilterBirthday] = usePersistedState(
+    orgViewKey("customers.birthday-filter", activeOrg?.id),
+    "all",
+  );
+  const [filterSeller, setFilterSeller] = usePersistedState(
+    orgViewKey("customers.seller-filter", activeOrg?.id),
+    "all",
+  );
+  const [filterCompany, setFilterCompany] = usePersistedState(
+    orgViewKey("customers.company-filter", activeOrg?.id),
+    "all",
+  );
   const [bulkBdayWaOpen, setBulkBdayWaOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -3142,7 +3168,7 @@ export default function CustomersPage() {
                       </div>
                     )}
 
-                    <Tabs defaultValue="resumen" className="w-full">
+                    <Tabs value={customerDetailTab} onValueChange={setCustomerDetailTab} className="w-full">
                       <TabsList className="h-8 text-xs mb-3">
                         <TabsTrigger value="resumen" className="text-xs h-7 gap-1"><TrendingUp className="w-3 h-3" />Resumen</TabsTrigger>
                         <TabsTrigger value="compras" className="text-xs h-7 gap-1"><Package className="w-3 h-3" />Compras ({rowsOfCustomer(sales as any[], refDe(c)).length})</TabsTrigger>

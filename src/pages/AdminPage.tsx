@@ -25,6 +25,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import ActivityFeedTab from "@/components/admin/ActivityFeedTab";
 import PermissionsTab from "@/components/admin/PermissionsTab";
+import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 const CHART_COLORS = [
   'hsl(var(--primary))',
@@ -533,7 +534,10 @@ type AuditTab = typeof AUDIT_TABS[number];
 
 function SystemAuditLogTab() {
   const { orgId } = useOrganization();
-  const [activeTab, setActiveTab] = useState<AuditTab>("Línea de tiempo");
+  const [activeTab, setActiveTab] = usePersistedState<AuditTab>(
+    orgViewKey("admin.audit.tab", orgId),
+    "Línea de tiempo",
+  );
   const [logs, setLogs] = useState<AuditLogRow[]>([]);
   const [summary, setSummary] = useState<AuditSummaryRow[]>([]);
   const [loading, setLoading] = useState(true);

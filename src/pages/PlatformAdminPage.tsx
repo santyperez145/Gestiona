@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -157,12 +158,12 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
   });
 
   // Org tab state
-  const [orgSearch, setOrgSearch] = useState('');
-  const [orgSort, setOrgSort] = useState<'created' | 'name' | 'status' | 'plan'>('created');
-  const [orgStatusFilter, setOrgStatusFilter] = useState<string>('all');
+  const [orgSearch, setOrgSearch] = usePersistedState('gestiona.view.platform.org-search', '');
+  const [orgSort, setOrgSort] = usePersistedState<'created' | 'name' | 'status' | 'plan'>('gestiona.view.platform.org-sort', 'created');
+  const [orgStatusFilter, setOrgStatusFilter] = usePersistedState('gestiona.view.platform.org-status', 'all');
 
   // User tab state
-  const [userSearch, setUserSearch] = useState('');
+  const [userSearch, setUserSearch] = usePersistedState('gestiona.view.platform.user-search', '');
 
   // Dialogs
   const [extendDialog, setExtendDialog] = useState<{ open: boolean; org: OrgRow | null }>({ open: false, org: null });
@@ -185,7 +186,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
   // Support tab state
   const [adminLogs, setAdminLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
-  const [supportOrgSearch, setSupportOrgSearch] = useState('');
+  const [supportOrgSearch, setSupportOrgSearch] = usePersistedState('gestiona.view.platform.support-search', '');
   const [selectedOrg, setSelectedOrg] = useState<OrgRow | null>(null);
   const [orgActivity, setOrgActivity] = useState<any>(null);
   const [loadingActivity, setLoadingActivity] = useState(false);
