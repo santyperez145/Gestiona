@@ -856,6 +856,10 @@ La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de inf
 - Las cards de producto son unidades repetibles: imagen, marca, nombre, precio, descuento, stock y accion. No se agrega informacion operativa del tenant como costo, margen, proveedor o credenciales.
 - En mobile, el catalogo conserva busqueda, filtros, orden, carrito y acciones de producto; el filtro puede colapsar, pero nunca debe desaparecer sin una accion visible para recuperarlo. Las grillas deben mantener dimensiones estables y no producir saltos por nombres largos.
 - La verificacion visual publica se hace contra el catalogo real despues del deploy. Sin `.env`, el panel autenticado solo se puede validar por compilacion, tests y pantalla de login; no se afirma que sus datos fueron inspeccionados en navegador.
+- El POS es una herramienta de mostrador, no una pantalla administrativa comun: la busqueda debe tener foco y atajo, las categorias deben poder recorrerse horizontalmente, la grilla debe permitir escaneo rapido y el carrito debe mantener visible el total y la confirmacion.
+- El rediseño del POS no puede esconder estados de negocio: stock, variantes, descuentos, deuda, cobro dividido, turno, offline y sincronizacion deben seguir siendo legibles. Una mejora estetica no justifica quitar una salvaguarda de venta.
+- La superficie de checkout puede tener densidad propia, pero conserva botones con objetivos tactiles estables, scroll independiente para productos y carrito, y un carrito movil recuperable sin perder el contexto de la venta.
+- El POS puede alternar su tema claro/oscuro local, pero sus tokens visuales y estados deben mantener contraste en ambos modos. Las clases `pos-*` viven en la capa visual y no reemplazan los estados ni la logica del componente.
 
 El slice de rediseno se verifica con screenshot en desktop y mobile, typecheck, lint, test y build antes de avanzar a otra superficie.
 

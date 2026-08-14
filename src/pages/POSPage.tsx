@@ -113,15 +113,15 @@ function PayMethodGrid({
   compact?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-3 gap-1">
-      {PAY_METHODS.map((m) => {
-        const Icon = m.icon;
-        const active = value === m.value;
-        return (
-          <button
-            key={m.value}
-            onClick={() => onChange(m.value)}
-            className={`flex flex-col items-center gap-0.5 py-2 rounded-[8px] border text-[10px] font-medium transition-all ${
+    <div className="pos-pay-method-grid grid grid-cols-3 gap-1">
+     {PAY_METHODS.map((m) => {
+       const Icon = m.icon;
+       const active = value === m.value;
+       return (
+         <button
+           key={m.value}
+           onClick={() => onChange(m.value)}
+            className={`pos-pay-method flex flex-col items-center gap-0.5 py-2 rounded-[8px] border text-[10px] font-medium transition-all ${
               active
                 ? "border-primary/60 bg-primary/10 text-primary"
                 : "border-border bg-card text-muted-foreground hover:border-primary/30"
@@ -1654,10 +1654,10 @@ export default function POSPage() {
   // ─────────────────────────────────────────────────────────
   // Cart panel
   // ─────────────────────────────────────────────────────────
-  const cartPanel = (
-    <div className="flex flex-col h-full">
-      {/* Cart header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+ const cartPanel = (
+    <div className="pos-cart-panel flex flex-col h-full">
+     {/* Cart header */}
+      <div className="pos-cart-header flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
           <ShoppingCart className="w-4 h-4 text-primary" />
           <span className="font-semibold text-sm">Carrito</span>
@@ -1709,7 +1709,7 @@ export default function POSPage() {
       )}
 
       {/* Cart items */}
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
+      <div className="pos-cart-items flex-1 overflow-y-auto px-4 py-2 space-y-2">
         {cart.length === 0 ? (
           <div className="py-10 text-center text-muted-foreground text-sm">
             <ShoppingCart className="w-8 h-8 mx-auto mb-2 opacity-20" />
@@ -2194,7 +2194,7 @@ export default function POSPage() {
         })()}
 
         {/* Total + confirm */}
-        <div className="bg-primary/10 rounded-[10px] px-4 py-3 border border-primary/20 space-y-1">
+        <div className="pos-cart-total bg-primary/10 rounded-[10px] px-4 py-3 border border-primary/20 space-y-1">
           {cartSubtotal !== cartTotal && (
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Subtotal</span>
@@ -2285,7 +2285,7 @@ export default function POSPage() {
         )}
 
         <Button
-          className="w-full gradient-gold text-primary-foreground font-semibold h-11 text-base gap-2"
+          className="pos-confirm-sale w-full gradient-gold text-primary-foreground font-semibold h-11 text-base gap-2"
           onClick={confirmSale}
           disabled={confirmDisabled}
         >
@@ -2510,7 +2510,7 @@ export default function POSPage() {
         </div>
       )}
 
-      <div className={`h-[calc(100vh-4rem)] lg:h-screen flex flex-col ${posTheme === 'light' ? 'bg-white text-gray-900 [&_.bg-card]:bg-gray-50 [&_.bg-muted]:bg-gray-100 [&_.border-border]:border-gray-200 [&_.text-muted-foreground]:text-gray-500 [&_.text-foreground]:text-gray-900' : ''}`}>
+      <div className={`pos-workspace pos-shell h-[calc(100vh-4rem)] lg:h-screen flex flex-col ${posTheme === 'light' ? 'bg-white text-gray-900 [&_.bg-card]:bg-gray-50 [&_.bg-muted]:bg-gray-100 [&_.border-border]:border-gray-200 [&_.text-muted-foreground]:text-gray-500 [&_.text-foreground]:text-gray-900' : ''}`}>
         {/* Offline / sync banner */}
         {!isOnline && (
           <div className="shrink-0 flex items-center gap-3 bg-orange-500/10 border-b border-orange-500/30 px-4 py-2 text-xs text-orange-400">
@@ -2531,7 +2531,7 @@ export default function POSPage() {
           </div>
         )}
         {/* Top bar */}
-        <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-border bg-card/60 backdrop-blur">
+        <div className="pos-topbar shrink-0 flex items-center gap-3 px-4 py-3 border-b border-border bg-card/60 backdrop-blur">
           {sellerName && (
             <div className="hidden sm:flex items-center gap-1.5 shrink-0 text-xs text-muted-foreground">
               <User className="w-3 h-3" />
@@ -2549,7 +2549,7 @@ export default function POSPage() {
               {turnoSales.length} venta{turnoSales.length !== 1 ? 's' : ''} · {formatARS(turnoSales.reduce((s, v) => s + v.total, 0))}
             </button>
           )}
-          <div className="flex-1 relative">
+          <div className="pos-search flex-1 relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               ref={searchInputRef}
@@ -2609,7 +2609,7 @@ export default function POSPage() {
         </div>
 
         {/* Category pills */}
-        <div className="shrink-0 flex gap-2 px-4 py-2 overflow-x-auto scrollbar-hide border-b border-border/50 bg-card/40">
+        <div className="pos-category-bar shrink-0 flex gap-2 px-4 py-2 overflow-x-auto scrollbar-hide border-b border-border/50 bg-card/40">
           {CATS.map((c) => (
             <button
               key={c.value}
@@ -2638,9 +2638,9 @@ export default function POSPage() {
         </div>
 
         {/* Main area */}
-        <div className="flex-1 overflow-hidden flex">
+        <div className="pos-main flex-1 overflow-hidden flex">
           {/* Product grid / Bundle grid */}
-          <div className={`flex-1 overflow-y-auto p-3 ${showCart ? "hidden lg:block" : "block"}`}>
+          <div className={`pos-product-area flex-1 overflow-y-auto p-3 ${showCart ? "hidden lg:block" : "block"}`}>
             {/* Bundles grid */}
             {showBundles ? (
               <div>
@@ -2709,7 +2709,7 @@ export default function POSPage() {
                 <p className="text-sm">Sin resultados</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-2">
+              <div className="pos-product-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-2">
                 {filtered.map((prod) => {
                   const inCart = cart.find((it) => it.productId === prod.id);
                   const discP = prod.discount_price_ars ? Number(prod.discount_price_ars) : null;
@@ -2731,12 +2731,12 @@ export default function POSPage() {
                         }
                       }}
                       disabled={outOfStock}
-                      className={`relative flex flex-col bg-card border rounded-[10px] overflow-hidden text-left transition-all hover:shadow-md active:scale-95 ${
+                      className={`pos-product-card relative flex flex-col bg-card border rounded-[10px] overflow-hidden text-left transition-all hover:shadow-md active:scale-95 ${
                         inCart ? "border-primary/60 ring-1 ring-primary/30" : "border-border hover:border-primary/30"
                       } ${outOfStock ? "opacity-40 cursor-not-allowed" : ""}`}
                     >
                       {/* Image or placeholder */}
-                      <div className="w-full aspect-square bg-muted/40 flex items-center justify-center overflow-hidden">
+                      <div className="pos-product-card__media w-full aspect-square bg-muted/40 flex items-center justify-center overflow-hidden">
                         {prod.image_url ? (
                           <img src={prod.image_url} alt={prod.name} className="w-full h-full object-cover" />
                         ) : (
@@ -2744,7 +2744,7 @@ export default function POSPage() {
                         )}
                       </div>
 
-                      <div className="p-2.5 flex flex-col gap-1">
+                      <div className="pos-product-card__content p-2.5 flex flex-col gap-1">
                         <p className="text-xs font-semibold leading-tight line-clamp-2">{prod.name}</p>
                         {prod.brand && <p className="text-[10px] text-muted-foreground">{prod.brand}</p>}
                         {variantsByProduct[prod.id]?.length > 0 && (
@@ -2790,13 +2790,13 @@ export default function POSPage() {
           </div>
 
           {/* Desktop cart sidebar */}
-          <div className="hidden lg:flex w-80 xl:w-96 flex-col border-l border-border bg-card/60 shrink-0">
+          <div className="pos-cart-sidebar hidden lg:flex w-80 xl:w-96 flex-col border-l border-border bg-card/60 shrink-0">
             {cartPanel}
           </div>
 
           {/* Mobile cart slide-up */}
           {showCart && (
-            <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 h-[85vh] bg-card border-t border-border rounded-t-2xl shadow-2xl flex flex-col">
+            <div className="pos-mobile-cart lg:hidden fixed inset-x-0 bottom-0 z-40 h-[85vh] bg-card border-t border-border rounded-t-2xl shadow-2xl flex flex-col">
               <div className="flex justify-center pt-3 pb-1">
                 <button onClick={() => setShowCart(false)} className="text-muted-foreground">
                   <ChevronUp className="w-5 h-5" />
