@@ -860,6 +860,10 @@ La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de inf
 - El rediseño del POS no puede esconder estados de negocio: stock, variantes, descuentos, deuda, cobro dividido, turno, offline y sincronizacion deben seguir siendo legibles. Una mejora estetica no justifica quitar una salvaguarda de venta.
 - La superficie de checkout puede tener densidad propia, pero conserva botones con objetivos tactiles estables, scroll independiente para productos y carrito, y un carrito movil recuperable sin perder el contexto de la venta.
 - El POS puede alternar su tema claro/oscuro local, pero sus tokens visuales y estados deben mantener contraste en ambos modos. Las clases `pos-*` viven en la capa visual y no reemplazan los estados ni la logica del componente.
+- Clientes/CRM debe leerse como una ficha 360, no como una tabla plana: la lista hace visibles segmento, salud, deuda, valor y ultima actividad sin obligar a abrir cada registro.
+- La ficha 360 se expande en contexto y mantiene sus acciones cerca del cliente. El detalle puede usar una segunda superficie visual, pero no se anidan tarjetas dentro de tarjetas ni se pierde la posicion en la lista.
+- La busqueda y los filtros de CRM forman una toolbar estable; los segmentos guardados se leen como accesos rapidos y la barra de acciones masivas aparece solo cuando hay seleccion. El estado vacio, la carga y el error deben conservar la misma jerarquia.
+- Las referencias de Figma para CRM, dashboards y marketplace orientan densidad, filtros, estados y responsive. No se copian assets ni layouts: el contenido debe seguir expresando el Business Core y las acciones reales de Gestiona.
 
 El slice de rediseno se verifica con screenshot en desktop y mobile, typecheck, lint, test y build antes de avanzar a otra superficie.
 

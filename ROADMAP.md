@@ -24,6 +24,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de rediseno 5 (2026-08-14):** el POS recibe una jerarquia de mostrador: acciones y busqueda en la barra superior, categorias en una franja estable, productos como unidades escaneables y carrito separado como superficie de cobro. El total y `Confirmar venta` quedan anclados visualmente, mientras que descuentos, cliente, medios de pago, kits, turno, offline y variantes conservan sus caminos actuales. No se toca el contrato de ventas ni la autoridad de stock de la base. Validado con typecheck, lint sin errores, 823 tests y build.
 
+**Slice de rediseno 6 (2026-08-14):** Clientes/CRM recibe una jerarquia de ficha 360: segmentos, riesgo, valor y filtros quedan visibles antes de abrir un registro; la lista se vuelve mas escaneable y el detalle se expande en contexto con sus acciones. Se aplican patrones de CRM, dashboard y marketplace de las referencias de Figma como criterio de densidad, filtros y estados, sin copiar pantallas ni introducir datos ficticios. El cambio es visual y conserva las lecturas, permisos y acciones existentes. Validado con typecheck, lint sin errores, 823 tests y build.
+
 ---
 
 ## 1. Qué es
