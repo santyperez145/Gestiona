@@ -20,6 +20,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de rediseno 3 (2026-08-14):** consolidacion del workspace de gestion y plataforma. El shell de organizacion ahora separa mejor navegacion, busqueda global, estado operativo y accion primaria; `PageHeader`, `MetricCard` y `KPICard` comparten una misma superficie; Productos, Ventas y Dashboard reciben jerarquia de tablas, toolbars y acciones; Plataforma conserva violeta como superficie de staff. Se toma de los kits de ecommerce/admin la densidad, el uso de tablas y la composicion por bloques, pero no se copian pantallas ni se agregan datos ficticios. Validado con typecheck, lint sin errores, 823 tests y build.
 
+**Slice de rediseno 4 (2026-08-14):** la tienda publica deja de ser una grilla suelta y pasa a tener una jerarquia de ecommerce completa: hero, confianza, categorias, filas de producto, filtros, cards, header, footer y carrito comparten reglas visuales y responsive. `StoreLayout` conserva la separacion legal y de tema; `StoreHome`, `StoreProducts` y `ProductCard` solo reciben composicion y estados visuales, sin mover la fuente de productos, los precios ni el stock. La produccion fue comprobada antes del cambio con 42 productos visibles en el catalogo indicado. Validado con typecheck, lint sin errores, 823 tests y build.
+
 ---
 
 ## 1. Qué es

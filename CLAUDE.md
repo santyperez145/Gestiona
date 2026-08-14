@@ -850,6 +850,12 @@ La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de inf
 - El shell de organizacion debe priorizar lectura y accion: sidebar silencioso, breadcrumb visible, busqueda global, estado operativo y una accion primaria. Las tarjetas metricas no son decoracion: deben tener una sola lectura y una fuente temporal clara.
 - `PageHeader`, `MetricCard` y `KPICard` son la base compartida. Antes de crear una tarjeta, toolbar o encabezado nuevo, buscar si el componente existente puede resolverlo. Las tablas de Productos, Ventas y Plataforma deben conservar scroll horizontal en mobile y estados legibles sin depender del modo oscuro.
 - Las referencias de ecommerce/admin se usan para jerarquia, densidad, filtros, tablas y composicion. No se copian assets ni pantallas: el contenido, los estados y el lenguaje tienen que responder al Business Core de Gestiona.
+- La tienda publica es una superficie propia, no una variante del panel: `StoreLayout` gobierna header, legal, footer y carrito; `StoreHome`, `StoreProducts` y `ProductCard` gobiernan la experiencia de compra. El panel administra la tienda, pero no debe imponerle su chrome.
+- El storefront usa las variables `--st-*` y los temas de `src/storefront/theme.ts`. Un cambio visual no debe hardcodear una paleta que rompa `minimal`, `bold`, `luxury`, `sport`, `natural`, `noche` o `pastel`.
+- La home publica debe llevar al producto real rapido: hero con identidad del comercio, prueba de confianza, categorias y productos destacados. No se agregan metricas, banners ni testimonios ficticios para llenar espacio.
+- Las cards de producto son unidades repetibles: imagen, marca, nombre, precio, descuento, stock y accion. No se agrega informacion operativa del tenant como costo, margen, proveedor o credenciales.
+- En mobile, el catalogo conserva busqueda, filtros, orden, carrito y acciones de producto; el filtro puede colapsar, pero nunca debe desaparecer sin una accion visible para recuperarlo. Las grillas deben mantener dimensiones estables y no producir saltos por nombres largos.
+- La verificacion visual publica se hace contra el catalogo real despues del deploy. Sin `.env`, el panel autenticado solo se puede validar por compilacion, tests y pantalla de login; no se afirma que sus datos fueron inspeccionados en navegador.
 
 El slice de rediseno se verifica con screenshot en desktop y mobile, typecheck, lint, test y build antes de avanzar a otra superficie.
 

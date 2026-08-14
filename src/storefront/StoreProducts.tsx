@@ -122,8 +122,8 @@ export default function StoreProducts() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex items-baseline justify-between gap-3 flex-wrap mb-5">
+    <div className="storefront-products max-w-6xl mx-auto px-4 py-8">
+      <div className="storefront-products__toolbar flex items-baseline justify-between gap-3 flex-wrap mb-5">
         <div>
           <h1 className="text-2xl font-bold">
             {q ? `Resultados para "${q}"` : cat ? nombreDeCategoria(cat, cats2) : soloOferta ? "Ofertas" : "Todos los productos"}
@@ -153,9 +153,9 @@ export default function StoreProducts() {
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-[13rem_1fr] gap-6">
+      <div className="storefront-products__layout grid sm:grid-cols-[13rem_1fr] gap-6">
         {/* ── Filtros ─────────────────────────────────────────────── */}
-        <aside className={`${showFilters ? "block" : "hidden"} sm:block space-y-5`}>
+        <aside className={`storefront-filter-panel ${showFilters ? "block" : "hidden"} sm:block space-y-5`}>
           {activos > 0 && (
             <button onClick={limpiar} className="text-xs inline-flex items-center gap-1 hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
               <X className="w-3 h-3" /> Limpiar filtros
@@ -272,7 +272,7 @@ export default function StoreProducts() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="storefront-products__grid grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {filtrados.map(p => <ProductCard key={p.id} p={p} />)}
             </div>
           )}
@@ -284,7 +284,7 @@ export default function StoreProducts() {
 
 function Grupo({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <div>
+    <div className="storefront-filter-group">
       <p className="text-[11px] font-semibold uppercase tracking-wide mb-2" style={{ color: "hsl(var(--st-muted))" }}>
         {titulo}
       </p>

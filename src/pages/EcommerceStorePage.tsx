@@ -347,7 +347,7 @@ export default function EcommerceStorePage() {
   ], [todayRevenue, todayOrders.length, orders.length, conversionPct, funnelData, activeCartsCount, abandonedCount]);
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="workspace-page workspace-ecommerce space-y-6 pb-12">
       <PageHeader
         icon={ShoppingBag}
         title="Tienda E-Commerce"

@@ -16,10 +16,10 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
 
   return (
     <div
-      className="group flex flex-col overflow-hidden border transition-shadow hover:shadow-lg"
+      className="storefront-product-card group flex flex-col overflow-hidden border transition-shadow hover:shadow-lg"
       style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
     >
-      <Link to={`${base}/producto/${p.id}`} className="relative block aspect-square overflow-hidden bg-black/5">
+      <Link to={`${base}/producto/${p.id}`} className="storefront-product-card__media relative block aspect-square overflow-hidden bg-black/5">
         {p.image_url
           ? (
             <img
@@ -70,7 +70,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         ) : null}
       </Link>
 
-      <div className="p-3 flex flex-col flex-1">
+      <div className="storefront-product-card__content p-3 flex flex-col flex-1">
         {p.brand && (
           <p className="text-[11px] uppercase tracking-wide" style={{ color: "hsl(var(--st-muted))" }}>{p.brand}</p>
         )}
@@ -99,7 +99,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         {p.stock > 0 ? (
           <button
             onClick={() => addToCart(p)}
-            className="mt-3 w-full py-2 text-sm font-medium transition-opacity hover:opacity-90"
+            className="storefront-product-card__add mt-3 w-full py-2 text-sm font-medium transition-opacity hover:opacity-90"
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >
             Agregar
