@@ -149,6 +149,32 @@ export interface PlatformRiskSeriesMetrics {
   rows: PlatformRiskSeriesRow[];
 }
 
+export interface PlatformCronHealthRow {
+  jobid: number | null;
+  jobname: string | null;
+  schedule: string | null;
+  active: boolean | null;
+  last_status: string | null;
+  last_run_at: string | null;
+  last_finished_at: string | null;
+  last_success_at: string | null;
+  runs_7d: number | null;
+  failed_runs_7d: number | null;
+  estado: string | null;
+}
+
+export interface PlatformCronHealthMetrics {
+  totalJobs: number;
+  activeJobs: number;
+  pausedJobs: number;
+  failingJobs: number;
+  runningJobs: number;
+  jobsWithoutRuns: number;
+  runs7d: number;
+  failedRuns7d: number;
+  rows: PlatformCronHealthRow[];
+}
+
 export interface PlatformMetrics {
   totalOrganizations: number;
   onboardedOrganizations: number;
@@ -326,6 +352,34 @@ export function calculateRiskSeriesMetrics(rows: PlatformRiskSeriesRow[]): Platf
       : null,
     atRiskGmv: numberOrZero(latest?.gmv_en_riesgo),
     rows: ordered,
+  };
+}
+
+const CRON_STATE_ORDER: Record<string, number> = {
+  fallando: 0,
+  ejecutando: 1,
+  sin_ejecuciones: 2,
+  saludable: 3,
+  pausado: 4,
+};
+
+export function calculateCronHealthMetrics(rows: PlatformCronHealthRow[]): PlatformCronHealthMetrics {
+  const activeRows = rows.filter(row => row.active === true);
+
+  return {
+    totalJobs: rows.length,
+    activeJobs: activeRows.length,
+    pausedJobs: rows.filter(row => row.active === false).length,
+    failingJobs: activeRows.filter(row => row.estado === "fallando").length,
+    runningJobs: activeRows.filter(row => row.estado === "ejecutando").length,
+    jobsWithoutRuns: activeRows.filter(row => row.last_run_at === null).length,
+    runs7d: rows.reduce((sum, row) => sum + numberOrZero(row.runs_7d), 0),
+    failedRuns7d: rows.reduce((sum, row) => sum + numberOrZero(row.failed_runs_7d), 0),
+    rows: [...rows].sort((a, b) => {
+      const statusDiff = (CRON_STATE_ORDER[a.estado || ""] ?? 3) - (CRON_STATE_ORDER[b.estado || ""] ?? 3);
+      if (statusDiff !== 0) return statusDiff;
+      return (a.jobname || "").localeCompare(b.jobname || "");
+    }),
   };
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateAiActionMetrics, calculateChannelMetrics, calculatePlatformMetrics, calculateRiskSeriesMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformHealthRow, type PlatformRiskSeriesRow, type PlatformStockAccuracyRow, withActivationTimes, withChannelActivationTimes } from "@/lib/platformMetrics";
+import { calculateAiActionMetrics, calculateChannelMetrics, calculateCronHealthMetrics, calculatePlatformMetrics, calculateRiskSeriesMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformCronHealthRow, type PlatformHealthRow, type PlatformRiskSeriesRow, type PlatformStockAccuracyRow, withActivationTimes, withChannelActivationTimes } from "@/lib/platformMetrics";
 
 const baseRow = (overrides: Partial<PlatformHealthRow> = {}): PlatformHealthRow => ({
   org_id: "org-1",
@@ -91,6 +91,21 @@ const baseRiskSeriesRow = (overrides: Partial<PlatformRiskSeriesRow> = {}): Plat
   sin_activar: 3,
   comercios_en_riesgo: 4,
   gmv_en_riesgo: 200000,
+  ...overrides,
+});
+
+const baseCronRow = (overrides: Partial<PlatformCronHealthRow> = {}): PlatformCronHealthRow => ({
+  jobid: 1,
+  jobname: "daily-kpi-alert",
+  schedule: "0 9 * * *",
+  active: true,
+  last_status: "succeeded",
+  last_run_at: "2026-08-14T09:00:00.000Z",
+  last_finished_at: "2026-08-14T09:00:02.000Z",
+  last_success_at: "2026-08-14T09:00:02.000Z",
+  runs_7d: 7,
+  failed_runs_7d: 0,
+  estado: "saludable",
   ...overrides,
 });
 
@@ -242,5 +257,27 @@ describe("platformMetrics", () => {
   it("deja la variación en null cuando sólo existe la primera observación real", () => {
     const metrics = calculateRiskSeriesMetrics([baseRiskSeriesRow()]);
     expect(metrics.riskOrganizationChange).toBeNull();
+  });
+
+  it("prioriza el último fallo de cron y conserva jobs sin ejecuciones como estado informativo", () => {
+    const metrics = calculateCronHealthMetrics([
+      baseCronRow(),
+      baseCronRow({ jobid: 2, jobname: "send-drip-emails", last_status: "failed", failed_runs_7d: 2, estado: "fallando" }),
+      baseCronRow({ jobid: 3, jobname: "snapshot-platform-org-health", last_status: null, last_run_at: null, last_finished_at: null, last_success_at: null, runs_7d: 0, estado: "sin_ejecuciones" }),
+      baseCronRow({ jobid: 4, jobname: "weekly-performance-digest", active: false, estado: "pausado" }),
+    ]);
+
+    expect(metrics.totalJobs).toBe(4);
+    expect(metrics.activeJobs).toBe(3);
+    expect(metrics.pausedJobs).toBe(1);
+    expect(metrics.failingJobs).toBe(1);
+    expect(metrics.jobsWithoutRuns).toBe(1);
+    expect(metrics.failedRuns7d).toBe(2);
+    expect(metrics.rows.map(row => row.jobname)).toEqual([
+      "send-drip-emails",
+      "snapshot-platform-org-health",
+      "daily-kpi-alert",
+      "weekly-performance-digest",
+    ]);
   });
 });

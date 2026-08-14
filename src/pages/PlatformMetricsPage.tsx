@@ -11,7 +11,7 @@ import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { isMissingRelation } from "@/lib/publicDataSource";
-import { calculateAiActionMetrics, calculateChannelMetrics, calculatePlatformMetrics, calculateRiskSeriesMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformHealthRow, type PlatformRiskSeriesRow, type PlatformStockAccuracyRow } from "@/lib/platformMetrics";
+import { calculateAiActionMetrics, calculateChannelMetrics, calculateCronHealthMetrics, calculatePlatformMetrics, calculateRiskSeriesMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformCronHealthRow, type PlatformHealthRow, type PlatformRiskSeriesRow, type PlatformStockAccuracyRow } from "@/lib/platformMetrics";
 
 const SIGNALS: Record<string, { label: string; className: string }> = {
   sin_activar: { label: "Sin activar", className: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
@@ -21,6 +21,14 @@ const SIGNALS: Record<string, { label: string; className: string }> = {
   estable: { label: "Estable", className: "bg-muted text-muted-foreground border-border" },
   dormido: { label: "Dormido", className: "bg-red-500/15 text-red-400 border-red-500/25" },
   sin_dato: { label: "Sin dato", className: "bg-muted text-muted-foreground border-border" },
+};
+
+const CRON_STATES: Record<string, { label: string; className: string }> = {
+  saludable: { label: "Saludable", className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
+  fallando: { label: "Última falló", className: "bg-red-500/15 text-red-400 border-red-500/25" },
+  ejecutando: { label: "Ejecutando", className: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
+  sin_ejecuciones: { label: "Sin ejecuciones", className: "bg-amber-500/15 text-amber-300 border-amber-500/25" },
+  pausado: { label: "Pausado", className: "bg-muted text-muted-foreground border-border" },
 };
 
 function formatARS(value: number) {
@@ -35,6 +43,10 @@ function formatDate(value: string | null) {
   return value ? new Date(value).toLocaleDateString("es-AR") : "Sin fecha";
 }
 
+function formatDateTime(value: string | null) {
+  return value ? new Date(value).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" }) : "Sin ejecuciones";
+}
+
 function formatSnapshotDate(value: string | null) {
   return value ? new Date(`${value}T12:00:00`).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "Sin fecha";
 }
@@ -46,6 +58,11 @@ function formatDays(value: number | null, emptyLabel = "Sin cobro") {
 
 function SignalBadge({ signal }: { signal: string | null }) {
   const config = SIGNALS[signal || "sin_dato"] || SIGNALS.sin_dato;
+  return <Badge variant="outline" className={`text-[10px] ${config.className}`}>{config.label}</Badge>;
+}
+
+function CronStateBadge({ state }: { state: string | null }) {
+  const config = CRON_STATES[state || ""] || CRON_STATES.sin_ejecuciones;
   return <Badge variant="outline" className={`text-[10px] ${config.className}`}>{config.label}</Badge>;
 }
 
@@ -71,25 +88,28 @@ export default function PlatformMetricsPage() {
   const [stockRows, setStockRows] = useState<PlatformStockAccuracyRow[]>([]);
   const [aiActionRows, setAiActionRows] = useState<PlatformAiActionRow[]>([]);
   const [riskSeriesRows, setRiskSeriesRows] = useState<PlatformRiskSeriesRow[]>([]);
+  const [cronRows, setCronRows] = useState<PlatformCronHealthRow[]>([]);
   const [channelViewUnavailable, setChannelViewUnavailable] = useState(false);
   const [stockViewUnavailable, setStockViewUnavailable] = useState(false);
   const [aiActionViewUnavailable, setAiActionViewUnavailable] = useState(false);
   const [riskSeriesUnavailable, setRiskSeriesUnavailable] = useState(false);
+  const [cronViewUnavailable, setCronViewUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = usePersistedState<"funnel" | "health" | "activation" | "channels" | "stock" | "ai" | "risk">("gestiona.view.platform.metrics-tab", "funnel");
+  const [tab, setTab] = usePersistedState<"funnel" | "health" | "activation" | "channels" | "stock" | "ai" | "risk" | "operations">("gestiona.view.platform.metrics-tab", "funnel");
   const [search, setSearch] = usePersistedState("gestiona.view.platform.metrics-search", "");
   const [signalFilter, setSignalFilter] = usePersistedState("gestiona.view.platform.metrics-signal", "all");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [healthResult, channelResult, stockResult, aiActionResult, riskSeriesResult] = await Promise.all([
+    const [healthResult, channelResult, stockResult, aiActionResult, riskSeriesResult, cronResult] = await Promise.all([
       supabase.from("platform_org_health").select("*").order("gmv_30d", { ascending: false }),
       supabase.from("platform_org_activation").select("*").order("org_creada", { ascending: false }),
       supabase.from("platform_org_stock_accuracy").select("*").order("productos_descuadrados", { ascending: false }),
       supabase.from("platform_org_ai_actions").select("*").order("recommendations_total", { ascending: false }),
       supabase.from("platform_org_risk_series").select("*").order("snapshot_date", { ascending: true }),
+      supabase.from("platform_cron_health").select("*").order("jobname", { ascending: true }),
     ]);
     if (healthResult.error) {
       setError(healthResult.error.message);
@@ -149,6 +169,19 @@ export default function PlatformMetricsPage() {
       setRiskSeriesRows((riskSeriesResult.data || []) as PlatformRiskSeriesRow[]);
       setRiskSeriesUnavailable(false);
     }
+    if (cronResult.error) {
+      if (isMissingRelation(cronResult.error)) {
+        setCronViewUnavailable(true);
+        setCronRows([]);
+      } else {
+        setError(cronResult.error.message);
+        setCronRows([]);
+        setCronViewUnavailable(false);
+      }
+    } else {
+      setCronRows((cronResult.data || []) as PlatformCronHealthRow[]);
+      setCronViewUnavailable(false);
+    }
     setLoading(false);
   }, []);
 
@@ -159,6 +192,7 @@ export default function PlatformMetricsPage() {
   const stockMetrics = useMemo(() => calculateStockAccuracyMetrics(stockRows), [stockRows]);
   const aiActionMetrics = useMemo(() => calculateAiActionMetrics(aiActionRows), [aiActionRows]);
   const riskSeriesMetrics = useMemo(() => calculateRiskSeriesMetrics(riskSeriesRows), [riskSeriesRows]);
+  const cronMetrics = useMemo(() => calculateCronHealthMetrics(cronRows), [cronRows]);
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
     return metrics.activationTimes.filter(row => {
@@ -207,6 +241,7 @@ export default function PlatformMetricsPage() {
           <TabsTrigger value="stock" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Inventario</TabsTrigger>
           <TabsTrigger value="ai" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Recomendaciones IA</TabsTrigger>
           <TabsTrigger value="risk" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Riesgo</TabsTrigger>
+          <TabsTrigger value="operations" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Operación</TabsTrigger>
         </TabsList>
 
         <TabsContent value="funnel" className="mt-5 space-y-5">
@@ -464,6 +499,45 @@ export default function PlatformMetricsPage() {
                       <Area type="monotone" dataKey="comercios_en_riesgo" name="Comercios en riesgo" stroke="#f97316" fill="url(#platformRiskGradient)" strokeWidth={2} dot={{ r: 3, fill: "#f97316" }} />
                     </AreaChart>
                   </ResponsiveContainer>
+                )}
+              </div>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="operations" className="mt-5 space-y-5">
+          {cronViewUnavailable ? (
+            <div className="flex items-start gap-3 border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div><p className="font-semibold">Observabilidad de cron pendiente</p><p className="mt-1 text-xs text-muted-foreground">La base todavía no expone `platform_cron_health`. El panel no intenta leer `cron.job` directo ni muestra comandos o respuestas internas.</p></div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <KPICard label="Jobs activos" value={cronMetrics.activeJobs} icon={Activity} color="blue" sub={`${cronMetrics.totalJobs} configurados`} />
+                <KPICard label="Última corrida falló" value={cronMetrics.failingJobs} icon={AlertTriangle} color={cronMetrics.failingJobs > 0 ? "destructive" : "success"} sub="requieren revisar ahora" />
+                <KPICard label="Fallos últimos 7 días" value={cronMetrics.failedRuns7d} icon={AlertTriangle} color={cronMetrics.failedRuns7d > 0 ? "warning" : "success"} sub={`${cronMetrics.runs7d} ejecuciones registradas`} />
+                <KPICard label="Sin historial" value={cronMetrics.jobsWithoutRuns} icon={Clock3} color={cronMetrics.jobsWithoutRuns > 0 ? "warning" : "success"} sub="pueden ser jobs recién creados" />
+              </div>
+
+              <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
+                <div className="flex items-start gap-3"><Activity className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" /><div><p className="font-semibold text-violet-200">Estado operativo sin exponer secretos</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">La vista sólo entrega nombre, horario, actividad, estado y conteos. No expone el comando del cron, mensajes de retorno ni cuerpos de respuestas HTTP. “Sin ejecuciones” informa un job nuevo; no se trata como falla porque un horario semanal puede ser correcto.</p></div></div>
+              </section>
+
+              <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">
+                <div className="border-b border-border/50 px-4 py-3"><h2 className="font-semibold text-sm">Salud de trabajos programados</h2><p className="mt-1 text-xs text-muted-foreground">Ordenado para que el último fallo se revise antes que los jobs sanos. Las corridas previas fallidas siguen visibles en el contador de siete días.</p></div>
+                {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando salud de cron...</div> : cronMetrics.rows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">No hay trabajos programados visibles para este staff.</div> : (
+                  <div className="divide-y divide-border/50">
+                    {cronMetrics.rows.map(row => (
+                      <div key={row.jobid || row.jobname} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.35fr)_minmax(120px,.75fr)_minmax(135px,.85fr)_minmax(135px,.85fr)_minmax(110px,.65fr)] md:items-center">
+                        <div className="min-w-0"><p className="truncate text-sm font-medium">{row.jobname || "Job sin nombre"}</p><p className="truncate text-xs text-muted-foreground">cron: {row.schedule || "Sin horario"}</p></div>
+                        <div><CronStateBadge state={row.estado} /><p className="mt-1 text-[10px] text-muted-foreground">{row.active ? "Activo" : "Pausado"}</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Última corrida</p><p className="mt-0.5 text-xs font-semibold">{formatDateTime(row.last_run_at)}</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Último éxito</p><p className="mt-0.5 text-xs font-semibold">{formatDateTime(row.last_success_at)}</p></div>
+                        <div className="md:text-right"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">7 días</p><p className={`mt-0.5 text-xs font-semibold ${row.failed_runs_7d ? "text-red-300" : ""}`}>{row.runs_7d || 0} corridas · {row.failed_runs_7d || 0} fallos</p></div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </>

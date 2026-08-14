@@ -19538,6 +19538,22 @@ export type Database = {
           },
         ]
       }
+      platform_cron_health: {
+        Row: {
+          active: boolean | null
+          estado: string | null
+          failed_runs_7d: number | null
+          jobid: number | null
+          jobname: string | null
+          last_finished_at: string | null
+          last_run_at: string | null
+          last_status: string | null
+          last_success_at: string | null
+          runs_7d: number | null
+          schedule: string | null
+        }
+        Relationships: []
+      }
       platform_org_health: {
         Row: {
           cobros_30d: number | null

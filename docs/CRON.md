@@ -83,3 +83,18 @@ porque se actualiza a las 03:15 ART):
 ```sql
 SELECT public.capture_platform_org_health_snapshot();
 ```
+
+## Visibilidad para plataforma
+
+`/platform/metricas` → **Operación** consume la vista protegida
+`platform_cron_health`. Resume por job:
+
+- nombre, expresión cron y si está activo;
+- estado de la última corrida y sus tiempos;
+- número de corridas y fallos de los últimos siete días.
+
+La vista sólo responde a `platform_admins` y no incluye `cron.job.command`,
+`return_message`, cuerpos de respuestas HTTP ni secretos. Un estado **Sin
+ejecuciones** es informativo para un job recién creado: el panel no intenta
+deducir atraso parseando la expresión cron, porque un job semanal puede estar
+correcto aunque no haya corrido hoy.

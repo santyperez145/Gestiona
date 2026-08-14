@@ -60,6 +60,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 22 (2026-08-14):** La cobertura E2E del panel suma POS sin crear ventas: carga con una sesión real, descarta el modal local de vendedor cuando aparece, rechaza el carrito vacío y comprueba que `F2` devuelve el foco a la búsqueda con las categorías disponibles. Así protege el render que ya se rompió por el orden de `confirmDisabled` y evita que un flujo de mostrador pase meses sin navegador. El spec es condicional al usuario E2E y Playwright lo detecta junto al resto de las 41 pruebas; falta ejecutarlo con esas credenciales, que no están en este equipo.
 
+**Slice funcional 23 (2026-08-14):** La salud de los cron deja de depender de una consulta manual de superusuario. `platform_cron_health` resume, sólo para staff de plataforma, el job, horario, actividad, último estado, último éxito y conteos de corridas/fallos de siete días; jamás expone el comando, mensajes de retorno ni respuestas HTTP. `/platform/metricas` suma Operación y ordena primero la última corrida fallida. “Sin ejecuciones” queda como información —por ejemplo para una tarea recién creada— sin inferir un atraso falso al parsear cron. Validado contra la base vinculada como `authenticated` staff: 16 jobs visibles, 15 saludables y una captura diaria aún sin historial; el rol ajeno ve cero filas y `authenticated` conserva sólo `SELECT` sobre la vista. Typecheck, lint sin errores, 894 tests y build/PWA completados.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -185,7 +187,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **893 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **894 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -237,6 +239,8 @@ seguridad, backups, observabilidad y métricas. Traducido a este ROADMAP:
 - Fase 2 tiene que probar la tesis: **un stock, dos canales, margen por canal**.
 - La confiabilidad tiene que subir de nivel: **E2E de POS/panel, restore
   probado, observabilidad de webhooks, crons, pagos y funciones**.
+- La observabilidad de **crons** ya tiene lectura protegida para staff; siguen
+  pendientes webhooks, pagos, funciones y un restore probado.
 - La IA no suma por decir "IA": suma cuando recomienda una acción y después se
   mide si el comercio la ejecutó.
 

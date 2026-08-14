@@ -60,7 +60,10 @@ export default function OnboardingPage() {
     try {
       const businessName = name.trim();
       const ind = industries.find((industry) => industry.code === rubroCode);
-      const defaultSettings = ind?.default_settings || {};
+      const defaultSettings = ind?.default_settings;
+      const settingsFromIndustry = defaultSettings && typeof defaultSettings === 'object' && !Array.isArray(defaultSettings)
+        ? defaultSettings
+        : {};
       const aiTone = ind?.ai_tone || 'profesional rioplatense argentino';
       const { error: organizationError } = await supabase
         .from('organizations')
@@ -70,7 +73,7 @@ export default function OnboardingPage() {
 
       const { error: settingsError } = await supabase
         .from('settings')
-        .update({ business_name: businessName, primary_color: color, industry_code: rubroCode, ai_tone: aiTone, ...defaultSettings })
+        .update({ business_name: businessName, primary_color: color, industry_code: rubroCode, ai_tone: aiTone, ...settingsFromIndustry })
         .eq('org_id', activeOrg.id);
       if (settingsError) throw settingsError;
 
