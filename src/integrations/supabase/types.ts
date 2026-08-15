@@ -28089,6 +28089,14 @@ export type Database = {
       increment_kb_helpful: { Args: { article_id: string }; Returns: undefined }
       increment_kb_views: { Args: { article_id: string }; Returns: undefined }
       invoke_edge_function: { Args: { p_name: string }; Returns: number }
+      invoke_edge_function_with_secret: {
+        Args: {
+          p_header_name: string
+          p_name: string
+          p_vault_secret_name: string
+        }
+        Returns: number
+      }
       is_email_suppressed: {
         Args: { p_email: string; p_org_id: string }
         Returns: boolean

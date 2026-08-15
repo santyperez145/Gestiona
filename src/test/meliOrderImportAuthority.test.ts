@@ -9,6 +9,7 @@ const migration = readFileSync(
 );
 const sync = readFileSync(resolve(ROOT, "supabase/functions/meli-sync/index.ts"), "utf8");
 const productsPage = readFileSync(resolve(ROOT, "src/pages/ProductsPage.tsx"), "utf8");
+const cronMigration = readFileSync(resolve(ROOT, "supabase/migrations/20260814000015_meli_cron_sync.sql"), "utf8");
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
@@ -49,7 +50,7 @@ describe("importación de órdenes MercadoLibre", () => {
     expect(sync).toContain('if (action === "import-order")');
     expect(sync).toContain('admin.rpc("import_meli_order_as_sales"');
     expect(sync).toContain("p_actor_id: userId");
-    expect(sync).toContain("sale_fee: i.sale_fee ?? null");
+    expect(sync).toContain("sale_fee: item.sale_fee ?? null");
     expect(sync.indexOf('if (action === "import-order")')).toBeLessThan(sync.indexOf("const conn = await getToken"));
   });
 
@@ -84,5 +85,24 @@ describe("importación de órdenes MercadoLibre", () => {
       .map(file => file.replace(ROOT, ""));
 
     expect(writes, "las publicaciones sólo las vincula meli-sync con service_role").toEqual([]);
+  });
+
+  it("al volver a traer una orden conserva el vínculo importado pero actualiza pending a paid", () => {
+    expect(sync).toContain("Una orden descargada como pending tiene que pasar a paid");
+    expect(sync).toContain('onConflict: "org_id,meli_order_id"');
+    expect(sync).not.toContain("ignoreDuplicates: true");
+  });
+
+  it("la sincronización nunca convierte un negativo real en cero y el cron requiere su secreto", () => {
+    expect(sync).toContain("Stock negativo en Gestiona");
+    expect(sync).not.toContain("Math.max(0, p.stock");
+    expect(sync).toContain('action === "cron-sync"');
+    expect(sync).toContain('requireEnv("MELI_CRON_SECRET")');
+    expect(sync).toContain('req.headers.get("x-meli-cron-secret")');
+    expect(cronMigration).toContain("invoke_edge_function_with_secret");
+    expect(cronMigration).toContain("MELI_CRON_SECRET");
+    expect(cronMigration).toContain("FROM PUBLIC, anon, authenticated");
+    expect(cronMigration).toContain("has_function_privilege('anon'");
+    expect(cronMigration).toContain("meli-sync-orgs");
   });
 });

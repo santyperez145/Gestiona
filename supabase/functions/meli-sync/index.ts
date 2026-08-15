@@ -7,6 +7,7 @@
  *   sync-stock   → empuja stock y precio de todas las publicaciones activas
  *   pull-orders  → baja las órdenes nuevas a meli_orders
  *   import-order → convierte una orden paid ya bajada en ventas del Core
+ *   cron-sync    → sincroniza todas las organizaciones conectadas (sólo cron)
  *
  * El token se lee de `meli_connections` con service_role y se renueva solo si
  * está por vencer: MercadoLibre expira el access_token a las 6 horas, así que
@@ -77,7 +78,8 @@ async function getToken(admin: any, orgId: string): Promise<Connection> {
     expires_at: new Date(Date.now() + (tok.expires_in ?? 21600) * 1000).toISOString(),
     updated_at: new Date().toISOString(),
   };
-  await admin.from("meli_connections").update(updated).eq("org_id", orgId);
+  const { error: updateError } = await admin.from("meli_connections").update(updated).eq("org_id", orgId);
+  if (updateError) throw new Error(updateError.message);
   return { ...conn, ...updated };
 }
 
@@ -91,6 +93,116 @@ const meli = (token: string, path: string, init: RequestInit = {}) =>
     },
   });
 
+type SyncError = { item: string; error: string };
+
+/** Sincroniza las publicaciones de una organización sin ocultar stock negativo. */
+async function syncMeliStock(admin: any, orgId: string, token: string) {
+  const { data: listings, error: listingsError } = await admin
+    .from("meli_listings")
+    .select("id, product_id, meli_item_id")
+    .eq("org_id", orgId).eq("status", "active");
+  if (listingsError) throw new Error(listingsError.message);
+
+  let sincronizadas = 0;
+  const errores: SyncError[] = [];
+
+  for (const listing of listings ?? []) {
+    const { data: product, error: productError } = await admin
+      .from("products")
+      .select("stock, sale_price_ars, discount_price_ars")
+      .eq("id", listing.product_id).maybeSingle();
+    if (productError) throw new Error(productError.message);
+    if (!product) continue;
+
+    // Un negativo es una inconsistencia para revisar, no un cero que haya que
+    // inventar en MercadoLibre. El listado conserva el error hasta corregir el
+    // Kardex y evita seguir vendiendo una cantidad falsa.
+    if (Number(product.stock ?? 0) < 0) {
+      const message = "Stock negativo en Gestiona: corregilo desde Kardex antes de sincronizar MercadoLibre";
+      errores.push({ item: listing.meli_item_id, error: message });
+      const { error: updateError } = await admin.from("meli_listings")
+        .update({ last_error: message }).eq("id", listing.id);
+      if (updateError) throw new Error(updateError.message);
+      continue;
+    }
+
+    const price = Number(product.discount_price_ars ?? product.sale_price_ars) || 0;
+    const res = await meli(token, `/items/${listing.meli_item_id}`, {
+      method: "PUT",
+      body: JSON.stringify({ available_quantity: Number(product.stock ?? 0), price }),
+    });
+
+    if (res.ok) {
+      sincronizadas++;
+      const { error: updateError } = await admin.from("meli_listings")
+        .update({ last_synced_at: new Date().toISOString(), last_error: null })
+        .eq("id", listing.id);
+      if (updateError) throw new Error(updateError.message);
+    } else {
+      const body = await res.json().catch(() => null);
+      const message = String(body?.message ?? `HTTP ${res.status}`).slice(0, 300);
+      errores.push({ item: listing.meli_item_id, error: message });
+      const { error: updateError } = await admin.from("meli_listings")
+        .update({ last_error: message }).eq("id", listing.id);
+      if (updateError) throw new Error(updateError.message);
+    }
+  }
+
+  return { sincronizadas, errores };
+}
+
+/** Baja el estado actual de órdenes sin tocar sus vínculos ya importados. */
+async function pullMeliOrders(admin: any, orgId: string, token: string) {
+  const { data: connection, error: connectionError } = await admin
+    .from("meli_connections").select("meli_user_id").eq("org_id", orgId).maybeSingle();
+  if (connectionError) throw new Error(connectionError.message);
+  if (!connection?.meli_user_id) throw new Error("Conexión incompleta");
+
+  const res = await meli(token, `/orders/search?seller=${connection.meli_user_id}&sort=date_desc&limit=50`);
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.message ?? `HTTP ${res.status}`);
+
+  const rows = (body?.results ?? []).map((order: any) => ({
+    org_id: orgId,
+    meli_order_id: order.id,
+    status: order.status ?? null,
+    buyer_nickname: order.buyer?.nickname ?? null,
+    total_ars: order.total_amount ?? null,
+    items: (order.order_items ?? []).map((item: any) => ({
+      title: item.item?.title,
+      item_id: item.item?.id,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      // Es la comisión real informada por MercadoLibre, que la importación usa
+      // para el margen del canal. No se estima desde una tabla de tarifas.
+      sale_fee: item.sale_fee ?? null,
+    })),
+    date_created: order.date_created ?? null,
+    raw: order,
+  }));
+
+  if (rows.length) {
+    // Una orden descargada como pending tiene que pasar a paid cuando ML la
+    // acredita. No se mandan imported_at ni sale_id, así que esos vínculos de
+    // Core se preservan mientras se actualiza el estado remoto.
+    const { error: upsertError } = await admin.from("meli_orders").upsert(rows, {
+      onConflict: "org_id,meli_order_id",
+    });
+    if (upsertError) throw new Error(upsertError.message);
+  }
+
+  return { ordenes: rows.length };
+}
+
+function sameSecret(received: string | null, expected: string) {
+  if (!received || received.length !== expected.length) return false;
+  let difference = 0;
+  for (let index = 0; index < expected.length; index++) {
+    difference |= received.charCodeAt(index) ^ expected.charCodeAt(index);
+  }
+  return difference === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -99,6 +211,58 @@ Deno.serve(async (req) => {
     const anonKey = requireEnv("SUPABASE_ANON_KEY");
     const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
+    const body = await req.json();
+    const { action, orgId, productId, categoryId, listingType, meliOrderId } = body;
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    // El cron no tiene un usuario humano. Se protege con un secreto distinto de
+    // la anon key pública: el job lo lee desde Vault y la Function desde sus
+    // secretos de entorno. Así una llamada copiada desde el navegador no puede
+    // forzar sincronizaciones ni gastar cuota de la API de MercadoLibre.
+    if (action === "cron-sync") {
+      const expectedSecret = requireEnv("MELI_CRON_SECRET");
+      if (!sameSecret(req.headers.get("x-meli-cron-secret"), expectedSecret)) {
+        return json({ error: "Cron no autorizado" }, 401);
+      }
+
+      const { data: connections, error: connectionsError } = await admin
+        .from("meli_connections").select("org_id").not("access_token", "is", null);
+      if (connectionsError) throw new Error(connectionsError.message);
+
+      let stock = 0;
+      let orders = 0;
+      const errors: { org_id: string; error: string }[] = [];
+      const failedOrgIds = new Set<string>();
+      for (const connection of connections ?? []) {
+        try {
+          const connectionWithToken = await getToken(admin, connection.org_id);
+          const stockResult = await syncMeliStock(admin, connection.org_id, connectionWithToken.access_token);
+          const ordersResult = await pullMeliOrders(admin, connection.org_id, connectionWithToken.access_token);
+          stock += stockResult.sincronizadas;
+          orders += ordersResult.ordenes;
+          const lastError = stockResult.errores.length ? stockResult.errores[0].error : null;
+          errors.push(...stockResult.errores.map(error => ({ org_id: connection.org_id, error: error.error })));
+          if (stockResult.errores.length) failedOrgIds.add(connection.org_id);
+          const { error: statusError } = await admin.from("meli_connections")
+            .update({ last_error: lastError, updated_at: new Date().toISOString() })
+            .eq("org_id", connection.org_id);
+          if (statusError) throw new Error(statusError.message);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Error desconocido";
+          errors.push({ org_id: connection.org_id, error: message });
+          failedOrgIds.add(connection.org_id);
+          await admin.from("meli_connections")
+            .update({ last_error: message.slice(0, 500), updated_at: new Date().toISOString() })
+            .eq("org_id", connection.org_id);
+        }
+      }
+
+      return json(
+        { ok: errors.length < (connections?.length ?? 0) || !connections?.length, organizaciones: connections?.length ?? 0, stock, ordenes: orders, errores: errors },
+        failedOrgIds.size === (connections?.length ?? 0) && failedOrgIds.size > 0 ? 500 : 200,
+      );
+    }
+
     const asUser = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
     });
@@ -106,7 +270,6 @@ Deno.serve(async (req) => {
     const userId = userRes?.user?.id;
     if (!userId) return json({ error: "No autenticado" }, 401);
 
-    const { action, orgId, productId, categoryId, listingType, meliOrderId } = await req.json();
     if (!orgId) return json({ error: "orgId es requerido" }, 400);
 
     const { data: membership } = await asUser
@@ -115,8 +278,6 @@ Deno.serve(async (req) => {
     if (!membership || !["owner", "admin"].includes(membership.role)) {
       return json({ error: "Necesitás ser administrador de esta organización" }, 403);
     }
-
-    const admin = createClient(supabaseUrl, serviceKey);
 
     // Importar no llama a MercadoLibre: trabaja sobre la orden inmutable que
     // ya se descargó. Por eso sigue funcionando si el token venció o la cuenta
@@ -264,86 +425,12 @@ Deno.serve(async (req) => {
 
     // ── sync-stock ────────────────────────────────────────────────────────
     if (action === "sync-stock") {
-      const { data: listings } = await admin
-        .from("meli_listings")
-        .select("id, product_id, meli_item_id")
-        .eq("org_id", orgId).eq("status", "active");
-
-      let ok = 0;
-      const errores: { item: string; error: string }[] = [];
-
-      for (const l of listings ?? []) {
-        const { data: p } = await admin
-          .from("products")
-          .select("stock, sale_price_ars, discount_price_ars")
-          .eq("id", l.product_id).maybeSingle();
-        if (!p) continue;
-
-        const price = Number(p.discount_price_ars ?? p.sale_price_ars) || 0;
-        const res = await meli(conn.access_token, `/items/${l.meli_item_id}`, {
-          method: "PUT",
-          body: JSON.stringify({ available_quantity: Math.max(0, p.stock ?? 0), price }),
-        });
-
-        if (res.ok) {
-          ok++;
-          await admin.from("meli_listings")
-            .update({ last_synced_at: new Date().toISOString(), last_error: null })
-            .eq("id", l.id);
-        } else {
-          const body = await res.json().catch(() => null);
-          const msg = String(body?.message ?? `HTTP ${res.status}`).slice(0, 300);
-          errores.push({ item: l.meli_item_id, error: msg });
-          await admin.from("meli_listings").update({ last_error: msg }).eq("id", l.id);
-        }
-      }
-
-      return json({ ok: true, sincronizadas: ok, errores });
+      return json({ ok: true, ...(await syncMeliStock(admin, orgId, conn.access_token)) });
     }
 
     // ── pull-orders ───────────────────────────────────────────────────────
     if (action === "pull-orders") {
-      const { data: conn2 } = await admin
-        .from("meli_connections").select("meli_user_id").eq("org_id", orgId).maybeSingle();
-      if (!conn2?.meli_user_id) return json({ error: "Conexión incompleta" }, 400);
-
-      const res = await meli(
-        conn.access_token,
-        `/orders/search?seller=${conn2.meli_user_id}&sort=date_desc&limit=50`,
-      );
-      const body = await res.json().catch(() => null);
-      if (!res.ok) return json({ error: body?.message ?? `HTTP ${res.status}` }, 400);
-
-      const rows = (body?.results ?? []).map((o: any) => ({
-        org_id: orgId,
-        meli_order_id: o.id,
-        status: o.status ?? null,
-        buyer_nickname: o.buyer?.nickname ?? null,
-        total_ars: o.total_amount ?? null,
-        items: (o.order_items ?? []).map((i: any) => ({
-          title: i.item?.title,
-          item_id: i.item?.id,
-          quantity: i.quantity,
-          unit_price: i.unit_price,
-          // Es la comisión que MercadoLibre informó para esta venta. No se
-          // recalcula en el navegador ni con una tarifa estimada: al importar
-          // queda guardada junto a la línea para el margen por canal.
-          sale_fee: i.sale_fee ?? null,
-        })),
-        date_created: o.date_created ?? null,
-        raw: o,
-      }));
-
-      if (rows.length) {
-        // ignoreDuplicates: una orden ya bajada no se pisa (podría estar
-        // importada como venta y no queremos perder ese vínculo).
-        await admin.from("meli_orders").upsert(rows, {
-          onConflict: "org_id,meli_order_id",
-          ignoreDuplicates: true,
-        });
-      }
-
-      return json({ ok: true, ordenes: rows.length });
+      return json({ ok: true, ...(await pullMeliOrders(admin, orgId, conn.access_token)) });
     }
 
     return json({ error: `Acción desconocida: ${action}` }, 400);

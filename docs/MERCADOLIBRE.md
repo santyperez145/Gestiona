@@ -80,6 +80,7 @@ sincronización.
 | `sync-stock` | Empuja stock y precio de todas las publicaciones activas |
 | `pull-orders` | Baja las últimas 50 órdenes a `meli_orders`, con precio y comisión por línea |
 | `import-order` | Convierte una orden `paid` ya bajada en ventas de Gestiona, stock y cobro neto |
+| `cron-sync` | Uso interno: sincroniza stock/precio y órdenes de todas las organizaciones conectadas |
 
 ## Publicar desde un producto
 
@@ -120,24 +121,37 @@ Una misma orden no puede importarse dos veces. `meli_orders`, sus vínculos de
 venta y las publicaciones vinculadas son de sólo lectura para el navegador; la
 sincronización y la conversión las escriben las Edge Functions con service role.
 
-## Sincronización automática (opcional)
+## Sincronización automática
 
-Para que el stock se actualice solo, agregá un cron usando el helper que ya
-existe (ver `docs/CRON.md`):
+La acción interna `cron-sync` recorre cada organización conectada, actualiza
+sus publicaciones activas y baja las últimas 50 órdenes. Una orden que primero
+llegó como `pending` se actualiza a `paid`; los vínculos ya importados al Core
+se conservan. Un stock negativo no se transforma en cero: queda como error de
+la publicación hasta corregir el Kardex.
 
-```sql
-SELECT cron.schedule(
-  'meli-sync-stock', '0 */2 * * *',
-  $$SELECT public.invoke_edge_function('meli-sync-cron');$$
-);
+El cron **no usa la anon key como secreto**. Antes de activarlo, generá una
+cadena aleatoria larga y cargá el mismo valor en los dos lugares:
+
+```bash
+npx supabase secrets set MELI_CRON_SECRET=tu-secreto-aleatorio-largo
 ```
 
-Ojo: `meli-sync` espera un `orgId` y valida el rol del usuario que llama, así
-que para el cron hace falta una función aparte que recorra las organizaciones
-conectadas. Todavía no está hecha — hoy la sincronización es manual desde el
-panel.
+```sql
+SELECT vault.create_secret('tu-secreto-aleatorio-largo', 'MELI_CRON_SECRET');
+```
+
+Después reejecutá la migración `20260814000015_meli_cron_sync.sql`:
+
+```bash
+npx supabase db query --linked --file supabase/migrations/20260814000015_meli_cron_sync.sql
+```
+
+La migración sólo crea el job `meli-sync-orgs` (cada 15 minutos) si el secreto
+ya existe en Vault. Así no queda un cron fallando en silencio por una
+configuración a medias. Ver también [docs/CRON.md](CRON.md).
 
 ## Qué falta
 
 - Webhook de notificaciones de ML para no depender del polling.
-- Función de cron multi-organización para la sincronización automática.
+- Activar el cron en producción cargando `MELI_CRON_SECRET` en Vault y Edge
+  Functions; el código y la migración ya están, pero ese secreto es del dueño.

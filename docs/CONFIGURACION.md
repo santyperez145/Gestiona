@@ -72,7 +72,7 @@ Sin `ANTHROPIC_API_KEY`, cada función de IA responde con error. Sin
 | `MP_WEBHOOK_SECRET` | Validar el webhook de MercadoPago (el token va por org en Integraciones) |
 | `TIENDANUBE_CLIENT_SECRET` | Sincronización con Tiendanube |
 | `RESEND_WEBHOOK_SECRET` | Rebotes y desuscripciones desde Resend |
-| `MELI_CLIENT_ID`, `MELI_CLIENT_SECRET`, `MELI_REDIRECT_URI` | MercadoLibre — ver `docs/MERCADOLIBRE.md` |
+| `MELI_CLIENT_ID`, `MELI_CLIENT_SECRET`, `MELI_REDIRECT_URI`, `MELI_CRON_SECRET` | MercadoLibre — ver `docs/MERCADOLIBRE.md` |
 
 ## 3. Vault de Supabase (los crons)
 
