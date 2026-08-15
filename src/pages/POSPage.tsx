@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getProductsDB, getSettingsDB, addSaleDB, deleteSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale, getVariantsByUserDB } from "@/lib/supabaseStore";
+import { getProductsDB, getSettingsDB, addSaleDB, deleteSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale, getVariantsByUserDB, recordMemberStockMovementDB } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { loadActivePromotions, bestPromoPrice, type Promotion, type BestPromo } from "@/lib/promotions";
 import { supabase } from "@/integrations/supabase/client";
@@ -550,20 +550,18 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
       if (returnError) throw returnError;
       // La devolución repone mediante Kardex: el cliente no suma stock directo.
       if (selected.product_id) {
-        const { error: stockError } = await supabase.rpc("record_stock_movement", {
-          p_org_id: orgId,
-          p_product_id: selected.product_id,
-          p_variant_id: selected.variant_id ?? null,
-          p_product_name: selected.product_name,
-          p_variant_name: null,
-          p_movement_type: "return",
-          p_quantity: qty,
-          p_reference_type: "return",
-          p_reference_id: createdReturn.id,
-          p_notes: reason,
-          p_created_by: userId,
+        await recordMemberStockMovementDB({
+          orgId,
+          productId: selected.product_id,
+          productName: selected.product_name,
+          variantId: selected.variant_id ?? null,
+          movementType: "return",
+          quantity: qty,
+          referenceType: "return",
+          referenceId: createdReturn.id,
+          notes: reason,
+          userId,
         });
-        if (stockError) throw stockError;
       }
       // Mark sale as returned
       await supabase.from("sales").update({ returned: true }).eq("id", selected.id);

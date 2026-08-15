@@ -3084,17 +3084,48 @@ export function PriceHistoryModal({ productId, productName, open, onClose }: {
 
   useEffect(() => {
     if (!open || !productId) return;
-    setLoading(true);
-    supabase
-      .from("price_history")
-      .select("*")
-      .eq("product_id", productId)
-      .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => {
-        setHistory(data || []);
-        setLoading(false);
-      });
+    let cancelled = false;
+    const loadHistory = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("price_history")
+          .select("*")
+          .eq("product_id", productId)
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (error) throw error;
+
+        const rows = data ?? [];
+        const actorIds = [...new Set(rows.map(h => h.changed_by).filter(Boolean))] as string[];
+        const names: Record<string, string> = {};
+        if (actorIds.length) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from("profiles")
+            .select("user_id, display_name")
+            .in("user_id", actorIds);
+          if (profilesError) throw profilesError;
+          for (const profile of profiles ?? []) {
+            names[profile.user_id] = profile.display_name || "Usuario sin nombre";
+          }
+        }
+        if (!cancelled) {
+          setHistory(rows.map(h => ({
+            ...h,
+            actor_name: h.changed_by ? names[h.changed_by] ?? "Usuario sin perfil" : "Sistema o historial previo",
+          })));
+        }
+      } catch (error: any) {
+        if (!cancelled) {
+          setHistory([]);
+          toast.error(error.message ?? "No se pudo cargar el historial de precios");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void loadHistory();
+    return () => { cancelled = true; };
   }, [open, productId]);
 
   return (
@@ -3119,6 +3150,7 @@ export function PriceHistoryModal({ productId, productName, open, onClose }: {
                     <p className="font-medium">
                       {h.old_price_ars ? formatARS(Number(h.old_price_ars)) : "—"} → <span className="text-primary font-bold">{formatARS(Number(h.new_price_ars))}</span>
                     </p>
+                    <p className="text-muted-foreground mt-0.5">Responsable: {h.actor_name}</p>
                   </div>
                   {h.change_pct != null && (
                     <span className={`font-bold shrink-0 ${up ? "text-emerald-400" : "text-destructive"}`}>

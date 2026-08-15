@@ -82,7 +82,35 @@ export type Database = {
             foreignKeyName: "admin_audit_logs_target_org_id_fkey"
             columns: ["target_org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "admin_audit_logs_target_org_id_fkey"
+            columns: ["target_org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "admin_audit_logs_target_org_id_fkey"
+            columns: ["target_org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "admin_audit_logs_target_org_id_fkey"
+            columns: ["target_org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "admin_audit_logs_target_org_id_fkey"
+            columns: ["target_org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -152,7 +180,35 @@ export type Database = {
             foreignKeyName: "affiliate_conversions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_conversions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_conversions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_conversions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_conversions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -261,7 +317,35 @@ export type Database = {
             foreignKeyName: "affiliate_partners_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_partners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_partners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_partners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_partners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -318,7 +402,35 @@ export type Database = {
             foreignKeyName: "affiliate_payouts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_payouts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_payouts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_payouts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_payouts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -364,7 +476,35 @@ export type Database = {
             foreignKeyName: "afip_alicuotas_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_alicuotas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_alicuotas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_alicuotas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_alicuotas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -525,7 +665,35 @@ export type Database = {
             foreignKeyName: "afip_comprobantes_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_comprobantes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_comprobantes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_comprobantes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_comprobantes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -588,7 +756,35 @@ export type Database = {
             foreignKeyName: "afip_config_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_config_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_config_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_config_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_config_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -651,7 +847,35 @@ export type Database = {
             foreignKeyName: "afip_credentials_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_credentials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_credentials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_credentials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_credentials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -753,7 +977,35 @@ export type Database = {
             foreignKeyName: "ai_chat_messages_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_chat_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_chat_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_chat_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_chat_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -836,7 +1088,35 @@ export type Database = {
             foreignKeyName: "ai_chat_sessions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_chat_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_chat_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_chat_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_chat_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -950,7 +1230,35 @@ export type Database = {
             foreignKeyName: "ai_prompts_library_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_prompts_library_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_prompts_library_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_prompts_library_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_prompts_library_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -1022,7 +1330,35 @@ export type Database = {
             foreignKeyName: "ai_recommendations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_recommendations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_recommendations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_recommendations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_recommendations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -1076,7 +1412,35 @@ export type Database = {
             foreignKeyName: "ai_usage_stats_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_usage_stats_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_usage_stats_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_usage_stats_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_usage_stats_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -1136,7 +1500,35 @@ export type Database = {
             foreignKeyName: "alert_events_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "alert_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "alert_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "alert_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "alert_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -1197,7 +1589,35 @@ export type Database = {
             foreignKeyName: "alert_rules_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "alert_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "alert_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "alert_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "alert_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -1275,7 +1695,35 @@ export type Database = {
             foreignKeyName: "anomaly_detections_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "anomaly_detections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "anomaly_detections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "anomaly_detections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "anomaly_detections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -1341,7 +1789,35 @@ export type Database = {
             foreignKeyName: "api_keys_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -1402,7 +1878,35 @@ export type Database = {
             foreignKeyName: "asset_depreciation_entries_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "asset_depreciation_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "asset_depreciation_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "asset_depreciation_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "asset_depreciation_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -1522,7 +2026,35 @@ export type Database = {
             foreignKeyName: "automation_flows_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_flows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_flows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_flows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_flows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -1583,7 +2115,35 @@ export type Database = {
             foreignKeyName: "automation_runs_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -1640,7 +2200,35 @@ export type Database = {
             foreignKeyName: "bank_transactions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -1692,7 +2280,35 @@ export type Database = {
             foreignKeyName: "batch_movements_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "batch_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "batch_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "batch_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "batch_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -1746,7 +2362,35 @@ export type Database = {
             foreignKeyName: "bi_snapshots_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bi_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bi_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bi_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bi_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -1795,7 +2439,35 @@ export type Database = {
             foreignKeyName: "bin_stock_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bin_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bin_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bin_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bin_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -1940,7 +2612,35 @@ export type Database = {
             foreignKeyName: "breakeven_analysis_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "breakeven_analysis_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "breakeven_analysis_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "breakeven_analysis_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "breakeven_analysis_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -1998,7 +2698,35 @@ export type Database = {
             foreignKeyName: "budget_categories_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budget_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budget_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budget_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budget_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -2056,7 +2784,35 @@ export type Database = {
             foreignKeyName: "budget_transactions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budget_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budget_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budget_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budget_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -2114,7 +2870,35 @@ export type Database = {
             foreignKeyName: "budgets_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budgets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budgets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budgets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budgets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -2255,7 +3039,35 @@ export type Database = {
             foreignKeyName: "carriers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "carriers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "carriers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "carriers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "carriers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -2312,7 +3124,35 @@ export type Database = {
             foreignKeyName: "cash_entries_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -2383,7 +3223,35 @@ export type Database = {
             foreignKeyName: "cash_projections_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_projections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_projections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_projections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_projections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -2450,7 +3318,35 @@ export type Database = {
             foreignKeyName: "cash_sessions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -2522,7 +3418,35 @@ export type Database = {
             foreignKeyName: "cashflow_entries_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cashflow_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cashflow_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cashflow_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cashflow_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -2639,7 +3563,35 @@ export type Database = {
             foreignKeyName: "cheques_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cheques_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cheques_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cheques_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cheques_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -2684,7 +3636,35 @@ export type Database = {
             foreignKeyName: "content_ideas_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "content_ideas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "content_ideas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "content_ideas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "content_ideas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -2793,7 +3773,35 @@ export type Database = {
             foreignKeyName: "contracts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -2872,7 +3880,35 @@ export type Database = {
             foreignKeyName: "coupon_usages_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -2954,7 +3990,35 @@ export type Database = {
             foreignKeyName: "coupons_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -3034,7 +4098,35 @@ export type Database = {
             foreignKeyName: "crm_activities_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_activities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_activities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_activities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_activities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -3110,7 +4202,35 @@ export type Database = {
             foreignKeyName: "crm_contacts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_contacts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_contacts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_contacts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_contacts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -3219,7 +4339,35 @@ export type Database = {
             foreignKeyName: "crm_deals_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -3297,7 +4445,35 @@ export type Database = {
             foreignKeyName: "crm_followups_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_followups_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_followups_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_followups_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_followups_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -3345,7 +4521,35 @@ export type Database = {
             foreignKeyName: "crm_pipelines_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_pipelines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_pipelines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_pipelines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_pipelines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -3399,7 +4603,35 @@ export type Database = {
             foreignKeyName: "crm_stages_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_stages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_stages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_stages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_stages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -3463,7 +4695,35 @@ export type Database = {
             foreignKeyName: "currency_price_updates_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "currency_price_updates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "currency_price_updates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "currency_price_updates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "currency_price_updates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -3517,7 +4777,35 @@ export type Database = {
             foreignKeyName: "custom_field_defs_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "custom_field_defs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "custom_field_defs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "custom_field_defs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "custom_field_defs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -3578,7 +4866,35 @@ export type Database = {
             foreignKeyName: "customer_communications_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_communications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_communications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_communications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_communications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -3623,7 +4939,35 @@ export type Database = {
             foreignKeyName: "customer_notes_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_notes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_notes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_notes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_notes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -3684,7 +5028,35 @@ export type Database = {
             foreignKeyName: "customer_payments_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -3759,7 +5131,35 @@ export type Database = {
             foreignKeyName: "customer_referrals_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_referrals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_referrals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_referrals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_referrals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -3876,7 +5276,35 @@ export type Database = {
             foreignKeyName: "customer_segments_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_segments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_segments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_segments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_segments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -3964,7 +5392,35 @@ export type Database = {
             foreignKeyName: "customer_subscriptions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -4058,7 +5514,35 @@ export type Database = {
             foreignKeyName: "customers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -4120,7 +5604,35 @@ export type Database = {
             foreignKeyName: "deal_activities_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_activities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_activities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_activities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_activities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -4199,7 +5711,35 @@ export type Database = {
             foreignKeyName: "deal_outcomes_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_outcomes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_outcomes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_outcomes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_outcomes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -4259,7 +5799,35 @@ export type Database = {
             foreignKeyName: "deals_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -4317,7 +5885,35 @@ export type Database = {
             foreignKeyName: "debt_payments_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "debt_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "debt_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "debt_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "debt_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -4393,7 +5989,35 @@ export type Database = {
             foreignKeyName: "debts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "debts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "debts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "debts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "debts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -4545,7 +6169,35 @@ export type Database = {
             foreignKeyName: "deliveries_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -4673,7 +6325,35 @@ export type Database = {
             foreignKeyName: "demand_forecasts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "demand_forecasts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "demand_forecasts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "demand_forecasts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "demand_forecasts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -4776,7 +6456,35 @@ export type Database = {
             foreignKeyName: "demand_signals_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "demand_signals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "demand_signals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "demand_signals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "demand_signals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -4874,7 +6582,35 @@ export type Database = {
             foreignKeyName: "document_access_log_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_access_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_access_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_access_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_access_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -4919,7 +6655,35 @@ export type Database = {
             foreignKeyName: "document_categories_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -4983,7 +6747,35 @@ export type Database = {
             foreignKeyName: "document_versions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -5089,7 +6881,35 @@ export type Database = {
             foreignKeyName: "documents_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -5274,7 +7094,35 @@ export type Database = {
             foreignKeyName: "drip_sequences_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "drip_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "drip_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "drip_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "drip_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -5424,7 +7272,35 @@ export type Database = {
             foreignKeyName: "ecommerce_cart_sessions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_cart_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_cart_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_cart_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_cart_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -5440,6 +7316,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ecommerce_stores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_cart_sessions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
           },
         ]
       }
@@ -5495,7 +7378,35 @@ export type Database = {
             foreignKeyName: "ecommerce_categories_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -5519,13 +7430,26 @@ export type Database = {
             referencedRelation: "ecommerce_stores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ecommerce_categories_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
+          },
         ]
       }
       ecommerce_orders: {
         Row: {
           billing_address: Json
+          buyer_business_name: string | null
+          buyer_doc_number: string | null
+          buyer_doc_type: number | null
+          buyer_tax_condition: string | null
           carrier: string | null
           cart_session_id: string | null
+          comprobante_letra: string | null
+          comprobante_tipo_afip: number | null
           coupon_code: string | null
           coupon_discount_ars: number
           created_at: string
@@ -5568,8 +7492,14 @@ export type Database = {
         }
         Insert: {
           billing_address?: Json
+          buyer_business_name?: string | null
+          buyer_doc_number?: string | null
+          buyer_doc_type?: number | null
+          buyer_tax_condition?: string | null
           carrier?: string | null
           cart_session_id?: string | null
+          comprobante_letra?: string | null
+          comprobante_tipo_afip?: number | null
           coupon_code?: string | null
           coupon_discount_ars?: number
           created_at?: string
@@ -5612,8 +7542,14 @@ export type Database = {
         }
         Update: {
           billing_address?: Json
+          buyer_business_name?: string | null
+          buyer_doc_number?: string | null
+          buyer_doc_type?: number | null
+          buyer_tax_condition?: string | null
           carrier?: string | null
           cart_session_id?: string | null
+          comprobante_letra?: string | null
+          comprobante_tipo_afip?: number | null
           coupon_code?: string | null
           coupon_discount_ars?: number
           created_at?: string
@@ -5680,7 +7616,35 @@ export type Database = {
             foreignKeyName: "ecommerce_orders_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -5711,7 +7675,35 @@ export type Database = {
             referencedRelation: "ecommerce_stores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ecommerce_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
+          },
         ]
+      }
+      ecommerce_orders_iva_backup: {
+        Row: {
+          guardado_at: string
+          motivo: string | null
+          order_id: string
+          tax_amount: number | null
+        }
+        Insert: {
+          guardado_at?: string
+          motivo?: string | null
+          order_id: string
+          tax_amount?: number | null
+        }
+        Update: {
+          guardado_at?: string
+          motivo?: string | null
+          order_id?: string
+          tax_amount?: number | null
+        }
+        Relationships: []
       }
       ecommerce_stores: {
         Row: {
@@ -5840,7 +7832,35 @@ export type Database = {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_stores_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_stores_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_stores_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_stores_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -5909,7 +7929,35 @@ export type Database = {
             foreignKeyName: "email_campaigns_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -5964,7 +8012,35 @@ export type Database = {
             foreignKeyName: "email_events_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -6027,7 +8103,35 @@ export type Database = {
             foreignKeyName: "email_unsubscribes_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_unsubscribes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_unsubscribes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_unsubscribes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_unsubscribes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -6117,7 +8221,35 @@ export type Database = {
             foreignKeyName: "exchange_rates_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "exchange_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "exchange_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "exchange_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "exchange_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -6196,7 +8328,35 @@ export type Database = {
             foreignKeyName: "expenses_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "expenses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "expenses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "expenses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "expenses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -6259,7 +8419,35 @@ export type Database = {
             foreignKeyName: "financial_line_items_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_line_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_line_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_line_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_line_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -6362,7 +8550,35 @@ export type Database = {
             foreignKeyName: "financial_movements_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -6425,7 +8641,35 @@ export type Database = {
             foreignKeyName: "financial_scenarios_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_scenarios_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_scenarios_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_scenarios_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_scenarios_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -6521,7 +8765,35 @@ export type Database = {
             foreignKeyName: "fixed_assets_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -6576,7 +8848,35 @@ export type Database = {
             foreignKeyName: "forecast_accuracy_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "forecast_accuracy_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "forecast_accuracy_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "forecast_accuracy_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "forecast_accuracy_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -6636,7 +8936,35 @@ export type Database = {
             foreignKeyName: "forecast_configs_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "forecast_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "forecast_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "forecast_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "forecast_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -6733,7 +9061,35 @@ export type Database = {
             foreignKeyName: "fx_exposure_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fx_exposure_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fx_exposure_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fx_exposure_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fx_exposure_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -6784,7 +9140,35 @@ export type Database = {
             foreignKeyName: "fx_rates_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fx_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fx_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fx_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fx_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -6826,7 +9210,35 @@ export type Database = {
             foreignKeyName: "hashtag_sets_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "hashtag_sets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "hashtag_sets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "hashtag_sets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "hashtag_sets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -6877,7 +9289,35 @@ export type Database = {
             foreignKeyName: "iibb_registrations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "iibb_registrations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "iibb_registrations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "iibb_registrations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "iibb_registrations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -7012,7 +9452,35 @@ export type Database = {
             foreignKeyName: "influencer_exchanges_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_exchanges_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_exchanges_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_exchanges_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_exchanges_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -7231,7 +9699,35 @@ export type Database = {
             foreignKeyName: "installment_schedule_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "installment_schedule_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "installment_schedule_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "installment_schedule_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "installment_schedule_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -7303,7 +9799,35 @@ export type Database = {
             foreignKeyName: "integration_logs_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "integration_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "integration_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "integration_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "integration_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -7381,7 +9905,35 @@ export type Database = {
             foreignKeyName: "inventory_abc_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -7478,7 +10030,35 @@ export type Database = {
             foreignKeyName: "inventory_snapshots_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -7581,7 +10161,35 @@ export type Database = {
             foreignKeyName: "inventory_transfer_items_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_transfer_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_transfer_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_transfer_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_transfer_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -7706,7 +10314,35 @@ export type Database = {
             foreignKeyName: "inventory_transfers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_transfers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_transfers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_transfers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_transfers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -7771,7 +10407,35 @@ export type Database = {
             foreignKeyName: "invoice_sequences_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoice_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoice_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoice_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoice_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -7879,7 +10543,35 @@ export type Database = {
             foreignKeyName: "invoices_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -7963,7 +10655,35 @@ export type Database = {
             foreignKeyName: "kb_articles_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kb_articles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kb_articles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kb_articles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kb_articles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -8017,7 +10737,35 @@ export type Database = {
             foreignKeyName: "kpi_alerts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -8075,7 +10823,35 @@ export type Database = {
             foreignKeyName: "kpi_dashboards_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_dashboards_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_dashboards_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_dashboards_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_dashboards_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -8141,7 +10917,35 @@ export type Database = {
             foreignKeyName: "kpi_goals_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_goals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_goals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_goals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_goals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -8236,7 +11040,35 @@ export type Database = {
             foreignKeyName: "kpi_widgets_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_widgets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_widgets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_widgets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_widgets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -8285,7 +11117,35 @@ export type Database = {
             foreignKeyName: "location_stock_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "location_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "location_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "location_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "location_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -8382,7 +11242,35 @@ export type Database = {
             foreignKeyName: "locations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "locations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "locations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "locations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "locations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -8437,7 +11325,35 @@ export type Database = {
             foreignKeyName: "loyalty_members_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -8499,7 +11415,35 @@ export type Database = {
             foreignKeyName: "loyalty_points_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_points_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_points_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_points_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_points_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -8556,7 +11500,35 @@ export type Database = {
             foreignKeyName: "loyalty_programs_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_programs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_programs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_programs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_programs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -8619,7 +11591,35 @@ export type Database = {
             foreignKeyName: "loyalty_rewards_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_rewards_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_rewards_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_rewards_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_rewards_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -8676,7 +11676,35 @@ export type Database = {
             foreignKeyName: "loyalty_tiers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_tiers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_tiers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_tiers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_tiers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -8731,7 +11759,35 @@ export type Database = {
             foreignKeyName: "loyalty_transactions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -8833,7 +11889,35 @@ export type Database = {
             foreignKeyName: "marketing_posts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "marketing_posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "marketing_posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "marketing_posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "marketing_posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -8893,7 +11977,35 @@ export type Database = {
             foreignKeyName: "marketing_templates_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "marketing_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "marketing_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "marketing_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "marketing_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -8980,7 +12092,35 @@ export type Database = {
             foreignKeyName: "meli_connections_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -9037,7 +12177,35 @@ export type Database = {
             foreignKeyName: "meli_listings_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_listings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_listings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_listings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_listings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -9146,7 +12314,35 @@ export type Database = {
             foreignKeyName: "meli_orders_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -9197,7 +12393,35 @@ export type Database = {
             foreignKeyName: "memberships_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -9254,7 +12478,35 @@ export type Database = {
             foreignKeyName: "multi_currency_transactions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "multi_currency_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "multi_currency_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "multi_currency_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "multi_currency_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -9314,7 +12566,35 @@ export type Database = {
             foreignKeyName: "notification_log_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notification_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notification_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notification_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notification_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -9387,7 +12667,35 @@ export type Database = {
             foreignKeyName: "notification_rules_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notification_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notification_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notification_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notification_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -9441,7 +12749,35 @@ export type Database = {
             foreignKeyName: "notifications_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notifications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notifications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notifications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notifications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -9486,7 +12822,35 @@ export type Database = {
             foreignKeyName: "oauth_states_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "oauth_states_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "oauth_states_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "oauth_states_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "oauth_states_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -9546,7 +12910,35 @@ export type Database = {
             foreignKeyName: "ocr_documents_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ocr_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ocr_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ocr_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ocr_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -9604,7 +12996,35 @@ export type Database = {
             foreignKeyName: "ocr_line_items_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ocr_line_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ocr_line_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ocr_line_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ocr_line_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -9655,7 +13075,35 @@ export type Database = {
             foreignKeyName: "org_api_keys_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -9706,7 +13154,35 @@ export type Database = {
             foreignKeyName: "org_invitations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -9828,7 +13304,35 @@ export type Database = {
             foreignKeyName: "payment_connections_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -9906,7 +13410,35 @@ export type Database = {
             foreignKeyName: "payment_links_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_links_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_links_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_links_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_links_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -10042,7 +13574,35 @@ export type Database = {
             foreignKeyName: "payment_transactions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -10189,7 +13749,35 @@ export type Database = {
             foreignKeyName: "platform_commission_rules_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_commission_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_commission_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_commission_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_commission_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -10198,6 +13786,85 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "plans"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_org_health_snapshots: {
+        Row: {
+          captured_at: string
+          cobros_30d: number
+          cobros_total: number
+          dias_sin_cobrar: number | null
+          gmv_30d: number
+          gmv_prev_30d: number
+          org_id: string
+          senal: string
+          snapshot_date: string
+        }
+        Insert: {
+          captured_at?: string
+          cobros_30d?: number
+          cobros_total?: number
+          dias_sin_cobrar?: number | null
+          gmv_30d?: number
+          gmv_prev_30d?: number
+          org_id: string
+          senal: string
+          snapshot_date: string
+        }
+        Update: {
+          captured_at?: string
+          cobros_30d?: number
+          cobros_total?: number
+          dias_sin_cobrar?: number | null
+          gmv_30d?: number
+          gmv_prev_30d?: number
+          org_id?: string
+          senal?: string
+          snapshot_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_org_health_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_org_health_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_org_health_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_org_health_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_org_health_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_org_health_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
           },
         ]
       }
@@ -10283,7 +13950,35 @@ export type Database = {
             foreignKeyName: "plm_products_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plm_products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plm_products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plm_products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plm_products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -10488,7 +14183,35 @@ export type Database = {
             foreignKeyName: "po_sequences_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "po_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "po_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "po_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "po_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -10551,7 +14274,35 @@ export type Database = {
             foreignKeyName: "portal_configs_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -10606,7 +14357,35 @@ export type Database = {
             foreignKeyName: "portal_sessions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -10732,7 +14511,35 @@ export type Database = {
             foreignKeyName: "portal_tickets_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_tickets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_tickets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_tickets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_tickets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -10786,7 +14593,35 @@ export type Database = {
             foreignKeyName: "price_history_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -10846,9 +14681,7 @@ export type Database = {
           custom_price: number | null
           discount_pct: number | null
           id: string
-          min_qty: number
           min_quantity: number
-          price_ars: number | null
           price_list_id: string
           product_id: string
         }
@@ -10857,9 +14690,7 @@ export type Database = {
           custom_price?: number | null
           discount_pct?: number | null
           id?: string
-          min_qty?: number
           min_quantity?: number
-          price_ars?: number | null
           price_list_id: string
           product_id: string
         }
@@ -10868,9 +14699,7 @@ export type Database = {
           custom_price?: number | null
           discount_pct?: number | null
           id?: string
-          min_qty?: number
           min_quantity?: number
-          price_ars?: number | null
           price_list_id?: string
           product_id?: string
         }
@@ -10940,7 +14769,6 @@ export type Database = {
           currency: string
           customer_segment: string | null
           description: string | null
-          discount_pct: number
           discount_type: string
           discount_value: number
           id: string
@@ -10958,7 +14786,6 @@ export type Database = {
           currency?: string
           customer_segment?: string | null
           description?: string | null
-          discount_pct?: number
           discount_type?: string
           discount_value?: number
           id?: string
@@ -10976,7 +14803,6 @@ export type Database = {
           currency?: string
           customer_segment?: string | null
           description?: string | null
-          discount_pct?: number
           discount_type?: string
           discount_value?: number
           id?: string
@@ -11000,7 +14826,35 @@ export type Database = {
             foreignKeyName: "price_lists_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_lists_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_lists_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_lists_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_lists_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -11060,7 +14914,35 @@ export type Database = {
             foreignKeyName: "product_batches_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -11158,7 +15040,35 @@ export type Database = {
             foreignKeyName: "product_bundle_items_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_bundle_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_bundle_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_bundle_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_bundle_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -11264,7 +15174,35 @@ export type Database = {
             foreignKeyName: "product_bundles_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_bundles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_bundles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_bundles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_bundles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -11357,7 +15295,35 @@ export type Database = {
             foreignKeyName: "product_cooccurrences_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_cooccurrences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_cooccurrences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_cooccurrences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_cooccurrences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -11527,7 +15493,35 @@ export type Database = {
             foreignKeyName: "product_perfume_details_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_perfume_details_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_perfume_details_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_perfume_details_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_perfume_details_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -11633,7 +15627,35 @@ export type Database = {
             foreignKeyName: "product_questions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_questions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_questions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_questions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_questions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -11705,6 +15727,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ecommerce_stores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_questions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
           },
         ]
       }
@@ -11783,7 +15812,35 @@ export type Database = {
             foreignKeyName: "product_reviews_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -11856,6 +15913,13 @@ export type Database = {
             referencedRelation: "ecommerce_stores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "product_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
+          },
         ]
       }
       product_variants: {
@@ -11916,7 +15980,35 @@ export type Database = {
             foreignKeyName: "product_variants_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_variants_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_variants_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_variants_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_variants_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -12121,7 +16213,35 @@ export type Database = {
             foreignKeyName: "products_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -12213,7 +16333,35 @@ export type Database = {
             foreignKeyName: "promotion_usages_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotion_usages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotion_usages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotion_usages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotion_usages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -12317,7 +16465,35 @@ export type Database = {
             foreignKeyName: "promotions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -12384,7 +16560,35 @@ export type Database = {
             foreignKeyName: "purchase_order_items_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -12498,7 +16702,35 @@ export type Database = {
             foreignKeyName: "purchase_order_receipts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_receipts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_receipts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_receipts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_receipts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -12592,7 +16824,35 @@ export type Database = {
             foreignKeyName: "purchase_orders_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -12763,7 +17023,35 @@ export type Database = {
             foreignKeyName: "purchase_requests_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -12854,7 +17142,35 @@ export type Database = {
             foreignKeyName: "purchases_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -12955,7 +17271,35 @@ export type Database = {
             foreignKeyName: "push_subscriptions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -13012,7 +17356,35 @@ export type Database = {
             foreignKeyName: "quantity_discounts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quantity_discounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quantity_discounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quantity_discounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quantity_discounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -13042,7 +17414,35 @@ export type Database = {
             foreignKeyName: "quote_sequences_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quote_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quote_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quote_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quote_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -13124,7 +17524,35 @@ export type Database = {
             foreignKeyName: "quotes_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quotes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quotes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quotes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quotes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -13271,7 +17699,35 @@ export type Database = {
             foreignKeyName: "recipe_productions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recipe_productions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recipe_productions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recipe_productions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recipe_productions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -13347,7 +17803,35 @@ export type Database = {
             foreignKeyName: "recipes_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recipes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recipes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recipes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recipes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -13451,7 +17935,35 @@ export type Database = {
             foreignKeyName: "recommendation_events_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recommendation_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recommendation_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recommendation_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recommendation_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -13600,7 +18112,35 @@ export type Database = {
             foreignKeyName: "recommendation_rules_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recommendation_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recommendation_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recommendation_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recommendation_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -13740,7 +18280,35 @@ export type Database = {
             foreignKeyName: "return_reasons_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "return_reasons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "return_reasons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "return_reasons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "return_reasons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -13860,7 +18428,35 @@ export type Database = {
             foreignKeyName: "return_requests_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "return_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "return_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "return_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "return_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -14010,7 +18606,35 @@ export type Database = {
             foreignKeyName: "returns_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "returns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "returns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "returns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "returns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -14148,7 +18772,35 @@ export type Database = {
             foreignKeyName: "role_permissions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "role_permissions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "role_permissions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "role_permissions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "role_permissions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -14307,7 +18959,35 @@ export type Database = {
             foreignKeyName: "sales_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -14456,7 +19136,35 @@ export type Database = {
             foreignKeyName: "sales_forecasts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_forecasts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_forecasts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_forecasts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_forecasts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -14565,7 +19273,35 @@ export type Database = {
             foreignKeyName: "saved_reports_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "saved_reports_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "saved_reports_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "saved_reports_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "saved_reports_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -14637,7 +19373,35 @@ export type Database = {
             foreignKeyName: "segment_campaigns_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "segment_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "segment_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "segment_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "segment_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -14698,7 +19462,35 @@ export type Database = {
             foreignKeyName: "seller_goals_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "seller_goals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "seller_goals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "seller_goals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "seller_goals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -14761,7 +19553,35 @@ export type Database = {
             foreignKeyName: "seller_payouts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "seller_payouts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "seller_payouts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "seller_payouts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "seller_payouts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -14822,7 +19642,35 @@ export type Database = {
             foreignKeyName: "service_order_items_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "service_order_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "service_order_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "service_order_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "service_order_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -14998,7 +19846,35 @@ export type Database = {
             foreignKeyName: "service_orders_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "service_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "service_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "service_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "service_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -15047,6 +19923,7 @@ export type Database = {
           exchange_rate: number
           expense_categories: Json
           expense_ratio_alert_percent: number
+          fiscal_id_required_above: number | null
           id: string
           industry_code: string | null
           initial_cash_ars: number
@@ -15149,6 +20026,7 @@ export type Database = {
           exchange_rate?: number
           expense_categories?: Json
           expense_ratio_alert_percent?: number
+          fiscal_id_required_above?: number | null
           id?: string
           industry_code?: string | null
           initial_cash_ars?: number
@@ -15251,6 +20129,7 @@ export type Database = {
           exchange_rate?: number
           expense_categories?: Json
           expense_ratio_alert_percent?: number
+          fiscal_id_required_above?: number | null
           id?: string
           industry_code?: string | null
           initial_cash_ars?: number
@@ -15322,7 +20201,35 @@ export type Database = {
             foreignKeyName: "settings_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -15410,7 +20317,35 @@ export type Database = {
             foreignKeyName: "shipments_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -15471,7 +20406,35 @@ export type Database = {
             foreignKeyName: "shipping_carriers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_carriers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_carriers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_carriers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_carriers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -15537,7 +20500,35 @@ export type Database = {
             foreignKeyName: "shipping_rates_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -15592,7 +20583,35 @@ export type Database = {
             foreignKeyName: "shipping_zones_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_zones_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_zones_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_zones_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_zones_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -15661,7 +20680,35 @@ export type Database = {
             foreignKeyName: "smart_alert_rules_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "smart_alert_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "smart_alert_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "smart_alert_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "smart_alert_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -15754,7 +20801,35 @@ export type Database = {
             foreignKeyName: "social_posts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "social_posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "social_posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "social_posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "social_posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -15815,7 +20890,35 @@ export type Database = {
             foreignKeyName: "stock_count_items_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -15922,7 +21025,35 @@ export type Database = {
             foreignKeyName: "stock_counts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -15973,7 +21104,35 @@ export type Database = {
             foreignKeyName: "stock_history_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -16122,7 +21281,35 @@ export type Database = {
             foreignKeyName: "stock_movements_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -16275,7 +21462,35 @@ export type Database = {
             foreignKeyName: "stock_reservations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -16399,7 +21614,35 @@ export type Database = {
             foreignKeyName: "stock_transfers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -16524,7 +21767,35 @@ export type Database = {
             foreignKeyName: "store_banners_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_banners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_banners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_banners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_banners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -16540,6 +21811,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ecommerce_stores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_banners_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
           },
         ]
       }
@@ -16601,7 +21879,35 @@ export type Database = {
             foreignKeyName: "store_customers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -16617,6 +21923,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ecommerce_stores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
           },
         ]
       }
@@ -16675,7 +21988,35 @@ export type Database = {
             foreignKeyName: "store_pages_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_pages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_pages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_pages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_pages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -16691,6 +22032,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ecommerce_stores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_pages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
           },
         ]
       }
@@ -16740,7 +22088,35 @@ export type Database = {
             foreignKeyName: "store_stock_alerts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_stock_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_stock_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_stock_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_stock_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -16813,6 +22189,13 @@ export type Database = {
             referencedRelation: "ecommerce_stores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "store_stock_alerts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
+          },
         ]
       }
       store_wishlists: {
@@ -16852,7 +22235,35 @@ export type Database = {
             foreignKeyName: "store_wishlists_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_wishlists_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_wishlists_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_wishlists_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_wishlists_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -16924,6 +22335,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ecommerce_stores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_wishlists_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
           },
         ]
       }
@@ -17048,7 +22466,35 @@ export type Database = {
             foreignKeyName: "subscription_invoices_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscription_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscription_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscription_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscription_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -17118,7 +22564,35 @@ export type Database = {
             foreignKeyName: "subscription_plans_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscription_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscription_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscription_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscription_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -17178,7 +22652,35 @@ export type Database = {
             foreignKeyName: "subscriptions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -17251,7 +22753,35 @@ export type Database = {
             foreignKeyName: "supplier_debts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "supplier_debts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "supplier_debts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "supplier_debts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "supplier_debts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -17310,7 +22840,35 @@ export type Database = {
             foreignKeyName: "supplier_payments_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -17374,7 +22932,35 @@ export type Database = {
             foreignKeyName: "suppliers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "suppliers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "suppliers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "suppliers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "suppliers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -17440,7 +23026,35 @@ export type Database = {
             foreignKeyName: "tasks_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tasks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tasks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tasks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tasks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -17522,7 +23136,35 @@ export type Database = {
             foreignKeyName: "tax_declarations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tax_declarations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tax_declarations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tax_declarations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tax_declarations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -17583,7 +23225,35 @@ export type Database = {
             foreignKeyName: "tax_rates_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tax_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tax_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tax_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tax_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -17625,7 +23295,35 @@ export type Database = {
             foreignKeyName: "team_messages_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "team_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "team_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "team_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "team_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -17673,7 +23371,35 @@ export type Database = {
             foreignKeyName: "territories_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "territories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "territories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "territories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "territories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -17807,7 +23533,35 @@ export type Database = {
             foreignKeyName: "territory_rules_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "territory_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "territory_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "territory_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "territory_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -17904,7 +23658,35 @@ export type Database = {
             foreignKeyName: "vendor_catalog_items_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_catalog_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_catalog_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_catalog_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_catalog_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -17986,7 +23768,35 @@ export type Database = {
             foreignKeyName: "vendor_invoices_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -18047,7 +23857,35 @@ export type Database = {
             foreignKeyName: "vendor_messages_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -18105,7 +23943,35 @@ export type Database = {
             foreignKeyName: "vendor_portal_access_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_portal_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_portal_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_portal_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_portal_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -18176,7 +24042,35 @@ export type Database = {
             foreignKeyName: "warehouse_bins_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouse_bins_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouse_bins_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouse_bins_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouse_bins_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -18245,7 +24139,35 @@ export type Database = {
             foreignKeyName: "warehouse_zones_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouse_zones_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouse_zones_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouse_zones_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouse_zones_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -18306,7 +24228,35 @@ export type Database = {
             foreignKeyName: "warehouses_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -18378,7 +24328,35 @@ export type Database = {
             foreignKeyName: "webhook_configs_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -18435,7 +24413,35 @@ export type Database = {
             foreignKeyName: "webhook_deliveries_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -18489,7 +24495,35 @@ export type Database = {
             foreignKeyName: "whatsapp_campaigns_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -18558,7 +24592,35 @@ export type Database = {
             foreignKeyName: "withholding_records_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "withholding_records_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "withholding_records_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "withholding_records_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "withholding_records_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -18650,7 +24712,35 @@ export type Database = {
             foreignKeyName: "promotions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -18704,7 +24794,35 @@ export type Database = {
             foreignKeyName: "afip_credentials_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_credentials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_credentials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_credentials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_credentials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -18747,7 +24865,35 @@ export type Database = {
             foreignKeyName: "cash_sessions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -18849,7 +24995,35 @@ export type Database = {
             foreignKeyName: "products_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -18888,7 +25062,35 @@ export type Database = {
             foreignKeyName: "settings_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -18976,7 +25178,35 @@ export type Database = {
             foreignKeyName: "stock_counts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -19088,7 +25318,35 @@ export type Database = {
             foreignKeyName: "contracts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -19139,7 +25397,35 @@ export type Database = {
             foreignKeyName: "customer_communications_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_communications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_communications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_communications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_communications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -19169,7 +25455,35 @@ export type Database = {
             foreignKeyName: "crm_deals_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -19225,7 +25539,35 @@ export type Database = {
             foreignKeyName: "coupons_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -19252,7 +25594,35 @@ export type Database = {
             foreignKeyName: "deal_outcomes_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_outcomes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_outcomes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_outcomes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_outcomes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -19280,7 +25650,35 @@ export type Database = {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_stores_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_stores_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_stores_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_stores_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -19308,7 +25706,35 @@ export type Database = {
             foreignKeyName: "stock_movements_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -19408,7 +25834,35 @@ export type Database = {
             foreignKeyName: "meli_connections_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -19434,7 +25888,35 @@ export type Database = {
             foreignKeyName: "ecommerce_orders_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -19476,10 +25958,48 @@ export type Database = {
             foreignKeyName: "memberships_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
             referencedColumns: ["org_id"]
           },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
         ]
+      }
+      organization_support_accesses: {
+        Row: {
+          created_at: string | null
+          event: string | null
+          id: string | null
+          org_id: string | null
+          staff_email: string | null
+        }
+        Relationships: []
       }
       payment_connection_status: {
         Row: {
@@ -19533,20 +26053,38 @@ export type Database = {
             foreignKeyName: "payment_connections_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
             referencedColumns: ["org_id"]
           },
+          {
+            foreignKeyName: "payment_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
         ]
-      }
-      organization_support_accesses: {
-        Row: {
-          created_at: string | null
-          event: string | null
-          id: string | null
-          org_id: string | null
-          staff_email: string | null
-        }
-        Relationships: []
       }
       platform_cron_health: {
         Row: {
@@ -19561,35 +26099,6 @@ export type Database = {
           last_success_at: string | null
           runs_7d: number | null
           schedule: string | null
-        }
-        Relationships: []
-      }
-      platform_org_health: {
-        Row: {
-          cobros_30d: number | null
-          cobros_total: number | null
-          comision_30d: number | null
-          comision_total: number | null
-          dias_sin_cobrar: number | null
-          gmv_30d: number | null
-          gmv_prev_30d: number | null
-          gmv_total: number | null
-          miembros: number | null
-          onboarding_completed: boolean | null
-          org_creada: string | null
-          org_id: string | null
-          org_name: string | null
-          plan_name: string | null
-          price_usd_monthly: number | null
-          primer_cobro: string | null
-          productos: number | null
-          senal: string | null
-          slug: string | null
-          subscription_status: string | null
-          tiendas_activas: number | null
-          trial_ends_at: string | null
-          ultimo_cobro: string | null
-          variacion_pct: number | null
         }
         Relationships: []
       }
@@ -19634,21 +26143,61 @@ export type Database = {
         }
         Relationships: []
       }
-      platform_org_stock_accuracy: {
+      platform_org_health: {
         Row: {
-          conteos_cerrados: number | null
-          productos_coinciden: number | null
-          productos_descuadrados: number | null
-          productos_medidos: number | null
-          productos_sin_kardex: number | null
-          productos_stock_negativo: number | null
-          productos_total: number | null
-          precision_pct: number | null
+          cobros_30d: number | null
+          cobros_total: number | null
+          comision_30d: number | null
+          comision_total: number | null
+          dias_sin_cobrar: number | null
+          gmv_30d: number | null
+          gmv_prev_30d: number | null
+          gmv_total: number | null
+          miembros: number | null
+          onboarding_completed: boolean | null
+          org_creada: string | null
           org_id: string | null
           org_name: string | null
+          plan_name: string | null
+          price_usd_monthly: number | null
+          primer_cobro: string | null
+          productos: number | null
+          senal: string | null
           slug: string | null
-          ultimo_conteo_at: string | null
-          ultimo_movimiento_at: string | null
+          subscription_status: string | null
+          tiendas_activas: number | null
+          trial_ends_at: string | null
+          ultimo_cobro: string | null
+          variacion_pct: number | null
+        }
+        Relationships: []
+      }
+      platform_org_health_source: {
+        Row: {
+          cobros_30d: number | null
+          cobros_total: number | null
+          comision_30d: number | null
+          comision_total: number | null
+          dias_sin_cobrar: number | null
+          gmv_30d: number | null
+          gmv_prev_30d: number | null
+          gmv_total: number | null
+          miembros: number | null
+          onboarding_completed: boolean | null
+          org_creada: string | null
+          org_id: string | null
+          org_name: string | null
+          plan_name: string | null
+          price_usd_monthly: number | null
+          primer_cobro: string | null
+          productos: number | null
+          senal: string | null
+          slug: string | null
+          subscription_status: string | null
+          tiendas_activas: number | null
+          trial_ends_at: string | null
+          ultimo_cobro: string | null
+          variacion_pct: number | null
         }
         Relationships: []
       }
@@ -19661,6 +26210,24 @@ export type Database = {
           gmv_en_riesgo: number | null
           sin_activar: number | null
           snapshot_date: string | null
+        }
+        Relationships: []
+      }
+      platform_org_stock_accuracy: {
+        Row: {
+          conteos_cerrados: number | null
+          org_id: string | null
+          org_name: string | null
+          precision_pct: number | null
+          productos_coinciden: number | null
+          productos_descuadrados: number | null
+          productos_medidos: number | null
+          productos_sin_kardex: number | null
+          productos_stock_negativo: number | null
+          productos_total: number | null
+          slug: string | null
+          ultimo_conteo_at: string | null
+          ultimo_movimiento_at: string | null
         }
         Relationships: []
       }
@@ -19699,7 +26266,35 @@ export type Database = {
             foreignKeyName: "products_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -19731,7 +26326,35 @@ export type Database = {
             foreignKeyName: "products_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -19796,7 +26419,35 @@ export type Database = {
             foreignKeyName: "sales_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -19870,7 +26521,35 @@ export type Database = {
             foreignKeyName: "sales_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -19918,7 +26597,35 @@ export type Database = {
             foreignKeyName: "settings_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -19952,7 +26659,35 @@ export type Database = {
             foreignKeyName: "inventory_abc_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -20030,7 +26765,35 @@ export type Database = {
             foreignKeyName: "stock_reservations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -20108,7 +26871,35 @@ export type Database = {
             foreignKeyName: "inventory_abc_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -20193,7 +26984,35 @@ export type Database = {
             foreignKeyName: "products_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -20288,7 +27107,35 @@ export type Database = {
             foreignKeyName: "products_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -20332,7 +27179,35 @@ export type Database = {
             foreignKeyName: "products_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
         ]
@@ -20429,7 +27304,35 @@ export type Database = {
             foreignKeyName: "vendor_invoices_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
           {
@@ -20468,6 +27371,10 @@ export type Database = {
         Args: { p_customer_id: string; p_org_id: string }
         Returns: Json
       }
+      apply_ai_offer_recommendation: {
+        Args: { p_recommendation_id: string }
+        Returns: Json
+      }
       apply_territory_rules: {
         Args: {
           p_attributes: Json
@@ -20476,10 +27383,6 @@ export type Database = {
           p_org_id: string
         }
         Returns: string
-      }
-      apply_ai_offer_recommendation: {
-        Args: { p_recommendation_id: string }
-        Returns: Json
       }
       asignar_a_ubicacion: {
         Args: { p_bin_id: string; p_cantidad: number; p_product_id: string }
@@ -20522,11 +27425,11 @@ export type Database = {
         Args: { p_product_id: string; p_slug: string }
         Returns: Json
       }
+      cancelar_conteo: { Args: { p_count_id: string }; Returns: undefined }
       capture_platform_org_health_snapshot: {
         Args: { p_snapshot_date?: string }
         Returns: number
       }
-      cancelar_conteo: { Args: { p_count_id: string }; Returns: undefined }
       cerrar_conteo: { Args: { p_count_id: string }; Returns: Json }
       check_overdue_debts: { Args: never; Returns: undefined }
       check_rotting_deals: { Args: { p_org_id: string }; Returns: number }
@@ -20619,6 +27522,7 @@ export type Database = {
           p_customer_email: string
           p_customer_name: string
           p_customer_phone: string
+          p_fiscal?: Json
           p_items: Json
           p_notes?: string
           p_payment_method: string
@@ -20628,12 +27532,14 @@ export type Database = {
         }
         Returns: Json
       }
+      cuit_valido: { Args: { p_cuit: string }; Returns: boolean }
       decimales_de_moneda: { Args: { p_moneda: string }; Returns: number }
       desglosar_iva: {
         Args: { p_importe: number; p_incluido: boolean; p_tasa: number }
         Returns: Json
       }
       dias_para_arrepentirse: { Args: { p_order_id: string }; Returns: number }
+      discrimina_iva: { Args: { p_emisor: string }; Returns: boolean }
       end_expired_promotions: { Args: never; Returns: number }
       eval_territory_conditions: {
         Args: { p_attributes: Json; p_conditions: Json }
@@ -21197,6 +28103,21 @@ export type Database = {
         }
         Returns: string
       }
+      record_member_stock_movement: {
+        Args: {
+          p_movement_type: string
+          p_notes?: string
+          p_org_id: string
+          p_product_id: string
+          p_quantity: number
+          p_reference_id?: string
+          p_reference_type?: string
+          p_unit_cost_usd?: number
+          p_unit_price_ars?: number
+          p_variant_id: string
+        }
+        Returns: string
+      }
       record_payment_settlement: {
         Args: {
           p_actual_fee?: number
@@ -21416,6 +28337,10 @@ export type Database = {
         Returns: boolean
       }
       sync_segment_members: { Args: { p_segment_id: string }; Returns: number }
+      tipo_de_comprobante: {
+        Args: { p_emisor: string; p_receptor: string }
+        Returns: Json
+      }
       toggle_wishlist: {
         Args: { p_product_id: string; p_slug: string }
         Returns: Json

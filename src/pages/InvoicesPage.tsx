@@ -5,7 +5,7 @@ import { useClipboard } from "@/hooks/useClipboard";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
-import { formatARS } from "@/lib/supabaseStore";
+import { formatARS, recordMemberStockMovementDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -578,20 +578,18 @@ export default function InvoicesPage() {
           if (saleRows && saleRows.length > 0) {
             for (const row of saleRows) {
               if (!row.product_id || !row.quantity) continue;
-              const { error: stockError } = await supabase.rpc("record_stock_movement", {
-                p_org_id: activeOrg.id,
-                p_product_id: row.product_id,
-                p_variant_id: row.variant_id,
-                p_product_name: row.product_name,
-                p_variant_name: null,
-                p_movement_type: "invoice_credit_note",
-                p_quantity: Number(row.quantity),
-                p_reference_type: "invoice_credit_note",
-                p_reference_id: creditNote.id,
-                p_notes: `Nota de crédito ${ncNumber}`,
-                p_created_by: user.id,
+              await recordMemberStockMovementDB({
+                orgId: activeOrg.id,
+                productId: row.product_id,
+                productName: row.product_name,
+                variantId: row.variant_id,
+                movementType: "invoice_credit_note",
+                quantity: Number(row.quantity),
+                referenceType: "invoice_credit_note",
+                referenceId: creditNote.id,
+                notes: `Nota de crédito ${ncNumber}`,
+                userId: user.id,
               });
-              if (stockError) throw stockError;
             }
           }
         }

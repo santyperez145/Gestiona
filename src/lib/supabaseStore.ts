@@ -110,6 +110,84 @@ export async function setStockAbsoluteDB({
   if (error) throw error;
 }
 
+function isMissingStockRpc(error: { code?: string; message?: string } | null) {
+  return error?.code === '42883'
+    || error?.code === 'PGRST202'
+    || /record_member_stock_movement.*does not exist/i.test(error?.message ?? '');
+}
+
+/**
+ * Registra retornos, notas de crédito y canjes con el actor de la sesión.
+ * Mientras una base todavía no tenga la migración C11, sólo se vuelve al RPC
+ * anterior si PostgREST informa específicamente que el nuevo no existe.
+ */
+export async function recordMemberStockMovementDB({
+  orgId,
+  productId,
+  productName,
+  variantId = null,
+  variantName = null,
+  movementType,
+  quantity,
+  referenceType = null,
+  referenceId = null,
+  unitCostUsd = null,
+  unitPriceArs = null,
+  notes = null,
+  userId,
+}: {
+  orgId: string;
+  productId: string;
+  productName: string;
+  variantId?: string | null;
+  variantName?: string | null;
+  movementType: 'return' | 'return_in' | 'invoice_credit_note' | 'influencer_exchange';
+  quantity: number;
+  referenceType?: string | null;
+  referenceId?: string | null;
+  unitCostUsd?: number | null;
+  unitPriceArs?: number | null;
+  notes?: string | null;
+  userId?: string | null;
+}) {
+  if (!Number.isInteger(quantity) || quantity === 0) {
+    throw new Error('La cantidad del movimiento debe ser un entero distinto de cero');
+  }
+  let actorId = userId ?? null;
+  if (!actorId) {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
+    actorId = authData.user?.id ?? null;
+  }
+  if (!actorId) throw new Error('Necesitás iniciar sesión para mover stock');
+
+  const payload = {
+    p_org_id: orgId,
+    p_product_id: productId,
+    p_variant_id: variantId,
+    p_movement_type: movementType,
+    p_quantity: quantity,
+    p_reference_type: referenceType,
+    p_reference_id: referenceId,
+    p_unit_cost_usd: unitCostUsd,
+    p_unit_price_ars: unitPriceArs,
+    p_notes: notes,
+  };
+  const { error } = await supabase.rpc('record_member_stock_movement', payload);
+  if (!error) return;
+  if (!isMissingStockRpc(error)) throw error;
+
+  // Compatibilidad limitada al período en que el frontend puede llegar antes
+  // que la migración. Ningún permiso ni otro error habilita este camino.
+  const { error: legacyError } = await supabase.rpc('record_stock_movement', {
+    ...payload,
+    p_product_name: productName,
+    p_variant_name: variantName,
+    p_created_by: actorId,
+  });
+  if (legacyError) throw legacyError;
+}
+
 export async function addProductDB(product: any) {
   const orgId = product.org_id || requireActiveOrgId();
   const initialStock = product.stock === undefined ? 0 : Number(product.stock);
@@ -147,45 +225,12 @@ export async function addProductDB(product: any) {
   return created;
 }
 
-export async function updateProductDB(id: string, updates: any, prev?: any) {
+export async function updateProductDB(id: string, updates: any) {
   if (Object.prototype.hasOwnProperty.call(updates ?? {}, 'stock')) {
     throw new Error('El stock se ajusta mediante Kardex, no al editar el producto');
   }
-  // `prev` permite registrar el cambio en `price_history` sin un round-trip
-  // extra. Si no se pasa y hay cambio de precio/costo, se lee el estado previo.
-  const touchesPrice = updates?.sale_price_ars !== undefined || updates?.cost_usd !== undefined;
-  let before = prev;
-  if (touchesPrice && !before) {
-    const { data } = await supabase.from('products').select('org_id,sale_price_ars,cost_usd').eq('id', id).maybeSingle();
-    before = data;
-  }
-
   const { error } = await supabase.from('products').update(updates).eq('id', id);
   if (error) throw error;
-
-  if (touchesPrice && before) {
-    const oldPrice = Number(before.sale_price_ars) || null;
-    const newPrice = updates.sale_price_ars !== undefined ? Number(updates.sale_price_ars) : oldPrice;
-    const oldCost = before.cost_usd != null ? Number(before.cost_usd) : null;
-    const newCost = updates.cost_usd !== undefined ? Number(updates.cost_usd) : oldCost;
-    const priceChanged = newPrice != null && oldPrice !== newPrice;
-    const costChanged = oldCost !== newCost;
-    if (newPrice != null && (priceChanged || costChanged)) {
-      const orgId = before.org_id ?? getActiveOrgId();
-      if (orgId) {
-        // Best-effort: un fallo al historiar no debe abortar el guardado.
-        await supabase.from('price_history').insert({
-          org_id: orgId,
-          product_id: id,
-          old_price_ars: oldPrice,
-          new_price_ars: newPrice,
-          old_cost_usd: oldCost,
-          new_cost_usd: newCost,
-          change_pct: oldPrice ? Number((((newPrice - oldPrice) / oldPrice) * 100).toFixed(2)) : null,
-        }).then(undefined, () => {});
-      }
-    }
-  }
 }
 
 export async function deleteProductDB(id: string) {
@@ -454,20 +499,17 @@ export async function addExchangeDB(exchange: any) {
     if (!Number.isInteger(qty) || qty <= 0) {
       throw new Error('La cantidad del canje debe ser un entero positivo');
     }
-    const { error: stockError } = await supabase.rpc('record_stock_movement', {
-      p_org_id: orgId,
-      p_product_id: exchange.product_id,
-      p_variant_id: null,
-      p_product_name: exchange.product_name || 'Producto',
-      p_variant_name: null,
-      p_movement_type: 'influencer_exchange',
-      p_quantity: -qty,
-      p_reference_type: 'influencer_exchange',
-      p_reference_id: created.id,
-      p_notes: `Canje con influencer${exchange.influencer_name ? ': ' + exchange.influencer_name : ''}`,
-      p_created_by: exchange.user_id ?? null,
+    await recordMemberStockMovementDB({
+      orgId,
+      productId: exchange.product_id,
+      productName: exchange.product_name || 'Producto',
+      movementType: 'influencer_exchange',
+      quantity: -qty,
+      referenceType: 'influencer_exchange',
+      referenceId: created.id,
+      notes: `Canje con influencer${exchange.influencer_name ? ': ' + exchange.influencer_name : ''}`,
+      userId: exchange.user_id ?? null,
     });
-    if (stockError) throw stockError;
   }
   return created;
 }

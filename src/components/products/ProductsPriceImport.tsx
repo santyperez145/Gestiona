@@ -120,7 +120,7 @@ export default function ProductsPriceImport({ products, onDone }: Props) {
         if (!prod) continue;
         const update: any = { sale_price_ars: row.newPrice };
         if (row.newDiscountPrice !== null) update.discount_price_ars = row.newDiscountPrice;
-        await updateProductDB(prod.id, update, prod);
+        await updateProductDB(prod.id, update);
         success++;
       } catch { /* continue */ }
     }

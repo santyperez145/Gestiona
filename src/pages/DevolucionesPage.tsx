@@ -13,7 +13,7 @@ import {
   Plus, Search, RotateCcw, Package, Calendar, DollarSign,
   ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Loader2, FileText, FileSpreadsheet,
 } from "lucide-react";
-import { formatARS } from "@/lib/supabaseStore";
+import { formatARS, recordMemberStockMovementDB } from "@/lib/supabaseStore";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -166,24 +166,30 @@ export default function DevolucionesPage() {
 
       if (retErr) throw retErr;
 
-      // Restore stock via kardex (record_stock_movement handles stock update + audit trail)
+      // Restaurar stock deja un asiento ligado a esta devolución. Si no se
+      // puede escribir el Kardex, se revierte el registro recién creado:
+      // devolver sin reponer stock es peor que informar el error.
       if (productId) {
-        const { error: stockErr } = await supabase.rpc("record_stock_movement", {
-          p_org_id: activeOrg.id,
-          p_product_id: productId,
-          p_variant_id: null,
-          p_product_name: productName,
-          p_variant_name: null,
-          p_movement_type: "return_in",
-          p_quantity: qty,
-          p_reference_type: "sale",
-          p_reference_id: selectedSale?.id || null,
-          p_unit_cost_usd: null,
-          p_unit_price_ars: qty > 0 ? amount / qty : null,
-          p_notes: `Devolución: ${reason}`,
-          p_created_by: user.id,
-        });
-        if (stockErr) console.error("kardex error on return:", stockErr);
+        try {
+          await recordMemberStockMovementDB({
+            orgId: activeOrg.id,
+            productId,
+            productName,
+            movementType: "return_in",
+            quantity: qty,
+            referenceType: "return",
+            referenceId: ret.id,
+            unitPriceArs: qty > 0 ? amount / qty : null,
+            notes: `Devolución: ${reason}`,
+            userId: user.id,
+          });
+        } catch (stockError: any) {
+          const { error: cleanupError } = await supabase.from("returns").delete().eq("id", ret.id);
+          if (cleanupError) {
+            throw new Error(`No se pudo reponer el stock ni revertir la devolución: ${cleanupError.message}`);
+          }
+          throw stockError;
+        }
       }
 
       // Mark original sale as returned

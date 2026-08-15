@@ -28,17 +28,34 @@ describe("autoridad de stock", () => {
     const store = readFileSync(resolve(ROOT, "src/lib/supabaseStore.ts"), "utf8");
     expect(store).toContain("setStockAbsoluteDB");
     expect(store).toContain(".rpc('adjust_stock'");
+    expect(store).toContain("recordMemberStockMovementDB");
+    expect(store).toContain("record_member_stock_movement");
     expect(store).toContain("El stock se ajusta mediante Kardex");
     expect(store).toContain("El stock de una variante se ajusta mediante Kardex");
   });
 
-  it("los flujos que antes sumaban o fijaban stock pasan por movimientos de base", () => {
+  it("los flujos que antes sumaban o fijaban stock pasan por RPCs auditados", () => {
     const purchases = readFileSync(resolve(ROOT, "src/pages/PurchasesPage.tsx"), "utf8");
     const invoices = readFileSync(resolve(ROOT, "src/pages/InvoicesPage.tsx"), "utf8");
+    const pos = readFileSync(resolve(ROOT, "src/pages/POSPage.tsx"), "utf8");
+    const returns = readFileSync(resolve(ROOT, "src/pages/DevolucionesPage.tsx"), "utf8");
     const publicApi = readFileSync(resolve(ROOT, "supabase/functions/public-api/index.ts"), "utf8");
 
     expect(purchases).toContain("trg_purchase_stock_movement");
-    expect(invoices).toContain('rpc("record_stock_movement"');
+    expect(invoices).toContain("recordMemberStockMovementDB");
+    expect(pos).toContain("recordMemberStockMovementDB");
+    expect(returns).toContain("recordMemberStockMovementDB");
     expect(publicApi).toContain('rpc("adjust_stock"');
+  });
+
+  it("la auditoría de precio y Kardex no permite que el cliente invente evidencia", () => {
+    const store = readFileSync(resolve(ROOT, "src/lib/supabaseStore.ts"), "utf8");
+    const migration = readFileSync(resolve(ROOT, "supabase/migrations/20260814000012_inventory_audit_authority.sql"), "utf8");
+
+    expect(store).not.toMatch(/\.from\(['"]price_history['"]\)\.insert/);
+    expect(migration).toContain("CREATE POLICY price_history_org_read");
+    expect(migration).toContain("CREATE POLICY stock_movements_org_read");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.record_member_stock_movement");
+    expect(migration).toContain("auth.uid() IS DISTINCT FROM p_created_by");
   });
 });

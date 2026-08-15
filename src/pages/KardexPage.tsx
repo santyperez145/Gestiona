@@ -20,7 +20,7 @@ import {
   ArrowDownCircle, ArrowUpCircle, BarChart3, RefreshCw, Search,
   Loader2, Download, SlidersHorizontal, Package, PlusCircle,
   MinusCircle, ClipboardList, TrendingDown, TrendingUp, History,
-  AlertTriangle, Gift, Lock,
+  AlertTriangle, Gift, Lock, RotateCcw,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -36,7 +36,8 @@ type MovementType =
   | "purchase" | "sale" | "return_in" | "return_out"
   | "adjustment_in" | "adjustment_out" | "transfer_in" | "transfer_out"
   | "physical_count" | "initial"
-  | "breakage" | "gift" | "reservation";
+  | "breakage" | "gift" | "reservation"
+  | "return" | "invoice_credit_note" | "influencer_exchange";
 
 interface StockMovement {
   id: string;
@@ -53,6 +54,8 @@ interface StockMovement {
   unit_cost_usd: number | null;
   unit_price_ars: number | null;
   notes: string | null;
+  created_by: string | null;
+  actor_name?: string;
   created_at: string;
 }
 
@@ -88,6 +91,9 @@ const TYPE_META: Record<MovementType, { label: string; color: string; icon: Reac
   breakage:        { label: "Rotura/Pérdida",   color: "bg-red-500/15 text-red-400 border-red-500/30",       icon: <AlertTriangle className="w-3.5 h-3.5" /> },
   gift:            { label: "Regalo",           color: "bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/30", icon: <Gift className="w-3.5 h-3.5" /> },
   reservation:     { label: "Reserva",          color: "bg-amber-500/15 text-amber-400 border-amber-500/30", icon: <Lock className="w-3.5 h-3.5" /> },
+  return:          { label: "Devolución",       color: "bg-green-500/15 text-green-400 border-green-500/30", icon: <RotateCcw className="w-3.5 h-3.5" /> },
+  invoice_credit_note: { label: "Nota de crédito", color: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30", icon: <RotateCcw className="w-3.5 h-3.5" /> },
+  influencer_exchange: { label: "Canje",        color: "bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/30", icon: <Gift className="w-3.5 h-3.5" /> },
 };
 
 function MovTypeBadge({ type }: { type: MovementType }) {
@@ -176,9 +182,26 @@ export default function KardexPage() {
         query = query.gte("created_at", from);
       }
 
-      const { data: movData } = await query;
+      const { data: movData, error: movementsError } = await query;
+      if (movementsError) throw movementsError;
+      const rows = (movData ?? []) as StockMovement[];
+      const actorIds = [...new Set(rows.map(m => m.created_by).filter(Boolean))] as string[];
+      const actorNames: Record<string, string> = {};
+      if (actorIds.length) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", actorIds);
+        if (profilesError) throw profilesError;
+        for (const profile of profiles ?? []) {
+          actorNames[profile.user_id] = profile.display_name || "Usuario sin nombre";
+        }
+      }
       // movement_type es TEXT en DB → llega como string, no como la unión
-      setMovements((movData ?? []) as StockMovement[]);
+      setMovements(rows.map(m => ({
+        ...m,
+        actor_name: m.created_by ? actorNames[m.created_by] ?? "Usuario sin perfil" : "Sistema o historial previo",
+      })));
     } catch (e) {
       console.error(e);
     } finally {
@@ -272,7 +295,7 @@ export default function KardexPage() {
   // ── Export CSV ────────────────────────────────────────────────────────────────
 
   function exportCSV() {
-    const headers = ["Fecha", "Producto", "Variante", "Tipo", "Cantidad", "Stock Antes", "Stock Después", "Notas"];
+    const headers = ["Fecha", "Producto", "Variante", "Tipo", "Cantidad", "Stock Antes", "Stock Después", "Responsable", "Notas"];
     const rows = filtered.map(m => [
       format(new Date(m.created_at), "dd/MM/yyyy HH:mm"),
       m.product_name,
@@ -281,6 +304,7 @@ export default function KardexPage() {
       m.quantity > 0 ? `+${m.quantity}` : String(m.quantity),
       String(m.stock_before),
       String(m.stock_after),
+      m.actor_name ?? "Sistema o historial previo",
       m.notes ?? "",
     ]);
     const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n");
@@ -433,6 +457,7 @@ export default function KardexPage() {
                       <th className="py-3 px-4 text-right">Cantidad</th>
                       <th className="py-3 px-4 text-right">Antes</th>
                       <th className="py-3 px-4 text-right">Después</th>
+                      <th className="py-3 px-4 text-left">Responsable</th>
                       <th className="py-3 px-4 text-left">Notas</th>
                     </tr>
                   </thead>
@@ -463,6 +488,9 @@ export default function KardexPage() {
                         </td>
                         <td className="py-2.5 px-4 text-right text-muted-foreground font-mono">{m.stock_before}</td>
                         <td className="py-2.5 px-4 text-right font-mono font-medium">{m.stock_after}</td>
+                        <td className="py-2.5 px-4 text-muted-foreground text-xs whitespace-nowrap">
+                          {m.actor_name ?? "Sistema o historial previo"}
+                        </td>
                         <td className="py-2.5 px-4 text-muted-foreground text-xs max-w-[180px] truncate">
                           {m.notes ?? (m.reference_type ? `Ref: ${m.reference_type}` : "—")}
                         </td>
