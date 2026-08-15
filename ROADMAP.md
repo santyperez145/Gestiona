@@ -84,6 +84,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de cumplimiento 34 (2026-08-14):** cada campaña de WhatsApp ya agrega una baja personal de un solo uso. La Edge Function no acepta teléfonos ni texto desde el navegador: relee el borrador, los ids de clientes consentidos y las bajas vigentes, y sólo owner/admin puede enviarla. El saludo automático de cumpleaños aplica la misma exclusión y enlace. La baja borra el consentimiento, deja evidencia de opt-out y sólo se revierte ante un checkbox de checkout posterior y explícito; un token no se puede inventar ni reutilizar. La verificación ZZ confirma baja, idempotencia, reconsentimiento y cero restos; la tabla de tokens tiene RLS y cero policies. F6 queda hecho; No Llame (F7) sigue congelado hasta que exista una campaña telefónica.
 
+**Slice funcional 35 (2026-08-14):** POS lee las reservas activas nacidas de órdenes online y las conserva por producto y variante. Cuando el carrito supera el stock físico disponible después de esas reservas, avisa al agregar y exige una confirmación explícita antes de cobrar; el mostrador todavía puede resolver la venta y la base continúa siendo la única que mueve Kardex y stock. Si no puede refrescar la lectura, informa el error y conserva el último snapshot para no convertir una caída momentánea en stock ficticio. Validado contra la tabla real y con una prueba de contrato de UI; typecheck, lint, tests y build quedan como puerta. Sin `.env`, no se abrió una sesión POS real en navegador.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -209,7 +211,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **920 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **922 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -347,7 +349,7 @@ Antes sería construirlo para una sola persona.
 | **E4** ⭐ Margen real por canal | El diferencial más defendible, y sale casi gratis: los cuatro datos ya están (ver §2). |
 | **C7** MercadoLibre completo | Publica desde ficha e importa órdenes `paid` con el mismo stock. Cron listo, espera secreto; falta webhook. |
 | **E1** Precio único entre mostrador y online, con margen a la vista | Consecuencia natural de E4. |
-| **E2** El stock del local es el de la tienda | Casi hecho: falta avisar al vender en mostrador algo reservado online. |
+| **E2** El stock del local es el de la tienda | ✅ POS avisa y pide confirmación si una venta consume una reserva online activa. |
 | **C9** Multi-depósito real en la tienda | La tienda vende contra el total, no contra el depósito que despacha. |
 
 > **Condición de salida:** un comercio vende por **dos canales con un solo
@@ -516,7 +518,7 @@ tiene y ML menos.
 | # | Qué | Por qué |
 |---|---|---|
 | **E1** | **Precio único entre mostrador y online, con margen a la vista** | Hoy hay cuatro superficies de precio y se llegó a ellas de a una. Una pantalla que muestre, por producto, qué precio ve cada canal y cuánto margen deja **después** de comisión, envío e IVA, no existe en ninguna. |
-| **E2** | **El stock del local es el stock de la tienda, con reserva** | Ya está la reserva (A2) y el multi-depósito. Falta cerrarlo: vender en el mostrador algo que está reservado por una orden online tiene que avisar. |
+| **E2** | **El stock del local es el stock de la tienda, con reserva** | ✅ La reserva (A2) y el multi-depósito ya estaban; POS avisa al agregar y pide una confirmación explícita antes de cobrar si una venta consume stock reservado por una orden online activa. |
 | **E3** | **Un cliente, una ficha** | El CRM ya cruza las cinco tablas por `customer_id`. Falta que el comprador online y el del mostrador sean la misma persona automáticamente, con su historial completo en las dos direcciones. |
 | **E4** | ⭐ **Margen real por canal** | **El diferencial más defendible que tiene el producto, y sale casi gratis de lo que ya está.** Un mismo producto deja márgenes distintos en el mostrador, en la tienda y en ML, y hoy nadie se lo dice al comerciante. Requiere las cuatro puntas —costo real, comisión, envío, IVA— y **acá están las cuatro** (ver §2). Una pantalla por producto: qué precio ve cada canal y cuánto queda después de todo. Después, la frase que vale: *"tu tienda propia te deja 7 puntos más que ML en este producto"*. |
 

@@ -48,6 +48,17 @@ interface CartItem {
   category?: string;
 }
 
+interface OnlineReservationRow {
+  product_id: string;
+  variant_id: string | null;
+  quantity: number;
+}
+
+// El carrito ya usa este formato para una variante. Reutilizarlo para las
+// reservas evita confundir el stock de un sabor/tamaño con el del producto base.
+const reservationKey = (productId: string, variantId?: string | null) =>
+  variantId ? `${productId}__${variantId}` : productId;
+
 type PayMethod = "efectivo" | "transferencia" | "debito" | "credito" | "mayorista" | "fiado";
 
 const PAY_METHODS: { value: PayMethod; label: string; icon: typeof Banknote; usesDiscount: boolean; color: string }[] = [
@@ -711,6 +722,7 @@ export default function POSPage() {
   }, []);
 
   const [products, setProducts] = useState<any[]>([]);
+  const [onlineReservations, setOnlineReservations] = useState<Record<string, number>>({});
   const [settings, setSettings] = useState<any>(null);
   const [activePromos, setActivePromos] = useState<Promotion[]>([]);
   const [topProductIds, setTopProductIds] = useState<Set<string>>(new Set());
@@ -719,6 +731,45 @@ export default function POSPage() {
   const [variantPickerProduct, setVariantPickerProduct] = useState<any | null>(null);
   useEffect(() => {
     if (activeOrg?.id) loadActivePromotions(activeOrg.id).then(setActivePromos).catch(() => {});
+  }, [activeOrg?.id]);
+
+  // Las reservas online no bajan el stock físico: son unidades que ya tienen
+  // comprador mientras espera el pago. POS no bloquea la venta (puede haber una
+  // decisión de mostrador), pero sí debe avisar antes de consumirlas.
+  useEffect(() => {
+    if (!activeOrg?.id) {
+      setOnlineReservations({});
+      return;
+    }
+    let cancelled = false;
+    // No conservar una reserva de otra organización mientras llega el snapshot.
+    setOnlineReservations({});
+    const loadOnlineReservations = async () => {
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
+        .from("stock_reservations")
+        .select("product_id, variant_id, quantity")
+        .eq("org_id", activeOrg.id)
+        .eq("status", "active")
+        .not("order_id", "is", null)
+        .or(`expires_at.is.null,expires_at.gt.${now}`);
+
+      if (cancelled) return;
+      if (error) {
+        console.error("POS: no se pudieron leer las reservas online:", error.message);
+        toast.warning("No se pudieron actualizar las reservas online; se usa la última información disponible");
+        return;
+      }
+
+      const next: Record<string, number> = {};
+      for (const reservation of (data ?? []) as OnlineReservationRow[]) {
+        const key = reservationKey(reservation.product_id, reservation.variant_id);
+        next[key] = (next[key] ?? 0) + Number(reservation.quantity ?? 0);
+      }
+      setOnlineReservations(next);
+    };
+    void loadOnlineReservations();
+    return () => { cancelled = true; };
   }, [activeOrg?.id]);
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("all");
@@ -1342,6 +1393,7 @@ export default function POSPage() {
   const addToCart = useCallback((prod: any, variantOverride?: { id: string; name: string; stock: number; price?: number }) => {
     const cartKey = variantOverride ? `${prod.id}__${variantOverride.id}` : prod.id;
     const stockLimit = variantOverride ? variantOverride.stock : prod.stock;
+    const onlineReserved = Number(onlineReservations[reservationKey(prod.id, variantOverride?.id)] ?? 0);
     // Use price list adjusted price if a customer with a list is selected
     const basePrice = variantOverride?.price ?? Number(prod.sale_price_ars);
     const price = customerPriceListId ? getPrice({ id: prod.id, sale_price_ars: basePrice }) : (basePrice || 0);
@@ -1354,9 +1406,22 @@ export default function POSPage() {
           toast.warning("Sin stock suficiente");
           return prev;
         }
+        const nextQuantity = prev[idx].quantity + 1;
+        if (onlineReserved > 0 && nextQuantity > stockLimit - onlineReserved) {
+          toast.warning(`${prod.name} tiene ${onlineReserved} u. reservada${onlineReserved === 1 ? "" : "s"} online`, {
+            description: "Esta venta usaría stock apartado para un pedido que espera pago.",
+            duration: 6000,
+          });
+        }
         const updated = [...prev];
-        updated[idx] = { ...updated[idx], quantity: updated[idx].quantity + 1 };
+        updated[idx] = { ...updated[idx], quantity: nextQuantity };
         return updated;
+      }
+      if (onlineReserved > 0 && 1 > stockLimit - onlineReserved) {
+        toast.warning(`${prod.name} tiene ${onlineReserved} u. reservada${onlineReserved === 1 ? "" : "s"} online`, {
+          description: "Esta venta usaría stock apartado para un pedido que espera pago.",
+          duration: 6000,
+        });
       }
       return [...prev, {
         productId: cartKey,
@@ -1375,7 +1440,7 @@ export default function POSPage() {
     });
     setShowCart(true);
     if (variantPickerProduct) setVariantPickerProduct(null);
-  }, [settings, variantPickerProduct]);
+  }, [settings, variantPickerProduct, onlineReservations]);
 
   // ── Bundle: explode into individual cart items ──
   const addBundleToCart = (bundle: typeof bundles[0]) => {
@@ -1458,6 +1523,19 @@ export default function POSPage() {
   // ── Confirm sale ──
   const confirmSale = async () => {
     if (!user || !activeOrg || !cart.length) return;
+
+    const reservationConflicts = cart.filter((item) => {
+      const onlineReserved = Number(onlineReservations[item.productId] ?? 0);
+      return onlineReserved > 0 && item.quantity > item.stock - onlineReserved;
+    });
+    if (reservationConflicts.length) {
+      const detail = reservationConflicts
+        .map((item) => `${item.name}: ${onlineReservations[item.productId]} reservada(s) online`)
+        .join("\n");
+      if (!window.confirm(
+        `Atención: esta venta consume stock reservado por pedido(s) online pendiente(s) de pago.\n\n${detail}\n\n¿Confirmar igualmente?`,
+      )) return;
+    }
 
     // Validate split payment
     if (splitMode) {
@@ -2320,6 +2398,7 @@ export default function POSPage() {
             <div className="p-4 space-y-2 max-h-72 overflow-y-auto">
               {(variantsByProduct[variantPickerProduct.id] || []).map(v => {
                 const outOfStock = v.stock <= 0;
+                const onlineReserved = Number(onlineReservations[reservationKey(variantPickerProduct.id, v.id)] ?? 0);
                 return (
                   <button
                     key={v.id}
@@ -2332,6 +2411,9 @@ export default function POSPage() {
                     <div>
                       <p className="text-sm font-medium">{v.variant_name}</p>
                       {v.price_override && <p className="text-xs text-muted-foreground">{formatARS(v.price_override)}</p>}
+                      {onlineReserved > 0 && (
+                        <p className="text-xs text-amber-500">{onlineReserved} u. reservada{onlineReserved === 1 ? "" : "s"} online</p>
+                      )}
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-[5px] ${
                       v.stock <= 0 ? 'bg-red-500/15 text-red-400' :
@@ -2345,6 +2427,11 @@ export default function POSPage() {
               })}
             </div>
             <div className="px-4 pb-4">
+              {Number(onlineReservations[variantPickerProduct.id] ?? 0) > 0 && (
+                <p className="pb-2 text-xs text-amber-500">
+                  {onlineReservations[variantPickerProduct.id]} u. reservada{onlineReservations[variantPickerProduct.id] === 1 ? "" : "s"} sin variante específica
+                </p>
+              )}
               <button
                 onClick={() => addToCart(variantPickerProduct)}
                 className="w-full py-2.5 rounded-[10px] border border-dashed border-border hover:border-primary/40 hover:bg-muted/30 transition-colors text-xs text-muted-foreground"
@@ -2715,6 +2802,7 @@ export default function POSPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-2">
                 {filtered.map((prod) => {
                   const inCart = cart.find((it) => it.productId === prod.id);
+                  const onlineReserved = Number(onlineReservations[prod.id] ?? 0);
                   const discP = prod.discount_price_ars ? Number(prod.discount_price_ars) : null;
                   const price = Number(prod.sale_price_ars) || 0;
                   const showDisc = usesDiscount && discP && discP > 0;
@@ -2752,6 +2840,11 @@ export default function POSPage() {
                         {prod.brand && <p className="text-[10px] text-muted-foreground">{prod.brand}</p>}
                         {variantsByProduct[prod.id]?.length > 0 && (
                           <p className="text-[9px] text-blue-400 font-medium">{variantsByProduct[prod.id].length} variantes →</p>
+                        )}
+                        {onlineReserved > 0 && (
+                          <p className="text-[9px] text-amber-500 font-medium">
+                            {onlineReserved} u. reservada{onlineReserved === 1 ? "" : "s"} online
+                          </p>
                         )}
 
                         <div className="flex items-center justify-between mt-auto">
