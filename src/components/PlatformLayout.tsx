@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Crown, Building2, Users, DollarSign, Headphones, Server,
+  Crown, Building2, Users, DollarSign, Headphones, Server, Megaphone,
   Percent, ArrowLeft, LogOut, TrendingUp, BarChart3,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,7 +21,7 @@ interface NavItem {
   label: string;
   icon: typeof Crown;
   /** Roles de plataforma que pueden ver la sección; vacío = todos los staff */
-  roles?: Array<'support' | 'finance'>;
+  roles?: Array<'superadmin' | 'support' | 'finance'>;
 }
 
 const NAV: NavItem[] = [
@@ -33,6 +33,7 @@ const NAV: NavItem[] = [
   { to: '/platform/negocio', label: 'Negocio', icon: TrendingUp, roles: ['finance'] },
   { to: '/platform/comisiones', label: 'Comisiones', icon: Percent, roles: ['finance'] },
   { to: '/platform/soporte', label: 'Soporte', icon: Headphones, roles: ['support'] },
+  { to: '/platform/anuncios', label: 'Anuncios', icon: Megaphone, roles: ['superadmin'] },
   { to: '/platform/sistema', label: 'Sistema', icon: Server },
 ];
 

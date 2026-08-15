@@ -17,6 +17,7 @@ import { useIdleDetector } from "@/hooks/useIdleDetector";
 import { useIsTablet } from "@/hooks/useMediaQuery";
 import { toast } from "sonner";
 import NotificationBell from "@/components/shared/NotificationBell";
+import PlatformAnnouncementBanner from "@/components/shared/PlatformAnnouncementBanner";
 import OrgSwitcher from "@/components/shared/OrgSwitcher";
 import PageGuide from "@/components/shared/PageGuide";
 import PresenceAvatars from "@/components/shared/PresenceAvatars";
@@ -448,6 +449,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </div>
+        {/* Plataforma → comercios: no se muestra en la tienda pública ni en /platform. */}
+        <PlatformAnnouncementBanner enabled={Boolean(activeOrg)} />
+
         {/* Trial / subscription status banners */}
         {!bannerDismissed && (() => {
           if (subscription?.status === 'past_due') return (

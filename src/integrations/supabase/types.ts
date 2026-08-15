@@ -14225,6 +14225,83 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_announcement_dismissals: {
+        Row: {
+          announcement_id: string
+          dismissed_at: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          dismissed_at?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          dismissed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_announcement_dismissals_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "platform_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_announcements: {
+        Row: {
+          archived_at: string | null
+          body: string
+          created_at: string
+          created_by: string
+          cta_label: string | null
+          cta_url: string | null
+          ends_at: string | null
+          id: string
+          published_at: string | null
+          starts_at: string
+          title: string
+          tone: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          body: string
+          created_at?: string
+          created_by: string
+          cta_label?: string | null
+          cta_url?: string | null
+          ends_at?: string | null
+          id?: string
+          published_at?: string | null
+          starts_at?: string
+          title: string
+          tone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          body?: string
+          created_at?: string
+          created_by?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          ends_at?: string | null
+          id?: string
+          published_at?: string | null
+          starts_at?: string
+          title?: string
+          tone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       platform_commission_rules: {
         Row: {
           applies_to: string
@@ -28327,6 +28404,31 @@ export type Database = {
         }
         Returns: string
       }
+      archive_platform_announcement: {
+        Args: { p_id: string }
+        Returns: {
+          archived_at: string | null
+          body: string
+          created_at: string
+          created_by: string
+          cta_label: string | null
+          cta_url: string | null
+          ends_at: string | null
+          id: string
+          published_at: string | null
+          starts_at: string
+          title: string
+          tone: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "platform_announcements"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       asignar_a_ubicacion: {
         Args: { p_bin_id: string; p_cantidad: number; p_product_id: string }
         Returns: Json
@@ -28488,6 +28590,10 @@ export type Database = {
       }
       dias_para_arrepentirse: { Args: { p_order_id: string }; Returns: number }
       discrimina_iva: { Args: { p_emisor: string }; Returns: boolean }
+      dismiss_platform_announcement: {
+        Args: { p_announcement_id: string }
+        Returns: undefined
+      }
       end_expired_promotions: { Args: never; Returns: number }
       enqueue_meli_webhook_event: {
         Args: {
@@ -28630,6 +28736,20 @@ export type Database = {
           product_name: string
           quantity: number
           status: string
+        }[]
+      }
+      get_my_platform_announcements: {
+        Args: never
+        Returns: {
+          body: string
+          cta_label: string
+          cta_url: string
+          ends_at: string
+          id: string
+          published_at: string
+          starts_at: string
+          title: string
+          tone: string
         }[]
       }
       get_my_questions: {
@@ -28998,6 +29118,31 @@ export type Database = {
         Returns: boolean
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      list_platform_announcements: {
+        Args: never
+        Returns: {
+          archived_at: string | null
+          body: string
+          created_at: string
+          created_by: string
+          cta_label: string | null
+          cta_url: string | null
+          ends_at: string | null
+          id: string
+          published_at: string | null
+          starts_at: string
+          title: string
+          tone: string
+          updated_at: string
+          updated_by: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "platform_announcements"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       mark_cart_email_sent: { Args: { p_id: string }; Returns: undefined }
       mark_store_order_paid: {
         Args: { p_method?: string; p_order_id: string; p_payment_id?: string }
@@ -29264,6 +29409,41 @@ export type Database = {
           p_tipo_emisor?: string
         }
         Returns: Json
+      }
+      save_platform_announcement: {
+        Args: {
+          p_body?: string
+          p_cta_label?: string
+          p_cta_url?: string
+          p_ends_at?: string
+          p_id?: string
+          p_publish?: boolean
+          p_starts_at?: string
+          p_title?: string
+          p_tone?: string
+        }
+        Returns: {
+          archived_at: string | null
+          body: string
+          created_at: string
+          created_by: string
+          cta_label: string | null
+          cta_url: string | null
+          ends_at: string | null
+          id: string
+          published_at: string | null
+          starts_at: string
+          title: string
+          tone: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "platform_announcements"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       save_store_cart: {
         Args: {
