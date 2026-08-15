@@ -94,6 +94,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 39 (2026-08-14):** E3 deja de cruzar una venta online por nombre cuando ya conoce el email del comprador. Al acreditar una orden, `mark_store_order_paid` resuelve primero el perfil de CRM por email y pasa su `customer_id` a cada línea de venta; POS y tienda comparten entonces la misma ficha e historial. Si el CRM falla, el cobro y el stock no se frenan y el trigger conserva su fallback por nombre. Una prueba ZZ con dos homónimos verifica que el email de la orden gana y deja cero restos.
 
+**Slice funcional 40 (2026-08-14):** C8 cierra la autoridad de la recepción de órdenes de compra: `receive_purchase_order` ahora exige owner/admin —igual que las tablas que modifica—, sólo acepta órdenes confirmadas y bloquea la orden y cada renglón antes de calcular lo pendiente. Dos entregas no pueden recibir las mismas unidades a la vez; cada recepción sigue creando una `purchase` para que el trigger sea el único que mueve stock. La verificación ZZ emula un JWT ajeno rechazado, recibe una entrega parcial y otra final como owner, y deja cero restos.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -220,7 +222,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **935 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **938 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -496,7 +498,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | **C5** | **App en el celular con notificaciones** | Hay PWA y POS offline. Falta el push de "vendiste" y "sin stock". | Tiendanube app |
 | **C6** | **Motor visual de automatizaciones** | Existen `automations` y los crons; falta el armador de flujos. | Shopify Flow |
 | **C7** | **MercadoLibre completo** | Publica desde ficha, recibe órdenes por webhook e importa las `paid` como ventas; concilia comisión + envío real del seller. Webhook y cron están listos; falta configurar la Callback URL + tópico Orders en ML y cargar el secreto del cron. | — |
-| **C8** | **Compras y reposición con proveedor** | Hay órdenes de compra y reposición automática. Falta recepción parcial y costo de importación por lote. | — |
+| **C8** | **Compras y reposición con proveedor** | 🟡 La recepción total y parcial ya registra historial, entra por owner/admin, bloquea concurrencia y mueve stock sólo mediante `purchases` + trigger. Falta costo de importación por lote. | — |
 | **C9** | **Multi-depósito real en la tienda** | El stock por sucursal existe; la tienda vende contra el total, no contra el depósito que despacha. | Shopify |
 | **C10** | **Reportes exportables y programados** | Hay reportes en pantalla. Falta "mandame el cierre de mes por email". | Todas |
 | ~~C11~~ | ~~Auditoría de quién cambió qué~~ | ✅ Slice 28: precio y Kardex guardan actor real; el cliente sólo puede leer la evidencia. | Shopify Plus |
