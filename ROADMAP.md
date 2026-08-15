@@ -495,7 +495,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | **C4** | **Fotos y descripciones** | 10 sin foto, 33 con descripción corta. El panel de calidad los rankea. | ML |
 | **C5** | **App en el celular con notificaciones** | Hay PWA y POS offline. Falta el push de "vendiste" y "sin stock". | Tiendanube app |
 | **C6** | **Motor visual de automatizaciones** | Existen `automations` y los crons; falta el armador de flujos. | Shopify Flow |
-| **C7** | **MercadoLibre completo** | Publica desde ficha, importa órdenes `paid` como ventas y concilia comisión + envío real del seller; cron listo, espera secreto; falta webhook. | — |
+| **C7** | **MercadoLibre completo** | Publica desde ficha, recibe órdenes por webhook e importa las `paid` como ventas; concilia comisión + envío real del seller. Webhook y cron están listos; falta configurar la Callback URL + tópico Orders en ML y cargar el secreto del cron. | — |
 | **C8** | **Compras y reposición con proveedor** | Hay órdenes de compra y reposición automática. Falta recepción parcial y costo de importación por lote. | — |
 | **C9** | **Multi-depósito real en la tienda** | El stock por sucursal existe; la tienda vende contra el total, no contra el depósito que despacha. | Shopify |
 | **C10** | **Reportes exportables y programados** | Hay reportes en pantalla. Falta "mandame el cierre de mes por email". | Todas |
