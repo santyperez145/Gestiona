@@ -151,7 +151,7 @@ Dónde este sistema es realmente distinto, y por qué es difícil de copiar:
 | **Costo real de la mercadería** (USD, aduana, tipo de cambio) | ✅ `total_cost_usd` | ❌ no lo conoce | ✅ |
 | **Comisión del medio de pago y del marketplace** | ✅ liquidación / `sale_fee` cuando el proveedor la informa | ✅ | ❌ no la conoce |
 | **Costo de envío por zona** | 🟠 ML lo concilia; tienda propia aún no recibe el costo final del correo | ✅ | parcial |
-| **IVA por producto** | 🟠 la orden guarda IVA, pero A8 sigue faltando por producto | parcial | ✅ |
+| **IVA por producto** | ✅ `products.tax_rate`: NULL hereda la tasa de la organización y 0 es exento; la orden conserva la tasa y la base por línea | parcial | ✅ |
 | **→ Margen real por canal** | 🟠 muestra cada término y el faltante; falta evidencia completa en todos los canales | ❌ le falta el costo | ❌ le faltan las comisiones |
 
 Ese es el punto: **el margen real por canal necesita las cuatro cosas a la vez**,
@@ -228,7 +228,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Export y supresión de datos (Ley 25.326) | Anda | — |
 | MercadoLibre | Parcial | Publica desde ficha, importa órdenes `paid` al Core y recibe webhook. El cron multi-org espera su secreto; falta configurar y comprobar el circuito con una cuenta real. |
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
-| **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
+| **AFIP** | **Parcial** | La configuración y la prueba WSAA son reales y no simulan CAE; falta certificado de homologación y emitir una factura contra el organismo. |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
 | Tests | Anda | **946 unitarios** (`npm test`, 2026-08-15) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
@@ -310,7 +310,7 @@ proveedor se le estaría pidiendo que incumpla desde el día uno.
 
 | Qué | Estado |
 |---|---|
-| **C1** AFIP contra el organismo (= F15) | 🔴 El más importante y el más largo. Frenado por un certificado de homologación **que es gratis y hay que pedir**. |
+| **C1** AFIP contra el organismo (= F15) | 🔴 El más importante y el más largo. La configuración ya queda atada a la organización activa, la prueba pide un Ticket de Acceso WSAA real y la UI no inventa CAE; sigue frenado por un certificado de homologación **que es gratis y hay que pedir**, más una primera factura de prueba. |
 | **F1 + F3** Política de privacidad y datos del proveedor | 🟡 El generador ya los escribe. Falta cargar razón social, CUIT, domicilio y email, revisar y publicar. |
 | **F5** Consentimiento de marketing con fecha y origen | ✅ El checkout opt-in guarda fecha, origen y orden; campañas sólo alcanzan contactos con consentimiento verificable. |
 | **F11** Acotar la garantía a 6 meses | ✅ `trg_return_requests_warranty_window` aplica seis meses desde la entrega y no castiga una fecha de entrega ausente. |
@@ -365,7 +365,7 @@ Antes sería construirlo para una sola persona.
 
 | Qué | Estado |
 |---|---|
-| **E4** ⭐ Margen real por canal | En curso: Analytics ya muestra producto × canal y declara cada pendiente; falta evidencia completa de correo, IVA por producto y liquidaciones POS. |
+| **E4** ⭐ Margen real por canal | En curso: Analytics ya muestra producto × canal y declara cada pendiente; IVA por producto ya está resuelto. Falta evidencia completa del costo final de correo y de liquidaciones POS. |
 | **C7** MercadoLibre completo | Publica desde ficha, recibe órdenes por webhook e importa `paid` con el mismo stock. Webhook y cron listos; faltan configurar Callback URL/Orders y el secreto del cron. |
 | **E1** Precio único entre mostrador y online, con margen a la vista | Consecuencia natural de E4. |
 | **E2** El stock del local es el de la tienda | ✅ POS avisa y pide confirmación si una venta consume una reserva online activa. |
@@ -499,7 +499,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 
 | # | Qué | Estado | Referencia |
 |---|---|---|---|
-| **C1** | **AFIP probado contra el organismo** | Estructura lista, credenciales cerradas. Falta certificado de homologación y una factura emitida. | Todas las argentinas |
+| **C1** | **AFIP probado contra el organismo** | Configuración por organización activa, secretos fuera del navegador y prueba WSAA real. Falta certificado de homologación y una factura emitida. | Todas las argentinas |
 | **C2** | **Contar el inventario físico** | La herramienta usa sesiones auditadas y deja visibles los descuadres. Falta que el dueño cuente y corrija los productos reales con Kardex ≠ stock. | — |
 | **C3** | **Cargar el peso de los productos** | 59 de 60 en cero. El botón los estima; falta pesar una caja. | — |
 | **C4** | **Fotos y descripciones** | 10 sin foto, 33 con descripción corta. El panel de calidad los rankea. | ML |
@@ -693,6 +693,37 @@ Lo que se hizo y —más importante— qué se encontró roto en el camino. Los
 mensajes de commit son largos a propósito y amplían cada entrada.
 
 > Resumen condensado. El registro completo detallado está en el archivo.
+
+### Slice 43 — AFIP real, multi-organización y sin simulaciones (2026-08-15)
+
+La pantalla `/afip` heredada fabricaba un comprobante pendiente, le asignaba un
+CAE aleatorio dos segundos después y devolvía una empresa ficticia al consultar
+padrón. Eso no era una limitación visual: podía hacer que un comercio creyera
+que había facturado. Se retiró ese circuito. La pantalla ahora sólo muestra el
+estado seguro de conexión y las facturas reales del Business Core; solicitar un
+CAE sigue ocurriendo exclusivamente desde `/facturas`, donde importes y cliente
+ya existen en la base.
+
+La prueba de conexión anterior enviaba una factura inexistente y llamaba éxito a
+"Factura no encontrada", antes de contactar AFIP. Ahora pide un Ticket de
+Acceso real a WSAA, sin crear comprobante, y conserva ese ticket para la primera
+autorización. Falta el certificado de homologación para comprobarlo contra el
+organismo: C1 no se marca como hecho por esta mejora.
+
+También se cerró `afip_config`, tabla heredada que podía conservar PEM y clave
+privada bajo una policy de miembros. La migración migra cualquier dato faltante
+a `afip_credentials`, borra los secretos de la tabla vieja y le revoca acceso
+al navegador. El RPC y la Edge Function ahora reciben `org_id` y validan la
+membresía owner/admin de esa organización: una cuenta con varios comercios ya
+no puede escribir la configuración fiscal en la primera membresía que devuelva
+la base. La verificación en producción confirmó que la migración quedó anotada
+como `20260815000001`, con 0 secretos en la tabla heredada, 0 CUIT malformados
+y sin acceso `anon` ni `authenticated` a esa superficie.
+
+Por último se corrigió evidencia documental obsoleta: A8 (`products.tax_rate`,
+IVA por línea) ya estaba implementado desde la sesión 110, pero el resumen de
+competencia y el relevamiento legal aún lo declaraban pendiente. E4 conserva
+los faltantes reales: costo final de correo y liquidaciones POS.
 
 ### Sesiones 1–10 — Base técnica + módulos core
 - Infraestructura: PWA, Realtime, JWT, code splitting 427kB, Sentry

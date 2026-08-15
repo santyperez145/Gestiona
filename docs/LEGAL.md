@@ -40,7 +40,7 @@ con el estado medido contra la base cuando se pudo.
 
 | Requisito | Estado |
 |---|---|
-| **Precio final al consumidor, con IVA incluido** (Res. 7/2002) | ✅ Los precios son finales. El IVA se discrimina en la orden desde A3. ⚠️ La tasa es única: un catálogo con 21% y 10,5% factura mal (A8 del ROADMAP). |
+| **Precio final al consumidor, con IVA incluido** (Res. 7/2002) | ✅ Los precios son finales. El IVA se discrimina por línea desde A3/A8: `products.tax_rate` permite que cada producto herede la tasa de la organización o declare 0% exento. |
 | **Costo Financiero Total si hay financiación** (Res. 51/2017) | 🟠 Se muestra "6 cuotas sin interés de $X". Si son **sin interés**, el CFT es 0% y alcanza; si algún día se ofrecen cuotas con interés, **hay que mostrar el CFT y el precio de contado**. Hoy no se distingue una cosa de la otra en el código. |
 | **La oferta debe cumplirse en los términos publicados** (art. 7) | ✅ Es la razón de fondo de la regla "los descuentos no se acumulan, gana el mejor": si se publica "20% OFF con transferencia" y se cobrara el 10% de la oferta, se estaría incumpliendo lo publicado. |
 | **Precio tachado real** | ✅ Desde la sesión 99. Antes el precio tachado no correspondía a ningún porcentaje sobre el final, que es publicidad engañosa. |
@@ -100,7 +100,7 @@ con el estado medido contra la base cuando se pudo.
 | Requisito | Estado |
 |---|---|
 | **Factura electrónica por cada venta** (RG 4291) | 🔴 La estructura está y las credenciales ya no se leen desde el cliente, pero **no hay certificado cargado ni una sola factura emitida**. Vender sin facturar es el riesgo fiscal más grande del sistema hoy. |
-| **IVA discriminado según condición del comprador** | 🟠 El IVA sale con tasa única. Falta por producto (A8) y falta la condición frente al IVA del comprador. |
+| **IVA discriminado según condición del comprador** | 🟠 La tasa ya puede variar por producto (A8). Sigue faltando modelar y validar la condición frente al IVA del comprador al emitir el comprobante. |
 | **Libro IVA Ventas** | 🟠 Existe `/impuestos` y el libro mayor; no está atado a los comprobantes electrónicos porque todavía no hay. |
 | **Conservación de comprobantes** | 🟠 Las órdenes se guardan, los comprobantes no existen. |
 

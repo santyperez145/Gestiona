@@ -56,19 +56,25 @@ Deno.serve(async (req) => {
     if (response) return response;
 
     const admin = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
-    const { action, certificate, privateKey } = await req.json().catch(() => ({}));
+    const { action, certificate, privateKey, org_id: orgId } = await req.json().catch(() => ({}));
 
-    // Sólo dueño o administrador. Un vendedor no toca la matrícula fiscal.
+    if (typeof orgId !== "string") {
+      return json({ error: "Falta la organización a configurar" }, 400);
+    }
+
+    // Sólo dueño o administrador de LA organización elegida. Elegir la primera
+    // membresía del usuario guardaría datos fiscales en otro comercio cuando
+    // un mismo dueño administra más de uno.
     const { data: membership } = await admin
       .from("memberships")
-      .select("org_id, role")
+      .select("role")
       .eq("user_id", user.id)
+      .eq("org_id", orgId)
       .in("role", ["owner", "admin"])
       .maybeSingle();
-    if (!membership?.org_id) {
+    if (!membership) {
       return json({ error: "Sólo el dueño o un administrador pueden cargar el certificado" }, 403);
     }
-    const orgId = membership.org_id;
 
     if (action === "delete") {
       await admin.from("afip_credentials")

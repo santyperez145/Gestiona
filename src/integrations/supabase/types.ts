@@ -28794,6 +28794,7 @@ export type Database = {
           p_cuit: string
           p_domicilio?: string
           p_environment: string
+          p_org_id: string
           p_punto_venta: number
           p_razon_social?: string
           p_tipo_emisor?: string

@@ -42,20 +42,77 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  let invoiceId: string | null = null;
   try {
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace(/^Bearer\s+/, "").trim();
     const { data: userData } = await supabase.auth.getUser(token);
     if (!userData?.user) return err("Unauthorized", 401);
 
-    const { invoice_id } = await req.json() as { invoice_id: string };
-    if (!invoice_id) return err("invoice_id required");
+    const body = await req.json().catch(() => ({})) as {
+      action?: string;
+      invoice_id?: string;
+      org_id?: string;
+    };
+
+    // Una prueba de conexión real sólo pide un Ticket de Acceso a WSAA. No
+    // crea una factura, no inventa un CAE y confirma que el certificado está
+    // asociado al servicio wsfe del ambiente elegido.
+    if (body.action === "test_connection") {
+      if (!body.org_id) return err("org_id required");
+
+      const { data: membership } = await supabase
+        .from("memberships")
+        .select("role")
+        .eq("org_id", body.org_id)
+        .eq("user_id", userData.user.id)
+        .in("role", ["owner", "admin"])
+        .maybeSingle();
+      if (!membership) return err("Sólo el dueño o un administrador pueden probar AFIP", 403);
+
+      const { data: cred } = await supabase
+        .from("afip_credentials")
+        .select("cuit, certificate, private_key, environment")
+        .eq("org_id", body.org_id)
+        .maybeSingle();
+      if (!cred?.cuit) return err("AFIP no configurado: falta CUIT");
+      if (!cred?.certificate) return err("AFIP no configurado: falta certificado PEM");
+      if (!cred?.private_key) return err("AFIP no configurado: falta clave privada PEM");
+
+      const isProd = cred.environment === "produccion";
+      const wsaaUrl = isProd
+        ? "https://wsaa.afip.gov.ar/ws/services/LoginCms"
+        : "https://wsaahomo.afip.gov.ar/ws/services/LoginCms";
+      const ta = await getTicketAcceso(wsaaUrl, cred.certificate, cred.private_key);
+
+      // WSAA rechaza pedidos repetidos; conservar el ticket obtenido en la
+      // prueba hace que la primera factura reutilice exactamente esa sesión.
+      const { error: ticketError } = await supabase
+        .from("afip_credentials")
+        .update({
+          ta_token: ta.token,
+          ta_sign: ta.sign,
+          ta_expires_at: ta.expiresAt,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("org_id", body.org_id);
+      if (ticketError) throw new Error("No se pudo guardar el Ticket de Acceso");
+
+      return ok({
+        ok: true,
+        environment: isProd ? "produccion" : "homologacion",
+        ticket_expires_at: ta.expiresAt,
+      });
+    }
+
+    invoiceId = typeof body.invoice_id === "string" ? body.invoice_id : null;
+    if (!invoiceId) return err("invoice_id required");
 
     // Load invoice
     const { data: invoice, error: invErr } = await supabase
       .from("invoices")
       .select("*")
-      .eq("id", invoice_id)
+      .eq("id", invoiceId)
       .single();
     if (invErr || !invoice) return err("Factura no encontrada");
     if (invoice.cae) return err("Esta factura ya tiene CAE: " + invoice.cae);
@@ -180,12 +237,12 @@ Deno.serve(async (req) => {
     }
 
     // Persist error to invoice for traceability and UI display
-    if (invoice_id) {
+    if (invoiceId) {
       try {
         await supabase
           .from("invoices")
           .update({ afip_status: afipStatus, afip_error: userMsg })
-          .eq("id", invoice_id);
+          .eq("id", invoiceId);
       } catch { /* silent */ }
     }
 

@@ -2072,37 +2072,55 @@ function AfipSection() {
   /** Hay certificado cargado. No se sabe cuál: eso no vuelve del servidor. */
   const [certConfigurado, setCertConfigurado] = useState(false);
 
-  useEffect(() => {
+  const refreshConnectionStatus = useCallback(async () => {
     if (!activeOrg) return;
-    (async () => {
-      // `afip_connection_status` dice si hay certificado cargado y cuándo
-      // vence el ticket, pero nunca devuelve el certificado ni la clave: viven
-      // en una tabla con RLS y cero policies, fuera del alcance del navegador.
-      const { data } = await supabase
-        .from("afip_connection_status")
-        .select("cuit, razon_social, punto_venta, environment, tipo_emisor, configured, ta_expires_at")
-        .eq("org_id", activeOrg.id)
-        .maybeSingle();
-      if (data) {
-        setCuit(data.cuit || "");
-        setRazonSocial(data.razon_social || "");
-        setPuntoVenta(String(data.punto_venta || 1));
-        setEnvironment(data.environment || "homologacion");
-        setTipoEmisor(data.tipo_emisor || "monotributo");
-        setCertConfigurado(!!data.configured);
-        if (data.ta_expires_at) {
-          setTaStatus(new Date(data.ta_expires_at) > new Date() ? "valid" : "expired");
-        }
-      }
-      setLoading(false);
-    })();
+
+    // La vista sólo devuelve metadatos seguros. El certificado y su clave no
+    // vuelven al navegador, ni siquiera después de que se hayan guardado.
+    const { data, error } = await supabase
+      .from("afip_connection_status")
+      .select("cuit, razon_social, punto_venta, environment, tipo_emisor, configured, ta_expires_at")
+      .eq("org_id", activeOrg.id)
+      .maybeSingle();
+    if (error) throw error;
+
+    if (!data) {
+      setCertConfigurado(false);
+      setTaStatus("none");
+      return;
+    }
+
+    setCuit(data.cuit || "");
+    setRazonSocial(data.razon_social || "");
+    setPuntoVenta(String(data.punto_venta || 1));
+    setEnvironment(data.environment || "homologacion");
+    setTipoEmisor(data.tipo_emisor || "monotributo");
+    setCertConfigurado(!!data.configured);
+    setTaStatus(data.ta_expires_at && new Date(data.ta_expires_at) > new Date() ? "valid" : "none");
   }, [activeOrg]);
+
+  useEffect(() => {
+    if (!activeOrg) {
+      setLoading(false);
+      return;
+    }
+    (async () => {
+      try {
+        await refreshConnectionStatus();
+      } catch (error: any) {
+        toast.error(`No se pudo leer el estado AFIP: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [activeOrg, refreshConnectionStatus]);
 
   const doSave = async () => {
     if (!activeOrg) return;
 
     // Lo que no es secreto va por RPC, que además valida CUIT y entorno.
     const { error: cfgErr } = await supabase.rpc("save_afip_config", {
+      p_org_id: activeOrg.id,
       p_cuit: cuit,
       p_punto_venta: parseInt(puntoVenta) || 1,
       p_environment: environment,
@@ -2116,7 +2134,7 @@ function AfipSection() {
     // `service_role`; desde el navegador no hay forma de llegar a esa tabla.
     if (certificate.trim() || privateKey.trim()) {
       const { data, error } = await supabase.functions.invoke("afip-credentials", {
-        body: { certificate, privateKey },
+        body: { org_id: activeOrg.id, certificate, privateKey },
       });
       const err = (data as { error?: string } | null)?.error ?? error?.message;
       if (err) throw new Error(err);
@@ -2131,8 +2149,8 @@ function AfipSection() {
     setSaving(true);
     try {
       await doSave();
+      await refreshConnectionStatus();
       toast.success("Configuración AFIP guardada");
-      setTaStatus("none");
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -2141,7 +2159,9 @@ function AfipSection() {
   };
 
   const handleTestConnection = async () => {
-    if (!cuit || !certificate || !privateKey) {
+    if (!activeOrg) return;
+    const tieneNuevoCertificado = !!(certificate.trim() && privateKey.trim());
+    if (!cuit || (!certConfigurado && !tieneNuevoCertificado)) {
       toast.error("Completá CUIT, certificado y clave privada antes de probar");
       return;
     }
@@ -2149,18 +2169,15 @@ function AfipSection() {
     try {
       await doSave();
       const resp = await supabase.functions.invoke("afip-authorize", {
-        body: { invoice_id: "__test__" },
+        body: { action: "test_connection", org_id: activeOrg.id },
       });
       const errMsg: string = resp.error?.message || (resp.data as { error?: string })?.error || "";
-      // "Factura no encontrada" means credentials worked — AFIP auth succeeded
-      if (errMsg.includes("Factura no encontrada") || errMsg.includes("invoice_id")) {
-        toast.success("✓ Conexión con AFIP verificada correctamente");
-        setTaStatus("valid");
-      } else if (errMsg) {
+      if (errMsg) {
         toast.error("Error AFIP: " + errMsg);
       } else {
-        toast.success("✓ Credenciales AFIP válidas");
+        toast.success("✓ Conexión con AFIP verificada correctamente");
         setTaStatus("valid");
+        await refreshConnectionStatus();
       }
     } catch (e: any) {
       toast.error("Error al probar: " + e.message);
@@ -2171,7 +2188,8 @@ function AfipSection() {
 
   if (loading) return null;
 
-  const isConfigured = !!(cuit && certificate && privateKey);
+  const isConfigured = !!(cuit && certConfigurado);
+  const canTestConnection = !!(cuit && (certConfigurado || (certificate.trim() && privateKey.trim())));
 
   return (
     <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
@@ -2263,7 +2281,7 @@ function AfipSection() {
             className="bg-muted border-border font-mono text-xs h-28 resize-none"
           />
           <p className="text-[10px] text-muted-foreground mt-1">
-            Almacenada en tu base de datos con acceso restringido a tu organización (RLS).
+            Se guarda fuera del alcance del navegador: después de enviarla no se puede volver a leer desde la app.
           </p>
         </div>
       </div>
@@ -2272,7 +2290,7 @@ function AfipSection() {
         <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold">
           {saving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Guardando…</> : "Guardar AFIP"}
         </Button>
-        {isConfigured && (
+        {canTestConnection && (
           <Button onClick={handleTestConnection} disabled={testing} variant="outline">
             {testing ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Verificando…</> : "Verificar conexión"}
           </Button>
