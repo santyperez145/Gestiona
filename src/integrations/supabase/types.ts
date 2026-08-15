@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       admin_audit_logs: {
@@ -238,6 +213,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sales"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_conversions_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "store_order_margin_facts"
+            referencedColumns: ["sale_id"]
           },
         ]
       }
@@ -5080,6 +5062,13 @@ export type Database = {
             referencedRelation: "sales"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "customer_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "store_order_margin_facts"
+            referencedColumns: ["sale_id"]
+          },
         ]
       }
       customer_referrals: {
@@ -5182,6 +5171,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sales"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_referrals_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "store_order_margin_facts"
+            referencedColumns: ["sale_id"]
           },
         ]
       }
@@ -6047,6 +6043,13 @@ export type Database = {
             referencedRelation: "sales"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "debts_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "store_order_margin_facts"
+            referencedColumns: ["sale_id"]
+          },
         ]
       }
       deliveries: {
@@ -6226,6 +6229,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sales"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliveries_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "store_order_margin_facts"
+            referencedColumns: ["sale_id"]
           },
         ]
       }
@@ -9757,6 +9767,13 @@ export type Database = {
             referencedRelation: "sales"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "installment_schedule_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "store_order_margin_facts"
+            referencedColumns: ["sale_id"]
+          },
         ]
       }
       integration_logs: {
@@ -10600,6 +10617,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sales"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "store_order_margin_facts"
+            referencedColumns: ["sale_id"]
           },
         ]
       }
@@ -12372,6 +12396,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "sales"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: true
+            referencedRelation: "store_order_margin_facts"
+            referencedColumns: ["sale_id"]
           },
         ]
       }
@@ -18839,6 +18870,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "returns_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "store_order_margin_facts"
+            referencedColumns: ["sale_id"]
+          },
+          {
             foreignKeyName: "returns_variant_id_fkey"
             columns: ["variant_id"]
             isOneToOne: false
@@ -18948,6 +18986,7 @@ export type Database = {
           customer_name: string | null
           date: string
           discount_applied: boolean
+          ecommerce_order_id: string | null
           first_installment_date: string | null
           global_discount_ars: number | null
           id: string
@@ -18988,6 +19027,7 @@ export type Database = {
           customer_name?: string | null
           date?: string
           discount_applied?: boolean
+          ecommerce_order_id?: string | null
           first_installment_date?: string | null
           global_discount_ars?: number | null
           id?: string
@@ -19028,6 +19068,7 @@ export type Database = {
           customer_name?: string | null
           date?: string
           discount_applied?: boolean
+          ecommerce_order_id?: string | null
           first_installment_date?: string | null
           global_discount_ars?: number | null
           id?: string
@@ -19063,6 +19104,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_iva"
             referencedColumns: ["id"]
           },
           {
@@ -27426,6 +27481,135 @@ export type Database = {
           },
         ]
       }
+      store_order_margin_facts: {
+        Row: {
+          carrier_shipping_cost_ars: number | null
+          carrier_shipping_cost_recorded: boolean | null
+          cost_of_goods_ars: number | null
+          ecommerce_order_id: string | null
+          gross_margin_ars: number | null
+          margin_after_payment_ars: number | null
+          order_number: string | null
+          org_id: string | null
+          payment_fee_ars: number | null
+          payment_fee_recorded: boolean | null
+          product_id: string | null
+          product_name: string | null
+          product_revenue_ars: number | null
+          quantity: number | null
+          sale_id: string | null
+          shipping_charged_ars: number | null
+          sold_at: string | null
+          tax_ars: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_iva"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ubicaciones_descuadradas: {
         Row: {
           de_mas: number | null
@@ -28752,9 +28936,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "viewer"],
