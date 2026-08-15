@@ -36,6 +36,7 @@ function publicSources(): string[] {
     'src/pages/PublicPaymentPage.tsx',
     'src/pages/StorefrontPage.tsx',
     'src/pages/InfluencerPortalPage.tsx',
+    'src/pages/ServiceStatusPage.tsx',
   ];
   const listar = (dir: string) => {
     const abs = resolve(process.cwd(), dir);

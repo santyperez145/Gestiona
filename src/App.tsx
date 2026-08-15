@@ -48,6 +48,7 @@ const InfluencerPortalPage   = lazy(() => import("@/pages/InfluencerPortalPage")
 const PricingPage            = lazy(() => import("@/pages/PricingPage"));
 const PrivacyPage            = lazy(() => import("@/pages/PrivacyPage"));
 const TermsPage              = lazy(() => import("@/pages/TermsPage"));
+const ServiceStatusPage      = lazy(() => import("@/pages/ServiceStatusPage"));
 const OnboardingPage         = lazy(() => import("@/pages/OnboardingPage"));
 const TeamPage               = lazy(() => import("@/pages/TeamPage"));
 const InvitationAcceptPage   = lazy(() => import("@/pages/InvitationAcceptPage"));
@@ -444,6 +445,7 @@ const App = () => (
                 <Route path="/precios" element={<PricingPage />} />
                 <Route path="/privacidad" element={<PrivacyPage />} />
                 <Route path="/terminos" element={<TermsPage />} />
+                <Route path="/estado" element={<ServiceStatusPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
                 <Route path="/tienda/:slug/*" element={<StorefrontPage />} />

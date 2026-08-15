@@ -28726,6 +28726,15 @@ export type Database = {
           type: string
         }[]
       }
+      get_public_service_status: {
+        Args: never
+        Returns: {
+          checked_at: string
+          component: string
+          detail: string
+          status: string
+        }[]
+      }
       get_revenue_waterfall: {
         Args: { p_months?: number; p_org_id: string }
         Returns: {
@@ -28967,6 +28976,15 @@ export type Database = {
         Args: {
           p_header_name: string
           p_name: string
+          p_vault_secret_name: string
+        }
+        Returns: number
+      }
+      invoke_edge_function_with_secret_timeout: {
+        Args: {
+          p_header_name: string
+          p_name: string
+          p_timeout_milliseconds?: number
           p_vault_secret_name: string
         }
         Returns: number

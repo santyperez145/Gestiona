@@ -35,6 +35,10 @@ Funciones de automatización y observabilidad:
 - `send-email-campaign`, `send-scheduled-campaigns`
 - `daily-kpi-alert`, `weekly-performance-digest`
 
+El estado público `/estado` consulta el RPC `get_public_service_status()`. Sólo
+expone una señal agregada de aplicación, tareas programadas y respaldos; no se
+debe reemplazar por una lectura directa de `cron`, organizaciones o logs.
+
 `weekly-backup` crea snapshots privados por organización para planes con
 `backups_enabled`. La Edge Function controla owner/plan para acciones manuales
 y un secreto de cron para las programadas; los objetos se guardan bajo

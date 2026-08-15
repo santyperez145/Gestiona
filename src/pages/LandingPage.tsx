@@ -214,6 +214,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-4">
             <Link to="/privacy" className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground transition-colors">Privacidad</Link>
             <Link to="/terms" className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground transition-colors">Términos</Link>
+            <Link to="/estado" className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground transition-colors">Estado</Link>
           </div>
         </div>
       </footer>
