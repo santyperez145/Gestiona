@@ -92,6 +92,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 38 (2026-08-14):** C7 deja de depender solamente de consultar cada 15 minutos: `meli-webhook` recibe el tópico `orders`, lo encola sin guardar el body crudo y confirma rápido; su tarea de fondo vuelve a pedir la orden oficial con el OAuth del vendedor antes de actualizar `meli_orders` y conciliar el costo real de envío. El callback nunca crea ventas, stock ni precios, y repetirlo no vuelve a procesar una notificación sana. Una cuenta vendedora sólo puede pertenecer a una organización, porque de otro modo un mismo pedido tendría dos Business Cores posibles. La migración quedó aplicada y registrada, la Edge Function quedó desplegada y una llamada de recurso inválido respondió 400 sin filas ZZ. Validada con typecheck, lint sin errores, 932 tests y build/PWA; sin una cuenta ML conectada no se procesó una orden real. Falta que el dueño configure la Callback URL y el tópico Orders en el DevCenter, y que cargue el secreto del cron si también quiere el polling de respaldo.
 
+**Slice funcional 39 (2026-08-14):** E3 deja de cruzar una venta online por nombre cuando ya conoce el email del comprador. Al acreditar una orden, `mark_store_order_paid` resuelve primero el perfil de CRM por email y pasa su `customer_id` a cada línea de venta; POS y tienda comparten entonces la misma ficha e historial. Si el CRM falla, el cobro y el stock no se frenan y el trigger conserva su fallback por nombre. Una prueba ZZ con dos homónimos verifica que el email de la orden gana y deja cero restos.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -218,7 +220,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **932 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **935 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -526,7 +528,7 @@ tiene y ML menos.
 |---|---|---|
 | **E1** | **Precio único entre mostrador y online, con margen a la vista** | Hoy hay cuatro superficies de precio y se llegó a ellas de a una. Una pantalla que muestre, por producto, qué precio ve cada canal y cuánto margen deja **después** de comisión, envío e IVA, no existe en ninguna. |
 | **E2** | **El stock del local es el stock de la tienda, con reserva** | ✅ La reserva (A2) y el multi-depósito ya estaban; POS avisa al agregar y pide una confirmación explícita antes de cobrar si una venta consume stock reservado por una orden online activa. |
-| **E3** | **Un cliente, una ficha** | El CRM ya cruza las cinco tablas por `customer_id`. Falta que el comprador online y el del mostrador sean la misma persona automáticamente, con su historial completo en las dos direcciones. |
+| **E3** | **Un cliente, una ficha** | 🟡 La venta online acreditada ya se enlaza al mismo `customer_id` que usa POS, por email y no por nombre. Falta validar el flujo con un segundo comercio y resolver identificadores cuando una compra no trae email válido. |
 | **E4** | ⭐ **Margen real por canal** | **El diferencial más defendible que tiene el producto.** Analytics ya muestra una fila por producto y canal con costo, comisión, envío e IVA, y marca “Pendiente” cuando falta evidencia. ML conserva costo, comisión y envío real cuando lo informa; la tienda enlaza líneas, liquidación e IVA, pero el costo final del correo todavía no entra; POS todavía no enlaza cada venta a su liquidación. Falta completar esas fuentes para que un número final sea verdaderamente comparable —hasta entonces la pantalla no lo promete. |
 
 📌 **Business Copilot no es otro módulo por ahora.** Es la forma en que E1–E4 y
