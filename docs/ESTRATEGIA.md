@@ -126,26 +126,24 @@ guardas.
 
 ## 3. Contra quién se compite, honestamente
 
-❓ **Sin verificar.** Lo que sigue viene de un análisis externo y **no se pudo
-comprobar desde acá** (sin acceso a los sitios de los competidores). Se anota
-como hipótesis a chequear antes de usarlo en cualquier presentación:
+✅ / ❓ **Mapa actualizado el 2026-08-15.** Tiendanube se contrastó con sus
+fuentes oficiales; las demás filas siguen siendo hipótesis del análisis externo
+y no se usan como hechos en una presentación hasta verificarlas.
 
 | Competidor | Qué dice el análisis | Estado |
 |---|---|---|
-| **Tiendanube** | **Lanzó POS en Argentina en 2026.** Si es cierto, "ellos no tienen POS" deja de ser argumento y hay que dejar de usarlo. | ❓ **Chequear primero** |
+| **Tiendanube** | ✅ Tiene Punto de Venta en Argentina: registra ventas de local, showroom, WhatsApp, teléfono y redes; permite catálogo, stock, clientes, descuentos y órdenes desde su administrador. También comunica stock centralizado entre canales. | ✅ [Punto de Venta](https://ayuda.tiendanube.com/pdv/que-es-punto-de-venta-de-tiendanube) y [stock](https://www.tiendanube.com/funcionalidades/gestion-de-stock), 2026-08-15 |
 | **Contabilium** | ERP + POS + stock + facturación + ecommerce + marketplaces, argentino. El competidor local más directo. | ❓ |
 | **VentaWeb** | ERP + tienda argentina. ~1.200 comercios. | ❓ |
 | **Axon ERP** | POS + stock + ecommerce nativo + ARCA. Muy parecido al planteo de acá. | ❓ |
 | **Max24** | POS + stock + tienda + ARCA. ~1.200 tiendas. | ❓ |
 | **Lightspeed / Cin7 / Odoo / Shopify** | Referencias de producto, no competidores directos en este mercado. | ❓ |
 
-⚠️ **La conclusión que sí se sostiene sin verificar nada:** si hay cuatro o
-cinco productos argentinos haciendo "ERP + tienda", entonces **la categoría ya
-existe** y no hay que convencer a nadie de que el problema es real. Eso es una
-buena noticia y cambia el discurso: no se vende la idea, se vende la ejecución.
-
-Y la mala: **no alcanza con "gestión + tienda"** como diferencial, porque ya lo
-dicen varios. Hay que bajar a lo concreto, que es §2.3.
+✅ **Conclusión ya verificable:** la categoría omnicanal existe y Tiendanube
+ya ofrece POS y stock entre canales. Eso elimina cualquier argumento basado en
+la ausencia de esas funciones. La ejecución tiene que bajar a lo concreto de
+§2.3: margen por producto y canal con costo de importación, comisión, envío e
+IVA, preservando la evidencia que compone el número.
 
 ---
 
@@ -155,7 +153,7 @@ dicen varios. Hay que bajar a lo concreto, que es §2.3.
 
 | No decir | Por qué |
 |---|---|
-| "Tiendanube no tiene POS" | Puede ser falso desde 2026. Un dato viejo en una presentación destruye la credibilidad del resto. |
+| "Tiendanube no tiene POS" | Es falso: su ayuda oficial documenta Punto de Venta en Argentina. Un dato viejo en una presentación destruye la credibilidad del resto. |
 | "Somos más baratos" | Invita a una guerra de precios contra alguien con más espalda. |
 | "Tenemos 84 páginas / 56 edge functions / 1.279 commits" | Cantidad de código no es valor. Un producto con 100 funciones puede ser peor que uno con 20. |
 | "Tenemos IA" | Todos la tienen. Lo que importa es qué hace con los datos del negocio. |

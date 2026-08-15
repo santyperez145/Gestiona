@@ -130,15 +130,17 @@ posicionamiento, la competencia real y qué habría que medir viven ahora en
 **[docs/ESTRATEGIA.md](docs/ESTRATEGIA.md)**, que separa lo medido de lo
 supuesto. Acá queda sólo lo que afecta decisiones de código.
 
-**Lo que hay que dejar de decir: "Tiendanube no tiene POS".** Según un análisis
-externo lo lanzó en Argentina en 2026, y **no se pudo verificar desde acá**.
-Hasta chequearlo, no se usa como argumento: un dato viejo tira abajo la
-credibilidad de todo lo demás.
+**Lo que hay que dejar de decir: "Tiendanube no tiene POS".** Está verificado
+en su [ayuda oficial](https://ayuda.tiendanube.com/pdv/que-es-punto-de-venta-de-tiendanube),
+actualizada el 2026-06-02: Punto de Venta está disponible en Argentina. Por eso
+la discusión no es POS sí/no, sino qué sistema mantiene una verdad operativa y
+un margen por canal que pueda auditarse.
 
-**La categoría ya existe.** Hay varios productos argentinos haciendo "ERP +
-tienda" —Contabilium, VentaWeb, Axon, Max24, sin verificar—. Eso es buena
-noticia: no hay que convencer a nadie de que el problema es real. Y es mala:
-**"gestión + tienda" ya no alcanza como diferencial**.
+**La categoría ya existe.** Tiendanube comunica POS y stock entre canales;
+Contabilium, VentaWeb, Axon y Max24 quedan como alternativas locales aún sin
+verificar. Eso es buena noticia: no hay que convencer a nadie de que el
+problema es real. Y es mala: **"gestión + tienda" ya no alcanza como
+diferencial**.
 
 Dónde este sistema es realmente distinto, y por qué es difícil de copiar:
 
@@ -1332,7 +1334,8 @@ comprador realmente paga.
 
 ### Sesión 93 — Preguntas en la tienda, y quién factura de verdad (2026-08-05)
 
-**Preguntar sobre un producto**, que tiene MercadoLibre y no tiene Tiendanube.
+**Preguntar sobre un producto**, inspirada en prácticas de marketplaces; la
+paridad actual de Tiendanube no estaba verificada.
 En perfumería la objeción que frena la compra no es el precio: es "¿es
 original?", "¿cuánto dura?". Hoy llegan por WhatsApp y se contestan de nuevo
 cada vez. Dos decisiones definen el producto: **sólo se publican las
