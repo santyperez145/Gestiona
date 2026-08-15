@@ -287,81 +287,112 @@ export async function getSalesDB(userId: string) {
   return data || [];
 }
 
-export async function addSaleDB(sale: any) {
-  const orgId = sale.org_id || requireActiveOrgId();
-  sale.org_id = orgId;
+/**
+ * Registra un ticket comercial completo. La base crea su padre, aplica el
+ * cupo mensual por ticket y recién después inserta los renglones que mueven
+ * Kardex. El navegador nunca escribe `sales` directamente.
+ */
+export async function addSalesDB(sales: any[], source?: string) {
+  if (!sales.length) throw new Error('La venta necesita al menos un renglón');
 
-  // ── Atribución de marketing ────────────────────────────────────────────
-  // Si el cupón usado coincide con el código de descuento de un canje de
-  // influencer, la venta se atribuye a ese influencer (alimenta el ROI de
-  // canjes). Si es un cupón común, se marca como 'coupon'.
-  let attributedExchangeId: string | null = null;
-  if (sale.coupon_code) {
-    const { data: exch } = await supabase
-      .from('influencer_exchanges')
-      .select('id')
-      .eq('org_id', orgId)
-      .eq('discount_code', sale.coupon_code)
-      .limit(1)
-      .maybeSingle();
-    attributedExchangeId = exch?.id ?? null;
-    const source = resolveSaleAttribution(sale.coupon_code, !!exch);
-    if (source === 'influencer' || !sale.attribution_source) sale.attribution_source = source;
+  const orgId = sales[0].org_id || requireActiveOrgId();
+  if (sales.some((sale) => sale.org_id && sale.org_id !== orgId)) {
+    throw new Error('Todos los renglones de una venta deben pertenecer a la misma organización');
   }
 
-  const { error } = await supabase.from('sales').insert({ ...sale, org_id: orgId });
+  const transactionSource = source || sales[0].source || 'manual';
+  const prepared: Array<{ sale: any; attributedExchangeId: string | null }> = [];
+
+  for (const originalSale of sales) {
+    const sale = { ...originalSale, org_id: orgId, source: transactionSource };
+    let attributedExchangeId: string | null = null;
+
+    // Si el cupón usado coincide con el código de un canje, la línea conserva
+    // su atribución para que el ROI no se pierda al pasar por el RPC.
+    if (sale.coupon_code) {
+      const { data: exch } = await supabase
+        .from('influencer_exchanges')
+        .select('id')
+        .eq('org_id', orgId)
+        .eq('discount_code', sale.coupon_code)
+        .limit(1)
+        .maybeSingle();
+      attributedExchangeId = exch?.id ?? null;
+      const attribution = resolveSaleAttribution(sale.coupon_code, !!exch);
+      if (attribution === 'influencer' || !sale.attribution_source) sale.attribution_source = attribution;
+    }
+
+    prepared.push({ sale, attributedExchangeId });
+  }
+
+  const { data, error } = await supabase.rpc('create_sales_transaction', {
+    p_org_id: orgId,
+    p_sales: prepared.map(({ sale }) => sale),
+    p_source: transactionSource,
+  });
   if (error) throw error;
 
-  // Acreditar las ventas generadas al canje atribuido.
-  if (attributedExchangeId) {
-    const { data: ex } = await supabase
-      .from('influencer_exchanges')
-      .select('sales_generated_ars')
-      .eq('id', attributedExchangeId)
-      .single();
-    const prev = Number(ex?.sales_generated_ars || 0);
-    await supabase
-      .from('influencer_exchanges')
-      .update({ sales_generated_ars: prev + Number(sale.total_ars || 0) })
-      .eq('id', attributedExchangeId);
-  }
+  const createdSaleIds = Array.isArray((data as { sale_ids?: unknown } | null)?.sale_ids)
+    ? (data as { sale_ids: unknown[] }).sale_ids.map(String)
+    : [];
 
-  // El stock —total y por sucursal— lo mueve `trg_sale_stock_movement`. Acá
-  // había un descuento manual que lo restaba OTRA vez: vender 3 unidades bajaba
-  // el stock 6. Verificado contra la base. Lo mismo con `location_stock`, que
-  // el trigger mantiene desde que conoce `sales.location_id`.
-  if (!sale.paid) {
-    await supabase.from('debts').insert({
-      user_id: sale.user_id,
-      org_id: orgId,
-      sale_id: sale.id,
-      customer_name: sale.customer_name || 'Sin nombre',
-      amount_ars: sale.total_ars,
-      paid_ars: 0,
-      remaining_ars: sale.total_ars,
-      description: `Venta de ${sale.quantity}x ${sale.product_name}`,
-      date: sale.date,
-      status: 'pending',
+  // Estas escrituras complementan el ticket ya confirmado. El stock sigue
+  // siendo responsabilidad exclusiva del trigger de `sales` en la base.
+  for (const [index, entry] of prepared.entries()) {
+    const sale = { ...entry.sale, id: createdSaleIds[index] || entry.sale.id };
+    const { attributedExchangeId } = entry;
+    if (attributedExchangeId) {
+      const { data: ex } = await supabase
+        .from('influencer_exchanges')
+        .select('sales_generated_ars')
+        .eq('id', attributedExchangeId)
+        .single();
+      const prev = Number(ex?.sales_generated_ars || 0);
+      await supabase
+        .from('influencer_exchanges')
+        .update({ sales_generated_ars: prev + Number(sale.total_ars || 0) })
+        .eq('id', attributedExchangeId);
+    }
+
+    if (!sale.paid) {
+      await supabase.from('debts').insert({
+        user_id: sale.user_id,
+        org_id: orgId,
+        sale_id: sale.id,
+        customer_name: sale.customer_name || 'Sin nombre',
+        amount_ars: sale.total_ars,
+        paid_ars: 0,
+        remaining_ars: sale.total_ars,
+        description: `Venta de ${sale.quantity}x ${sale.product_name}`,
+        date: sale.date,
+        status: 'pending',
+      });
+    }
+
+    await recordFinancialMovement({
+      orgId,
+      direction: 'income',
+      sourceType: 'sale',
+      sourceId: sale.id ?? null,
+      amountArs: sale.total_ars ?? 0,
+      description: `Venta: ${sale.product_name ?? 'Producto'}`,
+      counterparty: sale.customer_name ?? null,
+      paymentMethod: sale.payment_method ?? 'efectivo',
+      channel: 'sale',
+      affectsCash: (sale.payment_method ?? 'efectivo') === 'efectivo',
+      affectsBank: ['transferencia', 'debito', 'credito'].includes(sale.payment_method ?? ''),
+      cashSessionId: sale.cash_session_id ?? null,
+      happenedAt: sale.date ? new Date(sale.date + 'T12:00:00').toISOString() : undefined,
+      createdBy: sale.user_id ?? null,
+      metadata: { quantity: sale.quantity, product_name: sale.product_name, paid: sale.paid },
     });
   }
-  // Ledger entry
-  await recordFinancialMovement({
-    orgId,
-    direction: 'income',
-    sourceType: 'sale',
-    sourceId: sale.id ?? null,
-    amountArs: sale.total_ars ?? 0,
-    description: `Venta: ${sale.product_name ?? 'Producto'}`,
-    counterparty: sale.customer_name ?? null,
-    paymentMethod: sale.payment_method ?? 'efectivo',
-    channel: 'sale',
-    affectsCash: (sale.payment_method ?? 'efectivo') === 'efectivo',
-    affectsBank: ['transferencia', 'debito', 'credito'].includes(sale.payment_method ?? ''),
-    cashSessionId: sale.cash_session_id ?? null,
-    happenedAt: sale.date ? new Date(sale.date + 'T12:00:00').toISOString() : undefined,
-    createdBy: sale.user_id ?? null,
-    metadata: { quantity: sale.quantity, product_name: sale.product_name, paid: sale.paid },
-  });
+
+  return data;
+}
+
+export async function addSaleDB(sale: any) {
+  return addSalesDB([sale], sale.source);
 }
 
 export async function deleteSaleDB(id: string) {
@@ -735,45 +766,7 @@ export async function deleteVariantDB(id: string) {
 }
 
 export async function addSaleWithVariantDB(sale: any, variantId?: string) {
-  const orgId = sale.org_id || requireActiveOrgId();
-  const { error } = await supabase.from('sales').insert({ ...sale, org_id: orgId });
-  if (error) throw error;
-  // Igual que en `addSaleDB`: el descuento lo hace el trigger. Acá se descontaba
-  // de nuevo, variante incluida. `record_stock_movement` ya baja la variante y
-  // recalcula el total del producto desde sus variantes, así que tampoco hace
-  // falta `syncProductStockFromVariants`.
-  if (!sale.paid) {
-    await supabase.from('debts').insert({
-      user_id: sale.user_id,
-      org_id: sale.org_id || requireActiveOrgId(),
-      sale_id: sale.id,
-      customer_name: sale.customer_name || 'Sin nombre',
-      amount_ars: sale.total_ars,
-      paid_ars: 0,
-      remaining_ars: sale.total_ars,
-      description: `Venta de ${sale.quantity}x ${sale.product_name}`,
-      date: sale.date,
-      status: 'pending',
-    });
-  }
-  // Ledger entry
-  await recordFinancialMovement({
-    orgId,
-    direction: 'income',
-    sourceType: 'sale',
-    sourceId: sale.id ?? null,
-    amountArs: sale.total_ars ?? 0,
-    description: `Venta: ${sale.product_name ?? 'Producto'}`,
-    counterparty: sale.customer_name ?? null,
-    paymentMethod: sale.payment_method ?? 'efectivo',
-    channel: 'sale',
-    affectsCash: (sale.payment_method ?? 'efectivo') === 'efectivo',
-    affectsBank: ['transferencia', 'debito', 'credito'].includes(sale.payment_method ?? ''),
-    cashSessionId: sale.cash_session_id ?? null,
-    happenedAt: sale.date ? new Date(sale.date + 'T12:00:00').toISOString() : undefined,
-    createdBy: sale.user_id ?? null,
-    metadata: { quantity: sale.quantity, product_name: sale.product_name, paid: sale.paid },
-  });
+  return addSaleDB({ ...sale, variant_id: sale.variant_id ?? variantId ?? null });
 }
 
 // ========= HELPERS =========

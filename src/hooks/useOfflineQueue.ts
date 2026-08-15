@@ -22,7 +22,7 @@
  *       id: crypto.randomUUID(),
  *       payload: sale,
  *       handler: async (s) => {
- *         await supabase.from("sales").insert(s);
+ *         await addSaleDB(s); // la base crea el ticket comercial
  *       },
  *     });
  *   };

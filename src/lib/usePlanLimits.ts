@@ -30,21 +30,18 @@ export function usePlanLimits() {
   }, [activeOrg, plan]);
 
   const checkSalesLimit = useCallback(async (): Promise<boolean> => {
-    if (!activeOrg || plan?.max_sales_per_month == null) return true;
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    const { count, error } = await supabase
-      .from('sales')
-      .select('id', { count: 'exact', head: true })
-      .eq('org_id', activeOrg.id)
-      .gte('created_at', startOfMonth.toISOString());
+    if (!activeOrg) return true;
+    // `sales` son renglones, no tickets. El RPC cuenta `sale_transactions`
+    // en horario argentino y usa la misma autoridad que frena la inserción.
+    const { data, error } = await supabase
+      .rpc('get_sales_plan_usage', { p_org_id: activeOrg.id })
+      .single();
     if (error) {
       toast.error('No se pudo verificar el límite de ventas. Intentá de nuevo.');
       return false;
     }
-    if ((count ?? 0) >= plan.max_sales_per_month) {
-      toast.error(`Límite de ${plan.max_sales_per_month} ventas/mes alcanzado en tu plan ${plan.name}.`, {
+    if (data.max_sales_per_month != null && data.sales_used >= data.max_sales_per_month) {
+      toast.error(`Límite de ${data.max_sales_per_month} ventas/mes alcanzado en tu plan ${plan?.name ?? ''}.`, {
         action: { label: 'Ver planes', onClick: () => { window.location.href = '/precios'; } },
         duration: 6000,
       });

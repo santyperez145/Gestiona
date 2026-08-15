@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, incrementCouponUse, getVariantsByUserDB, addSaleWithVariantDB, findExchangeByCode, attributeSaleToExchange } from "@/lib/supabaseStore";
+import { getSalesDB, addSaleDB, addSalesDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, incrementCouponUse, getVariantsByUserDB, addSaleWithVariantDB, findExchangeByCode, attributeSaleToExchange } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -1629,7 +1629,10 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
         }
         toast.success(lineCalcs.length === 1 ? "Venta actualizada" : `Venta actualizada + ${lineCalcs.length - 1} línea(s) agregada(s)`);
       } else {
-        // New: create one sale per line item
+        // New: todos los renglones entran como un solo ticket comercial. El
+        // Kardex sigue teniendo una fila por producto, pero el plan no cobra
+        // varias ventas por un mismo carrito.
+        const newSales: Array<{ sale: any; line: any; calc: any }> = [];
         for (const { line, calc } of lineCalcs) {
           if (!calc) continue;
           const saleId = crypto.randomUUID();
@@ -1648,12 +1651,11 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             source: "manual",
           };
 
-          if (line.variantId) {
-            await addSaleWithVariantDB(saleData, line.variantId);
-          } else {
-            await addSaleDB(saleData);
-          }
-          await logAudit(userId, 'create', 'sale', saleId, { product: calc.productLabel, total: calc.total, profit: calc.profitARS, paymentMethod });
+          newSales.push({ sale: saleData, line, calc });
+        }
+        await addSalesDB(newSales.map(({ sale }) => sale), 'manual');
+        for (const { sale, line, calc } of newSales) {
+          await logAudit(userId, 'create', 'sale', sale.id, { product: calc.productLabel, total: calc.total, profit: calc.profitARS, paymentMethod });
           if (line.productId && !calc.isDecant && !line.variantId) await checkStockAfterSale(line.productId, calc.product.name);
         }
         if (couponResult?.valid && couponResult.coupon?.id) await incrementCouponUse(couponResult.coupon.id);

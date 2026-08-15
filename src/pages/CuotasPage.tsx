@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
-import { formatARS } from "@/lib/supabaseStore";
+import { addSaleDB, formatARS } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -70,8 +70,9 @@ export default function CuotasPage() {
     if (total <= 0 || n < 2) { toast.error("El monto y el número de cuotas deben ser válidos"); return; }
     setSaving(true);
     try {
-      // Create a pseudo-sale record just to link installments
-      const { data: saleData, error: saleErr } = await supabase.from("sales").insert({
+      // La venta existe como ticket comercial aunque sus cuotas se cobren
+      // después. El RPC conserva la autoridad del cupo y del Kardex.
+      const result = await addSaleDB({
         org_id: activeOrg.id,
         product_name: form.product_name.trim(),
         customer_name: form.customer_name.trim() || null,
@@ -86,12 +87,14 @@ export default function CuotasPage() {
         installment_amount_ars: total / n,
         first_installment_date: form.first_date,
         date: new Date().toISOString(),
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-      }).select("id").single();
+        source: "manual",
+      });
 
-      if (saleErr || !saleData) throw saleErr || new Error("Error al crear venta");
+      const saleId = Array.isArray((result as { sale_ids?: unknown } | null)?.sale_ids)
+        ? String((result as { sale_ids: unknown[] }).sale_ids[0] || "")
+        : "";
+      if (!saleId) throw new Error("Error al crear venta");
 
-      const saleId = saleData.id;
       const amountPerCuota = Math.round((total / n) * 100) / 100;
 
       const schedule = Array.from({ length: n }, (_, i) => {

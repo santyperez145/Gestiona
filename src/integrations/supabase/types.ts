@@ -19099,6 +19099,76 @@ export type Database = {
           },
         ]
       }
+      sale_transactions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          occurred_at: string
+          org_id: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          occurred_at?: string
+          org_id: string
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          occurred_at?: string
+          org_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       sales: {
         Row: {
           attribution_source: string | null
@@ -19132,6 +19202,7 @@ export type Database = {
           return_id: string | null
           returned: boolean
           returned_quantity: number
+          sale_transaction_id: string | null
           seller_name: string | null
           source: string
           split_payments: Json | null
@@ -19173,6 +19244,7 @@ export type Database = {
           return_id?: string | null
           returned?: boolean
           returned_quantity?: number
+          sale_transaction_id?: string | null
           seller_name?: string | null
           source?: string
           split_payments?: Json | null
@@ -19214,6 +19286,7 @@ export type Database = {
           return_id?: string | null
           returned?: boolean
           returned_quantity?: number
+          sale_transaction_id?: string | null
           seller_name?: string | null
           source?: string
           split_payments?: Json | null
@@ -19362,6 +19435,13 @@ export type Database = {
             columns: ["return_id"]
             isOneToOne: false
             referencedRelation: "returns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_sale_transaction_id_fkey"
+            columns: ["sale_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "sale_transactions"
             referencedColumns: ["id"]
           },
           {
@@ -28091,6 +28171,10 @@ export type Database = {
         Args: { p_slug: string; p_token: string }
         Returns: undefined
       }
+      create_sales_transaction: {
+        Args: { p_org_id: string; p_sales: Json; p_source?: string }
+        Returns: Json
+      }
       create_stock_reservation: {
         Args: {
           p_customer_name: string
@@ -28376,6 +28460,16 @@ export type Database = {
           recognized: number
         }[]
       }
+      get_sales_plan_usage: {
+        Args: { p_org_id: string }
+        Returns: {
+          max_sales_per_month: number
+          period_end: string
+          period_start: string
+          sales_remaining: number
+          sales_used: number
+        }[]
+      }
       get_store_banners: {
         Args: { p_slug: string }
         Returns: {
@@ -28624,6 +28718,10 @@ export type Database = {
           max_products: number
           max_users: number
         }[]
+      }
+      organization_sales_plan_limit: {
+        Args: { p_org_id: string }
+        Returns: number
       }
       pending_abandoned_carts: {
         Args: { p_hours?: number }

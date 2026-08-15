@@ -669,6 +669,7 @@ export default function PresupuestosPage() {
         paid: true,
         payment_method: method,
         quote_id: q.id,
+        source: "presupuesto",
       });
       await updateStatus(q.id, "accepted");
       toast.success(`Venta de ${formatARS(q.total)} registrada`);

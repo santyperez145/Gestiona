@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getProductsDB, getSettingsDB, addSaleDB, deleteSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale, getVariantsByUserDB, recordMemberStockMovementDB } from "@/lib/supabaseStore";
+import { getProductsDB, getSettingsDB, addSalesDB, deleteSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale, getVariantsByUserDB, recordMemberStockMovementDB } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { loadActivePromotions, bestPromoPrice, type Promotion, type BestPromo } from "@/lib/promotions";
 import { supabase } from "@/integrations/supabase/client";
@@ -951,12 +951,20 @@ export default function POSPage() {
     if (!offlineSales.length || !isOnline) return;
     setSyncing(true);
     let synced = 0;
-    const remaining = [...offlineSales];
-    for (let i = remaining.length - 1; i >= 0; i--) {
+    let remaining = [...offlineSales];
+    const transactions = new Map<string, any[]>();
+    for (const sale of offlineSales) {
+      // Las ventas viejas no tenían id de ticket local: se sincronizan como
+      // operaciones unitarias. Las nuevas conservan el carrito completo.
+      const key = sale.offline_transaction_id || sale.id;
+      transactions.set(key, [...(transactions.get(key) || []), sale]);
+    }
+    for (const lines of transactions.values()) {
       try {
-        await addSaleDB(remaining[i]);
-        remaining.splice(i, 1);
-        synced++;
+        await addSalesDB(lines, 'pos');
+        const syncedIds = new Set(lines.map((sale) => sale.id));
+        remaining = remaining.filter((sale) => !syncedIds.has(sale.id));
+        synced += lines.length;
       } catch { /* keep it in queue */ }
     }
     setOfflineSales(remaining);
@@ -1557,6 +1565,8 @@ export default function POSPage() {
         : payMethod;
       const date = new Date().toISOString();
       const txSaleIds: string[] = [];
+      const transactionLines: any[] = [];
+      const offlineTransactionId = crypto.randomUUID();
 
       for (const item of cart) {
         const unitPrice = priceFor(item);
@@ -1603,21 +1613,27 @@ export default function POSPage() {
           location_id: selectedLocationId,
           seller_name: sellerName || null,
           notes: posNote.trim() || null,
+          source: "pos",
+          offline_transaction_id: offlineTransactionId,
         };
 
-        if (isOnline) {
-          await addSaleDB(saleData);
+        transactionLines.push(saleData);
+      }
+
+      if (isOnline) {
+        await addSalesDB(transactionLines, "pos");
+        for (const saleData of transactionLines) {
           await logAudit(user.id, "create", "sale", saleData.id, {
-            product: item.name,
-            total: adjustedTotal,
+            product: saleData.product_name,
+            total: saleData.total_ars,
             method: splitMode ? `split:${splitMethod1}+${splitMethod2}` : payMethod,
             source: "pos",
           });
-        } else {
-          const pending = [...offlineSales, saleData];
-          setOfflineSales(pending);
-          localStorage.setItem(offlineKey, JSON.stringify(pending));
         }
+      } else {
+        const pending = [...offlineSales, ...transactionLines];
+        setOfflineSales(pending);
+        localStorage.setItem(offlineKey, JSON.stringify(pending));
       }
 
       if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);

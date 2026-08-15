@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
 
   const { data: settings } = await supabase
     .from("settings")
-    .select("org_id, user_id, api_key")
+    .select("org_id, user_id, api_key, exchange_rate")
     .eq("api_key", apiKey)
     .maybeSingle();
 
@@ -182,10 +182,50 @@ Deno.serve(async (req) => {
     }
     if (Number(body.quantity) <= 0) return err("quantity must be positive", 400, "validation_error");
     if (Number(body.total_ars) < 0) return err("total_ars cannot be negative", 400, "validation_error");
+    if (!settings.user_id) return err("API key has no sale owner", 409, "sale_owner_missing");
 
+    // La API key identifica la organización; nunca se deja que el JSON elija
+    // otro tenant, un usuario distinto ni el nombre/costo de otro producto.
+    // El importe puede venir de un canal externo, pero el producto debe ser
+    // uno persistido de este Business Core.
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .select("id,name,total_cost_usd")
+      .eq("id", body.product_id)
+      .eq("org_id", orgId)
+      .maybeSingle();
+    if (productError) return err(productError.message, 500);
+    if (!product) return err("Product not found", 404, "not_found");
+
+    const quantity = Number(body.quantity);
+    const total = Number(body.total_ars);
+    const requestedUnitPrice = Number(body.unit_price_ars);
+    const unitPrice = Number.isFinite(requestedUnitPrice) && requestedUnitPrice >= 0
+      ? requestedUnitPrice
+      : total / quantity;
+    const costPerUnitUsd = Number(product.total_cost_usd || 0);
+    const exchangeRate = Number(settings.exchange_rate || 1);
+    const costOfGoodsArs = costPerUnitUsd * exchangeRate * quantity;
+    const profitArs = total - costOfGoodsArs;
+
+    // Esta escritura es de servidor para una integración con API key. El
+    // trigger de `sales` crea/agrupa sale_transactions y aplica el cupo del
+    // plan; no hay una ruta de navegador que pueda saltearlo.
     const { data, error } = await supabase.from("sales").insert({
       org_id: orgId,
-      ...body,
+      user_id: settings.user_id,
+      product_id: product.id,
+      product_name: product.name,
+      quantity,
+      unit_price_ars: unitPrice,
+      total_ars: total,
+      cost_per_unit_usd: costPerUnitUsd,
+      cost_of_goods_ars: costOfGoodsArs,
+      profit_ars: profitArs,
+      profit_usd: exchangeRate > 0 ? profitArs / exchangeRate : 0,
+      customer_name: typeof body.customer_name === "string" ? body.customer_name.slice(0, 500) : null,
+      paid: body.paid !== false,
+      payment_method: typeof body.payment_method === "string" ? body.payment_method.slice(0, 100) : "efectivo",
       date: body.date || new Date().toISOString(),
       source: "api",
     }).select().single();
