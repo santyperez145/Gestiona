@@ -22109,6 +22109,8 @@ export type Database = {
           quantity: number
           to_location_id: string | null
           transferred_by: string | null
+          variant_id: string | null
+          variant_name: string | null
         }
         Insert: {
           created_at?: string
@@ -22121,6 +22123,8 @@ export type Database = {
           quantity: number
           to_location_id?: string | null
           transferred_by?: string | null
+          variant_id?: string | null
+          variant_name?: string | null
         }
         Update: {
           created_at?: string
@@ -22133,6 +22137,8 @@ export type Database = {
           quantity?: number
           to_location_id?: string | null
           transferred_by?: string | null
+          variant_id?: string | null
+          variant_name?: string | null
         }
         Relationships: [
           {
@@ -22238,6 +22244,20 @@ export type Database = {
             columns: ["to_location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -29225,6 +29245,7 @@ export type Database = {
           p_product_id: string
           p_quantity: number
           p_to_location_id: string
+          p_variant_id?: string
         }
         Returns: Json
       }

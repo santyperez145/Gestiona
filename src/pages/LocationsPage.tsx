@@ -29,6 +29,18 @@ type LocationStock = {
   product_name?: string;
 };
 
+type VariantLocationStock = {
+  product_id: string;
+  variant_id: string;
+  stock: number;
+};
+
+type ProductVariant = {
+  id: string;
+  product_id: string;
+  variant_name: string;
+};
+
 const EMPTY_FORM = { name: "", address: "", phone: "", is_main: false };
 
 function LocationForm({
@@ -83,6 +95,8 @@ function TransferDialog({
   locations,
   products,
   locationStock,
+  productVariants,
+  variantLocationStock,
   onClose,
   onDone,
 }: {
@@ -90,28 +104,51 @@ function TransferDialog({
   products: any[];
   /** Stock por sucursal, indexado por `location_id`. */
   locationStock: Record<string, LocationStock[]>;
+  productVariants: ProductVariant[];
+  /** Variantes físicas por sucursal. No se deducen desde el producto agregado. */
+  variantLocationStock: Record<string, VariantLocationStock[]>;
   onClose: () => void;
   onDone: () => void;
 }) {
   const [fromLoc, setFromLoc] = useState("");
   const [toLoc, setToLoc] = useState("");
-  const [productId, setProductId] = useState("");
+  const [stockItemKey, setStockItemKey] = useState("");
   const [qty, setQty] = useState("1");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Lo que realmente hay en la sucursal de origen. El nombre sale del catálogo
-  // si está; si no, del que guardó `location_stock`.
-  const disponibles = (locationStock[fromLoc] ?? [])
-    .filter(ls => ls.stock > 0)
-    .map(ls => ({
-      product_id: ls.product_id,
-      stock: ls.stock,
-      product_name: products.find(p => p.id === ls.product_id)?.name ?? ls.product_name ?? "Producto",
-    }))
+  // Un producto con variantes no se puede transferir como agregado: no sabríamos
+  // si viajaron 50 ml, 100 ml o un sabor concreto. Escondemos su saldo agregado
+  // y mostramos únicamente los saldos físicos de cada variante.
+  const productsWithVariants = new Set(productVariants.map(variant => variant.product_id));
+  const disponibles = [
+    ...(locationStock[fromLoc] ?? [])
+      .filter(ls => ls.stock > 0 && !productsWithVariants.has(ls.product_id))
+      .map(ls => ({
+        key: `product:${ls.product_id}`,
+        product_id: ls.product_id,
+        variant_id: null as string | null,
+        stock: ls.stock,
+        product_name: products.find(p => p.id === ls.product_id)?.name ?? ls.product_name ?? "Producto",
+      })),
+    ...(variantLocationStock[fromLoc] ?? [])
+      .filter(ls => ls.stock > 0)
+      .map(ls => {
+        const variant = productVariants.find(v => v.id === ls.variant_id);
+        const productName = products.find(p => p.id === ls.product_id)?.name ?? "Producto";
+        return {
+          key: `variant:${ls.variant_id}`,
+          product_id: ls.product_id,
+          variant_id: ls.variant_id,
+          stock: ls.stock,
+          product_name: `${productName} — ${variant?.variant_name ?? "Variante"}`,
+        };
+      }),
+  ]
     .sort((a, b) => a.product_name.localeCompare(b.product_name));
 
-  const maxDisponible = disponibles.find(d => d.product_id === productId)?.stock ?? 0;
+  const selectedItem = disponibles.find(d => d.key === stockItemKey);
+  const maxDisponible = selectedItem?.stock ?? 0;
 
   /**
    * Transferir por RPC, no escribiendo `location_stock` desde acá.
@@ -130,14 +167,15 @@ function TransferDialog({
    */
   const handleTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fromLoc || !toLoc || !productId || !qty) { toast.error("Completá todos los campos"); return; }
+    if (!fromLoc || !toLoc || !selectedItem || !qty) { toast.error("Completá todos los campos"); return; }
     if (fromLoc === toLoc) { toast.error("Los locales de origen y destino deben ser distintos"); return; }
     setSaving(true);
     try {
       const { data, error } = await supabase.rpc("transfer_stock_between_locations", {
         p_from_location_id: fromLoc,
         p_to_location_id: toLoc,
-        p_product_id: productId,
+        p_product_id: selectedItem.product_id,
+        p_variant_id: selectedItem.variant_id,
         p_quantity: Number(qty),
         p_notes: notes.trim() || null,
       });
@@ -162,7 +200,7 @@ function TransferDialog({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Desde</label>
-          <Select value={fromLoc} onValueChange={setFromLoc}>
+          <Select value={fromLoc} onValueChange={value => { setFromLoc(value); setStockItemKey(""); }}>
             <SelectTrigger><SelectValue placeholder="Origen" /></SelectTrigger>
             <SelectContent>{locations.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}</SelectContent>
           </Select>
@@ -176,8 +214,8 @@ function TransferDialog({
         </div>
       </div>
       <div>
-        <label className="text-xs text-muted-foreground mb-1 block">Producto</label>
-        <Select value={productId} onValueChange={setProductId} disabled={!fromLoc}>
+        <label className="text-xs text-muted-foreground mb-1 block">Producto o variante</label>
+        <Select value={stockItemKey} onValueChange={setStockItemKey} disabled={!fromLoc}>
           <SelectTrigger>
             <SelectValue placeholder={fromLoc ? "Seleccioná producto" : "Elegí primero el origen"} />
           </SelectTrigger>
@@ -188,15 +226,15 @@ function TransferDialog({
               </div>
             )}
             {disponibles.map(d => (
-              <SelectItem key={d.product_id} value={d.product_id}>
+              <SelectItem key={d.key} value={d.key}>
                 {d.product_name} ({d.stock} u. acá)
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        {/* Se ofrece lo que hay EN EL ORIGEN, no el total de la organización:
-            antes listaba `products.stock > 0` y dejaba elegir un producto con
-            0 unidades en esa sucursal, que el servidor iba a rechazar igual. */}
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Los productos con variantes se transfieren por presentación concreta para que el depósito de despacho conserve stock real.
+        </p>
       </div>
       <div>
         <label className="text-xs text-muted-foreground mb-1 block">
@@ -216,7 +254,7 @@ function TransferDialog({
         <Button
           type="submit"
           className="flex-1 gradient-gold text-primary-foreground font-semibold"
-          disabled={saving || !productId || Number(qty) < 1 || Number(qty) > maxDisponible}
+          disabled={saving || !selectedItem || Number(qty) < 1 || Number(qty) > maxDisponible}
         >
           <ArrowLeftRight className="w-4 h-4 mr-1.5" />{saving ? "Transfiriendo…" : "Transferir"}
         </Button>
@@ -239,6 +277,8 @@ export default function LocationsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [transfers, setTransfers] = useState<any[]>([]);
   const [locationStock, setLocationStock] = useState<Record<string, LocationStock[]>>({});
+  const [productVariants, setProductVariants] = useState<ProductVariant[]>([]);
+  const [variantLocationStock, setVariantLocationStock] = useState<Record<string, VariantLocationStock[]>>({});
   const [loading, setLoading] = useState(true);
   const [mainTab, setMainTab] = useState<"sucursales" | "depositos">("sucursales");
   const [tab, setTab] = useState<"locations" | "transfers" | "stock">("locations");
@@ -250,16 +290,19 @@ export default function LocationsPage() {
     if (!activeOrg || !user) return;
     setLoading(true);
 
-    const [{ data: locs }, prods, { data: txs }, { data: ls }] = await Promise.all([
+    const [{ data: locs }, prods, { data: txs }, { data: ls }, { data: variants }, { data: variantStock }] = await Promise.all([
       supabase.from("locations").select("*").eq("org_id", activeOrg.id).eq("active", true).order("is_main", { ascending: false }).order("name"),
       getProductsDB(user.id),
       supabase.from("stock_transfers").select("*, from_location:from_location_id(name), to_location:to_location_id(name)").eq("org_id", activeOrg.id).order("created_at", { ascending: false }).limit(20),
       supabase.from("location_stock").select("location_id, product_id, stock").eq("org_id", activeOrg.id),
+      supabase.from("product_variants").select("id, product_id, variant_name").eq("org_id", activeOrg.id),
+      supabase.from("location_variant_stock").select("location_id, product_id, variant_id, stock").eq("org_id", activeOrg.id),
     ]);
 
     setLocations((locs || []) as Location[]);
     setProducts(prods);
     setTransfers(txs || []);
+    setProductVariants((variants ?? []) as ProductVariant[]);
 
     // Index location stock by location_id
     const stockIndex: Record<string, LocationStock[]> = {};
@@ -269,6 +312,17 @@ export default function LocationsPage() {
       stockIndex[row.location_id].push({ product_id: row.product_id, stock: row.stock, product_name: prod?.name });
     }
     setLocationStock(stockIndex);
+
+    const variantStockIndex: Record<string, VariantLocationStock[]> = {};
+    for (const row of variantStock || []) {
+      if (!variantStockIndex[row.location_id]) variantStockIndex[row.location_id] = [];
+      variantStockIndex[row.location_id].push({
+        product_id: row.product_id,
+        variant_id: row.variant_id,
+        stock: row.stock,
+      });
+    }
+    setVariantLocationStock(variantStockIndex);
     setLoading(false);
   };
 
@@ -436,7 +490,9 @@ export default function LocationsPage() {
                 ) : transfers.map((t) => (
                   <tr key={t.id} className="border-b border-border/20 hover:bg-muted/20">
                     <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("es-AR")}</td>
-                    <td className="px-4 py-3 font-medium text-sm">{t.product_name}</td>
+                    <td className="px-4 py-3 font-medium text-sm">
+                      {t.product_name}{t.variant_name ? ` — ${t.variant_name}` : ""}
+                    </td>
                     <td className="px-4 py-3 text-xs font-semibold">{t.quantity} u.</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">{t.from_location?.name ?? "—"}</td>
                     <td className="px-4 py-3 text-xs text-primary font-medium">{t.to_location?.name ?? "—"}</td>
@@ -532,6 +588,8 @@ export default function LocationsPage() {
               locations={locations}
               products={products}
               locationStock={locationStock}
+              productVariants={productVariants}
+              variantLocationStock={variantLocationStock}
               onClose={() => setShowTransfer(false)}
               onDone={load}
             />
