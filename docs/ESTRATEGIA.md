@@ -183,25 +183,31 @@ La secuencia razonable, y no es la que da ganas de hacer:
 
 ---
 
-## 6. Qué habría que medir, y no se mide
+## 6. Qué se mide, y cómo no exagerarlo
 
-✅ **Medido: hoy no hay instrumentación de producto.** Se sabe todo del negocio
-del comercio y nada del uso de la plataforma.
+✅ **Medido (2026-08-15):** G1–G8 ya tienen vistas o eventos en el panel de
+plataforma. Se puede observar activación, publicación, adopción de canales,
+salud, precisión de stock y acciones de IA sin inventar métricas desde el
+navegador. Lo que todavía no existe es una serie comercial suficiente para
+concluir retención, conversión o crecimiento: hay que separar siempre
+**instrumentado** de **validado con comercios reales**.
 
-Lo mínimo, y ninguno es difícil porque los datos ya están en la base:
+La fuente concreta de cada señal es:
 
 | Métrica | Por qué | Se saca de |
 |---|---|---|
-| **Tiempo hasta la primera venta** | Es *el* número de activación. Si un comercio nuevo tarda dos semanas, el producto tiene un problema de onboarding, no de features. | `memberships.created_at` → primera `sales` |
-| **Tiempo hasta publicar la tienda** | Ídem para el ecommerce. | → primera `ecommerce_orders` |
-| **Adopción omnicanal** | El % que usa POS **y** tienda. Es la métrica que representa la tesis del producto: si es baja, el diferencial no se está usando. | cruce por `org_id` |
-| **GMV por comercio** | Cuánto vende cada uno usando esto. | `sales` + `ecommerce_orders` |
-| **Organizaciones activas / que pagan** | La diferencia entre las dos es el negocio. | `memberships`, `subscriptions` |
-| **Riesgo de abandono** | Qué comercios bajaron su actividad. `platform_org_health` ya hace algo parecido y ordena por urgencia. | ✅ `platform_org_risk_series` parte de snapshots diarios reales; la tendencia crece desde su primera captura. |
-| **Stock accuracy** | Si el stock actual no coincide con el Kardex, la promesa omnicanal se cae aunque la tienda sea linda. | `stock_movements` vs `products` / `product_variants` |
-| **AI Action Rate** | Mide si la inteligencia produce acciones, no si alguien abrió un chat. | ✅ Recomendador de ofertas: `apply_ai_offer_recommendation` → `platform_org_ai_actions`; no incluye chats ni sugerencias efímeras. |
+| **Tiempo hasta la primera venta (G1)** | Es *el* número de activación. Si un comercio nuevo tarda dos semanas, el problema es onboarding, no falta de features. | ✅ `platform_org_health` |
+| **Tiempo hasta publicar y primera orden (G2)** | Mide si la tienda llega a vender, no sólo si se creó. | ✅ `platform_org_activation` + `published_at` instrumentado |
+| **Adopción omnicanal (G3)** | El porcentaje que usa POS **y** tienda prueba que se usa el diferencial. | ✅ `platform_org_activation` |
+| **GMV y organizaciones activas (G4/G5)** | Separa uso operativo de tracción económica. | ✅ `platform_org_health`; falta definir el denominador de pago antes de reportarlo como métrica SaaS. |
+| **Riesgo de abandono (G6)** | Qué comercios bajaron su actividad y requieren intervención. | ✅ `platform_org_risk_series`, desde snapshots diarios reales sin backfill ficticio. |
+| **Stock accuracy (G7)** | Si stock y Kardex no cierran, la promesa omnicanal se cae aunque la tienda sea linda. | ✅ `platform_org_stock_accuracy` |
+| **AI Action Rate (G8)** | Mide acciones aplicadas, no aperturas de chat. | ✅ `apply_ai_offer_recommendation` → `platform_org_ai_actions`; no incluye chats ni sugerencias efímeras. |
 
-Va como bloque **G** del ROADMAP.
+📌 **Criterio para usuarios e inversión:** cada serie se muestra con fecha,
+cohorte y denominador. Hasta que un segundo comercio complete el recorrido, se
+presenta como instrumentación lista para medir, nunca como prueba de retención
+o product-market fit.
 
 Para una conversación de inversión también hacen falta MRR, ARR, churn, CAC,
 LTV, margen bruto y GMV mensual con fecha. Si salen de herramientas externas o
@@ -260,12 +266,15 @@ vuelvan las ganas de agregar.
 1. **AFIP contra el organismo.** Sin factura, en Argentina no es un sistema de
    gestión: es una planilla linda. Es el `C1` del ROADMAP y está frenado por un
    certificado de homologación que es gratis y hay que pedir.
-2. **MercadoLibre completo.** *"Vendé en el local, en tu tienda y en ML con el
-   mismo stock"* es una frase concreta y verificable. Falta publicar desde la
-   ficha, importar órdenes y el cron multi-organización.
-3. **Onboarding.** Que un comercio nuevo llegue a su primera venta el mismo día.
-   Es lo que convierte "funciona" en "alguien más lo puede usar", y es
-   precondición del punto 1 de §5.
+2. **Comprobar MercadoLibre con una cuenta real.** La capa técnica ya publica
+   desde ficha, importa órdenes `paid` al Core, conserva comisión y envío del
+   vendedor, recibe el webhook y tiene cron multi-organización protegido. Falta
+   configurar Callback URL + tópico `Orders`, cargar el secreto del cron y
+   verificar una venta real sin declarar victoria antes de hacerlo.
+3. **Segundo comercio y onboarding medido.** Que un comercio nuevo cargue
+   stock, publique, venda por dos canales y llegue a su primera venta el mismo
+   día. Es lo que convierte “funciona para el dueño” en “alguien más lo puede
+   usar” y produce la primera evidencia honesta para usuarios e inversión.
 
 ---
 

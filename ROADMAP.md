@@ -98,6 +98,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 41 (2026-08-15):** una recepción parcial ya no se puede desalinear desde una edición directa: los renglones con recibos quedan inmutables, `quantity_received` y los estados `partially_received`/`received` sólo los actualiza el RPC que crea la compra y su asiento de stock. La UI deja de ofrecer editar una OC parcialmente recibida. El guard conserva la eliminación en cascada de una organización, para que proteger el historial no impida portabilidad ni borrado del tenant. Verificado contra la base con cambios directos rechazados, recepción final legítima y cero filas ZZ.
 
+**Actualización de foco (2026-08-15):** este documento queda reconciliado hasta el slice 41. La base técnica de MercadoLibre ya publica, importa órdenes `paid`, concilia comisión/envío del vendedor, recibe el webhook y tiene cron multi-organización protegido; todavía no es evidencia comercial hasta conectar una cuenta real, configurar Callback URL + tópico `Orders` y cargar el secreto del cron. La recepción de compras ahora conserva evidencia inmutable y serializada, y la tienda enlaza por email al mismo cliente de CRM. Para usuarios eso reduce errores de stock, datos duplicados y márgenes engañosos; para inversión, el próximo hito no es otra pantalla sino evidencia fechada: AFIP homologado, segundo comercio real activado y una primera venta omnicanal medida. No se agrega un módulo si no acerca uno de esos tres resultados.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -220,7 +222,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | MFA | Anda | — |
 | Auditoría | Anda | — |
 | Export y supresión de datos (Ley 25.326) | Anda | — |
-| MercadoLibre | Parcial | Publica desde ficha e importa órdenes `paid` al Core; cron multi-org listo pero espera su secreto, falta webhook. |
+| MercadoLibre | Parcial | Publica desde ficha, importa órdenes `paid` al Core y recibe webhook. El cron multi-org espera su secreto; falta configurar y comprobar el circuito con una cuenta real. |
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
