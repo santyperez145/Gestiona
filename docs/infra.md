@@ -44,9 +44,13 @@ debe reemplazar por una lectura directa de `cron`, organizaciones o logs.
 y un secreto de cron para las programadas; los objetos se guardan bajo
 `backups/org/<org_id>/` y sólo se descargan a través de URL firmada de 60 s.
 Cada snapshot completo se relee y verifica por hash, cobertura y filas; se
-retienen ocho durante 56 días. Esto prueba recuperabilidad del **archivo**, no
-un restore destructivo: D8b sigue pendiente hasta ensayar una restauración en
-un sandbox aislado.
+retienen ocho durante 56 días. El contrato v2 incorpora cinco relaciones hijas
+operativas sin `org_id` propio (kits, precios por lista, solicitudes de compra,
+segmentos y registro de emails de pedidos), alcanzadas sólo desde los IDs de su
+padre ya exportado. Los archivos v1 se siguen verificando con su contrato
+original; ampliar cobertura no invalida un snapshot histórico sano. Esto prueba
+recuperabilidad del **archivo**, no un restore destructivo: D8b sigue pendiente
+hasta ensayar una restauración en un sandbox aislado.
 
 ## Secrets necesarios (Supabase)
 

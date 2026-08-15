@@ -9,6 +9,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { requireUser } from "../_shared/requireUser.ts";
 import {
   collectOrganizationSnapshot,
+  SNAPSHOT_SCHEMA_VERSION,
   sha256,
   snapshotIsComplete,
   snapshotManifest,
@@ -31,6 +32,7 @@ type SnapshotRow = {
   id: string;
   org_id: string;
   status: "processing" | "completed" | "failed";
+  snapshot_schema_version: number;
   storage_path: string | null;
   checksum_sha256: string | null;
   created_at: string;
@@ -196,6 +198,7 @@ async function createSnapshot(
     id: backupId,
     org_id: orgId,
     status: "completed",
+    snapshot_schema_version: snapshot.schema_version,
     storage_path: storagePath,
     checksum_sha256: checksum,
     created_at: new Date().toISOString(),
@@ -228,7 +231,7 @@ async function listSnapshots(admin: SupabaseClient, orgId: string) {
 async function getOwnerSnapshot(admin: SupabaseClient, id: string, orgId: string): Promise<SnapshotRow | null> {
   const { data, error } = await admin
     .from("organization_backup_snapshots")
-    .select("id, org_id, status, storage_path, checksum_sha256, created_at")
+    .select("id, org_id, status, snapshot_schema_version, storage_path, checksum_sha256, created_at")
     .eq("id", id)
     .eq("org_id", orgId)
     .maybeSingle();
@@ -313,7 +316,7 @@ Deno.serve(async (req) => {
     for (const organization of organizations ?? []) {
       const recentThreshold = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString();
       const { data: recent, error: recentError } = await admin.from("organization_backup_snapshots")
-        .select("id, org_id, status, storage_path, checksum_sha256, created_at")
+        .select("id, org_id, status, snapshot_schema_version, storage_path, checksum_sha256, created_at")
         .eq("org_id", organization.id)
         .eq("status", "completed")
         .gte("created_at", recentThreshold);
@@ -324,14 +327,19 @@ Deno.serve(async (req) => {
       if (recent?.length) {
         // Si una corrida anterior quedó sin confirmación, el cron no la ignora:
         // la prueba de lectura se repite antes de decidir que esa semana está cubierta.
-        let hasVerifiedSnapshot = false;
+        let hasCurrentVerifiedSnapshot = false;
         for (const backup of recent) {
           const verification = await verifySnapshot(admin, backup as SnapshotRow);
-          hasVerifiedSnapshot ||= verification.ok;
+          // V1 sigue siendo un archivo íntegro y descargable, pero no cubre
+          // las relaciones que agregamos en v2. Una ampliación del contrato
+          // genera un nuevo snapshot; no borra ni marca corrupto al anterior.
+          hasCurrentVerifiedSnapshot ||= verification.ok
+            && (backup as SnapshotRow).snapshot_schema_version === SNAPSHOT_SCHEMA_VERSION;
         }
-        if (hasVerifiedSnapshot) continue;
-        // Un archivo reciente pero corrupto no cuenta para la ventana semanal:
-        // se intenta producir uno nuevo en la misma corrida, sin esperar siete días.
+        if (hasCurrentVerifiedSnapshot) continue;
+        // Un archivo reciente pero corrupto o de contrato viejo no cuenta para
+        // la ventana semanal: se intenta producir uno nuevo en esta misma
+        // corrida, sin esperar siete días ni degradar el historial anterior.
       }
       const result = await createSnapshot(admin, organization.id, "scheduled", null);
       if (result.ok) completed += 1;

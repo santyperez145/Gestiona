@@ -3,11 +3,15 @@
 // distintas de las que declara el manifiesto de portabilidad.
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-export const SNAPSHOT_SCHEMA_VERSION = 1;
+// La v2 incorpora relaciones hijas operativas que no tienen `org_id` propio.
+// La v1 se sigue validando: un contrato nuevo no puede volver “corrupto” un
+// archivo sano que se creó antes de ampliar su cobertura.
+export const SNAPSHOT_SCHEMA_VERSION = 2;
 export const MAX_ROWS_PER_TABLE = 50_000;
+const RELATED_PARENT_ID_CHUNK = 200;
 
 /** Datos del negocio cuyo contrato tiene `org_id` propio y se pueden portar. */
-export const SNAPSHOT_TABLES = [
+export const SNAPSHOT_TABLES_V1 = [
   // Catálogo, compras e inventario
   "products", "product_variants", "product_perfume_details", "product_batches",
   "product_bundles", "product_bundle_items", "product_combos", "quantity_discounts",
@@ -44,6 +48,35 @@ export const SNAPSHOT_TABLES = [
   "kpi_goals", "kpi_dashboards", "kpi_widgets", "documents", "document_categories",
   "document_versions", "document_access_log", "subscriptions", "subscription_invoices",
   "meli_listings", "meli_orders",
+] as const;
+
+/**
+ * Hijas sin `org_id`: se exportan sólo a partir de los IDs ya presentes en su
+ * padre. No se consulta la tabla completa ni se infiere el tenant desde una
+ * columna de producto que podría cambiar: el FK de pertenencia es explícito.
+ */
+export const SNAPSHOT_RELATION_TABLES = [
+  "bundle_items",
+  "price_list_items",
+  "purchase_request_items",
+  "customer_segment_members",
+  "store_order_status_email_log",
+] as const;
+
+const SNAPSHOT_RELATION_SCOPE: Record<typeof SNAPSHOT_RELATION_TABLES[number], {
+  parentTable: typeof SNAPSHOT_TABLES_V1[number];
+  foreignKey: string;
+}> = {
+  bundle_items: { parentTable: "product_bundles", foreignKey: "bundle_id" },
+  price_list_items: { parentTable: "price_lists", foreignKey: "price_list_id" },
+  purchase_request_items: { parentTable: "purchase_requests", foreignKey: "request_id" },
+  customer_segment_members: { parentTable: "customer_segments", foreignKey: "segment_id" },
+  store_order_status_email_log: { parentTable: "ecommerce_orders", foreignKey: "ecommerce_order_id" },
+};
+
+export const SNAPSHOT_TABLES = [
+  ...SNAPSHOT_TABLES_V1,
+  ...SNAPSHOT_RELATION_TABLES,
 ] as const;
 
 export const EXCLUDED_CREDENTIAL_STORES = [
@@ -110,55 +143,112 @@ function redactRow(table: string, row: Record<string, unknown>) {
   return safe;
 }
 
+function failedTable(table: string, reason: string): SnapshotTableResult {
+  return { table, status: "error", row_count: 0, rows: [], reason };
+}
+
+function tableResult(
+  table: string,
+  sourceRows: Record<string, unknown>[],
+  availableRowCount: number,
+): SnapshotTableResult {
+  const truncated = availableRowCount > sourceRows.length || sourceRows.length > MAX_ROWS_PER_TABLE;
+  const rows = sourceRows.slice(0, MAX_ROWS_PER_TABLE).map(row => redactRow(table, row));
+  return {
+    table,
+    status: truncated ? "truncated" : rows.length === 0 ? "empty" : "exported",
+    row_count: rows.length,
+    available_row_count: availableRowCount,
+    rows,
+    ...(truncated ? { reason: `Se exportaron ${rows.length.toLocaleString("es-AR")} de ${availableRowCount.toLocaleString("es-AR")} filas` } : {}),
+  };
+}
+
+async function collectDirectTable(
+  admin: SupabaseClient,
+  table: typeof SNAPSHOT_TABLES_V1[number],
+  orgId: string,
+): Promise<SnapshotTableResult> {
+  const { data, error, count } = await admin
+    .from(table)
+    .select(table === "settings" ? SETTINGS_SNAPSHOT_COLUMNS.join(",") : "*", { count: "exact" })
+    .eq("org_id", orgId)
+    .limit(MAX_ROWS_PER_TABLE + 1);
+
+  if (error) return failedTable(table, error.code ? `No se pudo leer la tabla (${error.code})` : "No se pudo leer la tabla");
+  if (count === null) return failedTable(table, "No se pudo verificar la cantidad total de filas");
+  return tableResult(table, (data ?? []) as Record<string, unknown>[], count);
+}
+
+async function collectRelatedTable(
+  admin: SupabaseClient,
+  table: typeof SNAPSHOT_RELATION_TABLES[number],
+  collected: readonly SnapshotTableResult[],
+): Promise<SnapshotTableResult> {
+  const scope = SNAPSHOT_RELATION_SCOPE[table];
+  const parent = collected.find(result => result.table === scope.parentTable);
+  if (!parent) return failedTable(table, `Falta el padre ${scope.parentTable} en el contrato del snapshot`);
+  if (parent.status === "error" || parent.status === "truncated") {
+    return failedTable(table, `No se exportó porque el padre ${scope.parentTable} quedó incompleto`);
+  }
+
+  const parentIds = parent.rows
+    .map(row => row.id)
+    .filter((id): id is string => typeof id === "string");
+  if (!parentIds.length) {
+    return { table, status: "empty", row_count: 0, available_row_count: 0, rows: [] };
+  }
+
+  let availableRowCount = 0;
+  for (let start = 0; start < parentIds.length; start += RELATED_PARENT_ID_CHUNK) {
+    const parentChunk = parentIds.slice(start, start + RELATED_PARENT_ID_CHUNK);
+    const { count, error } = await admin
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .in(scope.foreignKey, parentChunk);
+    if (error) return failedTable(table, error.code ? `No se pudo contar la tabla (${error.code})` : "No se pudo contar la tabla");
+    if (count === null) return failedTable(table, "No se pudo verificar la cantidad total de filas");
+    availableRowCount += count;
+  }
+
+  // El respaldo se invalida si supera el límite; no se serializa una muestra
+  // que alguien pueda confundir con todos los renglones relacionados.
+  if (availableRowCount > MAX_ROWS_PER_TABLE) {
+    return {
+      table,
+      status: "truncated",
+      row_count: 0,
+      available_row_count: availableRowCount,
+      rows: [],
+      reason: `No se exportaron las ${availableRowCount.toLocaleString("es-AR")} filas porque superan el límite de la tabla`,
+    };
+  }
+
+  const rows: Record<string, unknown>[] = [];
+  for (let start = 0; start < parentIds.length; start += RELATED_PARENT_ID_CHUNK) {
+    const parentChunk = parentIds.slice(start, start + RELATED_PARENT_ID_CHUNK);
+    const { data, error } = await admin
+      .from(table)
+      .select("*")
+      .in(scope.foreignKey, parentChunk);
+    if (error) return failedTable(table, error.code ? `No se pudo leer la tabla (${error.code})` : "No se pudo leer la tabla");
+    rows.push(...((data ?? []) as Record<string, unknown>[]));
+  }
+  return tableResult(table, rows, availableRowCount);
+}
+
 /**
- * Lee una organización con service_role y deja evidencia por tabla. Un backup
- * nunca se considera completo si una tabla falla o queda truncada.
+ * Lee una organización con service_role y deja evidencia por tabla. Las hijas
+ * siguen al padre que ya pertenece al tenant. Un backup nunca se considera
+ * completo si una tabla falla o queda truncada.
  */
 export async function collectOrganizationSnapshot(
   admin: SupabaseClient,
   orgId: string,
 ): Promise<OrganizationSnapshot> {
   const tables: SnapshotTableResult[] = [];
-  for (const table of SNAPSHOT_TABLES) {
-    const { data, error, count } = await admin
-      .from(table)
-      .select(table === "settings" ? SETTINGS_SNAPSHOT_COLUMNS.join(",") : "*", { count: "exact" })
-      .eq("org_id", orgId)
-      .limit(MAX_ROWS_PER_TABLE + 1);
-
-    if (error) {
-      tables.push({
-        table,
-        status: "error",
-        row_count: 0,
-        rows: [],
-        reason: error.code ? `No se pudo leer la tabla (${error.code})` : "No se pudo leer la tabla",
-      });
-      continue;
-    }
-    if (count === null) {
-      tables.push({
-        table,
-        status: "error",
-        row_count: 0,
-        rows: [],
-        reason: "No se pudo verificar la cantidad total de filas",
-      });
-      continue;
-    }
-
-    const sourceRows = (data ?? []) as Record<string, unknown>[];
-    const truncated = count > sourceRows.length || sourceRows.length > MAX_ROWS_PER_TABLE;
-    const rows = sourceRows.slice(0, MAX_ROWS_PER_TABLE).map(row => redactRow(table, row));
-    tables.push({
-      table,
-      status: truncated ? "truncated" : rows.length === 0 ? "empty" : "exported",
-      row_count: rows.length,
-      available_row_count: count,
-      rows,
-      ...(truncated ? { reason: `Se exportaron ${rows.length.toLocaleString("es-AR")} de ${count.toLocaleString("es-AR")} filas` } : {}),
-    });
-  }
+  for (const table of SNAPSHOT_TABLES_V1) tables.push(await collectDirectTable(admin, table, orgId));
+  for (const table of SNAPSHOT_RELATION_TABLES) tables.push(await collectRelatedTable(admin, table, tables));
 
   return {
     schema_version: SNAPSHOT_SCHEMA_VERSION,
@@ -202,14 +292,19 @@ export function validateSnapshot(
 ): { ok: boolean; reason?: string } {
   if (!value || typeof value !== "object") return { ok: false, reason: "El archivo no contiene un objeto JSON" };
   const snapshot = value as Partial<OrganizationSnapshot>;
-  if (snapshot.schema_version !== SNAPSHOT_SCHEMA_VERSION) return { ok: false, reason: "La versión del snapshot no es compatible" };
+  const expectedTables = snapshot.schema_version === 1
+    ? SNAPSHOT_TABLES_V1
+    : snapshot.schema_version === SNAPSHOT_SCHEMA_VERSION
+      ? SNAPSHOT_TABLES
+      : null;
+  if (!expectedTables) return { ok: false, reason: "La versión del snapshot no es compatible" };
   if (snapshot.org_id !== expectedOrgId) return { ok: false, reason: "El snapshot pertenece a otra organización" };
-  if (!Array.isArray(snapshot.tables) || snapshot.tables.length !== SNAPSHOT_TABLES.length) {
+  if (!Array.isArray(snapshot.tables) || snapshot.tables.length !== expectedTables.length) {
     return { ok: false, reason: "El snapshot no cubre el conjunto esperado de tablas" };
   }
-  const expected = new Set(SNAPSHOT_TABLES);
+  const expected = new Set<string>(expectedTables);
   for (const table of snapshot.tables) {
-    if (!table || typeof table !== "object" || !expected.has(table.table as typeof SNAPSHOT_TABLES[number])) {
+    if (!table || typeof table !== "object" || !expected.has(table.table as string)) {
       return { ok: false, reason: "El snapshot contiene una tabla no reconocida" };
     }
     if (table.status !== "exported" && table.status !== "empty") {
