@@ -28187,6 +28187,7 @@ export type Database = {
       adjust_stock: {
         Args: {
           p_created_by: string
+          p_location_id?: string
           p_new_stock: number
           p_notes: string
           p_org_id: string

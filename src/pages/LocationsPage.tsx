@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { getProductsDB, formatARS } from "@/lib/supabaseStore";
+import { getProductsDB, formatARS, setStockAbsoluteDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -264,6 +264,107 @@ function TransferDialog({
   );
 }
 
+/** Ajusta el saldo final de una variante en un depósito concreto.
+ *
+ * No es una escritura directa: `adjust_stock` calcula el delta y delega en
+ * Kardex. Cuando hay dos sucursales, el servidor exige este locationId incluso
+ * si alguien modifica el formulario en el navegador.
+ */
+function AdjustVariantStockDialog({
+  locations,
+  products,
+  productVariants,
+  variantLocationStock,
+  onClose,
+  onDone,
+}: {
+  locations: Location[];
+  products: any[];
+  productVariants: ProductVariant[];
+  variantLocationStock: Record<string, VariantLocationStock[]>;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [locationId, setLocationId] = useState("");
+  const [variantId, setVariantId] = useState("");
+  const [newStock, setNewStock] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const selectedVariant = productVariants.find(variant => variant.id === variantId);
+  const currentStock = selectedVariant && locationId
+    ? variantLocationStock[locationId]?.find(row => row.variant_id === selectedVariant.id)?.stock ?? 0
+    : null;
+
+  const handleAdjust = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const desired = Number(newStock);
+    if (!locationId || !selectedVariant || !Number.isInteger(desired) || desired < 0) {
+      toast.error("Elegí depósito, variante y un stock válido");
+      return;
+    }
+    setSaving(true);
+    try {
+      await setStockAbsoluteDB({
+        productId: selectedVariant.product_id,
+        variantId: selectedVariant.id,
+        locationId,
+        newStock: desired,
+        notes: notes.trim() || "Ajuste de variante por depósito",
+      });
+      toast.success(`Stock de ${selectedVariant.variant_name} ajustado a ${desired} u.`);
+      onDone();
+      onClose();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo ajustar el stock");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleAdjust} className="space-y-4">
+      <p className="text-xs text-muted-foreground">
+        El número es el saldo final de esta presentación en este depósito. La base calcula el movimiento y lo deja en Kardex.
+      </p>
+      <div>
+        <label className="text-xs text-muted-foreground mb-1 block">Depósito</label>
+        <Select value={locationId} onValueChange={value => { setLocationId(value); setNewStock(""); }}>
+          <SelectTrigger><SelectValue placeholder="Elegí depósito" /></SelectTrigger>
+          <SelectContent>{locations.map(location => (
+            <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
+          ))}</SelectContent>
+        </Select>
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground mb-1 block">Variante</label>
+        <Select value={variantId} onValueChange={value => { setVariantId(value); setNewStock(""); }} disabled={!locationId}>
+          <SelectTrigger><SelectValue placeholder={locationId ? "Elegí una variante" : "Elegí primero el depósito"} /></SelectTrigger>
+          <SelectContent>{productVariants.map(variant => {
+            const productName = products.find(product => product.id === variant.product_id)?.name ?? "Producto";
+            return <SelectItem key={variant.id} value={variant.id}>{productName} — {variant.variant_name}</SelectItem>;
+          })}</SelectContent>
+        </Select>
+        {currentStock !== null && <p className="mt-1 text-[11px] text-muted-foreground">Stock actual en este depósito: <strong>{currentStock}</strong> u.</p>}
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground mb-1 block">Stock final en este depósito</label>
+        <Input type="number" min="0" step="1" value={newStock} onChange={event => setNewStock(event.target.value)} placeholder={currentStock === null ? "Elegí variante" : String(currentStock)} />
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground mb-1 block">Motivo (opcional)</label>
+        <Input value={notes} onChange={event => setNotes(event.target.value)} placeholder="Ingreso, conteo, corrección…" />
+      </div>
+      <div className="flex gap-2 pt-2">
+        <Button type="submit" className="flex-1 gradient-gold text-primary-foreground font-semibold" disabled={saving || !locationId || !variantId || newStock === ""}>
+          <Package className="w-4 h-4 mr-1.5" />{saving ? "Ajustando…" : "Guardar stock"}
+        </Button>
+        <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+      </div>
+    </form>
+  );
+}
+
 // `upsertLocationStock` se borró: ajustaba `location_stock` desde el navegador y
 // era por donde se inventaba mercadería. Ahora esa tabla es de sólo lectura para
 // la UI — la escriben `record_stock_movement` y
@@ -285,6 +386,7 @@ export default function LocationsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingLoc, setEditingLoc] = useState<Location | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
+  const [showVariantAdjustment, setShowVariantAdjustment] = useState(false);
 
   const load = async () => {
     if (!activeOrg || !user) return;
@@ -375,6 +477,11 @@ export default function LocationsPage() {
       {mainTab === "sucursales" && (
       <div className="space-y-6">
       <div className="flex items-center justify-end gap-2">
+        {locations.length >= 1 && (
+          <Button variant="outline" onClick={() => setShowVariantAdjustment(true)}>
+            <Package className="w-4 h-4 mr-2" />Ajustar variante
+          </Button>
+        )}
         {locations.length >= 2 && (
           <Button variant="outline" onClick={() => setShowTransfer(true)}>
             <ArrowLeftRight className="w-4 h-4 mr-2" />Transferir stock
@@ -594,6 +701,23 @@ export default function LocationsPage() {
               onDone={load}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Ajuste localizado de variante */}
+      <Dialog open={showVariantAdjustment} onOpenChange={setShowVariantAdjustment}>
+        <DialogContent className="bg-card border-border/60 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Ajustar stock de variante</DialogTitle>
+          </DialogHeader>
+          <AdjustVariantStockDialog
+            locations={locations}
+            products={products}
+            productVariants={productVariants}
+            variantLocationStock={variantLocationStock}
+            onClose={() => setShowVariantAdjustment(false)}
+            onDone={load}
+          />
         </DialogContent>
       </Dialog>
     </div>

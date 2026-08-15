@@ -1647,6 +1647,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [scanBarcodeOpen, setScanBarcodeOpen] = useState(false);
   const [customFieldDefs, setCustomFieldDefs] = useState<any[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>(product?.custom_fields ?? {});
+  const [activeLocationCount, setActiveLocationCount] = useState(0);
 
   useEffect(() => {
     if (!orgId) return;
@@ -1657,6 +1658,17 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       .eq("entity_type", "product")
       .order("sort_order")
       .then(({ data }) => { if (data) setCustomFieldDefs(data); });
+  }, [orgId]);
+
+  // Con dos depósitos, el stock de una variante no es un número global: hay
+  // que ajustarlo desde Sucursales indicando el lugar físico. La base aplica la
+  // misma regla, pero esconder el input evita guardar primero la ficha y fallar
+  // recién al intentar el Kardex.
+  useEffect(() => {
+    if (!orgId) return;
+    supabase.from("locations").select("id", { count: "exact", head: true })
+      .eq("org_id", orgId).eq("active", true)
+      .then(({ count }) => setActiveLocationCount(count ?? 0));
   }, [orgId]);
 
   // Cargar ficha de perfume existente al editar
@@ -1715,6 +1727,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     medida: 'Medidas', otro: 'Variantes',
   };
   const variantLabel = VARIANT_TYPE_LABELS[variantType] || 'Variantes';
+  const variantsNeedLocation = activeLocationCount > 1;
 
   useEffect(() => {
     if (product?.id) {
@@ -1837,6 +1850,15 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
     if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
     try {
+      if (variantsNeedLocation && showVariants) {
+        const existingForLocation = product?.id ? await getVariantsDB(product.id) : [];
+        const currentIds = new Set(variants.filter(v => v.id).map(v => v.id));
+        const removedWithStock = existingForLocation.find(v => !currentIds.has(v.id) && Number(v.stock) > 0);
+        if (removedWithStock || variants.some(v => !v.id && Number(v.stock) > 0)) {
+          toast.error("Con más de un depósito, ajustá o transferí el stock de cada variante desde Sucursales antes de eliminarla o cargarla.");
+          return;
+        }
+      }
       const urls = await uploadAllImages();
       const imageUrl = urls[0] || null;
       const variantTotal = showVariants && variants.length > 0
@@ -1924,28 +1946,32 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         const currentIds = new Set(variants.filter(v => v.id).map(v => v.id));
         for (const ev of existingVariants) {
           if (!currentIds.has(ev.id)) {
-            await setStockAbsoluteDB({
-              productId,
-              variantId: ev.id,
-              newStock: 0,
-              userId,
-              orgId,
-              notes: "Stock retirado al eliminar variante",
-            });
+            if (!variantsNeedLocation) {
+              await setStockAbsoluteDB({
+                productId,
+                variantId: ev.id,
+                newStock: 0,
+                userId,
+                orgId,
+                notes: "Stock retirado al eliminar variante",
+              });
+            }
             await deleteVariantDB(ev.id);
           }
         }
         for (const v of variants) {
           if (v.id && existingIds.has(v.id)) {
             await updateVariantDB(v.id, { variant_name: v.variant_name, active: v.active !== false, price_override: v.price_override ?? null });
-            await setStockAbsoluteDB({
-              productId,
-              variantId: v.id,
-              newStock: Number(v.stock),
-              userId,
-              orgId,
-              notes: "Ajuste de stock al editar variante",
-            });
+            if (!variantsNeedLocation) {
+              await setStockAbsoluteDB({
+                productId,
+                variantId: v.id,
+                newStock: Number(v.stock),
+                userId,
+                orgId,
+                notes: "Ajuste de stock al editar variante",
+              });
+            }
           } else if (v._new || !v.id) {
             await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true, variant_type: variantType, price_override: v.price_override ?? null });
           }
@@ -2658,7 +2684,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           )}
           <div className="flex gap-2 flex-wrap">
             <Input value={newVariantName} onChange={e => setNewVariantName(e.target.value)} placeholder="Nombre del sabor" className="bg-muted border-border text-xs flex-1 min-w-[120px]" />
-            <Input type="number" min="0" value={newVariantStock} onChange={e => setNewVariantStock(e.target.value)} className="bg-muted border-border text-xs w-16" placeholder="Stock" />
+            <Input type="number" min="0" value={newVariantStock} onChange={e => setNewVariantStock(e.target.value)} className="bg-muted border-border text-xs w-16" placeholder="Stock" disabled={variantsNeedLocation} title={variantsNeedLocation ? "Cargá el stock por depósito desde Sucursales" : undefined} />
             <Input type="number" min="0" step="0.01" value={newVariantPrice} onChange={e => setNewVariantPrice(e.target.value)} className="bg-muted border-border text-xs w-24" placeholder="Precio (opc)" />
             <Button type="button" variant="outline" size="sm" onClick={() => {
               if (!newVariantName.trim()) return;
@@ -2679,7 +2705,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                       const updated = [...variants];
                       updated[i] = { ...updated[i], stock: parseInt(e.target.value) || 0 };
                       setVariants(updated);
-                    }} className="bg-muted border-border text-xs w-14 h-7" />
+                    }} className="bg-muted border-border text-xs w-14 h-7" disabled={variantsNeedLocation} title={variantsNeedLocation ? "Ajustá este stock por depósito desde Sucursales" : undefined} />
                     <span className="text-[10px] text-muted-foreground">uds</span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -2698,6 +2724,11 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               <p className="text-[10px] text-muted-foreground mt-1">
                 Stock total (suma de variantes): <span className="font-bold text-emerald-400">{variants.reduce((s, v) => s + (v.stock || 0), 0)}</span>
               </p>
+              {variantsNeedLocation && (
+                <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+                  Hay más de un depósito: el stock se ajusta por presentación y sucursal desde Sucursales &amp; Depósitos.
+                </p>
+              )}
             </div>
           )}
         </div>

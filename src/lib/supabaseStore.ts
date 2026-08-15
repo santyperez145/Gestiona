@@ -78,6 +78,7 @@ export async function setStockAbsoluteDB({
   userId,
   orgId,
   variantId = null,
+  locationId = null,
   notes,
 }: {
   productId: string;
@@ -85,6 +86,7 @@ export async function setStockAbsoluteDB({
   userId?: string | null;
   orgId?: string;
   variantId?: string | null;
+  locationId?: string | null;
   notes?: string | null;
 }) {
   if (!Number.isInteger(newStock) || newStock < 0) {
@@ -103,6 +105,7 @@ export async function setStockAbsoluteDB({
     p_org_id: activeOrgId,
     p_product_id: productId,
     p_variant_id: variantId,
+    p_location_id: locationId,
     p_new_stock: newStock,
     p_notes: notes ?? null,
     p_created_by: actorId,
