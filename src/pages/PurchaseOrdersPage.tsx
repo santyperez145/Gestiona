@@ -690,7 +690,7 @@ function PORow({ order, onEdit, onAdvanceStatus, onReceived, onDelete }: PORowPr
                 <XCircle className="w-3.5 h-3.5 mr-1" /> Cancelar
               </Button>
             )}
-            {order.status !== "received" && order.status !== "cancelled" && (
+            {["draft", "sent", "confirmed"].includes(order.status) && (
               <Button size="sm" variant="ghost" onClick={onEdit}>
                 <Edit className="w-3.5 h-3.5 mr-1" /> Editar
               </Button>

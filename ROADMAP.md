@@ -96,6 +96,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 40 (2026-08-14):** C8 cierra la autoridad de la recepción de órdenes de compra: `receive_purchase_order` ahora exige owner/admin —igual que las tablas que modifica—, sólo acepta órdenes confirmadas y bloquea la orden y cada renglón antes de calcular lo pendiente. Dos entregas no pueden recibir las mismas unidades a la vez; cada recepción sigue creando una `purchase` para que el trigger sea el único que mueve stock. La verificación ZZ emula un JWT ajeno rechazado, recibe una entrega parcial y otra final como owner, y deja cero restos.
 
+**Slice funcional 41 (2026-08-15):** una recepción parcial ya no se puede desalinear desde una edición directa: los renglones con recibos quedan inmutables, `quantity_received` y los estados `partially_received`/`received` sólo los actualiza el RPC que crea la compra y su asiento de stock. La UI deja de ofrecer editar una OC parcialmente recibida. El guard conserva la eliminación en cascada de una organización, para que proteger el historial no impida portabilidad ni borrado del tenant. Verificado contra la base con cambios directos rechazados, recepción final legítima y cero filas ZZ.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -222,7 +224,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **938 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **941 unitarios** (`npm test`, 2026-08-15) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -498,7 +500,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | **C5** | **App en el celular con notificaciones** | Hay PWA y POS offline. Falta el push de "vendiste" y "sin stock". | Tiendanube app |
 | **C6** | **Motor visual de automatizaciones** | Existen `automations` y los crons; falta el armador de flujos. | Shopify Flow |
 | **C7** | **MercadoLibre completo** | Publica desde ficha, recibe órdenes por webhook e importa las `paid` como ventas; concilia comisión + envío real del seller. Webhook y cron están listos; falta configurar la Callback URL + tópico Orders en ML y cargar el secreto del cron. | — |
-| **C8** | **Compras y reposición con proveedor** | 🟡 La recepción total y parcial ya registra historial, entra por owner/admin, bloquea concurrencia y mueve stock sólo mediante `purchases` + trigger. Falta costo de importación por lote. | — |
+| **C8** | **Compras y reposición con proveedor** | 🟡 La recepción total y parcial registra historial inmutable, entra por owner/admin, bloquea concurrencia y mueve stock sólo mediante `purchases` + trigger. Falta costo de importación por lote. | — |
 | **C9** | **Multi-depósito real en la tienda** | El stock por sucursal existe; la tienda vende contra el total, no contra el depósito que despacha. | Shopify |
 | **C10** | **Reportes exportables y programados** | Hay reportes en pantalla. Falta "mandame el cierre de mes por email". | Todas |
 | ~~C11~~ | ~~Auditoría de quién cambió qué~~ | ✅ Slice 28: precio y Kardex guardan actor real; el cliente sólo puede leer la evidencia. | Shopify Plus |
