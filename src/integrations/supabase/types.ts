@@ -22244,6 +22244,63 @@ export type Database = {
           },
         ]
       }
+      store_order_status_email_log: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          ecommerce_order_id: string
+          event: string
+          id: string
+          last_error: string | null
+          provider: string | null
+          recipient_email: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          ecommerce_order_id: string
+          event: string
+          id?: string
+          last_error?: string | null
+          provider?: string | null
+          recipient_email: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          ecommerce_order_id?: string
+          event?: string
+          id?: string
+          last_error?: string | null
+          provider?: string | null
+          recipient_email?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_order_status_email_log_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_order_status_email_log_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_iva"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_pages: {
         Row: {
           content: string
@@ -28906,6 +28963,10 @@ export type Database = {
         Returns: Json
       }
       unaccent: { Args: { "": string }; Returns: string }
+      update_store_order_fulfillment: {
+        Args: { p_order_id: string; p_status: string }
+        Returns: Json
+      }
       upsert_customer_from_order: {
         Args: { p_order_id: string }
         Returns: string

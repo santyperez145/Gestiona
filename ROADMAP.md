@@ -482,7 +482,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | **B2** | **Etiqueta por API del correo** | La imprimible funciona; la de Correo Argentino y Andreani necesita contrato. | Tiendanube |
 | ~~B3~~ | ~~Checkout en un paso~~ | ✅ Slice 44. Un solo formulario responsive muestra datos, entrega, pago, cupón y resumen; no hay pasos ni cuenta obligatoria. El retiro se ofrece sin pedir provincia y la entrega exige domicilio utilizable. | Empretienda, Shopify |
 | **B4** | **Pago embebido (Checkout Bricks)** | Se redirige a MercadoPago y se vuelve. Embebido convierte más. | Tiendanube, ML |
-| **B5** | **Avisos de cada cambio de estado** | Se manda el de la orden y el de despacho. Faltan "en camino" y "entregado". | Todas |
+| ~~B5~~ | ~~Avisos de cada cambio de estado~~ | ✅ Slice 45. El operador avanza una orden preparada y paga a “en camino” y luego “entregada”; el comprador recibe un email idempotente por cada evento y conserva seguimiento sin cuenta. | Todas |
 | **B6** | **Multi-moneda** | Todo en ARS. `currency` existe y no convierte. Necesita A9 primero. | Shopify |
 | **B7** | **Reseñas con foto** | Hay reseñas verificadas, sin imagen. | ML |
 | **B8** | **Comparador y "visto recientemente"** | No existe. | ML |
@@ -693,6 +693,24 @@ Lo que se hizo y —más importante— qué se encontró roto en el camino. Los
 mensajes de commit son largos a propósito y amplían cada entrada.
 
 > Resumen condensado. El registro completo detallado está en el archivo.
+
+### Slice 45 — El pedido sigue existiendo después de cobrar (2026-08-15)
+
+Una venta que se cobra y después queda muda genera consultas, desconfianza y
+recompras menos probables. B5 tenía el tracking visual y un email inicial, pero
+no una transición operativa completa para “en camino” y “entregado”. Ahora el
+diálogo de despacho sólo permite avanzar una orden pagada y ya preparada; la
+base exige el orden `preparada → en camino → entregada`, guarda las fechas en
+la misma transición y no deja que cargar un tracking revierta una entrega.
+
+Cada avance intenta el email correspondiente con una Edge Function que exige
+un usuario real y el permiso fino de ecommerce dentro de la organización. El registro privado por
+orden/evento hace idempotente el aviso: doble click, recarga o reintento no
+llenan la casilla del comprador. Si el correo no está configurado o falla, el
+despacho queda registrado y la UI lo dice; no se maquilla una venta física como
+si dependiera de un proveedor de email. La verificación ZZ crea una orden y una
+entrega efímeras, ejecuta los dos cambios con una membresía real, confirma las
+fechas, permisos anónimos cerrados y cero restos.
 
 ### Slice 44 — Checkout que se puede entregar (2026-08-15)
 

@@ -20,7 +20,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { CARRIER_LABELS, CARRIER_IDS, carrierLabel } from "@/lib/carriers";
-import { Truck, Printer, Loader2, Check, PackageCheck } from "lucide-react";
+import { useHasPermission } from "@/lib/usePermissions";
+import { Truck, Printer, Loader2, Check, PackageCheck, Home } from "lucide-react";
 
 export interface OrderForShipment {
   id: string;
@@ -52,10 +53,14 @@ export default function OrderShipmentDialog({
   onClose: () => void;
   onDone: () => void;
 }) {
+  // La base vuelve a verificarlo; esto sólo evita ofrecer acciones que van a
+  // fallar a quien tiene acceso de lectura al ecommerce.
+  const canEditEcommerce = useHasPermission("ecommerce", "edit");
   const [entrega, setEntrega] = useState<Entrega | null>(null);
   const [cargando, setCargando] = useState(false);
   const [preparando, setPreparando] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [actualizandoEstado, setActualizandoEstado] = useState<"shipped" | "delivered" | null>(null);
   const [carrier, setCarrier] = useState("propio");
   const [peso, setPeso] = useState("");
   const [tracking, setTracking] = useState("");
@@ -118,7 +123,37 @@ export default function OrderShipmentDialog({
     });
     setGuardando(false);
     if (error) { toast.error(error.message.replace(/^.*?:\s*/, "")); return; }
+    await avisarEstado("shipped");
     toast.success("Seguimiento cargado. El comprador ya puede verlo.");
+    cargar();
+    onDone();
+  };
+
+  /** El estado queda primero en la base; un problema de correo jamás deshace
+      un despacho verdadero. La Function registra cada resultado y no vuelve a
+      mandar el mismo evento si se reintenta este botón. */
+  const avisarEstado = async (event: "shipped" | "delivered") => {
+    if (!order || !canEditEcommerce) return;
+    const { data, error } = await supabase.functions.invoke("store-order-status-email", {
+      body: { orderId: order.id, event, baseUrl: window.location.origin },
+    });
+    const message = (data as { error?: string } | null)?.error;
+    if (error || message) {
+      toast.warning(`El estado se actualizó, pero no pudimos avisar por email${message ? `: ${message}` : "."}`);
+    }
+  };
+
+  const avanzarEstado = async (status: "shipped" | "delivered") => {
+    if (!order || !canEditEcommerce) return;
+    setActualizandoEstado(status);
+    const { error } = await supabase.rpc("update_store_order_fulfillment", {
+      p_order_id: order.id,
+      p_status: status,
+    });
+    setActualizandoEstado(null);
+    if (error) { toast.error(error.message.replace(/^.*?:\s*/, "")); return; }
+    await avisarEstado(status);
+    toast.success(status === "shipped" ? "Marcado en camino." : "Pedido marcado como entregado.");
     cargar();
     onDone();
   };
@@ -130,7 +165,7 @@ export default function OrderShipmentDialog({
    * chrome de la app: una etiqueta con la barra lateral impresa no sirve.
    */
   const imprimir = () => {
-    if (!order) return;
+    if (!order || !canEditEcommerce) return;
     const esc = (s: unknown) =>
       String(s ?? "").replace(/[&<>"']/g, c =>
         ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
@@ -181,7 +216,9 @@ export default function OrderShipmentDialog({
 
   const sinPagar = order.payment_status !== "paid";
   const yaPreparada = !!entrega;
-  const yaDespachada = !!entrega?.external_tracking;
+  const enCamino = entrega?.status === "in_transit" || entrega?.status === "out_for_delivery";
+  const entregada = entrega?.status === "delivered";
+  const yaDespachada = !!entrega?.external_tracking || enCamino || entregada;
 
   return (
     <Dialog open={!!order} onOpenChange={o => !o && onClose()}>
@@ -218,6 +255,7 @@ export default function OrderShipmentDialog({
                 <select
                   value={carrier}
                   onChange={e => setCarrier(e.target.value)}
+                  disabled={yaPreparada || !canEditEcommerce}
                   className="mt-1 w-full h-9 px-2 text-sm bg-background border border-border rounded-lg"
                 >
                   {CARRIER_IDS.map(id => <option key={id} value={id}>{CARRIER_LABELS[id]}</option>)}
@@ -230,7 +268,7 @@ export default function OrderShipmentDialog({
                   onChange={e => setPeso(e.target.value)}
                   placeholder="Se estima solo"
                   className="mt-1 h-9"
-                  disabled={yaPreparada}
+                  disabled={yaPreparada || !canEditEcommerce}
                 />
               </div>
             </div>
@@ -244,8 +282,9 @@ export default function OrderShipmentDialog({
                     onChange={e => setTracking(e.target.value)}
                     placeholder="El que te da el correo"
                     className="h-9 font-mono text-xs"
+                    disabled={!canEditEcommerce}
                   />
-                  <Button size="sm" className="h-9 gap-1.5 text-xs" disabled={guardando || !tracking.trim()} onClick={guardarTracking}>
+                  <Button size="sm" className="h-9 gap-1.5 text-xs" disabled={!canEditEcommerce || guardando || !tracking.trim()} onClick={guardarTracking}>
                     {guardando ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                     Guardar
                   </Button>
@@ -258,22 +297,43 @@ export default function OrderShipmentDialog({
 
             {yaDespachada && (
               <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/20 gap-1">
-                <PackageCheck className="w-3 h-3" />Despachada
+                {entregada ? <Home className="w-3 h-3" /> : <PackageCheck className="w-3 h-3" />}
+                {entregada ? "Entregada" : "En camino"}
               </Badge>
             )}
           </div>
         )}
 
         <DialogFooter className="gap-2 sm:gap-2">
-          {!sinPagar && !yaPreparada && (
+          {canEditEcommerce && !sinPagar && !yaPreparada && (
             <Button className="gap-1.5 text-xs" disabled={preparando} onClick={preparar}>
               {preparando ? <Loader2 className="w-3 h-3 animate-spin" /> : <Truck className="w-3 h-3" />}
               Preparar envío
             </Button>
           )}
-          {yaPreparada && (
+          {canEditEcommerce && yaPreparada && (
             <Button variant="outline" className="gap-1.5 text-xs" onClick={imprimir}>
               <Printer className="w-3 h-3" />Imprimir etiqueta
+            </Button>
+          )}
+          {canEditEcommerce && yaPreparada && !enCamino && !entregada && (
+            <Button
+              variant="outline" className="gap-1.5 text-xs"
+              disabled={actualizandoEstado === "shipped"}
+              onClick={() => avanzarEstado("shipped")}
+            >
+              {actualizandoEstado === "shipped" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Truck className="w-3 h-3" />}
+              Marcar en camino
+            </Button>
+          )}
+          {canEditEcommerce && enCamino && !entregada && (
+            <Button
+              variant="outline" className="gap-1.5 text-xs"
+              disabled={actualizandoEstado === "delivered"}
+              onClick={() => avanzarEstado("delivered")}
+            >
+              {actualizandoEstado === "delivered" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Home className="w-3 h-3" />}
+              Marcar entregado
             </Button>
           )}
           <Button variant="ghost" className="text-xs" onClick={onClose}>Cerrar</Button>
