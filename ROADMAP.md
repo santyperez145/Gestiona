@@ -78,6 +78,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de confiabilidad 31 (2026-08-14):** `meli-sync` ya puede sincronizar todas las organizaciones conectadas desde cron: actualiza publicaciones, refresca hasta 50 órdenes y permite que una orden primero `pending` llegue después como `paid` sin perder vínculos de Core. Un stock negativo deja un error visible y no se maquilla como cero al marketplace. El cron no confía en la anon key pública: `20260814000015_meli_cron_sync.sql` crea un helper que lee `MELI_CRON_SECRET` de Vault, lo manda sólo al endpoint y queda revocado para `anon`/`authenticated`; la Function compara el mismo secreto. La migración, tipos y Function `meli-sync` `ACTIVE` versión 20 se verificaron contra la base. El secreto todavía no existe en Vault, por lo que hay **0 jobs** `meli-sync-orgs` programados a propósito: el dueño debe cargar el mismo valor en Vault y Edge Functions y reejecutar la migración para activarlo. Typecheck, lint sin errores (147 avisos históricos), 913 tests y build/PWA completados; no se llamó la API real sin una cuenta OAuth de prueba. Queda el webhook de MercadoLibre para cerrar C7; E4 sigue necesitando el costo de envío real del marketplace.
 
+**Slice de confiabilidad 32 (2026-08-14):** `pull-orders` conserva el `shipment_id` de cada orden cobrada y consulta `GET /shipments/{id}/costs` con el formato vigente de MercadoLibre. Sólo guarda `senders[].cost`, el cargo final del vendedor; ausencia de shipment y un error de API siguen siendo `NULL`/error visible, nunca cero. `apply_meli_shipping_cost` prorratea el importe entre líneas por su total, conserva el último centavo y actualiza la ganancia de una venta ya importada sin volver a tocar stock. Una orden que entra después de llegar el costo lo aplica al importar. La verificación ZZ cubre dos líneas ($2.000/$6.000), $400 de envío repartido $100/$300, ganancias corregidas y cero restos. E4 ya tiene los cuatro importes de las ventas ML que MercadoLibre logra informar; falta la pantalla por producto. Queda el webhook de MercadoLibre y el secreto del cron como cierres externos de C7.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -478,7 +480,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | **C4** | **Fotos y descripciones** | 10 sin foto, 33 con descripción corta. El panel de calidad los rankea. | ML |
 | **C5** | **App en el celular con notificaciones** | Hay PWA y POS offline. Falta el push de "vendiste" y "sin stock". | Tiendanube app |
 | **C6** | **Motor visual de automatizaciones** | Existen `automations` y los crons; falta el armador de flujos. | Shopify Flow |
-| **C7** | **MercadoLibre completo** | Publica desde ficha e importa órdenes `paid` como ventas; cron listo, espera secreto; falta webhook. | — |
+| **C7** | **MercadoLibre completo** | Publica desde ficha, importa órdenes `paid` como ventas y concilia comisión + envío real del seller; cron listo, espera secreto; falta webhook. | — |
 | **C8** | **Compras y reposición con proveedor** | Hay órdenes de compra y reposición automática. Falta recepción parcial y costo de importación por lote. | — |
 | **C9** | **Multi-depósito real en la tienda** | El stock por sucursal existe; la tienda vende contra el total, no contra el depósito que despacha. | Shopify |
 | **C10** | **Reportes exportables y programados** | Hay reportes en pantalla. Falta "mandame el cierre de mes por email". | Todas |

@@ -78,7 +78,7 @@ sincronización.
 | `predict-category` | Propone hasta tres categorías a partir de la ficha guardada del producto |
 | `publish` | Publica un producto y guarda el vínculo en `meli_listings` |
 | `sync-stock` | Empuja stock y precio de todas las publicaciones activas |
-| `pull-orders` | Baja las últimas 50 órdenes a `meli_orders`, con precio y comisión por línea |
+| `pull-orders` | Baja las últimas 50 órdenes, con precio, comisión y costo final de envío cuando ML ya informó el shipment |
 | `import-order` | Convierte una orden `paid` ya bajada en ventas de Gestiona, stock y cobro neto |
 | `cron-sync` | Uso interno: sincroniza stock/precio y órdenes de todas las organizaciones conectadas |
 
@@ -113,9 +113,14 @@ La orden conserva el precio y `sale_fee` que informó MercadoLibre; para
 órdenes descargadas antes de esta mejora se lo recupera de su payload original.
 Si no existe ese dato, la importación se frena en vez de registrar una comisión
 en cero. La comisión queda en `payment_transactions` y por línea en
-`meli_order_sale_lines`, lista para el margen por canal. El costo de envío de
-MercadoLibre todavía no forma parte del payload descargado: no se muestra una
-estimación como si fuera un costo real.
+`meli_order_sale_lines`, lista para el margen por canal.
+
+Al traer órdenes también se consulta el shipment con
+[`GET /shipments/{id}/costs`](https://developers.mercadolibre.com.ar/es_ar/administra-proyectos-aplicaciones/envios).
+Se guarda sólo `senders[].cost`: es el cargo final que MercadoLibre aplica al
+vendedor. Si ML todavía no creó el shipment, el costo queda **sin dato**; no se
+convierte en $0. Cuando una orden tiene varios productos, el cargo se prorratea
+por importe de línea y el redondeo queda reconciliado al total del shipment.
 
 Una misma orden no puede importarse dos veces. `meli_orders`, sus vínculos de
 venta y las publicaciones vinculadas son de sólo lectura para el navegador; la
@@ -124,10 +129,12 @@ sincronización y la conversión las escriben las Edge Functions con service rol
 ## Sincronización automática
 
 La acción interna `cron-sync` recorre cada organización conectada, actualiza
-sus publicaciones activas y baja las últimas 50 órdenes. Una orden que primero
-llegó como `pending` se actualiza a `paid`; los vínculos ya importados al Core
-se conservan. Un stock negativo no se transforma en cero: queda como error de
-la publicación hasta corregir el Kardex.
+sus publicaciones activas y baja las últimas 50 órdenes con sus costos de
+shipment. Una orden que primero llegó como `pending` se actualiza a `paid`; los
+vínculos ya importados al Core se conservan. Un stock negativo no se transforma
+en cero: queda como error de la publicación hasta corregir el Kardex. Un fallo
+al pedir el shipment queda asociado a la orden y en el estado de la conexión;
+no hace pasar ese costo por cero.
 
 El cron **no usa la anon key como secreto**. Antes de activarlo, generá una
 cadena aleatoria larga y cargá el mismo valor en los dos lugares:

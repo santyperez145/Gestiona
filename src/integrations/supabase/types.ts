@@ -12262,6 +12262,7 @@ export type Database = {
       meli_order_sale_lines: {
         Row: {
           created_at: string
+          exchange_rate_ars: number | null
           id: string
           line_number: number
           meli_item_id: string
@@ -12269,9 +12270,11 @@ export type Database = {
           org_id: string
           sale_fee_ars: number
           sale_id: string
+          seller_shipping_cost_ars: number | null
         }
         Insert: {
           created_at?: string
+          exchange_rate_ars?: number | null
           id?: string
           line_number: number
           meli_item_id: string
@@ -12279,9 +12282,11 @@ export type Database = {
           org_id: string
           sale_fee_ars?: number
           sale_id: string
+          seller_shipping_cost_ars?: number | null
         }
         Update: {
           created_at?: string
+          exchange_rate_ars?: number | null
           id?: string
           line_number?: number
           meli_item_id?: string
@@ -12289,6 +12294,7 @@ export type Database = {
           org_id?: string
           sale_fee_ars?: number
           sale_id?: string
+          seller_shipping_cost_ars?: number | null
         }
         Relationships: [
           {
@@ -12375,6 +12381,11 @@ export type Database = {
           org_id: string
           raw: Json | null
           sale_id: string | null
+          seller_shipping_cost_ars: number | null
+          shipment_id: string | null
+          shipping_cost_currency: string | null
+          shipping_cost_error: string | null
+          shipping_cost_updated_at: string | null
           status: string | null
           total_ars: number | null
         }
@@ -12389,6 +12400,11 @@ export type Database = {
           org_id: string
           raw?: Json | null
           sale_id?: string | null
+          seller_shipping_cost_ars?: number | null
+          shipment_id?: string | null
+          shipping_cost_currency?: string | null
+          shipping_cost_error?: string | null
+          shipping_cost_updated_at?: string | null
           status?: string | null
           total_ars?: number | null
         }
@@ -12403,6 +12419,11 @@ export type Database = {
           org_id?: string
           raw?: Json | null
           sale_id?: string | null
+          seller_shipping_cost_ars?: number | null
+          shipment_id?: string | null
+          shipping_cost_currency?: string | null
+          shipping_cost_error?: string | null
+          shipping_cost_updated_at?: string | null
           status?: string | null
           total_ars?: number | null
         }
@@ -27477,6 +27498,14 @@ export type Database = {
       }
       apply_ai_offer_recommendation: {
         Args: { p_recommendation_id: string }
+        Returns: Json
+      }
+      apply_meli_shipping_cost: {
+        Args: {
+          p_meli_order_id: string
+          p_org_id: string
+          p_seller_shipping_cost_ars: number
+        }
         Returns: Json
       }
       apply_territory_rules: {

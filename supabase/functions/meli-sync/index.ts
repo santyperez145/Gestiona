@@ -5,7 +5,7 @@
  *   predict-category → propone hasta tres categorías para un producto guardado
  *   publish      → publica un producto y guarda el vínculo en meli_listings
  *   sync-stock   → empuja stock y precio de todas las publicaciones activas
- *   pull-orders  → baja las órdenes nuevas a meli_orders
+ *   pull-orders  → baja órdenes y el costo final de envío a cargo del vendedor
  *   import-order → convierte una orden paid ya bajada en ventas del Core
  *   cron-sync    → sincroniza todas las organizaciones conectadas (sólo cron)
  *
@@ -93,6 +93,24 @@ const meli = (token: string, path: string, init: RequestInit = {}) =>
     },
   });
 
+/**
+ * En /shipments/{id}/costs, `senders[].cost` es el cargo final al vendedor.
+ * No se usa receiver.cost: ese es el flete que afrontó el comprador y no mide
+ * el margen del comercio. Un cero explícito es válido; una respuesta sin el
+ * vendedor o sin importe se reporta, nunca se convierte en cero.
+ */
+function sellerShippingCost(costs: any, sellerId: number): number {
+  const senders = Array.isArray(costs?.senders) ? costs.senders : [];
+  const sender = senders.find((entry: any) => String(entry?.user_id) === String(sellerId));
+  if (!sender) throw new Error("MercadoLibre no informó el costo de envío para este vendedor");
+
+  const cost = Number(sender.cost);
+  if (!Number.isFinite(cost) || cost < 0) {
+    throw new Error("MercadoLibre informó un costo de envío inválido");
+  }
+  return cost;
+}
+
 type SyncError = { item: string; error: string };
 
 /** Sincroniza las publicaciones de una organización sin ocultar stock negativo. */
@@ -151,7 +169,7 @@ async function syncMeliStock(admin: any, orgId: string, token: string) {
   return { sincronizadas, errores };
 }
 
-/** Baja el estado actual de órdenes sin tocar sus vínculos ya importados. */
+/** Baja órdenes sin tocar vínculos importados y concilia el envío por shipment. */
 async function pullMeliOrders(admin: any, orgId: string, token: string) {
   const { data: connection, error: connectionError } = await admin
     .from("meli_connections").select("meli_user_id").eq("org_id", orgId).maybeSingle();
@@ -177,6 +195,10 @@ async function pullMeliOrders(admin: any, orgId: string, token: string) {
       // para el margen del canal. No se estima desde una tabla de tarifas.
       sale_fee: item.sale_fee ?? null,
     })),
+    // El id permite pedir el costo real por separado. No viene en la línea de
+    // /orders, y la ausencia queda como NULL hasta que ML lo cree/informe.
+    shipment_id: order.shipping?.id != null ? String(order.shipping.id) : null,
+    shipping_cost_currency: typeof order.currency_id === "string" ? order.currency_id : null,
     date_created: order.date_created ?? null,
     raw: order,
   }));
@@ -191,7 +213,70 @@ async function pullMeliOrders(admin: any, orgId: string, token: string) {
     if (upsertError) throw new Error(upsertError.message);
   }
 
-  return { ordenes: rows.length };
+  const errors: SyncError[] = [];
+  let costosEnvio = 0;
+  let enviosPendientes = 0;
+
+  if (rows.length) {
+    const orderIds = rows.map((row: { meli_order_id: number }) => row.meli_order_id);
+    const { data: storedOrders, error: storedOrdersError } = await admin
+      .from("meli_orders")
+      .select("id, meli_order_id, shipment_id, status, seller_shipping_cost_ars")
+      .eq("org_id", orgId)
+      .in("meli_order_id", orderIds);
+    if (storedOrdersError) throw new Error(storedOrdersError.message);
+
+    for (const order of storedOrders ?? []) {
+      if (String(order.status ?? "").toLowerCase() !== "paid") continue;
+      // `0` ya es un costo confirmado (ML no le cobró envío al vendedor), por
+      // lo que sólo NULL vuelve a consultar. Así el cron no gasta cuota cada
+      // 15 minutos sobre los mismos 50 pedidos ya conciliados.
+      if (order.seller_shipping_cost_ars !== null && order.seller_shipping_cost_ars !== undefined) continue;
+      if (!order.shipment_id) {
+        // Envíos personalizados o una orden recién creada pueden no tener id
+        // todavía. No es costo cero ni un error de la orden.
+        enviosPendientes++;
+        continue;
+      }
+
+      try {
+        const shippingResponse = await meli(
+          token,
+          `/shipments/${encodeURIComponent(String(order.shipment_id))}/costs`,
+          { headers: { "x-format-new": "true" } },
+        );
+        const shippingBody = await shippingResponse.json().catch(() => null);
+        if (!shippingResponse.ok) {
+          throw new Error(shippingBody?.message ?? `HTTP ${shippingResponse.status}`);
+        }
+
+        const cost = sellerShippingCost(shippingBody, Number(connection.meli_user_id));
+        const { error: applyError } = await admin.rpc("apply_meli_shipping_cost", {
+          p_org_id: orgId,
+          p_meli_order_id: order.id,
+          p_seller_shipping_cost_ars: cost,
+        });
+        if (applyError) throw new Error(applyError.message);
+
+        const { error: clearError } = await admin
+          .from("meli_orders")
+          .update({ shipping_cost_error: null, shipping_cost_updated_at: new Date().toISOString() })
+          .eq("id", order.id);
+        if (clearError) throw new Error(clearError.message);
+        costosEnvio++;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Error desconocido al consultar el envío";
+        const { error: recordError } = await admin
+          .from("meli_orders")
+          .update({ shipping_cost_error: message.slice(0, 500) })
+          .eq("id", order.id);
+        if (recordError) throw new Error(`${message}; tampoco se pudo registrar: ${recordError.message}`);
+        errors.push({ item: String(order.meli_order_id), error: message });
+      }
+    }
+  }
+
+  return { ordenes: rows.length, costos_envio: costosEnvio, envios_pendientes: enviosPendientes, errores_envio: errors };
 }
 
 function sameSecret(received: string | null, expected: string) {
@@ -240,9 +325,11 @@ Deno.serve(async (req) => {
           const ordersResult = await pullMeliOrders(admin, connection.org_id, connectionWithToken.access_token);
           stock += stockResult.sincronizadas;
           orders += ordersResult.ordenes;
-          const lastError = stockResult.errores.length ? stockResult.errores[0].error : null;
+          const shippingErrors = ordersResult.errores_envio ?? [];
+          const lastError = stockResult.errores[0]?.error ?? shippingErrors[0]?.error ?? null;
           errors.push(...stockResult.errores.map(error => ({ org_id: connection.org_id, error: error.error })));
-          if (stockResult.errores.length) failedOrgIds.add(connection.org_id);
+          errors.push(...shippingErrors.map(error => ({ org_id: connection.org_id, error: error.error })));
+          if (stockResult.errores.length || shippingErrors.length) failedOrgIds.add(connection.org_id);
           const { error: statusError } = await admin.from("meli_connections")
             .update({ last_error: lastError, updated_at: new Date().toISOString() })
             .eq("org_id", connection.org_id);

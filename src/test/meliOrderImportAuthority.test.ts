@@ -10,6 +10,7 @@ const migration = readFileSync(
 const sync = readFileSync(resolve(ROOT, "supabase/functions/meli-sync/index.ts"), "utf8");
 const productsPage = readFileSync(resolve(ROOT, "src/pages/ProductsPage.tsx"), "utf8");
 const cronMigration = readFileSync(resolve(ROOT, "supabase/migrations/20260814000015_meli_cron_sync.sql"), "utf8");
+const shippingMigration = readFileSync(resolve(ROOT, "supabase/migrations/20260814000016_meli_shipping_costs.sql"), "utf8");
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
@@ -104,5 +105,29 @@ describe("importación de órdenes MercadoLibre", () => {
     expect(cronMigration).toContain("FROM PUBLIC, anon, authenticated");
     expect(cronMigration).toContain("has_function_privilege('anon'");
     expect(cronMigration).toContain("meli-sync-orgs");
+  });
+
+  it("guarda el costo de envío de ML como desconocido hasta tener la fuente y lo prorratea sin perder centavos", () => {
+    expect(shippingMigration).toContain("seller_shipping_cost_ars numeric(14,2)");
+    expect(shippingMigration).toContain("ADD COLUMN IF NOT EXISTS shipment_id text");
+    expect(shippingMigration).toContain("CREATE OR REPLACE FUNCTION public.apply_meli_shipping_cost");
+    expect(shippingMigration).toContain("v_remaining := round(p_seller_shipping_cost_ars, 2)");
+    expect(shippingMigration).toContain("IF v_line_position = v_line_count THEN");
+    expect(shippingMigration).toContain("s.total_ars - s.cost_of_goods_ars - l.sale_fee_ars - l.seller_shipping_cost_ars");
+    expect(shippingMigration).toContain("FROM PUBLIC, anon, authenticated");
+    expect(shippingMigration).toContain("TO service_role;");
+  });
+
+  it("consulta el shipment oficial, toma sólo el cargo del vendedor y deja visible cada error", () => {
+    expect(sync).toContain("/shipments/${encodeURIComponent(String(order.shipment_id))}/costs");
+    expect(sync).toContain('"x-format-new": "true"');
+    expect(sync).toContain("senders[].cost");
+    expect(sync).toContain("function sellerShippingCost");
+    expect(sync).toContain("String(entry?.user_id) === String(sellerId)");
+    expect(sync).not.toContain("costs?.receiver");
+    expect(sync).toContain('admin.rpc("apply_meli_shipping_cost"');
+    expect(sync).toContain("order.seller_shipping_cost_ars !== null");
+    expect(sync).toContain("shipping_cost_error: message.slice(0, 500)");
+    expect(sync).toContain("errores_envio: errors");
   });
 });
