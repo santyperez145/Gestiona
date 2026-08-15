@@ -97,6 +97,12 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
     () => estadoPublicacionLegal(existentes),
     [existentes],
   );
+  // Si ya existen borradores legales, no volvemos a pedir los datos sólo
+  // porque no quedaron duplicados en Ajustes: en ese punto la tarea real es
+  // revisarlos y publicarlos. Los datos sólo se necesitan para generar o
+  // reemplazar una página que falta o es plantilla.
+  const necesitaGenerar = estadoPublicacion.faltantesOPlantilla > 0;
+  const faltanDatosParaGenerar = necesitaGenerar && faltan.length > 0;
 
   const aplicar = async () => {
     if (!orgId || !storeId || pendientes.length === 0) return;
@@ -127,7 +133,7 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
   };
 
   if (cargando || !storeId) return null;
-  if (faltan.length === 0 && pendientes.length === 0 && estadoPublicacion.listaParaPublicar) {
+  if (pendientes.length === 0 && estadoPublicacion.listaParaPublicar) {
     return (
       <div className="rounded-lg border p-4 flex items-start gap-3 text-sm">
         <Check className="w-4 h-4 mt-0.5 text-green-600 shrink-0" />
@@ -156,7 +162,7 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
         </div>
       </div>
 
-      {faltan.length > 0 ? (
+      {faltanDatosParaGenerar ? (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
             Falta {faltan.map(etiquetaDeCampo).join(", ")}. Sin eso el texto
@@ -179,7 +185,7 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
             ))}
           </div>
         </div>
-      ) : (
+      ) : pendientes.length > 0 ? (
         <div className="space-y-2">
           {pendientes.map(p => (
             <div key={p.slug} className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2">
@@ -224,6 +230,12 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
             asesoramiento legal — conviene que lo revise un profesional.
           </p>
         </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Las páginas ya están escritas. Elegí cada borrador de la lista,
+          revisalo y marcá <strong>Publicada</strong> para que se vea en la
+          tienda.
+        </p>
       )}
 
       {estadoPublicacion.borradores > 0 && (

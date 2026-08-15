@@ -102,7 +102,7 @@ export default function EcommerceStorePage() {
   const [tab, setTab] = useState<StoreTab>("overview");
   const requestedTab = searchParams.get("tab");
   useEffect(() => {
-    if (isStoreTab(requestedTab)) setTab(requestedTab);
+    setTab(isStoreTab(requestedTab) ? requestedTab : "overview");
   }, [requestedTab]);
   // Opiniones y preguntas comparten pestaña: son las dos cosas que escribe el
   // comprador y que el comercio contesta. Separarlas agregaba una pestaña más a
