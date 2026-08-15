@@ -9,6 +9,7 @@ import { quoteStoreShipping, createStoreOrder } from "@/lib/publicDataSource";
 import { trackBeginCheckout } from "./tracking";
 import { precioConMedioDePago, porcentajeDe, nombreMedio } from "@/lib/paymentDiscount";
 import { normalizarEmail } from "@/lib/couponRules";
+import { requiereDireccionDeEntrega } from "@/lib/checkoutDelivery";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -45,6 +46,20 @@ export default function StoreCheckout() {
     calle: "", ciudad: "", provincia: "", cp: "", notas: "",
     metodo: metodos[0],
   });
+
+  // Al primer render la tienda todavía puede no haber cargado; en ese caso el
+  // estado nacía en "transferencia" aunque el comercio sólo aceptara
+  // MercadoPago. Se conserva una elección válida del comprador y, si dejó de
+  // serlo, se pasa al primer medio real antes de crear la orden.
+  const metodosKey = store?.payment_methods?.join("|") ?? "transferencia";
+  useEffect(() => {
+    setForm(actual => metodos.includes(actual.metodo)
+      ? actual
+      : { ...actual, metodo: metodos[0] });
+  // `metodosKey` representa el contenido; `metodos` se recrea como array en
+  // cada render y no debe disparar este ajuste continuamente.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metodosKey]);
 
   // Si el comprador tiene cuenta, se precarga con sus datos y su última
   // dirección: es el sentido de tener cuenta, no volver a tipear todo.
@@ -85,13 +100,9 @@ export default function StoreCheckout() {
 
   useEffect(() => {
     if (!store) return;
-    // Sin provincia no hay zona que resolver. En modo plano o gratis se cotiza
-    // igual, para que el resumen muestre el mismo número que va a cobrar el RPC.
-    if (porZona && !form.provincia) {
-      setOpciones([]); setOpcionElegida(null); setEnvioAviso(null);
-      return;
-    }
-
+    // Aunque todavía no se sepa la provincia hay que pedir la cotización: el
+    // RPC puede devolver "Retiro en tienda", que no depende de una zona. Antes
+    // se cortaba acá y quien quería retirar debía elegir una provincia igual.
     let cancelado = false;
     setCotizando(true);
     setEnvioAviso(null);
@@ -117,11 +128,11 @@ export default function StoreCheckout() {
       setOpciones(lista);
 
       if (lista.length === 0) {
-        setEnvioAviso(
-          porZona
-            ? "Todavía no hacemos envíos a esa provincia."
-            : null,
-        );
+        // Sin retiro y sin provincia todavía no hay nada que cotizar. No es
+        // una zona sin cobertura ni un error: primero hay que pedir ese dato.
+        setEnvioAviso(porZona && form.provincia
+          ? "Todavía no hacemos envíos a esa provincia."
+          : null);
         setOpcionElegida(null);
         return;
       }
@@ -143,6 +154,11 @@ export default function StoreCheckout() {
   const opcion = opciones.find(o => o.option_id === opcionElegida) ?? null;
   // Mientras no haya cotización se usa el costo del contexto, que es el plano.
   const envio = opcion ? Number(opcion.price) : (opciones.length > 0 ? 0 : shippingCost);
+  const esRetiro = opcion?.carrier === "retiro";
+  // Si el retiro todavía no llegó de la cotización, sólo se omite la dirección
+  // cuando la tienda lo ofrece. Para cualquier entrega a domicilio los campos
+  // son obligatorios: una orden que no se puede despachar no es una venta.
+  const requiereDomicilio = requiereDireccionDeEntrega(opcion, !!store?.pickup_enabled);
 
   // ── Validación del cupón ────────────────────────────────────────────────
   // Va acá abajo porque necesita el envío ya cotizado: desde A5 un cupón puede
@@ -279,6 +295,13 @@ export default function StoreCheckout() {
   const confirmar = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (cotizando || envioAviso) {
+      setError(cotizando
+        ? "Esperá a que terminemos de calcular la entrega."
+        : envioAviso);
+      return;
+    }
     setEnviando(true);
 
     const { data, error: rpcError } = await createStoreOrder({
@@ -393,24 +416,18 @@ export default function StoreCheckout() {
           </section>
 
           <section>
-            <h2 className="font-semibold mb-3">Envío</h2>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <label className="sm:col-span-2">
-                <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Calle y número</span>
-                <input value={form.calle} onChange={e => set("calle", e.target.value)} className={input} style={inputStyle} />
-              </label>
-              <label>
-                <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Ciudad</span>
-                <input value={form.ciudad} onChange={e => set("ciudad", e.target.value)} className={input} style={inputStyle} />
-              </label>
-              <label>
+            <h2 className="font-semibold mb-3">Entrega</h2>
+
+            {/* La provincia aparece antes de las opciones porque habilita la
+                cotización a domicilio. Si hay retiro, es opcional: no se le
+                pide un dato irrelevante a quien sólo va a buscar su pedido. */}
+            {porZona && (
+              <label className="block mb-3">
                 <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
-                  Provincia {porZona && "*"}
+                  Provincia {store?.pickup_enabled ? "(sólo para envío a domicilio)" : "*"}
                 </span>
-                {/* Selector y no texto libre: la zona de envío se resuelve por
-                    código de provincia, y "Bs As" no matchea con nada. */}
                 <select
-                  required={porZona}
+                  required={!store?.pickup_enabled}
                   value={form.provincia}
                   onChange={e => set("provincia", e.target.value)}
                   className={input}
@@ -422,11 +439,7 @@ export default function StoreCheckout() {
                   ))}
                 </select>
               </label>
-              <label>
-                <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Código postal</span>
-                <input value={form.cp} onChange={e => set("cp", e.target.value)} className={input} style={inputStyle} inputMode="numeric" />
-              </label>
-            </div>
+            )}
 
             {/* Opciones de envío cotizadas por el servidor */}
             <div className="mt-3 space-y-2">
@@ -444,7 +457,9 @@ export default function StoreCheckout() {
 
               {porZona && !form.provincia && !cotizando && (
                 <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
-                  Elegí tu provincia para ver las formas de envío y su costo.
+                  {store?.pickup_enabled
+                    ? "Podés retirar en tienda; elegí tu provincia sólo si preferís envío a domicilio."
+                    : "Elegí tu provincia para ver las formas de envío y su costo."}
                 </p>
               )}
 
@@ -493,6 +508,41 @@ export default function StoreCheckout() {
                 </p>
               )}
             </div>
+
+            {esRetiro ? (
+              <div className="mt-3 px-3 py-2.5 text-sm border" style={{ ...inputStyle, borderColor: "hsl(var(--st-accent))" }}>
+                <p className="font-medium">Retirás en tienda</p>
+                <p className="text-xs mt-1" style={{ color: "hsl(var(--st-muted))" }}>
+                  {store?.pickup_address || "Te vamos a contactar para coordinar el retiro."}
+                </p>
+              </div>
+            ) : requiereDomicilio && (
+              <div className="grid sm:grid-cols-2 gap-3 mt-4">
+                <label className="sm:col-span-2">
+                  <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Calle y número *</span>
+                  <input required value={form.calle} onChange={e => set("calle", e.target.value)} className={input} style={inputStyle} autoComplete="street-address" />
+                </label>
+                <label>
+                  <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Ciudad *</span>
+                  <input required value={form.ciudad} onChange={e => set("ciudad", e.target.value)} className={input} style={inputStyle} autoComplete="address-level2" />
+                </label>
+                {!porZona && (
+                  <label>
+                    <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Provincia *</span>
+                    <select required value={form.provincia} onChange={e => set("provincia", e.target.value)} className={input} style={inputStyle} autoComplete="address-level1">
+                      <option value="">Elegí tu provincia</option>
+                      {AR_PROVINCES.map(p => (
+                        <option key={p.code} value={p.code}>{p.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <label className={porZona ? "sm:col-span-2" : ""}>
+                  <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Código postal *</span>
+                  <input required value={form.cp} onChange={e => set("cp", e.target.value.toUpperCase())} className={input} style={inputStyle} autoComplete="postal-code" maxLength={10} />
+                </label>
+              </div>
+            )}
           </section>
 
           <section>
@@ -666,12 +716,12 @@ export default function StoreCheckout() {
 
           <button
             type="submit"
-            disabled={enviando}
+            disabled={enviando || cotizando || !!envioAviso}
             className="w-full py-3 font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >
             {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-            {enviando ? "Confirmando..." : "Confirmar pedido"}
+            {enviando ? "Confirmando..." : form.metodo === "mercadopago" ? "Continuar a MercadoPago" : "Confirmar pedido"}
           </button>
 
           <p className="text-[11px] text-center" style={{ color: "hsl(var(--st-muted))" }}>

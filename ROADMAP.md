@@ -480,7 +480,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 |---|---|---|---|
 | **B1** | **Revisar las tarifas de envío** | 1 provincia de 24 tiene tarifa. `Completar el tarifario` las estima; falta contrastarlas con el correo. | Todas |
 | **B2** | **Etiqueta por API del correo** | La imprimible funciona; la de Correo Argentino y Andreani necesita contrato. | Tiendanube |
-| **B3** | **Checkout en un paso** | Hoy es secuencial en una página. | Empretienda, Shopify |
+| ~~B3~~ | ~~Checkout en un paso~~ | ✅ Slice 44. Un solo formulario responsive muestra datos, entrega, pago, cupón y resumen; no hay pasos ni cuenta obligatoria. El retiro se ofrece sin pedir provincia y la entrega exige domicilio utilizable. | Empretienda, Shopify |
 | **B4** | **Pago embebido (Checkout Bricks)** | Se redirige a MercadoPago y se vuelve. Embebido convierte más. | Tiendanube, ML |
 | **B5** | **Avisos de cada cambio de estado** | Se manda el de la orden y el de despacho. Faltan "en camino" y "entregado". | Todas |
 | **B6** | **Multi-moneda** | Todo en ARS. `currency` existe y no convierte. Necesita A9 primero. | Shopify |
@@ -693,6 +693,28 @@ Lo que se hizo y —más importante— qué se encontró roto en el camino. Los
 mensajes de commit son largos a propósito y amplían cada entrada.
 
 > Resumen condensado. El registro completo detallado está en el archivo.
+
+### Slice 44 — Checkout que se puede entregar (2026-08-15)
+
+B3 decía que el checkout era secuencial, pero el código ya era un único
+formulario con datos, entrega, pago, cupón y resumen. Se corrige el ROADMAP en
+lugar de construir una segunda versión de lo que ya estaba hecho.
+
+La fricción real era peor: una tienda con retiro habilitado no lo mostraba hasta
+que el comprador eligiera provincia, aunque retirar no depende de una zona; y
+si elegía envío a domicilio podía confirmar sin calle, ciudad ni código postal.
+Ahora se consulta la opción de retiro aun sin provincia, se explica dónde se
+retira y se piden dirección completa sólo cuando la opción real es entrega. El
+botón espera la cotización, bloquea una cobertura ausente y dice "Continuar a
+MercadoPago" cuando ese es el siguiente paso. El servidor sigue calculando el
+precio, la opción elegida, el stock y los descuentos; esta capa sólo evita
+pedidos que el comercio no podría despachar.
+
+`requiereDireccionDeEntrega` deja esa regla en una función pura con cuatro
+casos: retiro, entrega por correo/propia y los dos estados antes de cotizar.
+Además, el medio de pago se sincroniza con los medios reales de la tienda al
+cargarla: una tienda que acepta sólo MercadoPago ya no intenta crear la orden
+como transferencia hasta que el comprador toque un control.
 
 ### Slice 43 — AFIP real, multi-organización y sin simulaciones (2026-08-15)
 
