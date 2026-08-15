@@ -80,6 +80,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de confiabilidad 32 (2026-08-14):** `pull-orders` conserva el `shipment_id` de cada orden cobrada y consulta `GET /shipments/{id}/costs` con el formato vigente de MercadoLibre. Sólo guarda `senders[].cost`, el cargo final del vendedor; ausencia de shipment y un error de API siguen siendo `NULL`/error visible, nunca cero. `apply_meli_shipping_cost` prorratea el importe entre líneas por su total, conserva el último centavo y actualiza la ganancia de una venta ya importada sin volver a tocar stock. Una orden que entra después de llegar el costo lo aplica al importar. La verificación ZZ cubre dos líneas ($2.000/$6.000), $400 de envío repartido $100/$300, ganancias corregidas y cero restos. E4 ya tiene los cuatro importes de las ventas ML que MercadoLibre logra informar; falta la pantalla por producto. Queda el webhook de MercadoLibre y el secreto del cron como cierres externos de C7.
 
+**Slice de confiabilidad 33 (2026-08-14):** una venta cobrada en la tienda propia ya persiste `cost_of_goods_ars`: antes calculaba `profit_ars` descontando el costo pero dejaba el costo de mercadería en cero, por lo que cualquier reporte que lo sumara veía una contabilidad incompleta. El costo se toma al cobrar y se guarda hacia adelante; no se reescriben órdenes históricas con el costo actual, porque eso inventaría evidencia. La prueba ZZ cobró una orden de dos unidades, verificó costo $4, ganancia $496, un único movimiento de stock, idempotencia, permiso cerrado y cero restos. Typecheck, lint sin errores, tests y build quedan como puerta del slice.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
