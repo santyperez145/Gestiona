@@ -314,10 +314,12 @@ seguridad, backups, observabilidad y métricas. Traducido a este ROADMAP:
 #### 📍 Dónde estamos
 
 ✅ **Medido (2026-08-14).** El sistema funciona y cobra: dos compras reales
-acreditadas con comisión de plataforma, stock que sólo mueve la base, RLS
-verificada con roles reales, bloque A cerrado. La precisión de inventario ya se
-instrumenta por organización, pero su resultado depende de que cada comercio
-complete el conteo físico.
+acreditadas con comisión de plataforma, stock que sólo mueve la base y RLS
+verificada con roles reales. La precisión de inventario ya se instrumenta por
+organización, pero su resultado depende de que cada comercio complete el conteo
+físico. La auditoría del 2026-08-15 reabre un riesgo de circuito de plata:
+`create_sales_transaction` todavía acepta precio, costo y ganancia desde el
+cliente; C12 lo reemplaza por cálculo de servidor antes de sumar otro comercio.
 
 Y hay **un** comercio usándolo, que es el dueño. Todo lo demás del ROADMAP
 mejora un producto que todavía no demostró que alguien más lo quiera (R08).
@@ -333,6 +335,7 @@ proveedor se le estaría pidiendo que incumpla desde el día uno.
 | Qué | Estado |
 |---|---|
 | **C1** AFIP contra el organismo (= F15) | 🔴 El más importante y el más largo. La configuración ya queda atada a la organización activa, la prueba pide un Ticket de Acceso WSAA real y la UI no inventa CAE; sigue frenado por un certificado de homologación **que es gratis y hay que pedir**, más una primera factura de prueba. |
+| **C12** Autoridad de precio del POS | 🔴 `create_sales_transaction` ya ignora identidad, tenant y stock del navegador, pero aún toma precio, costo y ganancia de `p_sales`. Debe recalcular producto, variante, promoción, cupón, descuento por medio de pago e IVA en servidor; los overrides, si permanecen, necesitan rol, motivo y auditoría explícitos. |
 | **F1 + F3** Política de privacidad y datos del proveedor | 🟡 El generador ya los escribe. Falta cargar razón social, CUIT, domicilio y email, revisar y publicar. |
 | **F5** Consentimiento de marketing con fecha y origen | ✅ El checkout opt-in guarda fecha, origen y orden; campañas sólo alcanzan contactos con consentimiento verificable. |
 | **F11** Acotar la garantía a 6 meses | ✅ `trg_return_requests_warranty_window` aplica seis meses desde la entrega y no castiga una fecha de entrega ausente. |
@@ -534,6 +537,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | ~~C9b~~ | ~~Ingreso y ajuste de variante por depósito~~ | ✅ Slice 51. `adjust_stock` exige depósito para variantes con múltiples sucursales; Sucursales permite fijar el saldo final y la ficha no ofrece un ajuste global ambiguo. | — |
 | **C10** | **Reportes exportables y programados** | Hay reportes en pantalla. Falta "mandame el cierre de mes por email". | Todas |
 | ~~C11~~ | ~~Auditoría de quién cambió qué~~ | ✅ Slice 28: precio y Kardex guardan actor real; el cliente sólo puede leer la evidencia. | Shopify Plus |
+| **C12** | **Precio de venta calculado en servidor** | 🔴 Auditoría 2026-08-15: `create_sales_transaction` limita actor, organización, canal y stock, pero `jsonb_populate_record` aún acepta `unit_price_ars`, `total_ars`, `cost_of_goods_ars` y `profit_*` del navegador. Recalcular los importes contra producto/variante/promoción/cupón/medio de pago antes de cobrar; un override de caja debe ser una excepción autorizada y auditada, no un campo libre. | Todas |
 
 ---
 
