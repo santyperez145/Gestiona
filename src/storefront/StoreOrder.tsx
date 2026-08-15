@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import OrderTracking from "./OrderTracking";
+import StorePaymentBrick, { type StorePaymentBrickConfig } from "./StorePaymentBrick";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
 import { trackPurchase } from "./tracking";
@@ -27,8 +28,13 @@ export default function StoreOrder() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [pagando, setPagando] = useState(false);
+  const [preparandoTarjeta, setPreparandoTarjeta] = useState(false);
   const [pagoError, setPagoError] = useState<string | null>(null);
+  const [pagoAviso, setPagoAviso] = useState<string | null>(null);
+  const [brickConfig, setBrickConfig] = useState<StorePaymentBrickConfig | null>(null);
+  const [pagoEnProceso, setPagoEnProceso] = useState(false);
   const base = `/tienda/${store?.slug ?? ""}`;
+  const pedidoPendiente = order?.payment_status === "pending";
 
   const cargar = useCallback(async () => {
     if (!store?.slug || !orderNumber) return null;
@@ -76,16 +82,68 @@ export default function StoreOrder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.order_number]);
 
-  const pagar = async () => {
+  // Un pago con tarjeta puede quedar `pending`/`in_process` mientras MP hace
+  // una validación adicional. Durante ese intervalo no se habilita otro botón
+  // de cobro: dos intentos separados son peor experiencia que esperar unos
+  // segundos y pueden terminar en dos débitos. Si el webhook lo resuelve, la
+  // página recupera su estado normal; si no, el comprador puede volver más
+  // tarde al mismo pedido.
+  useEffect(() => {
+    if (!pagoEnProceso || !pedidoPendiente) {
+      if (pagoEnProceso && !pedidoPendiente) setPagoEnProceso(false);
+      return;
+    }
+    let intentos = 0;
+    const t = setInterval(async () => {
+      intentos++;
+      const fresco = await cargar();
+      if (intentos >= 10 || (fresco && fresco.payment_status !== "pending")) {
+        clearInterval(t);
+      }
+    }, 3000);
+    return () => clearInterval(t);
+  }, [pagoEnProceso, pedidoPendiente, cargar]);
+
+  const abrirPagoExterno = async () => {
     if (!store?.slug || !order) return;
     setPagando(true);
+    setPagoError(null);
     const { data } = await supabase.functions.invoke("store-pay", {
-      body: { slug: store.slug, orderNumber: order.order_number, returnUrl: window.location.origin },
+      body: { action: "redirect", slug: store.slug, orderNumber: order.order_number, returnUrl: window.location.origin },
     });
     setPagando(false);
     const url = (data as any)?.url;
     if (url) window.location.href = url;
     else setPagoError((data as any)?.error ?? "No se pudo abrir el pago online.");
+  };
+
+  const prepararPagoConTarjeta = async () => {
+    if (!store?.slug || !order) return;
+    setPreparandoTarjeta(true);
+    setPagoError(null);
+    setPagoAviso(null);
+    const { data, error } = await supabase.functions.invoke("store-pay", {
+      body: { action: "brick-config", slug: store.slug, orderNumber: order.order_number },
+    });
+    setPreparandoTarjeta(false);
+    const config = data as Partial<StorePaymentBrickConfig> & { error?: string } | null;
+    if (!error && config && typeof config.publicKey === "string" &&
+        Number.isFinite(Number(config.amount)) && Number(config.amount) > 0) {
+      setBrickConfig({ publicKey: config.publicKey, amount: Number(config.amount) });
+    } else {
+      setPagoError(config?.error ?? "No se pudo preparar el pago con tarjeta. Podés usar MercadoPago para elegir otro medio.");
+    }
+  };
+
+  const pagoEmbebidoTerminado = async (status: string) => {
+    setBrickConfig(null);
+    setPagoEnProceso(true);
+    if (status === "approved") {
+      setPagoAviso("¡Pago aprobado! Estamos actualizando el estado de tu pedido.");
+    } else {
+      setPagoAviso("MercadoPago está procesando el pago. Te avisamos apenas quede confirmado.");
+    }
+    await cargar();
   };
 
   if (loading) {
@@ -154,15 +212,54 @@ export default function StoreOrder() {
           <p className="text-xs mt-1" style={{ color: "hsl(var(--st-muted))" }}>
             Podés pagarlo ahora con MercadoPago y lo preparamos enseguida.
           </p>
-          <button
-            onClick={pagar}
-            disabled={pagando}
-            className="mt-3 w-full sm:w-auto px-6 py-2.5 text-sm font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
-            style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
-          >
-            {pagando ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-            Pagar {fmt(Number(order.total))}
-          </button>
+          {pagoEnProceso ? (
+            <div className="mt-4 py-3 text-xs" style={{ color: "hsl(var(--st-muted))" }} aria-live="polite">
+              <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+              Estamos confirmando el pago. No hace falta que lo intentes otra vez.
+            </div>
+          ) : brickConfig ? (
+            <div className="mt-4 text-left">
+              <p className="text-sm font-medium text-center mb-2">Pagá con tarjeta sin salir de la tienda</p>
+              <StorePaymentBrick
+                slug={store?.slug ?? ""}
+                orderNumber={order.order_number}
+                config={brickConfig}
+                onResult={pagoEmbebidoTerminado}
+              />
+              <div className="mt-3 pt-3 border-t text-center" style={{ borderColor: "hsl(var(--st-border))" }}>
+                <p className="text-xs mb-2" style={{ color: "hsl(var(--st-muted))" }}>¿Preferís billetera, efectivo u otro medio?</p>
+                <button
+                  onClick={abrirPagoExterno}
+                  disabled={pagando}
+                  className="text-xs underline underline-offset-4 disabled:opacity-60"
+                  style={{ color: "hsl(var(--st-accent))" }}
+                >
+                  {pagando ? "Abriendo MercadoPago..." : "Elegir otro medio en MercadoPago"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 flex flex-col sm:flex-row gap-2 justify-center">
+              <button
+                onClick={prepararPagoConTarjeta}
+                disabled={preparandoTarjeta || pagando}
+                className="w-full sm:w-auto px-6 py-2.5 text-sm font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+              >
+                {preparandoTarjeta ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                Pagar con tarjeta {fmt(Number(order.total))}
+              </button>
+              <button
+                onClick={abrirPagoExterno}
+                disabled={pagando || preparandoTarjeta}
+                className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium border disabled:opacity-60"
+                style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+              >
+                {pagando ? "Abriendo MercadoPago..." : "Otros medios en MercadoPago"}
+              </button>
+            </div>
+          )}
+          {pagoAviso && <p className="text-xs mt-3" style={{ color: "hsl(var(--st-muted))" }}>{pagoAviso}</p>}
           {pagoError && <p className="text-xs mt-2 text-red-600">{pagoError}</p>}
         </div>
       )}

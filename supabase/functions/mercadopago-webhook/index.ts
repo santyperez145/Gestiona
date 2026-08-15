@@ -3,6 +3,7 @@
 // Register at: MP Developers → Tus aplicaciones → Webhooks → URL de notificación
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getMpCredentials } from "../_shared/mpToken.ts";
+import { recordPaymentTransaction } from "../_shared/paymentSettlement.ts";
 
 /**
  * Verifica la firma del webhook de MercadoPago.
@@ -57,91 +58,6 @@ async function verifyMpSignature(
     return false;
   } catch {
     return false;
-  }
-}
-
-const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
-
-/** Estado de MercadoPago → estado de `payment_transactions`. */
-function mapStatus(mpStatus: string): string {
-  if (mpStatus === "approved") return "approved";
-  if (mpStatus === "rejected" || mpStatus === "cancelled") return "rejected";
-  if (mpStatus === "refunded") return "refunded";
-  if (mpStatus === "charged_back") return "charged_back";
-  return "pending";
-}
-
-/** `payment_type_id` de MP → `method` de nuestro tarifario. */
-function mapMethod(mpType: string): string {
-  switch (mpType) {
-    case "credit_card": return "credit";
-    case "debit_card": return "debit";
-    case "account_money": return "wallet";
-    case "ticket":
-    case "atm": return "cash";
-    case "bank_transfer": return "transfer";
-    default: return "default";
-  }
-}
-
-/**
- * Registra el cobro con su desglose de comisiones delegando en el RPC
- * `record_payment_settlement`.
- *
- * Antes esta cuenta estaba duplicada acá en TypeScript. Dos copias de la misma
- * fórmula de plata terminan divergiendo — y de hecho divergieron: esta copia
- * detectaba el canal con el prefijo `order:`, que es el que usaba un checkout
- * que se descartó, mientras `store-pay` usa `ecom:`. Resultado: cada venta de
- * la tienda online se liquidaba con la regla de comisión del local.
- *
- * Ahora la única implementación server-side vive en SQL (migración
- * 20260731000002), espejo del módulo puro `src/lib/paymentFees.ts` que usa el
- * front. El RPC es idempotente por (provider, external_id).
- */
-async function recordPaymentTransaction(
-  admin: ReturnType<typeof createClient>,
-  args: {
-    orgId: string;
-    paymentId: string;
-    payment: any;
-    status: string;
-    gross: number;
-    externalRef: string;
-  },
-) {
-  const { orgId, paymentId, payment, status, gross, externalRef } = args;
-  if (!orgId || gross <= 0) return;
-
-  try {
-    // El prefijo del external_reference define el canal, y el canal define qué
-    // regla de comisión aplica. `store-pay` marca sus preferencias con "ecom:".
-    const isStoreOrder = externalRef.startsWith("ecom:") || externalRef.startsWith("order:");
-    const refId = externalRef.includes(":") ? externalRef.split(":")[1] : externalRef;
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(refId);
-
-    // MP informa lo que efectivamente cobró: ese número gana sobre el tarifario.
-    const actualFee = (payment.fee_details || [])
-      .filter((f: any) => f.type === "mercadopago_fee")
-      .reduce((sum: number, f: any) => sum + (Number(f.amount) || 0), 0);
-
-    const { error } = await admin.rpc("record_payment_settlement", {
-      p_org_id: orgId,
-      p_source: isStoreOrder ? "ecommerce" : "payment_link",
-      p_source_id: isUuid ? refId : null,
-      p_provider: "mercadopago",
-      p_method: mapMethod(payment.payment_type_id || ""),
-      p_installments: Number(payment.installments) || 0,
-      p_gross: round2(gross),
-      p_external_id: paymentId,
-      p_actual_fee: actualFee > 0 ? round2(actualFee) : null,
-      p_currency: payment.currency_id || "ARS",
-      p_status: mapStatus(status),
-    });
-    if (error) throw error;
-  } catch (e) {
-    // No romper el webhook por esto: el pago ya está confirmado y MP no debe
-    // reintentar. Queda en logs para reconciliar después.
-    console.error(`record_payment_settlement falló para ${paymentId}:`, e);
   }
 }
 

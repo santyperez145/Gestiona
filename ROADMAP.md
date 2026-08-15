@@ -100,7 +100,9 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 42 (2026-08-15):** la tienda ya no se declara lista sólo porque puede cobrar y cotizar. Términos y privacidad tienen que existir, no conservar una plantilla y estar publicados: un borrador queda explícitamente pendiente porque el comprador todavía no puede leerlo. El generador conserva su regla de crear borradores —el sistema no firma texto legal por el comercio— y ahora avisa que hay que revisarlos y publicarlos, sin volver a pedir los datos si ya hay borradores que sólo falta revisar. El estado de tienda enlaza directamente a Páginas legales y arranca conservador si no logra leerlas. Validado con pruebas puras para texto faltante, plantilla, borrador y publicación; no se alteró ni publicó contenido legal de ningún comercio.
 
-**Actualización de foco (2026-08-15):** este documento queda reconciliado hasta el slice 41. La base técnica de MercadoLibre ya publica, importa órdenes `paid`, concilia comisión/envío del vendedor, recibe el webhook y tiene cron multi-organización protegido; todavía no es evidencia comercial hasta conectar una cuenta real, configurar Callback URL + tópico `Orders` y cargar el secreto del cron. La recepción de compras ahora conserva evidencia inmutable y serializada, y la tienda enlaza por email al mismo cliente de CRM. Para usuarios eso reduce errores de stock, datos duplicados y márgenes engañosos; para inversión, el próximo hito no es otra pantalla sino evidencia fechada: AFIP homologado, segundo comercio real activado y una primera venta omnicanal medida. No se agrega un módulo si no acerca uno de esos tres resultados.
+**Slice funcional 46 (2026-08-15):** B4 deja de ser sólo un redirect: las tarjetas se pueden tokenizar dentro de la página de pedido mediante el SDK oficial de MercadoPago. La Edge Function relee la orden, ignora el monto del formulario, usa una clave de idempotencia por intento, valida la respuesta del proveedor antes de acreditar ventas o stock y cobra `application_fee` cuando la cuenta está conectada por OAuth. Si MercadoPago queda procesando, la pantalla bloquea un segundo cobro y vuelve a consultar el pedido. Billetera, efectivo y las conexiones legadas conservan el checkout externo, por lo que la mejora no deja a nadie sin medio de pago. La liquidación se comparte con el webhook para que la comisión real no dependa del canal. Las Functions `store-pay` v22 y `mercadopago-webhook` v28 quedaron `ACTIVE`; falta una compra completa con cuenta de prueba de MercadoPago antes de cerrar B4.
+
+**Actualización de foco (2026-08-15):** este documento queda reconciliado hasta el slice 46. La base técnica de MercadoLibre ya publica, importa órdenes `paid`, concilia comisión/envío del vendedor, recibe el webhook y tiene cron multi-organización protegido; todavía no es evidencia comercial hasta conectar una cuenta real, configurar Callback URL + tópico `Orders` y cargar el secreto del cron. El Brick de tarjeta ya reduce un salto del checkout, pero no se declara completo hasta verificar aprobado, rechazado y pendiente con credenciales de prueba sin tocar una tarjeta ni una orden real. Para usuarios eso reduce fricción y errores de stock; para inversión, el próximo hito no es otra pantalla sino evidencia fechada: AFIP homologado, segundo comercio real activado y una primera venta omnicanal medida. No se agrega un módulo si no acerca uno de esos tres resultados.
 
 ## 1. Qué es
 
@@ -230,7 +232,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Parcial** | La configuración y la prueba WSAA son reales y no simulan CAE; falta certificado de homologación y emitir una factura contra el organismo. |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **946 unitarios** (`npm test`, 2026-08-15) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **958 unitarios** (`npm test`, 2026-08-15) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -481,7 +483,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | **B1** | **Revisar las tarifas de envío** | 1 provincia de 24 tiene tarifa. `Completar el tarifario` las estima; falta contrastarlas con el correo. | Todas |
 | **B2** | **Etiqueta por API del correo** | La imprimible funciona; la de Correo Argentino y Andreani necesita contrato. | Tiendanube |
 | ~~B3~~ | ~~Checkout en un paso~~ | ✅ Slice 44. Un solo formulario responsive muestra datos, entrega, pago, cupón y resumen; no hay pasos ni cuenta obligatoria. El retiro se ofrece sin pedir provincia y la entrega exige domicilio utilizable. | Empretienda, Shopify |
-| **B4** | **Pago embebido (Checkout Bricks)** | Se redirige a MercadoPago y se vuelve. Embebido convierte más. | Tiendanube, ML |
+| **B4** | **Pago embebido (Checkout Bricks)** | 🟡 Slice 46: tarjetas de crédito/débito/prepaga se cobran dentro de la página con el SDK oficial, total y comisión revalidados en servidor e idempotencia. Sólo se habilita para OAuth con clave pública; billetera, efectivo y conexiones legadas siguen por checkout externo. Falta una pasada aprobada/rechazada/pendiente con cuenta de prueba antes de cerrarlo. | Tiendanube, ML |
 | ~~B5~~ | ~~Avisos de cada cambio de estado~~ | ✅ Slice 45. El operador avanza una orden preparada y paga a “en camino” y luego “entregada”; el comprador recibe un email idempotente por cada evento y conserva seguimiento sin cuenta. | Todas |
 | **B6** | **Multi-moneda** | Todo en ARS. `currency` existe y no convierte. Necesita A9 primero. | Shopify |
 | **B7** | **Reseñas con foto** | Hay reseñas verificadas, sin imagen. | ML |
@@ -693,6 +695,39 @@ Lo que se hizo y —más importante— qué se encontró roto en el camino. Los
 mensajes de commit son largos a propósito y amplían cada entrada.
 
 > Resumen condensado. El registro completo detallado está en el archivo.
+
+### Slice 46 — Tarjeta sin abandonar la tienda, sin inventar una segunda fuente de verdad (2026-08-15)
+
+El redirect a MercadoPago mantiene todos los medios, pero agrega un salto justo
+antes de pagar. B4 avanza con el `Payment Brick` oficial para tarjetas de
+crédito, débito y prepaga: la persona permanece en la página del pedido y los
+datos sensibles se tokenizan en MercadoPago; Gestiona no ve ni guarda el número
+de tarjeta.
+
+No es un formulario que cobre lo que dice el navegador. `store-pay` vuelve a
+buscar la orden, usa su total ya calculado por el Business Core, descarta
+`transaction_amount` del Brick, valida token, método, cuotas y una clave de
+idempotencia, y compara importe, moneda y `external_reference` de la respuesta
+de MercadoPago antes de ejecutar `mark_store_order_paid`. Si el proveedor queda
+procesando, la pantalla deja de ofrecer un segundo cobro y consulta el pedido
+hasta que webhook/servidor lo resuelvan. El pago directo usa
+`application_fee` para que la comisión de la plataforma se cobre junto con la
+acreditación OAuth. La liquidación real quedó extraída a un helper que comparten
+el Brick y el webhook, por lo que ambos registran la misma comisión y canal.
+
+El camino embebido sólo aparece cuando la conexión OAuth tiene clave pública.
+El checkout externo queda visible como alternativa para billetera, efectivo y
+las conexiones previas por token: mejorar la conversión de tarjetas no puede
+quitarle medios de cobro a un comercio. Se agregó `@mercadopago/sdk-react` y la
+guarda `storePayBrickAuthority` para que una edición futura no vuelva a confiar
+en precios de la pantalla ni pierda la idempotencia.
+
+Las Functions `store-pay` v22 y `mercadopago-webhook` v28 están `ACTIVE`. Una
+llamada pública deliberadamente inválida respondió `400 Body inválido`,
+confirmando el código nuevo sin crear orden ni llamar a MercadoPago. Falta la
+evidencia que no se puede fabricar sin una cuenta de prueba: ejecutar pagos
+aprobado, rechazado y pendiente y comprobar una venta, una reserva, un Kardex y
+una liquidación de comisión por caso. Hasta entonces B4 se mantiene 🟡.
 
 ### Slice 45 — El pedido sigue existiendo después de cobrar (2026-08-15)
 
