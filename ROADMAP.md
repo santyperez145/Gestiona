@@ -98,6 +98,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 41 (2026-08-15):** una recepción parcial ya no se puede desalinear desde una edición directa: los renglones con recibos quedan inmutables, `quantity_received` y los estados `partially_received`/`received` sólo los actualiza el RPC que crea la compra y su asiento de stock. La UI deja de ofrecer editar una OC parcialmente recibida. El guard conserva la eliminación en cascada de una organización, para que proteger el historial no impida portabilidad ni borrado del tenant. Verificado contra la base con cambios directos rechazados, recepción final legítima y cero filas ZZ.
 
+**Slice funcional 42 (2026-08-15):** la tienda ya no se declara lista sólo porque puede cobrar y cotizar. Términos y privacidad tienen que existir, no conservar una plantilla y estar publicados: un borrador queda explícitamente pendiente porque el comprador todavía no puede leerlo. El generador conserva su regla de crear borradores —el sistema no firma texto legal por el comercio— y ahora avisa que hay que revisarlos y publicarlos. El estado de tienda enlaza directamente a Páginas legales y arranca conservador si no logra leerlas. Validado con pruebas puras para texto faltante, plantilla, borrador y publicación; no se alteró ni publicó contenido legal de ningún comercio.
+
 **Actualización de foco (2026-08-15):** este documento queda reconciliado hasta el slice 41. La base técnica de MercadoLibre ya publica, importa órdenes `paid`, concilia comisión/envío del vendedor, recibe el webhook y tiene cron multi-organización protegido; todavía no es evidencia comercial hasta conectar una cuenta real, configurar Callback URL + tópico `Orders` y cargar el secreto del cron. La recepción de compras ahora conserva evidencia inmutable y serializada, y la tienda enlaza por email al mismo cliente de CRM. Para usuarios eso reduce errores de stock, datos duplicados y márgenes engañosos; para inversión, el próximo hito no es otra pantalla sino evidencia fechada: AFIP homologado, segundo comercio real activado y una primera venta omnicanal medida. No se agrega un módulo si no acerca uno de esos tres resultados.
 
 ## 1. Qué es
@@ -228,7 +230,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **941 unitarios** (`npm test`, 2026-08-15) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **946 unitarios** (`npm test`, 2026-08-15) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -310,7 +312,7 @@ proveedor se le estaría pidiendo que incumpla desde el día uno.
 |---|---|
 | **C1** AFIP contra el organismo (= F15) | 🔴 El más importante y el más largo. Frenado por un certificado de homologación **que es gratis y hay que pedir**. |
 | **F1 + F3** Política de privacidad y datos del proveedor | 🟡 El generador ya los escribe. Falta cargar razón social, CUIT, domicilio y email, revisar y publicar. |
-| **F5** Consentimiento de marketing con fecha y origen | 🟠 Una columna y un checkbox. Antes de mandarle campañas a clientes de otro comercio. |
+| **F5** Consentimiento de marketing con fecha y origen | ✅ El checkout opt-in guarda fecha, origen y orden; campañas sólo alcanzan contactos con consentimiento verificable. |
 | **F11** Acotar la garantía a 6 meses | ✅ `trg_return_requests_warranty_window` aplica seis meses desde la entrega y no castiga una fecha de entrega ausente. |
 | **F10** El envío de vuelta lo paga el vendedor | ✅ El arrepentimiento de una orden online queda a cargo del comercio y el portal registra su costo. |
 

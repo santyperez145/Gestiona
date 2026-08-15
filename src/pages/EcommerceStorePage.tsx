@@ -14,7 +14,7 @@ import {
   Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin, Truck,
   Image as ImageIcon, Type,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
 import QuestionsModeration from "@/components/ecommerce/QuestionsModeration";
@@ -26,6 +26,7 @@ import StoreBannersEditor from "@/components/ecommerce/StoreBannersEditor";
 import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
 import ImageUpload from "@/components/shared/ImageUpload";
 import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
+import { estadoPublicacionLegal } from "@/lib/legalPages";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -87,10 +88,22 @@ interface FunnelRow {
   color: string;
 }
 
+const STORE_TAB_IDS = ["overview", "orders", "reviews", "categorias", "pages", "banners", "design", "settings"] as const;
+type StoreTab = typeof STORE_TAB_IDS[number];
+
+function isStoreTab(value: string | null): value is StoreTab {
+  return value !== null && (STORE_TAB_IDS as readonly string[]).includes(value);
+}
+
 export default function EcommerceStorePage() {
   usePageTitle("Tienda E-Commerce");
   const { orgId } = useOrganization();
-  const [tab, setTab] = useState<"overview" | "orders" | "reviews" | "categorias" | "pages" | "banners" | "design" | "settings">("overview");
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<StoreTab>("overview");
+  const requestedTab = searchParams.get("tab");
+  useEffect(() => {
+    if (isStoreTab(requestedTab)) setTab(requestedTab);
+  }, [requestedTab]);
   // Opiniones y preguntas comparten pestaña: son las dos cosas que escribe el
   // comprador y que el comercio contesta. Separarlas agregaba una pestaña más a
   // una fila que ya tiene siete.
@@ -125,6 +138,9 @@ export default function EcommerceStorePage() {
     zonesWithRates: 0,
     coveredProvinces: 0,
     paymentConnected: false,
+    // Hasta poder leer las páginas, es más seguro advertir que faltan que
+    // presentar una tienda como apta para recibir datos personales.
+    legalPages: { missingOrTemplate: 2, drafts: 0 },
   });
   const [orders, setOrders] = useState<EcomOrder[]>([]);
   const [envioDe, setEnvioDe] = useState<EcomOrder | null>(null);
@@ -216,8 +232,11 @@ export default function EcommerceStorePage() {
       supabase.from("shipping_zones").select("id, provinces")
         .eq("org_id", orgId).eq("is_active", true),
       supabase.from("shipping_rates").select("zone_id").eq("org_id", orgId).eq("is_active", true),
+      supabase.from("store_pages").select("slug, content, status")
+        .eq("org_id", orgId)
+        .in("slug", ["politica-de-privacidad", "terminos-y-condiciones"]),
       fetchPaymentStatus(orgId),
-    ]).then(([prods, sinPeso, zonas, tarifas, ajustes]) => {
+    ]).then(([prods, sinPeso, zonas, tarifas, paginas, ajustes]) => {
       const zonasList = (zonas.data ?? []) as { id: string; provinces: string[] | null }[];
       const conTarifa = new Set(((tarifas.data ?? []) as { zone_id: string }[]).map(r => r.zone_id));
       // Una provincia está cubierta si su zona tiene al menos una tarifa. Antes
@@ -228,6 +247,10 @@ export default function EcommerceStorePage() {
         zonasList.filter(z => conTarifa.has(z.id)).flatMap(z => z.provinces ?? []),
       );
       const cobro = ajustes;
+      const estadoLegal = estadoPublicacionLegal(
+        (paginas.data ?? []) as { slug: string; content: string | null; status: string | null }[],
+      );
+      if (paginas.error) console.error("No se pudieron leer las páginas legales", paginas.error);
       setSignals({
         publishedProducts: prods.count ?? 0,
         productsWithoutWeight: sinPeso.count ?? 0,
@@ -235,6 +258,10 @@ export default function EcommerceStorePage() {
         zonesWithRates: zonasList.filter(z => conTarifa.has(z.id)).length,
         coveredProvinces: provincias.size,
         paymentConnected: cobro.connected,
+        legalPages: {
+          missingOrTemplate: estadoLegal.faltantesOPlantilla,
+          drafts: estadoLegal.borradores,
+        },
       });
     }, () => { /* si falla, el panel muestra el estado conservador */ });
 
@@ -321,7 +348,7 @@ export default function EcommerceStorePage() {
 
   const filteredOrders = orders.filter(o => !orderFilter || o.fulfillment_status === orderFilter);
 
-  const TABS = [
+  const TABS: { id: StoreTab; label: string }[] = [
     { id: "overview",  label: "Overview" },
     { id: "orders",    label: "Órdenes" },
     { id: "reviews",   label: "Opiniones y preguntas" },
@@ -389,7 +416,7 @@ export default function EcommerceStorePage() {
       {/* Tabs */}
       <div className="flex flex-wrap gap-1 bg-muted/30 p-1 rounded-xl w-fit max-w-full">
         {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id as any)}
+          <button key={t.id} onClick={() => setTab(t.id)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {t.label}
           </button>

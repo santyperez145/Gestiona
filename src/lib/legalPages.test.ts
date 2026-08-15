@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   datosFaltantes, esPlantillaSinCompletar, formatearCuit,
-  politicaDePrivacidad, terminosYCondiciones, paginasLegalesPendientes,
+  politicaDePrivacidad, terminosYCondiciones, paginasLegalesPendientes, estadoPublicacionLegal,
   type DatosDelComercio,
 } from "./legalPages";
 
@@ -167,5 +167,35 @@ describe("paginasLegalesPendientes", () => {
       slug: p.slug, content: p.content,
     }));
     expect(paginasLegalesPendientes(D, generadas)).toEqual([]);
+  });
+});
+
+describe("estadoPublicacionLegal", () => {
+  const propias = [
+    { slug: "terminos-y-condiciones", content: "## Términos revisados", status: "published" },
+    { slug: "politica-de-privacidad", content: "## Privacidad revisada", status: "published" },
+  ];
+
+  it("sólo queda lista cuando las dos páginas se ven públicamente", () => {
+    expect(estadoPublicacionLegal(propias)).toEqual({
+      listaParaPublicar: true, faltantesOPlantilla: 0, borradores: 0,
+    });
+  });
+
+  it("distingue un borrador de una página faltante", () => {
+    expect(estadoPublicacionLegal([
+      { slug: "terminos-y-condiciones", content: "## Términos revisados", status: "draft" },
+    ])).toEqual({
+      listaParaPublicar: false, faltantesOPlantilla: 1, borradores: 1,
+    });
+  });
+
+  it("una plantilla publicada sigue siendo incompleta", () => {
+    expect(estadoPublicacionLegal([
+      { slug: "terminos-y-condiciones", content: "Mi Tienda Online. Completá acá tus datos", status: "published" },
+      { slug: "politica-de-privacidad", content: "## Privacidad", status: "published" },
+    ])).toEqual({
+      listaParaPublicar: false, faltantesOPlantilla: 1, borradores: 0,
+    });
   });
 });

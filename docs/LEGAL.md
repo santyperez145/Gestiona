@@ -13,7 +13,7 @@ con el estado medido contra la base cuando se pudo.
 
 | | Qué | Riesgo |
 |---|---|---|
-| 🟡 **L1** | **No había política de privacidad.** Ley 25.326 la exige apenas se recolecta un email. **Sesión 109:** el generador la escribe con los datos del comercio y los proveedores reales; falta que el dueño la revise y publique. | Multa de la AAIP y, en la práctica, rechazo de MercadoPago al revisar la cuenta. |
+| 🟡 **L1** | **No había política de privacidad.** Ley 25.326 la exige apenas se recolecta un email. **Sesión 109/42:** el generador la escribe con los datos del comercio y los proveedores reales; el estado de tienda trata como bloqueante que falte, sea plantilla o siga en borrador. Falta que el dueño la revise y publique. | Multa de la AAIP y, en la práctica, rechazo de MercadoPago al revisar la cuenta. |
 | ✅ **L2** | **Botón de arrepentimiento en la primera pantalla.** Resuelto en la sesión 108: barra superior, a 4px del tope, verificado en 1280 y en 375. | — |
 | 🟠 **L3** | **El descuento por medio de pago toca la Ley 25.065.** Art. 37: no se puede cobrar más por tarjeta. Un descuento por transferencia es la práctica habitual, pero la lectura no es unánime. | Necesita opinión profesional, no una decisión de producto. |
 | ✅ **L4** | **Consentimiento y baja de marketing.** El checkout guarda fecha/origen opt-in y las campañas sólo alcanzan clientes consentidos; email y WhatsApp incluyen baja efectiva. | Ley 25.326 art. 27. No Llame sigue aplicando si se habilitan campañas telefónicas. |

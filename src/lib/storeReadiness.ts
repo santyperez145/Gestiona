@@ -49,6 +49,11 @@ export interface StoreReadinessInput {
   coveredProvinces: number;
   /** MercadoPago efectivamente conectado (token o OAuth) */
   paymentConnected: boolean;
+  /** Páginas que faltan, siguen como plantilla o todavía son borradores. */
+  legalPages: {
+    missingOrTemplate: number;
+    drafts: number;
+  };
 }
 
 export interface StoreReadiness {
@@ -182,6 +187,27 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     done: !!s?.slug,
     actionLabel: 'Configurar',
     actionHref: '/tienda-online',
+  });
+
+  // ── Información legal para quien compra ────────────────────────────────
+  const legalMissing = input.legalPages.missingOrTemplate;
+  const legalDrafts = input.legalPages.drafts;
+  const legalDone = legalMissing === 0 && legalDrafts === 0;
+  const legalDetail = legalMissing > 0
+    ? legalMissing === 1
+      ? 'Falta la política de privacidad o los términos, o siguen con una plantilla sin completar: el comprador no sabe quién vende ni cómo se tratan sus datos.'
+      : 'Faltan la política de privacidad y los términos, o siguen con plantillas sin completar: el comprador no sabe quién vende ni cómo se tratan sus datos.'
+    : legalDrafts === 1
+      ? 'Hay una página legal en borrador. Revisala y publicala antes de recibir datos de compradores.'
+      : 'Las páginas legales están en borrador. Revisalas y publicalas antes de recibir datos de compradores.';
+  checks.push({
+    id: 'legal-pages',
+    title: 'Publicar términos y privacidad',
+    detail: legalDone ? 'Términos y política de privacidad publicados.' : legalDetail,
+    severity: 'blocker',
+    done: legalDone,
+    actionLabel: 'Completar legales',
+    actionHref: '/tienda-online?tab=pages',
   });
 
   checks.push({

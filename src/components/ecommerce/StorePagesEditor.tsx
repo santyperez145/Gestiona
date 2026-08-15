@@ -147,7 +147,7 @@ export default function StorePagesEditor({ storeId, storeSlug }: { storeId: stri
         que la plantilla quedó sin completar dos años. */}
     <LegalPagesPanel
       storeId={storeId}
-      existentes={pages.map(p => ({ slug: p.slug, content: p.content }))}
+      existentes={pages.map(p => ({ slug: p.slug, content: p.content, status: p.status }))}
       onAplicado={cargar}
     />
 

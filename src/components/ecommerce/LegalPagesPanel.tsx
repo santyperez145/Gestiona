@@ -32,14 +32,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Scale, Loader2, Eye, Check } from "lucide-react";
 import {
-  datosFaltantes, etiquetaDeCampo, paginasLegalesPendientes,
+  datosFaltantes, etiquetaDeCampo, paginasLegalesPendientes, estadoPublicacionLegal,
   type DatosDelComercio, type PaginaLegal,
 } from "@/lib/legalPages";
 
 interface Props {
   storeId: string | null;
   /** Las páginas que ya existen, para no proponer lo que ya está escrito. */
-  existentes: { slug: string; content: string | null }[];
+  existentes: { slug: string; content: string | null; status?: string | null }[];
   /** Para que el editor recargue después de aplicar. */
   onAplicado: () => void;
 }
@@ -93,6 +93,10 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
     () => (faltan.length ? [] : paginasLegalesPendientes(datos, existentes)),
     [faltan, datos, existentes],
   );
+  const estadoPublicacion = useMemo(
+    () => estadoPublicacionLegal(existentes),
+    [existentes],
+  );
 
   const aplicar = async () => {
     if (!orgId || !storeId || pendientes.length === 0) return;
@@ -123,7 +127,7 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
   };
 
   if (cargando || !storeId) return null;
-  if (faltan.length === 0 && pendientes.length === 0) {
+  if (faltan.length === 0 && pendientes.length === 0 && estadoPublicacion.listaParaPublicar) {
     return (
       <div className="rounded-lg border p-4 flex items-start gap-3 text-sm">
         <Check className="w-4 h-4 mt-0.5 text-green-600 shrink-0" />
@@ -220,6 +224,14 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
             asesoramiento legal — conviene que lo revise un profesional.
           </p>
         </div>
+      )}
+
+      {estadoPublicacion.borradores > 0 && (
+        <p className="text-xs text-amber-700 dark:text-amber-400">
+          {estadoPublicacion.borradores === 1
+            ? "Hay una página legal escrita pero en borrador. Abrila, revisala y marcala como publicada antes de activar la tienda."
+            : "Las páginas legales están escritas pero en borrador. Abrilas, revisalas y marcalas como publicadas antes de activar la tienda."}
+        </p>
       )}
     </div>
   );

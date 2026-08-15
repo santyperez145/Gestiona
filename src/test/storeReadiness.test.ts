@@ -25,6 +25,7 @@ function tiendaLista(over: Partial<StoreReadinessInput> = {}): StoreReadinessInp
     zonesWithRates: 6,
     coveredProvinces: 24,
     paymentConnected: true,
+    legalPages: { missingOrTemplate: 0, drafts: 0 },
     ...over,
   };
 }
@@ -137,6 +138,23 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
     expect(idsDe(r.blockers)).toContain('slug');
   });
 
+  it('sin términos o privacidad publicados no presenta la tienda como lista', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      legalPages: { missingOrTemplate: 1, drafts: 0 },
+    }));
+    const check = r.blockers.find(x => x.id === 'legal-pages');
+    expect(check?.detail).toContain('plantilla');
+    expect(r.canPublish).toBe(false);
+  });
+
+  it('un borrador legal no alcanza: el comprador tiene que poder verlo', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      legalPages: { missingOrTemplate: 0, drafts: 2 },
+    }));
+    expect(idsDe(r.blockers)).toContain('legal-pages');
+    expect(r.blockers.find(x => x.id === 'legal-pages')?.detail).toContain('borrador');
+  });
+
   it('sin tienda configurada, todos los bloqueantes están presentes', () => {
     const r = evaluateStoreReadiness({
       store: null,
@@ -146,9 +164,10 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
       zonesWithRates: 0,
       coveredProvinces: 0,
       paymentConnected: false,
+      legalPages: { missingOrTemplate: 2, drafts: 0 },
     });
     expect(idsDe(r.blockers)).toEqual(
-      expect.arrayContaining(['products', 'payments', 'slug']));
+      expect.arrayContaining(['products', 'payments', 'slug', 'legal-pages']));
     expect(r.canPublish).toBe(false);
   });
 });

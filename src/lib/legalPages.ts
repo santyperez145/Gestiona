@@ -272,6 +272,50 @@ export interface PaginaLegal {
   motivo: "falta" | "plantilla";
 }
 
+/** Las dos páginas mínimas antes de recibir datos y pagos en la tienda. */
+export const SLUGS_LEGALES_OBLIGATORIOS = [
+  "politica-de-privacidad",
+  "terminos-y-condiciones",
+] as const;
+
+export interface EstadoPublicacionLegal {
+  /** Hay contenido propio (o generado y revisado) publicado para ambas páginas. */
+  listaParaPublicar: boolean;
+  /** Falta la página o conserva texto semilla que no identifica al comercio. */
+  faltantesOPlantilla: number;
+  /** El texto existe pero todavía no lo ve quien compra. */
+  borradores: number;
+}
+
+/**
+ * Distingue "hay texto" de "el comprador lo puede leer".
+ *
+ * El generador crea borradores a propósito: publicar una política por el
+ * comercio sería firmarla en su nombre. Por eso un borrador no habilita la
+ * tienda, aunque no sea una plantilla incompleta.
+ */
+export function estadoPublicacionLegal(
+  existentes: { slug: string; content: string | null; status?: string | null }[],
+): EstadoPublicacionLegal {
+  let faltantesOPlantilla = 0;
+  let borradores = 0;
+
+  for (const slug of SLUGS_LEGALES_OBLIGATORIOS) {
+    const pagina = existentes.find(p => p.slug === slug);
+    if (!pagina || esPlantillaSinCompletar(pagina.content)) {
+      faltantesOPlantilla += 1;
+    } else if (pagina.status !== "published") {
+      borradores += 1;
+    }
+  }
+
+  return {
+    listaParaPublicar: faltantesOPlantilla === 0 && borradores === 0,
+    faltantesOPlantilla,
+    borradores,
+  };
+}
+
 /**
  * Qué páginas legales hay que crear o reemplazar.
  *
