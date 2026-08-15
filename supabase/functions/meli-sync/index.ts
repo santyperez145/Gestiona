@@ -5,6 +5,7 @@
  *   publish      → publica un producto y guarda el vínculo en meli_listings
  *   sync-stock   → empuja stock y precio de todas las publicaciones activas
  *   pull-orders  → baja las órdenes nuevas a meli_orders
+ *   import-order → convierte una orden paid ya bajada en ventas del Core
  *
  * El token se lee de `meli_connections` con service_role y se renueva solo si
  * está por vencer: MercadoLibre expira el access_token a las 6 horas, así que
@@ -104,7 +105,7 @@ Deno.serve(async (req) => {
     const userId = userRes?.user?.id;
     if (!userId) return json({ error: "No autenticado" }, 401);
 
-    const { action, orgId, productId, categoryId, listingType } = await req.json();
+    const { action, orgId, productId, categoryId, listingType, meliOrderId } = await req.json();
     if (!orgId) return json({ error: "orgId es requerido" }, 400);
 
     const { data: membership } = await asUser
@@ -115,6 +116,24 @@ Deno.serve(async (req) => {
     }
 
     const admin = createClient(supabaseUrl, serviceKey);
+
+    // Importar no llama a MercadoLibre: trabaja sobre la orden inmutable que
+    // ya se descargó. Por eso sigue funcionando si el token venció o la cuenta
+    // se desconectó después de traerla; exigirle OAuth acá dejaría ventas
+    // cobradas fuera del stock único por un problema ajeno al pedido.
+    if (action === "import-order") {
+      if (!meliOrderId) return json({ error: "meliOrderId es requerido" }, 400);
+
+      const { data, error } = await admin.rpc("import_meli_order_as_sales", {
+        p_org_id: orgId,
+        p_meli_order_id: meliOrderId,
+        p_actor_id: userId,
+      });
+      if (error) return json({ error: error.message }, 400);
+
+      return json({ ok: true, ...(data ?? {}) });
+    }
+
     const conn = await getToken(admin, orgId);
 
     // ── publish ───────────────────────────────────────────────────────────
@@ -243,6 +262,10 @@ Deno.serve(async (req) => {
           item_id: i.item?.id,
           quantity: i.quantity,
           unit_price: i.unit_price,
+          // Es la comisión que MercadoLibre informó para esta venta. No se
+          // recalcula en el navegador ni con una tarifa estimada: al importar
+          // queda guardada junto a la línea para el margen por canal.
+          sale_fee: i.sale_fee ?? null,
         })),
         date_created: o.date_created ?? null,
         raw: o,

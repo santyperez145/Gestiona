@@ -72,6 +72,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de confiabilidad 28 (2026-08-14):** C11 deja de ser un historial parcial y modificable. `price_history` y `stock_movements` quedan sin políticas de escritura para el cliente; el precio se registra una sola vez desde el trigger y Kardex sólo se escribe por RPCs con actor autenticado. `adjust_stock` y el movimiento manual exigen que `p_created_by` sea el JWT; retornos, notas de crédito y canjes usan `record_member_stock_movement`, que toma producto, variante y actor de la organización. Tras confirmar que Vercel ya servía el frontend compatible, `record_stock_movement` quedó revocada para `anon` y `authenticated`: sólo la usan triggers y wrappers `SECURITY DEFINER`. Productos muestra el responsable de cada precio; Kardex lo agrega a la tabla y CSV. Dos pruebas contra la base vinculada con organizaciones `ZZ` bloquearon DML directo y el RPC legacy, confirmaron actor JWT y borraron todos los restos. Typecheck, lint sin errores, 901 tests y build/PWA completados; sin `.env`, no se abrió una sesión real en el navegador.
 
+**Slice de confiabilidad 29 (2026-08-14):** una orden `paid` de MercadoLibre ya no queda aislada en `meli_orders`: se importa atómicamente como una venta por producto, deja que el trigger existente descuente el stock una vez y registra la comisión real (`sale_fee`) en cada línea y en `payment_transactions`. El navegador sólo selecciona la orden; el RPC toma productos del vínculo publicado, precio/costo/comisión de datos persistidos y sólo puede ejecutarlo `service_role`. Órdenes y publicaciones quedan de sólo lectura para el cliente, para que nadie pueda editar un payload descargado y convertirlo en una venta falsa. La prueba ZZ creó una orden de dos líneas, verificó la idempotencia, dos movimientos de Kardex, comisión y neto, y limpió todo. El botón vive en Integraciones y `meli-sync` quedó desplegada. Falta publicar desde la ficha, cron/webhook multi-organización y el costo de envío real de ML para completar C7/E4. Typecheck, lint sin errores, 908 tests y build/PWA completados; sin `.env`, no se abrió una sesión real en el navegador.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -193,11 +195,11 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | MFA | Anda | — |
 | Auditoría | Anda | — |
 | Export y supresión de datos (Ley 25.326) | Anda | — |
-| MercadoLibre | Parcial | Falta publicar desde la ficha, importar órdenes y cron multi-org |
+| MercadoLibre | Parcial | Importa órdenes `paid` al Core; falta publicar desde la ficha y cron/webhook multi-org. |
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **895 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **908 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -333,7 +335,7 @@ Antes sería construirlo para una sola persona.
 | Qué | Estado |
 |---|---|
 | **E4** ⭐ Margen real por canal | El diferencial más defendible, y sale casi gratis: los cuatro datos ya están (ver §2). |
-| **C7** MercadoLibre completo | *"Vendé en el local, en tu tienda y en ML con el mismo stock"* es concreto y verificable. Falta publicar desde la ficha, importar órdenes y el cron multi-org. |
+| **C7** MercadoLibre completo | Las órdenes `paid` ya entran como ventas con el mismo stock. Faltan publicar desde la ficha y cron/webhook multi-org. |
 | **E1** Precio único entre mostrador y online, con margen a la vista | Consecuencia natural de E4. |
 | **E2** El stock del local es el de la tienda | Casi hecho: falta avisar al vender en mostrador algo reservado online. |
 | **C9** Multi-depósito real en la tienda | La tienda vende contra el total, no contra el depósito que despacha. |
@@ -351,7 +353,6 @@ antes es seguro de un incendio que todavía no puede pasar.
 | Qué |
 |---|
 | **D6** Entrar como el comercio, auditado y visible (= F8) |
-| **C11** Auditoría de quién cambió un precio o un stock dentro de la organización |
 | **D8** Backup y restauración por organización |
 | **D5** Exportar la organización entera (= F17) — retenerla por falta de herramienta es problema legal, no comercial |
 | **D3** Anuncios a los comercios · **D7** Estado del servicio |
@@ -473,11 +474,11 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | **C4** | **Fotos y descripciones** | 10 sin foto, 33 con descripción corta. El panel de calidad los rankea. | ML |
 | **C5** | **App en el celular con notificaciones** | Hay PWA y POS offline. Falta el push de "vendiste" y "sin stock". | Tiendanube app |
 | **C6** | **Motor visual de automatizaciones** | Existen `automations` y los crons; falta el armador de flujos. | Shopify Flow |
-| **C7** | **MercadoLibre completo** | Falta publicar desde la ficha, importar órdenes y el cron multi-org. | — |
+| **C7** | **MercadoLibre completo** | Importa órdenes `paid` como ventas; faltan publicar desde la ficha, webhook y cron multi-org. | — |
 | **C8** | **Compras y reposición con proveedor** | Hay órdenes de compra y reposición automática. Falta recepción parcial y costo de importación por lote. | — |
 | **C9** | **Multi-depósito real en la tienda** | El stock por sucursal existe; la tienda vende contra el total, no contra el depósito que despacha. | Shopify |
 | **C10** | **Reportes exportables y programados** | Hay reportes en pantalla. Falta "mandame el cierre de mes por email". | Todas |
-| **C11** | **Auditoría de quién cambió qué** | `admin_audit_logs` es de plataforma. Dentro de la organización no queda rastro de quién editó un precio o un stock. | Shopify Plus |
+| ~~C11~~ | ~~Auditoría de quién cambió qué~~ | ✅ Slice 28: precio y Kardex guardan actor real; el cliente sólo puede leer la evidencia. | Shopify Plus |
 
 ---
 

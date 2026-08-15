@@ -8,6 +8,7 @@ import {
   calcCostARS,
   calcInventoryValue,
   calcLayerUnitCostARS,
+  calcMeliLineMargin,
   calcPnLMargins,
   resolveSaleAttribution,
 } from "@/lib/businessCalc";
@@ -114,6 +115,29 @@ describe("calcLayerUnitCostARS", () => {
 
   it("cae al tipo de cambio de referencia si la compra no lo tiene", () => {
     expect(calcLayerUnitCostARS(10, 0, 1200)).toBe(12_000);
+  });
+});
+
+describe("calcMeliLineMargin", () => {
+  it("resta costo con tipo de cambio y la comisión real de MercadoLibre", () => {
+    // 2 × $100, costo USD 1 a $100 y $10 de comisión -> -$10.
+    expect(calcMeliLineMargin(2, 100, 1, 100, 10)).toEqual({
+      totalARS: 200,
+      costARS: 200,
+      feeARS: 10,
+      profitARS: -10,
+      profitUSD: -0.1,
+    });
+  });
+
+  it("redondea los importes monetarios sin inventar una comisión faltante", () => {
+    expect(calcMeliLineMargin(3, 99.995, 0.25, 1200, 0)).toEqual({
+      totalARS: 299.99,
+      costARS: 900,
+      feeARS: 0,
+      profitARS: -600.01,
+      profitUSD: -0.5,
+    });
   });
 });
 

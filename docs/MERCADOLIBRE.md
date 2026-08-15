@@ -77,7 +77,28 @@ sincronización.
 |---|---|
 | `publish` | Publica un producto y guarda el vínculo en `meli_listings` |
 | `sync-stock` | Empuja stock y precio de todas las publicaciones activas |
-| `pull-orders` | Baja las últimas 50 órdenes a `meli_orders` |
+| `pull-orders` | Baja las últimas 50 órdenes a `meli_orders`, con precio y comisión por línea |
+| `import-order` | Convierte una orden `paid` ya bajada en ventas de Gestiona, stock y cobro neto |
+
+## Importar una orden cobrada
+
+Después de **Traer órdenes**, cada orden `paid` muestra **Importar venta** en
+Integraciones. La importación es atómica: vincula cada publicación de
+MercadoLibre con el producto interno, crea una venta por línea y deja que el
+trigger de `sales` descuente el stock una única vez. Si una publicación no está
+vinculada, no se crea ninguna venta; no se adivina por el título.
+
+La orden conserva el precio y `sale_fee` que informó MercadoLibre; para
+órdenes descargadas antes de esta mejora se lo recupera de su payload original.
+Si no existe ese dato, la importación se frena en vez de registrar una comisión
+en cero. La comisión queda en `payment_transactions` y por línea en
+`meli_order_sale_lines`, lista para el margen por canal. El costo de envío de
+MercadoLibre todavía no forma parte del payload descargado: no se muestra una
+estimación como si fuera un costo real.
+
+Una misma orden no puede importarse dos veces. `meli_orders`, sus vínculos de
+venta y las publicaciones vinculadas son de sólo lectura para el navegador; la
+sincronización y la conversión las escriben las Edge Functions con service role.
 
 ## Sincronización automática (opcional)
 

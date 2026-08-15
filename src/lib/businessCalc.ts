@@ -93,6 +93,42 @@ export function calcLayerUnitCostARS(unitCostUSD: number, exchangeRateUsed: numb
   return Number(unitCostUSD || 0) * rate;
 }
 
+// ── Margen de una línea importada de MercadoLibre ────────────────────────
+
+export interface MeliLineMargin {
+  totalARS: number;
+  costARS: number;
+  feeARS: number;
+  profitARS: number;
+  profitUSD: number;
+}
+
+const roundMoney = (amount: number) => Math.round((amount + Number.EPSILON) * 100) / 100;
+
+/**
+ * Margen de una línea cobrada en MercadoLibre.
+ *
+ * La comisión es el `sale_fee` informado por MercadoLibre, no una tarifa
+ * estimada. `import_meli_order_as_sales()` en SQL es el espejo autoritativo:
+ * la base valida el payload y persiste el resultado antes de mover stock.
+ */
+export function calcMeliLineMargin(
+  quantity: number,
+  unitPriceARS: number,
+  totalCostUSD: number,
+  exchangeRate: number,
+  saleFeeARS: number,
+): MeliLineMargin {
+  const qty = Number(quantity);
+  const rate = Number(exchangeRate);
+  const totalARS = roundMoney(Number(unitPriceARS) * qty);
+  const costARS = roundMoney(Number(totalCostUSD) * rate * qty);
+  const feeARS = roundMoney(Number(saleFeeARS));
+  const profitARS = roundMoney(totalARS - costARS - feeARS);
+  const profitUSD = rate !== 0 ? Math.round((profitARS / rate) * 10_000) / 10_000 : 0;
+  return { totalARS, costARS, feeARS, profitARS, profitUSD };
+}
+
 // ── Márgenes P&L ─────────────────────────────────────────────────────────
 
 export interface PnLMargins {

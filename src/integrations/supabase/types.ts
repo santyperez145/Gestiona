@@ -12259,6 +12259,110 @@ export type Database = {
           },
         ]
       }
+      meli_order_sale_lines: {
+        Row: {
+          created_at: string
+          id: string
+          line_number: number
+          meli_item_id: string
+          meli_order_id: string
+          org_id: string
+          sale_fee_ars: number
+          sale_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_number: number
+          meli_item_id: string
+          meli_order_id: string
+          org_id: string
+          sale_fee_ars?: number
+          sale_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_number?: number
+          meli_item_id?: string
+          meli_order_id?: string
+          org_id?: string
+          sale_fee_ars?: number
+          sale_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meli_order_sale_lines_meli_order_id_fkey"
+            columns: ["meli_order_id"]
+            isOneToOne: false
+            referencedRelation: "meli_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: true
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: true
+            referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: true
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meli_orders: {
         Row: {
           buyer_nickname: string | null
@@ -27977,6 +28081,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      import_meli_order_as_sales: {
+        Args: { p_actor_id: string; p_meli_order_id: string; p_org_id: string }
+        Returns: Json
       }
       increment_kb_helpful: { Args: { article_id: string }; Returns: undefined }
       increment_kb_views: { Args: { article_id: string }; Returns: undefined }

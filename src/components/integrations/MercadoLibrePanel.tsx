@@ -34,11 +34,27 @@ interface Listing {
   last_error: string | null;
 }
 
+interface MeliOrder {
+  id: string;
+  meli_order_id: number;
+  status: string | null;
+  buyer_nickname: string | null;
+  total_ars: number | null;
+  items: unknown;
+  date_created: string | null;
+  imported_at: string | null;
+  sale_id: string | null;
+}
+
+const formatARS = (amount: number | null) => new Intl.NumberFormat("es-AR", {
+  style: "currency", currency: "ARS", maximumFractionDigits: 0,
+}).format(Number(amount ?? 0));
+
 export default function MercadoLibrePanel() {
   const { activeOrg } = useOrg();
   const [status, setStatus] = useState<Status | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
-  const [orders, setOrders] = useState<number>(0);
+  const [orders, setOrders] = useState<MeliOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -49,11 +65,17 @@ export default function MercadoLibrePanel() {
       supabase.from("meli_connection_status").select("*").eq("org_id", activeOrg.id).maybeSingle(),
       supabase.from("meli_listings").select("id, meli_item_id, permalink, status, last_synced_at, last_error")
         .eq("org_id", activeOrg.id).order("created_at", { ascending: false }).limit(50),
-      supabase.from("meli_orders").select("id", { count: "exact", head: true }).eq("org_id", activeOrg.id),
+      supabase.from("meli_orders")
+        .select("id, meli_order_id, status, buyer_nickname, total_ars, items, date_created, imported_at, sale_id")
+        .eq("org_id", activeOrg.id).order("date_created", { ascending: false }).limit(20),
     ]);
-    setStatus((sRes.data as unknown as Status) ?? null);
-    setListings((lRes.data ?? []) as Listing[]);
-    setOrders(oRes.count ?? 0);
+    if (sRes.error || lRes.error || oRes.error) {
+      const error = sRes.error ?? lRes.error ?? oRes.error;
+      toast.error(`No se pudo cargar MercadoLibre: ${error?.message ?? "error desconocido"}`);
+    }
+    if (!sRes.error) setStatus((sRes.data as unknown as Status) ?? null);
+    if (!lRes.error) setListings((lRes.data ?? []) as Listing[]);
+    if (!oRes.error) setOrders((oRes.data ?? []) as MeliOrder[]);
     setLoading(false);
   }, [activeOrg?.id]);
 
@@ -83,11 +105,11 @@ export default function MercadoLibrePanel() {
     })();
   }, [activeOrg?.id, load]);
 
-  const call = async (action: string, label: string) => {
+  const call = async (action: string, label: string, extra: Record<string, unknown> = {}) => {
     if (!activeOrg?.id) return;
     setBusy(action);
     const { data, error } = await supabase.functions.invoke("meli-sync", {
-      body: { action, orgId: activeOrg.id },
+      body: { action, orgId: activeOrg.id, ...extra },
     });
     setBusy(null);
     const err = (data as any)?.error ?? error?.message;
@@ -98,6 +120,8 @@ export default function MercadoLibrePanel() {
       if (d.errores?.length) toast.warning(`${d.errores.length} con error — mirá el detalle abajo`);
     } else if (action === "pull-orders") {
       toast.success(`${d.ordenes} orden${d.ordenes === 1 ? "" : "es"} traída${d.ordenes === 1 ? "" : "s"}`);
+    } else if (action === "import-order") {
+      toast.success(`${d.ventas} venta${d.ventas === 1 ? "" : "s"} de MercadoLibre ingresada${d.ventas === 1 ? "" : "s"} al stock y las finanzas`);
     } else {
       toast.success(label);
     }
@@ -207,7 +231,7 @@ export default function MercadoLibrePanel() {
             </div>
             <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Órdenes bajadas</p>
-              <p className="text-lg font-bold">{orders}</p>
+              <p className="text-lg font-bold">{orders.length}</p>
             </div>
             <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Con error</p>
@@ -275,6 +299,72 @@ export default function MercadoLibrePanel() {
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
               Cuenta conectada. Publicá un producto desde su ficha en Productos.
             </p>
+          )}
+
+          {orders.length > 0 && (
+            <div className="space-y-2">
+              <div>
+                <h3 className="text-xs font-semibold">Órdenes descargadas</h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Sólo una orden cobrada entra como venta: usa el precio y la comisión que informó MercadoLibre,
+                  descuenta el stock una vez y no se puede importar dos veces.
+                </p>
+              </div>
+              <div className="rounded-lg border border-border/60 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/30">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Orden</th>
+                      <th className="text-left px-3 py-2 font-semibold text-muted-foreground hidden sm:table-cell">Comprador</th>
+                      <th className="text-right px-3 py-2 font-semibold text-muted-foreground">Total</th>
+                      <th className="text-right px-3 py-2 font-semibold text-muted-foreground">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {orders.map(order => {
+                      const isPaid = order.status === "paid";
+                      const isImported = !!order.imported_at;
+                      const itemCount = Array.isArray(order.items) ? order.items.length : 0;
+                      return (
+                        <tr key={order.id} className="hover:bg-muted/20">
+                          <td className="px-3 py-2">
+                            <p className="font-medium">#{order.meli_order_id}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {order.status ?? "sin estado"} · {itemCount} {itemCount === 1 ? "producto" : "productos"}
+                            </p>
+                          </td>
+                          <td className="px-3 py-2 hidden sm:table-cell text-muted-foreground">
+                            {order.buyer_nickname ?? "—"}
+                          </td>
+                          <td className="px-3 py-2 text-right font-medium">{formatARS(order.total_ars)}</td>
+                          <td className="px-3 py-2 text-right">
+                            {isImported ? (
+                              <span className="inline-flex items-center gap-1 text-emerald-400">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Importada
+                              </span>
+                            ) : isPaid ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={!!busy}
+                                onClick={() => call("import-order", "", { meliOrderId: order.id })}
+                              >
+                                {busy === "import-order"
+                                  ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                                  : <Download className="w-3.5 h-3.5 mr-1.5" />}
+                                Importar venta
+                              </Button>
+                            ) : (
+                              <span className="text-muted-foreground">Esperando cobro</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </>
       )}
