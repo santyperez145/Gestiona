@@ -88,6 +88,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 36 (2026-08-14):** E4 deja de depender de cruces por fecha o nombre: las líneas de venta creadas al cobrar una orden de tienda guardan `ecommerce_order_id`, y `store_order_margin_facts` prorratea por línea la comisión realmente liquidada, el IVA y el envío cobrado al comprador, absorbiendo el último centavo para que cada total cierre. No rellena los vínculos históricos ni llama “costo” al envío que pagó el cliente: el costo final del correo queda explícitamente ausente hasta que llegue una etiqueta/contrato. La vista usa `security_invoker`, sólo la leen miembros autenticados, y la prueba ZZ verificó los enlaces, $80 de comisión en $20/$60, envío $25/$75, IVA $42/$126 y cero restos. Falta la pantalla por producto y el costo real del correo para declarar E4 cerrado.
 
+**Slice funcional 37 (2026-08-14):** Analytics suma **Margen por canal**, una tabla producto × mostrador/tienda propia/MercadoLibre que sólo agrega importes persistidos. Costo de mercadería, comisión de cobro, costo real de envío e IVA deben existir todos para mostrar “Margen final”; un `NULL` llega como “Pendiente”, no como $0 ni una estimación. MercadoLibre aporta comisión y costo de envío cuando ya los informó; POS conoce envío cero pero todavía no su liquidación por línea; la tienda propia conserva comisión e IVA pero espera el costo final del correo. La pantalla no lee datos hasta abrir su tab y respeta el período compartido. Validada con cálculos puros, importación de `AnalyticsPage`, typecheck, lint, tests y build; sin `.env`, no se abrió una sesión real en navegador.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -133,14 +135,15 @@ Dónde este sistema es realmente distinto, y por qué es difícil de copiar:
 | | Acá | Plataforma de ecommerce | ERP / sistema de gestión |
 |---|---|---|---|
 | **Costo real de la mercadería** (USD, aduana, tipo de cambio) | ✅ `total_cost_usd` | ❌ no lo conoce | ✅ |
-| **Comisión del medio de pago y del marketplace** | ✅ | ✅ | ❌ no la conoce |
-| **Costo de envío por zona** | ✅ | ✅ | parcial |
-| **IVA por producto** | ✅ desde A8 | parcial | ✅ |
-| **→ Margen real por canal** | ✅ **tiene los cuatro términos** | ❌ le falta el costo | ❌ le faltan las comisiones |
+| **Comisión del medio de pago y del marketplace** | ✅ liquidación / `sale_fee` cuando el proveedor la informa | ✅ | ❌ no la conoce |
+| **Costo de envío por zona** | 🟠 ML lo concilia; tienda propia aún no recibe el costo final del correo | ✅ | parcial |
+| **IVA por producto** | 🟠 la orden guarda IVA, pero A8 sigue faltando por producto | parcial | ✅ |
+| **→ Margen real por canal** | 🟠 muestra cada término y el faltante; falta evidencia completa en todos los canales | ❌ le falta el costo | ❌ le faltan las comisiones |
 
 Ese es el punto: **el margen real por canal necesita las cuatro cosas a la vez**,
-y cada familia de producto tiene dos o tres. Acá están las cuatro porque el
-proyecto nació importando. Es el ítem **E4**.
+y cada familia de producto tiene dos o tres. Acá se pueden vincular sin salir
+del Business Core; E4 ahora hace visibles los términos que ya existen y, con la
+misma claridad, los que todavía faltan. Es el ítem **E4**.
 
 ---
 
@@ -213,7 +216,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **925 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **928 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -348,7 +351,7 @@ Antes sería construirlo para una sola persona.
 
 | Qué | Estado |
 |---|---|
-| **E4** ⭐ Margen real por canal | En curso: ML tiene los importes factuales; la tienda ya enlaza orden, liquidación e IVA por línea. Falta la pantalla y el costo real del correo. |
+| **E4** ⭐ Margen real por canal | En curso: Analytics ya muestra producto × canal y declara cada pendiente; falta evidencia completa de correo, IVA por producto y liquidaciones POS. |
 | **C7** MercadoLibre completo | Publica desde ficha e importa órdenes `paid` con el mismo stock. Cron listo, espera secreto; falta webhook. |
 | **E1** Precio único entre mostrador y online, con margen a la vista | Consecuencia natural de E4. |
 | **E2** El stock del local es el de la tienda | ✅ POS avisa y pide confirmación si una venta consume una reserva online activa. |
@@ -522,7 +525,7 @@ tiene y ML menos.
 | **E1** | **Precio único entre mostrador y online, con margen a la vista** | Hoy hay cuatro superficies de precio y se llegó a ellas de a una. Una pantalla que muestre, por producto, qué precio ve cada canal y cuánto margen deja **después** de comisión, envío e IVA, no existe en ninguna. |
 | **E2** | **El stock del local es el stock de la tienda, con reserva** | ✅ La reserva (A2) y el multi-depósito ya estaban; POS avisa al agregar y pide una confirmación explícita antes de cobrar si una venta consume stock reservado por una orden online activa. |
 | **E3** | **Un cliente, una ficha** | El CRM ya cruza las cinco tablas por `customer_id`. Falta que el comprador online y el del mostrador sean la misma persona automáticamente, con su historial completo en las dos direcciones. |
-| **E4** | ⭐ **Margen real por canal** | **El diferencial más defendible que tiene el producto.** Un mismo producto deja márgenes distintos en mostrador, tienda y ML, y hoy nadie se lo dice al comerciante. ML ya conserva costo, comisión y envío real; la tienda enlaza sus líneas con orden, liquidación e IVA, pero el costo final del correo todavía no entra al sistema. Falta la pantalla por producto y ese dato para afirmar el margen completo: hasta entonces no se promete una cifra que parezca real y no lo sea. |
+| **E4** | ⭐ **Margen real por canal** | **El diferencial más defendible que tiene el producto.** Analytics ya muestra una fila por producto y canal con costo, comisión, envío e IVA, y marca “Pendiente” cuando falta evidencia. ML conserva costo, comisión y envío real cuando lo informa; la tienda enlaza líneas, liquidación e IVA, pero el costo final del correo todavía no entra; POS todavía no enlaza cada venta a su liquidación. Falta completar esas fuentes para que un número final sea verdaderamente comparable —hasta entonces la pantalla no lo promete. |
 
 📌 **Business Copilot no es otro módulo por ahora.** Es la forma en que E1–E4 y
 G1–G8 deberían aparecer: "qué compro esta semana", "qué canal me deja menos
