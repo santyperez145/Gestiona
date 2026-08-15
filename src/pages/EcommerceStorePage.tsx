@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MAX_DESCUENTO_PORCENTAJE, type PaymentDiscounts } from "@/lib/paymentDiscount";
 import { STORE_FONTS } from "@/storefront/theme";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +68,11 @@ const PAYMENT_METHODS = [
   { id: "paypal",         label: "PayPal",         logo: "🟡" },
 ];
 
+// Radix Select no acepta una opción con value vacío. Este valor nunca llega a
+// la base: al guardar se convierte en null, que conserva el modo global para
+// comercios que todavía no usan sucursales.
+const GLOBAL_FULFILLMENT_LOCATION = "__stock_global__";
+
 interface EcomOrder {
   id: string;
   order_number: string;
@@ -127,6 +133,7 @@ export default function EcommerceStorePage() {
     shipping_mode: "flat", pickup_enabled: false,
     pickup_address: "", pickup_instructions: "",
     default_item_weight_kg: "0.5",
+    fulfillment_location_id: GLOBAL_FULFILLMENT_LOCATION,
   });
   const [selectedTheme, setSelectedTheme] = useState("minimal");
   const [orderFilter, setOrderFilter] = useState<string | null>(null);
@@ -149,6 +156,9 @@ export default function EcommerceStorePage() {
   // Opciones para armar el menú: las categorías y las páginas publicadas.
   const [menuCategorias, setMenuCategorias] = useState<{ slug: string; name: string }[]>([]);
   const [menuPaginas, setMenuPaginas] = useState<{ slug: string; title: string }[]>([]);
+  const [fulfillmentLocations, setFulfillmentLocations] = useState<{
+    id: string; name: string; is_main: boolean;
+  }[]>([]);
 
   useEffect(() => {
     if (!orgId || tab !== "categorias") return;
@@ -216,9 +226,27 @@ export default function EcommerceStorePage() {
             default_item_weight_kg: data.default_item_weight_kg != null
               ? String(data.default_item_weight_kg)
               : prev.default_item_weight_kg,
+            fulfillment_location_id: data.fulfillment_location_id ?? GLOBAL_FULFILLMENT_LOCATION,
           }));
           setSelectedTheme(data.theme);
         }
+      });
+
+    // La tienda puede seguir en modo global, pero si el comercio ya trabaja
+    // con sucursales se le muestra la elección explícita de dónde prepara los
+    // pedidos. La base vuelve a validar que sea una sucursal propia y activa.
+    supabase.from("locations")
+      .select("id, name, is_main")
+      .eq("org_id", orgId)
+      .eq("active", true)
+      .order("is_main", { ascending: false })
+      .order("name")
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("No se pudieron leer las sucursales de despacho", error);
+          return;
+        }
+        setFulfillmentLocations((data ?? []) as { id: string; name: string; is_main: boolean }[]);
       });
 
     loadOrders();
@@ -321,6 +349,9 @@ export default function EcommerceStorePage() {
       pickup_address: storeForm.pickup_address || null,
       pickup_instructions: storeForm.pickup_instructions || null,
       default_item_weight_kg: Number(storeForm.default_item_weight_kg) || 0.5,
+      fulfillment_location_id: storeForm.fulfillment_location_id === GLOBAL_FULFILLMENT_LOCATION
+        ? null
+        : storeForm.fulfillment_location_id,
     };
     const { error } = await supabase.from("ecommerce_stores").upsert(row, { onConflict: "org_id" });
     setLoading(false);
@@ -695,6 +726,53 @@ export default function EcommerceStorePage() {
       {/* ─── Settings tab ─── */}
       {tab === "settings" && (
         <div className="space-y-5">
+          <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Package className="w-4 h-4 text-primary" /> Depósito de despacho
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cada pedido reserva y descuenta este depósito. Así la tienda no ofrece mercadería que está en otra sucursal.
+                </p>
+              </div>
+              <Link to="/sucursales">
+                <Button variant="outline" size="sm" className="shrink-0">
+                  <MapPin className="w-3.5 h-3.5 mr-1" /> Sucursales
+                </Button>
+              </Link>
+            </div>
+
+            <Select
+              value={storeForm.fulfillment_location_id}
+              onValueChange={value => setStoreForm(p => ({ ...p, fulfillment_location_id: value }))}
+            >
+              <SelectTrigger className="h-9 max-w-xl"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={GLOBAL_FULFILLMENT_LOCATION}>Stock global (sin sucursal)</SelectItem>
+                {fulfillmentLocations.map(location => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}{location.is_main ? " · Principal" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {fulfillmentLocations.length === 0 ? (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                Todavía no hay sucursales activas. Creá y cargá el stock de un depósito antes de activarlo para despacho.
+              </p>
+            ) : storeForm.fulfillment_location_id === GLOBAL_FULFILLMENT_LOCATION ? (
+              <p className="text-[11px] text-muted-foreground">
+                La tienda conserva el comportamiento actual y vende contra el total. Elegí una sucursal cuando el inventario esté distribuido.
+              </p>
+            ) : (
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                Las órdenes guardarán esta sucursal aunque más adelante cambies la configuración de la tienda.
+              </p>
+            )}
+          </div>
+
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-4">
             <h3 className="font-semibold flex items-center gap-2"><Settings className="w-4 h-4 text-primary" />Configuración General</h3>
             <div className="space-y-3">

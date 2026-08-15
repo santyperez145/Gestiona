@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       admin_audit_logs: {
@@ -7502,6 +7477,7 @@ export type Database = {
           delivery_days_max: number | null
           delivery_days_min: number | null
           discount_amount: number
+          fulfillment_location_id: string | null
           fulfillment_status: string
           id: string
           items: Json
@@ -7554,6 +7530,7 @@ export type Database = {
           delivery_days_max?: number | null
           delivery_days_min?: number | null
           discount_amount?: number
+          fulfillment_location_id?: string | null
           fulfillment_status?: string
           id?: string
           items?: Json
@@ -7606,6 +7583,7 @@ export type Database = {
           delivery_days_max?: number | null
           delivery_days_min?: number | null
           discount_amount?: number
+          fulfillment_location_id?: string | null
           fulfillment_status?: string
           id?: string
           items?: Json
@@ -7650,6 +7628,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_fulfillment_location_id_fkey"
+            columns: ["fulfillment_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
           {
@@ -7763,6 +7748,7 @@ export type Database = {
           domain: string | null
           font: string | null
           free_shipping_above: number | null
+          fulfillment_location_id: string | null
           ga_measurement_id: string | null
           google_ads_id: string | null
           id: string
@@ -7801,6 +7787,7 @@ export type Database = {
           domain?: string | null
           font?: string | null
           free_shipping_above?: number | null
+          fulfillment_location_id?: string | null
           ga_measurement_id?: string | null
           google_ads_id?: string | null
           id?: string
@@ -7839,6 +7826,7 @@ export type Database = {
           domain?: string | null
           font?: string | null
           free_shipping_above?: number | null
+          fulfillment_location_id?: string | null
           ga_measurement_id?: string | null
           google_ads_id?: string | null
           id?: string
@@ -7868,6 +7856,13 @@ export type Database = {
           tiktok_pixel_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ecommerce_stores_fulfillment_location_id_fkey"
+            columns: ["fulfillment_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
@@ -11256,6 +11251,149 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      location_variant_stock: {
+        Row: {
+          id: string
+          location_id: string
+          org_id: string
+          product_id: string
+          stock: number
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          id?: string
+          location_id: string
+          org_id: string
+          product_id: string
+          stock?: number
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          id?: string
+          location_id?: string
+          org_id?: string
+          product_id?: string
+          stock?: number
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_variant_stock_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -21777,6 +21915,7 @@ export type Database = {
           customer_phone: string | null
           expires_at: string | null
           id: string
+          location_id: string | null
           notes: string | null
           order_id: string | null
           org_id: string
@@ -21794,6 +21933,7 @@ export type Database = {
           customer_phone?: string | null
           expires_at?: string | null
           id?: string
+          location_id?: string | null
           notes?: string | null
           order_id?: string | null
           org_id: string
@@ -21811,6 +21951,7 @@ export type Database = {
           customer_phone?: string | null
           expires_at?: string | null
           id?: string
+          location_id?: string | null
           notes?: string | null
           order_id?: string | null
           org_id?: string
@@ -21826,6 +21967,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
           {
@@ -28180,6 +28328,7 @@ export type Database = {
           p_customer_name: string
           p_customer_phone?: string
           p_expires_at?: string
+          p_location_id?: string
           p_notes?: string
           p_org_id: string
           p_product_id: string
@@ -29017,7 +29166,11 @@ export type Database = {
         Returns: Json
       }
       stock_disponible: {
-        Args: { p_product_id: string; p_variant_id?: string }
+        Args: {
+          p_location_id?: string
+          p_product_id: string
+          p_variant_id?: string
+        }
         Returns: number
       }
       store_cart_weight_kg: {
@@ -29241,9 +29394,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "viewer"],
