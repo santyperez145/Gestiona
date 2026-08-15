@@ -51,11 +51,13 @@ describe("autoridad de stock", () => {
   it("la auditoría de precio y Kardex no permite que el cliente invente evidencia", () => {
     const store = readFileSync(resolve(ROOT, "src/lib/supabaseStore.ts"), "utf8");
     const migration = readFileSync(resolve(ROOT, "supabase/migrations/20260814000012_inventory_audit_authority.sql"), "utf8");
+    const closeLegacy = readFileSync(resolve(ROOT, "supabase/migrations/20260814000013_close_legacy_stock_rpc.sql"), "utf8");
 
     expect(store).not.toMatch(/\.from\(['"]price_history['"]\)\.insert/);
     expect(migration).toContain("CREATE POLICY price_history_org_read");
     expect(migration).toContain("CREATE POLICY stock_movements_org_read");
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.record_member_stock_movement");
     expect(migration).toContain("auth.uid() IS DISTINCT FROM p_created_by");
+    expect(closeLegacy).toContain("REVOKE ALL ON FUNCTION public.record_stock_movement");
   });
 });
