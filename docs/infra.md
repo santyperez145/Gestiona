@@ -14,7 +14,7 @@
 Buckets detectados por uso funcional:
 
 - Imagenes de productos y catalogo
-- Archivos exportables (reportes/documentos)
+- Archivos exportables (reportes/documentos) y snapshots privados por organización (`backups`)
 - Recursos de marketing
 
 Nota: confirmar nombres reales en panel de Supabase Storage y alinear políticas por `org_id`.
@@ -35,10 +35,14 @@ Funciones de automatización y observabilidad:
 - `send-email-campaign`, `send-scheduled-campaigns`
 - `daily-kpi-alert`, `weekly-performance-digest`
 
-`weekly-backup` está deshabilitada deliberadamente: el mecanismo heredado
-generaba JSON por usuario y no tenía restauración. No se debe presentar el
-export portátil como backup gestionado hasta implementar D8 por organización y
-probar el restore.
+`weekly-backup` crea snapshots privados por organización para planes con
+`backups_enabled`. La Edge Function controla owner/plan para acciones manuales
+y un secreto de cron para las programadas; los objetos se guardan bajo
+`backups/org/<org_id>/` y sólo se descargan a través de URL firmada de 60 s.
+Cada snapshot completo se relee y verifica por hash, cobertura y filas; se
+retienen ocho durante 56 días. Esto prueba recuperabilidad del **archivo**, no
+un restore destructivo: D8b sigue pendiente hasta ensayar una restauración en
+un sandbox aislado.
 
 ## Secrets necesarios (Supabase)
 
@@ -55,11 +59,13 @@ probar el restore.
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_WHATSAPP_FROM`
+- `BACKUP_CRON_SECRET` (mismo valor en Edge Functions y Vault; nunca en el cliente)
 
 ## Checklist de operación
 
 - Revisar estado de cron jobs y últimas ejecuciones
 - Verificar errores de funciones en logs de Supabase
 - Monitorear Sentry para frontend y edge flows críticos
-- Antes de habilitar backups gestionados, implementar y probar restauración por organización
+- Revisar semanalmente `weekly-org-backups` y los snapshots con integridad fallida
+- Ejecutar y documentar el restore drill aislado antes de ofrecer restauración en producción
 - Rotar secrets con política definida

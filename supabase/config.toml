@@ -8,4 +8,6 @@ verify_jwt = true
 
 # Cron schedules — run via pg_cron or Supabase Dashboard > Edge Functions > Schedules
 # auto-recurring-expenses: "0 3 1 * *"   (1st of each month at 3 AM UTC)
-# weekly-backup queda deshabilitado hasta que D8 tenga backup + restore probado.
+# weekly-backup: "30 3 * * 0" (domingos 03:30 UTC), sólo si existe
+# BACKUP_CRON_SECRET tanto en Vault como en Edge Functions. D8a crea snapshots
+# con integridad verificable; el restore destructivo sigue bloqueado por drill.

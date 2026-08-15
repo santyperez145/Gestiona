@@ -16,6 +16,7 @@ import { resolve } from 'node:path';
  */
 
 const FUNCTIONS_DIR = resolve(process.cwd(), 'supabase/functions');
+const SNAPSHOT_CONTRACT = resolve(FUNCTIONS_DIR, '_shared', 'organizationSnapshot.ts');
 
 /** Proveedores donde una llamada de más se paga en pesos. */
 const PAID_PROVIDERS = [
@@ -122,11 +123,16 @@ describe('autenticación de Edge Functions', () => {
     ).toEqual([]);
   });
 
-  it('weekly-backup permanece deshabilitado y no vuelve a recorrer datos con service_role', () => {
+  it('weekly-backup exige owner o secreto de cron y no finge una restauración', () => {
     const weeklyBackup = functions.find(f => f.name === 'weekly-backup');
     expect(weeklyBackup).toBeDefined();
     expect(weeklyBackup?.source).toContain('requireUser');
-    expect(weeklyBackup?.source).not.toContain('SUPABASE_SERVICE_ROLE_KEY');
+    expect(weeklyBackup?.source).toContain('ownerCanAccess');
+    expect(weeklyBackup?.source).toContain('backupIsEntitled');
+    expect(weeklyBackup?.source).toContain('BACKUP_CRON_SECRET');
+    expect(weeklyBackup?.source).toContain('secretsMatch');
+    expect(weeklyBackup?.source).toContain('snapshotIsComplete');
+    expect(weeklyBackup?.source).toContain('validateSnapshot');
     expect(weeklyBackup?.source).not.toContain('user_roles');
   });
 
@@ -144,11 +150,13 @@ describe('autenticación de Edge Functions', () => {
     expect(exportOrg).toBeDefined();
     expect(exportOrg?.source).toContain('requireUser');
     expect(exportOrg?.source).toContain('membership?.role !== "owner"');
-    expect(exportOrg?.source).toContain('EXCLUDED_CREDENTIAL_STORES');
-    expect(exportOrg?.source).toContain('SECRET_SETTINGS_COLUMNS');
-    expect(exportOrg?.source).toContain('SETTINGS_EXPORT_COLUMNS');
-    expect(exportOrg?.source).toContain('count: "exact"');
-    expect(exportOrg?.source).toContain('count === null');
+    expect(exportOrg?.source).toContain('collectOrganizationSnapshot');
+    const snapshotContract = readFileSync(SNAPSHOT_CONTRACT, 'utf8');
+    expect(snapshotContract).toContain('EXCLUDED_CREDENTIAL_STORES');
+    expect(snapshotContract).toContain('SECRET_SETTINGS_COLUMNS');
+    expect(snapshotContract).toContain('SETTINGS_SNAPSHOT_COLUMNS');
+    expect(snapshotContract).toContain('count: "exact"');
+    expect(snapshotContract).toContain('count === null');
   });
 
   // Nota: no hay acá un test de "filtra la service_role key al cliente".

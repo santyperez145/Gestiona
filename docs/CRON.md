@@ -35,6 +35,22 @@ SELECT vault.create_secret('https://<project-ref>.supabase.co', 'SUPABASE_URL');
 SELECT vault.create_secret('<clave-publicable>', 'SUPABASE_ANON_KEY');
 ```
 
+## Cron con secreto adicional: respaldos semanales
+
+`weekly-org-backups` se programa los domingos a las 03:30 UTC y no usa la anon
+key como autorización suficiente. Lee `BACKUP_CRON_SECRET` de Vault y lo pasa
+como `x-backup-cron-secret`; la Edge Function compara el mismo secreto guardado
+en su entorno antes de enumerar organizaciones o acceder al bucket privado.
+
+El valor no se imprime ni se versiona. Al rotarlo, actualizar ambos destinos y
+re-ejecutar la migración `20260815000008_organization_managed_backups.sql` para
+que conserve exactamente un job programado. La programación usa el helper
+privado con un timeout HTTP de 60 s —el default de 5 s puede terminar antes de
+que una corrida multi-organización termine y reportar un falso fallo—. El resultado esperado es que cada
+organización con plan `backups_enabled` tenga como máximo un snapshot completo
+por ventana de seis días; el cron vuelve a verificar los existentes antes de
+considerar la semana cubierta.
+
 ## Qué pasó antes (2026-07-28)
 
 Los 13 jobs estaban fallando desde siempre, sin que nada lo avisara:

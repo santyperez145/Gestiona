@@ -13612,6 +13612,112 @@ export type Database = {
           },
         ]
       }
+      organization_backup_snapshots: {
+        Row: {
+          checksum_sha256: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          failure_reason: string | null
+          id: string
+          last_verification_status: string | null
+          last_verified_at: string | null
+          manifest: Json
+          org_id: string
+          size_bytes: number | null
+          snapshot_schema_version: number
+          status: string
+          storage_path: string | null
+          table_count: number
+          total_rows: number
+          trigger: string
+        }
+        Insert: {
+          checksum_sha256?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          failure_reason?: string | null
+          id?: string
+          last_verification_status?: string | null
+          last_verified_at?: string | null
+          manifest?: Json
+          org_id: string
+          size_bytes?: number | null
+          snapshot_schema_version?: number
+          status: string
+          storage_path?: string | null
+          table_count?: number
+          total_rows?: number
+          trigger: string
+        }
+        Update: {
+          checksum_sha256?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          failure_reason?: string | null
+          id?: string
+          last_verification_status?: string | null
+          last_verified_at?: string | null
+          manifest?: Json
+          org_id?: string
+          size_bytes?: number | null
+          snapshot_schema_version?: number
+          status?: string
+          storage_path?: string | null
+          table_count?: number
+          total_rows?: number
+          trigger?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_backup_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_backup_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_backup_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_backup_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_backup_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_backup_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string

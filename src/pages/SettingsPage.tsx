@@ -27,6 +27,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { SupportAccessAuditSection } from "@/components/settings/SupportAccessAuditSection";
+import {
+  backupTrustLabel,
+  createOrganizationBackup,
+  downloadOrganizationBackup,
+  formatBackupBytes,
+  listOrganizationBackups,
+  verifyOrganizationBackup,
+  type OrganizationBackup,
+} from "@/lib/orgBackups";
 
 // ─── SystemInfoSection ────────────────────────────────────────────────────────
 function SystemInfoSection({ businessName, productCount, userEmail }: { businessName: string; productCount: number; userEmail?: string }) {
@@ -1258,6 +1267,8 @@ export default function SettingsPage() {
           {/* Backup / Export */}
           <BackupExport userId={user!.id} />
 
+          <ManagedBackupsSection />
+
           {/* Archivos de respaldo heredados: no se generan hasta resolver D8. */}
           <CloudBackupsSection userId={user!.id} />
 
@@ -1735,6 +1746,154 @@ function BackupExport({ userId }: { userId: string }) {
           <p className="text-xs text-muted-foreground">La exportación completa sólo está disponible para el dueño de la organización.</p>
         )}
       </div>
+    </div>
+  );
+}
+
+function ManagedBackupsSection() {
+  const { activeOrg, activeRole } = useOrg();
+  const [backups, setBackups] = useState<OrganizationBackup[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const canManage = activeRole === "owner" && !!activeOrg?.id;
+
+  const load = useCallback(async () => {
+    if (!canManage || !activeOrg?.id) {
+      setBackups([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      setBackups(await listOrganizationBackups(activeOrg.id));
+    } catch (error: unknown) {
+      setBackups([]);
+      toast.error(error instanceof Error ? error.message : "No se pudo leer el historial de respaldos");
+    } finally {
+      setLoading(false);
+    }
+  }, [activeOrg?.id, canManage]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const create = async () => {
+    if (!activeOrg?.id) return;
+    setCreating(true);
+    try {
+      const result = await createOrganizationBackup(activeOrg.id);
+      if (!result.ok) {
+        toast.error(result.reason ?? "El respaldo quedó incompleto y no se guardó");
+      } else {
+        toast.success(`Respaldo listo · ${result.tableCount ?? 0} tablas y ${(result.totalRows ?? 0).toLocaleString("es-AR")} filas`);
+      }
+      await load();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "No se pudo crear el respaldo");
+      await load();
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const download = async (backupId: string) => {
+    if (!activeOrg?.id) return;
+    setDownloadingId(backupId);
+    try {
+      const url = await downloadOrganizationBackup(activeOrg.id, backupId);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "No se pudo preparar la descarga");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const verify = async (backupId: string) => {
+    if (!activeOrg?.id) return;
+    setVerifyingId(backupId);
+    try {
+      const result = await verifyOrganizationBackup(activeOrg.id, backupId);
+      if (result.ok) toast.success("Integridad verificada: hash, cobertura y filas coinciden");
+      else toast.error(result.reason ?? "El respaldo no superó la verificación de integridad");
+      await load();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "No se pudo verificar el respaldo");
+    } finally {
+      setVerifyingId(null);
+    }
+  };
+
+  return (
+    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
+            <Cloud className="w-4 h-4 text-primary" />Respaldos gestionados
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">Snapshot privado semanal por organización · se conservan hasta 8 (56 días).</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading || !canManage}>
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+        </Button>
+      </div>
+
+      <div className="mb-3 flex items-start gap-2 border border-sky-500/25 bg-sky-500/5 p-3 text-xs text-muted-foreground">
+        <Shield className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
+        <p>El sistema rechaza snapshots con tablas truncadas o con error. “Verificar” vuelve a leer el archivo privado y controla su hash, cobertura y conteo de filas. La restauración destructiva no se ofrece todavía: requiere un drill aislado antes de tocar producción.</p>
+      </div>
+
+      {!canManage ? (
+        <p className="text-xs text-muted-foreground">Sólo el dueño de la organización puede gestionar respaldos.</p>
+      ) : (
+        <>
+          <div className="flex gap-2 mb-3">
+            <Button onClick={() => void create()} disabled={creating} className="flex-1 gradient-gold text-primary-foreground">
+              {creating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Cloud className="w-4 h-4 mr-2" />}
+              {creating ? "Generando snapshot…" : "Generar ahora"}
+            </Button>
+          </div>
+          {loading ? (
+            <p className="text-xs text-muted-foreground">Cargando historial…</p>
+          ) : backups.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-3">Todavía no hay snapshots gestionados.</p>
+          ) : (
+            <div className="space-y-2 max-h-[330px] overflow-y-auto">
+              {backups.map(backup => {
+                const verified = backup.last_verification_status === "passed";
+                const failed = backup.status === "failed" || backup.last_verification_status === "failed";
+                return (
+                  <div key={backup.id} className="rounded-lg border border-border/60 p-3 text-xs">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium flex items-center gap-1.5">
+                          {verified ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : failed ? <XCircle className="h-3.5 w-3.5 text-destructive" /> : <Cloud className="h-3.5 w-3.5 text-muted-foreground" />}
+                          {backupTrustLabel(backup)}
+                        </p>
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          {backup.trigger === "scheduled" ? "Semanal" : "Manual"} · {new Date(backup.created_at).toLocaleString("es-AR")} · {backup.table_count} tablas · {backup.total_rows.toLocaleString("es-AR")} filas · {formatBackupBytes(backup.size_bytes)}
+                        </p>
+                        {backup.last_verified_at && <p className="text-[10px] text-muted-foreground">Verificado: {new Date(backup.last_verified_at).toLocaleString("es-AR")}</p>}
+                        {backup.failure_reason && <p className="mt-1 text-[10px] text-destructive">{backup.failure_reason}</p>}
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        {backup.status === "completed" && <>
+                          <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => void verify(backup.id)} disabled={verifyingId === backup.id} title="Verificar integridad">
+                            {verifyingId === backup.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Shield className="h-3.5 w-3.5" />}
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => void download(backup.id)} disabled={downloadingId === backup.id} title="Descargar snapshot">
+                            {downloadingId === backup.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                          </Button>
+                        </>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
