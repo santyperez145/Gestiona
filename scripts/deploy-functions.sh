@@ -97,7 +97,7 @@ NO_JWT=(
   # Storefront publico — el comprador no tiene sesion
   "shipping-quote" "store-pay" "store-order-email"
   # Links publicos de un solo uso
-  "drip-unsubscribe"
+  "drip-unsubscribe" "whatsapp-unsubscribe"
   # API publica con su propio esquema de api keys
   "public-api"
   # Crons / tareas programadas

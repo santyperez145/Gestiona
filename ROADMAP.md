@@ -82,6 +82,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de confiabilidad 33 (2026-08-14):** una venta cobrada en la tienda propia ya persiste `cost_of_goods_ars`: antes calculaba `profit_ars` descontando el costo pero dejaba el costo de mercadería en cero, por lo que cualquier reporte que lo sumara veía una contabilidad incompleta. El costo se toma al cobrar y se guarda hacia adelante; no se reescriben órdenes históricas con el costo actual, porque eso inventaría evidencia. La prueba ZZ cobró una orden de dos unidades, verificó costo $4, ganancia $496, un único movimiento de stock, idempotencia, permiso cerrado y cero restos. Typecheck, lint sin errores, tests y build quedan como puerta del slice.
 
+**Slice de cumplimiento 34 (2026-08-14):** cada campaña de WhatsApp ya agrega una baja personal de un solo uso. La Edge Function no acepta teléfonos ni texto desde el navegador: relee el borrador, los ids de clientes consentidos y las bajas vigentes, y sólo owner/admin puede enviarla. El saludo automático de cumpleaños aplica la misma exclusión y enlace. La baja borra el consentimiento, deja evidencia de opt-out y sólo se revierte ante un checkbox de checkout posterior y explícito; un token no se puede inventar ni reutilizar. La verificación ZZ confirma baja, idempotencia, reconsentimiento y cero restos; la tabla de tokens tiene RLS y cero policies. F6 queda hecho; No Llame (F7) sigue congelado hasta que exista una campaña telefónica.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -207,7 +209,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **913 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **920 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -540,7 +542,7 @@ Ordenado por riesgo dividido esfuerzo, que no es el orden en que se descubrieron
 | **F3** | **Datos del proveedor**: razón social, CUIT y domicilio | Ley 24.240 art. 4 | 🟡 **Verificado: los términos publicados eran la plantilla semilla intacta.** El generador los reescribe; falta cargar los datos y publicar. |
 | ~~F4~~ | ~~Link a Ventanilla Única Federal de Reclamos~~ | Comercio electrónico | ✅ **Sesión 108.** En el pie y en el formulario de arrepentimiento. |
 | ~~F5~~ | ~~Consentimiento de marketing con fecha y origen, sin marcar por defecto~~ | Ley 25.326 art. 27 | ✅ `marketing_consent_at/source/order_id` se guarda por checkout opcional; campañas sólo seleccionan contactos con consentimiento. |
-| **F6** | **Baja visible en WhatsApp**, como ya la hay en email | Ley 25.326 art. 27 | 🟠 `drip-unsubscribe` cubre email; WhatsApp no dice cómo darse de baja. |
+| ~~F6~~ | ~~Baja visible y efectiva en WhatsApp, como ya la hay en email~~ | Ley 25.326 art. 27 | ✅ Cada mensaje de campaña y cumpleaños agrega un enlace opaco de un solo uso; el servidor excluye bajas vigentes aunque el navegador proponga el id. |
 | **F7** | **Registro No Llame** antes de una campaña telefónica | Ley 26.951 | 🟠 No se consulta. |
 | ~~F8~~ | → **es D6**, no es otro trabajo | Transparencia | ✅ El dueño ve la generación del magic link de soporte de su organización, sin enlace ni datos de destino. |
 | **F9** | **Contrato de tratamiento de datos** plataforma ↔ comercio | Ley 25.326 art. 25 | 🔴 La plataforma es *encargada*, el comercio *responsable*. Necesita abogado. |

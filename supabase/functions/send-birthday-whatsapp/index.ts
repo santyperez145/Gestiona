@@ -1,6 +1,7 @@
 // Edge function: send-birthday-whatsapp
 // Runs daily via pg_cron (08:00 UTC). Finds customers with birthday today,
 // sends a personalized WhatsApp greeting via Evolution API if configured.
+// Sólo alcanza a clientes con consentimiento vigente e incluye una baja real.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabase = createClient(
@@ -42,6 +43,8 @@ Deno.serve(async () => {
       .from("customers")
       .select("id, name, phone, org_id")
       .not("phone", "is", null)
+      .not("marketing_consent_at", "is", null)
+      .is("marketing_opt_out_at", null)
       .like("birthday", pattern);
 
     if (custErr) throw custErr;
@@ -78,6 +81,8 @@ Deno.serve(async () => {
       if (!baseUrl || !apiKey || !instance) continue;
       if (settings?.whatsapp_birthday_enabled === false) continue;
 
+      const unsubscribeBaseUrl = `${Deno.env.get("SUPABASE_URL")!.replace(/\/$/, "")}/functions/v1/whatsapp-unsubscribe`;
+
       for (const customer of orgCustomers) {
         if (!customer.phone) continue;
 
@@ -94,10 +99,22 @@ Deno.serve(async () => {
         if (existing?.length) continue;
 
         const number = customer.phone.replace(/\D/g, "");
+        const unsubscribeToken = crypto.randomUUID();
+        const { error: tokenError } = await supabase.from("whatsapp_unsubscribe_tokens").insert({
+          token: unsubscribeToken,
+          org_id: orgId,
+          customer_id: customer.id,
+          expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+        if (tokenError) {
+          console.error(`Birthday WhatsApp: no se pudo crear baja para ${customer.id}:`, tokenError.message);
+          continue;
+        }
         const text =
           `🎂 *¡Feliz cumpleaños, ${customer.name}!*\n\n` +
           `En nombre de todo el equipo de *${businessName}* te deseamos un día increíble lleno de alegría y éxito. 🎉\n\n` +
-          `¡Esperamos verte pronto!`;
+          `¡Esperamos verte pronto!\n\n` +
+          `Para dejar de recibir promociones: ${unsubscribeBaseUrl}?token=${unsubscribeToken}`;
 
         const sent = await sendWhatsApp(baseUrl, apiKey, instance, number, text);
         if (sent) {

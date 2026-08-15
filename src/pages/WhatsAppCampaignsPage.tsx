@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import {
   MessageCircle, Send, Users, CheckCircle2, XCircle, Clock,
-  Loader2, Plus, Trash2, Phone, RotateCcw, AlertCircle,
+  Loader2, Plus, Trash2, Phone, RotateCcw,
   Eye, Variable,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
@@ -111,7 +111,6 @@ export default function WhatsAppCampaignsPage() {
   // coupon_code (uppercased) -> { count, revenue } of attributed sales
   const [attributionByCode, setAttributionByCode] = useState<Record<string, { count: number; revenue: number }>>({});
   const [loading, setLoading] = useState(true);
-  const [evolutionConfigured, setEvolutionConfigured] = useState<boolean | null>(null);
 
   // Form
   const [open, setOpen] = useState(false);
@@ -158,13 +157,6 @@ export default function WhatsAppCampaignsPage() {
       });
       setAttributionByCode(attrMap);
 
-      // Check Evolution API config from settings DB
-      const { data: evoCfg } = await supabase
-        .from("settings")
-        .select("evolution_api_url, evolution_api_key")
-        .eq("org_id", activeOrg.id)
-        .maybeSingle();
-      setEvolutionConfigured(!!(evoCfg?.evolution_api_url && evoCfg?.evolution_api_key));
     } catch (err) {
       console.error(err);
     } finally {
@@ -247,21 +239,22 @@ export default function WhatsAppCampaignsPage() {
 
     setSending(camp.id);
     try {
-      await supabase.from("whatsapp_campaigns").update({ status: "sending" }).eq("id", camp.id);
       setCampaigns(prev => prev.map(c => c.id === camp.id ? { ...c, status: "sending" } : c));
 
       const { data, error } = await supabase.functions.invoke("send-whatsapp", {
         body: {
           orgId: activeOrg!.id,
-          recipients: audience.map(c => ({ phone: c.phone!, name: c.name })),
-          message: camp.message,
+          // El servidor vuelve a leer teléfono, consentimiento y baja vigente.
+          // El navegador sólo propone los ids del segmento visible.
+          recipientIds: audience.map(c => c.id),
           campaignId: camp.id,
         },
         headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
       });
 
       if (error) throw error;
-      toast.success(`WhatsApp enviado: ${data?.sent ?? 0} enviados, ${data?.failed ?? 0} fallidos`);
+      const skipped = Number(data?.skipped ?? 0);
+      toast.success(`WhatsApp enviado: ${data?.sent ?? 0} enviados, ${data?.failed ?? 0} fallidos${skipped ? `, ${skipped} sin consentimiento vigente` : ""}`);
       load();
     } catch (err: any) {
       toast.error("Error al enviar: " + (err?.message || String(err)));
@@ -312,20 +305,6 @@ export default function WhatsAppCampaignsPage() {
           </Button>
         }
       />
-
-      {/* Evolution API warning */}
-      {evolutionConfigured === false && (
-        <div className="mb-5 flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-[10px] p-4">
-          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-amber-300">Evolution API no configurada</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Podés crear campañas en borrador ahora, pero para enviarlas necesitás configurar Evolution API y conectar tu WhatsApp en{" "}
-              <a href="/integraciones" className="underline text-amber-400">Integraciones</a>.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -459,7 +438,10 @@ export default function WhatsAppCampaignsPage() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                {currentAudience.length} contacto(s) recibirán este mensaje
+                {currentAudience.length} contacto(s) con consentimiento vigente recibirán este mensaje
+              </p>
+              <p className="mt-2 rounded-md border border-border/70 bg-muted/40 px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                Cada envío agrega un enlace personal de baja. Si alguien se da de baja antes de enviar, el servidor lo excluye aunque siga en este segmento.
               </p>
             </div>
 
@@ -536,6 +518,9 @@ export default function WhatsAppCampaignsPage() {
                 </label>
                 <div className="bg-[#075E54] rounded-[12px] rounded-tl-[0] p-3 max-w-[280px] text-white text-sm leading-relaxed">
                   {message.replace(/\{\{nombre\}\}/g, currentAudience[0]?.name?.split(" ")[0] || "Juan")}
+                  <div className="mt-3 border-t border-white/25 pt-2 text-[10px] text-white/80">
+                    Para dejar de recibir promociones: enlace personal de baja
+                  </div>
                 </div>
               </div>
             )}

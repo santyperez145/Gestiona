@@ -16,7 +16,7 @@ con el estado medido contra la base cuando se pudo.
 | 🟡 **L1** | **No había política de privacidad.** Ley 25.326 la exige apenas se recolecta un email. **Sesión 109:** el generador la escribe con los datos del comercio y los proveedores reales; falta que el dueño la revise y publique. | Multa de la AAIP y, en la práctica, rechazo de MercadoPago al revisar la cuenta. |
 | ✅ **L2** | **Botón de arrepentimiento en la primera pantalla.** Resuelto en la sesión 108: barra superior, a 4px del tope, verificado en 1280 y en 375. | — |
 | 🟠 **L3** | **El descuento por medio de pago toca la Ley 25.065.** Art. 37: no se puede cobrar más por tarjeta. Un descuento por transferencia es la práctica habitual, pero la lectura no es unánime. | Necesita opinión profesional, no una decisión de producto. |
-| 🟠 **L4** | **No hay registro de consentimiento para marketing.** Se mandan campañas por email y WhatsApp sin guardar cuándo y cómo la persona aceptó. | Ley 25.326 art. 27 y Ley 26.951 (No Llame). |
+| ✅ **L4** | **Consentimiento y baja de marketing.** El checkout guarda fecha/origen opt-in y las campañas sólo alcanzan clientes consentidos; email y WhatsApp incluyen baja efectiva. | Ley 25.326 art. 27. No Llame sigue aplicando si se habilitan campañas telefónicas. |
 | 🟠 **L5** | **No hay contrato de tratamiento de datos entre la plataforma y el comercio.** La plataforma es *encargada* del tratamiento; el comercio es el *responsable*. | Ley 25.326 art. 25. |
 
 ---
@@ -71,10 +71,10 @@ con el estado medido contra la base cuando se pudo.
 |---|---|
 | **Política de privacidad publicada** | 🟡 El generador la escribe, incluida la declaración de que los datos se alojan en Estados Unidos. Falta revisarla y publicarla. |
 | **Registro de la base de datos ante la AAIP** (art. 21) | 🔴 Trámite del comercio, no del código. **Pero la plataforma debería avisarlo en el onboarding**, porque casi ningún comercio chico sabe que existe. |
-| **Consentimiento registrado para marketing** (art. 27) | 🟠 Se mandan campañas sin guardar cuándo y cómo la persona aceptó. Falta una columna de consentimiento con fecha y origen. |
+| **Consentimiento registrado para marketing** (art. 27) | ✅ El checkout guarda fecha + origen y las campañas excluyen a quien no tenga evidencia. |
 | **Registro No Llame** (Ley 26.951) | 🟠 Las campañas de WhatsApp y los avisos por teléfono no consultan el registro. Aplica a llamadas y mensajes con fin publicitario. |
 | **Derecho de acceso en 10 días** (art. 14) | 🟠 El export existe pero no hay un canal donde la persona lo pida ni un plazo medido. |
-| **Aviso en cada comunicación de que puede pedir la baja** (art. 27) | 🟠 En email sí; en WhatsApp **no**. |
+| **Aviso en cada comunicación de que puede pedir la baja** (art. 27) | ✅ Email y WhatsApp de marketing incluyen una baja efectiva. En WhatsApp el enlace es opaco, personal y de un solo uso. |
 | **Transferencia internacional de datos** (art. 12) | 🟡 Los datos viven en Supabase (AWS `us-east-1`). Estados Unidos **no** tiene nivel adecuado de protección según la AAIP. La política generada lo declara explícitamente y lo apoya en el consentimiento informado al comprar. |
 | **Medidas de seguridad** (Res. AAIP 47/2018) | ✅ En buena forma: RLS, MFA obligatorio para staff de plataforma, credenciales fuera del navegador, tablas de tokens con cero policies. |
 | **Notificación de incidentes** | 🔴 No hay procedimiento escrito. La AAIP recomienda notificar; no hay plazo legal duro, pero sin procedimiento no se cumple ninguno. |

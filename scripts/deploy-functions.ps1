@@ -31,6 +31,7 @@ $noJwt = @(
     "store-order-email",
     # Links publicos de un solo uso
     "drip-unsubscribe",
+    "whatsapp-unsubscribe",
     # API publica con su propio esquema de api keys
     "public-api",
     # Crons / tareas programadas

@@ -5445,6 +5445,8 @@ export type Database = {
           instagram_handle: string | null
           marketing_consent_at: string | null
           marketing_consent_source: string | null
+          marketing_opt_out_at: string | null
+          marketing_opt_out_source: string | null
           name: string
           notes: string | null
           org_id: string
@@ -5468,6 +5470,8 @@ export type Database = {
           instagram_handle?: string | null
           marketing_consent_at?: string | null
           marketing_consent_source?: string | null
+          marketing_opt_out_at?: string | null
+          marketing_opt_out_source?: string | null
           name: string
           notes?: string | null
           org_id: string
@@ -5491,6 +5495,8 @@ export type Database = {
           instagram_handle?: string | null
           marketing_consent_at?: string | null
           marketing_consent_source?: string | null
+          marketing_opt_out_at?: string | null
+          marketing_opt_out_source?: string | null
           name?: string
           notes?: string | null
           org_id?: string
@@ -21956,6 +21962,8 @@ export type Database = {
           last_login_at: string | null
           marketing_consent_at: string | null
           marketing_consent_source: string | null
+          marketing_opt_out_at: string | null
+          marketing_opt_out_source: string | null
           name: string | null
           org_id: string
           phone: string | null
@@ -21971,6 +21979,8 @@ export type Database = {
           last_login_at?: string | null
           marketing_consent_at?: string | null
           marketing_consent_source?: string | null
+          marketing_opt_out_at?: string | null
+          marketing_opt_out_source?: string | null
           name?: string | null
           org_id: string
           phone?: string | null
@@ -21986,6 +21996,8 @@ export type Database = {
           last_login_at?: string | null
           marketing_consent_at?: string | null
           marketing_consent_source?: string | null
+          marketing_opt_out_at?: string | null
+          marketing_opt_out_source?: string | null
           name?: string | null
           org_id?: string
           phone?: string | null
@@ -24646,6 +24658,83 @@ export type Database = {
           },
           {
             foreignKeyName: "whatsapp_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      whatsapp_unsubscribe_tokens: {
+        Row: {
+          created_at: string
+          customer_id: string
+          expires_at: string
+          org_id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          expires_at: string
+          org_id: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          expires_at?: string
+          org_id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_unsubscribe_tokens_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_unsubscribe_tokens_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_unsubscribe_tokens_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_unsubscribe_tokens_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_unsubscribe_tokens_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_unsubscribe_tokens_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_unsubscribe_tokens_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
@@ -28190,6 +28279,7 @@ export type Database = {
         Args: { p_ip?: unknown; p_token: string; p_user_agent?: string }
         Returns: Json
       }
+      process_whatsapp_unsubscribe: { Args: { p_token: string }; Returns: Json }
       prorratear: {
         Args: { p_moneda?: string; p_pesos: number[]; p_total: number }
         Returns: number[]
