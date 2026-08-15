@@ -3,10 +3,10 @@
 // distintas de las que declara el manifiesto de portabilidad.
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-// La v2 incorpora relaciones hijas operativas que no tienen `org_id` propio.
-// La v1 se sigue validando: un contrato nuevo no puede volver “corrupto” un
-// archivo sano que se creó antes de ampliar su cobertura.
-export const SNAPSHOT_SCHEMA_VERSION = 2;
+// La v3 incorpora relaciones hijas operativas que no tienen `org_id` propio.
+// Las versiones anteriores se siguen validando: un contrato nuevo no puede
+// volver “corrupto” un archivo sano que se creó antes de ampliar cobertura.
+export const SNAPSHOT_SCHEMA_VERSION = 3;
 export const MAX_ROWS_PER_TABLE = 50_000;
 const RELATED_PARENT_ID_CHUNK = 200;
 
@@ -55,12 +55,24 @@ export const SNAPSHOT_TABLES_V1 = [
  * padre. No se consulta la tabla completa ni se infiere el tenant desde una
  * columna de producto que podría cambiar: el FK de pertenencia es explícito.
  */
-export const SNAPSHOT_RELATION_TABLES = [
+export const SNAPSHOT_RELATION_TABLES_V2 = [
   "bundle_items",
   "price_list_items",
   "purchase_request_items",
   "customer_segment_members",
   "store_order_status_email_log",
+] as const;
+
+/** Historiales operativos que se sumaron después de publicar el contrato v2. */
+export const SNAPSHOT_RELATION_TABLES_V3 = [
+  "delivery_events",
+  "drip_send_log",
+  "invoice_items",
+] as const;
+
+export const SNAPSHOT_RELATION_TABLES = [
+  ...SNAPSHOT_RELATION_TABLES_V2,
+  ...SNAPSHOT_RELATION_TABLES_V3,
 ] as const;
 
 const SNAPSHOT_RELATION_SCOPE: Record<typeof SNAPSHOT_RELATION_TABLES[number], {
@@ -72,11 +84,19 @@ const SNAPSHOT_RELATION_SCOPE: Record<typeof SNAPSHOT_RELATION_TABLES[number], {
   purchase_request_items: { parentTable: "purchase_requests", foreignKey: "request_id" },
   customer_segment_members: { parentTable: "customer_segments", foreignKey: "segment_id" },
   store_order_status_email_log: { parentTable: "ecommerce_orders", foreignKey: "ecommerce_order_id" },
+  delivery_events: { parentTable: "deliveries", foreignKey: "delivery_id" },
+  drip_send_log: { parentTable: "drip_enrollments", foreignKey: "enrollment_id" },
+  invoice_items: { parentTable: "invoices", foreignKey: "invoice_id" },
 };
 
-export const SNAPSHOT_TABLES = [
+export const SNAPSHOT_TABLES_V2 = [
   ...SNAPSHOT_TABLES_V1,
-  ...SNAPSHOT_RELATION_TABLES,
+  ...SNAPSHOT_RELATION_TABLES_V2,
+] as const;
+
+export const SNAPSHOT_TABLES = [
+  ...SNAPSHOT_TABLES_V2,
+  ...SNAPSHOT_RELATION_TABLES_V3,
 ] as const;
 
 export const EXCLUDED_CREDENTIAL_STORES = [
@@ -294,9 +314,11 @@ export function validateSnapshot(
   const snapshot = value as Partial<OrganizationSnapshot>;
   const expectedTables = snapshot.schema_version === 1
     ? SNAPSHOT_TABLES_V1
-    : snapshot.schema_version === SNAPSHOT_SCHEMA_VERSION
-      ? SNAPSHOT_TABLES
-      : null;
+    : snapshot.schema_version === 2
+      ? SNAPSHOT_TABLES_V2
+      : snapshot.schema_version === SNAPSHOT_SCHEMA_VERSION
+        ? SNAPSHOT_TABLES
+        : null;
   if (!expectedTables) return { ok: false, reason: "La versión del snapshot no es compatible" };
   if (snapshot.org_id !== expectedOrgId) return { ok: false, reason: "El snapshot pertenece a otra organización" };
   if (!Array.isArray(snapshot.tables) || snapshot.tables.length !== expectedTables.length) {

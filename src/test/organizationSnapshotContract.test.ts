@@ -14,6 +14,9 @@ describe("contrato portátil de snapshots", () => {
     expect(source).toContain('purchase_request_items: { parentTable: "purchase_requests", foreignKey: "request_id" }');
     expect(source).toContain('customer_segment_members: { parentTable: "customer_segments", foreignKey: "segment_id" }');
     expect(source).toContain('store_order_status_email_log: { parentTable: "ecommerce_orders", foreignKey: "ecommerce_order_id" }');
+    expect(source).toContain('delivery_events: { parentTable: "deliveries", foreignKey: "delivery_id" }');
+    expect(source).toContain('drip_send_log: { parentTable: "drip_enrollments", foreignKey: "enrollment_id" }');
+    expect(source).toContain('invoice_items: { parentTable: "invoices", foreignKey: "invoice_id" }');
     expect(source).toContain('.in(scope.foreignKey, parentChunk)');
   });
 
@@ -23,10 +26,12 @@ describe("contrato portátil de snapshots", () => {
     expect(source).toContain('if (availableRowCount > MAX_ROWS_PER_TABLE)');
   });
 
-  it("versiona el contrato sin invalidar los snapshots v1 ya verificados", () => {
-    expect(source).toContain('export const SNAPSHOT_SCHEMA_VERSION = 2');
+  it("versiona el contrato sin invalidar los snapshots v1 ni v2 ya verificados", () => {
+    expect(source).toContain('export const SNAPSHOT_SCHEMA_VERSION = 3');
     expect(source).toContain('snapshot.schema_version === 1');
+    expect(source).toContain('snapshot.schema_version === 2');
     expect(source).toContain('? SNAPSHOT_TABLES_V1');
+    expect(source).toContain('? SNAPSHOT_TABLES_V2');
     expect(source).toContain('? SNAPSHOT_TABLES');
     const weeklyBackup = readFileSync(resolve(process.cwd(), "supabase/functions/weekly-backup/index.ts"), "utf8");
     expect(weeklyBackup).toContain("SNAPSHOT_SCHEMA_VERSION,");
