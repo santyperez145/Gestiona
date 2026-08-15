@@ -551,7 +551,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | ~~D7~~ | ~~Estado del servicio público~~ | ✅ Slice 53. `/estado` publica sólo aplicación, cron y respaldo en estados agregados; no declara uptime ni disponibilidad de terceros sin evidencia. |
 | **D8** | **Backup y restauración por organización** | 🟡 Snapshot privado semanal por organización, hash/cobertura/fila verificados, retención de 8/56 días y descarga sólo del owner. Falta el drill de restore aislado: no se vende una restauración destructiva sin haberla ensayado. |
 | ~~D8a~~ | ~~Snapshot gestionado e integridad de archivo~~ | ✅ Slice 52. Owner + plan se verifican en servidor; `anon` no lee rutas ni archivos; el cron sólo corre con secreto de Vault/Function, espera hasta 60 s y rechaza artefactos truncados. |
-| **D8b** | **Restore drill aislado** | 🔴 Diseñar una restauración a entorno/sandbox desechable, comparar tablas y relaciones contra el manifiesto y publicar el runbook. Al 2026-08-15 no hay ramas preview de Supabase ni Docker local: crear un sandbox hospedado puede cambiar costos/plan, así que no se simula un restore sobre producción. No habilitar un botón que borre/mezcle producción hasta pasar ese ensayo. |
+| **D8b** | **Restore drill aislado** | 🔴 Diseñar una restauración a entorno/sandbox desechable, comparar tablas y relaciones contra el manifiesto y publicar el runbook. Al 2026-08-15 Supabase respondió 402 al crear un branch preview: requiere plan Pro o superior. Docker Desktop también requiere completar un UAC de administrador local; el instalador no puede finalizar desde la sesión. Sin uno de esos dos entornos, no se simula un restore sobre producción. No habilitar un botón que borre/mezcle producción hasta pasar ese ensayo. |
 
 ---
 
