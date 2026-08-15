@@ -214,6 +214,7 @@ Deno.serve(async (req) => {
 
     const isApproved = status === "approved";
     const isRejected = status === "rejected" || status === "cancelled";
+    const isReversed = status === "refunded" || status === "charged_back";
 
     // ── Orden de la tienda online ──────────────────────────────────────────
     // `store-pay` marca sus preferencias con external_reference = "ecom:<uuid>".
@@ -258,6 +259,17 @@ Deno.serve(async (req) => {
           .update({ payment_status: "failed", updated_at: new Date().toISOString() })
           .eq("id", orderId)
           .neq("payment_status", "paid");
+      } else if (isReversed) {
+        // Una devolución o contracargo llega después de que la orden ya fue
+        // acreditada. No basta con anotarlo en la liquidación: la operación no
+        // puede seguir mostrando un pedido despachable ni un botón de reintento.
+        const { error: reversalErr } = await admin.rpc("handle_store_order_payment_reversal", {
+          p_order_id: orderId,
+          p_payment_id: String(paymentId),
+          p_status: status,
+          p_detail: statusDetail,
+        });
+        if (reversalErr) console.error("handle_store_order_payment_reversal:", reversalErr.message);
       }
 
       // La liquidación va ANTES del return, no al final del handler.

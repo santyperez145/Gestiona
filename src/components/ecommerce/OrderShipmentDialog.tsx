@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { CARRIER_LABELS, CARRIER_IDS, carrierLabel } from "@/lib/carriers";
 import { useHasPermission } from "@/lib/usePermissions";
+import { canFulfillStoreOrder, isStorePaymentReversed } from "@/lib/storeOrderPayment";
 import { Truck, Printer, Loader2, Check, PackageCheck, Home } from "lucide-react";
 
 export interface OrderForShipment {
@@ -214,7 +215,8 @@ export default function OrderShipmentDialog({
 
   if (!order) return null;
 
-  const sinPagar = order.payment_status !== "paid";
+  const sinPagar = !canFulfillStoreOrder(order.payment_status);
+  const pagoRevertido = isStorePaymentReversed(order.payment_status);
   const yaPreparada = !!entrega;
   const enCamino = entrega?.status === "in_transit" || entrega?.status === "out_for_delivery";
   const entregada = entrega?.status === "delivered";
@@ -234,8 +236,9 @@ export default function OrderShipmentDialog({
           <div className="py-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin opacity-50" /></div>
         ) : sinPagar ? (
           <p className="text-sm text-muted-foreground py-4">
-            Esta orden todavía no está paga. Preparar el envío de algo que no se
-            cobró es la forma más cara de equivocarse.
+            {pagoRevertido
+              ? "El pago fue devuelto o desconocido. No despaches esta orden; si el paquete ya salió, coordiná la devolución antes de reponer stock."
+              : "Esta orden todavía no está paga. Preparar el envío de algo que no se cobró es la forma más cara de equivocarse."}
           </p>
         ) : (
           <div className="space-y-4">

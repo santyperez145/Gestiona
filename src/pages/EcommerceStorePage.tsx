@@ -28,6 +28,7 @@ import ImageUpload from "@/components/shared/ImageUpload";
 import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
 import { estadoPublicacionLegal } from "@/lib/legalPages";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
+import { canFulfillStoreOrder, storeOrderPaymentLabel, storeOrderPaymentTone } from "@/lib/storeOrderPayment";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -549,14 +550,14 @@ export default function EcommerceStorePage() {
                   {filteredOrders.map(o => (
                     <tr
                       key={o.id}
-                      className={`border-b border-border/20 hover:bg-muted/20 ${o.payment_status === "paid" ? "cursor-pointer" : ""}`}
-                      onClick={() => o.payment_status === "paid" && setEnvioDe(o)}
+                      className={`border-b border-border/20 hover:bg-muted/20 ${canFulfillStoreOrder(o.payment_status) ? "cursor-pointer" : ""}`}
+                      onClick={() => canFulfillStoreOrder(o.payment_status) && setEnvioDe(o)}
                     >
                       <td className="px-4 py-3 font-mono text-xs">{o.order_number}</td>
                       <td className="px-4 py-3 text-sm font-medium">{o.customer_name}</td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">{o.customer_email}</td>
                       <td className="px-4 py-3 text-sm font-semibold">${Number(o.total).toLocaleString("es-AR")}</td>
-                      <td className="px-4 py-3"><Badge className={`text-xs ${o.payment_status === "paid" ? "bg-emerald-500/15 text-emerald-400 border-0" : "bg-yellow-500/15 text-yellow-400 border-0"}`}>{o.payment_status}</Badge></td>
+                      <td className="px-4 py-3"><Badge className={`text-xs ${storeOrderPaymentTone(o.payment_status)}`}>{storeOrderPaymentLabel(o.payment_status)}</Badge></td>
                       <td className="px-4 py-3">
                         <Badge className={`text-xs ${o.fulfillment_status === "delivered" ? "bg-emerald-500/15 text-emerald-400 border-0" : o.fulfillment_status === "shipped" ? "bg-blue-500/15 text-blue-400 border-0" : "bg-zinc-500/15 text-zinc-400 border-0"}`}>
                           {ESTADO_ENTREGA[o.fulfillment_status] ?? o.fulfillment_status}
@@ -571,7 +572,7 @@ export default function EcommerceStorePage() {
                       <td className="px-4 py-3 sticky right-0 bg-card">
                         {/* Sólo se despacha lo que está pago: ofrecer el botón
                             en una orden impaga invita a un error caro. */}
-                        {o.payment_status === "paid" ? (
+                        {canFulfillStoreOrder(o.payment_status) ? (
                           <Button
                             size="sm" variant="outline"
                             className="h-7 px-2 gap-1.5 text-xs"

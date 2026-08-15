@@ -49,4 +49,11 @@ describe("Checkout Brick de tienda", () => {
     expect(orderScreen).toContain("pagoEnProceso");
     expect(orderScreen).toContain("No hace falta que lo intentes otra vez.");
   });
+
+  it("no reutiliza una orden revertida para volver a cobrar ni despachar", () => {
+    expect(storePay).toContain('["pending", "failed"].includes(order.payment_status)');
+    expect(webhook).toContain('status === "refunded" || status === "charged_back"');
+    expect(webhook).toContain('admin.rpc("handle_store_order_payment_reversal"');
+    expect(orderScreen).toContain("puedeReintentarPago");
+  });
 });

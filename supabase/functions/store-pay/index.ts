@@ -80,6 +80,11 @@ async function getStoreOrder(
   if (order.payment_status === "paid") {
     return { response: json({ error: "Este pedido ya está pago" }, 409) };
   }
+  if (!["pending", "failed"].includes(order.payment_status)) {
+    // Una devolución o contracargo pertenece al cobro anterior. Reusar la
+    // orden para otro intento perdería la trazabilidad de ambos hechos.
+    return { response: json({ error: "Este pedido no admite otro pago. Creá un pedido nuevo para volver a cobrar." }, 409) };
+  }
 
   const total = Number(order.total);
   if (!Number.isFinite(total) || total <= 0) {

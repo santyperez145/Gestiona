@@ -5,7 +5,8 @@ import StorePaymentBrick, { type StorePaymentBrickConfig } from "./StorePaymentB
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
 import { trackPurchase } from "./tracking";
-import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard } from "lucide-react";
+import { canRetryStorePayment, isStorePaymentReversed } from "@/lib/storeOrderPayment";
+import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle } from "lucide-react";
 
 interface Order {
   order_number: string;
@@ -171,22 +172,27 @@ export default function StoreOrder() {
   const dir = order.shipping_address ?? {};
   const dirTexto = [dir.calle, dir.ciudad, dir.provincia, dir.cp].filter(Boolean).join(", ");
 
-  const waTexto = encodeURIComponent(
-    `Hola! Acabo de hacer el pedido ${order.order_number} por ${fmt(Number(order.total))}. Quedo atento para coordinar el pago.`,
-  );
-
   const pagado = order.payment_status === "paid";
   const fallido = order.payment_status === "failed";
+  const pagoRevertido = isStorePaymentReversed(order.payment_status);
+  const puedeReintentarPago = canRetryStorePayment(order.payment_status);
+  const waTexto = encodeURIComponent(
+    pagoRevertido
+      ? `Hola! El pago del pedido ${order.order_number} fue ${order.payment_status === "charged_back" ? "desconocido" : "devuelto"}. Quiero coordinar cómo seguimos.`
+      : `Hola! Acabo de hacer el pedido ${order.order_number} por ${fmt(Number(order.total))}. Quedo atento para coordinar el pago.`,
+  );
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       <div className="text-center">
         {pagado
           ? <CheckCircle2 className="w-14 h-14 mx-auto mb-3" style={{ color: "hsl(var(--st-accent))" }} />
+          : pagoRevertido
+            ? <AlertTriangle className="w-14 h-14 mx-auto mb-3 text-red-600" />
           : <Clock className="w-14 h-14 mx-auto mb-3" style={{ color: "hsl(var(--st-muted))" }} />}
 
         <h1 className="text-2xl font-bold">
-          {pagado ? "¡Pago confirmado!" : "¡Gracias por tu compra!"}
+          {pagado ? "¡Pago confirmado!" : pagoRevertido ? "El pago fue revertido" : "¡Gracias por tu compra!"}
         </h1>
         <p className="mt-1" style={{ color: "hsl(var(--st-muted))" }}>
           Tu pedido <strong style={{ color: "hsl(var(--st-text))" }}>{order.order_number}</strong> quedó registrado.
@@ -194,14 +200,16 @@ export default function StoreOrder() {
         <p className="text-sm mt-2" style={{ color: "hsl(var(--st-muted))" }}>
           {pagado
             ? <>Ya estamos preparando tu envío. Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> con las novedades.</>
-            : <>Te vamos a escribir a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar el pago y la entrega.</>}
+            : pagoRevertido
+              ? <>El pedido no se enviará mientras gestionamos esta reversión. Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar los próximos pasos.</>
+              : <>Te vamos a escribir a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar el pago y la entrega.</>}
         </p>
       </div>
 
       {/* Pago pendiente con MercadoPago habilitado: se ofrece pagar ahora.
           Sirve tanto si el link falló al confirmar como si el comprador
           abandonó el checkout y volvió después. */}
-      {!pagado && order.payment_method === "mercadopago" && (
+      {puedeReintentarPago && order.payment_method === "mercadopago" && (
         <div
           className="mt-6 border p-4 text-center"
           style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}

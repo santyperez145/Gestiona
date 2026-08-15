@@ -102,7 +102,9 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 46 (2026-08-15):** B4 deja de ser sólo un redirect: las tarjetas se pueden tokenizar dentro de la página de pedido mediante el SDK oficial de MercadoPago. La Edge Function relee la orden, ignora el monto del formulario, usa una clave de idempotencia por intento, valida la respuesta del proveedor antes de acreditar ventas o stock y cobra `application_fee` cuando la cuenta está conectada por OAuth. Si MercadoPago queda procesando, la pantalla bloquea un segundo cobro y vuelve a consultar el pedido. Billetera, efectivo y las conexiones legadas conservan el checkout externo, por lo que la mejora no deja a nadie sin medio de pago. La liquidación se comparte con el webhook para que la comisión real no dependa del canal. Las Functions `store-pay` v22 y `mercadopago-webhook` v28 quedaron `ACTIVE`; falta una compra completa con cuenta de prueba de MercadoPago antes de cerrar B4.
 
-**Actualización de foco (2026-08-15):** este documento queda reconciliado hasta el slice 46. La base técnica de MercadoLibre ya publica, importa órdenes `paid`, concilia comisión/envío del vendedor, recibe el webhook y tiene cron multi-organización protegido; todavía no es evidencia comercial hasta conectar una cuenta real, configurar Callback URL + tópico `Orders` y cargar el secreto del cron. El Brick de tarjeta ya reduce un salto del checkout, pero no se declara completo hasta verificar aprobado, rechazado y pendiente con credenciales de prueba sin tocar una tarjeta ni una orden real. Para usuarios eso reduce fricción y errores de stock; para inversión, el próximo hito no es otra pantalla sino evidencia fechada: AFIP homologado, segundo comercio real activado y una primera venta omnicanal medida. No se agrega un módulo si no acerca uno de esos tres resultados.
+**Slice de confiabilidad 47 (2026-08-15):** una reversión real de MercadoPago ya no deja una orden como “pagada” y despachable. El webhook vuelve a leer el pago oficial y delega en un RPC cerrado a `anon`/`authenticated`; `refunded` y `charged_back` quedan diferenciados en la orden y en la liquidación, cancelan la preparación que todavía no salió y avisan a owner/admin. Si el paquete ya fue enviado o entregado, el sistema no inventa una devolución logística: lo conserva para revisión y avisa al comercio. Tampoco repone stock ni borra ventas al devolver dinero —la mercadería sólo vuelve con `return_store_order_item` y su asiento de Kardex—, y esa operación sigue disponible al recibir físicamente un producto de un pago revertido. Un pago tardío aprobado no puede reactivar una orden terminal ni un comprador puede reutilizarla para intentar cobrar otra vez. El panel muestra “Pago devuelto”/“Contracargo”, bloquea despacho y la tienda deja de ofrecer un pago nuevo en esa orden. La migración verificó contra la base una devolución sin delta de stock, contracargo con envío ya salido, bloqueo de re-aprobación, ACL y restos `ZZ = 0`; Functions `mercadopago-webhook` v29 y `store-pay` v23 están `ACTIVE`. Typecheck, lint sin errores (147 avisos históricos), **962 tests** y build/PWA completados; sin `.env` no se simuló un cobro en navegador ni se inventó uno.
+
+**Actualización de foco (2026-08-15):** este documento queda reconciliado hasta el slice 47. La base técnica de MercadoLibre ya publica, importa órdenes `paid`, concilia comisión/envío del vendedor, recibe el webhook y tiene cron multi-organización protegido; todavía no es evidencia comercial hasta conectar una cuenta real, configurar Callback URL + tópico `Orders` y cargar el secreto del cron. El Brick de tarjeta ya reduce un salto del checkout y ahora conserva una reversión sin dejar despachos engañosos, pero no se declara completo hasta verificar aprobado, rechazado, pendiente y reversión con credenciales de prueba sin tocar una tarjeta ni una orden real. Para usuarios eso reduce fricción y errores de stock; para inversión, el próximo hito no es otra pantalla sino evidencia fechada: AFIP homologado, segundo comercio real activado y una primera venta omnicanal medida. No se agrega un módulo si no acerca uno de esos tres resultados.
 
 ## 1. Qué es
 
@@ -232,7 +234,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Parcial** | La configuración y la prueba WSAA son reales y no simulan CAE; falta certificado de homologación y emitir una factura contra el organismo. |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **958 unitarios** (`npm test`, 2026-08-15) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **962 unitarios** (`npm test`, 2026-08-15) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -456,7 +458,7 @@ en producción.
 | ~~A3~~ | ~~`tax_amount` siempre en cero~~ | ✅ El IVA de la orden se discrimina. |
 | ~~A4~~ | ~~Cupones sin mínimo ni límite por persona~~ | ✅ Y `create_store_order` llama a `check_store_coupon` en vez de repetir la validación: el RPC es público y una llamada directa salteaba las reglas. |
 | ~~A5~~ | ~~Cupón de envío gratis~~ | ✅ Sesión 98, commiteado en la sesión 111. `coupons.free_shipping` con tope opcional; se descuenta del envío y queda en `shipping_discount_ars`, separado del descuento de mercadería para no correr la base del IVA. Un cupón que no bonifica nada —retiro en tienda— se rechaza en vez de consumirse. Falta la promoción automática **acotada a categoría o producto** — "envío gratis en perfumes" sin código. |
-| ~~A6~~ | ~~Devoluciones de órdenes online~~ | ✅ Sesión 106, la capa de datos: `returns.ecommerce_order_id` + `return_store_order_item`, que repone el stock por `record_stock_movement` y no deja devolver más de lo comprado ni tocar una orden impaga. **Falta la UI y el reintegro real por MercadoPago**, que necesita el token del comercio y va en una Edge Function. |
+| ~~A6~~ | ~~Devoluciones de órdenes online~~ | ✅ Sesión 106 + Slice 47, la capa de datos: `returns.ecommerce_order_id` + `return_store_order_item`, que repone el stock por `record_stock_movement`, no deja devolver más de lo comprado y también permite registrar el retorno físico después de un reembolso/contracargo. **Falta la UI y el reintegro real por MercadoPago**, que necesita el token del comercio y va en una Edge Function. |
 | ~~A7~~ | ~~Las promociones no registran uso~~ | ✅ Sesión 105. Se registra el ahorro atribuible a la promoción —no el descuento total— para que la métrica no dependa de cómo pagó el comprador. |
 | ~~A8~~ | ~~Precios con IVA discriminado por producto~~ | ✅ Sesión 110. `products.tax_rate`, **NULL = la de la organización** (0 es exento, que es distinto). El IVA se calcula por línea y se suma; los descuentos de orden se prorratean con `prorratear()` para que las bases sumen el total; el envío va a la tasa de la organización porque es un servicio. Verificado con tres alícuotas en una orden: 268,57 contra 520,66 de la tasa única. |
 | ~~A9~~ | ~~Redondeo declarado~~ | ✅ Sesión 110. `decimales_de_moneda` / `redondear_moneda` / `prorratear` en SQL, espejados en `src/lib/rounding.ts` con 19 tests. Media unidad hacia arriba **en valor absoluto** (`Math.round(-0.5)` da `-0`, y un reintegro se redondeaba para el lado equivocado). B6 ya no está bloqueado por esto. |
@@ -483,7 +485,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | **B1** | **Revisar las tarifas de envío** | 1 provincia de 24 tiene tarifa. `Completar el tarifario` las estima; falta contrastarlas con el correo. | Todas |
 | **B2** | **Etiqueta por API del correo** | La imprimible funciona; la de Correo Argentino y Andreani necesita contrato. | Tiendanube |
 | ~~B3~~ | ~~Checkout en un paso~~ | ✅ Slice 44. Un solo formulario responsive muestra datos, entrega, pago, cupón y resumen; no hay pasos ni cuenta obligatoria. El retiro se ofrece sin pedir provincia y la entrega exige domicilio utilizable. | Empretienda, Shopify |
-| **B4** | **Pago embebido (Checkout Bricks)** | 🟡 Slice 46: tarjetas de crédito/débito/prepaga se cobran dentro de la página con el SDK oficial, total y comisión revalidados en servidor e idempotencia. Sólo se habilita para OAuth con clave pública; billetera, efectivo y conexiones legadas siguen por checkout externo. Falta una pasada aprobada/rechazada/pendiente con cuenta de prueba antes de cerrarlo. | Tiendanube, ML |
+| **B4** | **Pago embebido (Checkout Bricks)** | 🟡 Slices 46–47: tarjetas de crédito/débito/prepaga se cobran dentro de la página con el SDK oficial, total y comisión revalidados en servidor e idempotencia; refund/contracargo bloquean despacho y reintento sobre la misma orden sin inventar stock. Sólo se habilita para OAuth con clave pública; billetera, efectivo y conexiones legadas siguen por checkout externo. Falta una pasada aprobada/rechazada/pendiente/revertida con cuenta de prueba antes de cerrarlo. | Tiendanube, ML |
 | ~~B5~~ | ~~Avisos de cada cambio de estado~~ | ✅ Slice 45. El operador avanza una orden preparada y paga a “en camino” y luego “entregada”; el comprador recibe un email idempotente por cada evento y conserva seguimiento sin cuenta. | Todas |
 | **B6** | **Multi-moneda** | Todo en ARS. `currency` existe y no convierte. Necesita A9 primero. | Shopify |
 | **B7** | **Reseñas con foto** | Hay reseñas verificadas, sin imagen. | ML |
@@ -695,6 +697,37 @@ Lo que se hizo y —más importante— qué se encontró roto en el camino. Los
 mensajes de commit son largos a propósito y amplían cada entrada.
 
 > Resumen condensado. El registro completo detallado está en el archivo.
+
+### Slice 47 — Una reversión no es una venta despachable ni un ajuste de stock (2026-08-15)
+
+La liquidación ya podía anotar `refunded` y `charged_back`, pero esa evidencia
+no alcanzaba si el pedido continuaba en `paid`: operación podía despacharlo y
+la página pública podía ofrecer pagarlo otra vez. La nueva transición de base
+es privada para las Edge Functions, bloquea la fila, conserva el tipo real de
+reversión y guarda cuándo/detalle saneado de lo que confirmó el proveedor.
+
+Una reversión que llega antes del despacho cancela la preparación y avisa a
+owner/admin. Si la mercadería ya está `shipped` o `delivered`, se conserva ese
+hecho físico y el aviso pide coordinar la devolución: reescribirlo como
+“cancelado” sería evidencia falsa. Tampoco se toca `products.stock`, variantes
+ni ventas. El descuento original ya tiene Kardex; sólo el retorno físico pasa
+por `return_store_order_item` y un nuevo movimiento `return`. El RPC ahora
+admite justamente esa recepción posterior a un reembolso o contracargo.
+
+`mark_store_order_paid` rechaza una orden terminal y `store-pay` sólo habilita
+`pending`/`failed`, de modo que un webhook `approved` tardío, una recarga o el
+cliente no puedan revivir la transacción anterior. La operación ve etiquetas
+en español y no puede abrir despacho; el comprador recibe un estado explicable,
+sin formulario de pago de nuevo, pero con la vía de contacto adecuada.
+
+`20260815000003_store_payment_reversals.sql` se aplicó y registró contra la
+base vinculada. Su prueba ZZ comprobó refund sin delta de stock, contracargo
+con envío ya salido, bloqueo de re-aprobación, ACL de la función y cero restos.
+`mercadopago-webhook` v29 y `store-pay` v23 quedaron `ACTIVE`. La prueba de
+un pago real, incluida la reversión del proveedor, sigue siendo una condición
+explícita de B4; no se la simula. Typecheck, lint sin errores (147 avisos
+históricos), 962 tests y build/PWA quedaron verdes. No había `.env` local, por
+lo que la UI se comprobó por compilación y no contra órdenes reales.
 
 ### Slice 46 — Tarjeta sin abandonar la tienda, sin inventar una segunda fuente de verdad (2026-08-15)
 

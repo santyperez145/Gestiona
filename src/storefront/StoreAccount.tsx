@@ -5,6 +5,7 @@ import ProductCard from "./ProductCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
+import { storeOrderPaymentLabel } from "@/lib/storeOrderPayment";
 import { User, Loader2, LogOut, Package, MailCheck, Heart } from "lucide-react";
 
 interface Pedido {
@@ -21,6 +22,8 @@ const ESTADO_PAGO: Record<string, { label: string; cls: string }> = {
   paid: { label: "Pagado", cls: "text-emerald-600" },
   pending: { label: "Pendiente de pago", cls: "text-amber-600" },
   failed: { label: "Pago rechazado", cls: "text-red-600" },
+  refunded: { label: "Pago devuelto", cls: "text-red-600" },
+  charged_back: { label: "Contracargo", cls: "text-red-600" },
 };
 const ESTADO_ENVIO: Record<string, string> = {
   pending: "Por preparar",
@@ -205,7 +208,7 @@ export default function StoreAccount() {
       ) : (
         <div className="space-y-3">
           {pedidos.map(p => {
-            const pago = ESTADO_PAGO[p.payment_status] ?? { label: p.payment_status, cls: "" };
+            const pago = ESTADO_PAGO[p.payment_status] ?? { label: storeOrderPaymentLabel(p.payment_status), cls: "" };
             return (
               <div
                 key={p.order_number}

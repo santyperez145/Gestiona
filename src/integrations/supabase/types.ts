@@ -7512,6 +7512,8 @@ export type Database = {
           org_id: string
           payment_id: string | null
           payment_method: string
+          payment_reversal_reason: string | null
+          payment_reversed_at: string | null
           payment_status: string
           shipped_at: string | null
           shipping_address: Json
@@ -7562,6 +7564,8 @@ export type Database = {
           org_id: string
           payment_id?: string | null
           payment_method?: string
+          payment_reversal_reason?: string | null
+          payment_reversed_at?: string | null
           payment_status?: string
           shipped_at?: string | null
           shipping_address?: Json
@@ -7612,6 +7616,8 @@ export type Database = {
           org_id?: string
           payment_id?: string | null
           payment_method?: string
+          payment_reversal_reason?: string | null
+          payment_reversed_at?: string | null
           payment_status?: string
           shipped_at?: string | null
           shipping_address?: Json
@@ -28552,6 +28558,15 @@ export type Database = {
         }
       }
       get_user_role: { Args: { _user_id: string }; Returns: string }
+      handle_store_order_payment_reversal: {
+        Args: {
+          p_detail?: string
+          p_order_id: string
+          p_payment_id: string
+          p_status: string
+        }
+        Returns: Json
+      }
       has_org_role: {
         Args: { _org_id: string; _roles: string[]; _user_id: string }
         Returns: boolean
