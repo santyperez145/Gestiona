@@ -74,6 +74,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice de confiabilidad 29 (2026-08-14):** una orden `paid` de MercadoLibre ya no queda aislada en `meli_orders`: se importa atómicamente como una venta por producto, deja que el trigger existente descuente el stock una vez y registra la comisión real (`sale_fee`) en cada línea y en `payment_transactions`. El navegador sólo selecciona la orden; el RPC toma productos del vínculo publicado, precio/costo/comisión de datos persistidos y sólo puede ejecutarlo `service_role`. Órdenes y publicaciones quedan de sólo lectura para el cliente, para que nadie pueda editar un payload descargado y convertirlo en una venta falsa. La prueba ZZ creó una orden de dos líneas, verificó la idempotencia, dos movimientos de Kardex, comisión y neto, y limpió todo. El botón vive en Integraciones y `meli-sync` quedó desplegada. Falta publicar desde la ficha, cron/webhook multi-organización y el costo de envío real de ML para completar C7/E4. Typecheck, lint sin errores, 908 tests y build/PWA completados; sin `.env`, no se abrió una sesión real en el navegador.
 
+**Slice funcional 30 (2026-08-14):** C7 ya permite publicar desde una ficha de producto guardada. La Edge Function vuelve a leer título, precio, stock e imágenes desde la base; el navegador sólo ve hasta tres categorías que devuelve el predictor oficial de MercadoLibre y exige confirmar una antes de crear el ítem. Un producto ya vinculado devuelve su publicación existente en vez de lanzar otra. Vapers siguen bloqueados en UI y servidor, y la ficha muestra el enlace de un ítem ya publicado. `meli-sync` quedó desplegada como `ACTIVE` versión 19; para publicar de verdad todavía hace falta una cuenta OAuth conectada y completar los atributos que MercadoLibre exija para la categoría. Typecheck, lint sin errores (147 avisos históricos), 911 tests y build/PWA completados; sin `.env` ni una cuenta de prueba no se hizo una publicación real desde el navegador. C7 conserva como pendientes webhook y cron multi-organización; E4 todavía necesita el costo de envío real de MercadoLibre.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -195,11 +197,11 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | MFA | Anda | — |
 | Auditoría | Anda | — |
 | Export y supresión de datos (Ley 25.326) | Anda | — |
-| MercadoLibre | Parcial | Importa órdenes `paid` al Core; falta publicar desde la ficha y cron/webhook multi-org. |
+| MercadoLibre | Parcial | Publica desde ficha e importa órdenes `paid` al Core; faltan webhook y cron multi-org. |
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **908 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **911 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -335,7 +337,7 @@ Antes sería construirlo para una sola persona.
 | Qué | Estado |
 |---|---|
 | **E4** ⭐ Margen real por canal | El diferencial más defendible, y sale casi gratis: los cuatro datos ya están (ver §2). |
-| **C7** MercadoLibre completo | Las órdenes `paid` ya entran como ventas con el mismo stock. Faltan publicar desde la ficha y cron/webhook multi-org. |
+| **C7** MercadoLibre completo | Publica desde ficha e importa órdenes `paid` con el mismo stock. Faltan webhook y cron multi-org. |
 | **E1** Precio único entre mostrador y online, con margen a la vista | Consecuencia natural de E4. |
 | **E2** El stock del local es el de la tienda | Casi hecho: falta avisar al vender en mostrador algo reservado online. |
 | **C9** Multi-depósito real en la tienda | La tienda vende contra el total, no contra el depósito que despacha. |
@@ -474,7 +476,7 @@ envío gratis" a propósito. Si se agrega, va como campo explícito por promoci�
 | **C4** | **Fotos y descripciones** | 10 sin foto, 33 con descripción corta. El panel de calidad los rankea. | ML |
 | **C5** | **App en el celular con notificaciones** | Hay PWA y POS offline. Falta el push de "vendiste" y "sin stock". | Tiendanube app |
 | **C6** | **Motor visual de automatizaciones** | Existen `automations` y los crons; falta el armador de flujos. | Shopify Flow |
-| **C7** | **MercadoLibre completo** | Importa órdenes `paid` como ventas; faltan publicar desde la ficha, webhook y cron multi-org. | — |
+| **C7** | **MercadoLibre completo** | Publica desde ficha e importa órdenes `paid` como ventas; faltan webhook y cron multi-org. | — |
 | **C8** | **Compras y reposición con proveedor** | Hay órdenes de compra y reposición automática. Falta recepción parcial y costo de importación por lote. | — |
 | **C9** | **Multi-depósito real en la tienda** | El stock por sucursal existe; la tienda vende contra el total, no contra el depósito que despacha. | Shopify |
 | **C10** | **Reportes exportables y programados** | Hay reportes en pantalla. Falta "mandame el cierre de mes por email". | Todas |

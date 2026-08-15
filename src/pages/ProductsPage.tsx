@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale, Loader2, ExternalLink } from "lucide-react";
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { recommendSimilar } from "@/lib/perfumeMatch";
 import { normalizeText, literalFilter } from "@/lib/searchText";
@@ -2859,8 +2859,189 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           ))}
         </div>
       )}
+      {product?.id && orgId && (
+        <MercadoLibrePublishCard
+          productId={product.id}
+          orgId={orgId}
+          productCategory={product.category}
+        />
+      )}
       <Button type="submit" disabled={uploading} className="w-full gradient-gold text-primary-foreground font-semibold">{uploading ? 'Subiendo imagen...' : product ? 'Guardar' : 'Agregar'}</Button>
     </form>
+  );
+}
+
+interface MeliCategoryCandidate {
+  id: string;
+  name: string;
+  domain: string | null;
+}
+
+interface MeliProductListing {
+  meli_item_id: string;
+  permalink: string | null;
+  status: string;
+}
+
+/**
+ * Publicar vive dentro de la ficha ya guardada: así la Edge Function puede
+ * tomar título, precio y stock de la fuente de verdad y no de un borrador del
+ * navegador. El predictor propone; la categoría se confirma explícitamente.
+ */
+function MercadoLibrePublishCard({ productId, orgId, productCategory }: {
+  productId: string;
+  orgId: string;
+  productCategory: string | null;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState(false);
+  const [listing, setListing] = useState<MeliProductListing | null>(null);
+  const [categories, setCategories] = useState<MeliCategoryCandidate[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [busy, setBusy] = useState<"predict" | "publish" | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      const [connectionRes, listingRes] = await Promise.all([
+        supabase.from("meli_connection_status").select("conectado").eq("org_id", orgId).maybeSingle(),
+        supabase.from("meli_listings")
+          .select("meli_item_id, permalink, status")
+          .eq("org_id", orgId).eq("product_id", productId).maybeSingle(),
+      ]);
+      if (cancelled) return;
+      if (connectionRes.error || listingRes.error) {
+        const error = connectionRes.error ?? listingRes.error;
+        toast.error(`No se pudo cargar MercadoLibre: ${error?.message ?? "error desconocido"}`);
+      }
+      if (!connectionRes.error) setConnected(!!connectionRes.data?.conectado);
+      if (!listingRes.error) setListing((listingRes.data as MeliProductListing | null) ?? null);
+      setLoading(false);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [orgId, productId]);
+
+  const invoke = async (action: "predict-category" | "publish", extra: Record<string, unknown> = {}) => {
+    setBusy(action === "predict-category" ? "predict" : "publish");
+    const { data, error } = await supabase.functions.invoke("meli-sync", {
+      body: { action, orgId, productId, ...extra },
+    });
+    setBusy(null);
+    const result = data as any;
+    const message = result?.error ?? error?.message;
+    if (message) {
+      toast.error(message);
+      return null;
+    }
+    return result;
+  };
+
+  const predict = async () => {
+    const result = await invoke("predict-category");
+    if (!result) return;
+    const suggested = (result.categories ?? []) as MeliCategoryCandidate[];
+    setCategories(suggested);
+    setSelectedCategoryId(suggested[0]?.id ?? "");
+  };
+
+  const publish = async () => {
+    if (!selectedCategoryId) {
+      toast.error("Elegí una categoría de MercadoLibre antes de publicar");
+      return;
+    }
+    const result = await invoke("publish", { categoryId: selectedCategoryId });
+    if (!result) return;
+    const nextListing: MeliProductListing = {
+      meli_item_id: result.item_id,
+      permalink: result.permalink ?? null,
+      status: result.status ?? "active",
+    };
+    setListing(nextListing);
+    toast.success(result.already_published ? "Este producto ya estaba publicado" : "Producto publicado en MercadoLibre");
+  };
+
+  if (productCategory === "vaper") {
+    return (
+      <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-3">
+        <p className="text-xs text-amber-500 font-medium">MercadoLibre no permite publicar vapers.</p>
+        <p className="text-[11px] text-muted-foreground mt-1">La protección también corre en el servidor para evitar una sanción por error.</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return <div className="text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Cargando MercadoLibre…</div>;
+  }
+
+  if (listing) {
+    return (
+      <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold text-emerald-500">Publicado en MercadoLibre</p>
+          <p className="text-[11px] text-muted-foreground">{listing.meli_item_id} · {listing.status}</p>
+        </div>
+        {listing.permalink && (
+          <a href={listing.permalink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1 shrink-0">
+            Ver publicación <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  if (!connected) {
+    return (
+      <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+        <p className="text-xs font-medium">Publicar en MercadoLibre</p>
+        <p className="text-[11px] text-muted-foreground mt-1">Primero conectá la cuenta en Integraciones → Conexiones.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-border/70 bg-muted/20 p-3 space-y-3">
+      <div>
+        <p className="text-xs font-semibold">Publicar en MercadoLibre</p>
+        <p className="text-[11px] text-muted-foreground mt-1">La categoría se sugiere con el título guardado; revisala antes de publicar.</p>
+      </div>
+      {categories.length === 0 ? (
+        <Button type="button" size="sm" variant="outline" disabled={busy !== null} onClick={predict}>
+          {busy === "predict" ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />}
+          Sugerir categoría
+        </Button>
+      ) : (
+        <>
+          <div className="space-y-1.5">
+            {categories.map((candidate, index) => (
+              <label key={candidate.id} className="flex items-start gap-2 rounded border border-border/60 bg-background/40 p-2 text-xs cursor-pointer">
+                <input
+                  type="radio"
+                  name={`meli-category-${productId}`}
+                  value={candidate.id}
+                  checked={selectedCategoryId === candidate.id}
+                  onChange={() => setSelectedCategoryId(candidate.id)}
+                  className="mt-0.5 accent-primary"
+                />
+                <span>
+                  <span className="font-medium">{candidate.name}</span>
+                  {index === 0 && <span className="ml-1.5 text-[10px] text-primary">Sugerida</span>}
+                  {candidate.domain && <span className="block text-[10px] text-muted-foreground">{candidate.domain}</span>}
+                </span>
+              </label>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" disabled={busy !== null} onClick={publish}>
+              {busy === "publish" && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+              Confirmar y publicar
+            </Button>
+            <Button type="button" size="sm" variant="ghost" disabled={busy !== null} onClick={predict}>Cambiar sugerencia</Button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

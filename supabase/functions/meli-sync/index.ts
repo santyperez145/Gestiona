@@ -2,6 +2,7 @@
  * meli-sync — publica productos en MercadoLibre y trae las órdenes.
  *
  * Acciones (campo `action`):
+ *   predict-category → propone hasta tres categorías para un producto guardado
  *   publish      → publica un producto y guarda el vínculo en meli_listings
  *   sync-stock   → empuja stock y precio de todas las publicaciones activas
  *   pull-orders  → baja las órdenes nuevas a meli_orders
@@ -136,8 +137,10 @@ Deno.serve(async (req) => {
 
     const conn = await getToken(admin, orgId);
 
-    // ── publish ───────────────────────────────────────────────────────────
-    if (action === "publish") {
+    // El título se lee de la ficha persistida. El navegador sólo confirma una
+    // de las categorías sugeridas: nunca puede inventar el producto ni sus
+    // valores económicos al publicar.
+    if (action === "predict-category" || action === "publish") {
       if (!productId) return json({ error: "productId es requerido" }, 400);
 
       const { data: p } = await admin
@@ -152,8 +155,59 @@ Deno.serve(async (req) => {
                  "Publicar uno puede costarte una sanción en la cuenta.",
         }, 422);
       }
+
+      // ── predict-category ───────────────────────────────────────────────
+      // MercadoLibre recomienda mostrar varias opciones, no publicar de forma
+      // automática con la primera predicción. El cliente presenta estas tres y
+      // el dueño/admin confirma la elegida en una segunda acción.
+      if (action === "predict-category") {
+        const title = [p.brand, p.name].filter(Boolean).join(" ").trim();
+        const res = await meli(
+          conn.access_token,
+          `/sites/${encodeURIComponent(conn.site_id || "MLA")}/domain_discovery/search?limit=3&q=${encodeURIComponent(title)}`,
+        );
+        const body = await res.json().catch(() => null);
+        if (!res.ok) {
+          return json({ error: body?.message ?? body?.error ?? `HTTP ${res.status}` }, 400);
+        }
+
+        const categories = (Array.isArray(body) ? body : [])
+          .map((candidate: any) => ({
+            id: typeof candidate?.category_id === "string" ? candidate.category_id : "",
+            name: typeof candidate?.category_name === "string" ? candidate.category_name : "",
+            domain: typeof candidate?.domain_name === "string" ? candidate.domain_name : null,
+          }))
+          .filter((candidate: { id: string; name: string }) => candidate.id && candidate.name);
+
+        if (!categories.length) {
+          return json({ error: "MercadoLibre no sugirió una categoría para este producto. Probá completar mejor el nombre." }, 422);
+        }
+        return json({ ok: true, categories });
+      }
+
+      // ── publish ─────────────────────────────────────────────────────────
       if (!p.stock || p.stock < 1) return json({ error: "El producto no tiene stock" }, 422);
       if (!categoryId) return json({ error: "Falta elegir la categoría de MercadoLibre" }, 400);
+
+      // Antes el upsert evitaba duplicar la fila local pero llegaba después del
+      // POST a MercadoLibre: dos clics podían crear dos publicaciones reales.
+      // Se consulta primero y la segunda llamada devuelve el vínculo existente.
+      const { data: existingListing, error: existingListingError } = await admin
+        .from("meli_listings")
+        .select("meli_item_id, permalink, status")
+        .eq("org_id", orgId)
+        .eq("product_id", productId)
+        .maybeSingle();
+      if (existingListingError) return json({ error: existingListingError.message }, 500);
+      if (existingListing) {
+        return json({
+          ok: true,
+          already_published: true,
+          item_id: existingListing.meli_item_id,
+          permalink: existingListing.permalink,
+          status: existingListing.status,
+        });
+      }
 
       const price = Number(p.discount_price_ars ?? p.sale_price_ars) || 0;
       if (price <= 0) return json({ error: "El producto no tiene precio" }, 422);
@@ -184,7 +238,7 @@ Deno.serve(async (req) => {
         return json({ error: cause ? `${msg}: ${cause}` : String(msg) }, 400);
       }
 
-      await admin.from("meli_listings").upsert({
+      const { error: listingError } = await admin.from("meli_listings").upsert({
         org_id: orgId,
         product_id: productId,
         meli_item_id: item.id,
@@ -195,6 +249,15 @@ Deno.serve(async (req) => {
         last_error: null,
         updated_at: new Date().toISOString(),
       }, { onConflict: "org_id,product_id" });
+      if (listingError) {
+        // La publicación ya existe afuera. Informarlo explícitamente para que
+        // soporte la vincule antes de que alguien vuelva a presionar publicar.
+        return json({
+          error: `MercadoLibre creó ${item.id}, pero no se pudo guardar el vínculo interno: ${listingError.message}`,
+          item_id: item.id,
+          permalink: item.permalink ?? null,
+        }, 500);
+      }
 
       return json({ ok: true, item_id: item.id, permalink: item.permalink });
     }

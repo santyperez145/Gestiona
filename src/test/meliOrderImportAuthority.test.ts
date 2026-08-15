@@ -8,6 +8,7 @@ const migration = readFileSync(
   "utf8",
 );
 const sync = readFileSync(resolve(ROOT, "supabase/functions/meli-sync/index.ts"), "utf8");
+const productsPage = readFileSync(resolve(ROOT, "src/pages/ProductsPage.tsx"), "utf8");
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
@@ -58,5 +59,30 @@ describe("importación de órdenes MercadoLibre", () => {
       .map(file => file.replace(ROOT, ""));
 
     expect(writes, "las órdenes sólo las escribe meli-sync con service_role").toEqual([]);
+  });
+
+  it("el predictor usa el producto persistido, ofrece opciones y evita duplicar una publicación real", () => {
+    expect(sync).toContain('action === "predict-category" || action === "publish"');
+    expect(sync).toContain("/domain_discovery/search?limit=3&q=");
+    expect(sync).toContain("[p.brand, p.name]");
+    expect(sync).toContain("MercadoLibre no sugirió una categoría");
+    expect(sync).toContain("existingListing");
+    expect(sync.indexOf("existingListing")).toBeLessThan(sync.indexOf('meli(conn.access_token, "/items"'));
+  });
+
+  it("la ficha muestra la sugerencia y exige confirmar una categoría antes de publicar", () => {
+    expect(productsPage).toContain("MercadoLibrePublishCard");
+    expect(productsPage).toContain('invoke("predict-category")');
+    expect(productsPage).toContain("Confirmar y publicar");
+    expect(productsPage).toContain("La categoría se sugiere con el título guardado");
+    expect(productsPage).toContain("categoryId: selectedCategoryId");
+  });
+
+  it("el navegador no escribe publicaciones; sólo puede leer su vínculo", () => {
+    const writes = sourceFiles(resolve(ROOT, "src"))
+      .filter(file => /\.from\(["']meli_listings["']\)\.(insert|update|delete|upsert)/.test(readFileSync(file, "utf8")))
+      .map(file => file.replace(ROOT, ""));
+
+    expect(writes, "las publicaciones sólo las vincula meli-sync con service_role").toEqual([]);
   });
 });

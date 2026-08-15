@@ -75,10 +75,30 @@ sincronización.
 
 | Acción | Qué hace |
 |---|---|
+| `predict-category` | Propone hasta tres categorías a partir de la ficha guardada del producto |
 | `publish` | Publica un producto y guarda el vínculo en `meli_listings` |
 | `sync-stock` | Empuja stock y precio de todas las publicaciones activas |
 | `pull-orders` | Baja las últimas 50 órdenes a `meli_orders`, con precio y comisión por línea |
 | `import-order` | Convierte una orden `paid` ya bajada en ventas de Gestiona, stock y cobro neto |
+
+## Publicar desde un producto
+
+Abrí un producto **ya guardado** en Productos. Si la cuenta está conectada, la
+ficha muestra **Publicar en MercadoLibre**. Primero elegí **Sugerir categoría**:
+Gestiona manda el título que ya está guardado a `domain_discovery` de
+MercadoLibre y presenta hasta tres opciones. La primera es una sugerencia, no
+una decisión automática; elegí la que corresponda y recién entonces usá
+**Confirmar y publicar**.
+
+El servidor vuelve a leer el producto antes de crear el ítem: título, precio,
+stock e imágenes no salen de lo que tenga el navegador en un borrador. Si ese
+producto ya tiene un vínculo en `meli_listings`, devuelve la publicación
+existente en lugar de crear otra. Los vapers se bloquean tanto en la ficha como
+en la Edge Function.
+
+MercadoLibre puede pedir atributos adicionales para algunas categorías. Si los
+requiere, la respuesta del API aparece como error de publicación: completá la
+ficha o elegí la categoría correcta y reintentá; no se guarda un vínculo falso.
 
 ## Importar una orden cobrada
 
@@ -119,9 +139,5 @@ panel.
 
 ## Qué falta
 
-- Publicar desde la ficha del producto (hoy la acción `publish` existe pero no
-  tiene botón; falta elegir la categoría de ML con el predictor de categorías).
-- Importar una orden de `meli_orders` como venta en Gestiona (la columna
-  `sale_id` está lista para ese vínculo).
 - Webhook de notificaciones de ML para no depender del polling.
 - Función de cron multi-organización para la sincronización automática.
