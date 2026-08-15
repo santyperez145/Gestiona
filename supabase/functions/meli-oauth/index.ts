@@ -154,6 +154,9 @@ Deno.serve(async (req) => {
       },
       { onConflict: "org_id" },
     );
+    if (upErr?.code === "23505") {
+      return json({ error: "Esta cuenta de MercadoLibre ya está conectada a otra organización. Desconectala primero para no mezclar stock ni órdenes." }, 409);
+    }
     if (upErr) return json({ error: upErr.message }, 500);
 
     return json({ ok: true, nickname, site_id: siteId });

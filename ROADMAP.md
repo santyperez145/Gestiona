@@ -90,6 +90,8 @@ El rediseño visual acompana la tesis del sistema operativo omnicanal: la interf
 
 **Slice funcional 37 (2026-08-14):** Analytics suma **Margen por canal**, una tabla producto × mostrador/tienda propia/MercadoLibre que sólo agrega importes persistidos. Costo de mercadería, comisión de cobro, costo real de envío e IVA deben existir todos para mostrar “Margen final”; un `NULL` llega como “Pendiente”, no como $0 ni una estimación. MercadoLibre aporta comisión y costo de envío cuando ya los informó; POS conoce envío cero pero todavía no su liquidación por línea; la tienda propia conserva comisión e IVA pero espera el costo final del correo. La pantalla no lee datos hasta abrir su tab y respeta el período compartido. Validada con cálculos puros, importación de `AnalyticsPage`, typecheck, lint, tests y build; sin `.env`, no se abrió una sesión real en navegador.
 
+**Slice funcional 38 (2026-08-14):** C7 deja de depender solamente de consultar cada 15 minutos: `meli-webhook` recibe el tópico `orders`, lo encola sin guardar el body crudo y confirma rápido; su tarea de fondo vuelve a pedir la orden oficial con el OAuth del vendedor antes de actualizar `meli_orders` y conciliar el costo real de envío. El callback nunca crea ventas, stock ni precios, y repetirlo no vuelve a procesar una notificación sana. Una cuenta vendedora sólo puede pertenecer a una organización, porque de otro modo un mismo pedido tendría dos Business Cores posibles. La migración quedó aplicada y registrada, la Edge Function quedó desplegada y una llamada de recurso inválido respondió 400 sin filas ZZ. Validada con typecheck, lint sin errores, 932 tests y build/PWA; sin una cuenta ML conectada no se procesó una orden real. Falta que el dueño configure la Callback URL y el tópico Orders en el DevCenter, y que cargue el secreto del cron si también quiere el polling de respaldo.
+
 ## 1. Qué es
 
 Una plataforma para comercios argentinos, con tres partes:
@@ -216,7 +218,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **928 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Tests | Anda | **932 unitarios** (`npm test`, 2026-08-14) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -352,7 +354,7 @@ Antes sería construirlo para una sola persona.
 | Qué | Estado |
 |---|---|
 | **E4** ⭐ Margen real por canal | En curso: Analytics ya muestra producto × canal y declara cada pendiente; falta evidencia completa de correo, IVA por producto y liquidaciones POS. |
-| **C7** MercadoLibre completo | Publica desde ficha e importa órdenes `paid` con el mismo stock. Cron listo, espera secreto; falta webhook. |
+| **C7** MercadoLibre completo | Publica desde ficha, recibe órdenes por webhook e importa `paid` con el mismo stock. Webhook y cron listos; faltan configurar Callback URL/Orders y el secreto del cron. |
 | **E1** Precio único entre mostrador y online, con margen a la vista | Consecuencia natural de E4. |
 | **E2** El stock del local es el de la tienda | ✅ POS avisa y pide confirmación si una venta consume una reserva online activa. |
 | **C9** Multi-depósito real en la tienda | La tienda vende contra el total, no contra el depósito que despacha. |

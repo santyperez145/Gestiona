@@ -81,6 +81,7 @@ sincronización.
 | `pull-orders` | Baja las últimas 50 órdenes, con precio, comisión y costo final de envío cuando ML ya informó el shipment |
 | `import-order` | Convierte una orden `paid` ya bajada en ventas de Gestiona, stock y cobro neto |
 | `cron-sync` | Uso interno: sincroniza stock/precio y órdenes de todas las organizaciones conectadas |
+| `meli-webhook` | Recibe avisos de `orders`, vuelve a consultar la orden oficial y la deja lista para importar |
 
 ## Publicar desde un producto
 
@@ -136,6 +137,26 @@ en cero: queda como error de la publicación hasta corregir el Kardex. Un fallo
 al pedir el shipment queda asociado a la orden y en el estado de la conexión;
 no hace pasar ese costo por cero.
 
+## Webhook de órdenes
+
+En el gestor de la aplicación de MercadoLibre, configurá como **Notifications
+Callback URL**:
+
+```
+https://hummeopatkniwkyrrhwc.supabase.co/functions/v1/meli-webhook
+```
+
+Y seleccioná solamente el tópico **Orders** para esta integración. El endpoint
+confirma el aviso enseguida y, en segundo plano, vuelve a pedir
+`GET /orders/{id}` con el OAuth de la cuenta que figura en la notificación. El
+body del callback nunca crea una venta ni decide precio, stock, comisión o
+envío. Si la orden oficial no pertenece exactamente al vendedor conectado, se
+descarta; repetir una notificación no vuelve a consumir ni a crear la orden.
+
+La venta sigue entrando al Business Core mediante **Importar venta**, que exige
+la orden `paid` y usa el RPC idempotente existente. El webhook acelera la
+llegada de la evidencia; no saltea esa confirmación ni el trigger de stock.
+
 El cron **no usa la anon key como secreto**. Antes de activarlo, generá una
 cadena aleatoria larga y cargá el mismo valor en los dos lugares:
 
@@ -159,6 +180,8 @@ configuración a medias. Ver también [docs/CRON.md](CRON.md).
 
 ## Qué falta
 
-- Webhook de notificaciones de ML para no depender del polling.
+- Cargar la Callback URL y el tópico **Orders** en la aplicación de
+  MercadoLibre. El endpoint ya está desplegado, pero esa configuración es del
+  dueño de la aplicación.
 - Activar el cron en producción cargando `MELI_CRON_SECRET` en Vault y Edge
   Functions; el código y la migración ya están, pero ese secreto es del dueño.

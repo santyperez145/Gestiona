@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_audit_logs: {
@@ -12502,6 +12527,100 @@ export type Database = {
           },
           {
             foreignKeyName: "meli_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      meli_webhook_events: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          meli_user_id: number
+          notification_id: string
+          notification_sent_at: string | null
+          org_id: string
+          processed_at: string | null
+          processing_started_at: string | null
+          resource: string
+          status: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          meli_user_id: number
+          notification_id: string
+          notification_sent_at?: string | null
+          org_id: string
+          processed_at?: string | null
+          processing_started_at?: string | null
+          resource: string
+          status?: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          meli_user_id?: number
+          notification_id?: string
+          notification_sent_at?: string | null
+          org_id?: string
+          processed_at?: string | null
+          processing_started_at?: string | null
+          resource?: string
+          status?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meli_webhook_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meli_webhook_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_webhook_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_webhook_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_webhook_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_webhook_events_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
@@ -27947,6 +28066,17 @@ export type Database = {
       dias_para_arrepentirse: { Args: { p_order_id: string }; Returns: number }
       discrimina_iva: { Args: { p_emisor: string }; Returns: boolean }
       end_expired_promotions: { Args: never; Returns: number }
+      enqueue_meli_webhook_event: {
+        Args: {
+          p_meli_user_id: number
+          p_notification_id: string
+          p_notification_sent_at?: string
+          p_org_id: string
+          p_resource: string
+          p_topic: string
+        }
+        Returns: string
+      }
       eval_territory_conditions: {
         Args: { p_attributes: Json; p_conditions: Json }
         Returns: boolean
@@ -28936,6 +29066,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "viewer"],

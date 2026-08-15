@@ -24,6 +24,7 @@ $noJwt = @(
     "stripe-webhook",
     "mercadopago-webhook",
     "resend-webhook",
+    "meli-webhook",
     # Storefront publico — el comprador no tiene sesion.
     # Revalidan precios, stock y envio contra la base.
     "shipping-quote",

@@ -50,6 +50,7 @@ const ALLOWED_WITHOUT_USER: Record<string, string> = {
   'stripe-webhook': 'webhook firmado',
   'mercadopago-webhook': 'webhook firmado',
   'resend-webhook': 'webhook firmado',
+  'meli-webhook': 'webhook: revalida la orden oficial con OAuth del vendedor',
   // Storefront: el comprador no tiene sesión; validan todo server-side
   'store-order-email': 'storefront público',
   'store-pay': 'storefront público',
