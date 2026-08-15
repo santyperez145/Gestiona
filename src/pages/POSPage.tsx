@@ -509,7 +509,7 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
     (async () => {
       const { data } = await supabase
         .from("sales")
-        .select("id, product_name, product_id, quantity, total_ars, customer_name, date, returned")
+        .select("id, product_name, product_id, variant_id, quantity, total_ars, customer_name, date, returned")
         .eq("org_id", orgId)
         .eq("returned", false)
         .order("date", { ascending: false })
@@ -536,7 +536,7 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
     setSubmitting(true);
     try {
       const amountARS = (Number(selected.total_ars) / selected.quantity) * qty;
-      await supabase.from("returns").insert({
+      const { data: createdReturn, error: returnError } = await supabase.from("returns").insert({
         org_id: orgId,
         user_id: userId,
         sale_id: selected.id,
@@ -546,20 +546,24 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
         reason,
         refund_method: refundMethod,
         notes: "",
-      });
-      // Restore stock
+      }).select("id").single();
+      if (returnError) throw returnError;
+      // La devolución repone mediante Kardex: el cliente no suma stock directo.
       if (selected.product_id) {
-        const { data: prod } = await supabase
-          .from("products")
-          .select("stock")
-          .eq("id", selected.product_id)
-          .single();
-        if (prod) {
-          await supabase
-            .from("products")
-            .update({ stock: prod.stock + qty })
-            .eq("id", selected.product_id);
-        }
+        const { error: stockError } = await supabase.rpc("record_stock_movement", {
+          p_org_id: orgId,
+          p_product_id: selected.product_id,
+          p_variant_id: selected.variant_id ?? null,
+          p_product_name: selected.product_name,
+          p_variant_name: null,
+          p_movement_type: "return",
+          p_quantity: qty,
+          p_reference_type: "return",
+          p_reference_id: createdReturn.id,
+          p_notes: reason,
+          p_created_by: userId,
+        });
+        if (stockError) throw stockError;
       }
       // Mark sale as returned
       await supabase.from("sales").update({ returned: true }).eq("id", selected.id);

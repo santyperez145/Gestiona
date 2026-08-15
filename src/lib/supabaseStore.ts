@@ -68,13 +68,89 @@ export async function getProductsDB(userId: string) {
   return data || [];
 }
 
-export async function addProductDB(product: any) {
-  const orgId = product.org_id || requireActiveOrgId();
-  const { error } = await supabase.from('products').insert({ ...product, org_id: orgId });
+/**
+ * Fija el stock a un valor físico contado. La base calcula el delta y crea el
+ * asiento en Kardex; ninguna pantalla debe actualizar `products.stock` sola.
+ */
+export async function setStockAbsoluteDB({
+  productId,
+  newStock,
+  userId,
+  orgId,
+  variantId = null,
+  notes,
+}: {
+  productId: string;
+  newStock: number;
+  userId?: string | null;
+  orgId?: string;
+  variantId?: string | null;
+  notes?: string | null;
+}) {
+  if (!Number.isInteger(newStock) || newStock < 0) {
+    throw new Error('El stock debe ser un entero mayor o igual a cero');
+  }
+  const activeOrgId = orgId || requireActiveOrgId();
+  let actorId = userId ?? null;
+  if (!actorId) {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
+    actorId = authData.user?.id ?? null;
+  }
+  if (!actorId) throw new Error('Necesitás iniciar sesión para ajustar stock');
+
+  const { error } = await supabase.rpc('adjust_stock', {
+    p_org_id: activeOrgId,
+    p_product_id: productId,
+    p_variant_id: variantId,
+    p_new_stock: newStock,
+    p_notes: notes ?? null,
+    p_created_by: actorId,
+  });
   if (error) throw error;
 }
 
+export async function addProductDB(product: any) {
+  const orgId = product.org_id || requireActiveOrgId();
+  const initialStock = product.stock === undefined ? 0 : Number(product.stock);
+  if (!Number.isInteger(initialStock) || initialStock < 0) {
+    throw new Error('El stock inicial debe ser un entero mayor o igual a cero');
+  }
+  const { stock: _stock, ...productFields } = product;
+  // El default de la base crea el producto en cero y el ajuste siguiente queda
+  // en el Kardex. El cliente no escribe `products.stock`, ni siquiera al alta.
+  const { data: created, error } = await supabase
+    .from('products')
+    .insert({ ...productFields, org_id: orgId })
+    .select('id')
+    .single();
+  if (error) throw error;
+  if (initialStock === 0) return created;
+
+  try {
+    await setStockAbsoluteDB({
+      productId: created.id,
+      newStock: initialStock,
+      userId: product.user_id,
+      orgId,
+      notes: 'Stock inicial al crear producto',
+    });
+  } catch (stockError) {
+    // No dejamos un producto creado a medias si no se pudo registrar su
+    // inventario. La eliminación es segura: todavía no hay ventas ni compras.
+    const { error: cleanupError } = await supabase.from('products').delete().eq('id', created.id);
+    if (cleanupError) {
+      throw new Error(`No se pudo registrar el stock inicial ni revertir el producto: ${cleanupError.message}`);
+    }
+    throw stockError;
+  }
+  return created;
+}
+
 export async function updateProductDB(id: string, updates: any, prev?: any) {
+  if (Object.prototype.hasOwnProperty.call(updates ?? {}, 'stock')) {
+    throw new Error('El stock se ajusta mediante Kardex, no al editar el producto');
+  }
   // `prev` permite registrar el cambio en `price_history` sin un round-trip
   // extra. Si no se pasa y hay cambio de precio/costo, se lee el estado previo.
   const touchesPrice = updates?.sale_price_ars !== undefined || updates?.cost_usd !== undefined;
@@ -365,30 +441,35 @@ export async function getExchangesDB(userId: string) {
 
 export async function addExchangeDB(exchange: any) {
   const orgId = exchange.org_id || requireActiveOrgId();
-  const { error } = await supabase.from('influencer_exchanges').insert({ ...exchange, org_id: orgId });
+  const { data: created, error } = await supabase
+    .from('influencer_exchanges')
+    .insert({ ...exchange, org_id: orgId })
+    .select('id')
+    .single();
   if (error) throw error;
-  // Descontar stock (el producto se entrega como en una venta) y dejar rastro
-  // en el kardex, así el canje aparece en el historial de inventario.
+  // Entregar un canje es una salida de inventario: la función de base actualiza
+  // stock y Kardex en la misma operación, sin calcular un "antes" en el cliente.
   if (exchange.product_id) {
-    const { data: prod } = await supabase.from('products').select('stock, name').eq('id', exchange.product_id).single();
-    if (prod) {
-      const qty = exchange.quantity || 1;
-      const before = Number(prod.stock);
-      const after = Math.max(0, before - qty);
-      await supabase.from('products').update({ stock: after }).eq('id', exchange.product_id);
-      await supabase.from('stock_movements').insert({
-        org_id: orgId,
-        product_id: exchange.product_id,
-        product_name: exchange.product_name || prod.name || 'Producto',
-        movement_type: 'adjustment_out',
-        quantity: -qty,
-        stock_before: before,
-        stock_after: after,
-        reference_type: 'manual',
-        notes: `Canje con influencer${exchange.influencer_name ? ': ' + exchange.influencer_name : ''}`,
-      });
+    const qty = Number(exchange.quantity ?? 1);
+    if (!Number.isInteger(qty) || qty <= 0) {
+      throw new Error('La cantidad del canje debe ser un entero positivo');
     }
+    const { error: stockError } = await supabase.rpc('record_stock_movement', {
+      p_org_id: orgId,
+      p_product_id: exchange.product_id,
+      p_variant_id: null,
+      p_product_name: exchange.product_name || 'Producto',
+      p_variant_name: null,
+      p_movement_type: 'influencer_exchange',
+      p_quantity: -qty,
+      p_reference_type: 'influencer_exchange',
+      p_reference_id: created.id,
+      p_notes: `Canje con influencer${exchange.influencer_name ? ': ' + exchange.influencer_name : ''}`,
+      p_created_by: exchange.user_id ?? null,
+    });
+    if (stockError) throw stockError;
   }
+  return created;
 }
 
 export async function updateExchangeDB(id: string, updates: any) {
@@ -566,11 +647,42 @@ export async function getVariantsByUserDB(userId: string) {
 
 export async function addVariantDB(variant: any) {
   const orgId = variant.org_id || requireActiveOrgId();
-  const { error } = await supabase.from('product_variants').insert({ ...variant, org_id: orgId });
+  const initialStock = variant.stock === undefined ? 0 : Number(variant.stock);
+  if (!Number.isInteger(initialStock) || initialStock < 0) {
+    throw new Error('El stock inicial de la variante debe ser un entero mayor o igual a cero');
+  }
+  const { stock: _stock, ...variantFields } = variant;
+  const { data: created, error } = await supabase
+    .from('product_variants')
+    .insert({ ...variantFields, org_id: orgId })
+    .select('id, product_id')
+    .single();
   if (error) throw error;
+  if (initialStock === 0) return created;
+
+  try {
+    await setStockAbsoluteDB({
+      productId: created.product_id,
+      variantId: created.id,
+      newStock: initialStock,
+      userId: variant.user_id,
+      orgId,
+      notes: 'Stock inicial al crear variante',
+    });
+  } catch (stockError) {
+    const { error: cleanupError } = await supabase.from('product_variants').delete().eq('id', created.id);
+    if (cleanupError) {
+      throw new Error(`No se pudo registrar el stock inicial ni revertir la variante: ${cleanupError.message}`);
+    }
+    throw stockError;
+  }
+  return created;
 }
 
 export async function updateVariantDB(id: string, updates: any) {
+  if (Object.prototype.hasOwnProperty.call(updates ?? {}, 'stock')) {
+    throw new Error('El stock de una variante se ajusta mediante Kardex');
+  }
   const { error } = await supabase.from('product_variants').update(updates).eq('id', id);
   if (error) throw error;
 }
@@ -578,13 +690,6 @@ export async function updateVariantDB(id: string, updates: any) {
 export async function deleteVariantDB(id: string) {
   const { error } = await supabase.from('product_variants').delete().eq('id', id);
   if (error) throw error;
-}
-
-export async function syncProductStockFromVariants(productId: string) {
-  const variants = await getVariantsDB(productId);
-  const totalStock = variants.filter(v => v.active).reduce((s: number, v: any) => s + (v.stock || 0), 0);
-  await supabase.from('products').update({ stock: totalStock }).eq('id', productId);
-  return totalStock;
 }
 
 export async function addSaleWithVariantDB(sale: any, variantId?: string) {

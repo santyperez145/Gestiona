@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
-import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, syncProductStockFromVariants, getVariantsByUserDB } from "@/lib/supabaseStore";
+import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, setStockAbsoluteDB, getVariantsByUserDB } from "@/lib/supabaseStore";
 import ProductPriceListsSection from "@/components/products/ProductPriceListsSection";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCountdown } from "@/hooks/useCountdown";
@@ -390,8 +390,13 @@ export default function ProductsPage() {
 
   const saveInlineStock = async (productId: string, newStock: string) => {
     const parsed = parseInt(newStock, 10);
-    if (isNaN(parsed) || parsed < 0) { setEditingStock(null); return; }
-    await updateProductDB(productId, { stock: parsed });
+    if (isNaN(parsed) || parsed < 0 || !user) { setEditingStock(null); return; }
+    await setStockAbsoluteDB({
+      productId,
+      newStock: parsed,
+      userId: user.id,
+      notes: "Ajuste de stock desde Productos",
+    });
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: parsed } : p));
     setEditingStock(null);
     toast.success("Stock actualizado");
@@ -1846,7 +1851,6 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         tax_rate: taxRate.trim() === '' ? null : Number(taxRate),
         price_2x_ars: isVaper ? (parseFloat(price2xARS) || null) : null,
         profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
-        stock: variantTotal,
         image_url: imageUrl,
         image_urls: urls,
         featured,
@@ -1873,10 +1877,26 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       let productId = product?.id;
       if (product) {
         await updateProductDB(product.id, data);
+        if (!showVariants) {
+          await setStockAbsoluteDB({
+            productId: product.id,
+            newStock: variantTotal,
+            userId,
+            orgId,
+            notes: "Ajuste de stock al editar producto",
+          });
+        }
         await logAudit(userId, 'update', 'product', product.id, { name: data.name, changes: data });
       } else {
         productId = crypto.randomUUID();
-        await addProductDB({ ...data, user_id: userId, id: productId });
+        await addProductDB({
+          ...data,
+          user_id: userId,
+          id: productId,
+          // Cuando hay variantes, los ajustes de cada variante derivan el total
+          // del producto. Cargar el total primero dejaría dos caminos de stock.
+          stock: showVariants ? 0 : variantTotal,
+        });
         await logAudit(userId, 'create', 'product', productId, { name: data.name });
       }
       // Ficha de perfume — solo para categorías perfume
@@ -1903,14 +1923,41 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         const existingIds = new Set(existingVariants.map((v: any) => v.id));
         const currentIds = new Set(variants.filter(v => v.id).map(v => v.id));
         for (const ev of existingVariants) {
-          if (!currentIds.has(ev.id)) await deleteVariantDB(ev.id);
+          if (!currentIds.has(ev.id)) {
+            await setStockAbsoluteDB({
+              productId,
+              variantId: ev.id,
+              newStock: 0,
+              userId,
+              orgId,
+              notes: "Stock retirado al eliminar variante",
+            });
+            await deleteVariantDB(ev.id);
+          }
         }
         for (const v of variants) {
           if (v.id && existingIds.has(v.id)) {
-            await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false, price_override: v.price_override ?? null });
+            await updateVariantDB(v.id, { variant_name: v.variant_name, active: v.active !== false, price_override: v.price_override ?? null });
+            await setStockAbsoluteDB({
+              productId,
+              variantId: v.id,
+              newStock: Number(v.stock),
+              userId,
+              orgId,
+              notes: "Ajuste de stock al editar variante",
+            });
           } else if (v._new || !v.id) {
             await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true, variant_type: variantType, price_override: v.price_override ?? null });
           }
+        }
+        if (variants.length === 0) {
+          await setStockAbsoluteDB({
+            productId,
+            newStock: 0,
+            userId,
+            orgId,
+            notes: "Producto sin variantes",
+          });
         }
       }
       toast.success(product ? "Producto actualizado" : "Producto agregado");

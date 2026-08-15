@@ -232,10 +232,9 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
     setReceivingLoading(true);
     try {
       await updatePurchaseDB(p.id, { is_scheduled: false, quantity: received, date: new Date().toISOString().slice(0, 10) });
-      if (p.product_id) {
-        const { data: prod } = await supabase.from('products').select('stock').eq('id', p.product_id).maybeSingle();
-        if (prod) await supabase.from('products').update({ stock: (prod.stock || 0) + received }).eq('id', p.product_id);
-      }
+      // `trg_purchase_stock_movement` calcula la diferencia al pasar de
+      // programada a recibida. Sumar acá duplicaba las unidades y salteaba el
+      // Kardex.
       if (user) await logAudit(user.id, 'update', 'purchase', p.id, { action: 'received', product: p.product_name, qty_received: received, qty_ordered: p.quantity });
       const partial = received < Number(p.quantity);
       toast.success(`${partial ? `Recepción parcial (${received}/${p.quantity} uds)` : 'Pedido recibido completo'} — stock actualizado`);

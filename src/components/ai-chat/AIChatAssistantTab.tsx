@@ -12,7 +12,7 @@ import {
   ImagePlus, Camera,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB, addSaleDB, addPurchaseDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
+import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, setStockAbsoluteDB, addSaleDB, addPurchaseDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import { requireActiveOrgId } from "@/lib/orgContext";
 import KPICard from "@/components/shared/KPICard";
 
@@ -491,7 +491,14 @@ function AdjustStockCard({ userId, onDone }: { userId: string; onDone: () => voi
     if (!selectedId || newStock === "") return;
     setLoading(true);
     try {
-      await updateProductDB(selectedId, { stock: parseInt(newStock, 10) });
+      const desiredStock = parseInt(newStock, 10);
+      if (isNaN(desiredStock) || desiredStock < 0) throw new Error("Cantidad de stock inválida");
+      await setStockAbsoluteDB({
+        productId: selectedId,
+        newStock: desiredStock,
+        userId,
+        notes: "Ajuste de stock desde el asistente",
+      });
       toast.success("Stock actualizado");
       setDone(true);
       onDone();

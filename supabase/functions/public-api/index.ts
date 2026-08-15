@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
 
   const { data: settings } = await supabase
     .from("settings")
-    .select("org_id, api_key")
+    .select("org_id, user_id, api_key")
     .eq("api_key", apiKey)
     .maybeSingle();
 
@@ -132,8 +132,23 @@ Deno.serve(async (req) => {
     const qty = Number(body.quantity);
     if (isNaN(qty)) return err("quantity must be a number", 400, "validation_error");
     if (qty < 0) return err("quantity cannot be negative", 400, "validation_error");
-    const { error } = await supabase
-      .from("products").update({ stock: qty }).eq("id", resourceId).eq("org_id", orgId);
+    if (!Number.isInteger(qty)) return err("quantity must be an integer", 400, "validation_error");
+    // La API conserva la semántica de fijar un conteo absoluto, pero el delta y
+    // el asiento de Kardex los calcula `adjust_stock` dentro de la base. Es
+    // importante verificar el producto antes: la función recibe service_role.
+    const { data: product, error: productError } = await supabase
+      .from("products").select("id").eq("id", resourceId).eq("org_id", orgId).maybeSingle();
+    if (productError) return err(productError.message, 500);
+    if (!product) return err("Product not found", 404, "not_found");
+    if (!settings.user_id) return err("API key has no stock adjustment owner", 409, "stock_owner_missing");
+    const { error } = await supabase.rpc("adjust_stock", {
+      p_org_id: orgId,
+      p_product_id: product.id,
+      p_variant_id: null,
+      p_new_stock: qty,
+      p_notes: typeof body.reason === "string" ? body.reason.slice(0, 500) : "Ajuste vía API pública",
+      p_created_by: settings.user_id,
+    });
     if (error) return err(error.message, 500);
     return json({ updated: true, productId: resourceId, stock: qty });
   }

@@ -322,7 +322,7 @@ export default function InvoicesPage() {
 
   // Load AFIP org settings
   useEffect(() => {
-    if (!activeOrg) return;
+    if (!activeOrg || !user) return;
     (async () => {
       const { data } = await supabase
         .from("settings")
@@ -533,7 +533,7 @@ export default function InvoicesPage() {
   };
 
   const createCreditNote = async (inv: Invoice, revertStock: boolean, markReturned: boolean) => {
-    if (!activeOrg) return;
+    if (!activeOrg || !user) return;
     setCreatingNC(inv.id);
     setNcDialogInv(null);
     try {
@@ -542,7 +542,7 @@ export default function InvoicesPage() {
         .map((it) => ({ ...it, unit_price: -Math.abs(it.unit_price), total: -Math.abs(it.total) }));
       const ncSubtotal = ncItems.reduce((s, it) => s + it.total, 0);
       const taxAmt = ncSubtotal * (Number(inv.tax_pct) / 100);
-      const { error } = await supabase.from("invoices").insert({
+      const { data: creditNote, error } = await supabase.from("invoices").insert({
         org_id: activeOrg.id,
         number: ncNumber,
         customer_name: inv.customer_name,
@@ -561,26 +561,46 @@ export default function InvoicesPage() {
         invoice_items: ncItems,
         sale_id: inv.sale_id,
         tipo_comprobante: null,
-      });
+      }).select("id").single();
       if (error) throw error;
 
-      // If linked to a sale, optionally revert stock and mark as returned
+      // Si se repone, primero deja el asiento de inventario que referencia la
+      // nota de crédito. Luego cambia el estado comercial de la venta.
       if (inv.sale_id) {
-        if (markReturned) {
-          await supabase.from("sales").update({ paid: false, payment_method: "devolucion" }).eq("id", inv.sale_id);
-        }
         if (revertStock) {
-          // Get all sale rows for this sale (multi-item sales have multiple rows with same session)
-          const { data: saleRows } = await supabase.from("sales").select("product_id, quantity").eq("id", inv.sale_id);
+          // El reverso es un movimiento de base, no una suma a products.stock.
+          // Así queda en Kardex con la nota de crédito que lo originó.
+          const { data: saleRows, error: saleRowsError } = await supabase
+            .from("sales")
+            .select("product_id, product_name, variant_id, quantity")
+            .eq("id", inv.sale_id);
+          if (saleRowsError) throw saleRowsError;
           if (saleRows && saleRows.length > 0) {
             for (const row of saleRows) {
               if (!row.product_id || !row.quantity) continue;
-              const { data: prod } = await supabase.from("products").select("stock").eq("id", row.product_id).single();
-              if (prod) {
-                await supabase.from("products").update({ stock: (prod.stock ?? 0) + Number(row.quantity) }).eq("id", row.product_id);
-              }
+              const { error: stockError } = await supabase.rpc("record_stock_movement", {
+                p_org_id: activeOrg.id,
+                p_product_id: row.product_id,
+                p_variant_id: row.variant_id,
+                p_product_name: row.product_name,
+                p_variant_name: null,
+                p_movement_type: "invoice_credit_note",
+                p_quantity: Number(row.quantity),
+                p_reference_type: "invoice_credit_note",
+                p_reference_id: creditNote.id,
+                p_notes: `Nota de crédito ${ncNumber}`,
+                p_created_by: user.id,
+              });
+              if (stockError) throw stockError;
             }
           }
+        }
+        if (markReturned) {
+          const { error: saleError } = await supabase
+            .from("sales")
+            .update({ paid: false, payment_method: "devolucion" })
+            .eq("id", inv.sale_id);
+          if (saleError) throw saleError;
         }
       }
 
