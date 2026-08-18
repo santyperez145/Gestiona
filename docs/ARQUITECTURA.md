@@ -1,0 +1,241 @@
+# Arquitectura — principios, límites y hacia dónde va
+
+Este documento fija **cómo se construye**, no qué se construye. El qué está en
+`ROADMAP.md`; el porqué del negocio, en `docs/ESTRATEGIA.md`.
+
+Existe porque la ambición del producto creció —Commerce de primera línea, medio
+de pago propio, plataforma abierta— y esa ambición **no se alcanza escribiendo
+más features**: se alcanza no cerrándose puertas ahora. Casi todo lo que hay acá
+es barato hoy y carísimo dentro de dos años.
+
+Última revisión: 2026-08-16.
+
+⚠️ **Este documento no autoriza una reescritura.** El sistema funciona, cobra de
+verdad y tiene 995 tests. Todo se aplica de forma incremental, y cada slice deja
+el sistema usable.
+
+---
+
+## 0. Dónde estamos parados, medido
+
+✅ **Medido contra la base (2026-08-16):**
+
+| | |
+|---|---|
+| Tablas en `public` | **304** |
+| Con `org_id` | **269** |
+| Ledger de inventario (`stock_movements`) | ✅ existe |
+| Tablas de auditoría | 4 |
+| Tablas de webhooks | 3 |
+| **Tabla de idempotencia** | ❌ **no existe** |
+| **Outbox / eventos de dominio** | ❌ **no existe** |
+| **Ledger financiero** | ❌ **no existe** |
+
+Eso es lo importante: el multi-tenant y el ledger de stock **ya están y son
+sólidos**. Los tres huecos son idempotencia, eventos y ledger de dinero — y son
+justamente los que hay que tapar antes de crecer, no después.
+
+---
+
+## 1. Los quince principios
+
+No son aspiracionales. Cada uno se puede violar en un pull request, y por eso
+están escritos.
+
+1. **Cada dominio es dueño de sus datos.** Otro dominio lee por API, evento o
+   proyección; no hace joins arbitrarios contra tablas ajenas.
+2. **La integridad la garantiza la base.** Constraints, transacciones y triggers
+   antes que disciplina del cliente.
+3. **Toda mutación crítica es idempotente.** El mismo pedido dos veces produce
+   el mismo resultado, no dos cobros.
+4. **Los eventos son durables.** Si se commiteó el cambio, el evento no se
+   pierde.
+5. **El dinero es un ledger.** Nunca un saldo mutable.
+6. **El inventario es un ledger.** Ya lo es: `record_stock_movement`.
+7. **Los sistemas externos fallan.** Timeouts, reintentos, circuit breakers.
+8. **La IA nunca es dependencia crítica.** Si se cae, se vende igual.
+9. **Las APIs públicas son contratos versionados.** Nadie de afuera lee tablas.
+10. **La analítica nunca bloquea una transacción.**
+11. **Todo lo importante es observable.**
+12. **Los tenants están aislados por diseño**, no por cuidado del programador.
+13. **Las fallas degradan.** Que se caiga el buscador no puede apagar la tienda.
+14. **Los servicios se extraen sólo cuando se justifica.** Monolito modular
+    hasta que duela.
+15. **Todo deploy es reversible.**
+
+---
+
+## 2. Lo que ya cumple, y no hay que rehacer
+
+✅ **Medido.** Esto es lo que un análisis externo recomendó construir y **ya
+está**. Anotarlo importa: en la sesión 110 casi se reconstruye A10 —historial de
+precios— que estaba entero.
+
+- **Principio 6 — ledger de inventario.** `record_stock_movement` es el único
+  lugar que toca `products.stock`, `product_variants.stock` y `location_stock`.
+  `trg_sale_stock_movement` y `trg_purchase_stock_movement` cubren INSERT,
+  UPDATE y DELETE. Se llegó ahí rompiéndolo dos veces.
+- **Principio 12 — aislamiento.** RLS por `org_id` en 269 tablas, verificada con
+  roles reales, con `publicSurface.test.ts` y la vista `rls_audit_open_policies`
+  como guardas.
+- **Principio 2 — integridad en la base.** Precios, stock, cupones, envío y
+  comisiones se recalculan del lado del servidor. El checkout manda ids y
+  cantidades.
+- **Principio 8 — IA no crítica.** La IA vive en Edge Functions aparte; si falta
+  `ANTHROPIC_API_KEY`, el resto funciona.
+- **Principio 11 — parcial.** Sentry y `cron.job_run_details`; faltan trazas.
+
+---
+
+## 3. Los tres huecos, en orden de urgencia
+
+📌 **Criterio.** Los tres son baratos ahora y caros después. Ninguno requiere
+reescribir nada.
+
+### H1 — Idempotencia (❌ no existe)
+
+**Por qué duele:** un checkout puede llegar dos veces por reintento, timeout,
+doble clic o proxy. Hoy nada garantiza que no se cobre dos veces.
+
+Ya pasó algo de esta familia acá: el descuento de stock duplicado, que vivió
+meses. La forma del bug es la misma — una operación que se ejecuta dos veces y
+nadie lo nota.
+
+**Qué hace falta:** una tabla `idempotency_keys` y que la usen las mutaciones
+sensibles — checkout, confirmación de orden, cobro, captura, reintegro, factura,
+movimiento de stock, recepción de compra.
+
+### H2 — Eventos durables y outbox (❌ no existe)
+
+**Por qué duele:** hoy, cuando se confirma una orden, quien la confirma tiene
+que acordarse de avisarle a stock, al CRM, a marketing y a los emails. Cada
+consumidor nuevo es una edición en el centro. Eso no escala ni en código ni en
+gente.
+
+**Qué hace falta:** `domain_events` + `outbox_events` escritos **en la misma
+transacción** que el cambio, y un worker que publique. La regla: el evento no se
+manda después del commit, se persiste adentro.
+
+### H3 — Ledger financiero (❌ no existe)
+
+**Por qué duele:** hoy el dinero vive en columnas de importe. Para Gestiona Pay
+—o para cualquier conciliación seria— hace falta que el saldo **se derive de
+asientos inmutables**, con correcciones por contraasiento y nunca por UPDATE.
+
+Es el mismo principio que ya salvó al inventario. Se sabe que funciona porque
+`stock_movements` es exactamente eso.
+
+---
+
+## 4. Los límites de dominio
+
+📌 **Criterio.** No hay que mover archivos mañana. Hay que **dejar de cruzar
+estos límites** en el código nuevo:
+
+```
+BUSINESS CORE                    COMMERCE
+  Organizations                    Catalog
+  Identity / Party                 Pricing
+  Customers                        Promotions
+  Inventory                        Cart
+  Purchasing                       Checkout
+  Finance                          Orders
+  CRM                              Fulfillment
+        +--------------+----------------+
+                       |
+                 EVENTOS (H2)
+                       |
+      +----------------+----------------+
+   PAYMENTS       AUTOMATION          DATA
+```
+
+Reglas concretas y verificables:
+
+- **Catalog no escribe Inventory.** Se pide disponibilidad, no se toca stock.
+- **Inventory no escribe Orders.**
+- **Payments no escribe Sales.**
+- **Commerce Core no conoce el rubro.** Nada de ramas por categoría en el
+  núcleo. Los verticales aportan atributos y defaults, no `if`.
+- **La UI no hace joins entre dominios.** Si hace falta, es una vista o un RPC.
+
+---
+
+## 5. Lo que se adopta ahora y lo que espera
+
+📌 **Criterio, y es la parte que evita construir un castillo.**
+
+### Se adopta ya — barato, previene deuda
+
+| Qué | Por qué ahora |
+|---|---|
+| Los quince principios como criterio de revisión | Cuesta cero |
+| **H1 idempotencia** | Cada semana sin esto es riesgo de doble cobro |
+| **H2 eventos + outbox** | Cada consumidor nuevo agrega acoplamiento |
+| Abstracción de proveedor de pago | Ya hay dos; un tercero sin abstracción duele |
+| No cruzar límites de dominio en código nuevo | Cuesta cero |
+
+### Espera evidencia
+
+| Qué | Qué lo destraba |
+|---|---|
+| Multi-store, multi-market, multi-brand | Un comercio que tenga dos tiendas |
+| Dominios propios por tienda | Un comercio que tenga dominio propio |
+| Theme engine, page builder, headless | Un comercio que quiera otro diseño |
+| **Gestiona Pay** más allá de orquestación | Volumen que justifique la estructura regulatoria |
+| Marketplace de apps, developer platform | Desarrolladores que quieran construir |
+| Search dedicado, recomendaciones, experimentos | Tráfico que haga que muevan la aguja |
+| Multi-región, sharding, CQRS | Carga que lo pida |
+
+⚠️ **La regla que ordena esta tabla:** hoy hay **un** comercio usando el sistema.
+Construir multi-store para un comercio no es arquitectura, es adivinar. Lo que
+sí corresponde ahora es **no cerrarse la puerta**: por eso los límites de dominio
+y los tres huecos van primero, y el resto espera evidencia.
+
+---
+
+## 6. Sobre Gestiona Pay
+
+📌 **Criterio.** La escalera tiene cuatro peldaños y **hoy estamos en el primero
+y medio**:
+
+1. **Orquestación** — el checkout es nuestro, el dinero lo mueve otro. ✅ Es lo
+   que hay: OAuth de MercadoPago y `marketplace_fee` cobrando de verdad,
+   verificado con dos compras acreditadas.
+2. **Pagos embebidos con partner** — 🟡 arrancó: el Brick de MercadoPago dentro
+   de la tienda.
+3. **Routing y riesgo entre varios adquirentes** — necesita volumen.
+4. **PSP regulado con cuentas de pago** — necesita inscripción en el registro de
+   proveedores de servicios de pago del BCRA, capital, compliance y auditoría.
+   **Es otra empresa adentro de la empresa**, no una feature.
+
+⚠️ **Nunca asumir que se puede custodiar dinero de terceros sin estructura
+regulatoria.** El peldaño 4 no se empieza en el código.
+
+---
+
+## 7. Definición de terminado
+
+Una feature no está lista porque compila:
+
+reglas de dominio · autorización · aislamiento por tenant · validación ·
+idempotencia si aplica · auditoría si aplica · observabilidad · tests · estados
+de error y de carga · documentación · estrategia de migración · forma de
+apagarla · una métrica de uso.
+
+Para cualquier cosa que toque dinero o stock, **test de integración contra la
+base real, con limpieza, y restos en 0**.
+
+---
+
+## 8. Antes de construir cualquier cosa
+
+Diez preguntas. Si alguna no tiene respuesta, no se implementa:
+
+1. Qué problema resuelve. 2. Qué usuario lo necesita. 3. Qué dominio es dueño.
+4. Qué datos necesita. 5. Qué evento consume o emite. 6. Qué acción habilita.
+7. Cómo se mide. 8. Qué pasa si falla. 9. Cómo se apaga. 10. **Si una primitiva
+que ya existe lo resuelve.**
+
+La décima es la que más trabajo ahorra: en la sesión 110, A10 figuraba como
+faltante y estaba entero —656 filas, trigger y gráfico en pantalla—. Empezar por
+el código lo habría construido dos veces.

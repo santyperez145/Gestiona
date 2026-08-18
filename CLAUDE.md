@@ -43,6 +43,16 @@ dueño cargue razón social, CUIT y domicilio, y publique**. Se generan como
 borrador a propósito: publicar un texto legal por él sería firmarlo en su
 nombre.
 
+⚠️ **Antes de escribir código nuevo, leer
+[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).** Fija los quince principios y los
+límites de dominio que no hay que cruzar. Lo medido: 304 tablas, 269 con
+`org_id`, ledger de stock sólido — y **faltan idempotencia, eventos con outbox y
+ledger financiero** (H1–H3 del ROADMAP). Son baratos hoy y carísimos después.
+
+Y lo que ese documento dice que **no** hay que construir todavía —multi-store,
+dominios propios, theme engine, headless, marketplace— importa tanto como lo que
+sí: espera un segundo comercio, no una decisión de arquitectura.
+
 ¿Arrancando de cero? [docs/GUIA.md](docs/GUIA.md) explica la plataforma y el
 código para alguien sin experiencia, con un orden de estudio y ejercicios sobre
 los archivos de este repo.

@@ -643,6 +643,27 @@ tener MRR, ARR, churn, CAC, LTV y margen bruto con fecha y fuente. Si CAC o LTV
 vienen de una planilla externa, se registran igual; lo prohibido es citarlos sin
 fecha.
 
+#### H. Fundaciones — lo barato hoy, carísimo despues
+
+Sale de **[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)**, que fija como se
+construye. Medido contra la base: 304 tablas, 269 con `org_id`, ledger de stock
+solido. Faltan tres cosas, y ninguna requiere reescribir nada.
+
+| # | Que | Estado |
+|---|---|---|
+| **H1** | **Idempotencia en las mutaciones criticas** | Un checkout puede llegar dos veces por reintento, timeout o doble clic, y hoy nada garantiza que no se cobre dos veces. Es la misma forma del bug que descontaba stock doble durante meses. Tabla `idempotency_keys` + uso en checkout, cobro, captura, reintegro, factura, movimiento de stock y recepcion de compra. |
+| **H2** | **Eventos durables con outbox** | Hoy quien confirma una orden tiene que acordarse de avisarle a stock, CRM, marketing y emails. Cada consumidor nuevo es una edicion en el centro. `domain_events` + `outbox_events` en la **misma transaccion** que el cambio. |
+| **H3** | **Ledger financiero** | El dinero vive en columnas de importe. Para conciliar —y para cualquier peldano de Gestiona Pay mas alla de orquestacion— el saldo tiene que derivarse de asientos inmutables. Es lo que ya salva al inventario. |
+
+⚠️ **H1 y H2 valen mas que cualquier feature del bloque B.** No agregan nada
+visible, y son lo unico que evita que el sistema se vuelva imposible de crecer.
+
+⚠️ **Lo que NO se construye todavia**, y esta razonado en ARQUITECTURA.md §5:
+multi-store, dominios propios por tienda, theme engine, headless, marketplace de
+apps, search dedicado, multi-region. Todo eso espera **un segundo comercio**, no
+una decision de arquitectura. Construir multi-store para un comercio no es
+arquitectura, es adivinar.
+
 ---
 
 ## 8. Riesgos
