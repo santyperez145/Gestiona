@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_audit_logs: {
@@ -9284,6 +9309,45 @@ export type Database = {
             referencedColumns: ["org_id"]
           },
         ]
+      }
+      idempotency_keys: {
+        Row: {
+          clave: string
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          estado: string
+          expires_at: string
+          operacion: string
+          org_id: string
+          request_hash: string
+          respuesta: Json | null
+        }
+        Insert: {
+          clave: string
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          estado?: string
+          expires_at?: string
+          operacion: string
+          org_id: string
+          request_hash: string
+          respuesta?: Json | null
+        }
+        Update: {
+          clave?: string
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          estado?: string
+          expires_at?: string
+          operacion?: string
+          org_id?: string
+          request_hash?: string
+          respuesta?: Json | null
+        }
+        Relationships: []
       }
       iibb_registrations: {
         Row: {
@@ -28582,6 +28646,23 @@ export type Database = {
         }
         Returns: Json
       }
+      create_store_order_idem: {
+        Args: {
+          p_coupon?: string
+          p_customer_email: string
+          p_customer_name: string
+          p_customer_phone?: string
+          p_fiscal?: Json
+          p_idempotency_key?: string
+          p_items: Json
+          p_notes?: string
+          p_payment_method?: string
+          p_shipping?: Json
+          p_shipping_option?: string
+          p_slug: string
+        }
+        Returns: Json
+      }
       cuit_valido: { Args: { p_cuit: string }; Returns: boolean }
       decimales_de_moneda: { Args: { p_moneda: string }; Returns: number }
       desglosar_iva: {
@@ -29084,6 +29165,33 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      idempotencia_completar: {
+        Args: {
+          p_clave: string
+          p_operacion: string
+          p_org: string
+          p_respuesta: Json
+        }
+        Returns: undefined
+      }
+      idempotencia_fallar: {
+        Args: {
+          p_clave: string
+          p_error: string
+          p_operacion: string
+          p_org: string
+        }
+        Returns: undefined
+      }
+      idempotencia_reservar: {
+        Args: {
+          p_clave: string
+          p_operacion: string
+          p_org: string
+          p_payload?: Json
+        }
+        Returns: Json
       }
       import_meli_order_as_sales: {
         Args: { p_actor_id: string; p_meli_order_id: string; p_org_id: string }
@@ -29720,6 +29828,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "viewer"],

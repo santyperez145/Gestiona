@@ -651,7 +651,7 @@ solido. Faltan tres cosas, y ninguna requiere reescribir nada.
 
 | # | Que | Estado |
 |---|---|---|
-| **H1** | **Idempotencia en las mutaciones criticas** | Un checkout puede llegar dos veces por reintento, timeout o doble clic, y hoy nada garantiza que no se cobre dos veces. Es la misma forma del bug que descontaba stock doble durante meses. Tabla `idempotency_keys` + uso en checkout, cobro, captura, reintegro, factura, movimiento de stock y recepcion de compra. |
+| ~~H1~~ | ~~Idempotencia en las mutaciones criticas~~ | ✅ **Sesión 113, la primitiva y el checkout.** `idempotency_keys` + `idempotencia_reservar/completar/fallar`, y `create_store_order_idem` que **envuelve** create_store_order sin tocarla. Verificado contra producción: dos llamadas con la misma clave crean **una** orden. Falta llevarlo al cobro, la captura, el reintegro, la factura y la recepción de compra. |
 | **H2** | **Eventos durables con outbox** | Hoy quien confirma una orden tiene que acordarse de avisarle a stock, CRM, marketing y emails. Cada consumidor nuevo es una edicion en el centro. `domain_events` + `outbox_events` en la **misma transaccion** que el cambio. |
 | **H3** | **Ledger financiero** | El dinero vive en columnas de importe. Para conciliar —y para cualquier peldano de Gestiona Pay mas alla de orquestacion— el saldo tiene que derivarse de asientos inmutables. Es lo que ya salva al inventario. |
 

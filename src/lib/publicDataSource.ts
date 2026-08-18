@@ -312,6 +312,24 @@ export async function createStoreOrder(params: Record<string, unknown>) {
   // Los tipos generados exigen la forma exacta del RPC; el checkout arma el
   // objeto y acá sólo se reintenta sin el parámetro nuevo si no existe aún.
   type OrderArgs = Parameters<typeof supabase.rpc<'create_store_order'>>[1];
+
+  // H1 — primero el camino idempotente. Si el navegador reintenta el checkout
+  // —timeout que en realidad completó, doble clic, un proxy— el envoltorio
+  // devuelve la MISMA orden en vez de crear otra y reservar stock dos veces.
+  //
+  // Se cae al camino viejo sólo si la función todavía no está en la base, que
+  // es el patrón de este archivo: el código no puede asumir que la migración
+  // del mismo commit ya se aplicó.
+  if (params.p_idempotency_key) {
+    const idem = await supabase.rpc(
+      'create_store_order_idem' as never, params as never);
+    if (!idem.error) return idem as { data: unknown; error: null };
+    if (!isMissingFunction(idem.error)) return idem as never;
+    warnFallback('create_store_order_idem()');
+  }
+
+  const { p_idempotency_key: _sinClave, ...sinIdem } = params;
+  params = sinIdem;
   const conOpcion = await supabase.rpc('create_store_order', params as OrderArgs);
   if (!conOpcion.error) return conOpcion;
   if (!isMissingFunction(conOpcion.error)) return conOpcion;

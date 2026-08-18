@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
@@ -78,6 +78,15 @@ export default function StoreCheckout() {
     }));
   }, [customer]);
   const [enviando, setEnviando] = useState(false);
+  /**
+   * H1 — clave de idempotencia del intento de compra en curso.
+   *
+   * Va en un ref y no en estado porque no tiene que provocar re-render, y
+   * porque tiene que sobrevivir a los reintentos del mismo submit. Se limpia
+   * recién cuando la orden se creó: a partir de ahí, comprar de nuevo lo mismo
+   * es una compra nueva y legítima, y tiene que poder hacerse.
+   */
+  const claveIdem = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [aceptaMarketing, setAceptaMarketing] = useState(false);
 
@@ -304,7 +313,15 @@ export default function StoreCheckout() {
     }
     setEnviando(true);
 
+    // H1 — la clave de idempotencia se genera UNA VEZ por intento de compra y
+    // vive en un ref, no en estado: no tiene que provocar re-render y tiene que
+    // sobrevivir a todos los reintentos del mismo submit. Si se generara acá
+    // adentro en cada llamada, dos clics producirían dos claves y dos órdenes,
+    // que es exactamente lo que esto viene a evitar.
+    if (!claveIdem.current) claveIdem.current = crypto.randomUUID();
+
     const { data, error: rpcError } = await createStoreOrder({
+      p_idempotency_key: claveIdem.current,
       p_slug: store!.slug,
       p_items: cart.map(l => ({ product_id: l.productId, variant_id: l.variantId ?? null, quantity: l.qty })),
       p_customer_name: form.nombre,
@@ -385,6 +402,8 @@ export default function StoreCheckout() {
       }
     }
 
+    // La compra se cerró: la próxima es una compra nueva, con clave nueva.
+    claveIdem.current = null;
     navigate(`${base}/orden/${orderNumber}`, { replace: true });
   };
 
