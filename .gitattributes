@@ -1,0 +1,21 @@
+# El working tree usa LF en las dos PCs, siempre.
+#
+# Sin esto, `core.autocrlf=true` en Windows entrega CRLF al working tree
+# mientras el índice guarda LF. Eso hizo fallar tres tests que leen una
+# migración con readFileSync y asertan sobre su contenido con `\n`: pasaban en
+# una PC y fallaban en la otra, con el mismo commit. Un test que depende del
+# sistema operativo del checkout enseña a ignorar los tests rojos.
+* text=auto eol=lf
+
+# Binarios: que git no toque nada.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.crt binary
