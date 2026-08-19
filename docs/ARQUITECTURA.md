@@ -8,7 +8,7 @@ de pago propio, plataforma abierta— y esa ambición **no se alcanza escribiend
 más features**: se alcanza no cerrándose puertas ahora. Casi todo lo que hay acá
 es barato hoy y carísimo dentro de dos años.
 
-Última revisión: 2026-08-19 (H2 y H3 cerrados).
+Última revisión: 2026-08-19 (H1–H3 cerrados y endurecidos).
 
 ⚠️ **Este documento no autoriza una reescritura.** El sistema funciona, cobra de
 verdad y tiene 995 tests. Todo se aplica de forma incremental, y cada slice deja
@@ -252,6 +252,62 @@ y medio**:
 
 ⚠️ **Nunca asumir que se puede custodiar dinero de terceros sin estructura
 regulatoria.** El peldaño 4 no se empieza en el código.
+
+---
+
+## 6 bis. Lo que costó cerrar los tres huecos
+
+✅ **Medido, sesión 113.** Tapar H1, H2 y H3 abrió un agujero nuevo, y vale
+dejarlo escrito porque se va a repetir con el próximo motor que se construya.
+
+⚠️ **Postgres otorga `EXECUTE` a PUBLIC por default.** Toda función nace
+llamable por `anon` — el rol de la clave anónima, que viaja en el bundle del
+navegador y cualquiera puede leer. Las diecinueve funciones internas de los
+motores quedaron abiertas apenas se escribieron.
+
+Se comprobó asumiendo el rol `anon`, **seis de seis**:
+
+| Ataque | Resultado |
+|---|---|
+| escribir en el libro contable ajeno | asiento creado |
+| acreditarse plata en la billetera | plata acreditada |
+| marcar una suscripción como pagada | aceptado |
+| inyectar eventos en la historia ajena | evento creado |
+| vaciar la cola de entregas | tomó la cola |
+| leer el saldo de un comercio ajeno | disponible = 19.999.998 |
+
+Ese último número es el ataque mirándose el resultado: se acreditó veinte
+millones y la billetera se los mostró como disponibles. Desde ahí
+`wallet_solicitar_retiro` —que **sí** valida membresía— los dejaba retirar. La
+cadena de robo estaba completa, y **cada eslabón por separado parecía
+correcto**. Es la misma forma que el agujero de las políticas `USING (true)`
+que este repo ya cerró una vez.
+
+**El principio que queda, y es nuevo:** una función `SECURITY DEFINER` que
+recibe `org_id` y no verifica quién la llama es un agujero. Se cierra de las dos
+maneras a la vez —`REVOKE` de PUBLIC **y** verificación adentro— porque el
+REVOKE protege de la llamada directa y la verificación protege de que mañana
+alguien vuelva a otorgar el permiso sin darse cuenta.
+
+Dos detalles que costaron una corrida cada uno:
+
+- **`REVOKE FROM anon` no saca nada** si el permiso lo tiene vía PUBLIC, del que
+  todo rol es miembro. Va `FROM PUBLIC`. La primera versión revocaba sólo de
+  `anon` y la verificación mostró que las ocho funciones seguían llamables.
+- **Los compradores de la tienda son usuarios `authenticated`.** Revocar sólo de
+  `anon` deja abierto a cualquiera que se haya registrado para comprar un
+  perfume. `create_sales_transaction` y `record_manual_stock_movement` estaban
+  así.
+
+Guardas que quedaron, y se complementan a propósito:
+
+- **`audit_funciones_expuestas`** (vista) mira los permisos **reales** de la
+  base. Ve un `GRANT` hecho a mano.
+- **`src/test/funcionesExpuestas.test.ts`** hace análisis estático de las
+  migraciones. Ve una función nueva antes de que se aplique.
+
+Ninguna sobra: la vista no ve una migración sin aplicar y el test no ve un
+permiso otorgado fuera de una migración.
 
 ---
 
