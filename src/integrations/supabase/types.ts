@@ -18571,6 +18571,24 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          clave: string
+          contador: number
+          ventana: string
+        }
+        Insert: {
+          clave: string
+          contador?: number
+          ventana: string
+        }
+        Update: {
+          clave?: string
+          contador?: number
+          ventana?: string
+        }
+        Relationships: []
+      }
       recipe_ingredients: {
         Row: {
           id: string
@@ -26311,6 +26329,16 @@ export type Database = {
           },
         ]
       }
+      audit_funciones_expuestas: {
+        Row: {
+          argumentos: string | null
+          funcion: unknown
+          llama_anon: boolean | null
+          llama_authenticated: boolean | null
+          recibe_org: boolean | null
+        }
+        Relationships: []
+      }
       audit_summary: {
         Row: {
           action: string | null
@@ -27935,6 +27963,16 @@ export type Database = {
             referencedColumns: ["org_id"]
           },
         ]
+      }
+      rate_limit_actividad: {
+        Row: {
+          bucket: string | null
+          llamadas: number | null
+          mas_activo: number | null
+          sujetos: number | null
+          ultima_ventana: string | null
+        }
+        Relationships: []
       }
       rls_audit_open_policies: {
         Row: {
@@ -29887,6 +29925,7 @@ export type Database = {
         }
         Returns: number
       }
+      ip_del_request: { Args: never; Returns: string }
       is_email_suppressed: {
         Args: { p_email: string; p_org_id: string }
         Returns: boolean
@@ -30067,6 +30106,24 @@ export type Database = {
           zone_id: string
           zone_name: string
         }[]
+      }
+      rate_limit_consumir: {
+        Args: {
+          p_bucket: string
+          p_max: number
+          p_sujeto: string
+          p_ventana?: string
+        }
+        Returns: boolean
+      }
+      rate_limit_publico: {
+        Args: {
+          p_bucket: string
+          p_fallback: string
+          p_max: number
+          p_ventana?: string
+        }
+        Returns: boolean
       }
       rebuild_cooccurrences: { Args: { p_org_id: string }; Returns: undefined }
       receive_purchase_order: {
