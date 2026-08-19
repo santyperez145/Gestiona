@@ -11274,6 +11274,163 @@ export type Database = {
           },
         ]
       }
+      ledger_accounts: {
+        Row: {
+          codigo: string
+          created_at: string
+          descripcion: string | null
+          id: string
+          imputable: boolean
+          is_active: boolean
+          moneda: string
+          nombre: string
+          org_id: string
+          tipo: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          imputable?: boolean
+          is_active?: boolean
+          moneda?: string
+          nombre: string
+          org_id: string
+          tipo: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          imputable?: boolean
+          is_active?: boolean
+          moneda?: string
+          nombre?: string
+          org_id?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      ledger_entries: {
+        Row: {
+          anula_a: string | null
+          anulado_por: string | null
+          created_at: string
+          created_by: string | null
+          descripcion: string
+          fecha: string
+          id: string
+          moneda: string
+          numero: number
+          org_id: string
+          referencia_id: string | null
+          referencia_tipo: string | null
+        }
+        Insert: {
+          anula_a?: string | null
+          anulado_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          descripcion: string
+          fecha?: string
+          id?: string
+          moneda?: string
+          numero: number
+          org_id: string
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+        }
+        Update: {
+          anula_a?: string | null
+          anulado_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string
+          fecha?: string
+          id?: string
+          moneda?: string
+          numero?: number
+          org_id?: string
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_anula_a_fkey"
+            columns: ["anula_a"]
+            isOneToOne: false
+            referencedRelation: "ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_anulado_por_fkey"
+            columns: ["anulado_por"]
+            isOneToOne: false
+            referencedRelation: "ledger_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ledger_lines: {
+        Row: {
+          account_id: string
+          created_at: string
+          debe: number
+          descripcion: string | null
+          entry_id: string
+          haber: number
+          id: string
+          metadata: Json
+          org_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          debe?: number
+          descripcion?: string | null
+          entry_id: string
+          haber?: number
+          id?: string
+          metadata?: Json
+          org_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          debe?: number
+          descripcion?: string | null
+          entry_id?: string
+          haber?: number
+          id?: string
+          metadata?: Json
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_saldos"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       location_stock: {
         Row: {
           id: string
@@ -26893,6 +27050,32 @@ export type Database = {
           },
         ]
       }
+      ledger_balance: {
+        Row: {
+          asientos: number | null
+          descuadre: number | null
+          org_id: string | null
+          total_debe: number | null
+          total_haber: number | null
+          ultimo_asiento: string | null
+        }
+        Relationships: []
+      }
+      ledger_saldos: {
+        Row: {
+          account_id: string | null
+          codigo: string | null
+          moneda: string | null
+          movimientos: number | null
+          nombre: string | null
+          org_id: string | null
+          saldo: number | null
+          tipo: string | null
+          total_debe: number | null
+          total_haber: number | null
+        }
+        Relationships: []
+      }
       meli_connection_status: {
         Row: {
           conectado: boolean | null
@@ -29409,6 +29592,29 @@ export type Database = {
         Returns: boolean
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      ledger_asentar: {
+        Args: {
+          p_descripcion: string
+          p_fecha?: string
+          p_lineas: Json
+          p_moneda?: string
+          p_org: string
+          p_ref_id?: string
+          p_ref_tipo?: string
+        }
+        Returns: string
+      }
+      ledger_asentar_orden_pagada: { Args: { p_evento: Json }; Returns: string }
+      ledger_contraasentar: {
+        Args: { p_entry_id: string; p_motivo?: string }
+        Returns: string
+      }
+      ledger_plan_default: { Args: { p_org: string }; Returns: number }
+      ledger_revertir_orden: { Args: { p_evento: Json }; Returns: string }
+      ledger_saldo: {
+        Args: { p_account_id: string; p_hasta?: string }
+        Returns: number
+      }
       list_platform_announcements: {
         Args: never
         Returns: {

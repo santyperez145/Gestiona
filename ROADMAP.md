@@ -653,7 +653,7 @@ solido. Faltan tres cosas, y ninguna requiere reescribir nada.
 |---|---|---|
 | ~~H1~~ | ~~Idempotencia en las mutaciones criticas~~ | ✅ **Sesión 113, la primitiva y el checkout.** `idempotency_keys` + `idempotencia_reservar/completar/fallar`, y `create_store_order_idem` que **envuelve** create_store_order sin tocarla. Verificado contra producción: dos llamadas con la misma clave crean **una** orden. Falta llevarlo al cobro, la captura, el reintegro, la factura y la recepción de compra. |
 | ~~H2~~ | ✅ **Eventos durables con outbox** | Hecho (sesión 112). `domain_events` append-only + `event_subscriptions` + `outbox_events`, escritos en la **misma transacción** que el cambio. Worker en `pg_cron` con backoff exponencial con techo y descarte con evidencia. Agregar un consumidor pasó a ser un INSERT. Órdenes y stock ya emiten. |
-| **H3** | **Ledger financiero** | El dinero vive en columnas de importe. Para conciliar —y para cualquier peldano de Gestiona Pay mas alla de orquestacion— el saldo tiene que derivarse de asientos inmutables. Es lo que ya salva al inventario. |
+| ~~H3~~ | ✅ **Ledger financiero** | Hecho (sesión 112). Partida doble con las tres reglas en la base: todo asiento cuadra, el libro es inmutable —se corrige por contraasiento— y el saldo se deriva. La venta cobrada se asienta **por el outbox**, con el consumidor idempotente contra el libro. |
 
 ⚠️ **H1 y H2 valen mas que cualquier feature del bloque B.** No agregan nada
 visible, y son lo unico que evita que el sistema se vuelva imposible de crecer.

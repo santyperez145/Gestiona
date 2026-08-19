@@ -8,7 +8,7 @@ de pago propio, plataforma abierta— y esa ambición **no se alcanza escribiend
 más features**: se alcanza no cerrándose puertas ahora. Casi todo lo que hay acá
 es barato hoy y carísimo dentro de dos años.
 
-Última revisión: 2026-08-19.
+Última revisión: 2026-08-19 (H2 y H3 cerrados).
 
 ⚠️ **Este documento no autoriza una reescritura.** El sistema funciona, cobra de
 verdad y tiene 995 tests. Todo se aplica de forma incremental, y cada slice deja
@@ -29,12 +29,12 @@ el sistema usable.
 | Tablas de webhooks | 3 |
 | **Tabla de idempotencia** | ❌ **no existe** |
 | **Outbox / eventos de dominio** | ✅ **existe** (H2, sesión 112) |
-| **Ledger financiero** | ❌ **no existe** |
+| **Ledger financiero** | ✅ **existe** (H3, sesión 112) |
 
 Eso es lo importante: el multi-tenant y el ledger de stock **ya están y son
-sólidos**. De los tres huecos quedan **dos**: idempotencia se cerró en H1 y los
-eventos con outbox en H2. Falta el ledger financiero, y sigue siendo barato
-ahora y caro después.
+sólidos**. **Los tres huecos están cerrados**: idempotencia en H1, eventos con
+outbox en H2 y el ledger financiero en H3. Lo que sigue ya no son fundaciones
+sino producto — y la tabla de la sección 5 dice qué espera evidencia.
 
 ---
 
@@ -140,14 +140,32 @@ entregada) y `stock_movements`. Desde triggers y no desde las funciones de
 negocio a propósito: un trigger no se puede olvidar, y las órdenes entran por
 cuatro caminos distintos.
 
-### H3 — Ledger financiero (❌ no existe)
+### H3 — Ledger financiero (✅ hecho, sesión 112)
 
-**Por qué duele:** hoy el dinero vive en columnas de importe. Para Gestiona Pay
-—o para cualquier conciliación seria— hace falta que el saldo **se derive de
-asientos inmutables**, con correcciones por contraasiento y nunca por UPDATE.
+**Qué resolvía:** el dinero vivía en columnas de importe repartidas en quince
+tablas y ninguna era un libro. Un saldo en una columna es un número que alguien
+tiene que acordarse de actualizar, y cuando se desincroniza no hay forma de
+saber cuál de las mil operaciones lo rompió.
 
-Es el mismo principio que ya salvó al inventario. Se sabe que funciona porque
-`stock_movements` es exactamente eso.
+**Cómo quedó.** Partida doble: `ledger_accounts` (plan de cuentas),
+`ledger_entries` (asientos) y `ledger_lines` (partidas). Tres reglas que
+verifica la base, no el programador:
+
+1. **Todo asiento cuadra.** La suma de los debe iguala la de los haber, o no
+   entra. Se valida dos veces: inmediata en `ledger_asentar` —para que el error
+   sea atrapable y llegue con contexto— y diferida al commit como red para quien
+   inserte partidas sin pasar por la función.
+2. **El libro es inmutable.** No hay UPDATE ni DELETE. Corregir es
+   `ledger_contraasentar()`, que agrega el asiento inverso y deja los dos.
+3. **El saldo se deriva.** No hay columna de saldo en ningún lado, y el signo
+   sale del tipo de cuenta: activo y gasto crecen por el debe; pasivo,
+   patrimonio e ingreso por el haber.
+
+**Y acá se ve para qué servía H2.** La venta cobrada se asienta por el outbox:
+el checkout emite `orden.pagada` y no sabe que existe la contabilidad. El
+consumidor es idempotente contra el libro —H2 garantiza *al menos una vez*, así
+que reprocesar el evento no puede asentar la venta dos veces—. Verificado: dos
+reprocesos, un solo asiento.
 
 ---
 
