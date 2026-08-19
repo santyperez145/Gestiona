@@ -165,6 +165,8 @@ export const NAV_ITEMS: NavItem[] = [
     keywords: ["cobrar a distancia", "link mercadopago"] },
 
   // ── Finanzas ─────────────────────────────────────────────────────────────
+  { to: "/billetera", label: "Billetera", icon: Wallet, roles: SOLO_ADMIN, group: "finanzas",
+    keywords: ["saldo", "plata", "retirar", "retiro", "cobros", "disponible", "acreditado", "cbu"] },
   { to: "/gastos", label: "Gastos", icon: Wallet, roles: SOLO_ADMIN, group: "finanzas",
     keywords: ["egresos", "pagos", "costos fijos"] },
   { to: "/cash-flow", label: "Flujo de caja", icon: BarChart3, roles: SOLO_ADMIN, group: "finanzas",

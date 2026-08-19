@@ -25168,6 +25168,118 @@ export type Database = {
           },
         ]
       }
+      wallet_bank_accounts: {
+        Row: {
+          alias: string
+          banco: string | null
+          cbu: string
+          created_at: string
+          cuit: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          org_id: string
+          titular: string
+        }
+        Insert: {
+          alias: string
+          banco?: string | null
+          cbu: string
+          created_at?: string
+          cuit?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          org_id: string
+          titular: string
+        }
+        Update: {
+          alias?: string
+          banco?: string | null
+          cbu?: string
+          created_at?: string
+          cuit?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          org_id?: string
+          titular?: string
+        }
+        Relationships: []
+      }
+      wallet_withdrawals: {
+        Row: {
+          bank_account_id: string | null
+          created_at: string
+          entry_id: string | null
+          estado: string
+          id: string
+          moneda: string
+          monto: number
+          motivo_rechazo: string | null
+          org_id: string
+          pagado_at: string | null
+          referencia: string | null
+          reversa_id: string | null
+          solicitado_por: string | null
+          updated_at: string
+        }
+        Insert: {
+          bank_account_id?: string | null
+          created_at?: string
+          entry_id?: string | null
+          estado?: string
+          id?: string
+          moneda?: string
+          monto: number
+          motivo_rechazo?: string | null
+          org_id: string
+          pagado_at?: string | null
+          referencia?: string | null
+          reversa_id?: string | null
+          solicitado_por?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bank_account_id?: string | null
+          created_at?: string
+          entry_id?: string | null
+          estado?: string
+          id?: string
+          moneda?: string
+          monto?: number
+          motivo_rechazo?: string | null
+          org_id?: string
+          pagado_at?: string | null
+          referencia?: string | null
+          reversa_id?: string | null
+          solicitado_por?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_withdrawals_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_withdrawals_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_withdrawals_reversa_id_fkey"
+            columns: ["reversa_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warehouse_bins: {
         Row: {
           active: boolean
@@ -28774,6 +28886,34 @@ export type Database = {
           },
         ]
       }
+      wallet_auditoria: {
+        Row: {
+          diferencia: number | null
+          org_id: string | null
+          saldo_disponible: number | null
+          segun_el_libro: number | null
+        }
+        Relationships: []
+      }
+      wallet_movimientos: {
+        Row: {
+          asiento: number | null
+          bolsillo: string | null
+          created_at: string | null
+          cuenta: string | null
+          delta: number | null
+          descripcion: string | null
+          detalle: string | null
+          direccion: string | null
+          fecha: string | null
+          id: string | null
+          monto: number | null
+          org_id: string | null
+          referencia_id: string | null
+          referencia_tipo: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       abrir_conteo: {
@@ -30119,6 +30259,29 @@ export type Database = {
         Returns: number
       }
       vencer_reservas: { Args: never; Returns: number }
+      wallet_liberar: {
+        Args: {
+          p_detalle?: string
+          p_monto: number
+          p_org: string
+          p_ref_id?: string
+        }
+        Returns: string
+      }
+      wallet_rechazar_retiro: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: string
+      }
+      wallet_saldo: { Args: { p_org: string }; Returns: Json }
+      wallet_solicitar_retiro: {
+        Args: {
+          p_clave?: string
+          p_cuenta?: string
+          p_monto: number
+          p_org: string
+        }
+        Returns: Json
+      }
       z_nivel_servicio: { Args: { p_nivel: number }; Returns: number }
     }
     Enums: {

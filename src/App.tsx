@@ -87,6 +87,7 @@ const InventoryTransfersPage   = lazy(() => import("@/pages/InventoryTransfersPa
 const PromotionsPage           = lazy(() => import("@/pages/PromotionsPage"));
 const SubscriptionsPage        = lazy(() => import("@/pages/SubscriptionsPage"));
 const PriceListsPage           = lazy(() => import("@/pages/PriceListsPage"));
+const WalletPage               = lazy(() => import("@/pages/WalletPage"));
 const AffiliateProgramPage     = lazy(() => import("@/pages/AffiliateProgramPage"));
 const InventoryForecastPage    = lazy(() => import("@/pages/InventoryForecastPage"));
 const PurchaseOrdersPage       = lazy(() => import("@/pages/PurchaseOrdersPage"));
@@ -321,6 +322,7 @@ function ProtectedRoutes() {
               <Route path="/suscripciones" element={<SubscriptionsPage />} />
               <Route path="/recomendaciones-ia" element={<Navigate to="/" replace />} />
               <Route path="/listas-precios" element={<PriceListsPage />} />
+              <Route path="/billetera" element={<WalletPage />} />
               <Route path="/afiliados" element={<AffiliateProgramPage />} />
               <Route path="/forecast-inventario" element={<InventoryForecastPage />} />
               <Route path="/segmentos" element={<Navigate to="/rfm" replace />} />
