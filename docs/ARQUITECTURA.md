@@ -22,12 +22,12 @@ el sistema usable.
 
 | | |
 |---|---|
-| Tablas en `public` | **304** |
-| Con `org_id` | **269** |
+| Tablas en `public` | **323** (2026-08-19) |
+| Con `org_id` | **284** |
 | Ledger de inventario (`stock_movements`) | ✅ existe |
 | Tablas de auditoría | 4 |
 | Tablas de webhooks | 3 |
-| **Tabla de idempotencia** | ❌ **no existe** |
+| **Tabla de idempotencia** | ✅ **existe** (H1, sesión 113) |
 | **Outbox / eventos de dominio** | ✅ **existe** (H2, sesión 112) |
 | **Ledger financiero** | ✅ **existe** (H3, sesión 112) |
 
@@ -93,18 +93,25 @@ precios— que estaba entero.
 📌 **Criterio.** Los tres son baratos ahora y caros después. Ninguno requiere
 reescribir nada.
 
-### H1 — Idempotencia (❌ no existe)
+### H1 — Idempotencia (✅ hecho, sesión 113)
 
-**Por qué duele:** un checkout puede llegar dos veces por reintento, timeout,
-doble clic o proxy. Hoy nada garantiza que no se cobre dos veces.
+**Qué resolvía:** un checkout puede llegar dos veces por reintento, timeout,
+doble clic o proxy, y nada garantizaba que no se cobrara dos veces.
 
 Ya pasó algo de esta familia acá: el descuento de stock duplicado, que vivió
 meses. La forma del bug es la misma — una operación que se ejecuta dos veces y
 nadie lo nota.
 
-**Qué hace falta:** una tabla `idempotency_keys` y que la usen las mutaciones
-sensibles — checkout, confirmación de orden, cobro, captura, reintegro, factura,
-movimiento de stock, recepción de compra.
+**Cómo quedó.** `idempotency_keys` + `idempotencia_reservar/completar/fallar`,
+y `create_store_order_idem` que **envuelve** create_store_order sin tocarla.
+
+La decisión que no es obvia: **la misma clave con distinto contenido es un
+error, no un acierto**. Devolver la respuesta vieja ante otro carrito sería
+cobrarle lo que no pidió.
+
+⚠️ **Falta llevarlo al resto de los caminos**: cobro, captura, reintegro,
+factura y recepción de compra. Cada uno que falta es un doble cobro o un doble
+stock esperando. Va como I6.
 
 ### H2 — Eventos durables y outbox (✅ hecho, sesión 112)
 

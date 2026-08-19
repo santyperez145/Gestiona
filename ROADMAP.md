@@ -252,7 +252,12 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Parcial** | La configuración y la prueba WSAA son reales y no simulan CAE; falta certificado de homologación y emitir una factura contra el organismo. |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | **992 unitarios** (`npm test`, 2026-08-15) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| **Idempotencia** | Anda | `idempotency_keys` + envoltorio del checkout. **Falta llevarla al cobro, la captura, el reintegro, la factura y la recepción de compra** (H1 sigue abierto en esos caminos). |
+| **Eventos con outbox** | Anda, **sin uso real** | Motor, worker y 2 suscripciones activas. `domain_events` tiene **0 filas**: nunca lo atravesó una venta de verdad. |
+| **Ledger financiero** | Anda, **sin uso real** | 25 cuentas sembradas, partida doble validada por la base. `ledger_entries` tiene **0 asientos**. |
+| **Billetera del comercio** | Parcial | Saldo derivado del libro. Sin pantalla (H6) y sin movimiento real. |
+| **Suscripción del SaaS** | Parcial | Se cobra con **MercadoPago**, no con Stripe (sesión 113). Falta emitir el comprobante fiscal argentino al comercio (D1). |
+| Tests | Anda | **1076 unitarios** (`npm test`, 2026-08-19) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -645,9 +650,19 @@ fecha.
 
 #### H. Fundaciones — lo barato hoy, carísimo despues
 
-Sale de **[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)**, que fija como se
-construye. Medido contra la base: 304 tablas, 269 con `org_id`, ledger de stock
-solido. Faltan tres cosas, y ninguna requiere reescribir nada.
+Sale de **[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)**, que fija cómo se
+construye. ✅ **Medido contra la base el 2026-08-19: 323 tablas, 284 con
+`org_id`.** Los tres huecos originales están cerrados (H1–H3) y endurecidos
+(H4). Lo que queda —H5 a H7— ya no son fundaciones que falten sino filos de las
+que se construyeron.
+
+⚠️ **Y hay un dato que cambia qué significa "hecho" acá:** `domain_events` tiene
+**0 filas** y `ledger_entries` **0 asientos**, con **0 órdenes en los últimos 7
+días**. Los tres motores se verificaron con bloques de prueba contra producción
+—y esa verificación es real— pero **ninguna venta genuina los atravesó
+todavía**. Un motor que nunca corrió en tráfico real no está probado: está
+escrito. El primer pedido de verdad es parte de la definición de terminado de
+H2 y H3, y va como riesgo R10.
 
 | # | Que | Estado |
 |---|---|---|
@@ -659,14 +674,36 @@ solido. Faltan tres cosas, y ninguna requiere reescribir nada.
 | **H6** | **Tablero de finanzas y de la cola** | El ledger tiene libro, saldos y balance de sumas y saldos; `outbox_salud` tiene sus umbrales y `diagnosticarOutbox` sus tres niveles. **El comercio no ve ninguno de los dos.** Sin pantalla, un motor correcto es indistinguible de uno roto — y el trabajo de H2 y H3 es invisible hasta que exista. |
 | **H7** | **El ledger no conoce el costo de lo vendido** | Una venta asienta ingreso, IVA y comisiones, pero no descarga `5.1.01 Costo de mercadería vendida` contra `1.3.01 Mercadería`. Sin eso el resultado del período es ingresos menos gastos **sin el costo**, que es el número más importante y el que hoy falta. Necesita valorizar el stock, que `stock_movements` ya permite pero nadie calcula. |
 
-⚠️ **H1 y H2 valen mas que cualquier feature del bloque B.** No agregan nada
-visible, y son lo unico que evita que el sistema se vuelva imposible de crecer.
+⚠️ **H6 es ahora el más urgente de los tres que quedan**, y es el menos
+técnico. El ledger, la billetera y la salud de la cola existen y **el comercio
+no ve ninguno**. Sin pantalla, un motor correcto es indistinguible de uno roto,
+y todo el trabajo de H2 y H3 es invisible hasta que exista.
 
 ⚠️ **Lo que NO se construye todavia**, y esta razonado en ARQUITECTURA.md §5:
 multi-store, dominios propios por tienda, theme engine, headless, marketplace de
 apps, search dedicado, multi-region. Todo eso espera **un segundo comercio**, no
 una decision de arquitectura. Construir multi-store para un comercio no es
 arquitectura, es adivinar.
+
+#### I. El horizonte siguiente — lo que las fundaciones habilitan
+
+📌 **Criterio.** Nada de esto se empieza antes de que la fase 1 cierre. Está acá
+porque **H2 y H3 lo volvieron barato**, y conviene que se sepa: son las razones
+por las que valió la pena construir motores que no se ven.
+
+| # | Qué | Qué lo habilita, y por qué ahora es barato |
+|---|---|---|
+| **I1** | **Estado de resultados de verdad** | El ledger ya tiene el plan de cuentas y los asientos de venta. Falta H7 —el costo de lo vendido— y con eso el P&L deja de ser "ingresos menos gastos" y pasa a tener margen bruto real. Es el número que el comercio mira primero y hoy no existe bien. |
+| **I2** | **Conciliación de MercadoPago contra el libro** | Con el ledger, comparar lo que MP dice que acreditó contra lo que el libro dice que se cobró es una consulta, no un proyecto. Hoy una diferencia de liquidación no la detecta nadie. |
+| **I3** | **Reintegro real por MercadoPago** | La devolución ya registra el reintegro acordado (A6) y el ledger sabe asentarlo. Falta la llamada a la API con el token del comercio, en una Edge Function, con idempotencia de H1. Es de las pocas cosas donde el sistema hoy dice que devolvió y no devolvió. |
+| **I4** | **Notificaciones sin tocar el centro** | Cada aviso nuevo —"en camino", "entregado", "tu pedido se demoró"— pasó a ser un INSERT en `event_subscriptions`. Antes era editar el checkout. B5 se volvió trivial y conviene aprovecharlo. |
+| **I5** | **Webhooks para el comercio** | El outbox ya entrega con firma, reintento y descarte con evidencia. Exponer eso hacia afuera —que un comercio suscriba su propio endpoint— es configuración sobre un motor que ya funciona, no un desarrollo nuevo. |
+| **I6** | **Idempotencia en el resto de los caminos** | Falta en cobro, captura, reintegro, factura y recepción de compra. La primitiva está; es aplicarla. Cada uno que falta es un doble cobro o un doble stock esperando. |
+| **I7** | **Trazas** | Es el principio 11 a medias: hay Sentry y `cron.job_run_details`, no trazas. Con el outbox, una orden ya deja rastro de qué la escuchó; falta poder ver cuánto tardó cada paso. |
+
+⚠️ **I1 e I2 son los que un comercio nota.** El resto es plomería que le
+importa a quien programa. Si hay que elegir uno solo para que el trabajo de las
+fundaciones se vea, es **H6 + I1**: el tablero y el margen bruto.
 
 ---
 
@@ -684,6 +721,8 @@ arquitectura, es adivinar.
 | R08 | **Un solo comercio usándolo.** El multi-tenant está probado, no usado: un segundo comercio real destapa supuestos que ningún test encuentra | Alta | **Crítico** | Ninguna todavía. Es el riesgo más grande del proyecto y no se resuelve con código — ver [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §5 |
 | R09 | Un dato viejo de este repo citado como actual afuera (pasó: "418 tests" cuando eran 811) | Media | Medio | Los números medidos van con la fecha o con el comando al lado |
 | R10 | Supabase caído | Baja | Crítico | PITR activo; sin runbook escrito |
+| **R11** | **Motores construidos que nunca corrieron en tráfico real.** Eventos, ledger, billetera e idempotencia se verificaron con bloques de prueba, pero `domain_events` y `ledger_entries` están en **0** y hubo **0 órdenes en 7 días**. Un motor que nunca vio una venta genuina está escrito, no probado | **Alta** | Alto | Que la primera venta real atraviese los tres, y mirar el resultado. Es la condición de salida que falta en H2 y H3 |
+| **R12** | **La suscripción del SaaS pasó de Stripe a MercadoPago** y todavía no cobró una cuota real a nadie. El camino de cobro propio es distinto del de las tiendas | Media | Alto | Cobrar la primera suscripción de prueba de punta a punta antes de dar de alta un comercio ajeno |
 
 ---
 
