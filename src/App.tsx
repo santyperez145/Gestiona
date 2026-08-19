@@ -77,6 +77,7 @@ const PaymentLinksPage       = lazy(() => import("@/pages/PaymentLinksPage"));
 const BankReconciliationPage = lazy(() => import("@/pages/BankReconciliationPage"));
 const ProfilePage              = lazy(() => import("@/pages/ProfilePage"));
 const FinancialMovementsPage   = lazy(() => import("@/pages/FinancialMovementsPage"));
+const LibroPage                = lazy(() => import("@/pages/LibroPage"));
 const FollowUpPage             = lazy(() => import("@/pages/FollowUpPage"));
 const CouponsPage              = lazy(() => import("@/pages/CouponsPage"));
 const CalendarPage             = lazy(() => import("@/pages/CalendarPage"));
@@ -304,6 +305,7 @@ function ProtectedRoutes() {
               <Route path="/links-de-pago" element={<PaymentLinksPage />} />
               <Route path="/banco" element={<BankReconciliationPage />} />
               <Route path="/movimientos" element={<FinancialMovementsPage />} />
+              <Route path="/libro" element={<LibroPage />} />
               <Route path="/pipeline" element={<Navigate to="/crm-avanzado" replace />} />
               <Route path="/fidelidad" element={<LoyaltyAdvancedPage />} />
               <Route path="/alertas" element={<SmartAlertsPage />} />
