@@ -13914,6 +13914,50 @@ export type Database = {
           },
         ]
       }
+      org_payment_providers: {
+        Row: {
+          conectado_at: string | null
+          config: Json
+          created_at: string
+          cuenta: string | null
+          habilitado: boolean
+          id: string
+          org_id: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          conectado_at?: string | null
+          config?: Json
+          created_at?: string
+          cuenta?: string | null
+          habilitado?: boolean
+          id?: string
+          org_id: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          conectado_at?: string | null
+          config?: Json
+          created_at?: string
+          cuenta?: string | null
+          habilitado?: boolean
+          id?: string
+          org_id?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_payment_providers_provider_fkey"
+            columns: ["provider"]
+            isOneToOne: false
+            referencedRelation: "payment_providers"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       organization_backup_snapshots: {
         Row: {
           checksum_sha256: string | null
@@ -14542,31 +14586,49 @@ export type Database = {
       payment_providers: {
         Row: {
           codigo: string
+          conexion: string
           created_at: string
+          descripcion: string | null
+          integracion: string
           is_active: boolean
           metodos: string[]
           monedas: string[]
           nombre: string
+          nombre_publico: string | null
+          orden: number
+          pais: string
           soporta_cuotas: boolean
           soporta_split: boolean
         }
         Insert: {
           codigo: string
+          conexion?: string
           created_at?: string
+          descripcion?: string | null
+          integracion?: string
           is_active?: boolean
           metodos?: string[]
           monedas?: string[]
           nombre: string
+          nombre_publico?: string | null
+          orden?: number
+          pais?: string
           soporta_cuotas?: boolean
           soporta_split?: boolean
         }
         Update: {
           codigo?: string
+          conexion?: string
           created_at?: string
+          descripcion?: string | null
+          integracion?: string
           is_active?: boolean
           metodos?: string[]
           monedas?: string[]
           nombre?: string
+          nombre_publico?: string | null
+          orden?: number
+          pais?: string
           soporta_cuotas?: boolean
           soporta_split?: boolean
         }
@@ -30224,6 +30286,29 @@ export type Database = {
       mark_store_order_paid: {
         Args: { p_method?: string; p_order_id: string; p_payment_id?: string }
         Returns: Json
+      }
+      medio_de_pago_conectado: {
+        Args: { p_cuenta: string; p_org: string; p_provider: string }
+        Returns: Json
+      }
+      medio_de_pago_habilitar: {
+        Args: { p_activo: boolean; p_org: string; p_provider: string }
+        Returns: Json
+      }
+      medios_de_pago_de: {
+        Args: { p_org: string }
+        Returns: {
+          conectado: boolean
+          conexion: string
+          cuenta: string
+          descripcion: string
+          habilitado: boolean
+          integracion: string
+          nombre: string
+          orden: number
+          provider: string
+          soporta_cuotas: boolean
+        }[]
       }
       next_quote_number: { Args: { p_org_id: string }; Returns: string }
       next_store_order_number: { Args: never; Returns: string }
