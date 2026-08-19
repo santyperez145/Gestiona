@@ -14158,6 +14158,72 @@ export type Database = {
           },
         ]
       }
+      payment_attempts: {
+        Row: {
+          comision: number | null
+          comision_iva: number | null
+          created_at: string
+          estado: string
+          external_id: string | null
+          id: string
+          intent_id: string
+          motivo: string | null
+          neto: number | null
+          nro: number
+          org_id: string
+          provider: string
+          raw: Json | null
+          resuelto_at: string | null
+        }
+        Insert: {
+          comision?: number | null
+          comision_iva?: number | null
+          created_at?: string
+          estado?: string
+          external_id?: string | null
+          id?: string
+          intent_id: string
+          motivo?: string | null
+          neto?: number | null
+          nro?: number
+          org_id: string
+          provider: string
+          raw?: Json | null
+          resuelto_at?: string | null
+        }
+        Update: {
+          comision?: number | null
+          comision_iva?: number | null
+          created_at?: string
+          estado?: string
+          external_id?: string | null
+          id?: string
+          intent_id?: string
+          motivo?: string | null
+          neto?: number | null
+          nro?: number
+          org_id?: string
+          provider?: string
+          raw?: Json | null
+          resuelto_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_attempts_intent_id_fkey"
+            columns: ["intent_id"]
+            isOneToOne: false
+            referencedRelation: "payment_intents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_attempts_provider_fkey"
+            columns: ["provider"]
+            isOneToOne: false
+            referencedRelation: "payment_providers"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       payment_connections: {
         Row: {
           access_token: string | null
@@ -14252,6 +14318,66 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      payment_intents: {
+        Row: {
+          attempt_ok: string | null
+          created_at: string
+          cuotas: number
+          estado: string
+          expira_at: string
+          id: string
+          metodo: string
+          moneda: string
+          monto: number
+          order_id: string | null
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_ok?: string | null
+          created_at?: string
+          cuotas?: number
+          estado?: string
+          expira_at?: string
+          id?: string
+          metodo: string
+          moneda?: string
+          monto: number
+          order_id?: string | null
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_ok?: string | null
+          created_at?: string
+          cuotas?: number
+          estado?: string
+          expira_at?: string
+          id?: string
+          metodo?: string
+          moneda?: string
+          monto?: number
+          order_id?: string | null
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_intents_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_intents_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_iva"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -14412,6 +14538,83 @@ export type Database = {
           release_days?: number
         }
         Relationships: []
+      }
+      payment_providers: {
+        Row: {
+          codigo: string
+          created_at: string
+          is_active: boolean
+          metodos: string[]
+          monedas: string[]
+          nombre: string
+          soporta_cuotas: boolean
+          soporta_split: boolean
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          is_active?: boolean
+          metodos?: string[]
+          monedas?: string[]
+          nombre: string
+          soporta_cuotas?: boolean
+          soporta_split?: boolean
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          is_active?: boolean
+          metodos?: string[]
+          monedas?: string[]
+          nombre?: string
+          soporta_cuotas?: boolean
+          soporta_split?: boolean
+        }
+        Relationships: []
+      }
+      payment_routing: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          metodo: string
+          monto_max: number | null
+          monto_min: number | null
+          org_id: string | null
+          prioridad: number
+          provider: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metodo: string
+          monto_max?: number | null
+          monto_min?: number | null
+          org_id?: string | null
+          prioridad?: number
+          provider: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metodo?: string
+          monto_max?: number | null
+          monto_min?: number | null
+          org_id?: string | null
+          prioridad?: number
+          provider?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_routing_provider_fkey"
+            columns: ["provider"]
+            isOneToOne: false
+            referencedRelation: "payment_providers"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       payment_transactions: {
         Row: {
@@ -27552,6 +27755,27 @@ export type Database = {
         }
         Relationships: []
       }
+      pagos_por_proveedor: {
+        Row: {
+          aprobacion_pct: number | null
+          aprobados: number | null
+          comisiones: number | null
+          intentos: number | null
+          neto: number | null
+          org_id: string | null
+          provider: string | null
+          rechazados: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_attempts_provider_fkey"
+            columns: ["provider"]
+            isOneToOne: false
+            referencedRelation: "payment_providers"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       payment_connection_status: {
         Row: {
           conectado: boolean | null
@@ -29953,6 +30177,19 @@ export type Database = {
         Returns: string
       }
       ledger_plan_default: { Args: { p_org: string }; Returns: number }
+      ledger_resultado: {
+        Args: { p_desde?: string; p_hasta?: string; p_org: string }
+        Returns: Json
+      }
+      ledger_resultado_diario: {
+        Args: { p_desde?: string; p_hasta?: string; p_org: string }
+        Returns: {
+          costo: number
+          fecha: string
+          margen: number
+          ventas: number
+        }[]
+      }
       ledger_revertir_orden: { Args: { p_evento: Json }; Returns: string }
       ledger_saldo: {
         Args: { p_account_id: string; p_hasta?: string }
@@ -30041,6 +30278,44 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      pago_attempt_resultado: {
+        Args: {
+          p_attempt_id: string
+          p_comision?: number
+          p_comision_iva?: number
+          p_estado: string
+          p_external_id?: string
+          p_motivo?: string
+          p_neto?: number
+          p_raw?: Json
+        }
+        Returns: Json
+      }
+      pago_intent_crear: {
+        Args: { p_cuotas?: number; p_metodo?: string; p_order_id: string }
+        Returns: Json
+      }
+      pago_metodo_de_tarifa: {
+        Args: { p_cuotas: number; p_metodo: string }
+        Returns: string
+      }
+      pago_proveedores_para: {
+        Args: {
+          p_cuotas?: number
+          p_metodo: string
+          p_moneda?: string
+          p_monto: number
+          p_org: string
+        }
+        Returns: {
+          costo: number
+          costo_pct: number
+          dias_acredita: number
+          prioridad: number
+          provider: string
+        }[]
+      }
+      pago_reintentar: { Args: { p_intent_id: string }; Returns: Json }
       pending_abandoned_carts: {
         Args: { p_hours?: number }
         Returns: {
