@@ -59,10 +59,23 @@ const PERMITIDAS = new Set([
   "log_audit_event",
 ]);
 
+/**
+ * Se lee una sola vez.
+ *
+ * `estaRevocada()` llama a esto por cada función sospechosa, así que sin cache
+ * el costo es funciones x 346 migraciones de I/O y el test se pasa de los 5
+ * segundos por defecto de vitest. Falló apenas el repo cruzó las ~340
+ * migraciones — y un test que se cae por lento enseña a ignorar los rojos igual
+ * que uno que se cae por el sistema operativo.
+ */
+let _cache: { archivo: string; sql: string }[] | null = null;
+
 function migraciones(): { archivo: string; sql: string }[] {
-  return readdirSync(DIR)
+  if (_cache) return _cache;
+  _cache = readdirSync(DIR)
     .filter(f => f.endsWith(".sql"))
     .map(f => ({ archivo: f, sql: readFileSync(join(DIR, f), "utf8") }));
+  return _cache;
 }
 
 interface FuncionSospechosa {
