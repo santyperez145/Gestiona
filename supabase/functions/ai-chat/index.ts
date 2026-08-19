@@ -4,6 +4,7 @@
  * Returns text/event-stream so the client can display tokens as they arrive.
  * Events:
  *   data: {"delta":"text"}\n\n  — a chunk of text
+ *   data: {"usage":{...}}    token counts REALES de la API, antes de [DONE]
  *   data: [DONE]\n\n           — stream finished
  *   data: {"error":"..."}\n\n  — fatal error
  */
@@ -51,7 +52,7 @@ Deno.serve(async (req) => {
     }
     const userId = userRes.user.id;
 
-    const { message, history, orgId } = await req.json();
+    const { message, history, orgId, model } = await req.json();
     if (!message?.trim()) {
       return new Response(JSON.stringify({ error: "Mensaje requerido" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -177,11 +178,25 @@ ${(() => {
     // ── Streaming response (SSE) ─────────────────────────────────────────────
     const encoder = new TextEncoder();
 
+    // Lista blanca de modelos. El navegador puede PEDIR el modelo, no elegir
+    // cualquiera: un string libre desde el cliente es una via para pedir el
+    // mas caro que exista, y lo paga la plataforma.
+    //
+    // Un valor desconocido cae al default en vez de rechazarse: que el chat
+    // siga andando vale mas que ser estricto con algo que el usuario no
+    // escribio a mano.
+    const MODELOS: Record<string, string> = {
+      "claude-opus-5": "claude-opus-5",
+      "claude-sonnet-5": "claude-sonnet-5",
+      "claude-haiku-4-5": "claude-haiku-4-5-20251001",
+    };
+    const modeloElegido = MODELOS[String(model ?? "")] ?? "claude-sonnet-5";
+
     const stream = new ReadableStream({
       async start(controller) {
         try {
           const claudeStream = anthropic.messages.stream({
-            model: "claude-sonnet-4-6",
+            model: modeloElegido,
             max_tokens: 1024,
             system: SYSTEM_PROMPT,
             messages,
@@ -195,6 +210,26 @@ ${(() => {
               const chunk = `data: ${JSON.stringify({ delta: (event.delta as any).text })}\n\n`;
               controller.enqueue(encoder.encode(chunk));
             }
+          }
+
+          // El uso REAL, del mensaje final de la API. Si no viene, no se
+          // manda el evento y la pantalla guarda null, que significa "no lo
+          // se". Inventarlo es exactamente lo que habia antes.
+          try {
+            const final = await claudeStream.finalMessage();
+            if (final?.usage) {
+              controller.enqueue(encoder.encode(
+                `data: ${JSON.stringify({ usage: {
+                  input_tokens: final.usage.input_tokens ?? null,
+                  output_tokens: final.usage.output_tokens ?? null,
+                  model: modeloElegido,
+                } })}
+
+`));
+            }
+          } catch {
+            // Que no se pueda leer el uso no puede tumbar una respuesta que ya
+            // se entrego entera.
           }
 
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));

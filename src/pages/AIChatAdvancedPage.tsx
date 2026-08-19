@@ -51,10 +51,22 @@ interface PromptItem {
 }
 
 /* ─────────────────────────── configs ─────────────────────────── */
+/**
+ * Los tres modelos que el servidor acepta.
+ *
+ * ⚠️ Esta lista tiene que coincidir con la lista blanca de
+ * `supabase/functions/ai-chat/index.ts`. Los valores anteriores
+ * —"claude-3-5-sonnet", "claude-opus-4-5", "claude-haiku-3-5"— **no existen
+ * como IDs de la API**, y además el selector no llegaba al backend: la función
+ * tenía el modelo fijo. Elegir modelo no hacía absolutamente nada.
+ *
+ * El servidor valida igual: si llega uno desconocido cae al default. La lista
+ * de acá es para que el comercio elija, no la autoridad.
+ */
 const MODELS = [
-  { value: "claude-3-5-sonnet", label: "Claude 3.5 Sonnet", desc: "Rápido y preciso" },
-  { value: "claude-opus-4-5",   label: "Claude Opus 4.5",   desc: "Máxima inteligencia" },
-  { value: "claude-haiku-3-5",  label: "Claude Haiku 3.5",  desc: "Ultra rápido" },
+  { value: "claude-sonnet-5",  label: "Claude Sonnet 5",  desc: "Equilibrado, el que conviene casi siempre" },
+  { value: "claude-opus-5",    label: "Claude Opus 5",    desc: "Máxima capacidad, más caro por token" },
+  { value: "claude-haiku-4-5", label: "Claude Haiku 4.5", desc: "El más rápido y barato" },
 ];
 
 const PROMPT_CATEGORIES: Record<string, { label: string; color: string }> = {
@@ -115,7 +127,7 @@ export default function AIChatAdvancedPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [input, setInput] = useState("");
-  const [selectedModel, setSelectedModel] = useState("claude-3-5-sonnet");
+  const [selectedModel, setSelectedModel] = useState("claude-sonnet-5");
   const [showPromptLib, setShowPromptLib] = useState(false);
   const [showNewPrompt, setShowNewPrompt] = useState(false);
   const [promptForm, setPromptForm] = useState({ title: "", prompt: "", category: "general" });
@@ -186,16 +198,128 @@ export default function AIChatAdvancedPage() {
       setMessages(p => p.map(m => m.id === "tmp-u" ? savedMsg as ChatMessage : m));
     }
 
-    // Simulate AI response (in production: call edge function / Anthropic API)
-    await new Promise(r => setTimeout(r, 1200));
-    const simulatedReply = `[Respuesta simulada de ${selectedModel}]\n\nRecibí tu consulta: "${userContent.slice(0, 80)}${userContent.length > 80 ? "…" : ""}"\n\nEn producción, este módulo se conecta al API de Anthropic para generar respuestas contextuales sobre tus datos de negocio en tiempo real.`;
+    // ── La respuesta real ──────────────────────────────────────────────
+    //
+    // Hasta la sesión 115 esto devolvía texto enlatado tras esperar 1200ms, y
+    // guardaba `tokens_used: Math.random()*500+100`. El número inventado era
+    // lo peor: cualquiera que sumara esa columna para medir el costo de IA
+    // leía una cifra fabricada.
+    //
+    // Ahora llama a la Edge Function `ai-chat`, que verifica sesión y
+    // membresía, y devuelve SSE. Se muestra mientras llega.
+    let texto = "";
+    let tokens: number | null = null;
+    let fallo: string | null = null;
 
-    const { data: aiMsg } = await supabase.from("ai_chat_messages").insert({ session_id: activeSession.id, org_id: orgId, role: "assistant", content: simulatedReply, model: selectedModel, tokens_used: Math.floor(Math.random() * 500) + 100 }).select().single();
-    if (aiMsg) {
-      setMessages(p => [...p, aiMsg as ChatMessage]);
-      setActiveSession(p => p ? { ...p, message_count: p.message_count + 2 } : p);
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    // Mensaje temporal del asistente: se va llenando con el stream. No se
+    // guarda todavía — una respuesta a medias no tiene por qué quedar en la
+    // base si el stream se corta.
+    const idTemp = "tmp-a";
+    setMessages(p => [...p, {
+      id: idTemp, session_id: activeSession.id, role: "assistant",
+      content: "", model: selectedModel, tokens_used: null,
+      created_at: new Date().toISOString(),
+    } as unknown as ChatMessage]);
+
+    try {
+      const { data: sesion } = await supabase.auth.getSession();
+      const token = sesion.session?.access_token;
+      if (!token) throw new Error("Sesión vencida. Volvé a entrar.");
+
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message: userContent,
+          orgId,
+          model: selectedModel,
+          // Se manda el historial reciente para que la respuesta tenga
+          // contexto. No se manda entero: una conversación larga es costo por
+          // token en cada turno.
+          history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
+        }),
+      });
+
+      if (!resp.ok || !resp.body) {
+        const detalle = await resp.text().catch(() => "");
+        throw new Error(detalle || `El asistente respondió ${resp.status}`);
+      }
+
+      const lector = resp.body.getReader();
+      const dec = new TextDecoder();
+      let buffer = "";
+
+      for (;;) {
+        const { done, value } = await lector.read();
+        if (done) break;
+        buffer += dec.decode(value, { stream: true });
+
+        // Se procesan eventos completos y se conserva el resto: un chunk de
+        // red puede cortar un evento por la mitad, y parsearlo así perdería
+        // texto en silencio.
+        const partes = buffer.split("\n\n");
+        buffer = partes.pop() ?? "";
+
+        for (const parte of partes) {
+          const linea = parte.trim();
+          if (!linea.startsWith("data:")) continue;
+          const cuerpo = linea.slice(5).trim();
+          if (cuerpo === "[DONE]") continue;
+
+          try {
+            const ev = JSON.parse(cuerpo) as {
+              delta?: string; error?: string;
+              usage?: { input_tokens?: number; output_tokens?: number };
+            };
+            if (ev.error) { fallo = ev.error; continue; }
+            if (ev.delta) {
+              texto += ev.delta;
+              setMessages(p => p.map(m =>
+                m.id === idTemp ? { ...m, content: texto } as ChatMessage : m));
+            }
+            if (ev.usage) {
+              // Tokens REALES. Si la API no los informa queda null, que
+              // significa "no lo sé" — que es distinto de un número inventado.
+              tokens = (ev.usage.input_tokens ?? 0) + (ev.usage.output_tokens ?? 0) || null;
+            }
+          } catch {
+            // Un evento ilegible no puede tumbar una respuesta que ya se está
+            // mostrando.
+          }
+        }
+      }
+    } catch (e) {
+      fallo = e instanceof Error ? e.message : "No se pudo contactar al asistente";
     }
+
+    if (fallo && !texto) {
+      // Sin respuesta no se guarda nada: una conversación no puede quedar con
+      // un mensaje del asistente que nunca existió.
+      setMessages(p => p.filter(m => m.id !== idTemp));
+      toast.error(fallo);
+      setSending(false);
+      return;
+    }
+
+    const { data: aiMsg } = await supabase.from("ai_chat_messages").insert({
+      session_id: activeSession.id, org_id: orgId, role: "assistant",
+      content: texto, model: selectedModel, tokens_used: tokens,
+    }).select().single();
+
+    setMessages(p => p.filter(m => m.id !== idTemp).concat(
+      aiMsg ? [aiMsg as ChatMessage] : []));
+    if (aiMsg) {
+      setActiveSession(p => p ? { ...p, message_count: p.message_count + 2 } : p);
+    }
+    // El stream terminó cortado pero con texto: se guarda lo que llegó y se
+    // avisa, en vez de mostrarlo como una respuesta completa.
+    if (fallo) toast.warning("La respuesta quedó incompleta: " + fallo);
+
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
 
     setSending(false);
   }
