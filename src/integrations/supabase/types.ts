@@ -6955,6 +6955,45 @@ export type Database = {
           },
         ]
       }
+      domain_events: {
+        Row: {
+          aggregate_id: string
+          aggregate_type: string
+          event_type: string
+          id: string
+          metadata: Json
+          occurred_at: string
+          org_id: string
+          payload: Json
+          recorded_at: string
+          version: number
+        }
+        Insert: {
+          aggregate_id: string
+          aggregate_type: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          org_id: string
+          payload?: Json
+          recorded_at?: string
+          version: number
+        }
+        Update: {
+          aggregate_id?: string
+          aggregate_type?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          org_id?: string
+          payload?: Json
+          recorded_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       drip_enrollments: {
         Row: {
           completed_at: string | null
@@ -8202,6 +8241,48 @@ export type Database = {
             referencedColumns: ["org_id"]
           },
         ]
+      }
+      event_subscriptions: {
+        Row: {
+          config: Json
+          created_at: string
+          destino: string
+          id: string
+          is_active: boolean
+          max_intentos: number
+          nombre: string
+          objetivo: string
+          org_id: string | null
+          patron: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          destino: string
+          id?: string
+          is_active?: boolean
+          max_intentos?: number
+          nombre: string
+          objetivo: string
+          org_id?: string | null
+          patron: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          destino?: string
+          id?: string
+          is_active?: boolean
+          max_intentos?: number
+          nombre?: string
+          objetivo?: string
+          org_id?: string | null
+          patron?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       exchange_configs: {
         Row: {
@@ -13831,6 +13912,84 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outbox_events: {
+        Row: {
+          created_at: string
+          destino: string
+          entregado_at: string | null
+          estado: string
+          event_id: string
+          event_type: string
+          id: string
+          intentos: number
+          max_intentos: number
+          objetivo: string
+          org_id: string
+          payload: Json
+          proximo_intento: string
+          request_id: number | null
+          subscription_id: string | null
+          tomado_at: string | null
+          tomado_por: string | null
+          ultimo_error: string | null
+        }
+        Insert: {
+          created_at?: string
+          destino: string
+          entregado_at?: string | null
+          estado?: string
+          event_id: string
+          event_type: string
+          id?: string
+          intentos?: number
+          max_intentos?: number
+          objetivo: string
+          org_id: string
+          payload: Json
+          proximo_intento?: string
+          request_id?: number | null
+          subscription_id?: string | null
+          tomado_at?: string | null
+          tomado_por?: string | null
+          ultimo_error?: string | null
+        }
+        Update: {
+          created_at?: string
+          destino?: string
+          entregado_at?: string | null
+          estado?: string
+          event_id?: string
+          event_type?: string
+          id?: string
+          intentos?: number
+          max_intentos?: number
+          objetivo?: string
+          org_id?: string
+          payload?: Json
+          proximo_intento?: string
+          request_id?: number | null
+          subscription_id?: string | null
+          tomado_at?: string | null
+          tomado_por?: string | null
+          ultimo_error?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outbox_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "domain_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outbox_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "event_subscriptions"
             referencedColumns: ["id"]
           },
         ]
@@ -26947,6 +27106,19 @@ export type Database = {
         }
         Relationships: []
       }
+      outbox_salud: {
+        Row: {
+          descartados: number | null
+          en_curso: number | null
+          entregados: number | null
+          fallados: number | null
+          minutos_del_mas_viejo: number | null
+          org_id: string | null
+          pendientes: number | null
+          ultima_entrega: string | null
+        }
+        Relationships: []
+      }
       payment_connection_status: {
         Row: {
           conectado: boolean | null
@@ -28675,6 +28847,17 @@ export type Database = {
         Args: { p_announcement_id: string }
         Returns: undefined
       }
+      emitir_evento: {
+        Args: {
+          p_aggregate_id: string
+          p_aggregate_type: string
+          p_event_type: string
+          p_metadata?: Json
+          p_org: string
+          p_payload?: Json
+        }
+        Returns: string
+      }
       end_expired_promotions: { Args: never; Returns: number }
       enqueue_meli_webhook_event: {
         Args: {
@@ -29269,6 +29452,45 @@ export type Database = {
       organization_sales_plan_limit: {
         Args: { p_org_id: string }
         Returns: number
+      }
+      outbox_confirmar: { Args: never; Returns: number }
+      outbox_despachar: { Args: { p_limite?: number }; Returns: number }
+      outbox_entregado: { Args: { p_id: string }; Returns: undefined }
+      outbox_espera: { Args: { p_intentos: number }; Returns: string }
+      outbox_fallado: {
+        Args: { p_error: string; p_id: string }
+        Returns: undefined
+      }
+      outbox_limpiar: { Args: never; Returns: number }
+      outbox_reintentar: { Args: { p_id: string }; Returns: boolean }
+      outbox_tomar: {
+        Args: { p_limite?: number; p_worker?: string }
+        Returns: {
+          created_at: string
+          destino: string
+          entregado_at: string | null
+          estado: string
+          event_id: string
+          event_type: string
+          id: string
+          intentos: number
+          max_intentos: number
+          objetivo: string
+          org_id: string
+          payload: Json
+          proximo_intento: string
+          request_id: number | null
+          subscription_id: string | null
+          tomado_at: string | null
+          tomado_por: string | null
+          ultimo_error: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "outbox_events"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       pending_abandoned_carts: {
         Args: { p_hours?: number }

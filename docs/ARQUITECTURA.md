@@ -8,7 +8,7 @@ de pago propio, plataforma abierta— y esa ambición **no se alcanza escribiend
 más features**: se alcanza no cerrándose puertas ahora. Casi todo lo que hay acá
 es barato hoy y carísimo dentro de dos años.
 
-Última revisión: 2026-08-16.
+Última revisión: 2026-08-19.
 
 ⚠️ **Este documento no autoriza una reescritura.** El sistema funciona, cobra de
 verdad y tiene 995 tests. Todo se aplica de forma incremental, y cada slice deja
@@ -28,12 +28,13 @@ el sistema usable.
 | Tablas de auditoría | 4 |
 | Tablas de webhooks | 3 |
 | **Tabla de idempotencia** | ❌ **no existe** |
-| **Outbox / eventos de dominio** | ❌ **no existe** |
+| **Outbox / eventos de dominio** | ✅ **existe** (H2, sesión 112) |
 | **Ledger financiero** | ❌ **no existe** |
 
 Eso es lo importante: el multi-tenant y el ledger de stock **ya están y son
-sólidos**. Los tres huecos son idempotencia, eventos y ledger de dinero — y son
-justamente los que hay que tapar antes de crecer, no después.
+sólidos**. De los tres huecos quedan **dos**: idempotencia se cerró en H1 y los
+eventos con outbox en H2. Falta el ledger financiero, y sigue siendo barato
+ahora y caro después.
 
 ---
 
@@ -105,16 +106,39 @@ nadie lo nota.
 sensibles — checkout, confirmación de orden, cobro, captura, reintegro, factura,
 movimiento de stock, recepción de compra.
 
-### H2 — Eventos durables y outbox (❌ no existe)
+### H2 — Eventos durables y outbox (✅ hecho, sesión 112)
 
-**Por qué duele:** hoy, cuando se confirma una orden, quien la confirma tiene
-que acordarse de avisarle a stock, al CRM, a marketing y a los emails. Cada
-consumidor nuevo es una edición en el centro. Eso no escala ni en código ni en
-gente.
+**Qué resolvía:** quien confirmaba una orden tenía que acordarse de avisarle a
+stock, al CRM, a marketing y a los emails. Cada consumidor nuevo era una edición
+en el centro.
 
-**Qué hace falta:** `domain_events` + `outbox_events` escritos **en la misma
-transacción** que el cambio, y un worker que publique. La regla: el evento no se
-manda después del commit, se persiste adentro.
+**Cómo quedó.** Tres tablas y una regla:
+
+    domain_events        qué pasó. Append-only, es la verdad.
+    event_subscriptions  quién escucha qué. Un consumidor nuevo es una FILA.
+    outbox_events        qué falta entregar. Es una cola, se vacía.
+
+`emitir_evento` escribe el evento y encola sus entregas **en la misma
+transacción que el cambio**. Si el cambio se guardó, el evento está; si la
+transacción se cayó, no está ninguno de los dos. El worker (`outbox_despachar` +
+`outbox_confirmar`, por `pg_cron` cada minuto) las entrega con backoff
+exponencial con techo, y lo que agota los intentos queda en `descartado` **con
+el error**, no borrado.
+
+⚠️ **Mandar no es entregar.** `pg_net` es asincrónico: devuelve un `request_id`
+y sigue. Marcar la entrega al mandarla haría pasar un 500 por éxito. Por eso son
+dos pasadas, y por eso **no pueden estar en la misma transacción** — pg_net
+recién despacha después del commit. Se descubrió verificando: un script que
+mandaba y confirmaba junto no veía nunca la respuesta.
+
+Garantía: **al menos una vez**, con orden por agregado. Exactamente una vez no
+existe sobre HTTP; por eso cada entrega lleva `event_id` para que quien recibe
+descarte repetidos, igual que Stripe y MercadoPago.
+
+Hoy emiten `ecommerce_orders` (creada, pagada, reembolsada, fallida, despachada,
+entregada) y `stock_movements`. Desde triggers y no desde las funciones de
+negocio a propósito: un trigger no se puede olvidar, y las órdenes entran por
+cuatro caminos distintos.
 
 ### H3 — Ledger financiero (❌ no existe)
 
