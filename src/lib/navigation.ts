@@ -165,6 +165,8 @@ export const NAV_ITEMS: NavItem[] = [
     keywords: ["cobrar a distancia", "link mercadopago"] },
 
   // ── Finanzas ─────────────────────────────────────────────────────────────
+  { to: "/mi-plan", label: "Mi plan", icon: CreditCard, roles: SOLO_ADMIN, group: "sistema",
+    keywords: ["suscripcion", "plan", "pagar", "mercadopago", "facturacion", "abono"] },
   { to: "/billetera", label: "Billetera", icon: Wallet, roles: SOLO_ADMIN, group: "finanzas",
     keywords: ["saldo", "plata", "retirar", "retiro", "cobros", "disponible", "acreditado", "cbu"] },
   { to: "/gastos", label: "Gastos", icon: Wallet, roles: SOLO_ADMIN, group: "finanzas",

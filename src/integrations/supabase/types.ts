@@ -14068,6 +14068,13 @@ export type Database = {
             foreignKeyName: "organizations_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
+            referencedRelation: "planes_contratables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organizations_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
             referencedRelation: "plans"
             referencedColumns: ["id"]
           },
@@ -14532,7 +14539,11 @@ export type Database = {
           max_products: number | null
           max_sales_per_month: number | null
           max_users: number | null
+          mp_plan_monthly: string | null
+          mp_plan_yearly: string | null
           name: string
+          price_ars_monthly: number | null
+          price_ars_yearly: number | null
           price_usd_monthly: number
           price_usd_yearly: number
           sort_order: number
@@ -14552,7 +14563,11 @@ export type Database = {
           max_products?: number | null
           max_sales_per_month?: number | null
           max_users?: number | null
+          mp_plan_monthly?: string | null
+          mp_plan_yearly?: string | null
           name: string
+          price_ars_monthly?: number | null
+          price_ars_yearly?: number | null
           price_usd_monthly?: number
           price_usd_yearly?: number
           sort_order?: number
@@ -14572,7 +14587,11 @@ export type Database = {
           max_products?: number | null
           max_sales_per_month?: number | null
           max_users?: number | null
+          mp_plan_monthly?: string | null
+          mp_plan_yearly?: string | null
           name?: string
+          price_ars_monthly?: number | null
+          price_ars_yearly?: number | null
           price_usd_monthly?: number
           price_usd_yearly?: number
           sort_order?: number
@@ -14767,6 +14786,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_commission_rules_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "planes_contratables"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "platform_commission_rules_plan_id_fkey"
@@ -19800,6 +19826,65 @@ export type Database = {
           },
         ]
       }
+      saas_invoices: {
+        Row: {
+          created_at: string
+          estado: string
+          id: string
+          moneda: string
+          monto: number
+          mp_payment_id: string | null
+          numero: string
+          org_id: string
+          pagado_at: string | null
+          periodo_desde: string
+          periodo_hasta: string
+          provider: string
+          subscription_id: string
+          vence_el: string | null
+        }
+        Insert: {
+          created_at?: string
+          estado: string
+          id?: string
+          moneda?: string
+          monto: number
+          mp_payment_id?: string | null
+          numero: string
+          org_id: string
+          pagado_at?: string | null
+          periodo_desde: string
+          periodo_hasta: string
+          provider?: string
+          subscription_id: string
+          vence_el?: string | null
+        }
+        Update: {
+          created_at?: string
+          estado?: string
+          id?: string
+          moneda?: string
+          monto?: number
+          mp_payment_id?: string | null
+          numero?: string
+          org_id?: string
+          pagado_at?: string | null
+          periodo_desde?: string
+          periodo_hasta?: string
+          provider?: string
+          subscription_id?: string
+          vence_el?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_transactions: {
         Row: {
           created_at: string
@@ -23598,12 +23683,14 @@ export type Database = {
           due_date: string
           id: string
           invoice_number: string
+          mp_payment_id: string | null
           notes: string | null
           org_id: string
           paid_at: string | null
           payment_method: string | null
           period_end: string
           period_start: string
+          provider: string | null
           status: string
           subscription_id: string
         }
@@ -23614,12 +23701,14 @@ export type Database = {
           due_date: string
           id?: string
           invoice_number: string
+          mp_payment_id?: string | null
           notes?: string | null
           org_id: string
           paid_at?: string | null
           payment_method?: string | null
           period_end: string
           period_start: string
+          provider?: string | null
           status?: string
           subscription_id: string
         }
@@ -23630,12 +23719,14 @@ export type Database = {
           due_date?: string
           id?: string
           invoice_number?: string
+          mp_payment_id?: string | null
           notes?: string | null
           org_id?: string
           paid_at?: string | null
           payment_method?: string | null
           period_end?: string
           period_start?: string
+          provider?: string | null
           status?: string
           subscription_id?: string
         }
@@ -23785,12 +23876,16 @@ export type Database = {
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
+          ciclo: string
           created_at: string
           current_period_end: string | null
           current_period_start: string | null
           id: string
+          mp_payer_email: string | null
+          mp_preapproval_id: string | null
           org_id: string
           plan_id: string
+          provider: string
           status: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -23799,12 +23894,16 @@ export type Database = {
         }
         Insert: {
           cancel_at_period_end?: boolean
+          ciclo?: string
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          mp_payer_email?: string | null
+          mp_preapproval_id?: string | null
           org_id: string
           plan_id: string
+          provider?: string
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -23813,12 +23912,16 @@ export type Database = {
         }
         Update: {
           cancel_at_period_end?: boolean
+          ciclo?: string
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          mp_payer_email?: string | null
+          mp_preapproval_id?: string | null
           org_id?: string
           plan_id?: string
+          provider?: string
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -23867,6 +23970,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "planes_contratables"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "subscriptions_plan_id_fkey"
@@ -27499,6 +27609,60 @@ export type Database = {
           },
         ]
       }
+      planes_contratables: {
+        Row: {
+          ahorro_anual_pct: number | null
+          ai_enabled: boolean | null
+          backups_enabled: boolean | null
+          code: string | null
+          custom_branding: boolean | null
+          description: string | null
+          features: string[] | null
+          id: string | null
+          max_products: number | null
+          max_sales_per_month: number | null
+          max_users: number | null
+          name: string | null
+          price_ars_monthly: number | null
+          price_ars_yearly: number | null
+          sort_order: number | null
+        }
+        Insert: {
+          ahorro_anual_pct?: never
+          ai_enabled?: boolean | null
+          backups_enabled?: boolean | null
+          code?: string | null
+          custom_branding?: boolean | null
+          description?: string | null
+          features?: string[] | null
+          id?: string | null
+          max_products?: number | null
+          max_sales_per_month?: number | null
+          max_users?: number | null
+          name?: string | null
+          price_ars_monthly?: number | null
+          price_ars_yearly?: number | null
+          sort_order?: number | null
+        }
+        Update: {
+          ahorro_anual_pct?: never
+          ai_enabled?: boolean | null
+          backups_enabled?: boolean | null
+          code?: string | null
+          custom_branding?: boolean | null
+          description?: string | null
+          features?: string[] | null
+          id?: string | null
+          max_products?: number | null
+          max_sales_per_month?: number | null
+          max_users?: number | null
+          name?: string | null
+          price_ars_monthly?: number | null
+          price_ars_yearly?: number | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       platform_cron_health: {
         Row: {
           active: boolean | null
@@ -30209,6 +30373,21 @@ export type Database = {
           p_token: string
         }
         Returns: boolean
+      }
+      suscripcion_actualizar_estado: {
+        Args: { p_estado_mp: string; p_preapproval: string }
+        Returns: Json
+      }
+      suscripcion_de_organizacion: { Args: { p_org: string }; Returns: Json }
+      suscripcion_registrar_pago: {
+        Args: {
+          p_estado?: string
+          p_moneda?: string
+          p_monto: number
+          p_payment_id: string
+          p_preapproval: string
+        }
+        Returns: Json
       }
       sync_segment_members: { Args: { p_segment_id: string }; Returns: number }
       tipo_de_comprobante: {

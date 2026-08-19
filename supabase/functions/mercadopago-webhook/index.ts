@@ -91,8 +91,77 @@ Deno.serve(async (req) => {
     const type: string = body.type || body.topic || "";
     const paymentId: string = String(body.data?.id || body.id || "");
 
+    // ── Suscripciones al SaaS ────────────────────────────────────────────
+    //
+    // MercadoPago manda dos temas distintos y confundirlos es el error caro:
+    //
+    //   subscription_preapproval          cambió el ESTADO de la suscripción
+    //   subscription_authorized_payment   se COBRÓ un período
+    //
+    // El primero no es plata. Extender el período con él daría acceso gratis.
+    //
+    // ⚠️ Estas notificaciones las cobra la cuenta de **la plataforma**, así que
+    // el token sale de `MP_PLATFORM_ACCESS_TOKEN` y no de `payment_connections`
+    // — el comercio no se cobra a sí mismo.
+    if (type === "subscription_preapproval" || type === "subscription_authorized_payment") {
+      const suscId = String(body.data?.id || body.id || "");
+      const platformToken = Deno.env.get("MP_PLATFORM_ACCESS_TOKEN");
+
+      if (!suscId || !platformToken) {
+        // Sin token no se puede consultar. Se responde 200 igual: un 500 hace
+        // que MercadoPago reintente para siempre algo que no va a mejorar solo.
+        console.error(`Webhook de suscripción sin ${!suscId ? "id" : "MP_PLATFORM_ACCESS_TOKEN"}`);
+        return new Response(JSON.stringify({ ok: true, reason: "sin configurar" }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const ruta = type === "subscription_preapproval"
+        ? `https://api.mercadopago.com/preapproval/${suscId}`
+        : `https://api.mercadopago.com/authorized_payments/${suscId}`;
+
+      const rsp = await fetch(ruta, {
+        headers: { Authorization: `Bearer ${platformToken}` },
+      });
+
+      if (!rsp.ok) {
+        console.error(`No se pudo leer ${type} ${suscId}: ${rsp.status}`);
+        // 200 a propósito: reintentar no arregla un 404 de MercadoPago.
+        return new Response(JSON.stringify({ ok: true, reason: `mp ${rsp.status}` }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const dato = await rsp.json();
+
+      if (type === "subscription_preapproval") {
+        const { data, error } = await admin.rpc("suscripcion_actualizar_estado", {
+          p_preapproval: String(dato.id),
+          p_estado_mp: String(dato.status ?? ""),
+        });
+        if (error) console.error("suscripcion_actualizar_estado", error);
+        return new Response(JSON.stringify({ ok: true, resultado: data }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // Se cobró un período. `preapproval_id` ata este pago con la suscripción.
+      const { data, error } = await admin.rpc("suscripcion_registrar_pago", {
+        p_preapproval: String(dato.preapproval_id ?? ""),
+        p_payment_id: String(dato.payment?.id ?? dato.id ?? ""),
+        p_monto: Number(dato.transaction_amount ?? 0),
+        p_estado: String(dato.payment?.status ?? dato.status ?? "pending"),
+        p_moneda: String(dato.currency_id ?? "ARS"),
+      });
+      if (error) console.error("suscripcion_registrar_pago", error);
+
+      return new Response(JSON.stringify({ ok: true, resultado: data }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (!paymentId || type !== "payment") {
-      // Acknowledge non-payment notifications (subscriptions, etc.)
+      // Acknowledge non-payment notifications
       return new Response(JSON.stringify({ ok: true, reason: `skipped type: ${type}` }), {
         headers: { "Content-Type": "application/json" },
       });
