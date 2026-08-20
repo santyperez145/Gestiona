@@ -302,7 +302,7 @@ nunca corrió en tráfico no está probado: está escrito (R11).
 | Qué | Estado |
 |---|---|
 | C1 AFIP contra el organismo | 🟡 CAE en homologación. Falta emitir **por la app** y pasar a producción |
-| C12 Autoridad de precio del POS | 🔴 `create_sales_transaction` aún toma precio y costo del navegador |
+| ~~C12~~ Autoridad de precio del POS | ✅ Sesión 116. El costo y la ganancia los calcula el servidor; el precio admite override registrado |
 | F1+F3 Privacidad y datos del proveedor | 🟡 Generador listo; falta cargar CUIT/domicilio y publicar |
 | F10 El flete de vuelta lo paga el vendedor | 🟠 No modelado |
 
@@ -353,7 +353,7 @@ Bloque B. Primeros: B3 checkout en un paso · B5 avisos de estado (ya tienen
 #### Lo que sigue, en orden
 
 1. ~~**I6**~~ — ✅ **Sesión 116, auditado camino por camino.** Se midió cuál faltaba en vez de envolver los cuatro: `mark_store_order_paid`, `return_store_order_item` y `facturar_orden_pagada` ya se protegen solas. **La recepción parcial de compra no**: verificado contra producción, recibir 4 de 10 dos veces dejaba **8**. Cerrado con `receive_purchase_order_idem`.
-2. **C12** — autoridad de precio del POS. Es el último lugar donde el navegador decide plata.
+2. ~~**C12**~~ — ✅ **Sesión 116.** Verificado el agujero antes de taparlo: el navegador decía "precio 1, costo 0, ganancia 999999" sobre un producto de USD 20 que vale $100.000, y **la base guardaba eso**. `create_sales_transaction_v2` recalcula: el precio admite override del cajero y queda registrado con el que correspondía; **el costo y la ganancia se pisan siempre**. Ahora ese mismo ataque guarda ganancia −31.999, que es la pérdida real.
 3. **AFIP por la app** — el CAE ya sale; falta que salga desde el circuito.
 4. **K1** — `product_types` + `attribute_definitions`. Define si el catálogo puede modelar otro rubro; sin esto "cualquier ecommerce" no es cierto.
 5. **E4** — margen por canal.

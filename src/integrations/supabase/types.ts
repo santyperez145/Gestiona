@@ -29854,6 +29854,10 @@ export type Database = {
         Args: { p_org_id: string; p_sales: Json; p_source?: string }
         Returns: Json
       }
+      create_sales_transaction_v2: {
+        Args: { p_org_id: string; p_sales: Json; p_source?: string }
+        Returns: Json
+      }
       create_stock_reservation: {
         Args: {
           p_customer_name: string
@@ -30689,6 +30693,15 @@ export type Database = {
         Returns: number
       }
       platform_role: { Args: { _user_id?: string }; Returns: string }
+      precio_pos_autoritativo: {
+        Args: {
+          p_org: string
+          p_product_id: string
+          p_qty?: number
+          p_variant_id?: string
+        }
+        Returns: Json
+      }
       prepare_order_shipment: {
         Args: { p_carrier?: string; p_order_id: string; p_weight_kg?: number }
         Returns: Json

@@ -328,11 +328,36 @@ export async function addSalesDB(sales: any[], source?: string) {
     prepared.push({ sale, attributedExchangeId });
   }
 
-  const { data, error } = await supabase.rpc('create_sales_transaction', {
+  // C12 — el servidor recalcula el dinero.
+  //
+  // Hasta la sesión 116 esta llamada mandaba precio, costo y ganancia desde el
+  // navegador y la base los guardaba tal cual. Verificado contra producción:
+  // un producto de USD 20 que se vende a $100.000 se guardaba con precio 1,
+  // costo 0 y ganancia 999999 si el cliente lo pedía así.
+  //
+  // `create_sales_transaction_v2` acepta el precio —el cajero necesita poder
+  // descontar, y el override queda registrado— pero **pisa el costo y la
+  // ganancia siempre**. No hay operación legítima que necesite decidirlos
+  // desde acá.
+  //
+  // Se cae a la anterior sólo si la función todavía no está en la base, que es
+  // el patrón del repo: el cliente no puede asumir que la migración del mismo
+  // commit ya se aplicó.
+  const args = {
     p_org_id: orgId,
     p_sales: prepared.map(({ sale }) => sale),
     p_source: transactionSource,
-  });
+  };
+
+  let { data, error } = await supabase.rpc(
+    'create_sales_transaction_v2' as never, args as never) as
+    { data: unknown; error: { code?: string; message: string } | null };
+
+  if (error && ['42883', 'PGRST202'].includes(String(error.code))) {
+    console.warn('[POS] create_sales_transaction_v2 no existe todavía; se usa la anterior');
+    ({ data, error } = await supabase.rpc('create_sales_transaction', args) as
+      { data: unknown; error: { code?: string; message: string } | null });
+  }
   if (error) throw error;
 
   const createdSaleIds = Array.isArray((data as { sale_ids?: unknown } | null)?.sale_ids)
