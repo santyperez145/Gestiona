@@ -26,6 +26,9 @@ interface AfipConnectionStatus {
   razon_social: string | null;
   ta_expires_at: string | null;
   ticket_vigente: boolean | null;
+  /** C14: 'delegado' factura con el certificado de la plataforma. */
+  modo: string | null;
+  plataforma_lista: boolean | null;
 }
 
 interface FiscalInvoice {
@@ -95,7 +98,7 @@ export default function AFIPPage() {
     const [connectionResult, invoicesResult] = await Promise.all([
       supabase
         .from("afip_connection_status")
-        .select("cuit, configured, environment, punto_venta, razon_social, ta_expires_at, ticket_vigente")
+        .select("cuit, configured, environment, punto_venta, razon_social, ta_expires_at, ticket_vigente, modo, plataforma_lista")
         .eq("org_id", orgId)
         .maybeSingle(),
       supabase
@@ -151,22 +154,30 @@ export default function AFIPPage() {
     if (!connection?.cuit) {
       return {
         title: "Falta configurar los datos fiscales",
-        detail: "Cargá CUIT, punto de venta, condición del emisor y el certificado para poder pedir CAE.",
+        detail: "Cargá CUIT, razón social, punto de venta y condición del emisor para poder pedir CAE.",
         className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
         icon: AlertTriangle,
       };
     }
     if (!connection.configured) {
+      // C14: quién tiene que hacer algo depende del modo. Decirle "cargá el
+      // certificado" a un comercio delegado lo manda a un trámite que no le
+      // toca y que no puede completar.
+      const delegado = connection.modo !== "propio";
       return {
-        title: "Falta cargar el certificado AFIP",
-        detail: "Los datos fiscales están guardados, pero todavía no hay certificado y clave privada en el almacén seguro.",
+        title: delegado
+          ? "La plataforma todavía no puede emitir por vos"
+          : "Falta cargar el certificado AFIP",
+        detail: delegado
+          ? "Tus datos fiscales están guardados. Falta que la plataforma cargue su certificado de AFIP; no hay nada que puedas hacer de tu lado."
+          : "Los datos fiscales están guardados, pero todavía no hay certificado y clave privada en el almacén seguro.",
         className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
         icon: AlertTriangle,
       };
     }
     if (!connection.ticket_vigente) {
       return {
-        title: "Certificado cargado; conexión pendiente de prueba",
+        title: "Listo para emitir; conexión pendiente de prueba",
         detail: "Desde Ajustes podés pedir un Ticket de Acceso real a WSAA. No se emite ningún comprobante durante esa prueba.",
         className: "bg-blue-500/5 border-blue-500/20 text-blue-200",
         icon: Clock,

@@ -2228,8 +2228,26 @@ function AfipSection() {
   const [certificate, setCertificate] = useState("");
   const [privateKey, setPrivateKey] = useState("");
   const [taStatus, setTaStatus] = useState<"none" | "valid" | "expired">("none");
-  /** Hay certificado cargado. No se sabe cuál: eso no vuelve del servidor. */
+  /** Hay certificado PROPIO cargado. No se sabe cuál: eso no vuelve del servidor. */
   const [certConfigurado, setCertConfigurado] = useState(false);
+  /**
+   * C14 — de qué certificado se factura.
+   *
+   * `delegado`: el comercio no sube nada; se emite con el certificado de la
+   * plataforma y su CUIT en el comprobante, porque delegó `wsfe` desde el
+   * Administrador de Relaciones de ARCA.
+   *
+   * `propio`: subió su certificado. Sigue siendo posible y no se quita — es
+   * la salida si la delegación no le sirve.
+   */
+  const [modo, setModo] = useState<"delegado" | "propio">("delegado");
+  /** La plataforma tiene su certificado cargado. Si no, el modo delegado no
+   *  puede emitir, y eso NO es un problema del comercio: hay que decirlo. */
+  const [plataformaLista, setPlataformaLista] = useState(false);
+  /** El formulario del certificado propio arranca cerrado en modo delegado:
+   *  mostrar un campo de clave privada a quien no necesita subirla es lo que
+   *  hace que el onboarding parezca un trámite. */
+  const [mostrarCert, setMostrarCert] = useState(false);
 
   const refreshConnectionStatus = useCallback(async () => {
     if (!activeOrg) return;
@@ -2238,7 +2256,7 @@ function AfipSection() {
     // vuelven al navegador, ni siquiera después de que se hayan guardado.
     const { data, error } = await supabase
       .from("afip_connection_status")
-      .select("cuit, razon_social, punto_venta, environment, tipo_emisor, configured, ta_expires_at")
+      .select("cuit, razon_social, domicilio, punto_venta, environment, tipo_emisor, configured, modo, plataforma_lista, ta_expires_at")
       .eq("org_id", activeOrg.id)
       .maybeSingle();
     if (error) throw error;
@@ -2249,12 +2267,20 @@ function AfipSection() {
       return;
     }
 
+    // ⚠️ `configured` de la vista significa PUEDE EMITIR, no "subió un
+    // certificado": en modo delegado el certificado es el de la plataforma.
+    setModo(data.modo === "propio" ? "propio" : "delegado");
+    setPlataformaLista(!!data.plataforma_lista);
+    setDomicilio(data.domicilio || "");
+
     setCuit(data.cuit || "");
     setRazonSocial(data.razon_social || "");
     setPuntoVenta(String(data.punto_venta || 1));
     setEnvironment(data.environment || "homologacion");
     setTipoEmisor(data.tipo_emisor || "monotributo");
-    setCertConfigurado(!!data.configured);
+    // El certificado PROPIO sólo existe en modo propio; en delegado
+    // `configured` habla del de la plataforma.
+    setCertConfigurado(data.modo === "propio" && !!data.configured);
     setTaStatus(data.ta_expires_at && new Date(data.ta_expires_at) > new Date() ? "valid" : "none");
   }, [activeOrg]);
 
@@ -2291,6 +2317,8 @@ function AfipSection() {
 
     // El certificado sólo si se pegó uno nuevo. La Edge Function lo escribe con
     // `service_role`; desde el navegador no hay forma de llegar a esa tabla.
+    // Sólo si efectivamente pegó uno. En modo delegado estos campos están
+    // ocultos y vacíos, así que este bloque no corre.
     if (certificate.trim() || privateKey.trim()) {
       const { data, error } = await supabase.functions.invoke("afip-credentials", {
         body: { org_id: activeOrg.id, certificate, privateKey },
@@ -2320,8 +2348,18 @@ function AfipSection() {
   const handleTestConnection = async () => {
     if (!activeOrg) return;
     const tieneNuevoCertificado = !!(certificate.trim() && privateKey.trim());
-    if (!cuit || (!certConfigurado && !tieneNuevoCertificado)) {
-      toast.error("Completá CUIT, certificado y clave privada antes de probar");
+    if (!cuit) {
+      toast.error("Completá el CUIT antes de probar");
+      return;
+    }
+    // En modo delegado el certificado es el de la plataforma: pedirle uno al
+    // comercio sería mandarlo a resolver algo que no es suyo.
+    if (modo === "propio" && !certConfigurado && !tieneNuevoCertificado) {
+      toast.error("Completá certificado y clave privada antes de probar");
+      return;
+    }
+    if (modo === "delegado" && !plataformaLista) {
+      toast.error("La plataforma todavía no cargó su certificado de AFIP. No es un problema de tu configuración.");
       return;
     }
     setTesting(true);
@@ -2347,8 +2385,10 @@ function AfipSection() {
 
   if (loading) return null;
 
-  const isConfigured = !!(cuit && certConfigurado);
-  const canTestConnection = !!(cuit && (certConfigurado || (certificate.trim() && privateKey.trim())));
+  const isConfigured = !!(cuit && (modo === "delegado" ? plataformaLista : certConfigurado));
+  const canTestConnection = !!(cuit && (
+    modo === "delegado" ? plataformaLista : (certConfigurado || (certificate.trim() && privateKey.trim()))
+  ));
 
   return (
     <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
@@ -2403,6 +2443,7 @@ function AfipSection() {
             <SelectContent>
               <SelectItem value="monotributo">Monotributista → Factura C</SelectItem>
               <SelectItem value="responsable_inscripto">Responsable Inscripto → Factura A / B</SelectItem>
+              <SelectItem value="exento">Exento → Factura C</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -2421,7 +2462,33 @@ function AfipSection() {
         </div>
       </div>
 
-      <div className="space-y-3 pb-12">
+      {/* ── C14: en modo delegado no se sube ninguna clave ─────────────── */}
+      {modo === "delegado" && (
+        <div className="rounded-[8px] border border-border/60 bg-muted/40 p-3 space-y-2">
+          <p className="text-xs font-medium">Facturás con el certificado de la plataforma</p>
+          <p className="text-[11px] text-muted-foreground">
+            No tenés que generar ninguna clave. Entrá a AFIP con tu clave fiscal,
+            andá a <strong>Administrador de Relaciones</strong> y delegá el servicio{" "}
+            <strong>Facturación Electrónica (wsfe)</strong> al CUIT de la plataforma.
+            Los comprobantes se emiten con <strong>tu</strong> CUIT.
+          </p>
+          {!plataformaLista && (
+            <p className="text-[11px] text-destructive">
+              La plataforma todavía no cargó su certificado. No es un problema de tu
+              configuración: no hay nada que puedas hacer de este lado.
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => setMostrarCert(v => !v)}
+            className="text-[11px] text-muted-foreground underline underline-offset-2"
+          >
+            {mostrarCert ? "Ocultar" : "Prefiero usar mi propio certificado"}
+          </button>
+        </div>
+      )}
+
+      <div className={`space-y-3 pb-12 ${modo === "delegado" && !mostrarCert ? "hidden" : ""}`}>
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Certificado AFIP (PEM)</label>
           <Textarea

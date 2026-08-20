@@ -22,6 +22,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireUser } from "../_shared/requireUser.ts";
 import { requireEnv } from "../_shared/env.ts";
+// Compartida con `afip-platform-cert`: una sola regla de PEM para los dos
+// caminos que reciben certificados.
+import { esPem, ERROR_CERT, ERROR_CLAVE } from "../_shared/pem.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,18 +36,6 @@ const json = (body: unknown, status = 200) =>
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-
-/** Un PEM válido empieza y termina donde corresponde. */
-function esPem(texto: string, tipo: "CERTIFICATE" | "PRIVATE KEY"): boolean {
-  const t = texto.trim();
-  if (tipo === "CERTIFICATE") {
-    return t.startsWith("-----BEGIN CERTIFICATE-----")
-        && t.includes("-----END CERTIFICATE-----");
-  }
-  // AFIP acepta clave RSA o PKCS#8; las dos formas son válidas.
-  return (t.startsWith("-----BEGIN PRIVATE KEY-----") && t.includes("-----END PRIVATE KEY-----"))
-      || (t.startsWith("-----BEGIN RSA PRIVATE KEY-----") && t.includes("-----END RSA PRIVATE KEY-----"));
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -80,6 +71,11 @@ Deno.serve(async (req) => {
       await admin.from("afip_credentials")
         .update({
           certificate: null, private_key: null,
+          // Sin certificado propio el único camino posible es el delegado.
+          // Dejarlo en 'propio' lo dejaría sin poder facturar y con el panel
+          // diciendo "no configurado", que manda a revisar lo único que no
+          // está fallando.
+          modo: "delegado",
           ta_token: null, ta_sign: null, ta_expires_at: null,
           updated_at: new Date().toISOString(),
         })
@@ -89,10 +85,10 @@ Deno.serve(async (req) => {
 
     // ── Carga ────────────────────────────────────────────────────────────
     if (typeof certificate !== "string" || !esPem(certificate, "CERTIFICATE")) {
-      return json({ error: "El certificado no parece un PEM válido (debe empezar con -----BEGIN CERTIFICATE-----)" }, 400);
+      return json({ error: ERROR_CERT }, 400);
     }
     if (typeof privateKey !== "string" || !esPem(privateKey, "PRIVATE KEY")) {
-      return json({ error: "La clave privada no parece un PEM válido (debe empezar con -----BEGIN PRIVATE KEY----- o -----BEGIN RSA PRIVATE KEY-----)" }, 400);
+      return json({ error: ERROR_CLAVE }, 400);
     }
 
     const { error } = await admin
@@ -101,6 +97,10 @@ Deno.serve(async (req) => {
         org_id: orgId,
         certificate: certificate.trim(),
         private_key: privateKey.trim(),
+        // C14: subir un certificado propio ES elegir el modo propio. Sin esta
+        // línea el comercio seguiría facturando con el de la plataforma,
+        // teniendo el suyo cargado y sin ninguna señal de que no se usa.
+        modo: "propio",
         // Cambiar el certificado invalida el ticket anterior: se firmó con el
         // que ya no está.
         ta_token: null,

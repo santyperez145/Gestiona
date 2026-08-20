@@ -56,6 +56,7 @@ const PlatformAdminPage      = lazy(() => import("@/pages/PlatformAdminPage"));
 const PlatformMetricsPage   = lazy(() => import("@/pages/PlatformMetricsPage"));
 const PlatformCommissionsPage = lazy(() => import("@/pages/PlatformCommissionsPage"));
 const PlatformBusinessPage = lazy(() => import("@/pages/PlatformBusinessPage"));
+const PlatformAfipPage = lazy(() => import("@/pages/PlatformAfipPage"));
 const PlatformAnnouncementsPage = lazy(() => import("@/pages/PlatformAnnouncementsPage"));
 const AnalyticsPage          = lazy(() => import("@/pages/AnalyticsPage"));
 const InvoicesPage           = lazy(() => import("@/pages/InvoicesPage"));
@@ -203,6 +204,7 @@ function PlatformRoutes() {
           <Route path="planes" element={<PlatformAdminPage section="plans" />} />
           <Route path="negocio" element={<PlatformBusinessPage />} />
           <Route path="comisiones" element={<PlatformCommissionsPage />} />
+          <Route path="afip" element={<PlatformAfipPage />} />
           <Route path="soporte" element={<PlatformAdminPage section="support" />} />
           <Route path="anuncios" element={<PlatformAnnouncementsPage />} />
           <Route path="sistema" element={<PlatformAdminPage section="system" />} />

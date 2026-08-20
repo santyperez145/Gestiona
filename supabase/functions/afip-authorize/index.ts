@@ -25,6 +25,7 @@
 // @ts-ignore
 import forge from "https://esm.sh/node-forge@1.3.1";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolverCredencialesAfip, guardarTicketAcceso } from "../_shared/afipCredenciales.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -70,14 +71,11 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (!membership) return err("Sólo el dueño o un administrador pueden probar AFIP", 403);
 
-      const { data: cred } = await supabase
-        .from("afip_credentials")
-        .select("cuit, certificate, private_key, environment, ta_token, ta_sign, ta_expires_at")
-        .eq("org_id", body.org_id)
-        .maybeSingle();
-      if (!cred?.cuit) return err("AFIP no configurado: falta CUIT");
-      if (!cred?.certificate) return err("AFIP no configurado: falta certificado PEM");
-      if (!cred?.private_key) return err("AFIP no configurado: falta clave privada PEM");
+      // C14: puede ser el certificado del comercio o el de la plataforma. La
+      // decisión vive en un solo lugar, no repartida entre los dos caminos.
+      const resuelto = await resolverCredencialesAfip(supabase, body.org_id);
+      if (resuelto.error) return err(resuelto.error);
+      const cred = resuelto.cred;
 
       const isProd = cred.environment === "produccion";
       const wsaaUrl = isProd
@@ -105,6 +103,7 @@ Deno.serve(async (req) => {
           ok: true,
           environment: isProd ? "produccion" : "homologacion",
           ticket_expires_at: cred.ta_expires_at,
+          modo: cred.modo,
           reusado: true,
         });
       }
@@ -113,21 +112,16 @@ Deno.serve(async (req) => {
 
       // WSAA rechaza pedidos repetidos; conservar el ticket obtenido en la
       // prueba hace que la primera factura reutilice exactamente esa sesión.
-      const { error: ticketError } = await supabase
-        .from("afip_credentials")
-        .update({
-          ta_token: ta.token,
-          ta_sign: ta.sign,
-          ta_expires_at: ta.expiresAt,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("org_id", body.org_id);
-      if (ticketError) throw new Error("No se pudo guardar el Ticket de Acceso");
+      // En modo delegado se guarda en la fila de la plataforma, porque el TA es
+      // uno solo para todos los comercios que comparten el certificado.
+      const guardado = await guardarTicketAcceso(supabase, cred, body.org_id, ta);
+      if (guardado.error) throw new Error("No se pudo guardar el Ticket de Acceso");
 
       return ok({
         ok: true,
         environment: isProd ? "produccion" : "homologacion",
         ticket_expires_at: ta.expiresAt,
+        modo: cred.modo,
       });
     }
 
@@ -152,15 +146,9 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!membership) return err("Sin acceso a esta organización");
 
-    const { data: cred } = await supabase
-      .from("afip_credentials")
-      .select("*")
-      .eq("org_id", invoice.org_id)
-      .maybeSingle();
-
-    if (!cred?.cuit) return err("AFIP no configurado: falta CUIT");
-    if (!cred?.certificate) return err("AFIP no configurado: falta certificado PEM");
-    if (!cred?.private_key) return err("AFIP no configurado: falta clave privada PEM");
+    const resuelto = await resolverCredencialesAfip(supabase, invoice.org_id);
+    if (resuelto.error) return err(resuelto.error);
+    const cred = resuelto.cred;
 
     const isProd = cred.environment === "produccion";
     const wsaaUrl = isProd
@@ -187,16 +175,9 @@ Deno.serve(async (req) => {
 
       // El ticket dura 12 h; se guarda para no pedir uno por factura. WSAA
       // rechaza pedidos repetidos en poco tiempo, así que reusarlo no es sólo
-      // una optimización.
-      await supabase
-        .from("afip_credentials")
-        .update({
-          ta_token: token_ta,
-          ta_sign: sign_ta,
-          ta_expires_at: ta.expiresAt,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("org_id", invoice.org_id);
+      // una optimización. En modo delegado va a la fila de la plataforma: el TA
+      // es del certificado, y el certificado es uno para todos.
+      await guardarTicketAcceso(supabase, cred, invoice.org_id, ta);
     }
 
     const cuit = String(cred.cuit).replace(/[-\s]/g, "");

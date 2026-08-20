@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Crown, Building2, Users, DollarSign, Headphones, Server, Megaphone,
-  Percent, ArrowLeft, LogOut, TrendingUp, BarChart3,
+  Percent, ArrowLeft, LogOut, TrendingUp, BarChart3, FileText,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
@@ -32,6 +32,7 @@ const NAV: NavItem[] = [
   { to: '/platform/planes', label: 'Planes', icon: DollarSign, roles: ['finance'] },
   { to: '/platform/negocio', label: 'Negocio', icon: TrendingUp, roles: ['finance'] },
   { to: '/platform/comisiones', label: 'Comisiones', icon: Percent, roles: ['finance'] },
+  { to: '/platform/afip', label: 'AFIP', icon: FileText, roles: ['superadmin'] },
   { to: '/platform/soporte', label: 'Soporte', icon: Headphones, roles: ['support'] },
   { to: '/platform/anuncios', label: 'Anuncios', icon: Megaphone, roles: ['superadmin'] },
   { to: '/platform/sistema', label: 'Sistema', icon: Server },

@@ -802,6 +802,7 @@ export type Database = {
           cuit: string | null
           domicilio: string | null
           environment: string
+          modo: string
           org_id: string
           private_key: string | null
           punto_venta: number
@@ -817,6 +818,7 @@ export type Database = {
           cuit?: string | null
           domicilio?: string | null
           environment?: string
+          modo?: string
           org_id: string
           private_key?: string | null
           punto_venta?: number
@@ -832,6 +834,7 @@ export type Database = {
           cuit?: string | null
           domicilio?: string | null
           environment?: string
+          modo?: string
           org_id?: string
           private_key?: string | null
           punto_venta?: number
@@ -917,6 +920,45 @@ export type Database = {
           estado?: string | null
           razon_social?: string | null
           tipo_persona?: string | null
+        }
+        Relationships: []
+      }
+      afip_platform_credentials: {
+        Row: {
+          certificate: string | null
+          cuit: string
+          environment: string
+          id: boolean
+          private_key: string | null
+          razon_social: string | null
+          ta_expires_at: string | null
+          ta_sign: string | null
+          ta_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          certificate?: string | null
+          cuit: string
+          environment?: string
+          id?: boolean
+          private_key?: string | null
+          razon_social?: string | null
+          ta_expires_at?: string | null
+          ta_sign?: string | null
+          ta_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          certificate?: string | null
+          cuit?: string
+          environment?: string
+          id?: boolean
+          private_key?: string | null
+          razon_social?: string | null
+          ta_expires_at?: string | null
+          ta_sign?: string | null
+          ta_token?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -26608,7 +26650,9 @@ export type Database = {
           cuit: string | null
           domicilio: string | null
           environment: string | null
+          modo: string | null
           org_id: string | null
+          plataforma_lista: boolean | null
           punto_venta: number | null
           razon_social: string | null
           ta_expires_at: string | null
@@ -26621,10 +26665,12 @@ export type Database = {
           cuit?: string | null
           domicilio?: string | null
           environment?: string | null
+          modo?: string | null
           org_id?: string | null
+          plataforma_lista?: never
           punto_venta?: number | null
           razon_social?: string | null
-          ta_expires_at?: string | null
+          ta_expires_at?: never
           ticket_vigente?: never
           tipo_emisor?: string | null
           updated_at?: string | null
@@ -26634,10 +26680,12 @@ export type Database = {
           cuit?: string | null
           domicilio?: string | null
           environment?: string | null
+          modo?: string | null
           org_id?: string | null
+          plataforma_lista?: never
           punto_venta?: number | null
           razon_social?: string | null
-          ta_expires_at?: string | null
+          ta_expires_at?: never
           ticket_vigente?: never
           tipo_emisor?: string | null
           updated_at?: string | null
@@ -26686,6 +26734,39 @@ export type Database = {
             referencedColumns: ["org_id"]
           },
         ]
+      }
+      afip_platform_status: {
+        Row: {
+          comercios_delegados: number | null
+          configured: boolean | null
+          cuit: string | null
+          environment: string | null
+          razon_social: string | null
+          ta_expires_at: string | null
+          ticket_vigente: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          comercios_delegados?: never
+          configured?: never
+          cuit?: string | null
+          environment?: string | null
+          razon_social?: string | null
+          ta_expires_at?: string | null
+          ticket_vigente?: never
+          updated_at?: string | null
+        }
+        Update: {
+          comercios_delegados?: never
+          configured?: never
+          cuit?: string | null
+          environment?: string | null
+          razon_social?: string | null
+          ta_expires_at?: string | null
+          ticket_vigente?: never
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       audit_funciones_expuestas: {
         Row: {
