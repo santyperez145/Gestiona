@@ -320,18 +320,44 @@ export default function InvoicesPage() {
     }
   }, [searchParams]);
 
-  // Load AFIP org settings
+  // Estado de AFIP.
+  //
+  // ⚠️ Se lee de `afip_connection_status`, **nunca de `settings.afip_*`**.
+  // Esta pantalla miraba `settings.afip_cuit` para decidir si AFIP estaba
+  // configurado, pero `save_afip_config` escribe en `afip_credentials`: con el
+  // certificado cargado y funcionando —CAE obtenido contra ARCA— el panel
+  // seguía diciendo "AFIP no configurado" y escondía el botón de autorizar.
+  //
+  // `settings.afip_*` es la generación vieja y nadie la llena. La vista es la
+  // fuente única, y además dice si el Ticket de Acceso está vigente.
   useEffect(() => {
     if (!activeOrg || !user) return;
     (async () => {
-      const { data } = await supabase
-        .from("settings")
-        .select("afip_cuit,afip_razon_social,afip_domicilio,afip_punto_venta,afip_tipo_emisor,afip_environment")
+      const { data, error } = await supabase
+        .from("afip_connection_status")
+        .select("cuit,razon_social,domicilio,punto_venta,tipo_emisor,environment,configured")
         .eq("org_id", activeOrg.id)
         .maybeSingle();
-      if (data) setAfipSettings(data as AfipSettings);
+
+      // Un error acá no puede leerse como "no está configurado": son cosas
+      // distintas, y confundirlas es lo que hace que alguien vuelva a cargar
+      // un certificado que ya estaba bien.
+      if (error) {
+        console.error("afip_connection_status", error);
+        return;
+      }
+      if (!data) return;
+
+      setAfipSettings({
+        afip_cuit: data.configured ? data.cuit : null,
+        afip_razon_social: data.razon_social,
+        afip_domicilio: data.domicilio,
+        afip_punto_venta: data.punto_venta,
+        afip_tipo_emisor: data.tipo_emisor,
+        afip_environment: data.environment,
+      });
     })();
-  }, [activeOrg]);
+  }, [activeOrg, user]);
 
   const handleSendEmail = async (inv: Invoice) => {
     if (!inv.customer_email) { toast.error("Esta factura no tiene email del cliente"); return; }

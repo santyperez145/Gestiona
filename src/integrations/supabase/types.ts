@@ -10641,6 +10641,7 @@ export type Database = {
           afip_status: string | null
           cae: string | null
           cae_vencimiento: string | null
+          condicion_iva_receptor: number
           created_at: string
           created_by: string | null
           currency: string
@@ -10671,6 +10672,7 @@ export type Database = {
           afip_status?: string | null
           cae?: string | null
           cae_vencimiento?: string | null
+          condicion_iva_receptor?: number
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -10701,6 +10703,7 @@ export type Database = {
           afip_status?: string | null
           cae?: string | null
           cae_vencimiento?: string | null
+          condicion_iva_receptor?: number
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -26516,6 +26519,7 @@ export type Database = {
         Row: {
           configured: boolean | null
           cuit: string | null
+          domicilio: string | null
           environment: string | null
           org_id: string | null
           punto_venta: number | null
@@ -26528,6 +26532,7 @@ export type Database = {
         Insert: {
           configured?: never
           cuit?: string | null
+          domicilio?: string | null
           environment?: string | null
           org_id?: string | null
           punto_venta?: number | null
@@ -26540,6 +26545,7 @@ export type Database = {
         Update: {
           configured?: never
           cuit?: string | null
+          domicilio?: string | null
           environment?: string | null
           org_id?: string | null
           punto_venta?: number | null
@@ -29587,6 +29593,7 @@ export type Database = {
           variance_pct: number
         }[]
       }
+      condicion_iva_codigo: { Args: { p_condicion: string }; Returns: number }
       confirm_payment_link_transfer: {
         Args: { p_id: string }
         Returns: boolean
