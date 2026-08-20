@@ -1,7 +1,13 @@
 {
   "version": "5",
+  "redirects": {
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.112.3",
+    "https://esm.sh/@types/node-forge@~1.3.14/index.d.ts": "https://esm.sh/@types/node-forge@1.3.14/index.d.ts"
+  },
   "remote": {
-    "https://esm.sh/@supabase/supabase-js@2.49.4": "d52c4d06946766d328fdd0ac2e007f52bb6d2ef7ce6103ad9f0f57d92b73e978"
+    "https://esm.sh/@supabase/supabase-js@2.112.3": "f6b9130984301066587e8917dfab3b3d60be47dc966bd3d04c733bc9423c1cf9",
+    "https://esm.sh/@supabase/supabase-js@2.49.4": "d52c4d06946766d328fdd0ac2e007f52bb6d2ef7ce6103ad9f0f57d92b73e978",
+    "https://esm.sh/node-forge@1.3.1": "39fbff1dd3f1f45bf7019492f7c7e941fcf91887cebbbd86c439100d06c6e348"
   },
   "workspace": {
     "packageJson": {

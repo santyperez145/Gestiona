@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
 
       const { data: cred } = await supabase
         .from("afip_credentials")
-        .select("cuit, certificate, private_key, environment")
+        .select("cuit, certificate, private_key, environment, ta_token, ta_sign, ta_expires_at")
         .eq("org_id", body.org_id)
         .maybeSingle();
       if (!cred?.cuit) return err("AFIP no configurado: falta CUIT");
@@ -83,6 +83,32 @@ Deno.serve(async (req) => {
       const wsaaUrl = isProd
         ? "https://wsaa.afip.gov.ar/ws/services/LoginCms"
         : "https://wsaahomo.afip.gov.ar/ws/services/LoginCms";
+
+      // ⚠️ **Si ya hay un Ticket de Acceso vigente, se reusa y no se pide otro.**
+      //
+      // WSAA entrega un ticket por servicio y por unas 12 horas, y **rechaza el
+      // pedido siguiente mientras el anterior siga vivo** ("El CEE ya posee un
+      // TA valido para el acceso al WSN solicitado").
+      //
+      // La versión anterior pedía uno nuevo siempre. Consecuencia: la primera
+      // prueba andaba y **la segunda fallaba**, con un error que suena a
+      // credencial rota cuando en realidad la conexión estaba perfecta. Un
+      // botón de diagnóstico que miente sobre el estado es peor que no tenerlo:
+      // manda a revisar el certificado, que es lo único que no estaba mal.
+      //
+      // El camino de facturación ya hacía esto bien; el de prueba no.
+      const taExpira = cred.ta_expires_at ? new Date(cred.ta_expires_at) : null;
+      const taVigente = taExpira && taExpira > new Date(Date.now() + 5 * 60 * 1000);
+
+      if (taVigente && cred.ta_token && cred.ta_sign) {
+        return ok({
+          ok: true,
+          environment: isProd ? "produccion" : "homologacion",
+          ticket_expires_at: cred.ta_expires_at,
+          reusado: true,
+        });
+      }
+
       const ta = await getTicketAcceso(wsaaUrl, cred.certificate, cred.private_key);
 
       // WSAA rechaza pedidos repetidos; conservar el ticket obtenido en la
@@ -206,7 +232,16 @@ Deno.serve(async (req) => {
         afip_error: null,
         afip_environment: isProd ? "produccion" : "homologacion",
       })
-      .eq("id", invoice_id);
+      // ⚠️ Decía `invoice_id`, que no existe — la variable es `invoiceId`.
+      // Estaba en el camino de ÉXITO: AFIP otorgaba el CAE y el código lanzaba
+      // ReferenceError antes de guardarlo. La factura quedaba autorizada en AFIP
+      // y sin CAE de este lado, y el reintento pedía autorización de nuevo para
+      // la misma venta. Es el mismo error que la firma del webhook de
+      // MercadoPago: el proveedor dice que sí y nuestro lado no lo registra.
+      //
+      // Nunca se disparó porque no se emitió ni una factura. `deno check` lo
+      // reportaba desde siempre; el CI no corre deno check sobre las funciones.
+      .eq("id", invoiceId);
 
     return ok({
       cae,
