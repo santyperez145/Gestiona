@@ -800,6 +800,8 @@ export type Database = {
         Row: {
           certificate: string | null
           cuit: string | null
+          delegacion_verificada: boolean
+          delegacion_verificada_at: string | null
           domicilio: string | null
           environment: string
           modo: string
@@ -816,6 +818,8 @@ export type Database = {
         Insert: {
           certificate?: string | null
           cuit?: string | null
+          delegacion_verificada?: boolean
+          delegacion_verificada_at?: string | null
           domicilio?: string | null
           environment?: string
           modo?: string
@@ -832,6 +836,8 @@ export type Database = {
         Update: {
           certificate?: string | null
           cuit?: string | null
+          delegacion_verificada?: boolean
+          delegacion_verificada_at?: string | null
           domicilio?: string | null
           environment?: string
           modo?: string
@@ -26648,47 +26654,59 @@ export type Database = {
         Row: {
           configured: boolean | null
           cuit: string | null
+          delegacion_verificada: boolean | null
+          delegacion_verificada_at: string | null
           domicilio: string | null
           environment: string | null
           modo: string | null
+          motivo: string | null
           org_id: string | null
+          plataforma_cuit: string | null
           plataforma_lista: boolean | null
+          plataforma_razon_social: string | null
           punto_venta: number | null
           razon_social: string | null
           ta_expires_at: string | null
           ticket_vigente: boolean | null
           tipo_emisor: string | null
-          updated_at: string | null
         }
         Insert: {
           configured?: never
           cuit?: string | null
+          delegacion_verificada?: boolean | null
+          delegacion_verificada_at?: string | null
           domicilio?: string | null
           environment?: string | null
           modo?: string | null
+          motivo?: never
           org_id?: string | null
+          plataforma_cuit?: never
           plataforma_lista?: never
+          plataforma_razon_social?: never
           punto_venta?: number | null
           razon_social?: string | null
           ta_expires_at?: never
           ticket_vigente?: never
           tipo_emisor?: string | null
-          updated_at?: string | null
         }
         Update: {
           configured?: never
           cuit?: string | null
+          delegacion_verificada?: boolean | null
+          delegacion_verificada_at?: string | null
           domicilio?: string | null
           environment?: string | null
           modo?: string | null
+          motivo?: never
           org_id?: string | null
+          plataforma_cuit?: never
           plataforma_lista?: never
+          plataforma_razon_social?: never
           punto_venta?: number | null
           razon_social?: string | null
           ta_expires_at?: never
           ticket_vigente?: never
           tipo_emisor?: string | null
-          updated_at?: string | null
         }
         Relationships: [
           {
@@ -29679,6 +29697,10 @@ export type Database = {
           p_variant_id: string
         }
         Returns: string
+      }
+      afip_marcar_delegacion: {
+        Args: { p_detalle?: string; p_ok: boolean; p_org: string }
+        Returns: undefined
       }
       anonymize_customer: {
         Args: { p_customer_id: string; p_org_id: string }

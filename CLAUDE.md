@@ -168,6 +168,36 @@ función nueva que manda emails, antes de que llegara a producción. Si uno fall
 se arregla el código o se documenta el motivo en la allowlist — nunca se afloja
 el test.
 
+**Se hace como lo hacen los que ya funcionan, no como se nos ocurre.** Antes de
+inventar un flujo, mirar cómo lo resuelve alguien que ya opera con eso —
+MercadoLibre, Tiendanube, Shopify, Stripe— y usar el mecanismo probado, no una
+variante propia.
+
+Casos concretos donde esto ya decidió el diseño:
+
+- **AFIP se conecta por delegación**, no subiendo certificados. Un comercio que
+  tiene que generar una clave con `openssl`, armar un CSR y subirlo a WSASS
+  abandona ahí. El mecanismo real es el Administrador de Relaciones de ARCA, que
+  el comercio ya usa.
+- **La verificación le pregunta al organismo, no al usuario.** Un checkbox de
+  "ya lo hice" hace que el panel diga "listo" y la primera factura falle. Se
+  consulta `FECompUltimoAutorizado`, que es de sólo lectura y falla si la
+  delegación no existe.
+- **Idempotencia con clave del cliente**, como Stripe: misma clave y mismo
+  contenido devuelve el mismo resultado; misma clave con contenido distinto es
+  un error, no la respuesta vieja.
+- **Webhooks con firma, reintento con backoff y descarte con evidencia**, como
+  MercadoPago y Stripe. "Al menos una vez" con `event_id` para deduplicar, que
+  es lo que existe de verdad sobre HTTP.
+- **OAuth donde el proveedor lo ofrece.** Un token pegado a mano queda en una
+  tabla que la UI lee, y MercadoPago además rechaza el `marketplace_fee`.
+
+⚠️ **Y tecnologías reales, no aproximaciones.** Nada de simular una respuesta,
+inventar un conteo de tokens ni dar por buena una conexión sin probarla. Si algo
+no se puede verificar todavía, se dice — no se tapa con un número plausible. Ver
+`sinSimulacion.test.ts`, que existe porque el chat de IA devolvía texto enlatado
+y guardaba `Math.random()` como uso de tokens.
+
 **Los números medidos van con la fecha o con el comando al lado.** Este repo es
 público y su documentación se lee de afuera: un análisis externo citó "418 tests
 unitarios" tomándolo de una línea vieja de `ROADMAP.md` cuando ya eran 811. Un

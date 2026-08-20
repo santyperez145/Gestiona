@@ -6,6 +6,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PageHeader from "@/components/shared/PageHeader";
+import ConectarAfip, { type MotivoAfip } from "@/components/afip/ConectarAfip";
 import KPICard from "@/components/shared/KPICard";
 import {
   AlertTriangle,
@@ -29,6 +30,12 @@ interface AfipConnectionStatus {
   /** C14: 'delegado' factura con el certificado de la plataforma. */
   modo: string | null;
   plataforma_lista: boolean | null;
+  /** C14b: el CUIT al que hay que delegar. No es secreto. */
+  plataforma_cuit: string | null;
+  plataforma_razon_social: string | null;
+  /** Por qué no puede emitir, para no mandar al comercio a un trámite ajeno. */
+  motivo: MotivoAfip | null;
+  delegacion_verificada: boolean | null;
 }
 
 interface FiscalInvoice {
@@ -208,6 +215,19 @@ export default function AFIPPage() {
             </Button>
           </div>
         }
+      />
+
+      {/* C14b — la guía de conexión va primero. Un comercio que no puede
+          emitir no necesita ver estadísticas de comprobantes: necesita saber
+          qué tocar para poder emitir. */}
+      <ConectarAfip
+        orgId={orgId}
+        motivo={connection?.motivo ?? null}
+        plataformaCuit={connection?.plataforma_cuit ?? null}
+        plataformaRazonSocial={connection?.plataforma_razon_social ?? null}
+        cuitDelComercio={connection?.cuit ?? null}
+        ambiente={connection?.environment ?? null}
+        onVerificado={load}
       />
 
       <div className={`rounded-xl border p-4 ${readiness.className}`}>

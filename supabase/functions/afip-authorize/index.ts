@@ -59,6 +59,73 @@ Deno.serve(async (req) => {
     // Una prueba de conexión real sólo pide un Ticket de Acceso a WSAA. No
     // crea una factura, no inventa un CAE y confirma que el certificado está
     // asociado al servicio wsfe del ambiente elegido.
+    // ── Verificar la delegación ──────────────────────────────────────────
+    //
+    // `test_connection` prueba el CERTIFICADO: que WSAA entregue un Ticket de
+    // Acceso. Eso no dice nada sobre si este comercio delegó `wsfe` a la
+    // plataforma — el TA es por certificado y servicio, y **no menciona ningún
+    // CUIT**.
+    //
+    // La delegación recién se ejerce al usar el CUIT del comercio en el
+    // `<Auth>` de una llamada WSFE. Por eso acá se consulta
+    // `FECompUltimoAutorizado`: es de sólo lectura, no crea nada, y falla si la
+    // delegación no existe. Es la prueba más barata que sí prueba lo que dice.
+    if (body.action === "verificar_delegacion") {
+      if (!body.org_id) return err("org_id required");
+
+      const { data: membership } = await supabase
+        .from("memberships").select("role")
+        .eq("org_id", body.org_id).eq("user_id", userData.user.id)
+        .in("role", ["owner", "admin"]).maybeSingle();
+      if (!membership) return err("Sólo el dueño o un administrador pueden verificar", 403);
+
+      const resuelto = await resolverCredencialesAfip(supabase, body.org_id);
+      if (resuelto.error) return err(resuelto.error);
+      const cred = resuelto.cred;
+
+      const isProd = cred.environment === "produccion";
+      const wsaaUrl = isProd
+        ? "https://wsaa.afip.gov.ar/ws/services/LoginCms"
+        : "https://wsaahomo.afip.gov.ar/ws/services/LoginCms";
+      const wsfeUrl = isProd
+        ? "https://servicios1.afip.gov.ar/wsfev1/service.asmx"
+        : "https://wswhomo.afip.gov.ar/wsfev1/service.asmx";
+
+      // El TA vigente se reusa. WSAA rechaza pedir otro mientras el anterior
+      // viva, y con certificado compartido eso choca apenas haya dos comercios
+      // verificando el mismo día.
+      const taExpira = cred.ta_expires_at ? new Date(cred.ta_expires_at) : null;
+      const taVigente = taExpira && taExpira > new Date(Date.now() + 5 * 60 * 1000);
+
+      let token = cred.ta_token, sign = cred.ta_sign;
+      if (!taVigente || !token || !sign) {
+        const ta = await getTicketAcceso(wsaaUrl, cred.certificate, cred.private_key);
+        await guardarTicketAcceso(supabase, cred, body.org_id, ta);
+        token = ta.token; sign = ta.sign;
+      }
+
+      try {
+        // Tipo 11 (Factura C) alcanza: lo que se prueba es que ARCA acepte el
+        // CUIT, no el tipo de comprobante.
+        await getUltimoAutorizado(
+          wsfeUrl, token!, sign!, cred.cuit, cred.punto_venta ?? 1, 11);
+      } catch (e) {
+        const detalle = e instanceof Error ? e.message : String(e);
+        await supabase.rpc("afip_marcar_delegacion", {
+          p_org: body.org_id, p_ok: false, p_detalle: detalle,
+        });
+        // Se devuelve lo que dijo ARCA, no un genérico. "El CUIT no está
+        // autorizado" y "el punto de venta no existe" mandan a lugares
+        // distintos, y confundirlos hace perder una tarde.
+        return ok({ ok: false, error: detalle });
+      }
+
+      await supabase.rpc("afip_marcar_delegacion", {
+        p_org: body.org_id, p_ok: true, p_detalle: null,
+      });
+      return ok({ ok: true, environment: isProd ? "produccion" : "homologacion" });
+    }
+
     if (body.action === "test_connection") {
       if (!body.org_id) return err("org_id required");
 
