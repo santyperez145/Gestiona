@@ -398,10 +398,33 @@ async function solicitarCAE(args: {
   const { wsfeUrl, token, sign, cuit, puntoVenta, tipoCbte, numero, invoice } = args;
 
   const fecha = invoice.issue_date.replace(/-/g, "");
-  const subtotal = round2(Number(invoice.subtotal));
-  const ivaImporte = round2(Number(invoice.tax_amount));
   const total = round2(Number(invoice.total));
-  const ivaPct = Number(invoice.tax_pct) || 0;
+
+  // ⚠️ **Un comprobante clase C no lleva IVA discriminado.** ARCA lo rechaza:
+  //
+  //   10047: El campo ImpIVA para comprobantes tipo C debe ser igual a cero
+  //   10048: ImpTotal debe ser igual a la suma de ImpNeto + ImpTrib
+  //
+  // Un monotributista o un exento emiten C, y para ARCA el total ES el neto —
+  // la descomposición "subtotal + IVA" no significa nada ahí. No se está
+  // ocultando un impuesto: se está representando lo que la clase C es.
+  //
+  // Verificado emitiendo contra homologación: con IVA la rechaza, sin IVA
+  // devuelve CAE.
+  const esClaseC = tipoCbte === 11 || tipoCbte === 12 || tipoCbte === 13;
+
+  const subtotal = esClaseC ? total : round2(Number(invoice.subtotal));
+  const ivaImporte = esClaseC ? 0 : round2(Number(invoice.tax_amount));
+  const ivaPct = esClaseC ? 0 : (Number(invoice.tax_pct) || 0);
+
+  if (esClaseC && round2(Number(invoice.tax_amount)) > 0) {
+    // No se corta la emisión —la factura es correcta igual— pero que una C
+    // traiga IVA cargado significa que algo aguas arriba lo calculó mal.
+    console.warn(
+      `Factura ${invoice.number}: es clase C y trae IVA ${invoice.tax_amount}. ` +
+      `Se emite con ImpIVA 0, que es lo que corresponde. Revisar quién lo calculó.`,
+    );
+  }
 
   // Determine IVA aliquot ID: 3=0%, 4=10.5%, 5=21%, 6=27%
   const ivaId = ivaPct === 21 ? 5 : ivaPct === 10.5 ? 4 : ivaPct === 27 ? 6 : 3;
@@ -418,6 +441,11 @@ async function solicitarCAE(args: {
     throw new Error("Factura A requiere CUIT del cliente");
   }
 
+  // ⚠️ **RG 5.616: la condición frente al IVA del receptor es obligatoria.**
+  // Sin este campo WSFE rechaza con 10246 y no autoriza nada. 5 = consumidor
+  // final, que es lo que corresponde a una venta de tienda sin datos fiscales.
+  const condicionIva = Number(invoice.condicion_iva_receptor) || 5;
+
   const ivaBlock = ivaPct > 0 ? `
     <ar:Iva>
       <ar:AlicIva>
@@ -427,7 +455,13 @@ async function solicitarCAE(args: {
       </ar:AlicIva>
     </ar:Iva>` : "";
 
+  // ⚠️ **`FeCAEReq` envuelve a los dos bloques, y faltaba.** Sin él WSFE
+  // responde «Tag <FeCAEReq> no fue ingresado» y **ninguna factura se autoriza
+  // nunca**. Estuvo así desde que se escribió la función: no se notó porque no
+  // se había emitido ni una. Lo encontró la primera emisión real contra
+  // homologación.
   const body = `
+    <ar:FeCAEReq>
     <ar:FeCabReq>
       <ar:CantReg>1</ar:CantReg>
       <ar:PtoVta>${puntoVenta}</ar:PtoVta>
@@ -449,9 +483,11 @@ async function solicitarCAE(args: {
         <ar:ImpTrib>0</ar:ImpTrib>
         <ar:MonId>PES</ar:MonId>
         <ar:MonCotiz>1</ar:MonCotiz>
+        <ar:CondicionIVAReceptorId>${condicionIva}</ar:CondicionIVAReceptorId>
         ${ivaBlock}
       </ar:FECAEDetRequest>
-    </ar:FeDetReq>`;
+    </ar:FeDetReq>
+    </ar:FeCAEReq>`;
 
   const soap = wsfeSoap("FECAESolicitar", body, { token, sign, cuit });
   const xml = await wsfeCall(wsfeUrl, soap, "FECAESolicitar");
