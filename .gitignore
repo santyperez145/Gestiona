@@ -34,3 +34,19 @@ supabase/.temp/
 test-results/
 playwright-report/
 e2e/.auth/
+
+# ── Claves y certificados ───────────────────────────────────────────────────
+#
+# ⚠️ Este repositorio es PÚBLICO. Una clave privada de AFIP commiteada acá
+# queda expuesta a cualquiera, y con ella se pueden emitir comprobantes en
+# nombre del comercio. GitHub avisa de algunas filtraciones, pero no de todas,
+# y una vez publicada hay que revocarla y volver a hacer el trámite.
+#
+# El lugar correcto para generarlas es una carpeta FUERA del repositorio.
+# Esto es la red por si alguien la genera acá sin darse cuenta.
+*.key
+*.pem
+*.crt
+*.csr
+*.p12
+*.pfx
