@@ -221,48 +221,35 @@ Si la respuesta es "no", va a **Congelado** aunque sea una buena idea.
 
 ---
 
-## 4. Estado real por módulo
+## 4. Estado por módulo
 
-Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
-**falta**.
+**Anda** = funciona en producción. **Parcial** = funciona y le falta algo
+concreto. **Sin uso** = construido y verificado, pero ninguna operación real lo
+atravesó.
 
-| Módulo | Estado | Qué le falta |
+| Módulo | Estado | Qué falta |
 |---|---|---|
-| Stock y productos | Anda | — |
-| Variantes | Anda | — |
-| POS y caja | Anda | — |
-| Ventas y reportes | Anda | — |
-| Compras y proveedores | Anda | — |
-| Clientes y CRM | Anda | — |
-| Deudas y cuotas | Anda | — |
-| Finanzas y P&L | Anda | — |
-| Tienda online | Anda | Ver §5 |
-| Cobro online (MercadoPago OAuth) | Anda | — (`marketplace_fee` ya se aplica; sólo con OAuth, no con token pegado a mano) |
-| Envíos por zona / Correo Argentino / Andreani | Parcial | **Los payloads siguen la doc publicada, sin verificar contra un contrato real.** Falta etiqueta y tracking |
-| Cuentas de comprador | Anda | — |
-| Carritos abandonados | Anda | Requiere `RESEND_API_KEY` |
-| Email marketing | Parcial | Motor y crons listos; **sin `RESEND_API_KEY` no envía nada** |
-| WhatsApp | Parcial | Requiere Evolution API configurada |
-| IA (chat, descripciones, insights, OCR) | Parcial | **Sin `ANTHROPIC_API_KEY` responde error** |
-| Permisos por módulo | Anda | Es barrera de interfaz; el límite real es la RLS |
-| MFA | Anda | — |
-| Auditoría | Anda | — |
-| Export y supresión de datos (Ley 25.326) | Anda | — |
-| MercadoLibre | Parcial | Publica desde ficha, importa órdenes `paid` al Core y recibe webhook. El cron multi-org espera su secreto; falta configurar y comprobar el circuito con una cuenta real. |
-| Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
-| **AFIP** | **Parcial** | La configuración y la prueba WSAA son reales y no simulan CAE; falta certificado de homologación y emitir una factura contra el organismo. |
-| Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| **Idempotencia** | Anda | `idempotency_keys` + envoltorio del checkout. **Falta llevarla al cobro, la captura, el reintegro, la factura y la recepción de compra** (H1 sigue abierto en esos caminos). |
-| **Eventos con outbox** | Anda, **sin uso real** | Motor, worker y 2 suscripciones activas. `domain_events` tiene **0 filas**: nunca lo atravesó una venta de verdad. |
-| **Ledger financiero** | Anda, **sin uso real** | 25 cuentas sembradas, partida doble validada por la base. `ledger_entries` tiene **0 asientos**. |
-| **Billetera del comercio** | Parcial | Saldo derivado del libro. Sin pantalla (H6) y sin movimiento real. |
-| **Suscripción del SaaS** | Parcial | Se cobra con **MercadoPago**, no con Stripe (sesión 113). Falta emitir el comprobante fiscal argentino al comercio (D1). |
-| Tests | Anda | **1076 unitarios** (`npm test`, 2026-08-19) + E2E de tienda y, con usuario de prueba, panel/POS de sólo lectura. |
+| Stock, variantes, multi-depósito | Anda | — |
+| POS y caja | Parcial | **C12**: el precio y el costo todavía vienen del navegador |
+| Ventas, compras, proveedores, CRM, deudas | Anda | — |
+| Tienda online + checkout idempotente | Anda | Ver §5 fase 4 |
+| Cobro MercadoPago (OAuth + comisión real) | Anda | — |
+| **Idempotencia** | Parcial | Sólo el checkout. Falta cobro, captura, reintegro, factura, recepción (**I6**) |
+| **Eventos con outbox** | Anda, sin uso real | 2 eventos emitidos, ninguno de una venta |
+| **Ledger de partida doble + costo de ventas** | Anda, **sin uso real** | **0 asientos**: ninguna venta lo atravesó |
+| **Billetera** | Parcial | Derivada del libro; sin movimiento real |
+| **AFIP** | Parcial | ✅ CAE en homologación. Falta emitir **por la app** y pasar a producción |
+| Suscripción del SaaS (MercadoPago) | Parcial | Nunca cobró una cuota real |
+| Envíos por zona / correo | Parcial | Payloads según doc publicada, sin contrato real |
+| MercadoLibre | Parcial | Publica e importa; falta cron multi-org |
+| IA (chat, insights, OCR) | Parcial | Real desde la sesión 115. Requiere `ANTHROPIC_API_KEY` |
+| Email / WhatsApp marketing | Parcial | Requieren `RESEND_API_KEY` / Evolution API |
+| Permisos, MFA, auditoría, RLS | Anda | — |
+| Tests | Anda | **1137** (`npm test`, 2026-08-20) + E2E de tienda |
 
-Lo que dice "requiere una clave" no está roto: está construido y esperando un
+Lo que dice "requiere una clave" no está roto: está construido esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
 
----
 
 ## 5. Paridad con Tiendanube / Empretienda
 
@@ -287,189 +274,128 @@ comercio, no declaradas) · **7 temas y tipografía elegible** · dominio propio
 
 ### El camino
 
-⚠️ **Los bloques A–G son un catálogo, no un plan.** Están agrupados por tema
-porque se fueron agregando en momentos distintos, y agrupar por tema hace que
-todo parezca igual de urgente. Al cruzarlos (sesión 112) aparecieron **cuatro
-pares que eran el mismo trabajo con dos letras** —C1/F15, D1/F16, D5/F17,
-D6/F8— y dos ítems ya hechos que seguían contando. El pendiente real es **53**.
-
-Esta sección es el plan. Los bloques quedan abajo como referencia detallada.
-
-**El criterio que ordena todo, y no es "impacto":** cada fase existe para
-**destrabar la siguiente**, y tiene una condición de salida verificable. Sin eso,
-53 ítems ordenados por impacto siguen siendo 53 ítems.
-
-**Objetivo de 90 días (2026-08-14): producto confiable y vendible.** El análisis
-lo pone así: antes de hablar de inversión o de plataforma increíble hay que
-demostrar reliability, ARCA/AFIP, MercadoLibre, POS, checkout, offline,
-seguridad, backups, observabilidad y métricas. Traducido a este ROADMAP:
-
-- Fase 0 no se saltea: **AFIP real + base legal publicada**.
-- Fase 1 no es cosmética: **onboarding + instrumentación + límites de plan**.
-- Fase 2 tiene que probar la tesis: **un stock, dos canales, margen por canal**.
-- La confiabilidad tiene que subir de nivel: **E2E de POS/panel, restore
-  probado, observabilidad de webhooks, crons, pagos y funciones**.
-- La observabilidad de **crons** ya tiene lectura protegida para staff; siguen
-  pendientes webhooks, pagos, funciones y un restore probado.
-- La IA no suma por decir "IA": suma cuando recomienda una acción y después se
-  mide si el comercio la ejecutó.
+⚠️ Los bloques A–I de abajo son el **catálogo de referencia**. Esto es el plan.
 
 ---
 
-#### 📍 Dónde estamos
+#### Dónde estamos — medido 2026-08-20
 
-✅ **Medido (2026-08-14).** El sistema funciona y cobra: dos compras reales
-acreditadas con comisión de plataforma, stock que sólo mueve la base y RLS
-verificada con roles reales. La precisión de inventario ya se instrumenta por
-organización, pero su resultado depende de que cada comercio complete el conteo
-físico. La auditoría del 2026-08-15 reabre un riesgo de circuito de plata:
-`create_sales_transaction` todavía acepta precio, costo y ganancia desde el
-cliente; C12 lo reemplaza por cálculo de servidor antes de sumar otro comercio.
+| | |
+|---|---|
+| Tablas · con `org_id` | 332 · 284 |
+| Tests | 1137 |
+| Organizaciones | 4 · **1 vende de verdad** |
+| Ventas POS · órdenes online | 34 · 6 |
+| **Motores propios** | idempotencia, eventos con outbox, ledger de partida doble, ledger de stock, billetera, rate limiting |
+| **AFIP** | ✅ **primer CAE obtenido** (homologación, CUIT 20446484436). ⚠️ Por `openssl`/`curl`, **no por el circuito de la app**: 0 comprobantes emitidos desde el sistema |
+| Cobro | MercadoPago OAuth con comisión real · suscripción del SaaS también por MP |
+| Eventos emitidos · asientos | 2 · **0** |
 
-Y hay **un** comercio usándolo, que es el dueño. Todo lo demás del ROADMAP
-mejora un producto que todavía no demostró que alguien más lo quiera (R08).
+⚠️ **El dato que ordena todo:** los motores existen y están verificados, pero
+**el ledger tiene 0 asientos**. Ninguna venta real los atravesó. Un motor que
+nunca corrió en tráfico no está probado: está escrito (R11).
 
 ---
 
-#### FASE 0 — Que se le pueda vender a alguien
-
-**Por qué primero:** no se puede dar de alta un comercio ajeno hoy. Sin factura
-no es un sistema de gestión argentino, y sin política de privacidad ni datos del
-proveedor se le estaría pidiendo que incumpla desde el día uno.
+#### FASE 0 — Vender legalmente · casi cerrada
 
 | Qué | Estado |
 |---|---|
-| **C1** AFIP contra el organismo (= F15) | 🟡 **Emite.** Sesión 114: certificado de homologación cargado y circuito completo desde el panel — **CAE 86330773876924**, Factura C 00000002, persistida y con QR. Emitir destapó cinco bugs que lo bloqueaban entero y que ninguna lectura del código había encontrado (ver bloque F). Falta **producción**: otro certificado y el punto de venta dado de alta como *Web Services*. |
-| **C15** El tipo de emisor tenía dos fuentes | 🟢 **Cerrado (sesión 114).** Apareció construyendo C14: el panel guarda en `afip_credentials` y tres cosas que deciden plata —el IVA de la orden, el checkout y la facturación automática— leían `settings.afip_tipo_emisor`, que **nadie mantenía**. Un comercio nuevo quedaba en NULL y un monotributista emitía con IVA discriminado: el mismo bug que ya costó corregir seis órdenes a mano, arreglado del lado del lector sin arreglar que el campo no se llenaba. Ahora un trigger hace de `afip_credentials` la autoridad y de `settings` un espejo derivado. |
-| **C13** Facturar solo al cobrar | 🟡 **La factura se arma sola** (sesión 114): al cobrarse una orden, un consumidor del outbox crea el comprobante completo —tipo según emisor y receptor, condición del IVA, importes según la clase, numeración—. Falta pedir el CAE automático, que es su propio problema: necesita idempotencia contra ARCA y no sólo contra la base. Antes decía: `orden.pagada` ya emite evento: el consumidor que pide el CAE es una suscripción del outbox. Sin esto, "puede facturar" no es "factura", y facturar a mano no escala ni a diez pedidos por día. |
-| **C14** AFIP delegado, sin certificado por comercio | 🟡 **Construido (sesión 114).** Un solo certificado en `/platform/afip`, tabla `afip_platform_credentials` con RLS y cero policies, y el comercio cargando sólo CUIT, razón social y domicilio. El modo `propio` convive: subir un certificado lo activa, borrarlo vuelve a delegado. ⚠️ **Falta probarlo contra ARCA** — que acepte emitir con el CUIT del delegante usando el certificado del delegado es el supuesto del modelo y no está verificado. Antes decía: cada comercio necesitaría hacer el trámite completo —openssl, CSR, WSASS, asociar alias—. Eso mata el onboarding: nadie que quiera vender perfumes va a hacerlo. El modelo correcto es **un solo certificado, en superadmin**, y que el comercio sólo cargue CUIT, razón social y domicilio, delegando `wsfe` al CUIT de la plataforma desde *Administrador de Relaciones*. `CLAUDE.md` ya lo decía y el código hace lo contrario: `afip_credentials` tiene `org_id`, certificado y clave por comercio. ⚠️ **No verificado que ARCA acepte la delegación para emitir con el CUIT del delegante** — es como funcionan los servicios de facturación que existen, pero conviene confirmarlo con un contador antes de reescribir el módulo. |
-| **C12** Autoridad de precio del POS | 🔴 `create_sales_transaction` ya ignora identidad, tenant y stock del navegador, pero aún toma precio, costo y ganancia de `p_sales`. Debe recalcular producto, variante, promoción, cupón, descuento por medio de pago e IVA en servidor; los overrides, si permanecen, necesitan rol, motivo y auditoría explícitos. |
-| **F1 + F3** Política de privacidad y datos del proveedor | 🟡 El generador ya los escribe. Falta cargar razón social, CUIT, domicilio y email, revisar y publicar. |
-| **F5** Consentimiento de marketing con fecha y origen | ✅ El checkout opt-in guarda fecha, origen y orden; campañas sólo alcanzan contactos con consentimiento verificable. |
-| **F11** Acotar la garantía a 6 meses | ✅ `trg_return_requests_warranty_window` aplica seis meses desde la entrega y no castiga una fecha de entrega ausente. |
-| **F10** El envío de vuelta lo paga el vendedor | ✅ El arrepentimiento de una orden online queda a cargo del comercio y el portal registra su costo. |
+| C1 AFIP contra el organismo | 🟡 CAE en homologación. Falta emitir **por la app** y pasar a producción |
+| C12 Autoridad de precio del POS | 🔴 `create_sales_transaction` aún toma precio y costo del navegador |
+| F1+F3 Privacidad y datos del proveedor | 🟡 Generador listo; falta cargar CUIT/domicilio y publicar |
+| F10 El flete de vuelta lo paga el vendedor | 🟠 No modelado |
 
-**Slice funcional 18 (2026-08-14):** F5 deja de ser un booleano sin evidencia.
-El checkout ofrece un consentimiento opcional y desmarcado, registra fecha,
-origen y orden incluso para invitados, lo propaga al CRM al acreditarse el pago
-y las campañas de email/WhatsApp excluyen por defecto a todo contacto sin fecha
-de consentimiento. No se infiere consentimiento de compras históricas.
-
-**Slice funcional 19 (2026-08-14):** F11 lleva la garantía legal a la base.
-`return_requests` rechaza un reclamo por falla después de seis meses desde
-`delivered_at`, sin confundirlo con el arrepentimiento de diez días. Cuando la
-tienda no registró la entrega, el plazo no vence por esa omisión. La migración
-verifica los casos vencido, vigente y sin fecha con datos `ZZ` que borra antes
-de terminar.
-
-**Slice funcional 20 (2026-08-14):** F10 deja trazabilidad del envío de vuelta.
-Un arrepentimiento de una orden online fija el costo a cargo del comercio en la
-base y el portal permite registrar importe y coordinación (etiqueta prepaga,
-reintegro o retiro). Las devoluciones manuales de mostrador no se fuerzan por
-esta regla. La migración verifica el trigger con una orden `ZZ` y no deja restos.
-
-> **Condición de salida:** se emitió **una factura electrónica real** y un
-> comercio nuevo puede darse de alta sin incumplir nada.
+**Salida:** una factura con CAE emitida desde el sistema, y alta de comercio sin incumplir nada.
 
 ---
 
-#### FASE 1 — Que alguien más lo pueda usar, y que se pueda medir
-
-**Por qué segundo:** es la fase que responde R08. Y no se puede saber si
-funcionó sin instrumentación, así que van juntas.
+#### FASE 1 — Que otro lo use, y medirlo
 
 | Qué | Estado |
 |---|---|
-| **D2** Onboarding guiado | 🟡 El alta ya encadena hacia producto, demo opt-in o panel con checklist. Falta validarlo con el segundo comercio real y reducir su tiempo hasta la primera venta. |
-| **G1–G8** Instrumentación | 🟡 G1–G8 ya tienen vistas o eventos medibles. Falta que la serie de G6 acumule días y observar uso sostenido con un segundo comercio. |
-| **D4** Límites del plan aplicados | 🟡 Productos, equipo y tickets/mes ya los impone la base en todos los canales. Falta decidir y aplicar el cupo de tiendas por plan (`D4a`), una decisión de packaging/precio. |
-| **D1** Comprobante fiscal de la suscripción (= F16) | 🟠 Depende de C1. |
+| D2 Onboarding guiado | 🔴 Lo más importante de esta fase |
+| G1–G5 Instrumentación | 🔴 Sin esto no hay condición de salida medible |
+| D4 Límites del plan | 🟠 Sólo productos |
+| R12 Primera suscripción cobrada de punta a punta | 🔴 MP configurado, nunca cobró |
 
-> **Condición de salida:** **un segundo comercio real** cargó su stock, publicó
-> su tienda y cobró — y `G1` dice cuánto tardó desde el alta hasta su primera
-> venta. Ese número es el que hay que bajar después.
+**Salida:** un segundo comercio real cargó stock, publicó y cobró.
 
 ---
 
 #### FASE 2 — Que el diferencial se vea
 
-**Por qué tercero:** recién acá conviene construir lo que distingue al producto.
-Antes sería construirlo para una sola persona.
-
 | Qué | Estado |
 |---|---|
-| **E4** ⭐ Margen real por canal | En curso: Analytics ya muestra producto × canal y declara cada pendiente; IVA por producto ya está resuelto. Falta evidencia completa del costo final de correo y de liquidaciones POS. |
-| **C7** MercadoLibre completo | Publica desde ficha, recibe órdenes por webhook e importa `paid` con el mismo stock. Webhook y cron listos; faltan configurar Callback URL/Orders y el secreto del cron. |
-| **E1** Precio único entre mostrador y online, con margen a la vista | Consecuencia natural de E4. |
-| **E2** El stock del local es el de la tienda | ✅ POS avisa y pide confirmación si una venta consume una reserva online activa. |
-| **C9** Multi-depósito real en la tienda | 🟡 Cadena técnica completa por depósito: ingreso/ajuste, transferencia, reserva, venta y devolución de variantes. Falta evidencia de uso con un segundo comercio. |
+| **E4 Margen real por canal** ⭐ | El diferencial. Los cuatro datos ya están |
+| C7 MercadoLibre completo | Publica e importa; falta cron multi-org |
+| E2 Stock del local = stock de la tienda | Casi: falta avisar al vender algo reservado |
+| C9 Multi-depósito en la tienda | Vende contra el total, no contra el depósito |
 
-> **Condición de salida:** un comercio vende por **dos canales con un solo
-> stock** y puede ver, por producto, cuál le deja más margen.
+**Salida:** vender por dos canales con un stock y ver qué canal deja más margen.
 
 ---
 
-#### FASE 3 — Que aguante más de un comercio
+#### FASE 3 — Aguantar varios comercios
 
-**Por qué cuarto:** son cosas que sólo duelen cuando hay varios. Construirlas
-antes es seguro de un incendio que todavía no puede pasar.
-
-| Qué |
-|---|
-| **D6** Entrar como el comercio, auditado y visible (= F8) |
-| **D8** Backup y restauración por organización |
-| **D5** Exportar la organización entera (= F17) — retenerla por falta de herramienta es problema legal, no comercial |
-| ~~D3~~ Anuncios a los comercios · ~~D7~~ Estado del servicio |
-| **F9** Contrato de tratamiento de datos — necesita abogado, no commit |
+D6 impersonation visible · C11 auditoría interna · D8 backup con restore probado ·
+D5 portabilidad · D3 anuncios · D7 estado del servicio · F9 contrato de datos.
 
 ---
 
 #### FASE 4 — Conversión de la tienda
 
-Todo el bloque B menos lo congelado. **Va último a propósito:** mejora la
-conversión de tiendas que todavía no existen. Con dos comercios, mover B3 acá
-arriba puede ser correcto — pero que sea una decisión, no una inercia.
-
-Los primeros serían **B3** (checkout en un paso), **B5** (avisos de "en camino"
-y "entregado", que ya tienen `shipped_at`/`delivered_at` desde la sesión 107) y
-**B13** (carrito entre dispositivos).
+Bloque B. Primeros: B3 checkout en un paso · B5 avisos de estado (ya tienen
+`shipped_at`/`delivered_at`) · B13 carrito entre dispositivos.
 
 ---
 
-#### 🧊 Congelado — no se toca
+#### Lo que sigue, en orden
 
-📌 **Criterio.** Esta lista vale tanto como el plan: el modo de falla de este
-proyecto no es quedarse corto, es agregar. Hay 84 páginas.
+1. **I6** — idempotencia en cobro, captura, reintegro, factura y recepción. Cada camino que falta es un doble cobro esperando.
+2. **C12** — autoridad de precio del POS. Es el último lugar donde el navegador decide plata.
+3. **AFIP por la app** — el CAE ya sale; falta que salga desde el circuito.
+4. **E4** — margen por canal.
+5. **I8** — moneda del costo: `cost_usd` asume dólares y no hay columna de moneda. Medido: los 59 productos son USD 7–165, así que hoy está bien; se rompe en silencio con el primero en pesos.
 
-| Qué | Por qué |
-|---|---|
-| **B6** Multi-moneda | A9 lo destrabó técnicamente. No lo pidió nadie. |
-| **B7** Reseñas con foto · **B8** Comparador · **B14** Preventa | Detalle de tienda antes de tener tiendas. |
-| **B9** Filtros por atributo | La ficha olfativa está vacía en las 30 filas: filtraría sobre nada. |
-| **C5** Push · **C6** Automatizaciones visuales · **C10** Reportes programados | Módulos nuevos sobre un producto con 84 páginas. |
-| **F7** No Llame · **F12** CFT · **F13** Procedimiento de incidente | Se activan cuando exista campaña telefónica, cuotas con interés y más de un comercio. |
-| Marketplace de apps · LATAM · contabilidad completa · B2B | Ver [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md) §8. |
+---
+
+#### Innovaciones — lo que las fundaciones habilitan
+
+Nada de esto se empieza antes de cerrar la fase 1. Está acá porque **H2 y H3 lo
+volvieron barato**, no como permiso para construirlo.
+
+| | Qué | Por qué ahora es barato |
+|---|---|---|
+| I2 | Conciliación de MercadoPago contra el libro | Con el ledger es una consulta, no un proyecto |
+| I3 | Reintegro real por MercadoPago | El libro sabe asentarlo; falta la llamada con idempotencia |
+| I4 | Notificaciones nuevas | Pasó a ser un INSERT en `event_subscriptions` |
+| I5 | Webhooks para el comercio | El outbox ya entrega con firma, reintento y descarte |
+| I7 | Trazas | Falta el paso que queda del principio 11 |
+| E1 | Precio único mostrador/online con margen a la vista | Consecuencia natural de E4 |
+
+**Business Copilot** (ESTRATEGIA §2.4): la IA sobre el grafo del negocio —qué
+comprar, qué canal deja menos margen, qué cliente se enfría— con acción posible
+y `AI Action Rate` medido. El chat ya es real desde la sesión 115.
+
+---
+
+#### 🧊 Congelado
+
+Multi-moneda · reseñas con foto · comparador · preventa · push · automatizaciones
+visuales · reportes programados · marketplace de apps · LATAM · multi-store ·
+dominios propios · theme engine · headless · search dedicado · multi-región.
+
+**Todo espera un segundo comercio, no una decisión de arquitectura.** B9 va acá
+por un motivo medible: la ficha olfativa está vacía en las 30 filas.
 
 ---
 
 #### ⛔ Bloqueado por fuera del código
 
-Ninguno lo destraba una sesión de programación. ⚠️ **C1 ya no frena la fase 0**
-—el certificado de homologación se pidió y el circuito emite—, pero producción
-sigue esperando un trámite:
-
-| Qué | Quién lo destraba |
-|---|---|
-| ~~**C1** Certificado de homologación~~ ✅ hecho | — |
-| **C1b** Certificado de AFIP de **producción** + punto de venta *Web Services* | Trámite del dueño |
-| **C14** Confirmar con un contador si ARCA acepta la delegación de `wsfe` | Un contador, 10 minutos |
-| **F1/F3** Razón social, CUIT, domicilio | El dueño, 5 minutos |
-| **B1** Tarifas de envío reales · **B2/B11/B12** Etiqueta por API, CP real, sucursales | Contrato con el correo |
-| **C2** Contar el inventario físico | 15 productos con Kardex ≠ stock |
-| **C3** Pesar una caja real · **C4** 10 fotos y 33 descripciones | El dueño |
-| **F9** Contrato de datos · **F14** Ley 25.065 | Un abogado |
-
----
+Certificado AFIP de **producción** · tarifas de envío reales y contrato con el
+correo (B1, B2, B11, B12) · conteo físico de inventario (C2) · pesar una caja
+(C3) · 10 fotos y 33 descripciones (C4) · abogado para F9 y F14.
 
 ### Los bloques, en detalle
 
