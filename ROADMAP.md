@@ -290,6 +290,8 @@ comercio, no declaradas) · **7 temas y tipografía elegible** · dominio propio
 | **AFIP** | ✅ **primer CAE obtenido** (homologación, CUIT 20446484436). ⚠️ Por `openssl`/`curl`, **no por el circuito de la app**: 0 comprobantes emitidos desde el sistema |
 | Cobro | MercadoPago OAuth con comisión real · suscripción del SaaS también por MP |
 | Eventos emitidos · asientos | 2 · **0** |
+| Facturas · con CAE | **0 · 0** — la de la sesión 114 se emitió y después se borró desde el panel |
+| **Ventas cobradas sin comprobante** | **2** (medido 2026-08-21). Desde C16 el panel de Facturas lo dice y ofrece generarlos |
 
 ⚠️ **El dato que ordena todo:** los motores existen y están verificados, pero
 **el ledger tiene 0 asientos**. Ninguna venta real los atravesó. Un motor que
@@ -302,6 +304,7 @@ nunca corrió en tráfico no está probado: está escrito (R11).
 | Qué | Estado |
 |---|---|
 | C1 AFIP contra el organismo | 🟡 CAE en homologación. Falta emitir **por la app** y pasar a producción |
+| ~~C16~~ Las cobradas sin comprobante, visibles | ✅ Sesión 117. `ordenes_sin_facturar` existía desde C13 y **no la leía ninguna pantalla**; ahora Facturas muestra cuántas son y por cuánto, y las genera en una pasada. Una orden que falla no aborta el resto y vuelve con el motivo |
 | ~~C12~~ Autoridad de precio del POS | ✅ Sesión 116. El costo y la ganancia los calcula el servidor; el precio admite override registrado |
 | F1+F3 Privacidad y datos del proveedor | 🟡 Generador listo; falta cargar CUIT/domicilio y publicar |
 | F10 El flete de vuelta lo paga el vendedor | 🟠 No modelado |

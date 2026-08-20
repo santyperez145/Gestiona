@@ -19,9 +19,13 @@ import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
   Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText, Mail,
   ShieldCheck, ShieldAlert, Loader2, QrCode, Search, FileMinus,
-  Square, CheckSquare, CheckCheck, RotateCcw, Package, Copy,
+  Square, CheckSquare, CheckCheck, RotateCcw, Package, Copy, AlertTriangle,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+
+/** El formato de plata de esta pantalla, en un solo lugar. */
+const fmtARS = (n: number) =>
+  new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -447,6 +451,58 @@ export default function InvoicesPage() {
     }
   };
 
+  /**
+   * C16 — ventas cobradas que quedaron sin comprobante.
+   *
+   * `ordenes_sin_facturar` existía desde C13 y no la leía ninguna pantalla.
+   * Una salvaguarda que nadie consulta es un comentario: medido hoy contra
+   * producción había 2 órdenes pagadas y 0 facturas, y nada lo decía.
+   */
+  const [pendientes, setPendientes] = useState<{ cantidad: number; monto: number } | null>(null);
+  const [facturandoPend, setFacturandoPend] = useState(false);
+
+  const cargarPendientes = useCallback(async () => {
+    if (!activeOrg) return;
+    const { data, error } = await supabase.rpc("resumen_sin_facturar", { p_org: activeOrg.id });
+    // ⚠️ No se traga: "no pude leer" y "no hay pendientes" se ven igual en
+    // pantalla y son problemas opuestos.
+    if (error) {
+      console.error("resumen_sin_facturar:", error.message);
+      return;
+    }
+    const d = data as { cantidad: number; monto: number } | null;
+    setPendientes(d && Number(d.cantidad) > 0
+      ? { cantidad: Number(d.cantidad), monto: Number(d.monto) }
+      : null);
+  }, [activeOrg]);
+
+  const facturarPendientes = async () => {
+    if (!activeOrg || !pendientes) return;
+    setFacturandoPend(true);
+    const { data, error } = await supabase.rpc("facturar_pendientes", {
+      p_org: activeOrg.id, p_limite: 500,
+    });
+    setFacturandoPend(false);
+
+    if (error) { toast.error(error.message.replace(/^.*?:\s*/, "")); return; }
+
+    const res = data as { creadas: number; fallas: { orden: string; error: string }[] } | null;
+    const creadas = Number(res?.creadas ?? 0);
+    const fallas = res?.fallas ?? [];
+
+    if (creadas > 0) {
+      toast.success(`${creadas} comprobante${creadas > 1 ? "s" : ""} generado${creadas > 1 ? "s" : ""}. Falta autorizarlos en AFIP.`);
+    }
+    // Las fallas se muestran con el número de orden: un contador sin el motivo
+    // obliga a mirar logs que el dueño no tiene.
+    for (const f of fallas.slice(0, 3)) {
+      toast.error(`Orden ${f.orden}: ${f.error}`);
+    }
+    if (fallas.length > 3) toast.error(`y ${fallas.length - 3} más`);
+
+    await Promise.all([load(), cargarPendientes()]);
+  };
+
   const load = useCallback(async () => {
     if (!activeOrg) return;
     setLoading(true);
@@ -460,6 +516,7 @@ export default function InvoicesPage() {
   }, [activeOrg]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { cargarPendientes(); }, [cargarPendientes]);
 
   const recalcItems = (newItems: InvoiceItem[]) =>
     newItems.map((it) => ({ ...it, total: it.quantity * it.unit_price }));
@@ -689,6 +746,29 @@ export default function InvoicesPage() {
           ) : undefined
         }
       />
+
+      {/* ── C16: plata cobrada sin comprobante ─────────────────────────
+          Va antes del aviso de AFIP a propósito: que falte configurar AFIP es
+          una tarea pendiente; que haya ventas cobradas sin factura es un
+          problema fiscal que ya está ocurriendo. */}
+      {pendientes && canManage && (
+        <div className="p-3 rounded-[8px] border border-amber-500/25 bg-amber-500/5 flex flex-wrap items-center gap-3 text-sm">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+          <span className="text-amber-200 flex-1 min-w-[16rem]">
+            <strong>{pendientes.cantidad}</strong>{" "}
+            {pendientes.cantidad === 1 ? "venta cobrada" : "ventas cobradas"} por{" "}
+            <strong>{fmtARS(pendientes.monto)}</strong>{" "}
+            {pendientes.cantidad === 1 ? "no tiene" : "no tienen"} comprobante.
+          </span>
+          <Button
+            size="sm" variant="outline" onClick={facturarPendientes} disabled={facturandoPend}
+          >
+            {facturandoPend
+              ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Generando…</>
+              : "Generar comprobantes"}
+          </Button>
+        </div>
+      )}
 
       {/* AFIP not configured warning */}
       {!afipConfigured && canManage && (

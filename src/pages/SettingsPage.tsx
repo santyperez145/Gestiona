@@ -2462,15 +2462,21 @@ function AfipSection() {
         </div>
       </div>
 
-      {/* ── C14: en modo delegado no se sube ninguna clave ─────────────── */}
+      {/* ── C14: en modo delegado no se sube ninguna clave ───────────────
+          El trámite lo explica y lo verifica `ConectarAfip` en /afip, que dice
+          a qué CUIT delegar y le pregunta a ARCA si quedó hecho. Acá sólo queda
+          el desvío hacia el certificado propio, que es lo único de esta
+          pantalla: los campos del PEM viven abajo. */}
       {modo === "delegado" && (
         <div className="rounded-[8px] border border-border/60 bg-muted/40 p-3 space-y-2">
           <p className="text-xs font-medium">Facturás con el certificado de la plataforma</p>
           <p className="text-[11px] text-muted-foreground">
-            No tenés que generar ninguna clave. Entrá a AFIP con tu clave fiscal,
-            andá a <strong>Administrador de Relaciones</strong> y delegá el servicio{" "}
-            <strong>Facturación Electrónica (wsfe)</strong> al CUIT de la plataforma.
-            Los comprobantes se emiten con <strong>tu</strong> CUIT.
+            No tenés que generar ninguna clave.{" "}
+            <Link to="/afip" className="underline underline-offset-2">
+              Conectá AFIP desde acá
+            </Link>{" "}
+            — te dice a qué CUIT delegar el servicio y verifica contra ARCA que
+            haya quedado hecho.
           </p>
           {!plataformaLista && (
             <p className="text-[11px] text-destructive">

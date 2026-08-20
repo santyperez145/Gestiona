@@ -29971,6 +29971,10 @@ export type Database = {
       expire_overdue_trials: { Args: never; Returns: undefined }
       expire_stock_reservations: { Args: { p_org_id: string }; Returns: number }
       facturar_orden_pagada: { Args: { p_evento: Json }; Returns: string }
+      facturar_pendientes: {
+        Args: { p_limite?: number; p_org: string }
+        Returns: Json
+      }
       generate_claim_number: { Args: { p_org_id: string }; Returns: string }
       generate_download_token: { Args: never; Returns: string }
       generate_dropship_number: { Args: { p_org_id: string }; Returns: string }
@@ -30927,6 +30931,7 @@ export type Database = {
         }
         Returns: Json
       }
+      resumen_sin_facturar: { Args: { p_org: string }; Returns: Json }
       return_store_order_item: {
         Args: {
           p_notes?: string
