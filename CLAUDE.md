@@ -590,7 +590,13 @@ Pendientes conocidos al 2026-07-31:
 - **Diez productos publicados sin foto** y 33 con descripción de menos de 80
   caracteres. Están en el ranking de Productos → Calidad de las publicaciones,
   que ordena por impacto y no por cantidad.
-- **Un certificado de AFIP de homologación** para verificar el ciclo de
+- ~~Un certificado de AFIP de homologación~~ **hecho (sesión 114).** Cargado y
+  verificado de punta a punta: CAE 86330773876924, Factura C 00000002 emitida
+  desde el panel. Lo que sigue esperando al dueño es el certificado de
+  **producción** y el alta del punto de venta como *Web Services*, que en
+  homologación no hace falta.
+
+- ~~Certificado de homologación~~ para verificar el ciclo de
   facturación. Es gratis y no emite comprobantes reales.
 - **Contrato con Correo Argentino o Andreani** para la etiqueta por API.
 - ⚠️ **Hay que contar el inventario físico y corregir el stock.** Durante meses
@@ -628,7 +634,8 @@ Pendientes conocidos al 2026-07-31:
   contrato real**: los payloads siguen la documentación publicada.
 - **AFIP: falta probarlo contra el organismo.** La estructura está y las
   credenciales ya no se pueden leer desde el cliente (`afip_credentials`, RLS
-  con cero policies), pero no hay certificado cargado ni factura emitida.
+  con cero policies), y **ya emitió**: CAE 86330773876924 en homologación.
+  Falta producción.
 - **Etiqueta de envío: la imprimible ya está**, con seguimiento que el comprador
   ve con número de orden + email, sin cuenta. Lo que falta es pedirle la
   etiqueta por API al correo, y eso necesita contrato.
@@ -658,7 +665,8 @@ Lo que la tienda todavía no tiene, en orden de impacto:
    funciona. `Completar el tarifario` las genera estimadas por distancia;
    falta contrastarlas con la tarifa real del correo.
 2. **AFIP probado contra el organismo.** La estructura está y las credenciales
-   ya no se pueden leer desde el cliente, pero no hay certificado cargado ni
+   ya no se pueden leer desde el cliente, y el circuito **ya emitió** en
+   homologación. Falta el certificado de producción y
    factura emitida.
 3. **Etiqueta por API del correo.** La imprimible ya funciona; la de Correo
    Argentino y Andreani necesita un contrato para poder verificar el payload.

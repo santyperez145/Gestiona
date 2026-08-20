@@ -5,7 +5,7 @@ normativa argentina aplicable, para que un abogado o un contador lo valide. Cada
 punto dice **qué exige la norma**, **qué hay hoy en el código** y **qué falta**,
 con el estado medido contra la base cuando se pudo.
 
-Última revisión: 2026-08-11.
+Última revisión: 2026-08-20 (AFIP emite en homologación).
 
 ---
 
@@ -99,8 +99,8 @@ con el estado medido contra la base cuando se pudo.
 
 | Requisito | Estado |
 |---|---|
-| **Factura electrónica por cada venta** (RG 4291) | 🔴 La estructura está y las credenciales ya no se leen desde el cliente, pero **no hay certificado cargado ni una sola factura emitida**. Vender sin facturar es el riesgo fiscal más grande del sistema hoy. |
-| **IVA discriminado según condición del comprador** | 🟠 La tasa ya puede variar por producto (A8). Sigue faltando modelar y validar la condición frente al IVA del comprador al emitir el comprobante. |
+| **Factura electrónica por cada venta** (RG 4291) | 🟡 **El circuito emite.** Sesión 114: certificado de homologación cargado y CAE obtenido de punta a punta desde el panel — **CAE 86330773876924**, Factura C 00000002. Emitir destapó tres bugs que lo bloqueaban por completo y que ninguna lectura del código había encontrado: faltaba el envoltorio `<FeCAEReq>`, faltaba `CondicionIVAReceptorId` (RG 5.616) y una Factura C no puede llevar IVA discriminado. **Falta producción**, que necesita otro certificado y el punto de venta dado de alta como *Web Services*. |
+| **IVA discriminado según condición del comprador** | ✅ La tasa varía por producto (A8) y la condición del receptor se modeló con los códigos de ARCA. Desde la **RG 5.616** ese campo es obligatorio en el comprobante: sin él WSFE rechaza con error 10246, y se descubrió emitiendo. Va en `invoices.condicion_iva_receptor`, default 5 (consumidor final). |
 | **Libro IVA Ventas** | 🟠 Existe `/impuestos` y el libro mayor; no está atado a los comprobantes electrónicos porque todavía no hay. |
 | **Conservación de comprobantes** | 🟠 Las órdenes se guardan, los comprobantes no existen. |
 
