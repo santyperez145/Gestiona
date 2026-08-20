@@ -339,7 +339,9 @@ proveedor se le estaría pidiendo que incumpla desde el día uno.
 
 | Qué | Estado |
 |---|---|
-| **C1** AFIP contra el organismo (= F15) | 🔴 El más importante y el más largo. La configuración ya queda atada a la organización activa, la prueba pide un Ticket de Acceso WSAA real y la UI no inventa CAE; sigue frenado por un certificado de homologación **que es gratis y hay que pedir**, más una primera factura de prueba. |
+| **C1** AFIP contra el organismo (= F15) | 🟡 **Emite.** Sesión 114: certificado de homologación cargado y circuito completo desde el panel — **CAE 86330773876924**, Factura C 00000002, persistida y con QR. Emitir destapó cinco bugs que lo bloqueaban entero y que ninguna lectura del código había encontrado (ver bloque F). Falta **producción**: otro certificado y el punto de venta dado de alta como *Web Services*. |
+| **C13** Facturar solo al cobrar | 🟡 **La factura se arma sola** (sesión 114): al cobrarse una orden, un consumidor del outbox crea el comprobante completo —tipo según emisor y receptor, condición del IVA, importes según la clase, numeración—. Falta pedir el CAE automático, que es su propio problema: necesita idempotencia contra ARCA y no sólo contra la base. Antes decía: `orden.pagada` ya emite evento: el consumidor que pide el CAE es una suscripción del outbox. Sin esto, "puede facturar" no es "factura", y facturar a mano no escala ni a diez pedidos por día. |
+| **C14** AFIP delegado, sin certificado por comercio | 🔴 Hoy cada comercio necesitaría hacer el trámite completo —openssl, CSR, WSASS, asociar alias—. Eso mata el onboarding: nadie que quiera vender perfumes va a hacerlo. El modelo correcto es **un solo certificado, en superadmin**, y que el comercio sólo cargue CUIT, razón social y domicilio, delegando `wsfe` al CUIT de la plataforma desde *Administrador de Relaciones*. `CLAUDE.md` ya lo decía y el código hace lo contrario: `afip_credentials` tiene `org_id`, certificado y clave por comercio. ⚠️ **No verificado que ARCA acepte la delegación para emitir con el CUIT del delegante** — es como funcionan los servicios de facturación que existen, pero conviene confirmarlo con un contador antes de reescribir el módulo. |
 | **C12** Autoridad de precio del POS | 🔴 `create_sales_transaction` ya ignora identidad, tenant y stock del navegador, pero aún toma precio, costo y ganancia de `p_sales`. Debe recalcular producto, variante, promoción, cupón, descuento por medio de pago e IVA en servidor; los overrides, si permanecen, necesitan rol, motivo y auditoría explícitos. |
 | **F1 + F3** Política de privacidad y datos del proveedor | 🟡 El generador ya los escribe. Falta cargar razón social, CUIT, domicilio y email, revisar y publicar. |
 | **F5** Consentimiento de marketing con fecha y origen | ✅ El checkout opt-in guarda fecha, origen y orden; campañas sólo alcanzan contactos con consentimiento verificable. |
@@ -451,12 +453,15 @@ proyecto no es quedarse corto, es agregar. Hay 84 páginas.
 
 #### ⛔ Bloqueado por fuera del código
 
-Ninguno lo destraba una sesión de programación. **Conviene destrabar los de
-arriba primero**, porque C1 frena la fase 0 entera:
+Ninguno lo destraba una sesión de programación. ⚠️ **C1 ya no frena la fase 0**
+—el certificado de homologación se pidió y el circuito emite—, pero producción
+sigue esperando un trámite:
 
 | Qué | Quién lo destraba |
 |---|---|
-| **C1** Certificado de homologación de AFIP | Trámite, gratis |
+| ~~**C1** Certificado de homologación~~ ✅ hecho | — |
+| **C1b** Certificado de AFIP de **producción** + punto de venta *Web Services* | Trámite del dueño |
+| **C14** Confirmar con un contador si ARCA acepta la delegación de `wsfe` | Un contador, 10 minutos |
 | **F1/F3** Razón social, CUIT, domicilio | El dueño, 5 minutos |
 | **B1** Tarifas de envío reales · **B2/B11/B12** Etiqueta por API, CP real, sucursales | Contrato con el correo |
 | **C2** Contar el inventario físico | 15 productos con Kardex ≠ stock |

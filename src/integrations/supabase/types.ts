@@ -3873,6 +3873,13 @@ export type Database = {
             foreignKeyName: "coupon_usages_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "ordenes_sin_facturar"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "ordenes_sin_iva"
             referencedColumns: ["id"]
           },
@@ -6184,6 +6191,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ecommerce_orders"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliveries_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_facturar"
+            referencedColumns: ["order_id"]
           },
           {
             foreignKeyName: "deliveries_ecommerce_order_id_fkey"
@@ -10650,6 +10664,7 @@ export type Database = {
           customer_name: string
           customer_tax_id: string | null
           due_date: string | null
+          ecommerce_order_id: string | null
           id: string
           issue_date: string
           notes: string | null
@@ -10681,6 +10696,7 @@ export type Database = {
           customer_name: string
           customer_tax_id?: string | null
           due_date?: string | null
+          ecommerce_order_id?: string | null
           id?: string
           issue_date?: string
           notes?: string | null
@@ -10712,6 +10728,7 @@ export type Database = {
           customer_name?: string
           customer_tax_id?: string | null
           due_date?: string | null
+          ecommerce_order_id?: string | null
           id?: string
           issue_date?: string
           notes?: string | null
@@ -10729,6 +10746,27 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_facturar"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "invoices_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_iva"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_org_id_fkey"
             columns: ["org_id"]
@@ -14423,6 +14461,13 @@ export type Database = {
             foreignKeyName: "payment_intents_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "ordenes_sin_facturar"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "payment_intents_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "ordenes_sin_iva"
             referencedColumns: ["id"]
           },
@@ -17080,6 +17125,13 @@ export type Database = {
             foreignKeyName: "product_reviews_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "ordenes_sin_facturar"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "product_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "ordenes_sin_iva"
             referencedColumns: ["id"]
           },
@@ -19714,6 +19766,13 @@ export type Database = {
             foreignKeyName: "return_requests_ecommerce_order_id_fkey"
             columns: ["ecommerce_order_id"]
             isOneToOne: false
+            referencedRelation: "ordenes_sin_facturar"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "return_requests_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
             referencedRelation: "ordenes_sin_iva"
             referencedColumns: ["id"]
           },
@@ -19887,6 +19946,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ecommerce_orders"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_facturar"
+            referencedColumns: ["order_id"]
           },
           {
             foreignKeyName: "returns_ecommerce_order_id_fkey"
@@ -20382,6 +20448,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ecommerce_orders"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_facturar"
+            referencedColumns: ["order_id"]
           },
           {
             foreignKeyName: "sales_ecommerce_order_id_fkey"
@@ -22921,6 +22994,13 @@ export type Database = {
             foreignKeyName: "stock_reservations_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "ordenes_sin_facturar"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "ordenes_sin_iva"
             referencedColumns: ["id"]
           },
@@ -23479,6 +23559,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ecommerce_orders"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_order_status_email_log_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_facturar"
+            referencedColumns: ["order_id"]
           },
           {
             foreignKeyName: "store_order_status_email_log_ecommerce_order_id_fkey"
@@ -27676,6 +27763,79 @@ export type Database = {
           },
         ]
       }
+      ordenes_sin_facturar: {
+        Row: {
+          created_at: string | null
+          customer_name: string | null
+          dias: number | null
+          order_id: string | null
+          order_number: string | null
+          org_id: string | null
+          total: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_name?: string | null
+          dias?: never
+          order_id?: string | null
+          order_number?: string | null
+          org_id?: string | null
+          total?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_name?: string | null
+          dias?: never
+          order_id?: string | null
+          order_number?: string | null
+          org_id?: string | null
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       ordenes_sin_iva: {
         Row: {
           created_at: string | null
@@ -29152,6 +29312,13 @@ export type Database = {
             foreignKeyName: "sales_ecommerce_order_id_fkey"
             columns: ["ecommerce_order_id"]
             isOneToOne: false
+            referencedRelation: "ordenes_sin_facturar"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "sales_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
             referencedRelation: "ordenes_sin_iva"
             referencedColumns: ["id"]
           },
@@ -29696,6 +29863,7 @@ export type Database = {
       expire_overdue_contracts: { Args: never; Returns: number }
       expire_overdue_trials: { Args: never; Returns: undefined }
       expire_stock_reservations: { Args: { p_org_id: string }; Returns: number }
+      facturar_orden_pagada: { Args: { p_evento: Json }; Returns: string }
       generate_claim_number: { Args: { p_org_id: string }; Returns: string }
       generate_download_token: { Args: never; Returns: string }
       generate_dropship_number: { Args: { p_org_id: string }; Returns: string }
@@ -30754,6 +30922,7 @@ export type Database = {
         Args: { p_carrier: string; p_order_id: string; p_tracking: string }
         Returns: Json
       }
+      siguiente_numero_factura: { Args: { p_org: string }; Returns: string }
       stock_disponible: {
         Args: {
           p_location_id?: string
