@@ -20638,6 +20638,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sales_sale_transaction_id_fkey"
+            columns: ["sale_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "ventas_sin_asentar"
+            referencedColumns: ["transaction_id"]
+          },
+          {
             foreignKeyName: "sales_variant_id_fkey"
             columns: ["variant_id"]
             isOneToOne: false
@@ -29646,6 +29653,76 @@ export type Database = {
           },
         ]
       }
+      ventas_sin_asentar: {
+        Row: {
+          occurred_at: string | null
+          org_id: string | null
+          renglones: number | null
+          source: string | null
+          total: number | null
+          transaction_id: string | null
+        }
+        Insert: {
+          occurred_at?: string | null
+          org_id?: string | null
+          renglones?: never
+          source?: string | null
+          total?: never
+          transaction_id?: string | null
+        }
+        Update: {
+          occurred_at?: string | null
+          org_id?: string | null
+          renglones?: never
+          source?: string | null
+          total?: never
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       wallet_auditoria: {
         Row: {
           diferencia: number | null
@@ -29927,6 +30004,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cuenta_de_cobro: { Args: { p_metodo: string }; Returns: string }
       cuit_valido: { Args: { p_cuit: string }; Returns: boolean }
       decimales_de_moneda: { Args: { p_moneda: string }; Returns: number }
       desglosar_iva: {
@@ -30520,6 +30598,7 @@ export type Database = {
         Returns: string
       }
       ledger_asentar_orden_pagada: { Args: { p_evento: Json }; Returns: string }
+      ledger_asentar_venta_pos: { Args: { p_evento: Json }; Returns: string }
       ledger_contraasentar: {
         Args: { p_entry_id: string; p_motivo?: string }
         Returns: string

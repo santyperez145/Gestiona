@@ -290,6 +290,7 @@ comercio, no declaradas) · **7 temas y tipografía elegible** · dominio propio
 | **AFIP** | ✅ **primer CAE obtenido** (homologación, CUIT 20446484436). ⚠️ Por `openssl`/`curl`, **no por el circuito de la app**: 0 comprobantes emitidos desde el sistema |
 | Cobro | MercadoPago OAuth con comisión real · suscripción del SaaS también por MP |
 | Eventos emitidos · asientos | 2 · **0** |
+| **Ledger conectado a** | órdenes online **y, desde H8, mostrador**. Antes el libro no sabía del canal con el 85% de las ventas |
 | Facturas · con CAE | **0 · 0** — la de la sesión 114 se emitió y después se borró desde el panel |
 | **Ventas cobradas sin comprobante** | **2** (medido 2026-08-21). Desde C16 el panel de Facturas lo dice y ofrece generarlos |
 
@@ -307,7 +308,7 @@ nunca corrió en tráfico no está probado: está escrito (R11).
 | ~~C16~~ Las cobradas sin comprobante, visibles | ✅ Sesión 117. `ordenes_sin_facturar` existía desde C13 y **no la leía ninguna pantalla**; ahora Facturas muestra cuántas son y por cuánto, y las genera en una pasada. Una orden que falla no aborta el resto y vuelve con el motivo |
 | ~~C12~~ Autoridad de precio del POS | ✅ Sesión 116. El costo y la ganancia los calcula el servidor; el precio admite override registrado |
 | F1+F3 Privacidad y datos del proveedor | 🟡 Generador listo; falta cargar CUIT/domicilio y publicar |
-| F10 El flete de vuelta lo paga el vendedor | 🟠 No modelado |
+| ~~F10~~ El flete de vuelta lo paga el vendedor | ✅ Ya estaba. Medido 2026-08-21: `return_requests` tiene `return_shipping_payer/amount/method/notes` y el trigger `trg_return_requests_return_shipping`. Esta línea decía "no modelado" mientras el bloque F lo daba por hecho |
 
 **Salida:** una factura con CAE emitida desde el sistema, y alta de comercio sin incumplir nada.
 
@@ -321,6 +322,7 @@ nunca corrió en tráfico no está probado: está escrito (R11).
 | G1–G5 Instrumentación | 🔴 Sin esto no hay condición de salida medible |
 | D4 Límites del plan | 🟠 Sólo productos |
 | R12 Primera suscripción cobrada de punta a punta | 🔴 MP configurado, nunca cobró |
+| ~~H8~~ El mostrador entra al libro | ✅ Sesión 117. `venta.registrada` por ticket → asiento con caja/banco/deudores, IVA según quién emite y costo de la mercadería. Fiado va a Deudores, no a Caja. Verificado con 18 pasos incluyendo cobro dividido |
 
 **Salida:** un segundo comercio real cargó stock, publicó y cobró.
 
