@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -482,21 +482,40 @@ function ReceiveDialog({ order, open, onOpenChange, onDone }: {
       });
   }, [open, order.org_id]);
 
+  // Al cerrar, la próxima entrega de esta misma orden es una entrega nueva y
+  // legítima: necesita su propia clave.
+  useEffect(() => { if (!open) claveIdem.current = null; }, [open]);
+
   const aRecibir = items
     .map(i => ({ item_id: i.id, quantity: Number(cantidades[i.id] ?? 0) }))
     .filter(x => x.quantity > 0);
 
   const excedido = items.some(i => Number(cantidades[i.id] ?? 0) > pendienteDe(i));
 
+  /**
+   * I6a — clave de idempotencia de este intento de recepción.
+   *
+   * Va en un ref: no tiene que provocar re-render y tiene que sobrevivir a los
+   * reintentos del mismo submit. Se limpia al cerrar el diálogo, así que una
+   * segunda entrega de la misma orden —que es legítima— usa una clave nueva.
+   *
+   * Sin esto, una recepción PARCIAL repetida sumaba la mercadería dos veces:
+   * verificado contra producción, recibir 4 dos veces dejaba 8.
+   */
+  const claveIdem = useRef<string | null>(null);
+
   const confirmar = async () => {
     setGuardando(true);
+    if (!claveIdem.current) claveIdem.current = crypto.randomUUID();
     try {
-      const { data, error } = await supabase.rpc("receive_purchase_order", {
+      const { data, error } = await supabase.rpc(
+        "receive_purchase_order_idem" as never, {
         p_order_id: order.id,
         p_items: aRecibir,
         p_notes: notas.trim() || null,
         p_location_id: sucursalId || null,
-      });
+        p_idempotency_key: claveIdem.current,
+      } as never);
       if (error) throw error;
       const res = data as { status?: string; pendientes?: number } | null;
       toast.success(

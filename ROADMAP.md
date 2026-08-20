@@ -352,7 +352,7 @@ Bloque B. Primeros: B3 checkout en un paso · B5 avisos de estado (ya tienen
 
 #### Lo que sigue, en orden
 
-1. **I6** — idempotencia en cobro, captura, reintegro, factura y recepción. Cada camino que falta es un doble cobro esperando.
+1. ~~**I6**~~ — ✅ **Sesión 116, auditado camino por camino.** Se midió cuál faltaba en vez de envolver los cuatro: `mark_store_order_paid`, `return_store_order_item` y `facturar_orden_pagada` ya se protegen solas. **La recepción parcial de compra no**: verificado contra producción, recibir 4 de 10 dos veces dejaba **8**. Cerrado con `receive_purchase_order_idem`.
 2. **C12** — autoridad de precio del POS. Es el último lugar donde el navegador decide plata.
 3. **AFIP por la app** — el CAE ya sale; falta que salga desde el circuito.
 4. **K1** — `product_types` + `attribute_definitions`. Define si el catálogo puede modelar otro rubro; sin esto "cualquier ecommerce" no es cierto.

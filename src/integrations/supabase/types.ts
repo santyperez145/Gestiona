@@ -30751,6 +30751,16 @@ export type Database = {
         }
         Returns: Json
       }
+      receive_purchase_order_idem: {
+        Args: {
+          p_idempotency_key?: string
+          p_items: Json
+          p_location_id?: string
+          p_notes?: string
+          p_order_id: string
+        }
+        Returns: Json
+      }
       record_debt_payment_cash_entry: {
         Args: {
           p_amount_ars: number
