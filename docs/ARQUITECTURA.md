@@ -223,6 +223,20 @@ Reglas concretas y verificables:
 | Abstracción de proveedor de pago | Ya hay dos; un tercero sin abstracción duele |
 | No cruzar límites de dominio en código nuevo | Cuesta cero |
 
+### Commerce Kernel — auditado 2026-08-20
+
+✅ **Está:** variantes, listas de precio, promociones declarativas, motor de
+reservas, devoluciones, CMS, temas, API keys, webhooks, los dos ledgers,
+idempotencia y eventos.
+
+❌ **Falta, en orden de palanca:** `product_types` + `attribute_definitions`
+(K1, el bloqueo real de "cualquier rubro") · carrito del lado del servidor (K2)
+· `domains` (K3) · `markets` (K4) · máquinas de estado explícitas (K5) ·
+feature flags (K6) · `SearchProvider` como interfaz (K7).
+
+📌 **El núcleo no conoce el rubro.** Nada de `if (categoria === 'perfume')`. Los
+verticales aportan atributos, defaults y presets — nunca ramas en el motor.
+
 ### Espera evidencia
 
 | Qué | Qué lo destraba |

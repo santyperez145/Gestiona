@@ -355,8 +355,48 @@ Bloque B. Primeros: B3 checkout en un paso · B5 avisos de estado (ya tienen
 1. **I6** — idempotencia en cobro, captura, reintegro, factura y recepción. Cada camino que falta es un doble cobro esperando.
 2. **C12** — autoridad de precio del POS. Es el último lugar donde el navegador decide plata.
 3. **AFIP por la app** — el CAE ya sale; falta que salga desde el circuito.
-4. **E4** — margen por canal.
-5. **I8** — moneda del costo: `cost_usd` asume dólares y no hay columna de moneda. Medido: los 59 productos son USD 7–165, así que hoy está bien; se rompe en silencio con el primero en pesos.
+4. **K1** — `product_types` + `attribute_definitions`. Define si el catálogo puede modelar otro rubro; sin esto "cualquier ecommerce" no es cierto.
+5. **E4** — margen por canal.
+6. **K2** — carrito del lado del servidor.
+7. **I8** — moneda del costo: `cost_usd` asume dólares y no hay columna de moneda. Medido: los 59 productos son USD 7–165, así que hoy está bien; se rompe en silencio con el primero en pesos.
+
+📌 **Los primeros tres cierran el circuito de plata. K1 abre el producto a otros
+rubros.** Ese es el orden: primero que lo que hay no pierda plata, después que
+sirva para otro negocio.
+
+---
+
+#### Commerce Kernel — medido contra la arquitectura de destino
+
+✅ **Auditado el 2026-08-20** contra la visión de `docs/ARQUITECTURA.md`: el
+storefront no puede ser una feature, tiene que ser un motor al nivel del ERP.
+
+**Ya está** — variantes con precio y stock propios · listas de precio (2 tablas) ·
+promociones declarativas con condiciones y efectos · **motor de reservas** ·
+devoluciones con RMA · CMS de páginas · temas (7) · API keys · webhooks (3) ·
+ledger de stock · ledger financiero · idempotencia · eventos con outbox.
+
+**Falta, y en este orden:**
+
+| # | Pieza | Por qué bloquea |
+|---|---|---|
+| **K1** | **`product_types` + `attribute_definitions`** | ⛔ **El bloqueo real de "cualquier rubro".** Hoy la categoría es un string y hay 3 en uso. Una ferretería necesita diámetro/largo/rosca; una gomería ancho/perfil/rodado. Sin motor de atributos, cada rubro nuevo es una columna — que es exactamente lo que no escala. **Es la pieza de mayor palanca de todo el Commerce Kernel.** |
+| **K2** | **Carrito del lado del servidor** | Vive en `localStorage` por slug. Sin esto no hay carrito entre dispositivos (B13), ni carrito armado por un vendedor, ni de WhatsApp al checkout. |
+| **K3** | **`domains`** — dominio propio por tienda | Tiendanube lo tiene. Necesita verificación DNS, SSL automático, redirects y resolución por hostname. **No hardcodear Vercel**: va detrás de una abstracción de proveedor. |
+| **K4** | **`markets`** — país, moneda, idioma, impuestos | Hoy Argentina está en el núcleo. La fiscalidad debería salir a un *country pack* antes de que haya un segundo país. |
+| **K5** | **Máquinas de estado explícitas** en orden, pago y fulfillment | Hoy son campos de texto. `order.status = input` en vez de `confirmar()` es de donde salen los estados imposibles. |
+| **K6** | **Feature flags** | Sin esto, toda feature grande sale para todos a la vez. |
+| **K7** | **`SearchProvider` como interfaz** | La búsqueda difusa (B10) es buena y vive en el cliente. Cuando el catálogo crezca hay que poder cambiar el motor sin tocar la tienda. |
+
+⚠️ **K1 y K2 son las únicas dos que valen antes de un segundo comercio.** K1
+porque define si el catálogo puede modelar otro rubro; K2 porque el carrito en
+`localStorage` es una limitación que se nota vendiendo. K3 a K7 esperan
+evidencia — medido: **1 tienda, 1 organización con tienda, 0 listas de precio
+cargadas, 0 promociones activas**. Construir multi-market para eso es adivinar.
+
+📌 **Regla del kernel:** el núcleo **no conoce el rubro**. Nada de
+`if (categoria === 'perfume')`. Los verticales aportan atributos, defaults y
+presets — nunca ramas en el motor.
 
 ---
 
