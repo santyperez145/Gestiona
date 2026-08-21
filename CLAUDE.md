@@ -47,7 +47,7 @@ nombre.
 [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).** Fija los quince principios y los
 límites de dominio que no hay que cruzar. El estado medido del 2026-08-21 vive
 en [docs/COMPARACION.md](docs/COMPARACION.md): 280 tablas, 294 con `org_id`,
-61 Edge Functions y 1.170 tests (`npm test`, fecha al lado). Idempotencia,
+61 Edge Functions y 1.175 tests (`npm test`, fecha al lado). Idempotencia,
 eventos con outbox y ledger financiero ya están construidos y verificados en
 los commits H1–H3; no deben volver a tratarse como pendientes ni duplicarse.
 
