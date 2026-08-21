@@ -34207,7 +34207,7 @@ export type Database = {
         | {
             Args: {
               p_org_id: string
-              p_requested_by?: string
+              p_requested_by: string
               p_return_request_id: string
             }
             Returns: Json

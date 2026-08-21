@@ -24,8 +24,10 @@ problemas:
    navegador por cualquiera con sesión en esa organización.
 3. No se renovaba: cuando vencía, los cobros se caían sin aviso.
 
-El token pegado a mano **sigue funcionando** para no romper a quien ya lo tenía,
-pero la app avisa que conviene migrar.
+El fallback del token histórico sigue existiendo para no cortar cobros de una
+organización antigua, pero ya no hay un formulario para pegar credenciales en
+el navegador. Una conexión nueva se hace únicamente por OAuth; el Checkout
+Brick exige además que la credencial provenga de OAuth.
 
 ## Configuración de la plataforma (una sola vez)
 
@@ -105,9 +107,51 @@ si se quiere forzar.
 3. Agregar el resolvedor de credenciales en `_shared/`.
 4. Sumar la tarjeta al `PaymentConnectionsPanel`.
 
-## Comisión de la plataforma (pendiente)
+## Comisión de la plataforma
 
-MercadoPago permite cobrar una comisión por operación con
-`marketplace_fee` en la preferencia, en modo marketplace. Todavía no está
-implementado: hoy el 100% va al comercio. Cuando quieras monetizar por
-transacción en vez de por suscripción, ese es el camino.
+La infraestructura está implementada con una única autoridad
+`platform_commission_amount`:
+
+- Checkout Pro envía `marketplace_fee`;
+- Checkout Brick envía `application_fee`;
+- `record_payment_settlement` registra la misma regla y el neto resultante.
+
+La regla base sigue en **0%** a propósito. Activar un porcentaje es una decisión
+comercial, fiscal y de unit economics, no un efecto colateral de desplegar
+código. El 5% mencionado históricamente no se considera pricing aprobado.
+
+## Matriz operativa
+
+~~~bash
+npm run drill:payments
+~~~
+
+El comando ejecuta una organización `ZZ` en un sub-bloque transaccional contra
+la base linkeada. Prueba las funciones reales de PostgreSQL y al final provoca
+un rollback controlado; no llama a MercadoPago, no usa una tarjeta y no deja
+ventas, stock, eventos ni asientos de prueba.
+
+Cobertura aprobada el 2026-08-21:
+
+| Escenario | Evidencia |
+|---|---|
+| Checkout duplicado | Misma clave → una intención y un intento. |
+| Timeout ambiguo | Reusa el intento pendiente; no vuelve a cobrar. |
+| Webhook aprobado duplicado | Una venta, un movimiento de stock y una liquidación. |
+| Rechazo | No acredita; el retry explícito abre un intento nuevo. |
+| Settlement → ledger | La comisión real y su IVA llegan al asiento. |
+| Timeout de refund | Conserva operación y clave idempotente en `processing`. |
+| Refund reconciliado duplicado | Orden devuelta, RMA resuelto y stock sin reposición ficticia. |
+
+La matriz encontró dos fallas que los tests estáticos no veían:
+
+1. settlement guardaba `source=ecommerce`, mientras el ledger buscaba el valor
+   imposible `ecommerce_order`; por eso omitía comisiones (`20260821000055`);
+2. el wrapper de refund tenía un argumento default que volvía ambigua su
+   delegación y bloqueaba el reintegro (`20260821000056`).
+
+La certificación externa sigue pendiente: pago aprobado, rechazado, webhook
+firmado, timeout/reconsulta y refund deben repetirse con una cuenta y medio de
+prueba reales. Eso mueve dinero y requiere una operación explícita del dueño;
+la matriz interna no se presenta como evidencia de disponibilidad de
+MercadoPago.

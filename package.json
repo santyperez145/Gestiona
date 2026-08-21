@@ -18,7 +18,8 @@
     "db": "node scripts/db.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "drill:restore": "node scripts/restore-drill.mjs"
+    "drill:restore": "node scripts/restore-drill.mjs",
+    "drill:payments": "node scripts/payment-matrix.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

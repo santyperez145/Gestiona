@@ -165,9 +165,9 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.226 tests pasan; typecheck, lint y build verdes; 63 Edge Functions verificadas. |
+| Calidad técnica | 1.231 tests pasan; typecheck, lint y build verdes; 63 Edge Functions verificadas. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
-| Pagos | 2 pagos reales de prueba por ARS 1 y 0 suscripciones efectivamente cobradas; volumen insuficiente para probar economics o confiabilidad de proveedor. |
+| Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 7 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
 | Ledger | 10 eventos de ledger de dominio; 0 asientos contables operativos reales. |
 | Plataforma | Overview, Integration Registry, Merchant 360, evidencia de integración, cola operativa, reintentos auditados y control de Checkout Brick. |
@@ -184,7 +184,7 @@ usarse en una presentación, valuación o decisión de inversión.
 |---|---|---|
 | ARCA | Arquitectura, credenciales seguras y homologación. | Certificado/punto de venta productivos y factura real autorizada. |
 | Ledger | Modelo de partida doble y eventos. | Asientos producidos y reconciliados por operaciones reales. |
-| Payment orchestration | Estados, idempotencia, refund y fallback. | Matriz real de proveedor, timeout, webhook, ambigüedad y conciliación. |
+| Payment orchestration | Estados, idempotencia, refund y fallback; matriz interna aprobada con cero restos. | Certificación real de proveedor, firma, timeout de red, rechazo y refund. |
 | POS offline | Implementación disponible. | Prueba sostenida con varios comercios, reconexión y conflictos. |
 | Multi-organización | RLS y permisos avanzados. | Comercios externos y soporte repetible. |
 | Intelligence | Varias funciones y recomendadores. | Acciones adoptadas con impacto económico atribuible. |
@@ -200,6 +200,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Conteo físico y ajuste trazable | Stock confiable después del antiguo doble movimiento. | Comercio. |
 | Pesos, fotos, descripciones y tarifario | Cotización y conversión representativas. | Comercio, con carga asistida. |
 | Contrato/credenciales de transportista | Etiqueta y tracking probados contra operación real. | Comercio / correo. |
+| Medio de pago de prueba y ventana controlada | Certificación live de aprobación, rechazo, webhook, timeout y refund. | Dueño / operación. |
 | Cuenta comercial MercadoLibre | Publicación e importación reales. | Comercio. |
 | Segundo comercio | Validación externa del onboarding y soporte. | Comercial / founder-led sales. |
 
@@ -292,7 +293,8 @@ incluidos estados ambiguos y recuperación.
 - ARCA productivo.
 - Identidad legal publicada.
 - Conteo físico, ajuste trazable y reconciliación stock/Kardex.
-- Matriz real de checkout, pago, webhook, timeout, refund y duplicado.
+- Matriz interna de checkout, pago, webhook, timeout, refund y duplicado
+  aprobada; falta certificar la misma secuencia con proveedor real.
 - Entorno de validación reproducible, separado de datos reales y comparable en
   los contratos críticos; no se denomina staging hasta probar esa equivalencia.
 - Restore drill de datos reproducible cerrado; falta reconstrucción completa de
@@ -529,7 +531,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 2 | Legal publish | F0 | Bloqueado externamente | Identidad, privacidad y términos revisados/publicados. |
 | 3 | Conteo físico | F0 | Bloqueado externamente | Ajustes trazables; stock y Kardex reconciliados. |
 | 4 | Restore drill | F0 | **Cerrado 2026-08-21:** v3, 147 tablas / 63 filas, RTO técnico 937,22 ms, cero restos | Repetición trimestral; reconstrucción completa queda como nivel siguiente. |
-| 5 | Payment test matrix | F0 | Pendiente | Checkout/webhook/timeout/refund/duplicado ensayados. |
+| 5 | Payment test matrix | F0 | **Interna cerrada 2026-08-21:** 7 escenarios, 2 bugs corregidos, cero restos. Certificación live bloqueada externamente | Pago/rechazo/webhook/timeout/refund reales reconciliados sin intervención de base. |
 | 6 | Correlation IDs y trazas críticas | F0 | Parcial: hay evidencia operativa, no traza end-to-end | Una operación se sigue de cliente a proveedor y regreso. |
 | 7 | E2E bloqueante | F0 | Parcial: suite existe; faltan configuración y cobertura crítica | CI bloquea regresión con fixtures seguros. |
 | 8 | Comisión, billing y unit economics | F0 | Pendiente; el 5% no es decisión final | Contratos, costos, margen y pricing aprobados. |
@@ -556,7 +558,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 Mientras los slices 1–3 esperan al dueño, el orden técnico es:
 
 1. ~~restore drill de datos~~ — cerrado el 2026-08-21;
-2. payment test matrix;
+2. ~~payment test matrix interna~~ — cerrada; certificación live espera una operación controlada;
 3. correlation IDs y trazas;
 4. E2E bloqueante;
 5. economics de comisión;
@@ -735,7 +737,7 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-21: 1.226 tests y 63 funciones verificadas.
+- Build y suites locales del 2026-08-21: 1.231 tests y 63 funciones verificadas.
 - Commit 13e48bd: primera venta y tiempo a vender por comercio.
 
 Se revisa:

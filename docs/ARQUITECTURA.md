@@ -116,7 +116,11 @@ RMA online ya usa el contrato común** (P0.3.2/P0.3.3): `payment_refunds` conser
 la clave estable, el RPC valida el tenant, la Edge Function exige owner/admin y
 el monto se valida en SQL. `refund-store-payment` puede ejecutar o reconciliar,
 el webhook reconcilia timeouts y `receive_store_return_request` conecta la
-recepción física con `returns` y el Kardex sin tocar stock directamente.
+recepción física con `returns` y el Kardex sin tocar stock directamente. La
+matriz transaccional del 2026-08-21 ensayó siete caminos internos y encontró dos
+fallas reales: el ledger no reconocía `source=ecommerce` y el wrapper del refund
+tenía una sobrecarga ambigua. Ambas quedaron corregidas en las migraciones 55 y
+56, con rollback de toda la organización ZZ y cero restos.
 La autorización ARCA también tiene una reserva server-side por organización,
 punto de venta y tipo de comprobante: `afip_autorizacion_reservar` serializa el
 lease y `afip_autorizacion_resultado` es la única transición de la factura.
@@ -125,7 +129,8 @@ esta primitiva y la recepción parcial de compra usa
 `receive_purchase_order_idem`: ambas transiciones están protegidas. Queda por
 diseñar captura diferida únicamente si un proveedor incorpora autorización y
 captura separadas; no se implementa una abstracción sin un contrato real. La
-evidencia sandbox/producción sigue pendiente.
+certificación con red y dinero reales sigue pendiente; la matriz aprobada prueba
+la autoridad interna, no la disponibilidad de MercadoPago.
 
 ### H2 — Eventos durables y outbox (✅ hecho, sesión 112)
 
