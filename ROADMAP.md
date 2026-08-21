@@ -274,6 +274,13 @@ comercio, no declaradas) · **7 temas y tipografía elegible** · dominio propio
 
 ### El camino
 
+📊 Antes de elegir: [docs/COMPARACION.md](docs/COMPARACION.md) tiene el
+relevamiento contra Tiendanube, Empretienda y Shopify medido el 2026-08-21, y
+la lista de lo que falta para operar como una empresa grande. Dos cosas de ahí
+cambian el pitch: **Tiendanube ya tiene POS** (perdimos ese diferencial) y
+**no factura ARCA de forma nativa** (ganamos uno mejor).
+
+
 ⚠️ Los bloques A–I de abajo son el **catálogo de referencia**. Esto es el plan.
 
 ---

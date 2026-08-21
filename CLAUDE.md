@@ -57,6 +57,11 @@ sí: espera un segundo comercio, no una decisión de arquitectura.
 código para alguien sin experiencia, con un orden de estudio y ejercicios sobre
 los archivos de este repo.
 
+📊 **¿Dónde estamos parados contra la competencia?**
+[docs/COMPARACION.md](docs/COMPARACION.md) — medido contra la base el
+2026-08-21, con fuentes y fechas para cada dato de un competidor. Incluye lo que
+falta para operar como una empresa grande, en orden de cuánto duele que falte.
+
 ---
 
 ## ⚠️ Antes de escribir código
@@ -204,8 +209,11 @@ unitarios" tomándolo de una línea vieja de `ROADMAP.md` cuando ya eran 811. Un
 número sin fecha se convierte en el dato que otros repiten.
 
 **Antes de afirmar algo sobre un competidor, verificarlo o marcarlo como no
-verificado.** "Tiendanube no tiene POS" era cierto y puede haber dejado de serlo
-en 2026. En `docs/ESTRATEGIA.md` cada afirmación va marcada ✅ medido, 📌 criterio
+verificado.** ⚠️ Y el ejemplo dejó de ser hipotético: **"Tiendanube no tiene POS"
+es FALSO desde 2026** — tiene PDV, sincroniza stock en tiempo real y viene en
+todos los planes, incluido el gratuito (verificado 2026-08-21). Era el argumento
+central del pitch y hay que dejar de usarlo. El relevamiento completo, con
+fuentes y fechas, está en [docs/COMPARACION.md](docs/COMPARACION.md). En `docs/ESTRATEGIA.md` cada afirmación va marcada ✅ medido, 📌 criterio
 o ❓ sin verificar, y esa separación se mantiene.
 
 **Los mensajes de commit son largos a propósito.** Explican *por qué* se hizo
@@ -448,7 +456,10 @@ MercadoPago y las contraseñas SMTP de **todas** las organizaciones. Está cerra
   exige usuario real. `verify_jwt` **no es una barrera**: la anon key es un JWT
   válido y público. Usar `_shared/requireUser.ts`.
 - **`rls_audit_open_policies`** (vista SQL) — lista políticas sin filtro de
-  tenant. Debería estar vacía salvo `plans`, que es el pricing público.
+  tenant. Debería tener **exactamente 3** (medido 2026-08-21), y las tres son
+  catálogos públicos a propósito: `plans` (pricing), `payment_providers` y
+  `payment_provider_fees` — un comercio tiene que poder ver qué proveedores hay
+  y cuánto cobran **antes** de conectarse. Cualquier cuarta es un bug.
 - **`moduleMap.test.ts`** — el vocabulario de módulos de permisos vive sólo en
   `src/lib/permissionModules.ts`; agregar uno es una edición, no tres.
 
