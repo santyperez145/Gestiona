@@ -52,10 +52,32 @@ vinculada, y `db push --linked --dry-run` en `upToDate`. No hubo filas `ZZ`, ni
 backfill, ni cambios de inventario. Falta una pasada de navegador con sesión de
 organización: este equipo no tiene `.env` local.
 
+**P0.2.1 — Reporte de identidad y guardrail de importación (cerrado 2026-08-21).**
+La migración `20260821000043_identity_review.sql` agrega normalizadores
+inmutables y las vistas protegidas `product_identity_review` y
+`customer_identity_review`. SKU, EAN, email, teléfono y nombre generan llaves
+de revisión consistentes entre canales; los nombres solos sólo son candidatos y
+no autorizan una fusión. Productos y clientes muestran la salud de identidad
+desde una sección propia, y el importador CSV usa email/teléfono como claves
+fuertes: no crea una ficha duplicada por reimportación, pero conserva homónimos
+con contactos diferentes.
+
+**Salida verificada:** la consulta de solo lectura de producción registró
+60 productos activos, 0 colisiones exactas, 0 candidatos por nombre y 60/60
+productos sin SKU/EAN; registró 33 clientes, 0 colisiones exactas, 0 candidatos
+por nombre y 24/33 sin email ni teléfono. Las vistas tienen únicamente
+`SELECT` para `authenticated` y ningún grant para `anon`; no hubo backfill,
+merge, cambios de stock ni filas `ZZ`. P0.2 sigue abierto: completar
+identificadores del catálogo, mejorar cobertura de clientes y recién después
+evaluar índices únicos por organización. La verificación automática de
+`db push --linked --dry-run` quedó bloqueada en esta PC por falta de
+`SUPABASE_DB_PASSWORD`; migración, registro, objetos y grants sí fueron
+comprobados contra la base vinculada.
+
 ### Siguiente trabajo ya ordenado
 
-- P0.2: resolver identidad y duplicados sobre los datos reales, con reporte
-  antes de cualquier merge.
+- P0.2: completar SKU/EAN y cobertura de contacto, revisar candidatos con
+  evidencia y recién entonces evaluar restricciones únicas por organización.
 - P0.3: completar el contrato de `PaymentIntent` y probar reintentos,
   reintegros y conciliación sin doble asiento.
 - P0.4: ejecutar el circuito ARCA con certificado de homologación y una factura

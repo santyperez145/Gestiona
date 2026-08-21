@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import UnlinkedSalesPanel from "@/components/customers/UnlinkedSalesPanel";
+import IdentityHealthPanel from "@/components/shared/IdentityHealthPanel";
 import { useModulePermissions } from "@/lib/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { toast } from "sonner";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import { normalizeIdentityEmail, normalizeIdentityPhone, normalizeIdentityText } from "@/lib/recordIdentity";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -1361,7 +1363,7 @@ export default function CustomersPage() {
   const [payingInstallment, setPayingInstallment] = useState<string | null>(null);
   const [loyaltyBalances, setLoyaltyBalances] = useState<Record<string, number>>({});
   const [loyaltyEnabled, setLoyaltyEnabled] = useState(false);
-  const [mergingCustomer, setMergingCustomer] = useState<string | null>(null); // source name
+  const [mergingCustomer, setMergingCustomer] = useState<{ name: string; id: string | null } | null>(null);
   const [mergeTarget, setMergeTarget] = useState("");
   const [merging, setMerging] = useState(false);
   const [selectedCustomerNames, setSelectedCustomerNames] = useState<Set<string>>(new Set());
@@ -1475,45 +1477,40 @@ export default function CustomersPage() {
 
   const handleMergeCustomers = async () => {
     if (!activeOrg || !mergingCustomer || !mergeTarget.trim()) return;
-    const target = mergeTarget.trim();
-    if (target.toLowerCase() === mergingCustomer.toLowerCase()) {
+    if (!mergingCustomer.id) {
+      toast.error("El origen necesita una ficha de cliente antes de fusionar");
+      return;
+    }
+    const srcProfile = profiles.find(profile => profile.id === mergingCustomer.id);
+    const dstProfile = profiles.find(profile => profile.id === mergeTarget);
+    if (!srcProfile || !dstProfile) {
+      toast.error("Seleccioná dos fichas de cliente válidas");
+      return;
+    }
+    if (srcProfile.id === dstProfile.id) {
       toast.error("El cliente destino debe ser diferente al origen");
       return;
     }
-    if (!confirm(`¿Combinar "${mergingCustomer}" en "${target}"? Todas las ventas, deudas y puntos del cliente origen se reasignarán al destino. Esta acción no se puede deshacer.`)) return;
+    if (!confirm(`¿Combinar "${srcProfile.name}" en "${dstProfile.name}"? Sólo se moverán filas ya enlazadas por ID. Esta acción no se puede deshacer.`)) return;
     setMerging(true);
     try {
       const orgId = activeOrg.id;
-      const srcProfile = profiles.find(p => normalizeName(p.name) === normalizeName(mergingCustomer));
-      const dstProfile = profiles.find(p => normalizeName(p.name) === normalizeName(target));
 
-      // Se reasigna por id cuando el origen está cargado en el CRM. El filtro
-      // por `customer_name` exacto que había antes se saltaba las filas escritas
-      // con otra capitalización o espacios de más — que es justamente el motivo
-      // por el que hace falta fusionar.
       const reasignar = async (tabla: "sales" | "debts" | "loyalty_points") => {
-        const patch: Record<string, unknown> = { customer_name: target };
-        if (dstProfile) patch.customer_id = dstProfile.id;
-
-        if (srcProfile) {
-          await supabase.from(tabla).update(patch).eq("org_id", orgId).eq("customer_id", srcProfile.id);
-        }
-        // Y las que nunca se enlazaron, por nombre exacto: es lo único que se
-        // puede filtrar del lado del servidor sin traerlas todas.
-        await supabase.from(tabla).update(patch)
-          .eq("org_id", orgId).is("customer_id", null).eq("customer_name", mergingCustomer);
+        const { error } = await supabase.from(tabla)
+          .update({ customer_name: dstProfile.name, customer_id: dstProfile.id })
+          .eq("org_id", orgId)
+          .eq("customer_id", srcProfile.id);
+        if (error) throw error;
       };
 
       await reasignar("sales");
       await reasignar("debts");
       await reasignar("loyalty_points");
 
-      // El perfil de origen se borra al final: mientras existe, su id es lo que
-      // permite encontrar las filas a reasignar.
-      if (srcProfile) {
-        await supabase.from("customers").delete().eq("id", srcProfile.id);
-      }
-      toast.success(`"${mergingCustomer}" fusionado con "${target}"`);
+      const { error: deleteError } = await supabase.from("customers").delete().eq("id", srcProfile.id);
+      if (deleteError) throw deleteError;
+      toast.success(`"${srcProfile.name}" fusionado con "${dstProfile.name}"`);
       setMergingCustomer(null);
       setMergeTarget("");
       setSelectedCustomer(null);
@@ -1954,7 +1951,25 @@ export default function CustomersPage() {
     if (!csvPreview || !user) return;
     setImporting(true);
     const { headers, rows, mapping } = csvPreview;
-    const existingNames = new Set(customers.map(c => c.name.toLowerCase().trim()));
+    const existingEmails = new Set<string>();
+    const existingPhones = new Set<string>();
+    const existingNamesWithoutContact = new Set<string>();
+    profiles.forEach(profile => {
+      const emailKey = normalizeIdentityEmail(profile.email);
+      const phoneKey = normalizeIdentityPhone(profile.phone || profile.whatsapp_number);
+      const nameKey = normalizeIdentityText(profile.name);
+      if (emailKey) existingEmails.add(emailKey);
+      if (phoneKey) existingPhones.add(phoneKey);
+      if (nameKey && !emailKey && !phoneKey) existingNamesWithoutContact.add(nameKey);
+    });
+    customers.forEach(customer => {
+      const emailKey = normalizeIdentityEmail(customer.email);
+      const phoneKey = normalizeIdentityPhone(customer.phone);
+      const nameKey = normalizeIdentityText(customer.name);
+      if (emailKey) existingEmails.add(emailKey);
+      if (phoneKey) existingPhones.add(phoneKey);
+      if (nameKey && !emailKey && !phoneKey) existingNamesWithoutContact.add(nameKey);
+    });
     let ok = 0, skipped = 0, failed = 0;
     for (const row of rows) {
       const get = (field: string) => {
@@ -1963,8 +1978,16 @@ export default function CustomersPage() {
       };
       const name = get('name');
       if (!name) continue;
-      // Deduplication: skip if already exists
-      if (existingNames.has(name.toLowerCase())) { skipped++; continue; }
+      const emailKey = normalizeIdentityEmail(get('email'));
+      const phoneKey = normalizeIdentityPhone(get('phone'));
+      const nameKey = normalizeIdentityText(name);
+      // Contact keys are strong. A name alone only skips when both records
+      // lack contact data; homonyms with different contacts remain importable.
+      if (
+        (emailKey && existingEmails.has(emailKey))
+        || (phoneKey && existingPhones.has(phoneKey))
+        || (!emailKey && !phoneKey && nameKey && existingNamesWithoutContact.has(nameKey))
+      ) { skipped++; continue; }
       try {
         await createCustomerDB(user.id, {
           name,
@@ -1973,7 +1996,9 @@ export default function CustomersPage() {
           address: get('address') || undefined,
           birthday: get('birthday') || undefined,
         });
-        existingNames.add(name.toLowerCase());
+        if (emailKey) existingEmails.add(emailKey);
+        if (phoneKey) existingPhones.add(phoneKey);
+        if (nameKey && !emailKey && !phoneKey) existingNamesWithoutContact.add(nameKey);
         ok++;
       } catch { failed++; }
     }
@@ -2152,6 +2177,8 @@ export default function CustomersPage() {
 
       {/* Compradores que nunca entraron a la lista */}
       <UnlinkedSalesPanel />
+
+      {activeOrg?.id && <IdentityHealthPanel entity="customers" orgId={activeOrg.id} />}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -3098,7 +3125,11 @@ export default function CustomersPage() {
                         size="sm"
                         variant="ghost"
                         className="gap-1.5 text-xs text-muted-foreground ml-auto"
-                        onClick={() => setMergingCustomer(mergingCustomer === c.name ? null : c.name)}
+                        onClick={() => {
+                          const sameSource = mergingCustomer?.name === c.name && mergingCustomer.id === (c.customerId ?? null);
+                          setMergingCustomer(sameSource ? null : { name: c.name, id: c.customerId ?? null });
+                          setMergeTarget("");
+                        }}
                         title="Fusionar este cliente con otro (útil para duplicados)"
                       >
                         <Merge className="w-3.5 h-3.5" />Fusionar
@@ -3134,25 +3165,26 @@ export default function CustomersPage() {
                     )}
 
                     {/* Inline merge form */}
-                    {mergingCustomer === c.name && (
+                    {mergingCustomer?.name === c.name && mergingCustomer.id === (c.customerId ?? null) && (
                       <div className="mb-3 p-3 rounded-lg bg-orange-500/5 border border-orange-500/20 space-y-2">
                         <p className="text-xs font-medium text-orange-400">
-                          Fusionar <strong>"{c.name}"</strong> en otro cliente
+                          Fusionar <strong>"{c.name}"</strong> en otro perfil
                         </p>
-                        <p className="text-[10px] text-muted-foreground">Todas las ventas, deudas y puntos se moverán al cliente destino.</p>
+                        <p className="text-[10px] text-muted-foreground">Sólo se mueven filas enlazadas por ID. Las ventas sin ficha no se asignan por nombre.</p>
                         <div className="flex gap-2">
-                          <Input
-                            list={`merge-targets-${c.name}`}
+                          <Select
                             value={mergeTarget}
-                            onChange={e => setMergeTarget(e.target.value)}
-                            placeholder="Nombre del cliente destino…"
-                            className="bg-muted border-border text-xs h-8 flex-1"
-                          />
-                          <datalist id={`merge-targets-${c.name}`}>
-                            {customers.filter(x => x.name !== c.name).map(x => (
-                              <option key={x.name} value={x.name} />
-                            ))}
-                          </datalist>
+                            onValueChange={setMergeTarget}
+                          >
+                            <SelectTrigger className="bg-muted border-border text-xs h-8 flex-1">
+                              <SelectValue placeholder="Elegí el perfil destino…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {profiles.filter(profile => profile.id !== mergingCustomer.id).map(profile => (
+                                <SelectItem key={profile.id} value={profile.id}>{profile.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <Button
                             size="sm"
                             className="h-8 text-xs bg-orange-500 hover:bg-orange-600 text-white shrink-0"

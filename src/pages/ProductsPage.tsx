@@ -36,6 +36,7 @@ import {
   type ProductType,
 } from "@/lib/productTypes";
 import KPICard from "@/components/shared/KPICard";
+import IdentityHealthPanel from "@/components/shared/IdentityHealthPanel";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import ProductsExcelImport from "@/components/products/ProductsExcelImport";
@@ -758,6 +759,8 @@ export default function ProductsPage() {
         filtroActivo={filterCalidad}
         onFiltrar={setFilterCalidad}
       />
+
+      {activeOrg?.id && <IdentityHealthPanel entity="products" orgId={activeOrg.id} />}
 
       {/* KPI row */}
       <div className="workspace-products-kpis grid grid-cols-2 md:grid-cols-5 gap-3">

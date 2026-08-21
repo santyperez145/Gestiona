@@ -56,6 +56,17 @@ polimórfico, P0.2 identidad, P0.3 pagos, P0.4 ARCA y P0.5 segundo comercio.
 `gestiona.txt` es el análisis que fundamenta ese orden, no permiso para saltar
 las puertas de verificación.
 
+**Identidad antes que deduplicación:** el slice P0.2.1 dejó las vistas protegidas
+`product_identity_review` y `customer_identity_review` como fuente del
+reporte. SKU/EAN, email y teléfono son llaves fuertes; nombre y marca sólo
+proponen candidatos. Nunca fusionar por nombre, nunca backfillear datos reales
+para que el reporte “dé limpio” y nunca crear un índice único antes de medir
+colisiones por `org_id`. El importador CSV puede omitir una coincidencia por
+llave fuerte, pero tiene que conservar homónimos con contactos diferentes.
+Medición actual (2026-08-21): 60 productos sin SKU/EAN, 33 clientes, 24 sin
+email/teléfono, 0 colisiones exactas. El detalle verificable está en
+`ROADMAP.md` §0.0.
+
 Y lo que ese documento dice que **no** hay que construir todavía —multi-store,
 dominios propios, theme engine, headless, marketplace— importa tanto como lo que
 sí: espera un segundo comercio, no una decisión de arquitectura.
