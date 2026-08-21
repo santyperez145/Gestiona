@@ -65,6 +65,9 @@ colisiones por `org_id`. El importador CSV puede omitir una coincidencia por
 llave fuerte, pero tiene que conservar homónimos con contactos diferentes.
 La cola de completitud en Productos y Clientes sólo abre fichas existentes y
 requiere edición humana: nunca inventa SKU/EAN/contactos ni fusiona perfiles.
+El panel se mantiene compacto con tabs de resumen, pendientes y candidatos;
+los listados largos llevan scroll interno y nunca deben convertir una página
+operativa en una pared de tarjetas.
 Medición actual (2026-08-21): 60 productos sin SKU/EAN, 33 clientes, 24 sin
 email/teléfono, 0 colisiones exactas. El detalle verificable y el slice P0.2.2
 están en `ROADMAP.md` §0.0.

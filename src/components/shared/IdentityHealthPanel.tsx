@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Hash, Mail, PackageCheck, Pencil, RefreshCw, ScanSearch, ShieldCheck, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import {
   summarizeCustomerIdentity,
@@ -16,6 +17,19 @@ type Entity = "products" | "customers";
 
 const PRODUCT_COLUMNS = "id,org_id,name,brand,sku,barcode,sku_key,barcode_key,name_brand_key,sku_match_count,barcode_match_count,name_brand_match_count,exact_conflict,review_required,identity_issue";
 const CUSTOMER_COLUMNS = "id,org_id,name,email,phone,whatsapp_number,name_key,email_key,phone_key,whatsapp_key,name_match_count,email_match_count,phone_match_count,whatsapp_match_count,exact_conflict,review_required,missing_contact,identity_issue";
+
+type IdentityReviewRow = ProductIdentityReviewRow | CustomerIdentityReviewRow;
+
+async function fetchIdentityRows(entity: Entity, orgId: string): Promise<{ data: IdentityReviewRow[] | null; error: Error | null }> {
+  const result = entity === "products"
+    ? await supabase.from("product_identity_review").select(PRODUCT_COLUMNS).eq("org_id", orgId).order("name")
+    : await supabase.from("customer_identity_review").select(CUSTOMER_COLUMNS).eq("org_id", orgId).order("name");
+
+  return {
+    data: result.error ? null : (result.data ?? []) as IdentityReviewRow[],
+    error: result.error,
+  };
+}
 
 interface IdentityHealthPanelProps {
   entity: Entity;
@@ -37,43 +51,38 @@ function Metric({ label, value, hint, icon: Icon }: { label: string; value: stri
 }
 
 export default function IdentityHealthPanel({ entity, orgId, onOpenProduct, onOpenCustomer }: IdentityHealthPanelProps) {
-  const [rows, setRows] = useState<Array<ProductIdentityReviewRow | CustomerIdentityReviewRow>>([]);
+  const [rows, setRows] = useState<IdentityReviewRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("summary");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const result = entity === "products"
-      ? await supabase.from("product_identity_review").select(PRODUCT_COLUMNS).eq("org_id", orgId).order("name")
-      : await supabase.from("customer_identity_review").select(CUSTOMER_COLUMNS).eq("org_id", orgId).order("name");
+    const result = await fetchIdentityRows(entity, orgId);
     if (result.error) {
       setError(result.error.message);
       setRows([]);
     } else {
-      setRows((result.data ?? []) as Array<ProductIdentityReviewRow | CustomerIdentityReviewRow>);
+      setRows(result.data ?? []);
     }
     setLoading(false);
-  };
+  }, [entity, orgId]);
 
   useEffect(() => {
     let cancelled = false;
-    const run = async () => {
-      setLoading(true);
-      setError(null);
-      const result = entity === "products"
-        ? await supabase.from("product_identity_review").select(PRODUCT_COLUMNS).eq("org_id", orgId).order("name")
-        : await supabase.from("customer_identity_review").select(CUSTOMER_COLUMNS).eq("org_id", orgId).order("name");
+    setLoading(true);
+    setError(null);
+    fetchIdentityRows(entity, orgId).then(result => {
       if (cancelled) return;
       if (result.error) {
         setError(result.error.message);
         setRows([]);
       } else {
-        setRows((result.data ?? []) as Array<ProductIdentityReviewRow | CustomerIdentityReviewRow>);
+        setRows(result.data ?? []);
       }
       setLoading(false);
-    };
-    run();
+    });
     return () => { cancelled = true; };
   }, [entity, orgId]);
 
@@ -141,64 +150,85 @@ export default function IdentityHealthPanel({ entity, orgId, onOpenProduct, onOp
             <Metric label="Faltantes" value={summary.missingPrimaryRows} hint={isProduct ? "Sin SKU ni EAN" : "Sin email, teléfono o WhatsApp"} icon={AlertTriangle} />
           </div>
 
-          {missingRows.length > 0 && (
-            <div className="mt-4 border-t border-border/50 pt-3">
-              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Completar identidad</p>
-                <span className="text-[10px] text-muted-foreground">{missingRows.length} pendientes</span>
-              </div>
-              <div className="space-y-1.5">
-                {missingRows.slice(0, 6).map(row => {
-                  const label = isProduct
-                    ? `${(row as ProductIdentityReviewRow).brand} · ${(row as ProductIdentityReviewRow).name}`
-                    : (row as CustomerIdentityReviewRow).name;
-                  const action = openRecord ? () => openRecord(row.id) : undefined;
-                  return (
-                    <div key={row.id} className="flex items-center justify-between gap-3 rounded-md bg-muted/20 px-2.5 py-2 text-xs">
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">{label}</p>
-                        <p className="text-[10px] text-muted-foreground">{isProduct ? "Falta SKU y EAN" : "Falta un dato de contacto fuerte"}</p>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+            <TabsList className="h-8">
+              <TabsTrigger value="summary" className="px-3 pb-2 pt-1 text-[10px]">Resumen</TabsTrigger>
+              <TabsTrigger value="pending" className="gap-1 px-3 pb-2 pt-1 text-[10px]">
+                Pendientes <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] text-amber-400">{missingRows.length}</span>
+              </TabsTrigger>
+              <TabsTrigger value="candidates" className="gap-1 px-3 pb-2 pt-1 text-[10px]">
+                Candidatos <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px]">{summary.reviewRows}</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="summary" className="mt-3">
+              <p className="text-[10px] leading-relaxed text-muted-foreground">
+                {summary.reviewRows === 0
+                  ? isProduct && summary.missingPrimaryRows > 0
+                    ? "No hay colisiones, pero el catálogo todavía no tiene una llave portable. Completar SKU/EAN es el siguiente paso antes de sincronizar canales."
+                    : isProduct
+                      ? "La identidad está cubierta y no hay colisiones exactas en el reporte actual."
+                      : summary.missingPrimaryRows > 0
+                        ? "No se detectaron colisiones exactas. Los registros sin contacto siguen siendo deuda de calidad, no duplicados."
+                        : "La identidad está cubierta y no hay colisiones exactas en el reporte actual."
+                  : "Este reporte sólo propone revisión. No modifica filas ni habilita fusiones automáticas."}
+              </p>
+            </TabsContent>
+
+            <TabsContent value="pending" className="mt-3">
+              {missingRows.length === 0 ? (
+                <p className="rounded-md border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-400">No hay fichas incompletas en el reporte actual.</p>
+              ) : (
+                <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
+                  {missingRows.map(row => {
+                    const label = isProduct
+                      ? `${(row as ProductIdentityReviewRow).brand} · ${(row as ProductIdentityReviewRow).name}`
+                      : (row as CustomerIdentityReviewRow).name;
+                    const action = openRecord ? () => openRecord(row.id) : undefined;
+                    return (
+                      <div key={row.id} className="flex items-center justify-between gap-3 rounded-md bg-muted/20 px-2.5 py-2 text-xs">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{label}</p>
+                          <p className="text-[10px] text-muted-foreground">{isProduct ? "Falta SKU y EAN" : "Falta un dato de contacto fuerte"}</p>
+                        </div>
+                        {action && (
+                          <Button variant="ghost" size="sm" className="h-7 shrink-0 gap-1 px-2 text-[11px]" onClick={action}>
+                            <Pencil className="h-3 w-3" />Completar
+                          </Button>
+                        )}
                       </div>
-                      {action && (
-                        <Button variant="ghost" size="sm" className="h-7 shrink-0 gap-1 px-2 text-[11px]" onClick={action}>
-                          <Pencil className="h-3 w-3" />Completar
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="candidates" className="mt-3">
+              {summary.examples.length === 0 ? (
+                <p className="rounded-md border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-400">No hay candidatos para revisar en el reporte actual.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {summary.examples.map(example => (
+                    <div key={example.id} className="flex items-center justify-between gap-3 rounded-md bg-muted/20 px-2.5 py-2 text-xs">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{example.label}</p>
+                        <p className="text-[10px] text-muted-foreground">{example.issue}</p>
+                      </div>
+                      {openRecord && (
+                        <Button variant="ghost" size="sm" className="h-7 shrink-0 gap-1 px-2 text-[11px]" onClick={() => openRecord(example.id)}>
+                          <Pencil className="h-3 w-3" />Revisar
                         </Button>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-              {missingRows.length > 6 && (
-                <p className="mt-2 text-[10px] text-muted-foreground">+{missingRows.length - 6} pendientes más. La lista se ordena por nombre.</p>
+                  ))}
+                </div>
               )}
-            </div>
-          )}
+              {summary.reviewRows > summary.examples.length && (
+                <p className="mt-2 text-[10px] text-muted-foreground">Se muestran los primeros {summary.examples.length} candidatos para mantener la pantalla compacta.</p>
+              )}
+            </TabsContent>
+          </Tabs>
 
-          {summary.examples.length > 0 && (
-            <div className="mt-4 border-t border-border/50 pt-3">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Candidatos a revisar</p>
-              <div className="space-y-1.5">
-                {summary.examples.map(example => (
-                  <div key={example.id} className="flex items-center justify-between gap-3 rounded-md bg-muted/20 px-2.5 py-2 text-xs">
-                    <span className="min-w-0 truncate font-medium">{example.label}</span>
-                    <span className="shrink-0 text-[10px] text-muted-foreground">{example.issue}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
-            {summary.reviewRows === 0
-              ? isProduct && summary.missingPrimaryRows > 0
-                ? "No hay colisiones, pero el catálogo todavía no tiene una llave portable. Completar SKU/EAN es el siguiente paso antes de sincronizar canales."
-                : isProduct
-                  ? "La identidad está cubierta y no hay colisiones exactas en el reporte actual."
-                  : summary.missingPrimaryRows > 0
-                    ? "No se detectaron colisiones exactas. Los registros sin contacto siguen siendo deuda de calidad, no duplicados."
-                    : "La identidad está cubierta y no hay colisiones exactas en el reporte actual."
-              : "Este reporte sólo propone revisión. No modifica filas ni habilita fusiones automáticas."}
-          </p>
         </>
       )}
     </section>

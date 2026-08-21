@@ -88,6 +88,16 @@ para el dueño del comercio.
 los resúmenes de identidad; la suite completa quedó en 1.177 tests verdes
 (`npm test`, 2026-08-21). No hubo migración ni cambios de datos reales.
 
+**P0.2.3 — Workspace compacto de revisión (cerrado 2026-08-21).** La sección
+de identidad se ordena en tabs de Resumen, Pendientes y Candidatos. La lista de
+trabajo tiene scroll interno, los candidatos muestran sólo una muestra acotada
+y ambos estados conservan su acción de editar/revisar sin fusionar registros.
+La carga se centralizó y cancela respuestas viejas al cambiar de organización,
+evitando datos cruzados o renders fuera de contexto.
+
+**Salida verificada:** typecheck, suite completa, lint y build se ejecutan sobre
+el componente refactorizado; no hubo migración ni cambios de datos reales.
+
 ### Siguiente trabajo ya ordenado
 
 - P0.2: usar la cola para completar SKU/EAN y cobertura de contacto con datos
