@@ -25,6 +25,7 @@ import LandingPage from "@/pages/LandingPage";
 // ── Lazy-loaded pages (split per route) ────────────────────────────────────
 const Dashboard              = lazy(() => import("@/pages/Dashboard"));
 const ProductsPage           = lazy(() => import("@/pages/ProductsPage"));
+const DataQualityPage        = lazy(() => import("@/pages/DataQualityPage"));
 const PurchasesPage          = lazy(() => import("@/pages/PurchasesPage"));
 const SalesPage              = lazy(() => import("@/pages/SalesPage"));
 const DebtsPage              = lazy(() => import("@/pages/DebtsPage"));
@@ -272,6 +273,7 @@ function ProtectedRoutes() {
           {isAdmin && (
             <>
               <Route path="/productos" element={<ProductsPage />} />
+              <Route path="/calidad-datos" element={<DataQualityPage />} />
               <Route path="/compras" element={<PurchasesPage />} />
               <Route path="/deudas" element={<DebtsPage />} />
               <Route path="/reportes" element={<ReportsPage />} />

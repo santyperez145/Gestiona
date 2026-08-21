@@ -31,6 +31,7 @@ export const ROUTE_MODULE: Record<string, string> = {
   "/caja": "pos",
   "/pos": "pos",
   "/productos": "products",
+  "/calidad-datos": "products",
   "/compras": "purchases",
   "/ordenes-compra": "purchases",
   "/clientes": "customers",

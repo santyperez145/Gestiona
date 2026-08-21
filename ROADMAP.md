@@ -98,11 +98,31 @@ evitando datos cruzados o renders fuera de contexto.
 **Salida verificada:** typecheck, suite completa, lint y build se ejecutan sobre
 el componente refactorizado; no hubo migración ni cambios de datos reales.
 
+**P0.2.4 — Centro de calidad de datos y export operativo (cerrado 2026-08-21).**
+La deuda de identidad ahora tiene una superficie propia en
+`/calidad-datos`, separada en tabs de Catálogo y Clientes. El responsable puede
+buscar dentro de las colas, abrir la ficha real desde un enlace profundo y
+descargar un CSV interno para organizar la revisión. La exportación incluye
+estado y motivo, escapa contenido CSV y neutraliza fórmulas de planillas para
+que un nombre o contacto importado no se convierta en una instrucción al abrir
+el archivo.
+
+El centro es una vista operativa, no un proceso de limpieza automática: no
+fusiona perfiles, no genera SKU/EAN, no inventa contactos y no escribe por
+lote. Reutiliza las vistas protegidas y los permisos de Productos/Clientes; el
+CSV sólo expone la cola autenticada de la organización activa. Esto convierte
+P0.2 en un circuito auditable de medir → revisar → editar en origen, listo para
+que el dueño complete datos reales antes de evaluar restricciones únicas.
+
+**Salida verificada:** 3 tests unitarios nuevos cubren formato, estados,
+escape y neutralización de fórmulas; typecheck, lint, smoke tests, 1.181 tests
+completos y build pasan. No hubo migración ni cambios de datos reales.
+
 ### Siguiente trabajo ya ordenado
 
-- P0.2: usar la cola para completar SKU/EAN y cobertura de contacto con datos
-  reales, revisar candidatos con evidencia y recién entonces evaluar
-  restricciones únicas por organización.
+- P0.2: usar el Centro de calidad de datos para completar SKU/EAN y cobertura
+  de contacto con datos reales, revisar candidatos con evidencia y recién
+  entonces evaluar restricciones únicas por organización.
 - P0.3: completar el contrato de `PaymentIntent` y probar reintentos,
   reintegros y conciliación sin doble asiento.
 - P0.4: ejecutar el circuito ARCA con certificado de homologación y una factura

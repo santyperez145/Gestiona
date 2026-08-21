@@ -42,7 +42,7 @@ import {
   Megaphone, Gift, Users2, Mail, MessageCircle, Share2, Zap, UserPlus,
   Trophy, Star, LineChart, Sparkles, Kanban,
   CheckSquare, Bell, Calendar,
-  AlertTriangle, Plug, Settings, UserCircle, Crown,
+  AlertTriangle, Plug, Settings, UserCircle, Crown, ScanSearch,
 } from "lucide-react";
 
 /**
@@ -251,6 +251,8 @@ export const NAV_ITEMS: NavItem[] = [
     keywords: ["cuenta", "contraseña", "2fa"] },
   { to: "/admin", label: "Admin", icon: Crown, roles: SOLO_ADMIN, group: "sistema",
     keywords: ["administración", "organización", "suscripción"] },
+  { to: "/calidad-datos", label: "Calidad de datos", icon: ScanSearch, roles: SOLO_ADMIN, group: "sistema",
+    keywords: ["identidad", "sku", "ean", "duplicados", "completitud", "data quality"] },
 ];
 
 /** Los que van siempre a la vista, sin encabezado ni plegado. */

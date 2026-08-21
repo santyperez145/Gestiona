@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import Fuse from "fuse.js";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
@@ -297,6 +297,7 @@ export default function ProductsPage() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const { productLimit, plan } = useEntitlements();
+  const [identityParams, setIdentityParams] = useSearchParams();
   // Module-aware permissions: admins can grant/deny per-module via role_permissions
   // (falls back to role defaults if no DB rows exist)
   const { canCreate, canEdit, canDelete } = useModulePermissions("products");
@@ -398,6 +399,18 @@ export default function ProductsPage() {
     setLastSaleDate(lastSale);
   };
   useEffect(() => { reload(); }, [user]);
+
+  useEffect(() => {
+    const identityId = identityParams.get("identity");
+    if (!identityId || loading) return;
+    const product = products.find(item => item.id === identityId);
+    if (!product) return;
+    setEditing(product);
+    setOpen(true);
+    const next = new URLSearchParams(identityParams);
+    next.delete("identity");
+    setIdentityParams(next, { replace: true });
+  }, [identityParams, loading, products, setIdentityParams]);
 
   const saveInlineStock = async (productId: string, newStock: string) => {
     const parsed = parseInt(newStock, 10);

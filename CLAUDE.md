@@ -47,7 +47,7 @@ nombre.
 [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).** Fija los quince principios y los
 límites de dominio que no hay que cruzar. El estado medido del 2026-08-21 vive
 en [docs/COMPARACION.md](docs/COMPARACION.md): 280 tablas, 294 con `org_id`,
-61 Edge Functions y 1.177 tests (`npm test`, 2026-08-21). Idempotencia,
+61 Edge Functions y 1.181 tests (`npm test`, 2026-08-21). Idempotencia,
 eventos con outbox y ledger financiero ya están construidos y verificados en
 los commits H1–H3; no deben volver a tratarse como pendientes ni duplicarse.
 
@@ -68,6 +68,13 @@ requiere edición humana: nunca inventa SKU/EAN/contactos ni fusiona perfiles.
 El panel se mantiene compacto con tabs de resumen, pendientes y candidatos;
 los listados largos llevan scroll interno y nunca deben convertir una página
 operativa en una pared de tarjetas.
+El Centro de calidad de datos en `/calidad-datos` concentra ese trabajo en tabs
+de Catálogo y Clientes, con búsqueda, enlaces profundos a la ficha de origen y
+exportación CSV interna. Toda exportación de datos operativos debe escapar
+contenido CSV y neutralizar fórmulas que empiecen con `=`, `+`, `-` o `@`; el
+archivo no es una vía para saltar permisos ni para ejecutar merges. La única
+fuente de verdad sigue siendo la vista protegida y la edición humana en el
+formulario del módulo correspondiente.
 Medición actual (2026-08-21): 60 productos sin SKU/EAN, 33 clientes, 24 sin
 email/teléfono, 0 colisiones exactas. El detalle verificable y el slice P0.2.2
 están en `ROADMAP.md` §0.0.

@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Hash, Mail, PackageCheck, Pencil, RefreshCw, ScanSearch, ShieldCheck, UsersRound } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, Hash, Mail, PackageCheck, Pencil, RefreshCw, ScanSearch, Search, ShieldCheck, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { buildIdentityReviewCsv, identityReviewFilename } from "@/lib/identityExport";
 import {
+  normalizeIdentityText,
   summarizeCustomerIdentity,
   summarizeProductIdentity,
   missingCustomerIdentityRows,
@@ -55,6 +58,7 @@ export default function IdentityHealthPanel({ entity, orgId, onOpenProduct, onOp
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("summary");
+  const [queueSearch, setQueueSearch] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -101,6 +105,33 @@ export default function IdentityHealthPanel({ entity, orgId, onOpenProduct, onOp
   );
   const openRecord = isProduct ? onOpenProduct : onOpenCustomer;
   const identityCovered = summary.reviewRows === 0 && summary.missingPrimaryRows === 0;
+  const normalizedQueueSearch = normalizeIdentityText(queueSearch) ?? "";
+  const filteredMissingRows = useMemo(() => {
+    if (!normalizedQueueSearch) return missingRows;
+    return missingRows.filter(row => {
+      const text = isProduct
+        ? `${(row as ProductIdentityReviewRow).brand} ${(row as ProductIdentityReviewRow).name} ${(row as ProductIdentityReviewRow).sku ?? ""} ${(row as ProductIdentityReviewRow).barcode ?? ""}`
+        : `${(row as CustomerIdentityReviewRow).name} ${(row as CustomerIdentityReviewRow).email ?? ""} ${(row as CustomerIdentityReviewRow).phone ?? ""} ${(row as CustomerIdentityReviewRow).whatsapp_number ?? ""}`;
+      return (normalizeIdentityText(text) ?? "").includes(normalizedQueueSearch);
+    });
+  }, [isProduct, missingRows, normalizedQueueSearch]);
+  const filteredExamples = useMemo(() => {
+    if (!normalizedQueueSearch) return summary.examples;
+    return summary.examples.filter(example =>
+      (normalizeIdentityText(`${example.label} ${example.issue}`) ?? "").includes(normalizedQueueSearch));
+  }, [normalizedQueueSearch, summary.examples]);
+
+  const exportCsv = () => {
+    if (rows.length === 0) return;
+    const csv = buildIdentityReviewCsv(entity, rows);
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = href;
+    anchor.download = identityReviewFilename(entity);
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(href), 0);
+  };
   const title = isProduct ? "Identidad del catálogo" : "Identidad de clientes";
   const description = isProduct
     ? "SKU y EAN son la llave entre POS, tienda e integraciones. Los nombres sólo generan candidatos, nunca fusiones automáticas."
@@ -130,9 +161,14 @@ export default function IdentityHealthPanel({ entity, orgId, onOpenProduct, onOp
             <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-muted-foreground">{description}</p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={load} disabled={loading} title="Volver a analizar identidad">
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-        </Button>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2 text-[11px]" onClick={exportCsv} disabled={loading || !!error || rows.length === 0} title="Descargar este reporte como CSV">
+            <Download className="h-3.5 w-3.5" />CSV
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={load} disabled={loading} title="Volver a analizar identidad">
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -179,8 +215,18 @@ export default function IdentityHealthPanel({ entity, orgId, onOpenProduct, onOp
               {missingRows.length === 0 ? (
                 <p className="rounded-md border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-400">No hay fichas incompletas en el reporte actual.</p>
               ) : (
-                <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
-                  {missingRows.map(row => {
+                <>
+                  <div className="mb-2 flex items-center gap-2">
+                    <div className="relative min-w-0 flex-1">
+                      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                      <Input value={queueSearch} onChange={event => setQueueSearch(event.target.value)} placeholder={isProduct ? "Buscar producto, SKU o EAN" : "Buscar cliente o contacto"} className="h-8 pl-8 text-xs" />
+                    </div>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">{filteredMissingRows.length}/{missingRows.length}</span>
+                  </div>
+                  <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
+                  {filteredMissingRows.length === 0 ? (
+                    <p className="rounded-md border border-border/50 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">No hay coincidencias para esa búsqueda.</p>
+                  ) : filteredMissingRows.map(row => {
                     const label = isProduct
                       ? `${(row as ProductIdentityReviewRow).brand} · ${(row as ProductIdentityReviewRow).name}`
                       : (row as CustomerIdentityReviewRow).name;
@@ -199,7 +245,8 @@ export default function IdentityHealthPanel({ entity, orgId, onOpenProduct, onOp
                       </div>
                     );
                   })}
-                </div>
+                  </div>
+                </>
               )}
             </TabsContent>
 
@@ -207,8 +254,18 @@ export default function IdentityHealthPanel({ entity, orgId, onOpenProduct, onOp
               {summary.examples.length === 0 ? (
                 <p className="rounded-md border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-400">No hay candidatos para revisar en el reporte actual.</p>
               ) : (
-                <div className="space-y-1.5">
-                  {summary.examples.map(example => (
+                <>
+                  <div className="mb-2 flex items-center gap-2">
+                    <div className="relative min-w-0 flex-1">
+                      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                      <Input value={queueSearch} onChange={event => setQueueSearch(event.target.value)} placeholder="Buscar candidato o motivo" className="h-8 pl-8 text-xs" />
+                    </div>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">{filteredExamples.length}/{summary.examples.length}</span>
+                  </div>
+                  <div className="space-y-1.5">
+                  {filteredExamples.length === 0 ? (
+                    <p className="rounded-md border border-border/50 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">No hay coincidencias para esa búsqueda.</p>
+                  ) : filteredExamples.map(example => (
                     <div key={example.id} className="flex items-center justify-between gap-3 rounded-md bg-muted/20 px-2.5 py-2 text-xs">
                       <div className="min-w-0">
                         <p className="truncate font-medium">{example.label}</p>
@@ -221,7 +278,8 @@ export default function IdentityHealthPanel({ entity, orgId, onOpenProduct, onOp
                       )}
                     </div>
                   ))}
-                </div>
+                  </div>
+                </>
               )}
               {summary.reviewRows > summary.examples.length && (
                 <p className="mt-2 text-[10px] text-muted-foreground">Se muestran los primeros {summary.examples.length} candidatos para mantener la pantalla compacta.</p>

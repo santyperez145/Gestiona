@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useMemo, useCallback } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import {
   getSalesDB, getDebtsDB, getSettingsDB, formatARS,
@@ -1393,6 +1393,7 @@ export default function CustomersPage() {
   );
   const [bulkBdayWaOpen, setBulkBdayWaOpen] = useState(false);
   const navigate = useNavigate();
+  const [identityParams, setIdentityParams] = useSearchParams();
 
   // Reset follow-up form when switching customers
   useEffect(() => {
@@ -1463,6 +1464,17 @@ export default function CustomersPage() {
   };
 
   useEffect(() => { loadData(); }, [user]);
+
+  useEffect(() => {
+    const identityId = identityParams.get("identity");
+    if (!identityId || loading) return;
+    const profile = profiles.find(item => item.id === identityId);
+    if (!profile) return;
+    setFormModal({ open: true, profile });
+    const next = new URLSearchParams(identityParams);
+    next.delete("identity");
+    setIdentityParams(next, { replace: true });
+  }, [identityParams, loading, profiles, setIdentityParams]);
 
   useEffect(() => {
     if (!activeOrg) return;
