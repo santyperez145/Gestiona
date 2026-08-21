@@ -19,6 +19,7 @@ import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 interface ReturnReason { id: string; name: string; requires_photo: boolean; is_active: boolean; }
 interface ReturnRequest {
   id: string; rma_number: string; customer_name: string; customer_email: string | null;
+  ecommerce_order_id: string | null;
   product_name: string; quantity: number; condition: string; resolution: string | null;
   refund_amount: number | null; refund_method: string | null; status: string;
   reason_text: string | null; created_at: string; resolved_at: string | null;
@@ -28,6 +29,7 @@ interface ReturnRequest {
   customers: { name: string } | null;
 }
 interface OurProduct { id: string; name: string; }
+interface RefundStatus { return_request_id: string; status: string; failure_reason: string | null; }
 
 /* ─────────────────────────── configs ─────────────────────────── */
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -63,6 +65,7 @@ export default function ReturnsPortalTab() {
     "Solicitudes",
   );
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
+  const [refunds, setRefunds] = useState<Record<string, RefundStatus>>({});
   const [reasons, setReasons] = useState<ReturnReason[]>([]);
   const [products, setProducts] = useState<OurProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +78,7 @@ export default function ReturnsPortalTab() {
   const [showRejectDialog, setShowRejectDialog] = useState<ReturnRequest | null>(null);
   const [showReasonDialog, setShowReasonDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [executingRefundId, setExecutingRefundId] = useState<string | null>(null);
 
   /* forms */
   const blankForm = { customer_name: "", customer_email: "", product_name: "", product_id: "", quantity: "1", reason_id: "", reason_text: "", condition: "unknown", notes: "" };
@@ -85,14 +89,18 @@ export default function ReturnsPortalTab() {
   const load = useCallback(async () => {
     if (!orgId) return;
     setLoading(true);
-    const [rr, reaR, pr] = await Promise.allSettled([
+    const [rr, reaR, pr, fr] = await Promise.allSettled([
       supabase.from("return_requests").select("*, return_reasons(name), customers(name)").eq("org_id", orgId).order("created_at", { ascending: false }),
       supabase.from("return_reasons").select("*").eq("org_id", orgId).order("sort_order"),
       supabase.from("products").select("id,name").eq("org_id", orgId).order("name"),
+      supabase.from("payment_refunds").select("return_request_id,status,failure_reason").eq("org_id", orgId),
     ]);
     if (rr.status === "fulfilled" && rr.value.data) setReturns(rr.value.data as ReturnRequest[]);
     if (reaR.status === "fulfilled" && reaR.value.data) setReasons(reaR.value.data as ReturnReason[]);
     if (pr.status === "fulfilled" && pr.value.data) setProducts(pr.value.data as OurProduct[]);
+    if (fr.status === "fulfilled" && fr.value.data) {
+      setRefunds(Object.fromEntries((fr.value.data as RefundStatus[]).map(refund => [refund.return_request_id, refund])));
+    }
     setLoading(false);
   }, [orgId]);
 
@@ -152,6 +160,27 @@ export default function ReturnsPortalTab() {
   async function resolveReturn(id: string) {
     await supabase.from("return_requests").update({ status: "resolved", resolved_at: new Date().toISOString() }).eq("id", id);
     toast.success("Marcado como resuelto");
+    load();
+  }
+
+  async function executeRefund(request: ReturnRequest) {
+    if (!orgId || executingRefundId) return;
+    setExecutingRefundId(request.id);
+    const { data, error } = await supabase.functions.invoke("refund-store-payment", {
+      body: { orgId, returnRequestId: request.id },
+    });
+    setExecutingRefundId(null);
+
+    if (error) {
+      toast.error(error.message || "No se pudo ejecutar el reintegro");
+      load();
+      return;
+    }
+    if (data?.status === "processing") {
+      toast.info("El reintegro quedó en verificación y conserva la misma clave de idempotencia");
+    } else {
+      toast.success("Reintegro confirmado en MercadoPago");
+    }
     load();
   }
 
@@ -218,6 +247,12 @@ export default function ReturnsPortalTab() {
                   <tbody className="divide-y">
                     {filtered.map(r => {
                       const st = STATUS_CONFIG[r.status] ?? STATUS_CONFIG.pending;
+                      const refund = refunds[r.id];
+                      const needsProviderRefund = r.status === "approved"
+                        && r.resolution === "refund"
+                        && r.refund_method === "original_payment"
+                        && !!r.ecommerce_order_id;
+                      const refundBusy = executingRefundId === r.id || refund?.status === "processing";
                       return (
                         <tr key={r.id} className="hover:bg-muted/20">
                           <td className="px-4 py-3 font-mono text-xs text-primary">{r.rma_number}</td>
@@ -241,8 +276,22 @@ export default function ReturnsPortalTab() {
                                   <Button size="sm" variant="outline" className="text-red-400 border-red-400/30 hover:bg-red-400/10 text-xs" onClick={() => { setShowRejectDialog(r); setRejectReason(""); }}>Rechazar</Button>
                                 </>
                               )}
-                              {r.status === "approved" && <Button size="sm" variant="outline" className="text-xs" onClick={() => resolveReturn(r.id)}>Resolver</Button>}
+                              {needsProviderRefund && refund?.status !== "refunded" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10"
+                                  disabled={refundBusy}
+                                  onClick={() => executeRefund(r)}
+                                >
+                                  {refundBusy ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <DollarSign className="w-3 h-3 mr-1" />}
+                                  {refundBusy ? "Procesando" : refund?.status === "failed" ? "Reintentar" : "Ejecutar reintegro"}
+                                </Button>
+                              )}
+                              {r.status === "approved" && !needsProviderRefund && <Button size="sm" variant="outline" className="text-xs" onClick={() => resolveReturn(r.id)}>Resolver</Button>}
                             </div>
+                            {refund?.status === "refunded" && <span className="mt-1 block text-[11px] text-emerald-500">Reintegrado por MercadoPago</span>}
+                            {refund?.status === "failed" && <span className="mt-1 block max-w-44 text-[11px] text-destructive" title={refund.failure_reason ?? undefined}>Falló: {refund.failure_reason || "revisar conexión"}</span>}
                           </td>
                         </tr>
                       );

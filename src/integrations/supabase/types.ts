@@ -15020,6 +15020,146 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_refunds: {
+        Row: {
+          amount: number
+          attempt_count: number
+          client_key: string
+          created_at: string
+          currency: string
+          ecommerce_order_id: string
+          external_refund_id: string | null
+          failure_reason: string | null
+          id: string
+          last_attempt_at: string
+          org_id: string
+          processed_at: string | null
+          provider: string
+          provider_payment_id: string
+          raw: Json | null
+          requested_at: string
+          requested_by: string | null
+          return_request_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          attempt_count?: number
+          client_key: string
+          created_at?: string
+          currency?: string
+          ecommerce_order_id: string
+          external_refund_id?: string | null
+          failure_reason?: string | null
+          id?: string
+          last_attempt_at?: string
+          org_id: string
+          processed_at?: string | null
+          provider?: string
+          provider_payment_id: string
+          raw?: Json | null
+          requested_at?: string
+          requested_by?: string | null
+          return_request_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          attempt_count?: number
+          client_key?: string
+          created_at?: string
+          currency?: string
+          ecommerce_order_id?: string
+          external_refund_id?: string | null
+          failure_reason?: string | null
+          id?: string
+          last_attempt_at?: string
+          org_id?: string
+          processed_at?: string | null
+          provider?: string
+          provider_payment_id?: string
+          raw?: Json | null
+          requested_at?: string
+          requested_by?: string | null
+          return_request_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_refunds_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_refunds_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_facturar"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "payment_refunds_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_iva"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_refunds_return_request_id_fkey"
+            columns: ["return_request_id"]
+            isOneToOne: false
+            referencedRelation: "return_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_routing: {
         Row: {
           created_at: string
@@ -31802,6 +31942,29 @@ export type Database = {
           prioridad: number
           provider: string
         }[]
+      }
+      pago_reintegro_preparar:
+        | {
+            Args: {
+              p_org_id: string
+              p_requested_by?: string
+              p_return_request_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: { p_requested_by?: string; p_return_request_id: string }
+            Returns: Json
+          }
+      pago_reintegro_resultado: {
+        Args: {
+          p_external_id?: string
+          p_failure_reason?: string
+          p_raw?: Json
+          p_refund_id: string
+          p_status: string
+        }
+        Returns: Json
       }
       pago_reintentar: { Args: { p_intent_id: string }; Returns: Json }
       pending_abandoned_carts: {

@@ -89,9 +89,9 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | Políticas RLS | **365** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
 | Migraciones registradas | **362** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate` |
 | Cron jobs | **20** | ✅ 8.801 corridas exitosas y **0 fallidas** en 7 días |
-| Edge Functions | **61** | ✅ `ls supabase/functions` |
+| Edge Functions | **62** | ✅ `ls supabase/functions` |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **1.170** | ✅ `npm test`, 2026-08-21 |
+| Tests unitarios | **1.187** | ✅ `npm test`, 2026-08-21 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -129,7 +129,7 @@ antes de conectarse— pero el invariante documentado quedó desactualizado.
 | Suscripciones cobradas | **0** | ✅ 3 registros, las 3 en `past_due` |
 
 ⚠️ **Este es el dato que ordena todo el documento.** Tenemos una plataforma de
-280 tablas y 1.170 tests sirviendo a **un solo comercio real**. Tiendanube tiene
+280 tablas y 1.187 tests sirviendo a **un solo comercio real**. Tiendanube tiene
 ❓ más de 130.000 tiendas activas (fuente secundaria: blog de un competidor,
 [tiendli.com](https://tiendli.com/blog/tiendanube-vs-empretienda-vs-shopify-vs-tiendli/),
 2026 — **verificar antes de citarlo**). Shopify tiene ✅ 2.898.351 tiendas vivas
@@ -276,16 +276,16 @@ necesita un SaaS de 4 organizaciones. No es el cuello de botella.
 | **Observabilidad** | ✅ Sentry en el front. 🔴 Sin trazas, sin métricas, sin OpenTelemetry | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | ✅ **Ninguno** | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ 3 jobs: `build` (lint+typecheck+build), `test` (1.170 tests) y `security` (`npm audit`). ⚠️ **Sin `deno check` sobre las 61 Edge Functions** y sin E2E | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟠 Medio |
+| **CI** | ✅ 3 jobs: `build` (lint+typecheck+build), `test` (1.187 tests) y `security` (`npm audit`). ⚠️ **Sin `deno check` sobre las 62 Edge Functions** y sin E2E | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟠 Medio |
 | **API pública / webhooks salientes** | 🔴 No hay | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
 | **SOC 2 / ISO 27001** | 🔴 | Requisito para vender a empresas | 🟢 Bajo hoy |
 
-⚠️ **El agujero real del CI son las Edge Functions.** Los 1.170 tests sí corren
+⚠️ **El agujero real del CI son las Edge Functions.** Los 1.187 tests sí corren
 —en un job `test` separado— y además hay un job `security` con `npm audit`
 bloqueante para vulnerabilidades críticas de producción. Lo que **no** se chequea
-es el código de las 61 Edge Functions: no hay `deno check` en ningún paso.
+es el código de las 62 Edge Functions: no hay `deno check` en ningún paso.
 
 Eso no es teórico. La facturación de AFIP estuvo rota **por un `invoice_id` que
 debía ser `invoiceId`** en el camino de éxito: ARCA otorgaba el CAE y el código
@@ -313,7 +313,7 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
 
 ### Nivel 1 — Sin esto no se puede vender a nadie (semanas)
 
-1. **`deno check` en el CI.** Las 61 Edge Functions —donde vive el cobro, el
+1. **`deno check` en el CI.** Las 62 Edge Functions —donde vive el cobro, el
    webhook de MercadoPago y la facturación— no tienen chequeo de tipos en
    ninguna parte del pipeline. Es donde ya se escapó un bug que rompía la
    facturación entera. Requiere arreglar antes 2 errores preexistentes en
@@ -340,8 +340,10 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
 9. **~~Enchufar el orquestador de pagos al checkout.~~** ✅ Cerrado en el slice
    P0.3.1 (2026-08-21): `store-pay` registra intención e intento tanto para
    preferencia externa como para Brick; el webhook reconcilia la misma orden.
-   Quedan fuera de este cierre captura, reintegro, factura y recepción, que
-   necesitan el mismo contrato.
+   ✅ El slice P0.3.2 agrega el reintegro de RMA por MercadoPago con monto
+   validado en SQL, token sólo server-side y `X-Idempotency-Key`. Quedan fuera
+   captura, factura y recepción, que necesitan el mismo contrato y evidencia
+   sandbox del proveedor.
 10. **Separar el bundle de la tienda del bundle del panel.**
 11. **Suscripción cobrada de punta a punta.** Hay 3 registros, los 3 en
     `past_due`, y ninguno cobró nunca.
@@ -375,13 +377,13 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
 ## 8. El resumen en cinco líneas
 
 1. ✅ **Técnicamente estamos mejor de lo que corresponde a nuestro tamaño**: RLS
-   real, ledger, outbox, idempotencia, 1.170 tests.
+   real, ledger, outbox, idempotencia, 1.187 tests.
 2. ✅ **Comercialmente no existimos todavía**: 1 comercio, 0 facturas, 0
    asientos, 0 suscripciones cobradas.
 3. ⚠️ **Perdimos el diferencial del POS** — Tiendanube ya lo tiene.
 4. ✅ **Ganamos uno mejor**: facturación ARCA nativa sin certificado por comercio
    y margen real con los cuatro datos. Falta probarlo en producción.
-5. ⚠️ **Lo más urgente es barato**: las 61 Edge Functions —cobros, webhooks,
+5. ⚠️ **Lo más urgente es barato**: las 62 Edge Functions —cobros, webhooks,
    facturación— no pasan por ningún chequeo de tipos en el CI, y ahí ya se
    escapó un bug que dejó la facturación rota durante meses.
 

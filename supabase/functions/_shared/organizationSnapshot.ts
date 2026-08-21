@@ -24,7 +24,7 @@ export const SNAPSHOT_TABLES_V1 = [
   "sales", "sale_items", "sale_transactions", "quotes", "invoices", "debts", "debt_payments", "expenses",
   "financial_movements", "financial_line_items", "financial_scenarios", "cash_sessions",
   "cash_entries", "cashflow_entries", "cash_projections", "customer_payments", "cheques",
-  "payment_links", "payment_transactions", "return_requests", "returns", "shipments", "deliveries",
+  "payment_links", "payment_transactions", "payment_refunds", "return_requests", "returns", "shipments", "deliveries",
   "tax_declarations", "tax_rates", "withholding_records",
   // Clientes, CRM, fidelidad y tareas
   "customers", "customer_notes", "customer_segments", "customer_subscriptions",

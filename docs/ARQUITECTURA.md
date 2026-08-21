@@ -111,9 +111,12 @@ cobrarle lo que no pidió.
 
 ✅ **El cobro inicial de la tienda ya usa el contrato común** (P0.3.1):
 `store-pay` prepara la intención y el intento, conserva la clave canónica del
-proveedor y el webhook reconcilia el resultado eventual. ⚠️ Falta llevar la
-misma primitiva a captura, reintegro, factura y recepción de compra. Cada uno
-que falta sigue siendo un doble asiento potencial. Va como I6.
+proveedor y el webhook reconcilia el resultado eventual. ✅ **El reintegro de un
+RMA online ya usa el contrato común** (P0.3.2): `payment_refunds` conserva la
+clave estable, el RPC valida el tenant, la Edge Function exige owner/admin y el
+monto se valida en SQL.
+⚠️ Falta llevar la misma primitiva a captura, factura y recepción de compra.
+Cada uno que falta sigue siendo un doble asiento potencial. Va como I6.
 
 ### H2 — Eventos durables y outbox (✅ hecho, sesión 112)
 

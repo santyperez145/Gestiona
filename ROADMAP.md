@@ -115,7 +115,7 @@ P0.2 en un circuito auditable de medir → revisar → editar en origen, listo p
 que el dueño complete datos reales antes de evaluar restricciones únicas.
 
 **Salida verificada:** 3 tests unitarios nuevos cubren formato, estados,
-escape y neutralización de fórmulas; typecheck, lint, smoke tests, 1.182 tests
+escape y neutralización de fórmulas; typecheck, lint, smoke tests, 1.187 tests
 completos y build pasan. No hubo migración ni cambios de datos reales.
 
 **P0.3.1 — Checkout conectado al orquestador (cerrado 2026-08-21).** La
@@ -138,17 +138,44 @@ webhook firmado.
 **Salida verificada:** migración aplicada y registrada, objetos comprobados en
 la base vinculada, `db push --linked --dry-run` en `upToDate`, 14 tests de
 autoridad de checkout/Edge Functions, funciones activas en Supabase y sin filas
-de prueba. El cobro sandbox aprobado/rechazado/pending y el reintegro real
-siguen siendo evidencia externa pendiente; no se inventan como verificados.
+de prueba. El cobro sandbox aprobado/rechazado/pending y la confirmación
+externa del reintegro siguen siendo evidencia del proveedor pendiente; no se
+inventan como verificados.
+
+**P0.3.2 — Reintegro real desde el Portal RMA (cerrado en código y base
+2026-08-21).** `payment_refunds` separa el hecho financiero del RMA y conserva
+una clave estable por solicitud. `pago_reintegro_preparar` bloquea la solicitud
+y la orden, valida que el RMA pertenezca al tenant solicitado, valida que el
+reembolso sea al medio original, vuelve a calcular el saldo disponible contra
+los reintegros ya asentados y nunca acepta el monto del navegador.
+`pago_reintegro_resultado` actualiza el RMA, deja la orden en
+`partial` o `refunded` y no repone stock: la mercadería sigue teniendo que
+volver por su operación física y `record_stock_movement`.
+
+`refund-store-payment` exige sesión real y rol owner/admin, obtiene el token
+únicamente con `service_role`, llama a
+`POST /v1/payments/{id}/refunds` con `X-Idempotency-Key` y guarda sólo una
+respuesta saneada. Un error definitivo permite reintentar con la misma clave;
+un timeout conserva `processing` para no arriesgar un doble reintegro. El Portal
+RMA reemplaza el “Resolver” local por “Ejecutar reintegro” cuando corresponde y
+muestra fallas o verificación en curso.
+
+**Salida verificada:** migración aplicada y registrada, `db push --linked
+--dry-run` en `upToDate`, RLS activa, 0 filas de reembolso y sin permisos de
+lectura anónima, escritura autenticada o ejecución autenticada de los RPCs.
+Cinco tests de autoridad cubren monto, permisos, idempotencia, timeout y UI.
+No se llamó a MercadoPago con una orden real: la matriz sandbox aprobada,
+rechazada, pendiente y revertida sigue pendiente de credenciales de prueba.
 
 ### Siguiente trabajo ya ordenado
 
 - P0.2: usar el Centro de calidad de datos para completar SKU/EAN y cobertura
   de contacto con datos reales, revisar candidatos con evidencia y recién
   entonces evaluar restricciones únicas por organización.
-- P0.3: cerrar captura, reintegro, factura y recepción con el mismo contrato;
-  luego ejecutar una matriz sandbox aprobada/rechazada/pending/revertida y
-  revisar la conciliación sin doble asiento.
+- P0.3: cerrar captura, factura y recepción con el mismo contrato; luego
+  ejecutar una matriz sandbox aprobada/rechazada/pending/revertida y revisar la
+  conciliación sin doble asiento. El reintegro ya tiene camino server-side,
+  idempotencia y operación visible; falta evidencia externa del proveedor.
 - P0.4: ejecutar el circuito ARCA con certificado de homologación y una factura
   de prueba.
 - P0.5: acompañar el alta de un segundo comercio y medir tiempo a catálogo,
