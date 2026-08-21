@@ -70,7 +70,12 @@ describe("Checkout Brick de tienda", () => {
   it("no reutiliza una orden revertida para volver a cobrar ni despachar", () => {
     expect(storePay).toContain('["pending", "failed"].includes(order.payment_status)');
     expect(webhook).toContain('status === "refunded" || status === "charged_back"');
-    expect(webhook).toContain('admin.rpc("handle_store_order_payment_reversal"');
+  expect(webhook).toContain('admin.rpc("handle_store_order_payment_reversal"');
+  expect(webhook).toContain("reconcilePendingStoreRefunds");
+  expect(webhook).toContain("/v1/payments/${encodeURIComponent(paymentId)}/refunds");
+  expect(webhook).toContain('admin.rpc("pago_reintegro_resultado"');
+  expect(webhook).toContain('p_status: "refunded"');
+  expect(webhook).toContain("localSameAmount.length === 1");
     expect(orderScreen).toContain("puedeReintentarPago");
   });
 });

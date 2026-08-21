@@ -91,7 +91,7 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | Cron jobs | **20** | ✅ 8.801 corridas exitosas y **0 fallidas** en 7 días |
 | Edge Functions | **62** | ✅ `ls supabase/functions` |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **1.187** | ✅ `npm test`, 2026-08-21 |
+| Tests unitarios | **1.189** | ✅ `npm test`, 2026-08-21 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -129,7 +129,7 @@ antes de conectarse— pero el invariante documentado quedó desactualizado.
 | Suscripciones cobradas | **0** | ✅ 3 registros, las 3 en `past_due` |
 
 ⚠️ **Este es el dato que ordena todo el documento.** Tenemos una plataforma de
-280 tablas y 1.187 tests sirviendo a **un solo comercio real**. Tiendanube tiene
+280 tablas y 1.189 tests sirviendo a **un solo comercio real**. Tiendanube tiene
 ❓ más de 130.000 tiendas activas (fuente secundaria: blog de un competidor,
 [tiendli.com](https://tiendli.com/blog/tiendanube-vs-empretienda-vs-shopify-vs-tiendli/),
 2026 — **verificar antes de citarlo**). Shopify tiene ✅ 2.898.351 tiendas vivas
@@ -276,13 +276,13 @@ necesita un SaaS de 4 organizaciones. No es el cuello de botella.
 | **Observabilidad** | ✅ Sentry en el front. 🔴 Sin trazas, sin métricas, sin OpenTelemetry | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | ✅ **Ninguno** | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ 3 jobs: `build` (lint+typecheck+build), `test` (1.187 tests) y `security` (`npm audit`). ⚠️ **Sin `deno check` sobre las 62 Edge Functions** y sin E2E | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟠 Medio |
+| **CI** | ✅ 3 jobs: `build` (lint+typecheck+build), `test` (1.189 tests) y `security` (`npm audit`). ⚠️ **Sin `deno check` sobre las 62 Edge Functions** y sin E2E | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟠 Medio |
 | **API pública / webhooks salientes** | 🔴 No hay | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
 | **SOC 2 / ISO 27001** | 🔴 | Requisito para vender a empresas | 🟢 Bajo hoy |
 
-⚠️ **El agujero real del CI son las Edge Functions.** Los 1.187 tests sí corren
+⚠️ **El agujero real del CI son las Edge Functions.** Los 1.189 tests sí corren
 —en un job `test` separado— y además hay un job `security` con `npm audit`
 bloqueante para vulnerabilidades críticas de producción. Lo que **no** se chequea
 es el código de las 62 Edge Functions: no hay `deno check` en ningún paso.
@@ -340,10 +340,10 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
 9. **~~Enchufar el orquestador de pagos al checkout.~~** ✅ Cerrado en el slice
    P0.3.1 (2026-08-21): `store-pay` registra intención e intento tanto para
    preferencia externa como para Brick; el webhook reconcilia la misma orden.
-   ✅ El slice P0.3.2 agrega el reintegro de RMA por MercadoPago con monto
-   validado en SQL, token sólo server-side y `X-Idempotency-Key`. Quedan fuera
-   captura, factura y recepción, que necesitan el mismo contrato y evidencia
-   sandbox del proveedor.
+   ✅ P0.3.2/P0.3.3 agrega el reintegro de RMA por MercadoPago con monto
+   validado en SQL, token sólo server-side, `X-Idempotency-Key`, reconciliación
+   por webhook y recepción física idempotente. Quedan fuera captura, factura y
+   recepción de compra, que necesitan el mismo contrato y evidencia sandbox.
 10. **Separar el bundle de la tienda del bundle del panel.**
 11. **Suscripción cobrada de punta a punta.** Hay 3 registros, los 3 en
     `past_due`, y ninguno cobró nunca.
@@ -377,7 +377,7 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
 ## 8. El resumen en cinco líneas
 
 1. ✅ **Técnicamente estamos mejor de lo que corresponde a nuestro tamaño**: RLS
-   real, ledger, outbox, idempotencia, 1.187 tests.
+   real, ledger, outbox, idempotencia, 1.189 tests.
 2. ✅ **Comercialmente no existimos todavía**: 1 comercio, 0 facturas, 0
    asientos, 0 suscripciones cobradas.
 3. ⚠️ **Perdimos el diferencial del POS** — Tiendanube ya lo tiene.

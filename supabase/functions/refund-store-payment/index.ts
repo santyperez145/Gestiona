@@ -21,8 +21,8 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 });
 
 function cleanText(value: unknown, maxLength = 500): string | null {
-  if (typeof value !== "string") return null;
-  const clean = value.trim();
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const clean = String(value).trim();
   return clean ? clean.slice(0, maxLength) : null;
 }
 
@@ -39,6 +39,22 @@ function providerSnapshot(value: unknown): Record<string, unknown> {
   };
 }
 
+function providerRefundRows(value: unknown): Record<string, unknown>[] {
+  if (Array.isArray(value)) return value.filter((row): row is Record<string, unknown> => !!row && typeof row === "object");
+  if (!value || typeof value !== "object") return [];
+  const rows = (value as Record<string, unknown>).refunds;
+  return Array.isArray(rows)
+    ? rows.filter((row): row is Record<string, unknown> => !!row && typeof row === "object")
+    : [];
+}
+
+function refundCollectionSnapshot(rows: Record<string, unknown>[]): Record<string, unknown> {
+  return {
+    source: "mercadopago_refund_list",
+    refunds: rows.slice(0, 25).map(providerSnapshot),
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método no permitido" }, 405);
@@ -50,8 +66,12 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const orgId = cleanText(body.orgId, 80);
     const returnRequestId = cleanText(body.returnRequestId, 80);
+    const action = cleanText(body.action, 20) ?? "execute";
     if (!orgId || !returnRequestId) {
       return json({ error: "Faltan la organización o la solicitud de devolución" }, 400);
+    }
+    if (action !== "execute" && action !== "reconcile") {
+      return json({ error: "Operación de reintegro inválida" }, 400);
     }
 
     const admin = createClient(
@@ -73,11 +93,16 @@ Deno.serve(async (req) => {
       return json({ error: "Sólo el dueño o un administrador puede ejecutar reintegros" }, 403);
     }
 
-    const { data: prepared, error: prepareError } = await admin.rpc("pago_reintegro_preparar", {
-      p_org_id: orgId,
-      p_return_request_id: returnRequestId,
-      p_requested_by: auth.user.id,
-    });
+    const { data: prepared, error: prepareError } = action === "reconcile"
+      ? await admin.rpc("pago_reintegro_estado", {
+        p_org_id: orgId,
+        p_return_request_id: returnRequestId,
+      })
+      : await admin.rpc("pago_reintegro_preparar", {
+        p_org_id: orgId,
+        p_return_request_id: returnRequestId,
+        p_requested_by: auth.user.id,
+      });
     if (prepareError) {
       console.error("pago_reintegro_preparar:", prepareError);
       return json({ error: cleanText(prepareError.message, 500) ?? "No se pudo preparar el reintegro" }, 422);
@@ -86,6 +111,15 @@ Deno.serve(async (req) => {
     const refund = (prepared ?? {}) as Record<string, unknown>;
     if (refund.already_refunded === true) {
       return json({ ok: true, status: "refunded", reused: true, refundId: refund.refund_id });
+    }
+    if (action === "reconcile" && refund.status === "not_started") {
+      return json({ ok: true, status: "not_started", refundId: null });
+    }
+    if (action === "reconcile" && refund.status === "refunded") {
+      return json({ ok: true, status: "refunded", refundId: refund.refund_id, reused: true });
+    }
+    if (action === "reconcile" && refund.status === "failed") {
+      return json({ ok: false, status: "failed", refundId: refund.refund_id, error: refund.failure_reason ?? "El reintegro falló" }, 422);
     }
 
     const actualOrgId = cleanText(refund.org_id, 80);
@@ -108,6 +142,63 @@ Deno.serve(async (req) => {
         p_raw: { source: "gestion", reason: "missing_credentials" },
       });
       return json({ error: "La cuenta de MercadoPago no está conectada" }, 422);
+    }
+
+    if (action === "reconcile") {
+      let providerResponse: Response;
+      let providerPayload: unknown;
+      try {
+        providerResponse = await fetch(
+          `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}/refunds`,
+          { headers: { Authorization: `Bearer ${credentials.accessToken}` } },
+        );
+        providerPayload = await providerResponse.json().catch(() => ({}));
+      } catch (error) {
+        console.error("refund-store-payment reconcile network:", error);
+        return json({ ok: true, status: "processing", refundId, message: "MercadoPago no respondió; el reintegro sigue en verificación." }, 202);
+      }
+
+      if (!providerResponse.ok) {
+        console.error("refund-store-payment reconcile provider:", providerResponse.status);
+        return json({ ok: true, status: "processing", refundId, message: "No se pudo consultar MercadoPago; el reintegro sigue en verificación." }, 202);
+      }
+
+      const rows = providerRefundRows(providerPayload);
+      const expectedExternalId = cleanText(refund.external_refund_id, 120);
+      const candidates = rows.filter(row => {
+        if (String(row.status ?? "").toLowerCase() !== "approved") return false;
+        const rowId = cleanText(row.id, 120);
+        if (expectedExternalId) return rowId === expectedExternalId;
+        return Math.abs(Number(row.amount) - amount) < 0.01;
+      });
+
+      if (candidates.length !== 1) {
+        await admin.rpc("pago_reintegro_observar", {
+          p_refund_id: refundId,
+          p_raw: refundCollectionSnapshot(rows),
+        });
+        return json({
+          ok: true,
+          status: "processing",
+          refundId,
+          message: candidates.length > 1
+            ? "Hay más de un reintegro compatible en MercadoPago; requiere revisión."
+            : "MercadoPago todavía no muestra un reintegro confirmado.",
+        }, 202);
+      }
+
+      const confirmed = providerSnapshot(candidates[0]);
+      const { data: settled, error: settleError } = await admin.rpc("pago_reintegro_resultado", {
+        p_refund_id: refundId,
+        p_status: "refunded",
+        p_external_id: cleanText(candidates[0].id, 120),
+        p_raw: confirmed,
+      });
+      if (settleError) {
+        console.error("pago_reintegro_resultado reconcile:", settleError);
+        return json({ ok: true, status: "processing", refundId, message: "El proveedor confirmó el reintegro; falta sincronizar Gestiona." }, 202);
+      }
+      return json({ ok: true, status: "refunded", refundId, orderPaymentStatus: (settled as Record<string, unknown> | null)?.order_payment_status ?? null });
     }
 
     const refundBody = isTotal ? {} : { amount };
@@ -159,6 +250,19 @@ Deno.serve(async (req) => {
     }
 
     const snapshot = providerSnapshot(providerPayload);
+    const providerStatus = cleanText((providerPayload as Record<string, unknown>)?.status, 80)?.toLowerCase();
+    if (providerStatus !== "approved") {
+      await admin.rpc("pago_reintegro_observar", {
+        p_refund_id: refundId,
+        p_raw: snapshot,
+      });
+      return json({
+        ok: true,
+        status: "processing",
+        refundId,
+        message: "MercadoPago recibió la operación, pero todavía no confirmó el reintegro.",
+      }, 202);
+    }
     const externalRefundId = cleanText((providerPayload as Record<string, unknown>)?.id, 120);
     const { data: settled, error: settleError } = await admin.rpc("pago_reintegro_resultado", {
       p_refund_id: refundId,

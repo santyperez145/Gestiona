@@ -20554,6 +20554,8 @@ export type Database = {
       }
       return_requests: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           condition: string
           created_at: string
           customer_email: string | null
@@ -20561,14 +20563,17 @@ export type Database = {
           customer_name: string
           ecommerce_order_id: string | null
           id: string
+          notes: string | null
           org_id: string
           product_id: string | null
           product_name: string
           quantity: number
           reason_id: string | null
           reason_text: string | null
+          received_at: string | null
           refund_amount: number | null
           refund_method: string | null
+          rejected_reason: string | null
           resolution: string | null
           resolved_at: string | null
           return_shipping_amount: number | null
@@ -20578,9 +20583,12 @@ export type Database = {
           rma_number: string
           status: string
           tipo: string
+          updated_at: string
           variant_id: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           condition?: string
           created_at?: string
           customer_email?: string | null
@@ -20588,14 +20596,17 @@ export type Database = {
           customer_name: string
           ecommerce_order_id?: string | null
           id?: string
+          notes?: string | null
           org_id: string
           product_id?: string | null
           product_name: string
           quantity?: number
           reason_id?: string | null
           reason_text?: string | null
+          received_at?: string | null
           refund_amount?: number | null
           refund_method?: string | null
+          rejected_reason?: string | null
           resolution?: string | null
           resolved_at?: string | null
           return_shipping_amount?: number | null
@@ -20605,9 +20616,12 @@ export type Database = {
           rma_number: string
           status?: string
           tipo?: string
+          updated_at?: string
           variant_id?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           condition?: string
           created_at?: string
           customer_email?: string | null
@@ -20615,14 +20629,17 @@ export type Database = {
           customer_name?: string
           ecommerce_order_id?: string | null
           id?: string
+          notes?: string | null
           org_id?: string
           product_id?: string | null
           product_name?: string
           quantity?: number
           reason_id?: string | null
           reason_text?: string | null
+          received_at?: string | null
           refund_amount?: number | null
           refund_method?: string | null
+          rejected_reason?: string | null
           resolution?: string | null
           resolved_at?: string | null
           return_shipping_amount?: number | null
@@ -20632,6 +20649,7 @@ export type Database = {
           rma_number?: string
           status?: string
           tipo?: string
+          updated_at?: string
           variant_id?: string | null
         }
         Relationships: [
@@ -20804,6 +20822,7 @@ export type Database = {
           quantity: number
           reason: string | null
           refund_method: string
+          return_request_id: string | null
           sale_id: string | null
           user_id: string | null
           variant_id: string | null
@@ -20820,6 +20839,7 @@ export type Database = {
           quantity?: number
           reason?: string | null
           refund_method?: string
+          return_request_id?: string | null
           sale_id?: string | null
           user_id?: string | null
           variant_id?: string | null
@@ -20836,6 +20856,7 @@ export type Database = {
           quantity?: number
           reason?: string | null
           refund_method?: string
+          return_request_id?: string | null
           sale_id?: string | null
           user_id?: string | null
           variant_id?: string | null
@@ -20958,6 +20979,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_return_request_id_fkey"
+            columns: ["return_request_id"]
+            isOneToOne: false
+            referencedRelation: "return_requests"
             referencedColumns: ["id"]
           },
           {
@@ -31943,6 +31971,14 @@ export type Database = {
           provider: string
         }[]
       }
+      pago_reintegro_estado: {
+        Args: { p_org_id: string; p_return_request_id: string }
+        Returns: Json
+      }
+      pago_reintegro_observar: {
+        Args: { p_raw: Json; p_refund_id: string }
+        Returns: Json
+      }
       pago_reintegro_preparar:
         | {
             Args: {
@@ -32078,6 +32114,10 @@ export type Database = {
           p_notes?: string
           p_order_id: string
         }
+        Returns: Json
+      }
+      receive_store_return_request: {
+        Args: { p_return_request_id: string }
         Returns: Json
       }
       record_debt_payment_cash_entry: {

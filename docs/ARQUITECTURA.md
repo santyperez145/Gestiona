@@ -8,10 +8,10 @@ de pago propio, plataforma abierta— y esa ambición **no se alcanza escribiend
 más features**: se alcanza no cerrándose puertas ahora. Casi todo lo que hay acá
 es barato hoy y carísimo dentro de dos años.
 
-Última revisión: 2026-08-19 (H1–H3 cerrados y endurecidos).
+Última revisión: 2026-08-21 (H1–H3 cerrados y endurecidos).
 
 ⚠️ **Este documento no autoriza una reescritura.** El sistema funciona, cobra de
-verdad y tiene 995 tests. Todo se aplica de forma incremental, y cada slice deja
+verdad y tiene 1.189 tests. Todo se aplica de forma incremental, y cada slice deja
 el sistema usable.
 
 ---
@@ -112,9 +112,11 @@ cobrarle lo que no pidió.
 ✅ **El cobro inicial de la tienda ya usa el contrato común** (P0.3.1):
 `store-pay` prepara la intención y el intento, conserva la clave canónica del
 proveedor y el webhook reconcilia el resultado eventual. ✅ **El reintegro de un
-RMA online ya usa el contrato común** (P0.3.2): `payment_refunds` conserva la
-clave estable, el RPC valida el tenant, la Edge Function exige owner/admin y el
-monto se valida en SQL.
+RMA online ya usa el contrato común** (P0.3.2/P0.3.3): `payment_refunds` conserva
+la clave estable, el RPC valida el tenant, la Edge Function exige owner/admin y
+el monto se valida en SQL. `refund-store-payment` puede ejecutar o reconciliar,
+el webhook reconcilia timeouts y `receive_store_return_request` conecta la
+recepción física con `returns` y el Kardex sin tocar stock directamente.
 ⚠️ Falta llevar la misma primitiva a captura, factura y recepción de compra.
 Cada uno que falta sigue siendo un doble asiento potencial. Va como I6.
 

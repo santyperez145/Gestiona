@@ -115,7 +115,7 @@ P0.2 en un circuito auditable de medir → revisar → editar en origen, listo p
 que el dueño complete datos reales antes de evaluar restricciones únicas.
 
 **Salida verificada:** 3 tests unitarios nuevos cubren formato, estados,
-escape y neutralización de fórmulas; typecheck, lint, smoke tests, 1.187 tests
+escape y neutralización de fórmulas; typecheck, lint, smoke tests, 1.189 tests
 completos y build pasan. No hubo migración ni cambios de datos reales.
 
 **P0.3.1 — Checkout conectado al orquestador (cerrado 2026-08-21).** La
@@ -167,15 +167,44 @@ Cinco tests de autoridad cubren monto, permisos, idempotencia, timeout y UI.
 No se llamó a MercadoPago con una orden real: la matriz sandbox aprobada,
 rechazada, pendiente y revertida sigue pendiente de credenciales de prueba.
 
+**P0.3.3 — Operación completa de devolución y reconciliación (cerrado en código
+y base 2026-08-21).** La migración `20260821000047_payment_refund_operations.sql`
+reparó el contrato que faltaba en la base vinculada: campos de aprobación,
+rechazo, recepción, notas y actualización del RMA, estados `processing` y
+`resolved`, y la relación `returns.return_request_id`. Por eso el flujo ya no
+depende de columnas que sólo existían en la UI.
+
+`refund-store-payment` expone dos operaciones server-side: `execute` inicia el
+reintegro con la misma clave idempotente y `reconcile` consulta el estado sin
+crear otro intento. Además, `mercadopago-webhook` busca reintegros pendientes
+por pago, consulta los refunds del proveedor y llama a
+`pago_reintegro_resultado` sólo cuando encuentra una coincidencia aprobada y
+única. Una coincidencia ausente o ambigua queda en `processing` con evidencia
+saneada para revisión.
+
+La recepción física también quedó conectada: el Portal RMA llama a
+`receive_store_return_request`, que enlaza la mercadería con el RMA, registra
+`returns`, mueve stock exclusivamente mediante `record_stock_movement` y es
+idempotente si se pulsa dos veces. `src/lib/paymentRefunds.ts` es la única
+puerta de la UI para ambas operaciones.
+
+**Salida verificada:** migración aplicada y registrada, `db push --linked
+--dry-run` en `upToDate`, tipos regenerados, Functions desplegadas, 13 tests
+enfocados, suite completa de 84 archivos/1.189 tests, typecheck, lint sin
+errores y build. No se ejecutó un reintegro contra una cuenta sandbox/real de
+MercadoPago porque faltan credenciales de prueba; esa evidencia externa sigue
+pendiente y está marcada como tal.
+
 ### Siguiente trabajo ya ordenado
 
 - P0.2: usar el Centro de calidad de datos para completar SKU/EAN y cobertura
   de contacto con datos reales, revisar candidatos con evidencia y recién
   entonces evaluar restricciones únicas por organización.
-- P0.3: cerrar captura, factura y recepción con el mismo contrato; luego
-  ejecutar una matriz sandbox aprobada/rechazada/pending/revertida y revisar la
-  conciliación sin doble asiento. El reintegro ya tiene camino server-side,
-  idempotencia y operación visible; falta evidencia externa del proveedor.
+- P0.3: cerrar captura y factura con el mismo contrato, además de la recepción
+  de compras; luego ejecutar una matriz sandbox aprobada/rechazada/pending/
+  revertida y revisar la conciliación sin doble asiento. El reintegro online,
+  su reconciliación por webhook y la recepción física del RMA ya están
+  conectados en código y base; falta evidencia externa del proveedor.
 - P0.4: ejecutar el circuito ARCA con certificado de homologación y una factura
   de prueba.
 - P0.5: acompañar el alta de un segundo comercio y medir tiempo a catálogo,
@@ -419,7 +448,7 @@ atravesó.
 | Ventas, compras, proveedores, CRM, deudas | Anda | — |
 | Tienda online + checkout idempotente | Anda | Ver §5 fase 4 |
 | Cobro MercadoPago (OAuth + comisión real) | Anda | — |
-| **Idempotencia** | Parcial | Sólo el checkout. Falta cobro, captura, reintegro, factura, recepción (**I6**) |
+| **Idempotencia** | Parcial | Checkout y reintegro online cubiertos. Falta captura, factura y recepción de compra (**I6**) |
 | **Eventos con outbox** | Anda, sin uso real | 2 eventos emitidos, ninguno de una venta |
 | **Ledger de partida doble + costo de ventas** | Anda, **sin uso real** | **0 asientos**: ninguna venta lo atravesó |
 | **Billetera** | Parcial | Derivada del libro; sin movimiento real |
@@ -430,7 +459,7 @@ atravesó.
 | IA (chat, insights, OCR) | Parcial | Real desde la sesión 115. Requiere `ANTHROPIC_API_KEY` |
 | Email / WhatsApp marketing | Parcial | Requieren `RESEND_API_KEY` / Evolution API |
 | Permisos, MFA, auditoría, RLS | Anda | — |
-| Tests | Anda | **1137** (`npm test`, 2026-08-20) + E2E de tienda |
+| Tests | Anda | **1189** (`npm test`, 2026-08-21) + E2E de tienda |
 
 Lo que dice "requiere una clave" no está roto: está construido esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -608,7 +637,7 @@ volvieron barato**, no como permiso para construirlo.
 | | Qué | Por qué ahora es barato |
 |---|---|---|
 | I2 | Conciliación de MercadoPago contra el libro | Con el ledger es una consulta, no un proyecto |
-| I3 | Reintegro real por MercadoPago | El libro sabe asentarlo; falta la llamada con idempotencia |
+| ~~I3~~ | ~~Reintegro real por MercadoPago~~ | ✅ P0.3.2/P0.3.3: llamada server-side con idempotencia, reconciliación por webhook y recepción física del RMA conectada. Falta evidencia sandbox/real del proveedor |
 | I4 | Notificaciones nuevas | Pasó a ser un INSERT en `event_subscriptions` |
 | I5 | Webhooks para el comercio | El outbox ya entrega con firma, reintento y descarte |
 | I7 | Trazas | Falta el paso que queda del principio 11 |
@@ -656,7 +685,7 @@ en producción.
 | ~~A3~~ | ~~`tax_amount` siempre en cero~~ | ✅ El IVA de la orden se discrimina. |
 | ~~A4~~ | ~~Cupones sin mínimo ni límite por persona~~ | ✅ Y `create_store_order` llama a `check_store_coupon` en vez de repetir la validación: el RPC es público y una llamada directa salteaba las reglas. |
 | ~~A5~~ | ~~Cupón de envío gratis~~ | ✅ Sesión 98, commiteado en la sesión 111. `coupons.free_shipping` con tope opcional; se descuenta del envío y queda en `shipping_discount_ars`, separado del descuento de mercadería para no correr la base del IVA. Un cupón que no bonifica nada —retiro en tienda— se rechaza en vez de consumirse. Falta la promoción automática **acotada a categoría o producto** — "envío gratis en perfumes" sin código. |
-| ~~A6~~ | ~~Devoluciones de órdenes online~~ | ✅ Sesión 106 + Slice 47, la capa de datos: `returns.ecommerce_order_id` + `return_store_order_item`, que repone el stock por `record_stock_movement`, no deja devolver más de lo comprado y también permite registrar el retorno físico después de un reembolso/contracargo. **Falta la UI y el reintegro real por MercadoPago**, que necesita el token del comercio y va en una Edge Function. |
+| ~~A6~~ | ~~Devoluciones de órdenes online~~ | ✅ RMA, reintegro por MercadoPago y recepción física conectados. `returns.return_request_id` enlaza la mercadería con la solicitud; `record_stock_movement` sigue siendo la única autoridad de stock. Falta evidencia sandbox/real del proveedor. |
 | ~~A7~~ | ~~Las promociones no registran uso~~ | ✅ Sesión 105. Se registra el ahorro atribuible a la promoción —no el descuento total— para que la métrica no dependa de cómo pagó el comprador. |
 | ~~A8~~ | ~~Precios con IVA discriminado por producto~~ | ✅ Sesión 110. `products.tax_rate`, **NULL = la de la organización** (0 es exento, que es distinto). El IVA se calcula por línea y se suma; los descuentos de orden se prorratean con `prorratear()` para que las bases sumen el total; el envío va a la tasa de la organización porque es un servicio. Verificado con tres alícuotas en una orden: 268,57 contra 520,66 de la tasa única. |
 | ~~A9~~ | ~~Redondeo declarado~~ | ✅ Sesión 110. `decimales_de_moneda` / `redondear_moneda` / `prorratear` en SQL, espejados en `src/lib/rounding.ts` con 19 tests. Media unidad hacia arriba **en valor absoluto** (`Math.round(-0.5)` da `-0`, y un reintegro se redondeaba para el lado equivocado). B6 ya no está bloqueado por esto. |
@@ -838,7 +867,7 @@ H2 y H3, y va como riesgo R10.
 
 | # | Que | Estado |
 |---|---|---|
-| ~~H1~~ | ~~Idempotencia en las mutaciones criticas~~ | ✅ **Sesión 113, la primitiva y el checkout.** `idempotency_keys` + `idempotencia_reservar/completar/fallar`, y `create_store_order_idem` que **envuelve** create_store_order sin tocarla. Verificado contra producción: dos llamadas con la misma clave crean **una** orden. Falta llevarlo al cobro, la captura, el reintegro, la factura y la recepción de compra. |
+| ~~H1~~ | ~~Idempotencia en las mutaciones criticas~~ | ✅ La primitiva cubre checkout y el reintegro online conserva una clave de proveedor por RMA. La recepción física del RMA también es idempotente por `received_at`; quedan captura, factura y recepción de compra. |
 | ~~H2~~ | ✅ **Eventos durables con outbox** | Hecho (sesión 112). `domain_events` append-only + `event_subscriptions` + `outbox_events`, escritos en la **misma transacción** que el cambio. Worker en `pg_cron` con backoff exponencial con techo y descarte con evidencia. Agregar un consumidor pasó a ser un INSERT. Órdenes y stock ya emiten. |
 | ~~H3~~ | ✅ **Ledger financiero** | Hecho (sesión 112). Partida doble con las tres reglas en la base: todo asiento cuadra, el libro es inmutable —se corrige por contraasiento— y el saldo se deriva. La venta cobrada se asienta **por el outbox**, con el consumidor idempotente contra el libro. |
 | ~~H4~~ | ✅ **Endurecer los motores** | Hecho (sesión 113). Los tres motores nacieron llamables por `anon` —Postgres otorga EXECUTE a PUBLIC por default— y **seis ataques probados funcionaron**, incluido acreditarse 20 millones en una billetera y leerlos como disponibles. Cerrado con `REVOKE FROM PUBLIC` **más** verificación adentro, constraints contra SSRF por webhook y contra apuntar un consumidor interno a cualquier función, y guarda en la ficha de las tres funciones que escribían ventas y stock para cualquier organización. Dos guardas nuevas: la vista `audit_funciones_expuestas` y `funcionesExpuestas.test.ts`. |
@@ -867,12 +896,12 @@ por las que valió la pena construir motores que no se ven.
 |---|---|---|
 | ~~I1~~ | ~~Estado de resultados de verdad~~ | ✅ **Sesión 114.** `ledger_resultado` y `ledger_resultado_diario`, derivados del libro. Normalizan el signo —en el libro un ingreso vive por el haber— para que ninguna pantalla tenga que acordarse de la convención y muestre el margen al revés. Excluyen anulados e informan `ventas_sin_costo`, que es lo que hace creíble al margen. La serie se agrega en la base: mandar los asientos al navegador para que los sume no escala. |
 | **I2** | **Conciliación de MercadoPago contra el libro** | Con el ledger, comparar lo que MP dice que acreditó contra lo que el libro dice que se cobró es una consulta, no un proyecto. Hoy una diferencia de liquidación no la detecta nadie. |
-| **I3** | **Reintegro real por MercadoPago** | La devolución ya registra el reintegro acordado (A6) y el ledger sabe asentarlo. Falta la llamada a la API con el token del comercio, en una Edge Function, con idempotencia de H1. Es de las pocas cosas donde el sistema hoy dice que devolvió y no devolvió. |
+| ~~I3~~ | ~~Reintegro real por MercadoPago~~ | ✅ P0.3.2/P0.3.3. Edge Function server-side, monto y tenant validados en SQL, `X-Idempotency-Key`, reconciliación manual y por webhook, y estado durable del RMA. Falta probarlo con una cuenta sandbox/real del proveedor. |
 | **I4** | **Notificaciones sin tocar el centro** | Cada aviso nuevo —"en camino", "entregado", "tu pedido se demoró"— pasó a ser un INSERT en `event_subscriptions`. Antes era editar el checkout. B5 se volvió trivial y conviene aprovecharlo. |
 | **I5** | **Webhooks para el comercio** | El outbox ya entrega con firma, reintento y descarte con evidencia. Exponer eso hacia afuera —que un comercio suscriba su propio endpoint— es configuración sobre un motor que ya funciona, no un desarrollo nuevo. |
 | ~~I9~~ | ~~El chat de IA avanzado era una simulación~~ | ✅ **Sesión 115.** Devolvía texto enlatado tras esperar 1200ms y guardaba `tokens_used: Math.random()*500+100`. **Lo peor era el número**: quien sumara esa columna para medir costo de IA leía una cifra fabricada. Ahora llama a la Edge Function `ai-chat` real con streaming, y los tokens salen de `finalMessage().usage` — si la API no los informa se guarda `null`, que significa "no lo sé". El selector de modelo tampoco hacía nada (IDs inexistentes, y el backend tenía el modelo fijo): ahora llega al servidor, que **valida contra lista blanca** porque un string libre desde el navegador es una vía para pedir el modelo más caro. |
 | **I8** | ⚠️ **La moneda del costo está hardcodeada a dólares** | `products.cost_usd` asume USD y **no hay columna de moneda**. H7 multiplica por el tipo de cambio, así que un costo cargado en pesos se asentaría multiplicado por ~1600. ✅ **Medido hoy: los 59 productos con costo van de USD 7 a 165, promedio 23 — son dólares sin ninguna duda, así que el libro está bien.** Pero se rompe en silencio el día que alguien cargue uno en pesos. Necesita `cost_currency` en el producto, un select en la ficha y que la fórmula convierta sólo cuando corresponde. |
-| **I6** | **Idempotencia en el resto de los caminos** | Falta en cobro, captura, reintegro, factura y recepción de compra. La primitiva está; es aplicarla. Cada uno que falta es un doble cobro o un doble stock esperando. |
+| **I6** | **Idempotencia en el resto de los caminos** | Checkout y reintegro online ya están cubiertos. Falta captura, factura y recepción de compra. La primitiva está; cada camino pendiente sigue siendo un riesgo de doble asiento. |
 | **I7** | **Trazas** | Es el principio 11 a medias: hay Sentry y `cron.job_run_details`, no trazas. Con el outbox, una orden ya deja rastro de qué la escuchó; falta poder ver cuánto tardó cada paso. |
 
 ⚠️ **I1 e I2 son los que un comercio nota.** El resto es plomería que le

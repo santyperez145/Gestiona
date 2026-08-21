@@ -128,6 +128,131 @@ async function settleOrchestratedPayment(
   }
 }
 
+function refundSnapshot(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object") return {};
+  const row = value as Record<string, unknown>;
+  const asText = (item: unknown, max = 120) => {
+    if (typeof item !== "string" && typeof item !== "number") return null;
+    const clean = String(item).trim();
+    return clean ? clean.slice(0, max) : null;
+  };
+  return {
+    id: asText(row.id),
+    status: asText(row.status, 40),
+    amount: Number.isFinite(Number(row.amount)) ? Number(row.amount) : null,
+    payment_id: asText(row.payment_id),
+    date_created: asText(row.date_created, 80),
+    source: "mercadopago_webhook_refund_reconciliation",
+  };
+}
+
+/**
+ * A payment.updated event is also the recovery path for a refund whose POST
+ * timed out. The provider is queried by payment id and the local refund is
+ * settled only when one approved provider row matches it unambiguously.
+ */
+async function reconcilePendingStoreRefunds(
+  admin: any,
+  orgId: string,
+  paymentId: string,
+  accessToken: string,
+) {
+  if (!orgId || !paymentId || !accessToken) return;
+
+  const { data: pending, error: pendingError } = await admin
+    .from("payment_refunds")
+    .select("id, amount, status, external_refund_id")
+    .eq("org_id", orgId)
+    .eq("provider", "mercadopago")
+    .eq("provider_payment_id", paymentId)
+    .eq("status", "processing")
+    .limit(20);
+  if (pendingError) {
+    console.error("payment_refunds webhook lookup:", pendingError);
+    return;
+  }
+  if (!pending?.length) return;
+
+  let response: Response;
+  let payload: unknown;
+  try {
+    response = await fetch(
+      `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}/refunds`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    payload = await response.json().catch(() => ({}));
+  } catch (error) {
+    console.error("payment_refunds webhook provider network:", error);
+    return;
+  }
+
+  if (!response.ok) {
+    console.error("payment_refunds webhook provider:", response.status);
+    return;
+  }
+
+  const rows = Array.isArray(payload)
+    ? payload.filter((row): row is Record<string, unknown> => !!row && typeof row === "object")
+    : payload && typeof payload === "object" && Array.isArray((payload as Record<string, unknown>).refunds)
+      ? ((payload as Record<string, unknown>).refunds as unknown[]).filter(
+        (row): row is Record<string, unknown> => !!row && typeof row === "object",
+      )
+      : [];
+  const approved = rows.filter((row) => String(row.status ?? "").toLowerCase() === "approved");
+  const used = new Set<number>();
+
+  for (const refund of pending) {
+    const knownExternalId = refund.external_refund_id
+      ? String(refund.external_refund_id)
+      : "";
+    const exactMatches = approved
+      .map((row, index) => ({ row, index }))
+      .filter(({ row, index }) => !used.has(index) && knownExternalId && String(row.id ?? "") === knownExternalId);
+    const amountMatches = approved
+      .map((row, index) => ({ row, index }))
+      .filter(({ row, index }) =>
+        !used.has(index)
+        && Number(row.amount) === Number(refund.amount),
+      );
+    // El monto solo identifica un reintegro cuando no hay otro RMA pendiente
+    // con ese mismo importe. Si lo hay, esperar el ID del proveedor evita
+    // asignar dinero al RMA equivocado.
+    const localSameAmount = pending.filter((candidate: { amount?: unknown }) =>
+      Number(candidate.amount) === Number(refund.amount),
+    );
+    const matches = exactMatches.length > 0
+      ? exactMatches
+      : localSameAmount.length === 1
+        ? amountMatches
+        : [];
+
+    if (matches.length !== 1) {
+      await admin.rpc("pago_reintegro_observar", {
+        p_refund_id: refund.id,
+        p_raw: {
+          source: "mercadopago_webhook_refund_reconciliation",
+          approved_refunds: approved.slice(0, 25).map(refundSnapshot),
+          reason: matches.length === 0 ? "no_match" : "ambiguous_match",
+        },
+      });
+      continue;
+    }
+
+    const match = matches[0];
+    used.add(match.index);
+    const providerRow = refundSnapshot(match.row);
+    const { error: settledError } = await admin.rpc("pago_reintegro_resultado", {
+      p_refund_id: refund.id,
+      p_status: "refunded",
+      p_external_id: providerRow.id,
+      p_raw: providerRow,
+    });
+    if (settledError) {
+      console.error("pago_reintegro_resultado webhook refund:", settledError);
+    }
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -407,6 +532,12 @@ Deno.serve(async (req) => {
         });
         if (reversalErr) console.error("handle_store_order_payment_reversal:", reversalErr.message);
       }
+
+      // Si el POST de devolución expiró, Mercado Pago puede confirmar el
+      // reintegro en una notificación posterior aunque la orden no cambie de
+      // estado todavía. Se reconcilia antes de responder el webhook para que
+      // el RMA, el pago y la orden terminen en el mismo estado durable.
+      await reconcilePendingStoreRefunds(admin, orgId, String(paymentId), mpAccessToken);
 
       // El webhook es la autoridad eventual del proveedor. El Brick registra
       // el resultado inmediato, pero este camino reconcilia también la

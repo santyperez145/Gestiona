@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,15 +15,16 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import { receiveStoreReturnRequest, runStorePaymentRefund } from "@/lib/paymentRefunds";
 
 /* ─────────────────────────── types ─────────────────────────── */
 interface ReturnReason { id: string; name: string; requires_photo: boolean; is_active: boolean; }
 interface ReturnRequest {
   id: string; rma_number: string; customer_name: string; customer_email: string | null;
-  ecommerce_order_id: string | null;
+  ecommerce_order_id: string | null; product_id: string | null; variant_id: string | null;
   product_name: string; quantity: number; condition: string; resolution: string | null;
   refund_amount: number | null; refund_method: string | null; status: string;
-  reason_text: string | null; created_at: string; resolved_at: string | null;
+  reason_text: string | null; created_at: string; resolved_at: string | null; received_at: string | null;
   tipo: string; return_shipping_payer: string; return_shipping_amount: number | null;
   return_shipping_method: string | null;
   return_reasons: { name: string } | null;
@@ -60,6 +62,7 @@ type Tab = typeof TABS[number];
 
 export default function ReturnsPortalTab() {
   const { orgId } = useOrganization();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = usePersistedState<Tab>(
     orgViewKey("returns.tab", orgId),
     "Solicitudes",
@@ -95,6 +98,10 @@ export default function ReturnsPortalTab() {
       supabase.from("products").select("id,name").eq("org_id", orgId).order("name"),
       supabase.from("payment_refunds").select("return_request_id,status,failure_reason").eq("org_id", orgId),
     ]);
+    if (rr.status === "fulfilled" && rr.value.error) toast.error(`No se pudieron cargar las solicitudes: ${rr.value.error.message}`);
+    if (reaR.status === "fulfilled" && reaR.value.error) toast.error(`No se pudieron cargar las razones: ${reaR.value.error.message}`);
+    if (pr.status === "fulfilled" && pr.value.error) toast.error(`No se pudieron cargar los productos: ${pr.value.error.message}`);
+    if (fr.status === "fulfilled" && fr.value.error) toast.error(`No se pudo cargar el estado de los reintegros: ${fr.value.error.message}`);
     if (rr.status === "fulfilled" && rr.value.data) setReturns(rr.value.data as ReturnRequest[]);
     if (reaR.status === "fulfilled" && reaR.value.data) setReasons(reaR.value.data as ReturnReason[]);
     if (pr.status === "fulfilled" && pr.value.data) setProducts(pr.value.data as OurProduct[]);
@@ -132,6 +139,7 @@ export default function ReturnsPortalTab() {
     if (!showApproveDialog) return;
     const { error } = await supabase.from("return_requests").update({
       status: "approved", resolution: approveForm.resolution,
+      approved_by: user?.id ?? null,
       resolution_notes: approveForm.resolution_notes || null,
       refund_amount: approveForm.refund_amount ? parseFloat(approveForm.refund_amount) : null,
       refund_method: approveForm.refund_method,
@@ -150,7 +158,8 @@ export default function ReturnsPortalTab() {
 
   async function rejectReturn() {
     if (!showRejectDialog || !rejectReason.trim()) { toast.error("Ingresá el motivo"); return; }
-    await supabase.from("return_requests").update({ status: "rejected", rejected_reason: rejectReason }).eq("id", showRejectDialog.id);
+    const { error } = await supabase.from("return_requests").update({ status: "rejected", rejected_reason: rejectReason }).eq("id", showRejectDialog.id);
+    if (error) { toast.error(error.message); return; }
     toast.success("Solicitud rechazada");
     setShowRejectDialog(null);
     setRejectReason("");
@@ -158,7 +167,8 @@ export default function ReturnsPortalTab() {
   }
 
   async function resolveReturn(id: string) {
-    await supabase.from("return_requests").update({ status: "resolved", resolved_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase.from("return_requests").update({ status: "resolved", resolved_at: new Date().toISOString() }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
     toast.success("Marcado como resuelto");
     load();
   }
@@ -166,22 +176,45 @@ export default function ReturnsPortalTab() {
   async function executeRefund(request: ReturnRequest) {
     if (!orgId || executingRefundId) return;
     setExecutingRefundId(request.id);
-    const { data, error } = await supabase.functions.invoke("refund-store-payment", {
-      body: { orgId, returnRequestId: request.id },
-    });
-    setExecutingRefundId(null);
-
-    if (error) {
-      toast.error(error.message || "No se pudo ejecutar el reintegro");
+    try {
+      const data = await runStorePaymentRefund({ orgId, returnRequestId: request.id });
+      if (data.status === "processing") {
+        toast.info(data.message || "El reintegro quedó en verificación y conserva la misma clave de idempotencia");
+      } else {
+        toast.success("Reintegro confirmado en MercadoPago");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo ejecutar el reintegro");
+    } finally {
+      setExecutingRefundId(null);
       load();
-      return;
     }
-    if (data?.status === "processing") {
-      toast.info("El reintegro quedó en verificación y conserva la misma clave de idempotencia");
-    } else {
-      toast.success("Reintegro confirmado en MercadoPago");
+  }
+
+  async function reconcileRefund(request: ReturnRequest) {
+    if (!orgId || executingRefundId) return;
+    setExecutingRefundId(request.id);
+    try {
+      const data = await runStorePaymentRefund({ orgId, returnRequestId: request.id, action: "reconcile" });
+      if (data.status === "refunded") toast.success("Reintegro confirmado en MercadoPago");
+      else toast.info(data.message || "MercadoPago todavía no confirmó el reintegro");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo consultar el reintegro");
+    } finally {
+      setExecutingRefundId(null);
+      load();
     }
-    load();
+  }
+
+  async function receiveReturn(request: ReturnRequest) {
+    if (request.received_at) return;
+    try {
+      const result = await receiveStoreReturnRequest(request.id);
+      toast.success(result.idempotent ? "La recepción ya estaba registrada" : `Mercadería recibida · ${result.quantity ?? request.quantity} unidades al Kardex`);
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo recibir la mercadería");
+    }
   }
 
   const filtered = returns.filter(r => {
@@ -248,11 +281,12 @@ export default function ReturnsPortalTab() {
                     {filtered.map(r => {
                       const st = STATUS_CONFIG[r.status] ?? STATUS_CONFIG.pending;
                       const refund = refunds[r.id];
-                      const needsProviderRefund = r.status === "approved"
+                      const needsProviderRefund = ["approved", "processing", "resolved"].includes(r.status)
                         && r.resolution === "refund"
                         && r.refund_method === "original_payment"
                         && !!r.ecommerce_order_id;
-                      const refundBusy = executingRefundId === r.id || refund?.status === "processing";
+                      const refundBusy = executingRefundId === r.id;
+                      const refundProcessing = refund?.status === "processing";
                       return (
                         <tr key={r.id} className="hover:bg-muted/20">
                           <td className="px-4 py-3 font-mono text-xs text-primary">{r.rma_number}</td>
@@ -282,14 +316,20 @@ export default function ReturnsPortalTab() {
                                   variant="outline"
                                   className="text-xs text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10"
                                   disabled={refundBusy}
-                                  onClick={() => executeRefund(r)}
+                                  onClick={() => refundProcessing ? reconcileRefund(r) : executeRefund(r)}
                                 >
                                   {refundBusy ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <DollarSign className="w-3 h-3 mr-1" />}
-                                  {refundBusy ? "Procesando" : refund?.status === "failed" ? "Reintentar" : "Ejecutar reintegro"}
+                                  {refundBusy ? "Procesando" : refundProcessing ? "Consultar estado" : refund?.status === "failed" ? "Reintentar" : "Ejecutar reintegro"}
+                                </Button>
+                              )}
+                              {r.ecommerce_order_id && !r.received_at && ["approved", "processing", "resolved"].includes(r.status) && (
+                                <Button size="sm" variant="outline" className="text-xs text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => receiveReturn(r)}>
+                                  <Package className="w-3 h-3 mr-1" />Recibir mercadería
                                 </Button>
                               )}
                               {r.status === "approved" && !needsProviderRefund && <Button size="sm" variant="outline" className="text-xs" onClick={() => resolveReturn(r.id)}>Resolver</Button>}
                             </div>
+                            {r.received_at && <span className="mt-1 block text-[11px] text-amber-500">Mercadería recibida en Kardex</span>}
                             {refund?.status === "refunded" && <span className="mt-1 block text-[11px] text-emerald-500">Reintegrado por MercadoPago</span>}
                             {refund?.status === "failed" && <span className="mt-1 block max-w-44 text-[11px] text-destructive" title={refund.failure_reason ?? undefined}>Falló: {refund.failure_reason || "revisar conexión"}</span>}
                           </td>

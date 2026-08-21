@@ -9,7 +9,9 @@ describe("reintegros de MercadoPago", () => {
   const fn = read("supabase/functions/refund-store-payment/index.ts");
   const migration = read("supabase/migrations/20260821000045_payment_refunds.sql");
   const orgGuard = read("supabase/migrations/20260821000046_payment_refunds_org_guard.sql");
+  const operations = read("supabase/migrations/20260821000047_payment_refund_operations.sql");
   const portal = read("src/components/sales/ReturnsPortalTab.tsx");
+  const helper = read("src/lib/paymentRefunds.ts");
 
   it("exige usuario real y dueño/admin antes de llamar al proveedor", () => {
     expect(fn).toContain("requireUser(req, corsHeaders)");
@@ -35,12 +37,33 @@ describe("reintegros de MercadoPago", () => {
     expect(migration).toContain("status IN ('processing', 'refunded', 'failed')");
   });
 
+  it("puede reconciliar un timeout sin crear un segundo intento", () => {
+    expect(fn).toContain('action !== "execute" && action !== "reconcile"');
+    expect(fn).toContain('pago_reintegro_estado');
+    expect(fn).toContain('/v1/payments/${encodeURIComponent(paymentId)}/refunds');
+    expect(fn).toContain('String(row.status ?? "").toLowerCase() !== "approved"');
+    expect(fn).toContain('pago_reintegro_observar');
+    expect(operations).toContain('CREATE OR REPLACE FUNCTION public.pago_reintegro_estado');
+    expect(operations).toContain('CREATE OR REPLACE FUNCTION public.pago_reintegro_observar');
+  });
+
   it("expone la operación en RMA y no permite resolverla sólo con un cambio local", () => {
-    expect(portal).toContain('supabase.functions.invoke("refund-store-payment"');
     expect(portal).toContain('r.resolution === "refund"');
     expect(portal).toContain('r.refund_method === "original_payment"');
     expect(portal).toContain("Ejecutar reintegro");
     expect(portal).toContain("!needsProviderRefund");
+    expect(portal).toContain('reconcileRefund(r)');
+    expect(portal).toContain('receiveStoreReturnRequest(request.id)');
+    expect(helper).toContain('supabase.functions.invoke("refund-store-payment"');
+    expect(helper).toContain('supabase.rpc("receive_store_return_request"');
+  });
+
+  it("recibe la mercadería una sola vez y la liga al RMA", () => {
+    expect(operations).toContain("return_request_id uuid");
+    expect(operations).toContain("received_at");
+    expect(operations).toContain("record_stock_movement");
+    expect(operations).toContain("idempotent', true");
+    expect(operations).toContain("receive_store_return_request(uuid)");
   });
 
   it("cierra las ACL de escritura y de los RPCs de dinero", () => {
@@ -51,6 +74,9 @@ describe("reintegros de MercadoPago", () => {
     expect(orgGuard).toContain("p_org_id");
     expect(orgGuard).toContain("v_request_org <> p_org_id");
     expect(orgGuard).toContain("pago_reintegro_preparar(uuid,uuid,uuid)");
+    expect(operations).toContain("GRANT EXECUTE ON FUNCTION public.receive_store_return_request(uuid)");
+    expect(operations).toContain("pago_reintegro_estado(uuid,uuid)");
+    expect(operations).toContain("pago_reintegro_observar(uuid,jsonb)");
     expect(migration).toContain("block_partial_order_reapproval");
   });
 });
