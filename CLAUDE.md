@@ -47,9 +47,14 @@ nombre.
 [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).** Fija los quince principios y los
 límites de dominio que no hay que cruzar. El estado medido del 2026-08-21 vive
 en [docs/COMPARACION.md](docs/COMPARACION.md): 280 tablas, 294 con `org_id`,
-61 Edge Functions y 1.181 tests (`npm test`, 2026-08-21). Idempotencia,
+61 Edge Functions y 1.182 tests (`npm test`, 2026-08-21). Idempotencia,
 eventos con outbox y ledger financiero ya están construidos y verificados en
 los commits H1–H3; no deben volver a tratarse como pendientes ni duplicarse.
+El checkout público ya consume el orquestador P0.3.1: toda llamada a
+`store-pay` prepara una intención y un intento server-side, conserva la clave
+canónica del proveedor y el webhook reconcilia el resultado. Captura,
+reintegro, factura y recepción todavía deben migrar al mismo contrato; no se
+declara P0.3 completo hasta probar esos caminos y una matriz sandbox.
 
 El orden siguiente es el plan canónico de `ROADMAP.md` §0.0: P0.1 catálogo
 polimórfico, P0.2 identidad, P0.3 pagos, P0.4 ARCA y P0.5 segundo comercio.

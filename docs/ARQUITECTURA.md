@@ -109,9 +109,11 @@ La decisión que no es obvia: **la misma clave con distinto contenido es un
 error, no un acierto**. Devolver la respuesta vieja ante otro carrito sería
 cobrarle lo que no pidió.
 
-⚠️ **Falta llevarlo al resto de los caminos**: cobro, captura, reintegro,
-factura y recepción de compra. Cada uno que falta es un doble cobro o un doble
-stock esperando. Va como I6.
+✅ **El cobro inicial de la tienda ya usa el contrato común** (P0.3.1):
+`store-pay` prepara la intención y el intento, conserva la clave canónica del
+proveedor y el webhook reconcilia el resultado eventual. ⚠️ Falta llevar la
+misma primitiva a captura, reintegro, factura y recepción de compra. Cada uno
+que falta sigue siendo un doble asiento potencial. Va como I6.
 
 ### H2 — Eventos durables y outbox (✅ hecho, sesión 112)
 

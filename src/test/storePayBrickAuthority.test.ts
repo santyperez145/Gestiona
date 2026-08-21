@@ -14,6 +14,7 @@ describe("Checkout Brick de tienda", () => {
   const storePay = read("supabase/functions/store-pay/index.ts");
   const webhook = read("supabase/functions/mercadopago-webhook/index.ts");
   const settlement = read("supabase/functions/_shared/paymentSettlement.ts");
+  const orchestrator = read("supabase/functions/_shared/paymentOrchestrator.ts");
   const brick = read("src/storefront/StorePaymentBrick.tsx");
   const orderScreen = read("src/storefront/StoreOrder.tsx");
 
@@ -27,7 +28,11 @@ describe("Checkout Brick de tienda", () => {
   });
 
   it("hace el cobro directo idempotente y conserva la comisión de plataforma", () => {
-    expect(storePay).toContain('"X-Idempotency-Key": input.attemptKey');
+    expect(storePay).toContain('"X-Idempotency-Key": providerIdempotencyKey');
+    expect(storePay).toContain("preparePaymentAttempt");
+    expect(storePay).toContain("providerIdempotencyKey");
+    expect(storePay).toContain("recordPaymentAttempt(admin");
+    expect(orchestrator).toContain('admin.rpc("pago_intento_preparar"');
     expect(storePay).toContain("application_fee: applicationFee");
     expect(storePay).toContain('creds.source !== "oauth"');
     expect(storePay).toContain("recordPaymentTransaction(admin");
@@ -38,6 +43,18 @@ describe("Checkout Brick de tienda", () => {
     expect(webhook).toContain('from "../_shared/paymentSettlement.ts"');
     expect(settlement).toContain('admin.rpc("record_payment_settlement"');
     expect(settlement).toContain('externalRef.startsWith("ecom:")');
+    expect(webhook).toContain("settleOrchestratedPayment");
+    expect(webhook).toContain('.from("payment_intents")');
+    expect(webhook).toContain('.from("payment_attempts")');
+  });
+
+  it("mantiene el contrato de intento en la base y sólo lo expone a service_role", () => {
+    const migration = read("supabase/migrations/20260821000044_checkout_payment_orchestration.sql");
+    expect(migration).toContain("payment_attempts_client_key_unico");
+    expect(migration).toContain("FOR UPDATE");
+    expect(migration).toContain("pago_intento_preparar");
+    expect(migration).toContain("REVOKE ALL ON FUNCTION public.pago_intento_preparar");
+    expect(migration).toContain("TO service_role");
   });
 
   it("usa campos seguros de MercadoPago y conserva otra vía de pago", () => {

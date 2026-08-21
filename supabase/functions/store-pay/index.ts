@@ -10,6 +10,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
 import { getMpCredentials } from "../_shared/mpToken.ts";
 import { recordPaymentTransaction } from "../_shared/paymentSettlement.ts";
+import {
+  preparePaymentAttempt,
+  providerAttemptState,
+  recordPaymentAttempt,
+} from "../_shared/paymentOrchestrator.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +36,7 @@ type StoreOrderContext = {
     items: unknown;
     customer_name: string;
     customer_email: string;
+    payment_method: string | null;
     payment_status: string;
   };
 };
@@ -72,7 +78,7 @@ async function getStoreOrder(
 
   const { data: order } = await admin
     .from("ecommerce_orders")
-    .select("id, order_number, total, items, customer_name, customer_email, payment_status")
+    .select("id, order_number, total, items, customer_name, customer_email, payment_method, payment_status")
     .eq("store_id", store.id)
     .eq("order_number", orderNumber)
     .maybeSingle();
@@ -138,6 +144,7 @@ async function createRedirectPreference(
   context: StoreOrderContext,
   returnUrl: unknown,
   supabaseUrl: string,
+  attempt: Awaited<ReturnType<typeof preparePaymentAttempt>>,
 ) {
   const { store, order } = context;
   const creds = await getMpCredentials(admin, store.org_id);
@@ -182,10 +189,30 @@ async function createRedirectPreference(
   const initPoint = text(mp?.init_point, 2_000);
   if (!mpRes.ok || !initPoint) {
     console.error("MP preference error:", mpRes.status, mp);
+    await recordPaymentAttempt(admin, {
+      attemptId: attempt.attemptId,
+      status: "error",
+      reason: text(mp?.message) ?? `MercadoPago respondió ${mpRes.status}`,
+      raw: { kind: "preference", status: mpRes.status },
+    });
     return json({ error: text(mp?.message) ?? "No se pudo generar el link de pago" }, 502);
   }
 
-  return json({ url: initPoint, preferenceId: text(mp?.id, 250) });
+  // La preferencia todavía no es un cobro. Se registra como pendiente sin
+  // usar su id como external_id: si el comprador cambia al Brick, el mismo
+  // intento puede recibir la clave de idempotencia del pago real.
+  await recordPaymentAttempt(admin, {
+    attemptId: attempt.attemptId,
+    status: "pendiente",
+    raw: { kind: "preference", preference_id: text(mp?.id, 250) },
+  });
+
+  return json({
+    url: initPoint,
+    preferenceId: text(mp?.id, 250),
+    intentId: attempt.intentId,
+    attemptId: attempt.attemptId,
+  });
 }
 
 async function checkoutBrickConfig(admin: any, context: StoreOrderContext) {
@@ -263,6 +290,20 @@ async function processBrickPayment(
     return json({ error: "La conexión de MercadoPago ya no está disponible." }, 422);
   }
 
+  const attempt = await preparePaymentAttempt(admin, {
+    orderId: order.id,
+    method: "tarjeta",
+    installments: input.installments,
+    clientKey: input.attemptKey,
+  });
+  if (attempt.alreadyAccredited) {
+    return json({ error: "Este pedido ya tiene un pago acreditado. Actualizá la página." }, 409);
+  }
+  if (attempt.provider !== "mercadopago") {
+    return json({ error: "El proveedor seleccionado no admite pago con tarjeta en esta tienda." }, 422);
+  }
+  const providerIdempotencyKey = attempt.clientKey ?? input.attemptKey;
+
   const applicationFee = await marketplaceCommission(admin, store.org_id, order.total, "brick");
   const externalReference = `ecom:${order.id}`;
   const paymentRes = await fetch("https://api.mercadopago.com/v1/payments", {
@@ -271,7 +312,7 @@ async function processBrickPayment(
       Authorization: `Bearer ${creds.accessToken}`,
       "Content-Type": "application/json",
       // Si se corta la red, reintentar el mismo submit no puede cobrar dos veces.
-      "X-Idempotency-Key": input.attemptKey,
+      "X-Idempotency-Key": providerIdempotencyKey,
     },
     body: JSON.stringify({
       // Nunca usar formData.transaction_amount: el monto autoritativo es la
@@ -295,6 +336,12 @@ async function processBrickPayment(
   const paymentId = text(payment?.id, 120);
   if (!paymentRes.ok || !paymentId) {
     console.error("MP Brick payment error:", paymentRes.status, payment);
+    await recordPaymentAttempt(admin, {
+      attemptId: attempt.attemptId,
+      status: "error",
+      reason: text(payment?.message) ?? `MercadoPago respondió ${paymentRes.status}`,
+      raw: { kind: "payment", status: paymentRes.status },
+    });
     return json({ error: text(payment?.message) ?? "No se pudo procesar la tarjeta." }, 502);
   }
 
@@ -305,6 +352,13 @@ async function processBrickPayment(
       !Number.isFinite(providerAmount) || Math.abs(providerAmount - order.total) > 0.01 ||
       String(payment?.currency_id ?? "ARS") !== "ARS") {
     console.error("MP Brick payment mismatch:", { orderId: order.id, paymentId });
+    await recordPaymentAttempt(admin, {
+      attemptId: attempt.attemptId,
+      status: "error",
+      externalId: paymentId,
+      reason: "La respuesta del proveedor no coincide con la orden",
+      raw: { kind: "payment", status: payment.status, external_reference: payment.external_reference },
+    });
     return json({ error: "No pudimos validar el cobro. Revisá el estado del pedido antes de reintentar." }, 502);
   }
 
@@ -332,6 +386,23 @@ async function processBrickPayment(
     status,
     gross: providerAmount,
     externalRef: externalReference,
+  });
+
+  await recordPaymentAttempt(admin, {
+    attemptId: attempt.attemptId,
+    status: providerAttemptState(status),
+    externalId: paymentId,
+    net: Number.isFinite(Number(payment?.net_received_amount))
+      ? Number(payment?.net_received_amount)
+      : null,
+    reason: text(payment?.status_detail),
+    raw: {
+      kind: "payment",
+      status,
+      status_detail: payment?.status_detail,
+      payment_type_id: payment?.payment_type_id,
+      installments: payment?.installments,
+    },
   });
 
   // El webhook conserva la reconciliación asíncrona y es idempotente. Esta
@@ -362,7 +433,20 @@ Deno.serve(async (req) => {
     const action = text(body.action, 60) ?? "redirect";
     if (action === "brick-config") return await checkoutBrickConfig(admin, context);
     if (action === "brick-payment") return await processBrickPayment(admin, context, body, supabaseUrl);
-    if (action === "redirect") return await createRedirectPreference(admin, context, body.returnUrl, supabaseUrl);
+    if (action === "redirect") {
+      const attempt = await preparePaymentAttempt(admin, {
+        orderId: context.order.id,
+        method: "mercadopago",
+        installments: 1,
+      });
+      if (attempt.alreadyAccredited) {
+        return json({ error: "Este pedido ya tiene un pago acreditado." }, 409);
+      }
+      if (attempt.provider !== "mercadopago") {
+        return json({ error: "MercadoPago no está disponible para este método de pago." }, 422);
+      }
+      return await createRedirectPreference(admin, context, body.returnUrl, supabaseUrl, attempt);
+    }
     return json({ error: "Acción de pago no reconocida" }, 400);
   } catch (e) {
     console.error("store-pay error:", e);

@@ -4,6 +4,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getMpCredentials } from "../_shared/mpToken.ts";
 import { recordPaymentTransaction } from "../_shared/paymentSettlement.ts";
+import { providerAttemptState, recordPaymentAttempt } from "../_shared/paymentOrchestrator.ts";
 
 /**
  * Verifica la firma del webhook de MercadoPago.
@@ -58,6 +59,72 @@ async function verifyMpSignature(
     return false;
   } catch {
     return false;
+  }
+}
+
+async function settleOrchestratedPayment(
+  admin: any,
+  orgId: string,
+  orderId: string,
+  status: string,
+  paymentId: string,
+  payment: Record<string, unknown>,
+) {
+  if (!orgId || !orderId || !paymentId) return;
+  const orchestrationState = providerAttemptState(status);
+
+  const { data: intents, error: intentError } = await admin
+    .from("payment_intents")
+    .select("id, estado, created_at")
+    .eq("org_id", orgId)
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  if (intentError) {
+    console.error("payment_intents webhook lookup:", intentError);
+    return;
+  }
+
+  const intent = (intents ?? []).find((row: { estado?: string }) =>
+    ["pendiente", "procesando", "acreditado"].includes(String(row.estado))) ?? intents?.[0];
+  if (!intent?.id) return;
+
+  const { data: attempts, error: attemptError } = await admin
+    .from("payment_attempts")
+    .select("id, estado, external_id, nro")
+    .eq("intent_id", intent.id)
+    .eq("provider", "mercadopago")
+    .order("nro", { ascending: false })
+    .limit(1);
+  if (attemptError) {
+    console.error("payment_attempts webhook lookup:", attemptError);
+    return;
+  }
+
+  const attempt = attempts?.[0];
+  if (!attempt?.id) return;
+
+  try {
+    await recordPaymentAttempt(admin, {
+      attemptId: attempt.id,
+      status: orchestrationState,
+      externalId: paymentId,
+      net: Number.isFinite(Number(payment.net_received_amount))
+        ? Number(payment.net_received_amount)
+        : null,
+      reason: typeof payment.status_detail === "string" ? payment.status_detail : null,
+      raw: {
+        kind: "webhook",
+        status,
+        status_detail: payment.status_detail,
+        payment_type_id: payment.payment_type_id,
+        installments: payment.installments,
+      },
+    });
+  } catch (error) {
+    // La liquidación de la orden continúa por sus RPC idempotentes, pero el
+    // fallo del contrato común queda visible para el panel de operación.
+    console.error("pago_attempt_resultado webhook:", error);
   }
 }
 
@@ -339,6 +406,20 @@ Deno.serve(async (req) => {
           p_detail: statusDetail,
         });
         if (reversalErr) console.error("handle_store_order_payment_reversal:", reversalErr.message);
+      }
+
+      // El webhook es la autoridad eventual del proveedor. El Brick registra
+      // el resultado inmediato, pero este camino reconcilia también la
+      // preferencia externa y los pagos que llegan después del redirect.
+      if (!isReversed) {
+        await settleOrchestratedPayment(
+          admin,
+          orgId,
+          orderId,
+          status,
+          String(paymentId),
+          payment,
+        );
       }
 
       // La liquidación va ANTES del return, no al final del handler.

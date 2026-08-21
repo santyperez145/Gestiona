@@ -14580,6 +14580,7 @@ export type Database = {
       }
       payment_attempts: {
         Row: {
+          client_key: string | null
           comision: number | null
           comision_iva: number | null
           created_at: string
@@ -14596,6 +14597,7 @@ export type Database = {
           resuelto_at: string | null
         }
         Insert: {
+          client_key?: string | null
           comision?: number | null
           comision_iva?: number | null
           created_at?: string
@@ -14612,6 +14614,7 @@ export type Database = {
           resuelto_at?: string | null
         }
         Update: {
+          client_key?: string | null
           comision?: number | null
           comision_iva?: number | null
           created_at?: string
@@ -31769,6 +31772,15 @@ export type Database = {
       }
       pago_intent_crear: {
         Args: { p_cuotas?: number; p_metodo?: string; p_order_id: string }
+        Returns: Json
+      }
+      pago_intento_preparar: {
+        Args: {
+          p_client_key?: string
+          p_cuotas?: number
+          p_metodo?: string
+          p_order_id: string
+        }
         Returns: Json
       }
       pago_metodo_de_tarifa: {

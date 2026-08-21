@@ -337,8 +337,11 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
    igual que la última vez: por casualidad.
 8. **Feature flags.** Sin staging, un flag es el único freno entre un bug y
    todos los comercios.
-9. **Enchufar el orquestador de pagos al checkout.** Está construido y no lo usa
-   nadie: `store-pay` sigue yendo directo a MercadoPago.
+9. **~~Enchufar el orquestador de pagos al checkout.~~** ✅ Cerrado en el slice
+   P0.3.1 (2026-08-21): `store-pay` registra intención e intento tanto para
+   preferencia externa como para Brick; el webhook reconcilia la misma orden.
+   Quedan fuera de este cierre captura, reintegro, factura y recepción, que
+   necesitan el mismo contrato.
 10. **Separar el bundle de la tienda del bundle del panel.**
 11. **Suscripción cobrada de punta a punta.** Hay 3 registros, los 3 en
     `past_due`, y ninguno cobró nunca.

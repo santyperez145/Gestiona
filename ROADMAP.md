@@ -115,16 +115,40 @@ P0.2 en un circuito auditable de medir → revisar → editar en origen, listo p
 que el dueño complete datos reales antes de evaluar restricciones únicas.
 
 **Salida verificada:** 3 tests unitarios nuevos cubren formato, estados,
-escape y neutralización de fórmulas; typecheck, lint, smoke tests, 1.181 tests
+escape y neutralización de fórmulas; typecheck, lint, smoke tests, 1.182 tests
 completos y build pasan. No hubo migración ni cambios de datos reales.
+
+**P0.3.1 — Checkout conectado al orquestador (cerrado 2026-08-21).** La
+migración `20260821000044_checkout_payment_orchestration.sql` agrega una clave
+de idempotencia por intento y `pago_intento_preparar`, que serializa la orden,
+reutiliza un intento vivo y abre una nueva intención sólo después de un rechazo,
+error o expiración no acreditada. `store-pay` ya no cobra por fuera del
+contrato: tanto la preferencia externa como el Brick de tarjeta registran
+`payment_intents`/`payment_attempts`, conservan la clave canónica del proveedor
+y escriben el resultado real.
+
+El webhook de MercadoPago reconcilia el intento por organización y orden antes
+de la liquidación, por lo que el camino inmediato del Brick y el camino
+eventual del webhook convergen en la misma evidencia. La orden, stock, venta y
+comisión siguen pasando por sus RPC idempotentes existentes; el orquestador no
+se convierte en una segunda fuente de verdad. Sólo se desplegaron las dos
+funciones modificadas, con `verify_jwt=false` tal como exige el storefront y el
+webhook firmado.
+
+**Salida verificada:** migración aplicada y registrada, objetos comprobados en
+la base vinculada, `db push --linked --dry-run` en `upToDate`, 14 tests de
+autoridad de checkout/Edge Functions, funciones activas en Supabase y sin filas
+de prueba. El cobro sandbox aprobado/rechazado/pending y el reintegro real
+siguen siendo evidencia externa pendiente; no se inventan como verificados.
 
 ### Siguiente trabajo ya ordenado
 
 - P0.2: usar el Centro de calidad de datos para completar SKU/EAN y cobertura
   de contacto con datos reales, revisar candidatos con evidencia y recién
   entonces evaluar restricciones únicas por organización.
-- P0.3: completar el contrato de `PaymentIntent` y probar reintentos,
-  reintegros y conciliación sin doble asiento.
+- P0.3: cerrar captura, reintegro, factura y recepción con el mismo contrato;
+  luego ejecutar una matriz sandbox aprobada/rechazada/pending/revertida y
+  revisar la conciliación sin doble asiento.
 - P0.4: ejecutar el circuito ARCA con certificado de homologación y una factura
   de prueba.
 - P0.5: acompañar el alta de un segundo comercio y medir tiempo a catálogo,
