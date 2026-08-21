@@ -71,14 +71,14 @@ fecha y el comando o consulta que los produjo; no se reemplazan en silencio.
 
 | Señal | Estado al 2026-08-21 |
 |---|---|
-| Edge Functions | 62 |
-| Tests unitarios | 1.205, `npm test` (2026-08-21) |
+| Edge Functions | 63 |
+| Tests unitarios | 1.207, `npm test` (2026-08-21) |
 | Organizaciones / comercios que venden de verdad | 4 / 1 |
 | Registros POS / tiendas online | 34 / 6 |
 | Eventos de dominio / asientos del ledger | 10 / 0 |
 | Facturas emitidas por la app / CAE | 0 / 0 |
 | Pagos reales de prueba | 2 cobros de ARS 1 |
-| Control Plane | Overview, Integration Registry inicial y Merchant 360 conectados |
+| Control Plane | Overview, catálogo de integraciones y Merchant 360 con evidencia sanitizada por comercio |
 
 ### Lo que ya está
 
@@ -96,7 +96,9 @@ fecha y el comando o consulta que los produjo; no se reemplazan en silencio.
 - El registro inicial de integraciones vive en el Control Plane con separación
   por organización y acceso exclusivo de plataforma.
 - Merchant 360 ya permite abrir una organización desde el listado y leer, en
-  tabs persistentes, negocio, canales, activación y contexto sanitizado.
+  tabs persistentes, negocio, canales, activación, contexto y evidencia
+  sanitizada de Mercado Pago, Mercado Libre, ARCA y Evolution API. Una conexión
+  registrada no se presenta como disponibilidad actual del proveedor.
 
 ### Lo que todavía no se puede afirmar
 
@@ -218,8 +220,8 @@ porque produce la evidencia de salida de una fase.
 | 3 | Conciliación de stock | Bloqueado externo | conteo físico | ajuste trazable y Kardex sin diferencias |
 | 4 | Segundo comercio | Siguiente | disponibilidad del negocio | primera venta sin SQL ni corrección manual |
 | 5 | Matriz de pagos | Pendiente | escenarios de proveedor | reintentos sin doble cobro, reintegro ni documento duplicado |
-| 6 | Merchant 360 | Base hecha, 2026-08-21 | señales de Core confiables | ficha operativa por organización con riesgos y próximos pasos |
-| 7 | Registro de integraciones 2 | Siguiente | health checks y eventos | versión, scopes, webhook, error y plan por conexión |
+| 6 | Merchant 360 | Base ampliada, 2026-08-21 | señales de Core confiables | ficha operativa por organización con riesgos, próximos pasos y evidencia de conexión |
+| 7 | Registro de integraciones 2 | En curso, 2026-08-21 | health checks activos y eventos | versión, scopes, webhook, error y plan por conexión |
 | 8 | Centro de operaciones | Pendiente | logs y reintentos | cola accionable para pagos, cron, webhooks y sync |
 | 9 | Margen por canal | Pendiente | costos y comisiones reales | comparación de contribución por orden y canal |
 | 10 | MercadoLibre real | Pendiente | cuenta y operación comercial | publicación, orden importada y conciliación multi-org |
@@ -237,8 +239,8 @@ Core ni mostrar secretos.
 | Slice | Estado | Próxima prueba |
 |---|---|---|
 | Platform Overview | Hecho, 2026-08-21 | sumar pagos, webhooks y colas como señales de primera clase |
-| Merchant 360 | Base hecha, 2026-08-21 | probar la ficha con una organización real y sumar conexiones/health checks |
-| Integration Registry | Base hecha, 2026-08-21 | completar health check, scopes, versión, webhook y plan |
+| Merchant 360 | Base ampliada, 2026-08-21 | probar la ficha con una organización real y sumar health checks activos |
+| Integration Registry | Base ampliada, 2026-08-21 | evidencia por comercio de conexión, vigencia y último evento; faltan health check, versión, webhook y plan operativos |
 | Credential Control | Base hecha, 2026-08-21 | verificar con una organización real la rotación/revocación de Evolution sin exponer su valor |
 | Billing y comisiones | Pendiente | conciliar comisión, suscripción y venta |
 | Operations Queue | Pendiente | reintentar un fallo y dejar auditoría visible |

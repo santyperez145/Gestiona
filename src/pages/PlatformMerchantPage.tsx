@@ -21,11 +21,13 @@ type Organization = Pick<
 >;
 type HealthRow = Database['public']['Views']['platform_org_health']['Row'];
 type ActivationRow = Database['public']['Views']['platform_org_activation']['Row'];
+type IntegrationHealthRow = Database['public']['Views']['platform_org_integration_health']['Row'];
 
 interface MerchantSnapshot {
   organization: Organization;
   health: HealthRow | null;
   activation: ActivationRow | null;
+  integrations: IntegrationHealthRow[];
   loadedAt: string;
 }
 
@@ -36,6 +38,14 @@ const SIGNAL_META: Record<string, { label: string; className: string; icon: type
   creciendo: { label: 'Creciendo', className: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20', icon: Zap },
   estable: { label: 'Estable', className: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20', icon: CheckCircle2 },
   dormido: { label: 'Dormido', className: 'text-orange-300 bg-orange-500/10 border-orange-500/20', icon: Clock3 },
+};
+
+const INTEGRATION_STATUS_META: Record<string, { label: string; className: string }> = {
+  connected: { label: 'Conectada', className: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' },
+  attention: { label: 'Requiere atención', className: 'text-red-300 bg-red-500/10 border-red-500/20' },
+  setup_required: { label: 'Requiere configuración', className: 'text-amber-300 bg-amber-500/10 border-amber-500/20' },
+  contract_required: { label: 'Requiere contrato', className: 'text-orange-300 bg-orange-500/10 border-orange-500/20' },
+  not_connected: { label: 'Sin conectar', className: 'text-muted-foreground bg-muted/40 border-border' },
 };
 
 function formatDate(value: string | null | undefined) {
@@ -96,7 +106,7 @@ export default function PlatformMerchantPage() {
 
     setLoading(true);
     setError(null);
-    const [organizationResponse, healthResponse, activationResponse] = await Promise.all([
+    const [organizationResponse, healthResponse, activationResponse, integrationsResponse] = await Promise.all([
       supabase
         .from('organizations')
         .select('id,name,slug,created_at,trial_ends_at,plan_id,onboarding_completed,logo_url')
@@ -111,12 +121,18 @@ export default function PlatformMerchantPage() {
         .from('platform_org_activation')
         .select('*')
         .eq('org_id', orgId),
+      supabase
+        .from('platform_org_integration_health')
+        .select('*')
+        .eq('org_id', orgId)
+        .order('display_name'),
     ]);
 
     const errors = [
       queryError('organización', organizationResponse.error),
       queryError('salud del comercio', healthResponse.error),
       queryError('adopción por canal', activationResponse.error),
+      queryError('evidencia de integraciones', integrationsResponse.error),
     ].filter(Boolean) as string[];
 
     if (errors.length > 0) {
@@ -137,6 +153,7 @@ export default function PlatformMerchantPage() {
       organization: organizationResponse.data as Organization,
       health: (healthResponse.data || null) as HealthRow | null,
       activation: mergeActivationRows((activationResponse.data || []) as ActivationRow[]),
+      integrations: (integrationsResponse.data || []) as IntegrationHealthRow[],
       loadedAt: new Date().toISOString(),
     });
     setLoading(false);
@@ -146,7 +163,7 @@ export default function PlatformMerchantPage() {
     if (isPlatformStaff && !accessLoading) void load();
   }, [accessLoading, isPlatformStaff, load]);
 
-  const selectedTab = ['overview', 'channels', 'context'].includes(tab) ? tab : 'overview';
+  const selectedTab = ['overview', 'channels', 'integrations', 'context'].includes(tab) ? tab : 'overview';
   const health = snapshot?.health;
   const activation = snapshot?.activation;
   const signal = health?.senal || 'sin_datos';
@@ -170,6 +187,14 @@ export default function PlatformMerchantPage() {
     const hasStore = Boolean(activation?.store_id || activation?.store_slug);
     if (activation && hasStore && (!activation.store_is_active || !activation.store_published_at)) {
       steps.push({ title: 'Publicar la tienda', detail: activation.store_is_active ? 'La tienda está activa pero no hay fecha de publicación registrada.' : 'La tienda existe, pero está inactiva.', tone: 'info' });
+    }
+    const integrationsAtRisk = snapshot.integrations.filter(integration => integration.operational_status === 'attention');
+    if (integrationsAtRisk.length > 0) {
+      steps.push({
+        title: 'Revisar una integración',
+        detail: `${integrationsAtRisk.map(integration => integration.display_name || integration.integration_key).join(', ')} requiere atención según la última evidencia disponible.`,
+        tone: 'warning',
+      });
     }
     if (steps.length === 0) {
       steps.push({ title: 'Sin bloqueo crítico detectado', detail: 'Las señales disponibles no muestran una acción urgente.', tone: 'success' });
@@ -265,6 +290,7 @@ export default function PlatformMerchantPage() {
         <TabsList>
           <TabsTrigger value="overview">Resumen</TabsTrigger>
           <TabsTrigger value="channels">Canales</TabsTrigger>
+          <TabsTrigger value="integrations">Integraciones</TabsTrigger>
           <TabsTrigger value="context">Contexto</TabsTrigger>
         </TabsList>
 
@@ -356,6 +382,55 @@ export default function PlatformMerchantPage() {
               <Metric label="Omnicanal" value={activation?.is_omnichannel ? 'Sí' : 'Todavía no'} />
             </div>
           </section>
+        </TabsContent>
+
+        <TabsContent value="integrations" className="space-y-4">
+          <section className="border border-border/60 rounded-[10px] bg-card p-4 space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-center gap-2">
+                <Webhook className="w-4 h-4 text-violet-300" />
+                <div>
+                  <h2 className="text-sm font-semibold">Evidencia de integraciones</h2>
+                  <p className="text-[11px] text-muted-foreground">Conexión, vigencia y última ejecución conocidas por la plataforma. No muestra secretos ni datos de cuenta.</p>
+                </div>
+              </div>
+              <Link to="/platform/integraciones" className="text-xs text-violet-300 hover:text-violet-200 transition-colors shrink-0">Ver catálogo global</Link>
+            </div>
+
+            {snapshot.integrations.length === 0 ? (
+              <div className="flex items-start gap-2 border border-dashed border-border rounded-[8px] p-3 text-xs text-muted-foreground">
+                <CircleAlert className="w-3.5 h-3.5 mt-0.5 shrink-0" /> No hay evidencia de conexiones para este comercio. No se interpreta como una integración saludable.
+              </div>
+            ) : (
+              <div className="grid gap-3 lg:grid-cols-2">
+                {snapshot.integrations.map(integration => {
+                  const state = INTEGRATION_STATUS_META[integration.operational_status || 'not_connected'] || INTEGRATION_STATUS_META.not_connected;
+                  return (
+                    <article key={integration.integration_key} className="rounded-[8px] border border-border/60 bg-muted/15 p-3.5 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <span className="w-8 h-8 rounded-[7px] border border-violet-500/20 bg-violet-500/10 text-violet-300 flex items-center justify-center shrink-0"><Webhook className="w-3.5 h-3.5" /></span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-xs font-semibold">{integration.display_name || integration.integration_key || 'Integración'}</h3>
+                            <span className={`inline-flex px-2 py-0.5 rounded-[4px] border text-[10px] font-medium ${state.className}`}>{state.label}</span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-1">{integration.connection_mode || 'Modalidad sin declarar'} · {integration.scope || 'Alcance sin declarar'}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <Metric label="Conexión" value={integration.has_connection ? 'Configurada' : 'Pendiente'} />
+                        <Metric label="Credencial" value={integration.has_connection ? (integration.credential_current ? 'Vigente' : 'A revisar') : 'Sin evidencia'} />
+                        <Metric label="Último evento" value={integration.last_event || 'Sin evidencia'} />
+                        <Metric label="Última ejecución" value={formatDateTime(integration.last_runtime_at)} />
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <p className="text-[11px] text-muted-foreground/70 px-1">“Conectada” significa que hay configuración registrada, no que el proveedor esté disponible en este instante. Los health checks activos y los detalles de webhooks siguen en el roadmap.</p>
         </TabsContent>
 
         <TabsContent value="context" className="space-y-4">
