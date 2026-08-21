@@ -17,7 +17,8 @@
     "deploy:functions:sh": "bash scripts/deploy-functions.sh",
     "db": "node scripts/db.mjs",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "drill:restore": "node scripts/restore-drill.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

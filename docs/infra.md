@@ -49,9 +49,15 @@ operativas sin `org_id` propio (kits, precios por lista, solicitudes de compra,
 segmentos, registro de emails de pedidos, eventos de entrega, renglones de
 factura y envíos de secuencias), alcanzadas sólo desde los IDs de su padre ya
 exportado. Los archivos v1 y v2 se siguen verificando con su contrato original;
-ampliar cobertura no invalida un snapshot histórico sano. Esto prueba
-recuperabilidad del **archivo**, no un restore destructivo: D8b sigue pendiente
-hasta ensayar una restauración en un sandbox aislado.
+ampliar cobertura no invalida un snapshot histórico sano.
+
+El restore drill aislado está operativo mediante `npm run drill:restore`. El
+2026-08-21 descargó un snapshot v3 real, volvió a verificar su hash y restauró
+147 tablas / 63 filas contra clones tipados del esquema productivo en 937,22 ms,
+con cero restos. Es evidencia de recuperabilidad del dataset, no un RTO
+contractual de toda la plataforma: Auth, Storage, secrets, funciones, DNS y
+proveedores todavía requieren un ensayo de reconstrucción completa. Runbook y
+límites en [RESTORE.md](RESTORE.md).
 
 ## Secrets necesarios (Supabase)
 
@@ -76,5 +82,6 @@ hasta ensayar una restauración en un sandbox aislado.
 - Verificar errores de funciones en logs de Supabase
 - Monitorear Sentry para frontend y edge flows críticos
 - Revisar semanalmente `weekly-org-backups` y los snapshots con integridad fallida
-- Ejecutar y documentar el restore drill aislado antes de ofrecer restauración en producción
+- Repetir trimestralmente el restore drill aislado y después de ampliar el contrato de snapshots
+- Ensayar la reconstrucción completa antes de prometer RTO/RPO contractuales o restauración en producción
 - Rotar secrets con política definida

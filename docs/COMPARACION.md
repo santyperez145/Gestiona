@@ -95,7 +95,7 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | Cron jobs | **20** | ✅ 9.227 corridas exitosas y **0 fallidas** en 7 días |
 | Edge Functions | **63** | ✅ `npm run check:functions`, 2026-08-21 |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **1.220** | ✅ `npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21 |
+| Tests unitarios | **1.226** | ✅ `npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -133,7 +133,7 @@ antes de conectarse— pero el invariante documentado quedó desactualizado.
 | Suscripciones cobradas | **0** | ✅ 3 registros, las 3 en `past_due` |
 
 ⚠️ **Este es el dato que ordena todo el documento.** Tenemos una plataforma de
-282 tablas y 1.220 tests sirviendo a **un solo comercio real**. Tiendanube tiene
+282 tablas y 1.226 tests sirviendo a **un solo comercio real**. Tiendanube tiene
 ❓ más de 130.000 tiendas activas (fuente secundaria: blog de un competidor,
 [tiendli.com](https://tiendli.com/blog/tiendanube-vs-empretienda-vs-shopify-vs-tiendli/),
 2026 — **verificar antes de citarlo**). Shopify tiene ✅ 2.898.351 tiendas vivas
@@ -293,17 +293,17 @@ necesita un SaaS de 4 organizaciones. No es el cuello de botella.
 | Área | Nosotros | Cómo lo hace una empresa grande | Impacto |
 |---|---|---|---|
 | **Entorno de staging** | ✅ **No existe.** Se prueba contra producción con datos `ZZ` que se borran | Al menos un entorno idéntico, con datos sintéticos | 🔴 Alto |
-| **Backups con restore probado** | ✅ hay `weekly-backup`; ❓ **nunca se restauró** | Restore drill periódico y cronometrado (RTO/RPO declarados) | 🔴 Alto |
+| **Backups con restore probado** | 🟡 `weekly-backup` + restore de datos aprobado el 2026-08-21: 147 tablas / 63 filas, 937,22 ms y cero restos. Falta reconstrucción integral y RTO/RPO contractual | Restore drill periódico y cronometrado, incluida infraestructura completa | 🟠 Medio |
 | **Observabilidad** | ✅ Sentry en el front y Merchant 360 distingue evidencia registrada reciente, vencida o sólo configuración. 🔴 Sin trazas, sin métricas, sin OpenTelemetry ni health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ 3 jobs: `build` (Deno para 63 Edge Functions + lint+typecheck+build), `test` (1.220 tests) y `security` (`npm audit`). ❓ sin E2E bloqueante | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟠 Medio |
+| **CI** | ✅ 3 jobs: `build` (Deno para 63 Edge Functions + lint+typecheck+build), `test` (1.226 tests) y `security` (`npm audit`). ❓ sin E2E bloqueante | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟠 Medio |
 | **API pública / webhooks salientes** | 🔴 No hay | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
 | **SOC 2 / ISO 27001** | 🔴 | Requisito para vender a empresas | 🟢 Bajo hoy |
 
-✅ **El agujero de Edge Functions quedó cerrado el 2026-08-21.** Los 1.220 tests
+✅ **El agujero de Edge Functions quedó cerrado el 2026-08-21.** Los 1.226 tests
 corren en un job separado y `security` mantiene `npm audit` bloqueante para
 vulnerabilidades críticas. El job `build` instala Deno y ejecuta
 `npm run check:functions`: descubre los 63 `index.ts` del filesystem, por lo que
@@ -337,8 +337,10 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
 2. **Emitir una factura real en producción.** El circuito ya emitió CAE en
    homologación; falta el certificado de producción y el punto de venta como
    *Web Services*. Es un trámite, no código.
-3. **Restore probado del backup.** Un backup que nunca se restauró es una
-   carpeta, no un backup. Medir cuánto tarda y qué se pierde.
+3. ~~**Restore de datos probado.**~~ ✅ Cerrado el 2026-08-21 para el dataset:
+   snapshot v3 privado, hash verificado, 147 tablas / 63 filas restauradas en
+   937,22 ms y cero restos. Sigue pendiente reconstruir una plataforma aislada
+   completa antes de declarar RTO/RPO contractual.
 4. **Bajar la comisión** a un rango competitivo con el 0,7%–2% de Tiendanube.
 5. **Publicar las políticas legales.** El generador está; falta razón social,
    CUIT y domicilio, y apretar publicar.
@@ -398,7 +400,7 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
 ## 8. El resumen en cinco líneas
 
 1. ✅ **Técnicamente estamos mejor de lo que corresponde a nuestro tamaño**: RLS
-   real, ledger, outbox, idempotencia, 1.220 tests y typecheck de 63 funciones.
+   real, ledger, outbox, idempotencia, 1.226 tests y typecheck de 63 funciones.
 2. ✅ **Comercialmente no existimos todavía**: 1 comercio, 0 facturas, 0
    asientos, 0 suscripciones cobradas.
 3. ⚠️ **Perdimos el diferencial del POS** — Tiendanube ya lo tiene.

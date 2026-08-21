@@ -165,7 +165,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.222 tests pasan; typecheck, lint y build verdes; 63 Edge Functions verificadas. |
+| Calidad técnica | 1.226 tests pasan; typecheck, lint y build verdes; 63 Edge Functions verificadas. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1 y 0 suscripciones efectivamente cobradas; volumen insuficiente para probar economics o confiabilidad de proveedor. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -174,7 +174,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Activación | Primera venta y tiempo a vender medidos por comercio, deduplicando organizaciones multi-tienda. Commit 13e48bd. |
 | Finance precursor | OCR prellena una orden de compra; todavía no cumple cadena de custodia, validación, matching, duplicados, aprobación ni payable draft. |
 | Storefront | Funcional, pero aún comparte aplicación/ciclo de despliegue con el panel; falta aislamiento, dominios y carrito persistente completo. |
-| Recuperación | Hay backups programados; no existe evidencia de restore drill completo. |
+| Recuperación | Backups programados y restore drill de datos aprobado el 2026-08-21: snapshot v3, 147 tablas / 63 filas, 937,22 ms y cero restos. Falta reconstrucción completa para RTO/RPO contractual. |
 | Observabilidad | Hay señales operativas y colas; faltan trazas correlacionadas de punta a punta y health checks activos de todos los proveedores. |
 | Activación comercial | No existe cohorte suficiente para estimar retención, conversión o costo de soporte. |
 
@@ -295,7 +295,8 @@ incluidos estados ambiguos y recuperación.
 - Matriz real de checkout, pago, webhook, timeout, refund y duplicado.
 - Entorno de validación reproducible, separado de datos reales y comparable en
   los contratos críticos; no se denomina staging hasta probar esa equivalencia.
-- Restore drill en un entorno de recuperación reproducible.
+- Restore drill de datos reproducible cerrado; falta reconstrucción completa de
+  proyecto para declarar RTO/RPO contractual.
 - Correlation ID desde checkout hasta proveedor, webhook, orden y ledger.
 - Trazas básicas y runbooks para pagos, ARCA, cron e integraciones críticas.
 - E2E críticos como puerta de CI cuando exista configuración segura.
@@ -527,7 +528,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 1 | ARCA producción | F0 | Bloqueado externamente; homologación completa | Factura productiva autorizada y reconciliada. |
 | 2 | Legal publish | F0 | Bloqueado externamente | Identidad, privacidad y términos revisados/publicados. |
 | 3 | Conteo físico | F0 | Bloqueado externamente | Ajustes trazables; stock y Kardex reconciliados. |
-| 4 | Restore drill | F0 | Pendiente | Restore ejecutado, RTO medido y restos de prueba en cero. |
+| 4 | Restore drill | F0 | **Cerrado 2026-08-21:** v3, 147 tablas / 63 filas, RTO técnico 937,22 ms, cero restos | Repetición trimestral; reconstrucción completa queda como nivel siguiente. |
 | 5 | Payment test matrix | F0 | Pendiente | Checkout/webhook/timeout/refund/duplicado ensayados. |
 | 6 | Correlation IDs y trazas críticas | F0 | Parcial: hay evidencia operativa, no traza end-to-end | Una operación se sigue de cliente a proveedor y regreso. |
 | 7 | E2E bloqueante | F0 | Parcial: suite existe; faltan configuración y cobertura crítica | CI bloquea regresión con fixtures seguros. |
@@ -554,7 +555,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 
 Mientras los slices 1–3 esperan al dueño, el orden técnico es:
 
-1. restore drill;
+1. ~~restore drill de datos~~ — cerrado el 2026-08-21;
 2. payment test matrix;
 3. correlation IDs y trazas;
 4. E2E bloqueante;
@@ -734,7 +735,7 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-21: 1.222 tests y 63 funciones verificadas.
+- Build y suites locales del 2026-08-21: 1.226 tests y 63 funciones verificadas.
 - Commit 13e48bd: primera venta y tiempo a vender por comercio.
 
 Se revisa:
