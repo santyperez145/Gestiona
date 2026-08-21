@@ -53,10 +53,14 @@ export interface PlatformActivationRow {
 export interface ChannelActivationRow extends PlatformActivationRow {
   daysToStorePublish: number | null;
   daysToFirstOnlineOrder: number | null;
+  firstSaleAt: string | null;
+  firstSaleChannel: "online" | "pos" | null;
+  daysToFirstSale: number | null;
 }
 
 export interface PlatformChannelMetrics {
   totalOrganizations: number;
+  activatedOrganizations: number;
   organizationsWithStorePublished: number;
   organizationsWithStoreActive: number;
   organizationsWithStorePublicationKnown: number;
@@ -64,9 +68,12 @@ export interface PlatformChannelMetrics {
   organizationsWithPos: number;
   omnichannelOrganizations: number;
   storePublishedRate: number;
+  firstSaleRate: number;
   onlineRate: number;
   posRate: number;
   omnichannelRate: number;
+  averageDaysToFirstSale: number | null;
+  medianDaysToFirstSale: number | null;
   averageDaysToStorePublish: number | null;
   medianDaysToStorePublish: number | null;
   averageDaysToFirstOnlineOrder: number | null;
@@ -215,6 +222,79 @@ function finiteOrNull(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+function earliestTimestamp(values: Array<string | null | undefined>): string | null {
+  const valid = values
+    .filter((value): value is string => Boolean(value) && Number.isFinite(new Date(value).getTime()))
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  return valid[0] || null;
+}
+
+function minimumFinite(values: Array<number | null | undefined>): number | null {
+  const valid = values
+    .map(finiteOrNull)
+    .filter((value): value is number => value !== null);
+  return valid.length ? Math.min(...valid) : null;
+}
+
+function maximumFinite(values: Array<number | null | undefined>): number {
+  const valid = values
+    .map(finiteOrNull)
+    .filter((value): value is number => value !== null);
+  return valid.length ? Math.max(...valid) : 0;
+}
+
+/**
+ * platform_org_activation devuelve una fila por tienda. La adopción pertenece
+ * a la organización: al sumar filas crudas, una organización multi-tienda
+ * infla tasas, ventas y tiempos. Consolidamos antes de calcular métricas.
+ */
+export function mergeActivationRowsByOrganization(rows: PlatformActivationRow[]): PlatformActivationRow[] {
+  const grouped = new Map<string, PlatformActivationRow[]>();
+  rows.forEach((row, index) => {
+    const key = row.org_id || (row.slug ? `slug:${row.slug}` : `unknown:${index}`);
+    grouped.set(key, [...(grouped.get(key) || []), row]);
+  });
+
+  return Array.from(grouped.values()).map(group => {
+    const first = group[0];
+    const firstOnlineOrderAt = earliestTimestamp(group.map(row => row.first_online_order_at));
+    const firstPosSaleAt = earliestTimestamp(group.map(row => row.first_pos_sale_at));
+    const storePublishedAt = earliestTimestamp(group.map(row => row.store_published_at));
+    const usesOnline = firstOnlineOrderAt !== null || group.some(row => row.uses_online === true);
+    const usesPos = firstPosSaleAt !== null || group.some(row => row.uses_pos === true);
+
+    return {
+      ...first,
+      store_id: group.length === 1 ? first.store_id : null,
+      store_slug: group.length === 1 ? first.store_slug : `${group.length} tiendas`,
+      store_is_active: group.some(row => row.store_is_active === true),
+      store_published_at: storePublishedAt,
+      store_publication_known: storePublishedAt !== null || group.some(row => row.store_publication_known === true),
+      first_online_order_at: firstOnlineOrderAt,
+      online_orders_total: maximumFinite(group.map(row => row.online_orders_total)),
+      online_orders_30d: maximumFinite(group.map(row => row.online_orders_30d)),
+      first_pos_sale_at: firstPosSaleAt,
+      pos_sales_total: maximumFinite(group.map(row => row.pos_sales_total)),
+      pos_sales_30d: maximumFinite(group.map(row => row.pos_sales_30d)),
+      uses_online: usesOnline,
+      uses_pos: usesPos,
+      is_omnichannel: usesOnline && usesPos,
+      days_to_store_publish: minimumFinite(group.map(row => row.days_to_store_publish)),
+      days_to_first_online_order: minimumFinite(group.map(row => row.days_to_first_online_order)),
+    };
+  });
+}
+
+function firstSale(row: PlatformActivationRow): { at: string | null; channel: "online" | "pos" | null } {
+  const onlineAt = earliestTimestamp([row.first_online_order_at]);
+  const posAt = earliestTimestamp([row.first_pos_sale_at]);
+  if (!onlineAt) return { at: posAt, channel: posAt ? "pos" : null };
+  if (!posAt) return { at: onlineAt, channel: "online" };
+  return new Date(onlineAt).getTime() <= new Date(posAt).getTime()
+    ? { at: onlineAt, channel: "online" }
+    : { at: posAt, channel: "pos" };
+}
+
 export function withActivationTimes(rows: PlatformHealthRow[]): ActivationRow[] {
   return rows.map(row => ({
     ...row,
@@ -242,22 +322,32 @@ function average(values: number[]): number | null {
 }
 
 export function withChannelActivationTimes(rows: PlatformActivationRow[]): ChannelActivationRow[] {
-  return rows.map(row => ({
-    ...row,
-    daysToStorePublish: finiteOrNull(row.days_to_store_publish) ?? daysBetween(row.org_creada, row.store_published_at),
-    daysToFirstOnlineOrder: finiteOrNull(row.days_to_first_online_order) ?? daysBetween(row.org_creada, row.first_online_order_at),
-  }));
+  return rows.map(row => {
+    const first = firstSale(row);
+    return {
+      ...row,
+      daysToStorePublish: finiteOrNull(row.days_to_store_publish) ?? daysBetween(row.org_creada, row.store_published_at),
+      daysToFirstOnlineOrder: finiteOrNull(row.days_to_first_online_order) ?? daysBetween(row.org_creada, row.first_online_order_at),
+      firstSaleAt: first.at,
+      firstSaleChannel: first.channel,
+      daysToFirstSale: daysBetween(row.org_creada, first.at),
+    };
+  });
 }
 
 export function calculateChannelMetrics(rows: PlatformActivationRow[]): PlatformChannelMetrics {
-  const activationRows = withChannelActivationTimes(rows);
-  const totalOrganizations = rows.length;
-  const organizationsWithStorePublished = rows.filter(row => row.store_publication_known === true).length;
-  const organizationsWithStoreActive = rows.filter(row => row.store_is_active === true).length;
-  const organizationsWithStorePublicationKnown = rows.filter(row => row.store_publication_known === true).length;
-  const organizationsWithOnline = rows.filter(row => row.uses_online === true).length;
-  const organizationsWithPos = rows.filter(row => row.uses_pos === true).length;
-  const omnichannelOrganizations = rows.filter(row => row.is_omnichannel === true).length;
+  const activationRows = withChannelActivationTimes(mergeActivationRowsByOrganization(rows));
+  const totalOrganizations = activationRows.length;
+  const activatedOrganizations = activationRows.filter(row => row.firstSaleAt !== null).length;
+  const organizationsWithStorePublished = activationRows.filter(row => row.store_publication_known === true).length;
+  const organizationsWithStoreActive = activationRows.filter(row => row.store_is_active === true).length;
+  const organizationsWithStorePublicationKnown = activationRows.filter(row => row.store_publication_known === true).length;
+  const organizationsWithOnline = activationRows.filter(row => row.uses_online === true).length;
+  const organizationsWithPos = activationRows.filter(row => row.uses_pos === true).length;
+  const omnichannelOrganizations = activationRows.filter(row => row.is_omnichannel === true).length;
+  const firstSaleTimes = activationRows
+    .map(row => row.daysToFirstSale)
+    .filter((value): value is number => value !== null);
   const storePublishTimes = activationRows
     .map(row => row.daysToStorePublish)
     .filter((value): value is number => value !== null);
@@ -267,6 +357,7 @@ export function calculateChannelMetrics(rows: PlatformActivationRow[]): Platform
 
   return {
     totalOrganizations,
+    activatedOrganizations,
     organizationsWithStorePublished,
     organizationsWithStoreActive,
     organizationsWithStorePublicationKnown,
@@ -274,9 +365,12 @@ export function calculateChannelMetrics(rows: PlatformActivationRow[]): Platform
     organizationsWithPos,
     omnichannelOrganizations,
     storePublishedRate: percentage(organizationsWithStorePublished, totalOrganizations),
+    firstSaleRate: percentage(activatedOrganizations, totalOrganizations),
     onlineRate: percentage(organizationsWithOnline, totalOrganizations),
     posRate: percentage(organizationsWithPos, totalOrganizations),
     omnichannelRate: percentage(omnichannelOrganizations, totalOrganizations),
+    averageDaysToFirstSale: average(firstSaleTimes),
+    medianDaysToFirstSale: median(firstSaleTimes),
     averageDaysToStorePublish: average(storePublishTimes),
     medianDaysToStorePublish: median(storePublishTimes),
     averageDaysToFirstOnlineOrder: average(onlineOrderTimes),

@@ -10,6 +10,7 @@ import type { Database } from '@/integrations/supabase/types';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { usePlatformAccess } from '@/lib/usePermissions';
+import { calculateChannelMetrics, type ChannelActivationRow, type PlatformActivationRow } from '@/lib/platformMetrics';
 import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,7 @@ type Organization = Pick<
   'id' | 'name' | 'slug' | 'created_at' | 'trial_ends_at' | 'plan_id' | 'onboarding_completed' | 'logo_url'
 >;
 type HealthRow = Database['public']['Views']['platform_org_health']['Row'];
-type ActivationRow = Database['public']['Views']['platform_org_activation']['Row'];
+type ActivationRow = ChannelActivationRow;
 type IntegrationHealthRow = Database['public']['Views']['platform_org_integration_health']['Row'];
 
 interface MerchantSnapshot {
@@ -77,24 +78,6 @@ function formatMoney(value: number | null | undefined) {
 
 function queryError(label: string, error: { message?: string } | null) {
   return error ? `${label}: ${error.message || 'no disponible'}` : null;
-}
-
-function mergeActivationRows(rows: ActivationRow[]): ActivationRow | null {
-  const first = rows[0];
-  if (!first) return null;
-  const publishedDates = rows
-    .map(row => row.store_published_at)
-    .filter((value): value is string => Boolean(value))
-    .sort();
-  return {
-    ...first,
-    store_id: rows.length === 1 ? first.store_id : null,
-    store_slug: rows.length === 1 ? first.store_slug : `${rows.length} tiendas`,
-    store_is_active: rows.some(row => Boolean(row.store_is_active)),
-    store_publication_known: rows.some(row => Boolean(row.store_publication_known)),
-    store_published_at: publishedDates[0] || null,
-    is_omnichannel: rows.some(row => Boolean(row.is_omnichannel)),
-  };
 }
 
 export default function PlatformMerchantPage() {
@@ -161,7 +144,7 @@ export default function PlatformMerchantPage() {
     setSnapshot({
       organization: organizationResponse.data as Organization,
       health: (healthResponse.data || null) as HealthRow | null,
-      activation: mergeActivationRows((activationResponse.data || []) as ActivationRow[]),
+      activation: calculateChannelMetrics((activationResponse.data || []) as PlatformActivationRow[]).rows[0] || null,
       integrations: (integrationsResponse.data || []) as IntegrationHealthRow[],
       loadedAt: new Date().toISOString(),
     });
@@ -335,6 +318,8 @@ export default function PlatformMerchantPage() {
                 <Metric label="Días sin cobrar" value={health?.dias_sin_cobrar == null ? 'Sin dato' : `${health.dias_sin_cobrar} días`} />
                 <Metric label="Variación 30d" value={health?.variacion_pct == null ? 'Sin dato' : `${health.variacion_pct > 0 ? '+' : ''}${health.variacion_pct}%`} />
                 <Metric label="Onboarding" value={snapshot.organization.onboarding_completed ? 'Completado' : 'Pendiente'} />
+                <Metric label="Primera venta" value={formatDateTime(activation?.firstSaleAt)} />
+                <Metric label="Tiempo a primera venta" value={activation?.daysToFirstSale == null ? 'Sin dato' : `${activation.daysToFirstSale} días`} />
               </div>
               {!health && (
                 <div className="flex items-start gap-2 border border-dashed border-border rounded-[8px] p-3 text-xs text-muted-foreground">
@@ -390,14 +375,16 @@ export default function PlatformMerchantPage() {
             <div className="flex items-center gap-2">
               <Store className="w-4 h-4 text-violet-300" />
               <div>
-                <h2 className="text-sm font-semibold">Publicación de tienda</h2>
-                <p className="text-[11px] text-muted-foreground">El panel distingue una tienda activa de una tienda realmente publicada.</p>
+                <h2 className="text-sm font-semibold">Activación y publicación</h2>
+                <p className="text-[11px] text-muted-foreground">La primera venta se toma del evento más temprano entre POS y online; la publicación conserva evidencia propia.</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
               <Metric label="Estado" value={activation?.store_is_active ? 'Activa' : 'Inactiva'} />
               <Metric label="Publicada" value={activation?.store_published_at ? formatDate(activation.store_published_at) : 'Sin fecha'} />
-              <Metric label="Tiempo a publicar" value={activation?.days_to_store_publish == null ? 'Sin dato' : `${activation.days_to_store_publish} días`} />
+              <Metric label="Tiempo a publicar" value={activation?.daysToStorePublish == null ? 'Sin dato' : `${activation.daysToStorePublish} días`} />
+              <Metric label="Primera venta" value={activation?.firstSaleAt ? `${formatDate(activation.firstSaleAt)} · ${activation.firstSaleChannel === 'online' ? 'Online' : 'POS'}` : 'Sin venta'} />
+              <Metric label="Tiempo a vender" value={activation?.daysToFirstSale == null ? 'Sin dato' : `${activation.daysToFirstSale} días`} />
               <Metric label="Omnicanal" value={activation?.is_omnichannel ? 'Sí' : 'Todavía no'} />
             </div>
           </section>

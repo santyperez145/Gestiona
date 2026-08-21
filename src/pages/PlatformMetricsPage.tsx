@@ -256,6 +256,7 @@ export default function PlatformMetricsPage() {
                 <FunnelStep label="Onboarding terminado" value={metrics.onboardedOrganizations} total={metrics.totalOrganizations} tone="bg-indigo-500" />
                 <FunnelStep label="Catálogo con productos" value={metrics.catalogReadyOrganizations} total={metrics.totalOrganizations} tone="bg-blue-500" />
                 <FunnelStep label="Tienda activa" value={metrics.storeReadyOrganizations} total={metrics.totalOrganizations} tone="bg-cyan-500" />
+                {!channelViewUnavailable && <FunnelStep label="Primera venta en el Core" value={channelMetrics.activatedOrganizations} total={channelMetrics.totalOrganizations} tone="bg-teal-500" />}
                 <FunnelStep label="Primer cobro registrado" value={metrics.activatedOrganizations} total={metrics.totalOrganizations} tone="bg-emerald-500" />
               </div>
             </section>
@@ -281,7 +282,7 @@ export default function PlatformMetricsPage() {
 
           <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
             <p className="font-semibold text-violet-200">Instrumentación disponible</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">G1, GMV, onboarding, publicación instrumentada, adopción por canal y precisión de inventario se calculan desde datos reales. El AI Action Rate mide ahora el recomendador de ofertas persistido: una acción sólo cuenta cuando la base aplica el cambio.</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">G1, GMV, onboarding, primera venta, publicación instrumentada, adopción por canal y precisión de inventario se calculan desde datos reales. El AI Action Rate mide el recomendador de ofertas persistido: una acción sólo cuenta cuando la base aplica el cambio.</p>
           </section>
         </TabsContent>
 
@@ -380,7 +381,8 @@ export default function PlatformMetricsPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+                <KPICard label="Primera venta" value={`${channelMetrics.firstSaleRate}%`} icon={CheckCircle2} color="success" sub={`${channelMetrics.activatedOrganizations} comercios activados`} />
                 <KPICard label="Publicacion instrumentada" value={`${channelMetrics.storePublishedRate}%`} icon={Store} color="primary" sub={`${channelMetrics.organizationsWithStoreActive} activas hoy`} />
                 <KPICard label="Usan online" value={`${channelMetrics.onlineRate}%`} icon={Globe2} color="blue" sub={`${channelMetrics.organizationsWithOnline} con orden confirmada`} />
                 <KPICard label="Usan POS" value={`${channelMetrics.posRate}%`} icon={MonitorSmartphone} color="success" sub={`${channelMetrics.organizationsWithPos} con venta POS`} />
@@ -389,10 +391,11 @@ export default function PlatformMetricsPage() {
 
               <section className="grid gap-4 lg:grid-cols-2">
                 <div className="rounded-[10px] border border-border/60 bg-card p-5">
-                  <div className="mb-5 flex items-start gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10"><Store className="h-4 w-4 text-violet-400" /></div><div><h2 className="font-semibold">Publicacion y primera venta online</h2><p className="mt-1 text-xs text-muted-foreground">Solo las fechas capturadas por eventos reales entran en el promedio.</p></div></div>
-                  <div className="grid grid-cols-2 gap-4 text-center">
+                  <div className="mb-5 flex items-start gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10"><Store className="h-4 w-4 text-violet-400" /></div><div><h2 className="font-semibold">Tiempo a vender</h2><p className="mt-1 text-xs text-muted-foreground">La primera venta toma el evento más temprano entre POS y tienda. Sólo las fechas reales entran en el promedio.</p></div></div>
+                  <div className="grid grid-cols-3 gap-3 text-center">
                     <div className="border-r border-border/50 pr-4"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Alta -&gt; publicar</p><p className="mt-1 text-xl font-semibold">{formatDays(channelMetrics.averageDaysToStorePublish, "Sin datos")}</p><p className="mt-1 text-[11px] text-muted-foreground">mediana {formatDays(channelMetrics.medianDaysToStorePublish, "Sin datos")}</p></div>
-                    <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Alta -&gt; primera orden</p><p className="mt-1 text-xl font-semibold">{formatDays(channelMetrics.averageDaysToFirstOnlineOrder, "Sin datos")}</p><p className="mt-1 text-[11px] text-muted-foreground">mediana {formatDays(channelMetrics.medianDaysToFirstOnlineOrder, "Sin datos")}</p></div>
+                    <div className="border-r border-border/50 pr-3"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Alta -&gt; primera venta</p><p className="mt-1 text-xl font-semibold">{formatDays(channelMetrics.averageDaysToFirstSale, "Sin datos")}</p><p className="mt-1 text-[11px] text-muted-foreground">mediana {formatDays(channelMetrics.medianDaysToFirstSale, "Sin datos")}</p></div>
+                    <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Alta -&gt; primera online</p><p className="mt-1 text-xl font-semibold">{formatDays(channelMetrics.averageDaysToFirstOnlineOrder, "Sin datos")}</p><p className="mt-1 text-[11px] text-muted-foreground">mediana {formatDays(channelMetrics.medianDaysToFirstOnlineOrder, "Sin datos")}</p></div>
                   </div>
                   <p className="mt-5 border-t border-border/50 pt-4 text-xs text-muted-foreground">{channelMetrics.organizationsWithStorePublicationKnown} de {channelMetrics.totalOrganizations} organizaciones tienen fecha de publicacion instrumentada. El resto queda fuera del calculo.</p>
                 </div>
@@ -401,6 +404,7 @@ export default function PlatformMetricsPage() {
                   <div className="mb-5 flex items-start gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10"><Activity className="h-4 w-4 text-emerald-400" /></div><div><h2 className="font-semibold">Adopcion por canal</h2><p className="mt-1 text-xs text-muted-foreground">Una organizacion cuenta como omnicanal cuando tiene al menos una venta POS y una orden online confirmada.</p></div></div>
                   <div className="space-y-4">
                     <FunnelStep label="Publicacion instrumentada" value={channelMetrics.organizationsWithStorePublished} total={channelMetrics.totalOrganizations} tone="bg-violet-500" />
+                    <FunnelStep label="Primera venta en cualquier canal" value={channelMetrics.activatedOrganizations} total={channelMetrics.totalOrganizations} tone="bg-teal-500" />
                     <FunnelStep label="Primera orden online" value={channelMetrics.organizationsWithOnline} total={channelMetrics.totalOrganizations} tone="bg-blue-500" />
                     <FunnelStep label="Venta POS" value={channelMetrics.organizationsWithPos} total={channelMetrics.totalOrganizations} tone="bg-emerald-500" />
                     <FunnelStep label="Ambos canales" value={channelMetrics.omnichannelOrganizations} total={channelMetrics.totalOrganizations} tone="bg-amber-500" />
@@ -413,11 +417,12 @@ export default function PlatformMetricsPage() {
                 {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando adopcion...</div> : channelMetrics.rows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Todavia no hay datos para analizar.</div> : (
                   <div className="divide-y divide-border/50">
                     {channelMetrics.rows.slice(0, 30).map(row => (
-                      <div key={row.org_id || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_repeat(4,minmax(90px,0.6fr))] md:items-center">
+                      <div key={row.org_id || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_repeat(5,minmax(90px,0.6fr))] md:items-center">
                         <div className="min-w-0"><p className="truncate text-sm font-medium">{row.org_name || "Sin nombre"}</p><p className="truncate text-xs text-muted-foreground">/{row.slug || "sin-slug"} - {row.store_slug ? `tienda /${row.store_slug}` : "sin tienda"}</p></div>
                         <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Online</p><p className="mt-0.5 text-xs font-semibold">{row.online_orders_total || 0} ordenes</p></div>
                         <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">POS</p><p className="mt-0.5 text-xs font-semibold">{row.pos_sales_total || 0} ventas</p></div>
                         <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Publicacion</p><p className="mt-0.5 text-xs font-semibold">{row.store_publication_known ? formatDate(row.store_published_at) : "Sin fecha"}</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Primera venta</p><p className="mt-0.5 text-xs font-semibold">{formatDate(row.firstSaleAt)}</p><p className="mt-1 text-[10px] text-muted-foreground">{row.firstSaleChannel === "online" ? "Online" : row.firstSaleChannel === "pos" ? "POS" : "Sin canal"} · {formatDays(row.daysToFirstSale, "Sin tiempo")}</p></div>
                         <div className="flex items-center justify-between gap-2 md:block md:text-right"><Badge variant="outline" className={row.is_omnichannel ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-border text-muted-foreground"}>{row.is_omnichannel ? "Omnicanal" : row.uses_online ? "Online" : row.uses_pos ? "POS" : "Sin canal"}</Badge><p className="mt-1 text-[10px] text-muted-foreground">{row.store_is_active ? "Tienda activa" : "Tienda inactiva"}</p></div>
                       </div>
                     ))}

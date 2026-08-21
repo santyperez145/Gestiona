@@ -69,10 +69,10 @@ antes de reutilizarlos en producto, ventas o comunicación externa.
 | Núcleo | Productos, variantes, inventario por movimientos, ventas, POS, compras, clientes, tienda y canales comparten el Business Core. |
 | Seguridad | Hay guardas de superficie pública y Edge Functions; las credenciales sensibles no se exponen al navegador. |
 | Cobros | Checkout recalcula en servidor, sus transiciones son idempotentes y Checkout Brick admite pausa global o por organización con salida segura. |
-| Plataforma | Existen Overview, registro de integraciones, Merchant 360 y cola operativa sanitizada. |
+| Plataforma | Existen Overview, registro de integraciones, Merchant 360, cola operativa sanitizada y activación por primera venta deduplicada por comercio. |
 | Finance precursor | Existe OCR que prellena una orden de compra. Es un componente parcial: aún no prueba cadena de custodia, validación, duplicados, matching, aprobación ni borrador Finance. |
-| Calidad técnica | 1.220 unit tests y las puertas typecheck, lint y build superadas en el último corte; 63 Edge Functions pasan verificación de tipos. |
-| Uso observado | 4 organizaciones, 1 comercio real, 34 registros POS, 6 online, 10 eventos de ledger, 0 asientos contables, 0 CAE y 2 pagos reales de prueba por ARS 1. Es una muestra, no product-market fit. |
+| Calidad técnica | 1.222 unit tests en este corte y las puertas typecheck, lint y build superadas; 63 Edge Functions pasan verificación de tipos. |
+| Uso observado | 4 organizaciones, 1 comercio real, 34 registros POS, 6 online, 10 eventos de ledger, 0 asientos contables, 1 CAE de homologación, 0 CAE de producción y 2 pagos reales de prueba por ARS 1. Es una muestra, no product-market fit. |
 
 La prioridad inmediata es comercial y de confianza: demostrar que se vende,
 entrega, registra y explica el margen sin intervención técnica diaria.
@@ -81,7 +81,7 @@ entrega, registra y explica el margen sin intervención técnica diaria.
 
 | Bloqueo | Riesgo que evita | Responsable |
 |---|---|---|
-| Certificado y prueba de homologación ARCA | El ciclo fiscal real aún no tiene evidencia. | Dueño / responsable fiscal. |
+| Certificado productivo ARCA y punto de venta Web Services | Homologación ya emitió un CAE; falta evidencia del ciclo productivo autorizado. | Dueño / responsable fiscal. |
 | Razón social, CUIT, domicilio y publicación legal | No se publica una tienda legalmente incompleta. | Dueño del comercio. |
 | Conteo físico y ajuste trazable | El antiguo doble movimiento dejó stock histórico no confiable. | Comercio. |
 | Pesos, fotos, descripciones y tarifas | La cotización y conversión no representan la operación real. | Comercio, con carga asistida. |
@@ -139,8 +139,8 @@ autónomos o integraciones que no ayuden a la primera venta.
 **Salida verificable**
 
 1. Dos comercios completan el recorrido de venta acordado.
-2. Hay un ciclo ARCA de homologación documentado y, con autorización, camino
-   productivo validado por el responsable.
+2. El ciclo ARCA de homologación ya está documentado; falta que el responsable
+   habilite certificado y punto de venta productivos y valide ese recorrido.
 3. Una muestra real reconcilia stock, pago, pedido y margen; las diferencias
    tienen causa y ajuste trazable.
 4. Las rutas críticas tienen E2E seguro y las recuperaciones de pago/webhook/cron
@@ -339,7 +339,7 @@ cambia el producto.
 | # | Proyecto | Fase | Estado | Cierre exigido |
 |---:|---|---|---|---|
 | 1 | Cerrar recorrido real: fiscal, legal, stock físico, catálogo y envío. | F0 | Bloqueado externamente | Evidencia de responsable y reconciliación. |
-| 2 | Medir onboarding, primera venta, error de checkout, recuperación y salud por comercio. | F0 | Pendiente | Eventos, tablero y definición de métricas. |
+| 2 | Medir onboarding, primera venta, error de checkout, recuperación y salud por comercio. | F0 | En curso: primera venta y tiempo a vender ya se calculan por comercio, sin duplicar organizaciones multi-tienda; faltan error de checkout y recuperación | platformMetrics.test.ts y panel Plataforma/Merchant 360; eventos y definiciones pendientes para el resto. |
 | 3 | E2E seguros de venta/compra/devolución/checkout/tienda; backup y restore. | F0 | En curso | Suite verde y acta de restore sin datos reales. |
 | 4 | Segundo comercio acompañado; convertir fricciones repetibles en fixes. | F0 | Pendiente | Primera venta y registro de resultados. |
 | 5 | ADR de acceso, auditoría, retención y modelo de documentos Finance; auditar el OCR preexistente. | F1 | Pendiente; OCR parcial, no MVP; no implementar antes de F0 | ADR, amenaza/RLS y migración propuesta sin duplicar Core. |

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateAiActionMetrics, calculateChannelMetrics, calculateCronHealthMetrics, calculatePlatformMetrics, calculateRiskSeriesMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformCronHealthRow, type PlatformHealthRow, type PlatformRiskSeriesRow, type PlatformStockAccuracyRow, withActivationTimes, withChannelActivationTimes } from "@/lib/platformMetrics";
+import { calculateAiActionMetrics, calculateChannelMetrics, calculateCronHealthMetrics, calculatePlatformMetrics, calculateRiskSeriesMetrics, calculateStockAccuracyMetrics, mergeActivationRowsByOrganization, type PlatformActivationRow, type PlatformAiActionRow, type PlatformCronHealthRow, type PlatformHealthRow, type PlatformRiskSeriesRow, type PlatformStockAccuracyRow, withActivationTimes, withChannelActivationTimes } from "@/lib/platformMetrics";
 
 const baseRow = (overrides: Partial<PlatformHealthRow> = {}): PlatformHealthRow => ({
   org_id: "org-1",
@@ -175,6 +175,10 @@ describe("platformMetrics", () => {
     expect(metrics.organizationsWithPos).toBe(2);
     expect(metrics.omnichannelOrganizations).toBe(1);
     expect(metrics.omnichannelRate).toBe(50);
+    expect(metrics.activatedOrganizations).toBe(2);
+    expect(metrics.firstSaleRate).toBe(100);
+    expect(metrics.averageDaysToFirstSale).toBe(4.5);
+    expect(metrics.medianDaysToFirstSale).toBe(4.5);
     expect(metrics.averageDaysToStorePublish).toBe(2);
     expect(metrics.averageDaysToFirstOnlineOrder).toBe(5);
   });
@@ -184,6 +188,39 @@ describe("platformMetrics", () => {
     const [activation] = withChannelActivationTimes([row]);
     expect(activation.daysToStorePublish).toBe(2);
     expect(activation.daysToFirstOnlineOrder).toBe(5);
+    expect(activation.firstSaleAt).toBe("2026-01-04T00:00:00.000Z");
+    expect(activation.firstSaleChannel).toBe("pos");
+    expect(activation.daysToFirstSale).toBe(3);
+  });
+
+  it("mide la primera venta una sola vez aunque la organizacion tenga varias tiendas", () => {
+    const rows = [
+      baseChannelRow({ store_id: "store-1", store_slug: "principal", store_published_at: "2026-01-03T00:00:00.000Z" }),
+      baseChannelRow({ store_id: "store-2", store_slug: "mayorista", store_is_active: false, store_published_at: "2026-01-02T00:00:00.000Z" }),
+    ];
+
+    const [merged] = mergeActivationRowsByOrganization(rows);
+    const metrics = calculateChannelMetrics(rows);
+
+    expect(merged.store_slug).toBe("2 tiendas");
+    expect(merged.store_published_at).toBe("2026-01-02T00:00:00.000Z");
+    expect(merged.online_orders_total).toBe(3);
+    expect(metrics.totalOrganizations).toBe(1);
+    expect(metrics.activatedOrganizations).toBe(1);
+    expect(metrics.organizationsWithOnline).toBe(1);
+    expect(metrics.organizationsWithPos).toBe(1);
+    expect(metrics.rows).toHaveLength(1);
+  });
+
+  it("no inventa tiempo a primera venta con fechas invalidas", () => {
+    const metrics = calculateChannelMetrics([
+      baseChannelRow({ first_online_order_at: "bad", first_pos_sale_at: null, uses_online: false, uses_pos: false, is_omnichannel: false }),
+    ]);
+
+    expect(metrics.activatedOrganizations).toBe(0);
+    expect(metrics.averageDaysToFirstSale).toBeNull();
+    expect(metrics.rows[0].firstSaleAt).toBeNull();
+    expect(metrics.rows[0].daysToFirstSale).toBeNull();
   });
 
   it("mide precision solo sobre productos con Kardex y conserva los no medidos", () => {
