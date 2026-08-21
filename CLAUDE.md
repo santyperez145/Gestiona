@@ -47,7 +47,7 @@ nombre.
 [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).** Fija los quince principios y los
 límites de dominio que no hay que cruzar. El estado medido del 2026-08-21 vive
 en [docs/COMPARACION.md](docs/COMPARACION.md): 282 tablas, 298 con `org_id`,
-62 Edge Functions y 1.196 tests (`npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21). Idempotencia,
+62 Edge Functions y 1.200 tests (`npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21). Idempotencia,
 eventos con outbox y ledger financiero ya están construidos y verificados en
 los commits H1–H3; no deben volver a tratarse como pendientes ni duplicarse.
 El checkout público ya consume el orquestador P0.3.1: toda llamada a
@@ -69,14 +69,15 @@ polimórfico, P0.2 identidad, P0.3 pagos, P0.4 ARCA y P0.5 segundo comercio.
 `gestiona.txt` es el análisis que fundamenta ese orden, no permiso para saltar
 las puertas de verificación.
 
-**Primer slice del Control Plane (2026-08-21):** `/platform/integraciones`
+**Primeros slices del Control Plane (2026-08-21):** `/platform/integraciones`
 consume `platform_integration_registry`, un catálogo staff-only que describe
-alcance, método de conexión, capacidades y lifecycle. No contiene tokens,
-certificados ni secretos y no se debe usar como sustituto de la salud de
-runtime: conexiones por comercio, webhooks, pagos y cron siguen sus vistas
-operativas. Si una integración nueva aparece en UI, primero debe tener una fila
-en ese registro y una condición de salida verificable; no se agregan nombres
-hardcodeados en varias pantallas.
+alcance, método de conexión, capacidades y lifecycle. El Resumen de
+`/platform` consume además `platform_org_health`, `platform_org_activation` y
+`platform_cron_health` para señales operativas con evidencia. Ninguna de las dos
+superficies contiene tokens, certificados ni secretos y el catálogo no se debe
+usar como sustituto de la salud de runtime. Si una integración nueva aparece en
+UI, primero debe tener una fila en ese registro y una condición de salida
+verificable; no se agregan nombres hardcodeados en varias pantallas.
 
 **Identidad antes que deduplicación:** el slice P0.2.1 dejó las vistas protegidas
 `product_identity_review` y `customer_identity_review` como fuente del

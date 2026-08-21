@@ -9,6 +9,7 @@ import {
   MoreHorizontal, CalendarDays, Activity, Headphones, Pause, Play,
   History, ShoppingCart, Package, Server, TrendingDown,
   KeyRound, Link2, Copy, UserPlus, Mail, FileDown, Loader2,
+  CircleAlert, Store, Webhook,
 } from 'lucide-react';
 import SystemHealthTab from '@/components/platform/SystemHealthTab';
 import { Badge } from '@/components/ui/badge';
@@ -70,6 +71,40 @@ interface PlanRow {
   stripe_price_id_yearly: string | null;
   features: string[] | null;
   sort_order: number;
+}
+
+interface PlatformHealthRow {
+  org_id: string | null;
+  org_name: string | null;
+  gmv_30d: number | null;
+  cobros_30d: number | null;
+  dias_sin_cobrar: number | null;
+  senal: string | null;
+}
+
+interface PlatformActivationRow {
+  org_id: string | null;
+  org_name: string | null;
+  store_is_active: boolean | null;
+  store_published_at: string | null;
+  online_orders_30d: number | null;
+  pos_sales_30d: number | null;
+  uses_online: boolean | null;
+  uses_pos: boolean | null;
+  is_omnichannel: boolean | null;
+}
+
+interface PlatformCronRow {
+  jobname: string | null;
+  estado: string | null;
+  failed_runs_7d: number | null;
+}
+
+interface ControlPlaneSnapshot {
+  health: PlatformHealthRow[];
+  activation: PlatformActivationRow[];
+  cron: PlatformCronRow[];
+  loadedAt: string | null;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -151,6 +186,11 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
   const [loadingOrgs, setLoadingOrgs] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingPlans, setLoadingPlans] = useState(false);
+  const [loadingControlPlane, setLoadingControlPlane] = useState(false);
+  const [controlPlaneError, setControlPlaneError] = useState<string | null>(null);
+  const [controlPlane, setControlPlane] = useState<ControlPlaneSnapshot>({
+    health: [], activation: [], cron: [], loadedAt: null,
+  });
   const [stats, setStats] = useState({
     orgs: 0, users: 0, mrr: 0, arr: 0,
     active: 0, trialing: 0, canceled: 0, past_due: 0, trialConversion: 0,
@@ -291,11 +331,41 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
     setLoadingPlans(false);
   }, []);
 
+  const loadControlPlane = useCallback(async () => {
+    setLoadingControlPlane(true);
+    setControlPlaneError(null);
+    try {
+      const [healthResponse, activationResponse, cronResponse] = await Promise.all([
+        supabase.from('platform_org_health').select('org_id,org_name,gmv_30d,cobros_30d,dias_sin_cobrar,senal'),
+        supabase.from('platform_org_activation').select('org_id,org_name,store_is_active,store_published_at,online_orders_30d,pos_sales_30d,uses_online,uses_pos,is_omnichannel'),
+        supabase.from('platform_cron_health').select('jobname,estado,failed_runs_7d'),
+      ]);
+      const failed = [
+        healthResponse.error && `salud de merchants: ${healthResponse.error.message}`,
+        activationResponse.error && `adopción por canal: ${activationResponse.error.message}`,
+        cronResponse.error && `cron: ${cronResponse.error.message}`,
+      ].filter(Boolean) as string[];
+      if (failed.length > 0) throw new Error(failed.join(' · '));
+
+      setControlPlane({
+        health: (healthResponse.data || []) as PlatformHealthRow[],
+        activation: (activationResponse.data || []) as PlatformActivationRow[],
+        cron: (cronResponse.data || []) as PlatformCronRow[],
+        loadedAt: new Date().toISOString(),
+      });
+    } catch (e: any) {
+      setControlPlaneError(e.message || 'No se pudieron cargar las señales operativas.');
+    } finally {
+      setLoadingControlPlane(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isPlatformAdmin) return;
     loadOrgs();
     loadPlans();
-  }, [isPlatformAdmin, loadOrgs, loadPlans]);
+    loadControlPlane();
+  }, [isPlatformAdmin, loadOrgs, loadPlans, loadControlPlane]);
 
   useEffect(() => {
     if (tab === 'users' && users.length === 0 && isPlatformAdmin) loadUsers();
@@ -591,6 +661,35 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
     );
   }, [users, userSearch]);
 
+  const controlPlaneSummary = useMemo(() => {
+    const { health, activation, cron } = controlPlane;
+    const activationByOrg = Array.from(
+      new Map(activation.filter(row => row.org_id).map(row => [row.org_id, row])).values(),
+    );
+    const hasEvidence = health.length > 0 || activation.length > 0 || cron.length > 0;
+    const gmv30d = health.reduce((sum, row) => sum + (row.gmv_30d || 0), 0);
+    const cobros30d = health.reduce((sum, row) => sum + (row.cobros_30d || 0), 0);
+    const risks = health
+      .filter(row => ['en_riesgo', 'cayendo', 'dormido'].includes(row.senal || ''))
+      .sort((a, b) => (b.gmv_30d || 0) - (a.gmv_30d || 0));
+    const publishedStores = activation.filter(row => !!row.store_published_at).length;
+    const activeStores = activation.filter(row => !!row.store_is_active).length;
+    const onlineMerchants = activationByOrg.filter(row => !!row.uses_online).length;
+    const posMerchants = activationByOrg.filter(row => !!row.uses_pos).length;
+    const omnichannelMerchants = activationByOrg.filter(row => !!row.is_omnichannel).length;
+    const onlineOrders30d = activationByOrg.reduce((sum, row) => sum + (row.online_orders_30d || 0), 0);
+    const posSales30d = activationByOrg.reduce((sum, row) => sum + (row.pos_sales_30d || 0), 0);
+    const failedCronRuns = cron.reduce((sum, row) => sum + (row.failed_runs_7d || 0), 0);
+    const failingCronJobs = cron.filter(row => row.estado === 'fallando').length;
+    const healthyCronJobs = cron.filter(row => row.estado === 'saludable').length;
+    return {
+      hasEvidence, gmv30d, cobros30d, risks, publishedStores, activeStores,
+      onlineMerchants, posMerchants, omnichannelMerchants, failedCronRuns,
+      failingCronJobs, healthyCronJobs, cronTotal: cron.length,
+      activationOrgs: activationByOrg.length, onlineOrders30d, posSales30d,
+    };
+  }, [controlPlane]);
+
   // ── Guard ──────────────────────────────────────────────────────────────────
 
   if (orgLoading) return <div className="p-8 text-muted-foreground text-sm">Verificando permisos...</div>;
@@ -605,8 +704,8 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
         title={SECTION_META[tab]?.title || 'Plataforma'}
         description={SECTION_META[tab]?.description || ''}
         actions={
-          <Button variant="outline" size="sm" onClick={() => { loadOrgs(); if (tab === 'users') loadUsers(); if (tab === 'plans') loadPlans(); }} disabled={loadingOrgs}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loadingOrgs ? 'animate-spin' : ''}`} /> Actualizar
+          <Button variant="outline" size="sm" onClick={() => { loadOrgs(); loadControlPlane(); if (tab === 'users') loadUsers(); if (tab === 'plans') loadPlans(); }} disabled={loadingOrgs || loadingControlPlane}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loadingOrgs || loadingControlPlane ? 'animate-spin' : ''}`} /> Actualizar
           </Button>
         }
       />
@@ -634,6 +733,94 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
             <KPICard label="En trial" value={stats.trialing} icon={Zap} color="blue" sub="períodos de prueba" />
             <KPICard label="Pago pendiente" value={stats.past_due} icon={Clock} color="warning" sub="requieren acción" />
             <KPICard label="Cancelados" value={stats.canceled} icon={XCircle} color="destructive" sub="bajas confirmadas" />
+          </div>
+
+          {/* Control Plane signals — all values come from protected platform views. */}
+          <div className="pt-2 space-y-3">
+            <div className="flex items-center gap-2">
+              <Webhook className="w-4 h-4 text-violet-300" />
+              <h2 className="text-sm font-semibold">Señales operativas</h2>
+              <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/60">Business Core → canales</span>
+              {controlPlane.loadedAt && <span className="ml-auto text-[10px] text-muted-foreground/50">Actualizado {fmtFull(controlPlane.loadedAt)}</span>}
+            </div>
+            {controlPlaneError ? (
+              <div className="flex items-start gap-3 border border-destructive/30 bg-destructive/10 rounded-[8px] p-4 text-sm">
+                <CircleAlert className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium">No se pudieron cargar las señales</p>
+                  <p className="text-xs text-muted-foreground mt-1">{controlPlaneError}</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => void loadControlPlane()}>Reintentar</Button>
+              </div>
+            ) : !controlPlaneSummary.hasEvidence && !loadingControlPlane ? (
+              <div className="border border-dashed border-border rounded-[8px] p-5 text-sm text-muted-foreground">
+                Todavía no hay eventos de operación para medir GMV, adopción de canales o cron.
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <KPICard label="GMV 30d" value={controlPlaneSummary.hasEvidence ? `$${Math.round(controlPlaneSummary.gmv30d).toLocaleString('es-AR')}` : '—'} icon={ShoppingCart} color="purple"
+                    sub={`${controlPlaneSummary.cobros30d} cobros aprobados`} />
+                  <KPICard label="Canales" value={controlPlaneSummary.hasEvidence ? `${controlPlaneSummary.onlineMerchants + controlPlaneSummary.posMerchants}` : '—'} icon={Store} color="blue"
+                    sub={`${controlPlaneSummary.omnichannelMerchants} omnicanal · ${controlPlaneSummary.publishedStores} publicadas`} />
+                  <KPICard label="Merchants en riesgo" value={controlPlaneSummary.hasEvidence ? controlPlaneSummary.risks.length : '—'} icon={CircleAlert} color={controlPlaneSummary.risks.length > 0 ? 'warning' : 'success'}
+                    sub="sin cobrar, cayendo o dormidos" />
+                  <KPICard label="Cron 7d" value={controlPlaneSummary.cronTotal > 0 ? `${controlPlaneSummary.healthyCronJobs}/${controlPlaneSummary.cronTotal}` : '—'} icon={Webhook} color={controlPlaneSummary.failingCronJobs > 0 ? 'warning' : 'success'}
+                    sub={controlPlaneSummary.cronTotal > 0 ? `${controlPlaneSummary.failedCronRuns} ejecuciones fallidas` : 'sin evidencia'} />
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-5">
+                  <div className="lg:col-span-3 bg-card border border-border/60 rounded-[10px] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-sm">Adopción por canal</h3>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Comercios con actividad aprobada en los últimos 30 días</p>
+                      </div>
+                      <span className="text-xs font-mono text-muted-foreground">{controlPlaneSummary.activationOrgs} comercios</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 p-4 text-center">
+                      {[
+                        { label: 'Tienda', value: controlPlaneSummary.onlineMerchants, detail: `${controlPlaneSummary.onlineOrders30d} órdenes`, color: 'text-blue-400' },
+                        { label: 'POS', value: controlPlaneSummary.posMerchants, detail: `${controlPlaneSummary.posSales30d} ventas`, color: 'text-amber-400' },
+                        { label: 'Omnicanal', value: controlPlaneSummary.omnichannelMerchants, detail: `${controlPlaneSummary.activeStores} tiendas activas`, color: 'text-emerald-400' },
+                      ].map(channel => (
+                        <div key={channel.label}>
+                          <p className={`text-2xl font-bold font-mono ${channel.color}`}>{channel.value}</p>
+                          <p className="text-xs font-medium mt-1">{channel.label}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{channel.detail}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-2 bg-card border border-border/60 rounded-[10px] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-sm">Atención sugerida</h3>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Señales derivadas de cobros aprobados</p>
+                      </div>
+                      <CircleAlert className={`w-4 h-4 ${controlPlaneSummary.risks.length ? 'text-amber-400' : 'text-emerald-400'}`} />
+                    </div>
+                    {controlPlaneSummary.risks.length === 0 ? (
+                      <p className="p-4 text-xs text-muted-foreground">No hay merchants en riesgo con la evidencia disponible.</p>
+                    ) : (
+                      <div className="divide-y divide-border/50">
+                        {controlPlaneSummary.risks.slice(0, 4).map(row => (
+                          <div key={row.org_id || row.org_name} className="flex items-center gap-3 px-4 py-3">
+                            <CircleAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-medium truncate">{row.org_name || 'Organización sin nombre'}</p>
+                              <p className="text-[10px] text-muted-foreground">{row.senal === 'dormido' ? `${row.dias_sin_cobrar || 0} días sin cobrar` : row.senal}</p>
+                            </div>
+                            <span className="text-[10px] font-mono text-muted-foreground">${Math.round(row.gmv_30d || 0).toLocaleString('es-AR')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

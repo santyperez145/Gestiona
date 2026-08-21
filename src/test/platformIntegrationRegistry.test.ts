@@ -8,6 +8,7 @@ const MIGRATION = readFileSync(
   'utf8',
 );
 const PAGE = readFileSync(resolve(ROOT, 'src', 'pages', 'PlatformIntegrationsPage.tsx'), 'utf8');
+const PLATFORM_PAGE = readFileSync(resolve(ROOT, 'src', 'pages', 'PlatformAdminPage.tsx'), 'utf8');
 
 describe('registro de integraciones de plataforma', () => {
   it('mantiene el catálogo separado de credenciales y restringido a staff', () => {
@@ -24,5 +25,14 @@ describe('registro de integraciones de plataforma', () => {
     expect(PAGE).toContain('No indica que una cuenta de comercio esté conectada');
     expect(PAGE).toContain('connection_mode');
     expect(PAGE).toContain('lifecycle');
+  });
+
+  it('alimenta el resumen desde vistas protegidas, no desde tablas operativas crudas', () => {
+    expect(PLATFORM_PAGE).toContain("from('platform_org_health')");
+    expect(PLATFORM_PAGE).toContain("from('platform_org_activation')");
+    expect(PLATFORM_PAGE).toContain("from('platform_cron_health')");
+    expect(PLATFORM_PAGE).toContain('Todavía no hay eventos de operación para medir');
+    expect(PLATFORM_PAGE).not.toContain("from('cron.job')");
+    expect(PLATFORM_PAGE).not.toContain("from('payment_transactions')");
   });
 });
