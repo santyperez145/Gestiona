@@ -72,13 +72,13 @@ fecha y el comando o consulta que los produjo; no se reemplazan en silencio.
 | Señal | Estado al 2026-08-21 |
 |---|---|
 | Edge Functions | 62 |
-| Tests unitarios | 1.200, `npm test` |
+| Tests unitarios | 1.201, `npm test` |
 | Organizaciones / comercios que venden de verdad | 4 / 1 |
 | Registros POS / tiendas online | 34 / 6 |
 | Eventos de dominio / asientos del ledger | 10 / 0 |
 | Facturas emitidas por la app / CAE | 0 / 0 |
 | Pagos reales de prueba | 2 cobros de ARS 1 |
-| Control Plane | Overview e Integration Registry inicial conectados |
+| Control Plane | Overview, Integration Registry inicial y Merchant 360 conectados |
 
 ### Lo que ya está
 
@@ -93,6 +93,8 @@ fecha y el comando o consulta que los produjo; no se reemplazan en silencio.
   disponible.
 - El registro inicial de integraciones vive en el Control Plane con separación
   por organización y acceso exclusivo de plataforma.
+- Merchant 360 ya permite abrir una organización desde el listado y leer, en
+  tabs persistentes, negocio, canales, activación y contexto sanitizado.
 
 ### Lo que todavía no se puede afirmar
 
@@ -207,18 +209,18 @@ de probar la operación sólo aumenta el costo de una mala decisión.
 La cola es corta a propósito. Una tarea no entra porque sea interesante: entra
 porque produce la evidencia de salida de una fase.
 
-| Orden | Slice | Dependencia | Evidencia de salida |
-|---:|---|---|---|
-| 1 | ARCA real | certificado o delegación del dueño | una factura de prueba de la app, CAE y error recuperable |
-| 2 | Publicación legal | razón social, CUIT y domicilio | páginas publicadas y visibles desde la tienda |
-| 3 | Conciliación de stock | conteo físico | ajuste trazable y Kardex sin diferencias |
-| 4 | Segundo comercio | disponibilidad del negocio | primera venta sin SQL ni corrección manual |
-| 5 | Matriz de pagos | escenarios de proveedor | reintentos sin doble cobro, reintegro ni documento duplicado |
-| 6 | Merchant 360 | señales de Core confiables | ficha operativa por organización con riesgos y próximos pasos |
-| 7 | Registro de integraciones 2 | health checks y eventos | versión, scopes, webhook, error y plan por conexión |
-| 8 | Centro de operaciones | logs y reintentos | cola accionable para pagos, cron, webhooks y sync |
-| 9 | Margen por canal | costos y comisiones reales | comparación de contribución por orden y canal |
-| 10 | MercadoLibre real | cuenta y operación comercial | publicación, orden importada y conciliación multi-org |
+| Orden | Slice | Estado | Dependencia | Evidencia de salida |
+|---:|---|---|---|---|
+| 1 | ARCA real | Bloqueado externo | certificado o delegación del dueño | una factura de prueba de la app, CAE y error recuperable |
+| 2 | Publicación legal | Bloqueado externo | razón social, CUIT y domicilio | páginas publicadas y visibles desde la tienda |
+| 3 | Conciliación de stock | Bloqueado externo | conteo físico | ajuste trazable y Kardex sin diferencias |
+| 4 | Segundo comercio | Siguiente | disponibilidad del negocio | primera venta sin SQL ni corrección manual |
+| 5 | Matriz de pagos | Pendiente | escenarios de proveedor | reintentos sin doble cobro, reintegro ni documento duplicado |
+| 6 | Merchant 360 | Base hecha, 2026-08-21 | señales de Core confiables | ficha operativa por organización con riesgos y próximos pasos |
+| 7 | Registro de integraciones 2 | Siguiente | health checks y eventos | versión, scopes, webhook, error y plan por conexión |
+| 8 | Centro de operaciones | Pendiente | logs y reintentos | cola accionable para pagos, cron, webhooks y sync |
+| 9 | Margen por canal | Pendiente | costos y comisiones reales | comparación de contribución por orden y canal |
+| 10 | MercadoLibre real | Pendiente | cuenta y operación comercial | publicación, orden importada y conciliación multi-org |
 
 Los puntos 1 a 3 requieren participación del dueño y no se pueden simular con
 una pantalla. Si alguno está bloqueado por una decisión o credencial externa,
@@ -233,7 +235,7 @@ Core ni mostrar secretos.
 | Slice | Estado | Próxima prueba |
 |---|---|---|
 | Platform Overview | Hecho, 2026-08-21 | sumar pagos, webhooks y colas como señales de primera clase |
-| Merchant 360 | Siguiente | abrir una organización y explicar activación, riesgo y bloqueo |
+| Merchant 360 | Base hecha, 2026-08-21 | probar la ficha con una organización real y sumar conexiones/health checks |
 | Integration Registry | Base hecha, 2026-08-21 | completar health check, scopes, versión, webhook y plan |
 | Credential Control | Pendiente | rotar o revocar una conexión sin exponer su valor |
 | Billing y comisiones | Pendiente | conciliar comisión, suscripción y venta |

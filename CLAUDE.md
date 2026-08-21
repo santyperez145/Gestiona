@@ -47,7 +47,7 @@ nombre.
 [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).** Fija los quince principios y los
 límites de dominio que no hay que cruzar. El estado medido del 2026-08-21 vive
 en [docs/COMPARACION.md](docs/COMPARACION.md): 282 tablas, 298 con `org_id`,
-62 Edge Functions y 1.200 tests (`npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21). Idempotencia,
+62 Edge Functions y 1.201 tests (`npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21). Idempotencia,
 eventos con outbox y ledger financiero ya están construidos y verificados en
 los commits H1–H3; no deben volver a tratarse como pendientes ni duplicarse.
 El checkout público ya consume el orquestador P0.3.1: toda llamada a
@@ -258,8 +258,8 @@ y guardaba `Math.random()` como uso de tokens.
 
 **Los números medidos van con la fecha o con el comando al lado.** Este repo es
 público y su documentación se lee de afuera: un análisis externo citó "418 tests
-unitarios" tomándolo de una línea vieja de `ROADMAP.md` cuando ya eran 811. Un
-número sin fecha se convierte en el dato que otros repiten.
+unitarios" tomándolo de una línea vieja de `ROADMAP.md` cuando la suite ya era
+mucho mayor. Un número sin fecha se convierte en el dato que otros repiten.
 
 **Antes de afirmar algo sobre un competidor, verificarlo o marcarlo como no
 verificado.** ⚠️ Y el ejemplo dejó de ser hipotético: **"Tiendanube no tiene POS"
@@ -301,8 +301,8 @@ el `NODE_OPTIONS` no es opcional, sin él se queda sin memoria a los 6 minutos
 `lint` tolera ~140 warnings de `exhaustive-deps`: son deuda conocida y **no se
 tocan en masa** (provoca loops de refetch). Errores: cero.
 
-**Los flujos se cubren con Playwright, los cálculos con vitest.** Los **811**
-unitarios (`npm test`, 2026-08-13) verifican cuentas; los bugs que costaron plata fueron todos de
+**Los flujos se cubren con Playwright, los cálculos con vitest.** Los **1.201**
+tests (`npm test`, 2026-08-21) verifican cuentas y contratos; los bugs que costaron plata fueron todos de
 integración y ninguno los habría agarrado. Los E2E viven en `e2e/` y leen la
 base de producción, así que son **de sólo lectura**: ninguno crea una orden.
 

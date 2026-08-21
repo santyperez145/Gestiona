@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrg } from '@/lib/orgContext';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import {
   Building2, Users, DollarSign, TrendingUp, Search, RefreshCw,
   Clock, CheckCircle2, XCircle, Zap, Shield, Ban, Trash2,
@@ -1048,6 +1048,9 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                           )}
                         </div>
                         <div className="flex gap-1 pt-1">
+                          <Button asChild variant="outline" size="sm" className="h-7 px-2 flex-1 text-xs">
+                            <Link to={`/platform/orgs/${r.id}`}><Activity className="w-3 h-3 mr-1" />360</Link>
+                          </Button>
                           <Button variant="outline" size="sm" className="h-7 px-2 flex-1 text-xs"
                             onClick={() => { setExtendDialog({ open: true, org: r }); setExtendDays('7'); }}>
                             <CalendarDays className="w-3 h-3 mr-1" />Trial
@@ -1116,6 +1119,9 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                             </td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex items-center justify-end gap-1">
+                                <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs" title="Ver Merchant 360">
+                                  <Link to={`/platform/orgs/${r.id}`}><Activity className="w-3.5 h-3.5" /></Link>
+                                </Button>
                                 <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" title="Extender trial"
                                   onClick={() => { setExtendDialog({ open: true, org: r }); setExtendDays('7'); }}>
                                   <CalendarDays className="w-3.5 h-3.5" />

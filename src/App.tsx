@@ -54,6 +54,7 @@ const OnboardingPage         = lazy(() => import("@/pages/OnboardingPage"));
 const TeamPage               = lazy(() => import("@/pages/TeamPage"));
 const InvitationAcceptPage   = lazy(() => import("@/pages/InvitationAcceptPage"));
 const PlatformAdminPage      = lazy(() => import("@/pages/PlatformAdminPage"));
+const PlatformMerchantPage  = lazy(() => import("@/pages/PlatformMerchantPage"));
 const PlatformMetricsPage   = lazy(() => import("@/pages/PlatformMetricsPage"));
 const PlatformIntegrationsPage = lazy(() => import("@/pages/PlatformIntegrationsPage"));
 const PlatformCommissionsPage = lazy(() => import("@/pages/PlatformCommissionsPage"));
@@ -200,6 +201,7 @@ function PlatformRoutes() {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route index element={<PlatformAdminPage section="overview" />} />
+          <Route path="orgs/:orgId" element={<PlatformMerchantPage />} />
           <Route path="orgs" element={<PlatformAdminPage section="orgs" />} />
           <Route path="usuarios" element={<PlatformAdminPage section="users" />} />
           <Route path="metricas" element={<PlatformMetricsPage />} />
