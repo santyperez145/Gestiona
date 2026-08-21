@@ -579,6 +579,83 @@ export type Database = {
           },
         ]
       }
+      afip_authorization_locks: {
+        Row: {
+          acquired_at: string
+          expires_at: string
+          invoice_id: string
+          org_id: string
+          punto_venta: number
+          tipo_cbte: number
+        }
+        Insert: {
+          acquired_at?: string
+          expires_at: string
+          invoice_id: string
+          org_id: string
+          punto_venta: number
+          tipo_cbte: number
+        }
+        Update: {
+          acquired_at?: string
+          expires_at?: string
+          invoice_id?: string
+          org_id?: string
+          punto_venta?: number
+          tipo_cbte?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "afip_authorization_locks_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "afip_authorization_locks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "afip_authorization_locks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_authorization_locks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_authorization_locks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_authorization_locks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_authorization_locks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       afip_comprobantes: {
         Row: {
           cae: string | null
@@ -10950,6 +11027,8 @@ export type Database = {
       }
       invoices: {
         Row: {
+          afip_authorization_requested_by: string | null
+          afip_authorization_started_at: string | null
           afip_environment: string | null
           afip_error: string | null
           afip_status: string | null
@@ -10982,6 +11061,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          afip_authorization_requested_by?: string | null
+          afip_authorization_started_at?: string | null
           afip_environment?: string | null
           afip_error?: string | null
           afip_status?: string | null
@@ -11014,6 +11095,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          afip_authorization_requested_by?: string | null
+          afip_authorization_started_at?: string | null
           afip_environment?: string | null
           afip_error?: string | null
           afip_status?: string | null
@@ -30966,6 +31049,28 @@ export type Database = {
           p_variant_id: string
         }
         Returns: string
+      }
+      afip_autorizacion_reservar: {
+        Args: {
+          p_environment: string
+          p_invoice_id: string
+          p_punto_venta: number
+          p_requested_by: string
+          p_tipo_cbte: number
+        }
+        Returns: Json
+      }
+      afip_autorizacion_resultado: {
+        Args: {
+          p_cae?: string
+          p_cae_vencimiento?: string
+          p_environment?: string
+          p_error?: string
+          p_invoice_id: string
+          p_numero_afip?: number
+          p_status: string
+        }
+        Returns: Json
       }
       afip_marcar_delegacion: {
         Args: { p_detalle?: string; p_ok: boolean; p_org: string }

@@ -195,18 +195,43 @@ errores y build. No se ejecutó un reintegro contra una cuenta sandbox/real de
 MercadoPago porque faltan credenciales de prueba; esa evidencia externa sigue
 pendiente y está marcada como tal.
 
+**P0.4.1 — Guardia de autorización ARCA (cerrado en código 2026-08-21).** La
+migración `20260821000048_afip_authorization_guard.sql` agrega una reserva
+server-side por organización, punto de venta y tipo de comprobante. La reserva
+se serializa con una llave advisory, revalida owner/admin dentro de la base y
+mantiene un lease de 15 minutos. La autorización ya no actualiza `invoices`
+desde la Edge Function: éxito, rechazo y error pasan por
+`afip_autorizacion_resultado`.
+
+Una respuesta incierta de ARCA queda en `processing` y conserva la reserva para
+evitar que un reintento inmediato emita el mismo comprobante dos veces. Un CAE
+existente se devuelve como lectura idempotente. La pantalla muestra “En
+verificación”, bloquea el segundo intento y dejó de escribir estados fiscales
+desde el navegador. Esto cierra la condición de concurrencia del código, pero
+no equivale a haber emitido una factura: todavía falta el certificado de
+homologación/producción del comercio y la prueba externa contra ARCA.
+
+**Salida verificada:** migración aplicada y registrada, `db push --linked
+--dry-run` en `upToDate`, RLS y ACL comprobadas, Function desplegada, 7 tests
+de autoridad, suite completa de 85 archivos/1.196 tests, typecheck, lint sin
+errores y build. No se marca el circuito ARCA como probado hasta tener una
+respuesta real del organismo.
+
 ### Siguiente trabajo ya ordenado
 
 - P0.2: usar el Centro de calidad de datos para completar SKU/EAN y cobertura
   de contacto con datos reales, revisar candidatos con evidencia y recién
   entonces evaluar restricciones únicas por organización.
-- P0.3: cerrar captura y factura con el mismo contrato, además de la recepción
-  de compras; luego ejecutar una matriz sandbox aprobada/rechazada/pending/
-  revertida y revisar la conciliación sin doble asiento. El reintegro online,
-  su reconciliación por webhook y la recepción física del RMA ya están
-  conectados en código y base; falta evidencia externa del proveedor.
-- P0.4: ejecutar el circuito ARCA con certificado de homologación y una factura
-  de prueba.
+- P0.3: cerrar captura y factura con el mismo contrato, además de verificar la
+  recepción de compras; luego ejecutar una matriz sandbox
+  aprobada/rechazada/pending/revertida y revisar la conciliación sin doble
+  asiento. El reintegro online, su reconciliación por webhook y la recepción
+  física del RMA ya están conectados en código y base; falta evidencia externa
+  del proveedor.
+- P0.4: cargar el certificado de homologación, verificar delegación/punto de
+  venta, emitir una factura de prueba y recién después preparar producción. La
+  reserva de concurrencia ya está en código; no se confunde con una emisión
+  validada por ARCA.
 - P0.5: acompañar el alta de un segundo comercio y medir tiempo a catálogo,
   primera venta, uso POS/tienda, stock accuracy y soporte.
 - P1 Document AI + Payables: PDF/imagen → extracción estructurada → revisión
@@ -459,7 +484,7 @@ atravesó.
 | IA (chat, insights, OCR) | Parcial | Real desde la sesión 115. Requiere `ANTHROPIC_API_KEY` |
 | Email / WhatsApp marketing | Parcial | Requieren `RESEND_API_KEY` / Evolution API |
 | Permisos, MFA, auditoría, RLS | Anda | — |
-| Tests | Anda | **1189** (`npm test`, 2026-08-21) + E2E de tienda |
+| Tests | Anda | **1196** (`npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21) + E2E de tienda |
 
 Lo que dice "requiere una clave" no está roto: está construido esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).

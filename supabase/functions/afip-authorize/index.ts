@@ -44,6 +44,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   let invoiceId: string | null = null;
+  let authorizationReserved = false;
+  let providerResult: { cae: string; caeVencimiento: string } | null = null;
+  let providerNumber: number | null = null;
+  let providerEnvironment: string | null = null;
   try {
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace(/^Bearer\s+/, "").trim();
@@ -202,16 +206,27 @@ Deno.serve(async (req) => {
       .eq("id", invoiceId)
       .single();
     if (invErr || !invoice) return err("Factura no encontrada");
-    if (invoice.cae) return err("Esta factura ya tiene CAE: " + invoice.cae);
+    if (invoice.cae) {
+      return ok({
+        ok: true,
+        status: "authorized",
+        idempotent: true,
+        cae: invoice.cae,
+        cae_vencimiento: invoice.cae_vencimiento,
+        numero_afip: invoice.numero_afip,
+        environment: invoice.afip_environment,
+      });
+    }
 
-    // Verify user belongs to the invoice's org
+    // Verify the same write role that the server-side reservation enforces.
     const { data: membership } = await supabase
       .from("memberships")
       .select("role")
       .eq("org_id", invoice.org_id)
       .eq("user_id", userData.user.id)
+      .in("role", ["owner", "admin"])
       .maybeSingle();
-    if (!membership) return err("Sin acceso a esta organización");
+    if (!membership) return err("Sólo el dueño o un administrador pueden autorizar facturas", 403);
 
     const resuelto = await resolverCredencialesAfip(supabase, invoice.org_id);
     if (resuelto.error) return err(resuelto.error);
@@ -224,6 +239,40 @@ Deno.serve(async (req) => {
     const wsfeUrl = isProd
       ? "https://servicios1.afip.gov.ar/wsfev1/service.asmx"
       : "https://wswhomo.afip.gov.ar/wsfev1/service.asmx";
+
+    const puntoVenta = cred.punto_venta || 1;
+    const tipoCbte = invoice.tipo_comprobante || defaultTipoCbte(cred.tipo_emisor);
+    providerEnvironment = isProd ? "produccion" : "homologacion";
+
+    // FECompUltimoAutorizado is scoped by point of sale + receipt type. The
+    // reservation is server-side and rechecks the role because this client
+    // deliberately uses service_role to reach protected AFIP credentials.
+    const { data: reservation, error: reservationError } = await supabase.rpc(
+      "afip_autorizacion_reservar",
+      {
+        p_invoice_id: invoiceId,
+        p_requested_by: userData.user.id,
+        p_punto_venta: puntoVenta,
+        p_tipo_cbte: tipoCbte,
+        p_environment: providerEnvironment,
+      },
+    );
+    if (reservationError) throw new Error("No se pudo reservar la autorización AFIP");
+
+    const reserva = reservation as {
+      status?: string;
+      acquired?: boolean;
+      [key: string]: unknown;
+    } | null;
+    if (reserva?.status === "authorized") return ok(reserva);
+    if (!reserva?.acquired) {
+      return ok({
+        ok: true,
+        status: "processing",
+        message: "La factura ya tiene una autorización AFIP en curso. Esperá la verificación antes de reintentar.",
+      }, 202);
+    }
+    authorizationReserved = true;
 
     // ── Step 1: Get / refresh Ticket de Acceso ────────────────
     let token_ta: string;
@@ -248,14 +297,13 @@ Deno.serve(async (req) => {
     }
 
     const cuit = String(cred.cuit).replace(/[-\s]/g, "");
-    const puntoVenta = cred.punto_venta || 1;
-    const tipoCbte = invoice.tipo_comprobante || defaultTipoCbte(cred.tipo_emisor);
 
     // ── Step 2: Get last authorized number ───────────────────
     const lastNumber = await getUltimoAutorizado(
       wsfeUrl, token_ta, sign_ta, cuit, puntoVenta, tipoCbte,
     );
     const nextNumber = lastNumber + 1;
+    providerNumber = nextNumber;
 
     // ── Step 3: Request CAE ───────────────────────────────────
     const { cae, caeVencimiento } = await solicitarCAE({
@@ -268,34 +316,30 @@ Deno.serve(async (req) => {
       numero: nextNumber,
       invoice,
     });
+    providerResult = { cae, caeVencimiento };
 
     // ── Step 4: Persist on invoice ────────────────────────────
-    await supabase
-      .from("invoices")
-      .update({
-        cae,
-        cae_vencimiento: caeVencimiento,
-        afip_status: "authorized",
-        numero_afip: nextNumber,
-        afip_error: null,
-        afip_environment: isProd ? "produccion" : "homologacion",
-      })
-      // ⚠️ Decía `invoice_id`, que no existe — la variable es `invoiceId`.
-      // Estaba en el camino de ÉXITO: AFIP otorgaba el CAE y el código lanzaba
-      // ReferenceError antes de guardarlo. La factura quedaba autorizada en AFIP
-      // y sin CAE de este lado, y el reintento pedía autorización de nuevo para
-      // la misma venta. Es el mismo error que la firma del webhook de
-      // MercadoPago: el proveedor dice que sí y nuestro lado no lo registra.
-      //
-      // Nunca se disparó porque no se emitió ni una factura. `deno check` lo
-      // reportaba desde siempre; el CI no corre deno check sobre las funciones.
-      .eq("id", invoiceId);
+    const { data: finalized, error: finalizeError } = await supabase.rpc(
+      "afip_autorizacion_resultado",
+      {
+        p_invoice_id: invoiceId,
+        p_status: "authorized",
+        p_cae: cae,
+        p_cae_vencimiento: caeVencimiento || null,
+        p_numero_afip: nextNumber,
+        p_environment: providerEnvironment,
+        p_error: null,
+      },
+    );
+    if (finalizeError) throw new Error("ARCA otorgó el CAE, pero no se pudo registrar la autorización");
 
-    return ok({
+    return ok(finalized || {
+      ok: true,
+      status: "authorized",
       cae,
       cae_vencimiento: caeVencimiento,
       numero_afip: nextNumber,
-      environment: isProd ? "produccion" : "homologacion",
+      environment: providerEnvironment,
     });
   } catch (e: any) {
     console.error("afip-authorize error:", e);
@@ -319,14 +363,31 @@ Deno.serve(async (req) => {
       userMsg = msg;
     }
 
-    // Persist error to invoice for traceability and UI display
-    if (invoiceId) {
+    // Persist through the same guarded transition as the success path. A
+    // timeout stays `processing`: the provider may have accepted the request
+    // even though this invocation never received its response.
+    if (invoiceId && authorizationReserved) {
       try {
-        await supabase
-          .from("invoices")
-          .update({ afip_status: afipStatus, afip_error: userMsg })
-          .eq("id", invoiceId);
-      } catch { /* silent */ }
+        const persistStatus = providerResult
+          ? "authorized"
+          : afipStatus === "network_error" ? "processing" : afipStatus;
+        const { data: persisted, error: persistError } = await supabase.rpc(
+          "afip_autorizacion_resultado",
+          {
+            p_invoice_id: invoiceId,
+            p_status: persistStatus,
+            p_cae: providerResult?.cae || null,
+            p_cae_vencimiento: providerResult?.caeVencimiento || null,
+            p_numero_afip: providerNumber,
+            p_environment: providerEnvironment,
+            p_error: userMsg,
+          },
+        );
+        if (persistError) console.error("afip authorization state persistence error:", persistError);
+        if (!persistError && providerResult && persisted) return ok(persisted);
+      } catch (persistException) {
+        console.error("afip authorization state persistence exception:", persistException);
+      }
     }
 
     return err(userMsg, afipStatus === "network_error" ? 503 : 422);
@@ -618,8 +679,9 @@ function defaultTipoCbte(tipoEmisor: string): number {
   return tipoEmisor === "responsable_inscripto" ? 6 : 11;
 }
 
-function ok(data: unknown) {
+function ok(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
+    status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }

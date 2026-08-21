@@ -11,7 +11,7 @@ es barato hoy y carísimo dentro de dos años.
 Última revisión: 2026-08-21 (H1–H3 cerrados y endurecidos).
 
 ⚠️ **Este documento no autoriza una reescritura.** El sistema funciona, cobra de
-verdad y tiene 1.189 tests. Todo se aplica de forma incremental, y cada slice deja
+verdad y tiene 1.196 tests (`npm test`, 2026-08-21). Todo se aplica de forma incremental, y cada slice deja
 el sistema usable.
 
 ---
@@ -117,8 +117,12 @@ la clave estable, el RPC valida el tenant, la Edge Function exige owner/admin y
 el monto se valida en SQL. `refund-store-payment` puede ejecutar o reconciliar,
 el webhook reconcilia timeouts y `receive_store_return_request` conecta la
 recepción física con `returns` y el Kardex sin tocar stock directamente.
-⚠️ Falta llevar la misma primitiva a captura, factura y recepción de compra.
-Cada uno que falta sigue siendo un doble asiento potencial. Va como I6.
+La autorización ARCA también tiene una reserva server-side por organización,
+punto de venta y tipo de comprobante: `afip_autorizacion_reservar` serializa el
+lease y `afip_autorizacion_resultado` es la única transición de la factura.
+Una respuesta incierta conserva `processing` y la reserva. ⚠️ Todavía falta
+llevar la misma primitiva a captura, factura y recepción de compra; cada uno
+que falta sigue siendo un doble asiento potencial. Va como I6.
 
 ### H2 — Eventos durables y outbox (✅ hecho, sesión 112)
 

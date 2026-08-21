@@ -46,8 +46,8 @@ nombre.
 ⚠️ **Antes de escribir código nuevo, leer
 [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).** Fija los quince principios y los
 límites de dominio que no hay que cruzar. El estado medido del 2026-08-21 vive
-en [docs/COMPARACION.md](docs/COMPARACION.md): 280 tablas, 294 con `org_id`,
-62 Edge Functions y 1.189 tests (`npm test`, 2026-08-21). Idempotencia,
+en [docs/COMPARACION.md](docs/COMPARACION.md): 282 tablas, 298 con `org_id`,
+62 Edge Functions y 1.196 tests (`npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21). Idempotencia,
 eventos con outbox y ledger financiero ya están construidos y verificados en
 los commits H1–H3; no deben volver a tratarse como pendientes ni duplicarse.
 El checkout público ya consume el orquestador P0.3.1: toda llamada a
@@ -56,9 +56,13 @@ canónica del proveedor y el webhook reconcilia el resultado. La devolución
 iniciada desde el Portal RMA ya consume el contrato P0.3.2/P0.3.3: valida el
 monto y el tenant del RMA en la base, conserva una clave de MercadoPago, sólo el
 servidor usa el token del comercio, el webhook puede reconciliar un timeout y
-la recepción física enlaza RMA, `returns` y Kardex de forma idempotente. Captura,
-factura y recepción de compra todavía deben migrar al mismo contrato;
-no se declara P0.3 completo hasta probar esos caminos y una matriz sandbox.
+la recepción física enlaza RMA, `returns` y Kardex de forma idempotente. La
+autorización ARCA ya tiene una reserva server-side por punto de venta/tipo de
+comprobante y una transición única para éxito, rechazo y respuesta incierta;
+un timeout queda `processing` para no duplicar el comprobante. Captura, factura
+y recepción de compra todavía deben migrar al mismo contrato; no se declara
+P0.3 completo hasta probar esos caminos y una matriz sandbox. El guard de ARCA
+no se presenta como una factura emitida: falta la evidencia del organismo.
 
 El orden siguiente es el plan canónico de `ROADMAP.md` §0.0: P0.1 catálogo
 polimórfico, P0.2 identidad, P0.3 pagos, P0.4 ARCA y P0.5 segundo comercio.

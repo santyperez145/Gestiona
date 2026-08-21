@@ -439,11 +439,15 @@ export default function InvoicesPage() {
         throw error;
       }
       if (data?.error) throw new Error(data.error);
-      toast.success(`CAE obtenido: ${data.cae}`);
+      if (data?.status === "processing") {
+        toast.info("La autorización quedó en verificación. Esperá antes de reintentar para evitar duplicar el comprobante.");
+      } else if (data?.cae) {
+        toast.success(`CAE obtenido: ${data.cae}`);
+      } else {
+        toast.info("AFIP recibió la solicitud. Actualizá la lista para ver el estado.");
+      }
       load();
     } catch (e: any) {
-      // Persist error on invoice
-      await supabase.from("invoices").update({ afip_status: "rejected", afip_error: e.message }).eq("id", inv.id);
       toast.error("Error AFIP: " + e.message);
       load();
     } finally {
@@ -1093,6 +1097,11 @@ export default function InvoicesPage() {
                               <ShieldCheck className="w-3 h-3" />CAE
                             </span>
                           )}
+                          {inv.afip_status === "processing" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20" title={inv.afip_error || "La respuesta de AFIP está en verificación"}>
+                              <Loader2 className="w-3 h-3 animate-spin" />En verificación
+                            </span>
+                          )}
                           {(inv.afip_status === "rejected" || inv.afip_status === "error" || inv.afip_status === "config_error" || inv.afip_status === "network_error" || inv.afip_status === "validation_error") && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20" title={inv.afip_error || undefined}>
                               <ShieldAlert className="w-3 h-3" />
@@ -1134,7 +1143,7 @@ export default function InvoicesPage() {
                         </Button>
                       )}
                       {/* AFIP authorize button */}
-                      {canManage && afipConfigured && inv.tipo_comprobante && !inv.cae && inv.afip_status !== "authorized" && (
+                      {canManage && afipConfigured && inv.tipo_comprobante && !inv.cae && inv.afip_status !== "authorized" && inv.afip_status !== "processing" && (
                         <Button
                           size="icon" variant="ghost" className="h-8 w-8"
                           title="Autorizar con AFIP (obtener CAE)"
@@ -1245,6 +1254,17 @@ export default function InvoicesPage() {
                               </div>
                             );
                           })()}
+                        </div>
+                      )}
+                      {inv.afip_status === "processing" && (
+                        <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 space-y-1">
+                          <p className="text-xs font-semibold text-amber-400 flex items-center gap-1">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />Autorización en verificación
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            La respuesta de ARCA todavía no es concluyente. El sistema mantiene el intento reservado para no emitir dos veces el mismo comprobante.
+                          </p>
+                          {inv.afip_error && <p className="text-xs text-muted-foreground">{inv.afip_error}</p>}
                         </div>
                       )}
                       {["rejected","error","config_error","network_error","validation_error"].includes(inv.afip_status || "") && inv.afip_error && (
