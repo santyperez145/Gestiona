@@ -15677,6 +15677,57 @@ export type Database = {
           },
         ]
       }
+      platform_integration_registry: {
+        Row: {
+          capabilities: string[]
+          category: string
+          connection_mode: string
+          created_at: string
+          description: string
+          display_name: string
+          id: string
+          integration_key: string
+          is_active: boolean
+          lifecycle: string
+          requires_contract: boolean
+          scope: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          capabilities?: string[]
+          category: string
+          connection_mode: string
+          created_at?: string
+          description: string
+          display_name: string
+          id?: string
+          integration_key: string
+          is_active?: boolean
+          lifecycle: string
+          requires_contract?: boolean
+          scope: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          capabilities?: string[]
+          category?: string
+          connection_mode?: string
+          created_at?: string
+          description?: string
+          display_name?: string
+          id?: string
+          integration_key?: string
+          is_active?: boolean
+          lifecycle?: string
+          requires_contract?: boolean
+          scope?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_org_health_snapshots: {
         Row: {
           captured_at: string

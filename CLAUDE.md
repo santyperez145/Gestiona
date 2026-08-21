@@ -69,6 +69,15 @@ polimórfico, P0.2 identidad, P0.3 pagos, P0.4 ARCA y P0.5 segundo comercio.
 `gestiona.txt` es el análisis que fundamenta ese orden, no permiso para saltar
 las puertas de verificación.
 
+**Primer slice del Control Plane (2026-08-21):** `/platform/integraciones`
+consume `platform_integration_registry`, un catálogo staff-only que describe
+alcance, método de conexión, capacidades y lifecycle. No contiene tokens,
+certificados ni secretos y no se debe usar como sustituto de la salud de
+runtime: conexiones por comercio, webhooks, pagos y cron siguen sus vistas
+operativas. Si una integración nueva aparece en UI, primero debe tener una fila
+en ese registro y una condición de salida verificable; no se agregan nombres
+hardcodeados en varias pantallas.
+
 **Identidad antes que deduplicación:** el slice P0.2.1 dejó las vistas protegidas
 `product_identity_review` y `customer_identity_review` como fuente del
 reporte. SKU/EAN, email y teléfono son llaves fuertes; nombre y marca sólo

@@ -294,7 +294,7 @@ quién está afectado y qué acción segura está disponible.
 |---|---|---|
 | 1 | Platform Overview | Métricas de merchants, tiendas, GMV/TPV, órdenes, take rate, conversión, pagos, webhooks, colas, errores y riesgos salen de vistas medibles con fecha; no se inventan KPIs. |
 | 2 | Merchant 360 | Una ficha con tabs de Overview, Stores, Users, Capabilities, Integrations, Payments, Billing, Usage, Events, Audit, Risk y Support, aislada por tenant y con acciones sensibles auditadas. |
-| 3 | Integration Registry | Cada proveedor declara capability, ambiente, scopes, método de conexión, health checks, webhooks, disponibilidad, plan y versión. No más integraciones hardcodeadas en múltiples pantallas. |
+| 3 | Integration Registry | **Slice inicial completado 2026-08-21:** `/platform/integraciones` lee un catálogo staff-only desde `platform_integration_registry`, con capability, ámbito, método de conexión, lifecycle, contrato y filtros persistidos. No expone secretos ni se presenta como health de runtime. Falta conectar versiones, scopes, health checks, webhooks y plan como entidades operativas. |
 | 4 | Credential Control Plane | Las credenciales maestras son de Gestiona y viven en secretos server-side. El merchant conecta por OAuth o wizard; nunca ve client secrets, tokens, certificados privados ni webhook secrets. |
 | 5 | Webhook Control Center | Recepción, firma, evento raw, deduplicación, cola, reintentos, estado final y dead-letter quedan observables por proveedor y organización, sin pedirle al soporte mirar logs manualmente. |
 | 6 | Payment Operations | Pagos, reintegros, contracargos, liquidaciones, comisiones y conciliaciones se observan desde un mismo timeline; el control plane no se convierte en una segunda fuente contable. |
@@ -307,6 +307,13 @@ auditoría; el staff no cruza organizaciones; no se expone ningún secreto al
 navegador; una incidencia de checkout se puede reconstruir desde eventos
 durables; y el panel muestra “sin datos” cuando no hay evidencia en vez de
 maquillar una métrica.
+
+**Evidencia del primer slice (2026-08-21):** la migración
+`20260821000049_platform_integration_registry` está aplicada y
+`npx supabase db push --linked --dry-run` devuelve `upToDate`. El catálogo tiene
+10 integraciones, 2 marcadas en producción y RLS activa con una sola policy de
+lectura condicionada a `is_platform_admin(auth.uid())`. Esto es un registro de
+contrato de producto; todavía no es un monitor de conexiones por comercio.
 
 #### P1 — Commerce y documentos que generan dependencia
 
