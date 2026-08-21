@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Hash, Mail, PackageCheck, RefreshCw, ScanSearch, ShieldCheck, UsersRound } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Hash, Mail, PackageCheck, Pencil, RefreshCw, ScanSearch, ShieldCheck, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import {
   summarizeCustomerIdentity,
   summarizeProductIdentity,
+  missingCustomerIdentityRows,
+  missingProductIdentityRows,
   type CustomerIdentityReviewRow,
   type ProductIdentityReviewRow,
   type IdentityReviewSummary,
@@ -18,6 +20,8 @@ const CUSTOMER_COLUMNS = "id,org_id,name,email,phone,whatsapp_number,name_key,em
 interface IdentityHealthPanelProps {
   entity: Entity;
   orgId: string;
+  onOpenProduct?: (id: string) => void;
+  onOpenCustomer?: (id: string) => void;
 }
 
 function Metric({ label, value, hint, icon: Icon }: { label: string; value: string | number; hint: string; icon: typeof Hash }) {
@@ -32,7 +36,7 @@ function Metric({ label, value, hint, icon: Icon }: { label: string; value: stri
   );
 }
 
-export default function IdentityHealthPanel({ entity, orgId }: IdentityHealthPanelProps) {
+export default function IdentityHealthPanel({ entity, orgId, onOpenProduct, onOpenCustomer }: IdentityHealthPanelProps) {
   const [rows, setRows] = useState<Array<ProductIdentityReviewRow | CustomerIdentityReviewRow>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +84,14 @@ export default function IdentityHealthPanel({ entity, orgId }: IdentityHealthPan
     [entity, rows],
   );
   const isProduct = entity === "products";
+  const missingRows = useMemo(
+    () => isProduct
+      ? missingProductIdentityRows(rows as ProductIdentityReviewRow[])
+      : missingCustomerIdentityRows(rows as CustomerIdentityReviewRow[]),
+    [isProduct, rows],
+  );
+  const openRecord = isProduct ? onOpenProduct : onOpenCustomer;
+  const identityCovered = summary.reviewRows === 0 && summary.missingPrimaryRows === 0;
   const title = isProduct ? "Identidad del catálogo" : "Identidad de clientes";
   const description = isProduct
     ? "SKU y EAN son la llave entre POS, tienda e integraciones. Los nombres sólo generan candidatos, nunca fusiones automáticas."
@@ -96,9 +108,13 @@ export default function IdentityHealthPanel({ entity, orgId }: IdentityHealthPan
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-sm font-display font-semibold">{title}</h2>
               {!loading && !error && (
-                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${summary.reviewRows === 0 ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400" : "border-amber-500/25 bg-amber-500/10 text-amber-400"}`}>
-                  {summary.reviewRows === 0 ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-                  {summary.reviewRows === 0 ? "Sin conflictos detectados" : `${summary.reviewRows} filas para revisar`}
+                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${identityCovered ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400" : "border-amber-500/25 bg-amber-500/10 text-amber-400"}`}>
+                  {identityCovered ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                  {summary.reviewRows > 0
+                    ? `${summary.reviewRows} filas para revisar`
+                    : identityCovered
+                      ? "Identidad cubierta"
+                      : `${summary.missingPrimaryRows} fichas incompletas`}
                 </span>
               )}
             </div>
@@ -120,10 +136,43 @@ export default function IdentityHealthPanel({ entity, orgId }: IdentityHealthPan
         <>
           <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
             <Metric label="Registros" value={summary.total} hint="En esta organización" icon={isProduct ? PackageCheck : UsersRound} />
-            <Metric label="Cobertura" value={`${summary.coveragePercent}%`} hint={isProduct ? `${summary.identifiedRows} con SKU o EAN` : `${summary.identifiedRows} con contacto`} icon={isProduct ? Hash : Mail} />
+            <Metric label="Cobertura" value={`${summary.coveragePercent}%`} hint={isProduct ? `${summary.identifiedRows} con SKU o EAN` : `${summary.identifiedRows} con contacto fuerte`} icon={isProduct ? Hash : Mail} />
             <Metric label="Conflictos" value={summary.exactConflictRows} hint="Coincidencia de identificador" icon={ShieldCheck} />
-            <Metric label="Faltantes" value={summary.missingPrimaryRows} hint={isProduct ? "Sin SKU ni EAN" : "Sin email ni teléfono"} icon={AlertTriangle} />
+            <Metric label="Faltantes" value={summary.missingPrimaryRows} hint={isProduct ? "Sin SKU ni EAN" : "Sin email, teléfono o WhatsApp"} icon={AlertTriangle} />
           </div>
+
+          {missingRows.length > 0 && (
+            <div className="mt-4 border-t border-border/50 pt-3">
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Completar identidad</p>
+                <span className="text-[10px] text-muted-foreground">{missingRows.length} pendientes</span>
+              </div>
+              <div className="space-y-1.5">
+                {missingRows.slice(0, 6).map(row => {
+                  const label = isProduct
+                    ? `${(row as ProductIdentityReviewRow).brand} · ${(row as ProductIdentityReviewRow).name}`
+                    : (row as CustomerIdentityReviewRow).name;
+                  const action = openRecord ? () => openRecord(row.id) : undefined;
+                  return (
+                    <div key={row.id} className="flex items-center justify-between gap-3 rounded-md bg-muted/20 px-2.5 py-2 text-xs">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{label}</p>
+                        <p className="text-[10px] text-muted-foreground">{isProduct ? "Falta SKU y EAN" : "Falta un dato de contacto fuerte"}</p>
+                      </div>
+                      {action && (
+                        <Button variant="ghost" size="sm" className="h-7 shrink-0 gap-1 px-2 text-[11px]" onClick={action}>
+                          <Pencil className="h-3 w-3" />Completar
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {missingRows.length > 6 && (
+                <p className="mt-2 text-[10px] text-muted-foreground">+{missingRows.length - 6} pendientes más. La lista se ordena por nombre.</p>
+              )}
+            </div>
+          )}
 
           {summary.examples.length > 0 && (
             <div className="mt-4 border-t border-border/50 pt-3">
@@ -145,7 +194,9 @@ export default function IdentityHealthPanel({ entity, orgId }: IdentityHealthPan
                 ? "No hay colisiones, pero el catálogo todavía no tiene una llave portable. Completar SKU/EAN es el siguiente paso antes de sincronizar canales."
                 : isProduct
                   ? "La identidad está cubierta y no hay colisiones exactas en el reporte actual."
-                  : "No se detectaron colisiones exactas. Los registros sin contacto siguen siendo deuda de calidad, no duplicados."
+                  : summary.missingPrimaryRows > 0
+                    ? "No se detectaron colisiones exactas. Los registros sin contacto siguen siendo deuda de calidad, no duplicados."
+                    : "La identidad está cubierta y no hay colisiones exactas en el reporte actual."
               : "Este reporte sólo propone revisión. No modifica filas ni habilita fusiones automáticas."}
           </p>
         </>

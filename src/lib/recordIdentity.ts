@@ -93,10 +93,18 @@ export interface IdentityReviewSummary {
 const roundedPercent = (value: number, total: number) =>
   total > 0 ? Math.round((value / total) * 100) : 0;
 
+export function missingProductIdentityRows(rows: ProductIdentityReviewRow[]): ProductIdentityReviewRow[] {
+  return rows.filter(row => !row.sku_key && !row.barcode_key);
+}
+
+export function missingCustomerIdentityRows(rows: CustomerIdentityReviewRow[]): CustomerIdentityReviewRow[] {
+  return rows.filter(row => row.missing_contact || (!row.email_key && !row.phone_key && !row.whatsapp_key));
+}
+
 export function summarizeProductIdentity(rows: ProductIdentityReviewRow[]): IdentityReviewSummary {
   const exact = rows.filter(row => row.exact_conflict || row.sku_match_count > 1 || row.barcode_match_count > 1);
   const soft = rows.filter(row => !exact.includes(row) && row.name_brand_match_count > 1);
-  const missing = rows.filter(row => !row.sku_key && !row.barcode_key);
+  const missing = missingProductIdentityRows(rows);
   const identified = rows.filter(row => !!row.sku_key || !!row.barcode_key);
   const review = [...exact, ...soft];
 
@@ -124,7 +132,7 @@ export function summarizeCustomerIdentity(rows: CustomerIdentityReviewRow[]): Id
     || row.whatsapp_match_count > 1,
   );
   const soft = rows.filter(row => !exact.includes(row) && row.name_match_count > 1);
-  const missing = rows.filter(row => row.missing_contact || (!row.email_key && !row.phone_key && !row.whatsapp_key));
+  const missing = missingCustomerIdentityRows(rows);
   const identified = rows.filter(row => !!row.email_key || !!row.phone_key || !!row.whatsapp_key);
   const review = [...exact, ...soft];
 

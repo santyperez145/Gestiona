@@ -2178,7 +2178,17 @@ export default function CustomersPage() {
       {/* Compradores que nunca entraron a la lista */}
       <UnlinkedSalesPanel />
 
-      {activeOrg?.id && <IdentityHealthPanel entity="customers" orgId={activeOrg.id} />}
+      {activeOrg?.id && (
+        <IdentityHealthPanel
+          entity="customers"
+          orgId={activeOrg.id}
+          onOpenCustomer={canEdit ? (id) => {
+            const profile = profiles.find(item => item.id === id);
+            if (!profile) return;
+            setFormModal({ open: true, profile });
+          } : undefined}
+        />
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

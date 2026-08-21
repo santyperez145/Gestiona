@@ -74,10 +74,25 @@ evaluar índices únicos por organización. La verificación automática de
 `SUPABASE_DB_PASSWORD`; migración, registro, objetos y grants sí fueron
 comprobados contra la base vinculada.
 
+**P0.2.2 — Cola de completitud accionable (cerrado 2026-08-21).** El reporte de
+identidad ahora distingue una colisión de una ficha incompleta: el estado no
+dice “sin conflictos” cuando faltan identificadores. Productos sin SKU/EAN y
+clientes sin email, teléfono o WhatsApp aparecen en una lista breve ordenada
+por nombre, con acceso directo a la ficha cuando el usuario tiene permiso de
+edición. La acción sólo abre el formulario existente; no inventa valores, no
+escribe por lote y no fusiona perfiles. La cobertura real sigue sin cambios a
+propósito: la cola transforma la deuda medida por P0.2.1 en trabajo verificable
+para el dueño del comercio.
+
+**Salida verificada:** 7 tests unitarios cubren la selección de pendientes y
+los resúmenes de identidad; la suite completa quedó en 1.177 tests verdes
+(`npm test`, 2026-08-21). No hubo migración ni cambios de datos reales.
+
 ### Siguiente trabajo ya ordenado
 
-- P0.2: completar SKU/EAN y cobertura de contacto, revisar candidatos con
-  evidencia y recién entonces evaluar restricciones únicas por organización.
+- P0.2: usar la cola para completar SKU/EAN y cobertura de contacto con datos
+  reales, revisar candidatos con evidencia y recién entonces evaluar
+  restricciones únicas por organización.
 - P0.3: completar el contrato de `PaymentIntent` y probar reintentos,
   reintegros y conciliación sin doble asiento.
 - P0.4: ejecutar el circuito ARCA con certificado de homologación y una factura

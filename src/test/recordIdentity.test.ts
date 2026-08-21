@@ -5,6 +5,8 @@ import {
   normalizeIdentityText,
   normalizeProductBarcode,
   normalizeProductSku,
+  missingCustomerIdentityRows,
+  missingProductIdentityRows,
   summarizeCustomerIdentity,
   summarizeProductIdentity,
 } from "@/lib/recordIdentity";
@@ -27,6 +29,23 @@ describe("record identity normalization", () => {
 });
 
 describe("identity review summaries", () => {
+  it("only queues products with neither SKU nor barcode", () => {
+    const rows = [
+      { id: "p1", sku_key: null, barcode_key: null },
+      { id: "p2", sku_key: "SKU-2", barcode_key: null },
+      { id: "p3", sku_key: null, barcode_key: "7793" },
+    ] as any;
+    expect(missingProductIdentityRows(rows).map(row => row.id)).toEqual(["p1"]);
+  });
+
+  it("queues customers without any strong contact key", () => {
+    const rows = [
+      { id: "c1", missing_contact: true, email_key: null, phone_key: null, whatsapp_key: null },
+      { id: "c2", missing_contact: false, email_key: null, phone_key: "5411", whatsapp_key: null },
+    ] as any;
+    expect(missingCustomerIdentityRows(rows).map(row => row.id)).toEqual(["c1"]);
+  });
+
   it("separates exact product conflicts from name-only candidates", () => {
     const rows = [
       {

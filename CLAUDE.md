@@ -47,7 +47,7 @@ nombre.
 [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).** Fija los quince principios y los
 límites de dominio que no hay que cruzar. El estado medido del 2026-08-21 vive
 en [docs/COMPARACION.md](docs/COMPARACION.md): 280 tablas, 294 con `org_id`,
-61 Edge Functions y 1.175 tests (`npm test`, fecha al lado). Idempotencia,
+61 Edge Functions y 1.177 tests (`npm test`, 2026-08-21). Idempotencia,
 eventos con outbox y ledger financiero ya están construidos y verificados en
 los commits H1–H3; no deben volver a tratarse como pendientes ni duplicarse.
 
@@ -63,9 +63,11 @@ proponen candidatos. Nunca fusionar por nombre, nunca backfillear datos reales
 para que el reporte “dé limpio” y nunca crear un índice único antes de medir
 colisiones por `org_id`. El importador CSV puede omitir una coincidencia por
 llave fuerte, pero tiene que conservar homónimos con contactos diferentes.
+La cola de completitud en Productos y Clientes sólo abre fichas existentes y
+requiere edición humana: nunca inventa SKU/EAN/contactos ni fusiona perfiles.
 Medición actual (2026-08-21): 60 productos sin SKU/EAN, 33 clientes, 24 sin
-email/teléfono, 0 colisiones exactas. El detalle verificable está en
-`ROADMAP.md` §0.0.
+email/teléfono, 0 colisiones exactas. El detalle verificable y el slice P0.2.2
+están en `ROADMAP.md` §0.0.
 
 Y lo que ese documento dice que **no** hay que construir todavía —multi-store,
 dominios propios, theme engine, headless, marketplace— importa tanto como lo que

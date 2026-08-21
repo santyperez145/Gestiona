@@ -760,7 +760,18 @@ export default function ProductsPage() {
         onFiltrar={setFilterCalidad}
       />
 
-      {activeOrg?.id && <IdentityHealthPanel entity="products" orgId={activeOrg.id} />}
+      {activeOrg?.id && (
+        <IdentityHealthPanel
+          entity="products"
+          orgId={activeOrg.id}
+          onOpenProduct={canEdit ? (id) => {
+            const product = products.find(item => item.id === id);
+            if (!product) return;
+            setEditing(product);
+            setOpen(true);
+          } : undefined}
+        />
+      )}
 
       {/* KPI row */}
       <div className="workspace-products-kpis grid grid-cols-2 md:grid-cols-5 gap-3">
