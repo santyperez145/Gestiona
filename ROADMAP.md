@@ -1,431 +1,467 @@
-# Gestiona - roadmap actual
+# Roadmap de producto — Gestiona Cloud
 
-**Estado de este documento: 2026-08-21**
+**Corte:** 2026-08-21
+**Estado:** roadmap integral nuevo. Define orden de inversión, puertas de salida
+y evidencia; no es un catálogo de features ni promete fechas.
 
-Gestiona es el sistema operativo para comercios omnicanal: productos,
-inventario, clientes, ventas, pagos y margen viven en un mismo Business Core.
-El POS, la tienda online, MercadoLibre, WhatsApp y las futuras integraciones
-son canales alrededor de ese núcleo. La tienda es una superficie del producto,
-no el producto entero.
+## 1. Norte de producto
 
-Este archivo es un documento de decisión. Dice qué importa ahora, qué evidencia
-define el avance y qué queda congelado. No es un changelog ni un inventario de
-ideas. El detalle de una implementación vive en sus tests, migraciones, docs y
-en el historial de Git.
+Gestiona Cloud es el sistema operativo de un comercio omnicanal. Productos,
+inventario, clientes, órdenes, costos, cobros, impuestos y margen son una única
+verdad. POS, tienda, MercadoLibre, WhatsApp y los canales futuros son
+interfaces de ese núcleo, no sistemas que vuelven a calcular sus propios datos.
 
-## 0. La regla que ordena todo
+La ambición es construir una plataforma conectada, no sumar secciones de ERP:
 
-Cada fase tiene que destrabar la siguiente:
-
-1. Hacer que Gestiona pueda venderle a un comercio real con datos confiables.
-2. Probar que el mismo núcleo soporta un segundo comercio sin trabajo manual.
-3. Convertir el margen por canal en una ventaja difícil de copiar.
-4. Hacer que documentos, inteligencia e integraciones reduzcan trabajo real.
-5. Escalar sólo después de tener operación repetible y observable.
-
-Una idea nueva entra al roadmap sólo si fortalece al menos uno de estos cinco
-pilares: productos e inventario, POS y caja, ecommerce, clientes y ventas, o
-inteligencia operativa. Las features que no acercan una primera venta, no
-protegen el stock único, no explican el margen, no reducen riesgo o no miden
-adopción quedan fuera.
-
-## 1. Producto y arquitectura
-
-### Tesis
-
-El diferencial de Gestiona es el margen real por canal. Para calcularlo hacen
-falta a la vez costo de importación, aduana, comisión de pago, envío e IVA.
-Un ecommerce suele desconocer el costo real; un ERP suele desconocer la
-comisión y la experiencia de venta. Gestiona tiene que unir ambas verdades.
-
-### Business Core
-
-El Core es la autoridad de:
-
-- productos, variantes, atributos y costos;
-- stock por ubicación y movimientos de inventario;
-- clientes y organizaciones;
-- órdenes, ventas, devoluciones y pagos;
-- documentos fiscales y asientos financieros;
-- margen, eventos y métricas de uso.
-
-Ningún canal inventa su propio stock, precio, margen, cobro u objeto de cliente.
-Una integración traduce eventos del canal al Core y devuelve el estado que el
-canal necesita mostrar.
-
-### Tres superficies
-
-| Superficie | Ruta | Usuario | Layout |
-|---|---|---|---|
-| Organización | `/` | miembros de la organización | `AppLayout`, acento dorado |
-| Plataforma | `/platform` | `platform_admins` | `PlatformLayout`, acento violeta |
-| Tienda pública | `/tienda/:slug` | comprador anónimo | `StoreLayout` |
-
-Ser staff de plataforma no otorga permisos dentro de una organización.
-Las reglas completas están en [docs/permisos.md](docs/permisos.md).
-
-## 2. Estado medido
-
-Los números de esta sección tienen fecha. Si cambian, se actualizan con la
-fecha y el comando o consulta que los produjo; no se reemplazan en silencio.
-
-| Señal | Estado al 2026-08-21 |
-|---|---|
-| Edge Functions | 63 |
-| Tests unitarios | 1.220, `npm test -- --maxWorkers=1 --fileParallelism=false` (2026-08-21) |
-| Organizaciones / comercios que venden de verdad | 4 / 1 |
-| Registros POS / tiendas online | 34 / 6 |
-| Eventos de dominio / asientos del ledger | 10 / 0 |
-| Facturas emitidas por la app / CAE | 0 / 0 |
-| Pagos reales de prueba | 2 cobros de ARS 1 |
-| Control Plane | Overview, catálogo de integraciones, Merchant 360 y cola operativa sanitizada |
-
-### Comparativa que orienta el producto
-
-La comparación no se usa para declarar ganadores: se usa para no construir una
-paridad como si fuera un diferencial. Las fuentes y el detalle verificable viven
-en [docs/COMPARACION.md](docs/COMPARACION.md), con corte 2026-08-21.
-
-| Capacidad | Gestiona hecho y medido | Referencia de mercado verificada | Decisión |
-|---|---|---|---|
-| POS + stock unificado | ✅ PWA offline y movimientos con triggers | Tiendanube, Shopify y Odoo ya integran POS e inventario | Paridad necesaria; no venderla como ventaja única |
-| Facturación argentina | 🟡 flujo ARCA nativo y delegado; 0 facturas reales | Tiendanube integra facturación mediante apps de terceros | Diferencial posible sólo después de emitir en producción |
-| Margen por canal | ✅ Core reúne costo landed, comisión, envío e IVA | No hay benchmark exhaustivo que permita afirmar exclusividad | Medir uso y mejora de margen antes de usarlo como promesa comercial |
-| Confiabilidad server-side | ✅ 63 Edge Functions chequeadas por Deno en CI; pausa auditada del Brick global o por comercio | Estándar mínimo de operación, no feature de marketing | Reduce el radio de impacto de un checkout integrado; aún no hay canary ni rollback automático |
-
-### Lo que ya está
-
-- El modelo de productos, variantes y atributos está preparado para crecer.
-- Identidad, membresías y separación de superficies tienen guardas de acceso.
-- Checkout y reintegros online tienen idempotencia en los caminos cubiertos.
-- El stock se mueve en base de datos mediante movimientos y triggers.
-- Las credenciales de pagos, marketplaces y servicios privados no se leen desde
-  el navegador; la UI consume estados sanitizados. Evolution API quedó migrada
-  el 2026-08-21 a `evolution_connections` (RLS sin policies) y el asistente ya
-  no puede enviar WhatsApp directo fuera del flujo con consentimiento y baja.
-- El resumen de plataforma consume señales operativas reales de salud,
-  activación y cron, y muestra error explícito cuando una señal no está
-  disponible.
-- El registro inicial de integraciones vive en el Control Plane con separación
-  por organización y acceso exclusivo de plataforma.
-- Merchant 360 ya permite abrir una organización desde el listado y leer, en
-  tabs persistentes, negocio, canales, activación, contexto y evidencia
-  sanitizada de Mercado Pago, Mercado Libre, ARCA y Evolution API. Una conexión
-  registrada no se presenta como disponibilidad actual: distingue configuración,
-  ejecución reciente, alerta, error o evidencia vencida sin fingir un ping al
-  proveedor.
-- La cola de Operaciones prioriza fallos reales de entregas, webhooks de
-  MercadoLibre, intentos técnicos de pago y cron, sin exponer payloads ni
-  errores crudos. Sólo un superadmin puede reintentar una entrega descartada;
-  pagos no se reintentan desde plataforma y el reintento deja auditoría.
-- Las 63 Edge Functions pasan `deno check` desde CI. El descubrimiento sale del
-  filesystem, por lo que una función nueva no puede quedar fuera del gate.
-- Checkout Brick tiene un control de lanzamiento en Operaciones: un superadmin
-  puede habilitarlo o pausarlo globalmente o por comercio, con auditoría atómica.
-  La tienda no lee flags y, si se pausa, conserva el checkout externo de
-  MercadoPago; no hay todavía experimentos porcentuales ni canary.
-
-### Lo que todavía no se puede afirmar
-
-- ARCA todavía no tiene una factura emitida por la aplicación en producción.
-- El stock actual necesita conteo físico; los arreglos históricos no permiten
-  tratarlo como una fuente confiable sin conciliación.
-- La identidad legal del comercio sigue pendiente para publicar los textos
-  legales generados.
-- El onboarding de un segundo comercio todavía no es un camino repetible y
-  medido.
-- El ledger, los eventos de dominio y los cron necesitan más uso operativo y
-  observabilidad antes de considerarse completos.
-- Las APIs de transporte y MercadoLibre requieren validación comercial y
-  operación multi-organización real.
-
-## 3. Fases y condiciones de salida
-
-### Fase 0 - Producto confiable y vendible
-
-**Estado: activa.** Es la prioridad hasta que un comercio pueda operar sin
-correcciones manuales y cerrar el ciclo venta, cobro, stock, documento y margen.
-
-Debe quedar resuelto:
-
-- ARCA real: certificado o delegación válida, una factura de prueba emitida por
-  la aplicación y el ciclo de error verificado.
-- Legal publicado: razón social, CUIT, domicilio, privacidad, términos y
-  arrepentimiento cargados por el dueño y publicados conscientemente.
-- Stock conciliado: conteo físico, ajuste con asiento y cero diferencias
-  inexplicadas entre stock, Kardex y ubicaciones.
-- Pagos: checkout, reintegro y webhook ya son idempotentes; ARCA reserva su
-  secuencia y la recepción de compra parcial usa clave idempotente. Falta definir
-  captura diferida si se incorpora un proveedor que la requiera y obtener
-  evidencia sandbox/producción sin duplicar dinero ni stock.
-- Funciones server-side: cada Edge Function debe pasar el chequeo de Deno en
-  CI; cobros, webhooks, cotización y facturación no quedan fuera del typecheck.
-- Operación observable: webhooks, crons, errores de pago y documentos con
-  estado, reintento y responsable visible.
-- Lanzamiento controlado: Checkout Brick se puede pausar por comercio o de forma
-  global sin interrumpir la preferencia externa; el cambio queda auditado.
-
-**Salida:** un comercio real puede vender, cobrar, descontar stock, emitir o
-dejar documentado el comprobante, calcular margen y recuperar un fallo sin
-intervención del equipo de desarrollo.
-
-### Fase 1 - Segundo comercio y Control Plane
-
-**Estado: siguiente objetivo.** La plataforma debe demostrar que el producto
-funciona para más de una organización y que el staff puede operar el servicio
-sin entrar a tablas ni usar SQL como panel administrativo.
-
-Debe quedar resuelto:
-
-- onboarding completo de un segundo comercio, con datos y métricas separadas;
-- Merchant 360 para ver activación, ventas, riesgos, integraciones y próximos
-  bloqueos de cada organización;
-- registro de integraciones con estado, versión, scopes, health check, webhooks,
-  último error y plan, sin mostrar secretos;
-- centro de credenciales y conexiones con rotación, revocación y auditoría;
-- billing, comisión por venta y estado de suscripción visibles para plataforma;
-- cola operativa para fallos de pagos, webhooks, crons y sincronizaciones.
-
-**Salida:** un segundo comercio completa onboarding y su primera venta sin
-configuración manual en la base; el staff resuelve incidentes desde
-`/platform` y puede explicar qué está pasando en cada organización.
-
-### Fase 2 - Economía por canal y commerce competitivo
-
-**Estado: después de Fase 1.** Acá se construye ventaja, no amplitud genérica.
-
-- costo landed y margen por SKU, orden, canal y período;
-- carrito y checkout server-authoritative, con envío y promociones recalculados
-  en base;
-- dominios, multitienda, temas y migradores con un solo catálogo subyacente;
-- MercadoLibre con publicación, órdenes, sincronización y cron multi-org
-  operados contra una cuenta real;
-- POS offline robusto sólo cuando la cola, la reconciliación y la autoridad del
-  servidor estén probadas;
-- paneles de canal que expliquen por qué una venta deja o destruye margen.
-
-**Salida:** el dueño decide qué vender y dónde venderlo con una comparación de
-margen confiable, y una tienda nueva sale a producción sin duplicar catálogo ni
-stock.
-
-### Fase 3 - Documents e Intelligence
-
-**Estado: diseñado, no prioritario todavía.**
-
-- cuentas a pagar desde facturas y órdenes de compra;
-- Document AI con extracción, validación y aprobación humana;
-- Business Copilot conectado a productos, clientes, órdenes, pagos, stock y
-  margen;
-- recomendaciones con acción concreta y métrica de adopción `AI Action Rate`;
-- alertas de reposición, clientes enfriándose, promociones y compras con
-  explicación de la evidencia.
-
-**Salida:** cada recomendación puede rastrearse a datos del Core, tiene una
-acción ejecutable y se mide si el operador la acepta.
-
-### Fase 4 - Ecosistema
-
-**Estado: congelada hasta que Fase 2 sea repetible.**
-
-APIs públicas, webhooks para terceros, marketplace de extensiones, partners y
-white-label sólo entran cuando los contratos del Core estén estables y exista
-un segundo comercio operando.
-
-### Fase 5 - Escala que se gana
-
-**Estado: futura.** Backups con restore probado, SLOs, límites por tenant,
-observabilidad distribuida, colas durables, performance y despliegues seguros
-se priorizan cuando el uso real lo justifique. Escalar infraestructura antes
-de probar la operación sólo aumenta el costo de una mala decisión.
-
-## 4. Cola priorizada
-
-La cola es corta a propósito. Una tarea no entra porque sea interesante: entra
-porque produce la evidencia de salida de una fase.
-
-| Orden | Slice | Estado | Dependencia | Evidencia de salida |
-|---:|---|---|---|---|
-| 1 | ARCA real | Bloqueado externo | certificado o delegación del dueño | una factura de prueba de la app, CAE y error recuperable |
-| 2 | Publicación legal | Bloqueado externo | razón social, CUIT y domicilio | páginas publicadas y visibles desde la tienda |
-| 3 | Conciliación de stock | Bloqueado externo | conteo físico | ajuste trazable y Kardex sin diferencias |
-| 4 | Segundo comercio | Siguiente | disponibilidad del negocio | primera venta sin SQL ni corrección manual |
-| 5 | Matriz de pagos y guardia Edge | En curso, 2026-08-21 | escenarios de proveedor | checkout/reintegro/webhook, ARCA y recepción parcial ya tienen guardas; 63 funciones chequeadas. Falta evidencia sandbox/producción y captura diferida sólo si un proveedor la incorpora |
-| 6 | Merchant 360 | Base ampliada, 2026-08-21 | señales de Core confiables | ficha operativa por organización con riesgos, próximos pasos y evidencia de conexión clasificada por frescura |
-| 7 | Registro de integraciones 2 | En curso, 2026-08-21 | health checks activos y eventos | versión, scopes, webhook, error y plan por conexión |
-| 8 | Centro de operaciones y lanzamiento | Base ampliada, 2026-08-21 | uso contra fallos reales | cola priorizada, reintento auditado de entrega descartada y pausa reversible del Brick por comercio/global |
-| 9 | Margen por canal | Pendiente | costos y comisiones reales | comparación de contribución por orden y canal |
-| 10 | MercadoLibre real | Pendiente | cuenta y operación comercial | publicación, orden importada y conciliación multi-org |
-
-Los puntos 1 a 3 requieren participación del dueño y no se pueden simular con
-una pantalla. Si alguno está bloqueado por una decisión o credencial externa,
-se documenta y se avanza sólo con slices que no oculten el bloqueo.
-
-## 5. Control Plane
-
-El panel de plataforma es una superficie operativa, no una segunda aplicación
-de negocio. No debe editar datos del comercio por fuera de los servicios del
-Core ni mostrar secretos.
-
-| Slice | Estado | Próxima prueba |
+| Producto / superficie | Rol | Prioridad |
 |---|---|---|
-| Platform Overview | Hecho, 2026-08-21 | sumar pagos, webhooks y colas como señales de primera clase |
-| Merchant 360 | Base ampliada, 2026-08-21 | probar la ficha con una organización real; distingue evidencia de runtime reciente, alerta, error, vencida o sólo configuración sin declarar disponibilidad del proveedor |
-| Integration Registry | Base ampliada, 2026-08-21 | evidencia por comercio de conexión, vigencia y último evento; faltan health check activo, versión, webhook y plan operativos |
-| Credential Control | Base hecha, 2026-08-21 | verificar con una organización real la rotación/revocación de Evolution sin exponer su valor |
-| Billing y comisiones | Pendiente | conciliar comisión, suscripción y venta |
-| Operations Queue | Base hecha, 2026-08-21 | verificar un reintento real de entrega y sumar resolución controlada de webhook/sync |
-| Release Control | Base hecha, 2026-08-21 | ejecutar una pausa controlada del Brick y medir que el checkout externo conserva la conversión; extender sólo a flujos con fallback explícito |
+| **Gestiona Business** | Productos, stock, ventas, POS, clientes, compras y margen. | Actual: debe vender confiablemente. |
+| **Gestiona Commerce** | Ventas online y canales sobre el Business Core. | Después de validar la base comercial. |
+| **Gestiona Finance** | Comprobantes, gastos y cuentas por pagar convertidos en decisiones auditables. | MVP después de la puerta comercial. |
+| **Gestiona Platform** | Organizaciones, integraciones, riesgo, soporte y economía de plataforma. | Sólo lo que destrabe comercios reales. |
+| **Storefront** | Experiencia pública de compra aislada de datos privados. | Canal de Commerce, no el producto principal. |
+| **Gestiona Intelligence** | Hallazgos que llevan a una acción y miden su resultado. | Cuando los datos operativos sean confiables. |
+| **Pay, Ship, Developers y Apps** | Red, extensibilidad y servicios de plataforma. | Con tracción y condiciones regulatorias. |
 
-Cada vista de plataforma debe tener estado de carga, vacío, error, permiso
-insuficiente y dato desactualizado. "Sin evidencia" no significa "todo bien".
+La ventaja a demostrar no es ser un creador de tiendas más: es explicar y
+mejorar el **margen real por canal**, reuniendo costo importado, comisión de
+cobro, envío e impuestos. Finance añade una segunda ventaja: un comprobante se
+captura una vez y se convierte en una compra, obligación, control o señal de
+costo sin recarga manual.
 
-## 6. Reglas técnicas no negociables
+## 2. Contratos de arquitectura y confianza
 
-- El servidor y la base son autoridad para precio, stock, cupón, envío,
-  comisión, impuestos y margen. El cliente manda identificadores y cantidades.
-- El stock sólo se mueve por `record_stock_movement` y los caminos de base que
-  lo invocan. Antes de tocar una venta, compra o transferencia se revisan los
-  triggers existentes.
-- No se usa `Math.max`, `GREATEST` ni corrección silenciosa para esconder stock
-  negativo o diferencias de dinero.
-- Los secretos viven en Edge Functions o tablas sin policies para el cliente.
-  Las vistas públicas sólo devuelven estados sanitizados.
-- RLS separa tenants y roles. Staff de plataforma y miembros de organización
-  son permisos distintos.
-- Un fallback sólo se permite cuando falta una relación o función compatible;
-  un error de permisos, datos o conexión se muestra y se registra.
-- Una vista nueva convive con la anterior hasta verificar todas sus superficies.
-- Las migraciones llevan 14 dígitos, son idempotentes, se registran al aplicar
-  y se regeneran los tipos después.
-- No se prueba modificando datos reales sin respaldo y limpieza comprobable.
-- Una migración no se considera terminada si el camino real no fue verificado
-  con el rol que lo usará.
-- Toda Edge Function pasa `npm run check:functions`; el script descubre los
-  entrypoints del filesystem y Deno valida imports remotos y el Edge Runtime.
+Cualquier iniciativa debe cumplir estas reglas; de lo contrario se rediseña o
+queda congelada.
 
-## 7. Experiencia de producto
+1. **Un Business Core.** Productos, variantes, stock, precios, clientes,
+   movimientos, órdenes, pagos y costos existen una sola vez. Un canal o
+   producto nuevo nunca crea su propio inventario, margen o cliente.
+2. **Una identidad y una organización.** auth.users, organizations y
+   memberships siguen compartidos. Finance podrá tener acceso y roles de
+   producto, pero no usuarios, comercios, proveedores ni catálogos duplicados.
+3. **Superficies separadas.** Organización (/), plataforma (/platform) y tienda
+   pública (/tienda/:slug) mantienen chrome y permisos distintos. Finance será
+   una superficie diferenciada sólo tras diseñar navegación, acceso y auditoría.
+4. **El servidor es autoridad.** El navegador no escribe stock, precios,
+   descuentos, totales ni secretos. Las transiciones de dinero e inventario se
+   validan en la base.
+5. **Documento no es asiento confirmado.** Finance puede crear borradores de
+   compra o cuentas por pagar; sólo la revisión y el comando de dominio aprobado
+   pueden afectar stock, deuda o contabilidad.
+6. **IA limitada y auditable.** Puede clasificar, proponer y explicar; no
+   insertar compras, pagar facturas, cambiar precios ni prometer a compradores.
+   Toda recomendación tiene fuente, confianza, acción permitida y resultado.
+7. **Seguridad y privacidad por defecto.** Credenciales por Edge Function,
+   superficies públicas sin costos/márgenes/tokens, y compradores de tienda sin
+   membresía accidental de una organización.
+8. **Evidencia antes que marketing.** Una capacidad no se considera ventaja
+   competitiva ni impacto de IA hasta guardar fuente, período, fórmula y
+   resultado verificable.
 
-La interfaz debe ayudar a decidir y operar, no convertir cada módulo en una
-lista infinita.
+## 3. Línea de base y bloqueos
 
-- Cada página extensa se divide por sidebar, tabs internas o subrutas; la
-  selección se conserva al cambiar de módulo y al volver del navegador.
-- Dashboard e inicio muestran prioridades, bloqueos y acciones; no un mural de
-  métricas sin contexto.
-- Tablas, filtros, búsqueda y acciones mantienen estados de carga, vacío y
-  error sin desplazar toda la pantalla.
-- Organización, plataforma y tienda mantienen chrome, permisos y tono visual
-  propios.
-- El sistema visual usa jerarquía sobria, densidad operativa, espaciado
-  consistente, estados accesibles y responsive real. No se agregan tarjetas
-  decorativas ni texto de marketing a una pantalla de trabajo.
-- Las referencias visuales son inspiración, no contratos de copia: [DashStack]
-  (https://www.figma.com/design/MxTlGfApLOZJxXogeHKgjM/DashStack---Free-Admin-Dashboard-UI-Kit---Admin---Dashboard-Ui-Kit---Admin-Dashboard--Community-?node-id=0-1&p=f&t=GMDnm0HnYE48IqNN-0),
-  [Ecommerce Admin Panel]
-  (https://www.figma.com/es-la/comunidad/file/1290711303197535625/eccomerce-admin-panel),
-  [Ecommerce App UI Kit]
-  (https://www.figma.com/es-la/comunidad/file/1264098337558102933/ecommerce-app-ui-kit-case-study-ecommerce-mobile-app-ui-kit),
-  [Marketplace Design]
-  (https://www.figma.com/design/UXGJUCrBaYaIXTzRrg9HWd/Marketplace-Design--Community-?t=bteX9McfbQvxcmBs-0).
+Estado de referencia al **2026-08-21**. Los números se deben volver a medir
+antes de reutilizarlos en producto, ventas o comunicación externa.
 
-La calidad visual se valida junto con el flujo: una pantalla bonita que no
-explica el estado del negocio no cumple el objetivo.
+| Señal | Estado conocido |
+|---|---|
+| Núcleo | Productos, variantes, inventario por movimientos, ventas, POS, compras, clientes, tienda y canales comparten el Business Core. |
+| Seguridad | Hay guardas de superficie pública y Edge Functions; las credenciales sensibles no se exponen al navegador. |
+| Cobros | Checkout recalcula en servidor, sus transiciones son idempotentes y Checkout Brick admite pausa global o por organización con salida segura. |
+| Plataforma | Existen Overview, registro de integraciones, Merchant 360 y cola operativa sanitizada. |
+| Finance precursor | Existe OCR que prellena una orden de compra. Es un componente parcial: aún no prueba cadena de custodia, validación, duplicados, matching, aprobación ni borrador Finance. |
+| Calidad técnica | 1.220 unit tests y las puertas typecheck, lint y build superadas en el último corte; 63 Edge Functions pasan verificación de tipos. |
+| Uso observado | 4 organizaciones, 1 comercio real, 34 registros POS, 6 online, 10 eventos de ledger, 0 asientos contables, 0 CAE y 2 pagos reales de prueba por ARS 1. Es una muestra, no product-market fit. |
 
-## 8. IA e integraciones
+La prioridad inmediata es comercial y de confianza: demostrar que se vende,
+entrega, registra y explica el margen sin intervención técnica diaria.
 
-### Business Copilot
+### Bloqueos externos de F0
 
-La IA no es un chat aislado ni un generador de descripciones. Toda capacidad
-de IA tiene que declarar:
+| Bloqueo | Riesgo que evita | Responsable |
+|---|---|---|
+| Certificado y prueba de homologación ARCA | El ciclo fiscal real aún no tiene evidencia. | Dueño / responsable fiscal. |
+| Razón social, CUIT, domicilio y publicación legal | No se publica una tienda legalmente incompleta. | Dueño del comercio. |
+| Conteo físico y ajuste trazable | El antiguo doble movimiento dejó stock histórico no confiable. | Comercio. |
+| Pesos, fotos, descripciones y tarifas | La cotización y conversión no representan la operación real. | Comercio, con carga asistida. |
+| Contrato de correo y credenciales | La etiqueta por API no se puede validar contra operación real. | Comercio / transportista. |
+| Cuenta comercial MercadoLibre | Publicar e importar órdenes reales requiere esa relación. | Comercio. |
 
-1. qué datos del Core consulta;
-2. qué acción puede ejecutar el usuario;
-3. qué permiso y confirmación necesita;
-4. qué evidencia explica la recomendación;
-5. cómo se mide adopción y resultado.
+Ningún bloqueo se marca resuelto con una pantalla o un dato de prueba: exige
+fecha, responsable, evidencia y entorno usado.
 
-### Integraciones
+## 4. Criterio de priorización
 
-Cada integración tiene un adaptador con configuración, credenciales, scopes,
-health check, webhook, reintento, rate limit, auditoría y estado de
-sincronización. El proveedor no se filtra por toda la aplicación ni crea tablas
-paralelas de stock o clientes.
+Cada slice pertenece a una fase y responde al menos una pregunta:
 
-La integración se considera operativa cuando se verifica contra una cuenta real,
-se puede reintentar y deja el mismo estado en el Core. La documentación de
-MercadoLibre, logística, ARCA y cron se mantiene en sus documentos específicos.
+- ¿lleva a un segundo comercio real a su primera venta?
+- ¿fortalece la verdad compartida de stock, cobro, costo o margen?
+- ¿reduce riesgo legal, financiero, operativo o de seguridad?
+- ¿crea una métrica de adopción, confiabilidad o impacto que antes no existía?
 
-## 9. Definition of Done
+Si no responde ninguna, queda fuera. El orden de inversión es:
 
-Cada slice sigue este orden:
+~~~text
+comercio confiable → automatización financiera → canales profesionales
+→ inteligencia → red / ecosistema
+~~~
 
-1. identificar el contrato del Core y el tenant afectado;
-2. traer remoto y elegir un número libre de migración;
-3. migración idempotente y tipos regenerados;
-4. verificación con base y rol reales, sin dejar datos de prueba;
-5. UI conectada a la fuente de verdad con estados completos;
-6. `typecheck`, `check:functions`, `lint`, tests y `build` en verde;
-7. navegador contra `localhost` cuando exista `.env`;
-8. actualizar este roadmap con estado, fecha y evidencia;
-9. commit descriptivo y push explícito.
+Las comparativas con otras plataformas no se harán con slogans. Cada revisión
+trimestral verificará fuentes oficiales fechadas y marcará el dato como
+**medido**, **criterio de producto** o **por verificar**.
 
-Puerta local:
+## 5. Fases y condiciones de salida
 
-```bash
-set NODE_OPTIONS=--max-old-space-size=6144
-npm run typecheck
-npm run check:functions
-npm run lint
-npm test
-npm run build
-```
+Las fases son secuenciales por defecto. Sólo se explora la siguiente si no
+retrasa la puerta vigente ni toca datos reales.
 
-En Windows, los scripts `npm.cmd` son equivalentes. No usar `npx tsc --noEmit`:
-el `tsconfig.json` raíz no chequea los archivos de la aplicación.
+### F0 — Comercio confiable y vendible
 
-## 10. Fuera del foco actual
+**Objetivo:** que Gestiona Business venda de punta a punta para más de un
+comercio sin soporte técnico cotidiano.
 
-Quedan congelados hasta cumplir las salidas de Fase 0 y Fase 1:
+**Alcance**
 
-- marketplace de extensiones y APIs públicas para terceros;
-- nuevos módulos de RRHH, educación, sustentabilidad o franquicias;
-- rediseños sin impacto en una decisión o flujo de operación;
-- dashboards que sólo agregan KPIs sin acción ni fuente;
-- IA generativa sin acción, permisos y métrica;
-- escalado de infraestructura sin una señal de uso que lo justifique.
+- Resolver los bloqueos fiscal, legal, inventario físico, catálogo y envío.
+- E2E seguros de POS, venta, checkout, pago, cancelación/devolución, compra,
+  ajuste y tienda pública.
+- Observabilidad de webhooks, cron, pagos y degradaciones, con recuperación
+  idempotente y diagnóstico seguro.
+- Backup y restore probados, no sólo configurados.
+- Onboarding instrumentado: primer producto, canal, cobro y venta.
+- Implementación acompañada de un segundo comercio, convirtiendo fricciones
+  repetibles en mejoras del Core.
 
-Esto no elimina una idea. La mantiene fuera del camino crítico para que el
-producto pueda terminar lo esencial.
+**No hacer:** otra línea de producto, Pay propio, builder visual amplio, agentes
+autónomos o integraciones que no ayuden a la primera venta.
 
-## 11. Bloqueos externos
+**Salida verificable**
 
-Estos puntos necesitan una acción del dueño o de un proveedor:
+1. Dos comercios completan el recorrido de venta acordado.
+2. Hay un ciclo ARCA de homologación documentado y, con autorización, camino
+   productivo validado por el responsable.
+3. Una muestra real reconcilia stock, pago, pedido y margen; las diferencias
+   tienen causa y ajuste trazable.
+4. Las rutas críticas tienen E2E seguro y las recuperaciones de pago/webhook/cron
+   dejan evidencia.
+5. Existe una prueba de restore y una métrica de tiempo a primera venta.
 
-- certificado o delegación de ARCA y prueba de homologación;
-- razón social, CUIT y domicilio para publicar los textos legales;
-- conteo físico del inventario;
-- tarifas y contrato real de Correo Argentino o Andreani;
-- credenciales de producción para servicios de email e IA;
-- cuenta comercial de MercadoLibre para validar publicación y órdenes.
+### F1 — Gestiona Finance MVP: comprobante a borrador correcto
 
-Un bloqueo externo se mantiene visible en esta lista y no se maquilla como
-feature terminada.
+**Objetivo:** que una factura real ingrese una vez y termine como un borrador
+revisable de compra o cuenta por pagar, conectado a proveedores y productos
+existentes.
 
-## 12. Fuentes y memoria del proyecto
+**Alcance**
 
-- [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md): tesis, mercado y decisiones de
-  posicionamiento.
-- [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md): límites del Core y módulos.
-- [docs/LEGAL.md](docs/LEGAL.md): obligaciones argentinas y publicación.
-- [docs/permisos.md](docs/permisos.md): separación de roles y tenants.
-- [docs/CONFIGURACION.md](docs/CONFIGURACION.md): secretos y variables.
-- [docs/CRON.md](docs/CRON.md): jobs, vault y diagnóstico.
-- [docs/MERCADOLIBRE.md](docs/MERCADOLIBRE.md): integración y pendientes.
-- [docs/COMPARACION.md](docs/COMPARACION.md): brechas con referencias del
-  mercado, siempre con fecha y nivel de verificación.
-- `git log --oneline -20`: historial de slices ejecutados y evidencia técnica.
+- Diseñar acceso, roles, segregación de funciones, retención y auditoría de
+  Finance sobre identidad compartida. La eventual tabla user_product_access se
+  decide mediante ADR; no se crea por intuición.
+- Auditar y encapsular el OCR que hoy prellena compras como insumo potencial del
+  pipeline; no promoverlo a Finance hasta que satisfaga los controles de esta
+  fase.
+- Crear la superficie Finance sin alterar los límites de las tres superficies
+  actuales.
+- Document Inbox con PDF/imagen, tipo, origen, estado, almacenamiento inmutable,
+  validación de MIME/tamaño/malware.
+- Pipeline: ingreso → clasificación/extracción → validación de esquema, fiscal
+  y matemática → matching determinístico → confianza → revisión humana →
+  comando de dominio.
+- Campos mínimos: emisor, CUIT, tipo/número, fecha, vencimiento, moneda,
+  impuestos, subtotal, total, ítems y adjunto.
+- Duplicados por identidad fiscal, hash de archivo y reglas de negocio antes
+  de crear un borrador.
+- Matching por cascada: CUIT, SKU o código de barras exactos; luego aliases e
+  historial; fuzzy/IA solamente como propuesta explicable.
+- Al confirmar, aprender aliases proveedor-producto y crear sólo un borrador.
+  La compra confirmada conserva los triggers de stock del Business Core.
 
-Cuando un dato o decisión cambie, se actualiza esta página y el documento
-especializado correspondiente. No se vuelve a insertar aquí el historial de
-sesiones: el roadmap tiene que seguir siendo legible para decidir el próximo
-trabajo.
+**No hacer:** OCR multicanal, pago autónomo, contabilidad completa, conciliación
+masiva o cambio automático de precios.
+
+**Salida verificable**
+
+1. Una factura de prueba llega a borrador correcto sin duplicar proveedor,
+   producto, stock ni deuda.
+2. Cada campo guarda valor, fuente, confianza, corrección humana y fecha.
+3. Duplicados e inconsistencias fiscales/matemáticas son comprensibles y no se
+   pierden en fallbacks silenciosos.
+4. Un usuario sin permiso de aprobación no puede confirmar el cambio de dominio.
+
+### F2 — Automatización financiera controlada
+
+**Objetivo:** bajar trabajo administrativo sin que una predicción cause un
+movimiento financiero irreversible.
+
+**Alcance**
+
+- Inbox por email, WhatsApp y API con la misma cadena de custodia.
+- Three-way match de factura, orden de compra, recepción e importe.
+- Calendario de cuentas por pagar, vencimientos, responsables y excepciones.
+- Motor reusable de políticas/aprobaciones para gasto, compra, pago, descuento
+  y cambios sensibles.
+- Gastos, centros de costo y evidencia.
+- Conciliación asistida de documentos, pagos y movimientos con reversión.
+- Señales de costo por proveedor/producto que proponen precio o compra, sin
+  actualizar nada automáticamente.
+
+**Salida verificable**
+
+1. Documentos de dos orígenes preservan la misma trazabilidad.
+2. Las discrepancias de tres vías llegan a una persona y no cambian stock/deuda
+   hasta resolverse.
+3. Aprobaciones y conciliaciones guardan responsable, evidencia, historial y
+   reversión autorizada.
+4. Se miden correcciones de extracción, tiempo de revisión, duplicados
+   bloqueados y pagos vencidos evitables.
+
+### F3 — Commerce profesional sobre el Core
+
+**Objetivo:** crecer online sin sacrificar verdad operativa, rendimiento,
+margen ni conversión.
+
+**Alcance, en orden**
+
+1. Dominios con operación segura de DNS/SSL, diagnóstico y rollback.
+2. Tienda first-class y multi-tienda sobre catálogo, stock, clientes, precios y
+   órdenes compartidos.
+3. Fundaciones de tema, páginas, navegación, SEO y medios con versiones,
+   preview y publicación reversible.
+4. Búsqueda, filtros, analytics de embudo y rendimiento público.
+5. Builder asistido por IA que genera cambios revisables dentro del tema.
+6. Experimentos de checkout/contenido sólo con tráfico y métrica predefinida.
+
+**Salida verificable**
+
+1. Un comercio conecta dominio, publica y revierte sin soporte técnico.
+2. Dos tiendas no duplican inventario, clientes, cálculo de margen ni pagos.
+3. SEO, rendimiento, conversión y errores de checkout tienen línea de base por
+   tienda/canal.
+
+### F4 — Gestiona Intelligence: hallazgo, acción e impacto
+
+**Objetivo:** convertir datos confiables en decisiones que el comercio puede
+aceptar, rechazar o delegar con límites.
+
+**Alcance**
+
+- AI Gateway, registro de modelos/agentes, versiones de prompt, costo,
+  permisos, trazas y apagado seguro.
+- Hallazgos de negocio con fuente, período, confianza, explicación, acción y
+  estado.
+- Secuencia recomendación → aprobación → acción → impacto para reposición,
+  margen por canal, clientes inactivos, precio y promoción.
+- Autonomía por niveles: informar, preparar, ejecutar con aprobación y,
+  únicamente con evidencia estable, ejecutar dentro de una política.
+
+**Salida verificable**
+
+1. Las tres primeras recomendaciones útiles accionan una capacidad existente y
+   registran aceptación/rechazo.
+2. El impacto se compara con línea de base declarada.
+3. Un administrador puede auditar, desactivar y revertir cada efecto permitido.
+
+### F5 — Inteligencia de canales y economía unificada
+
+**Objetivo:** decidir dónde vender, reponer y promocionar por margen real, no
+por facturación bruta.
+
+**Alcance**
+
+- MercadoLibre: publicación controlada, importación de órdenes como ventas y
+  sincronización multi-organización con trazas.
+- Normalización de comisión, cobro, envío, impuestos, devolución, publicidad y
+  costo por canal.
+- Rentabilidad, publicación, stock comprometido y excepciones por SKU, pedido,
+  tienda y canal.
+- Recomendaciones de canal bajo las salvaguardas de F4.
+
+**Salida verificable**
+
+1. Una venta de cada canal habilitado se explica hasta su margen y fuente.
+2. La importación es idempotente y no duplica stock, cliente ni cobro.
+3. Hay evidencia de una decisión comercial tomada con el análisis.
+
+### F6 — B2B y operación empresarial
+
+**Objetivo:** soportar relaciones complejas sin empeorar el recorrido simple.
+
+**Alcance:** cliente empresa, listas de precio, presupuestos, crédito,
+aprobaciones, portal B2B, permisos por sucursal, auditoría/exportaciones y
+multi-tienda/multi-depósito validados.
+
+**Salida verificable:** un caso B2B real opera precio, crédito, pedido, cobro,
+stock y aprobación sin planillas paralelas ni reglas ocultas.
+
+### F7 — Pay y Ship como red, no como atajo
+
+**Objetivo:** orquestar cobros y logística con valor medible, sin asumir riesgo
+regulatorio antes de tiempo.
+
+**Alcance condicionado**
+
+- Health, routing, conciliación y recuperación de proveedores de pago.
+- Etiquetas, tracking, tarifas y excepciones logísticas sobre órdenes compartidas.
+- Saldo, adelantos, antifraude, custodia o adquirencia sólo con volumen,
+  asesoría legal/compliance, capital, riesgo y operación responsable.
+
+**Salida verificable:** mejora medida en cobro, costo logístico o tiempo de
+resolución, y responsabilidad regulatoria aprobada fuera del código.
+
+### F8 — Ecosistema de desarrolladores y aplicaciones
+
+**Objetivo:** abrir extensiones sin abrir datos ni romper el Core.
+
+**Alcance:** APIs/eventos versionados, scopes, OAuth/secretos, cuotas, logs,
+revocación, webhooks con reintentos/DLQ/replay y marketplace sólo tras contrato
+de compatibilidad y revisión.
+
+**Salida verificable:** una integración externa usa scope mínimo, maneja replay
+seguro y puede revocarse sin tocar datos internos.
+
+### F9 — Escala regional y financiera
+
+**Objetivo:** expandir únicamente lo que mantiene exactitud fiscal, operativa y
+de margen por país.
+
+**Alcance:** localización fiscal/impositiva, moneda, pagos, logística, términos,
+privacidad, residencia de datos y soporte de acuerdo con demanda demostrada.
+
+**Salida verificable:** cada país pasa una matriz legal, fiscal, operativa,
+seguridad y soporte antes de recibir tráfico comercial.
+
+## 6. Cola ejecutable
+
+Se trabaja un slice a la vez. Esta tabla se actualiza en el mismo commit que
+cambia el producto.
+
+| # | Proyecto | Fase | Estado | Cierre exigido |
+|---:|---|---|---|---|
+| 1 | Cerrar recorrido real: fiscal, legal, stock físico, catálogo y envío. | F0 | Bloqueado externamente | Evidencia de responsable y reconciliación. |
+| 2 | Medir onboarding, primera venta, error de checkout, recuperación y salud por comercio. | F0 | Pendiente | Eventos, tablero y definición de métricas. |
+| 3 | E2E seguros de venta/compra/devolución/checkout/tienda; backup y restore. | F0 | En curso | Suite verde y acta de restore sin datos reales. |
+| 4 | Segundo comercio acompañado; convertir fricciones repetibles en fixes. | F0 | Pendiente | Primera venta y registro de resultados. |
+| 5 | ADR de acceso, auditoría, retención y modelo de documentos Finance; auditar el OCR preexistente. | F1 | Pendiente; OCR parcial, no MVP; no implementar antes de F0 | ADR, amenaza/RLS y migración propuesta sin duplicar Core. |
+| 6 | Finance Inbox y extracción estructurada con revisión humana. | F1 | Congelado hasta F0; reutilizar sólo lo que supere los controles | Documento de prueba → registro trazable. |
+| 7 | Matching, duplicados y borrador compra/payable. | F1 | Congelado hasta Inbox | Factura → borrador correcto, sin impacto prematuro. |
+| 8 | Entradas automáticas, three-way match, aprobaciones y AP Calendar. | F2 | Pendiente | Excepciones y aprobaciones auditables. |
+| 9 | Dominios, Store first-class y tema/página reversible. | F3 | Pendiente | Publicación/rollback autónomos y datos compartidos. |
+| 10 | Gateway de IA, hallazgos e impacto verificado. | F4 | Pendiente | Recomendación → acción → impacto medido. |
+| 11 | MercadoLibre operativo y economía normalizada. | F5 | Parcial | Orden real idempotente y margen explicable. |
+| 12 | B2B, Pay/Ship, Developers y expansión. | F6–F9 | Congelado por diseño | Puertas de demanda, volumen y regulación. |
+
+La numeración no autoriza saltar fases. Un P0 de seguridad, datos, legal o
+incidente se atiende antes y deja asentado su impacto sobre la fase vigente.
+
+## 7. Diseño de referencia de Finance
+
+Finance no bifurca el sistema. La primera arquitectura sigue esta cadena:
+
+~~~text
+archivo / email / WhatsApp / API
+  → validación y almacenamiento inmutable
+  → clasificación y extracción estructurada
+  → validación fiscal, de esquema y matemática
+  → deduplicación y matching explicable
+  → confianza + revisión humana
+  → borrador de compra o cuenta por pagar
+  → aprobación / comando del Business Core
+  → auditoría, conciliación y señal de costo
+~~~
+
+Reglas de implementación:
+
+- El proveedor de extracción es intercambiable; el contrato interno de campos,
+  confianza, versión y evidencia no lo es.
+- La confianza se modela por campo y decisión, no como un número decorativo.
+- Los aliases proveedor-producto surgen de confirmaciones, se auditan y se
+  pueden corregir/desactivar.
+- Un comprobante se bloquea antes de crear deuda mediante CUIT/tipo/número,
+  hash y reglas complementarias.
+- Una variación de costo genera alerta/propuesta; no actualiza precios sola.
+- Documentos, aprobaciones, matching y cambios de estado conservan actor,
+  momento, origen, versión de regla/modelo y motivo de reversión.
+- Finance standalone para empresas con ERP externo es una hipótesis posterior;
+  primero se valida integración profunda con el Business Core.
+
+## 8. Estándar competitivo
+
+El objetivo es una combinación que el comercio pueda comprobar; no una lista de
+módulos. Esta matriz define el estándar propio, no afirma el estado de terceros.
+
+| Dimensión | Estándar Gestiona | Señal para cliente e inversor |
+|---|---|---|
+| Operación | Stock, venta, compra, cliente y margen se reconcilian. | Menos planillas y diferencias sin explicación. |
+| Omnicanalidad | Cada canal usa el mismo Core y muestra su costo/resultado. | Decisiones por margen real. |
+| Commerce | Tienda rápida y extensible conectada al back-office. | Conversión sin carga manual paralela. |
+| Finance | Documento a obligación correcta y revisable. | Menos tarea administrativa y costos visibles. |
+| Plataforma | Integraciones, pagos, webhooks y soporte con evidencia. | Menor riesgo de fallas silenciosas. |
+| Intelligence | Sugerencia accionable con impacto medible. | Automatización que demuestra valor. |
+| Ecosistema | APIs/apps con permisos mínimos y observabilidad. | Canales nuevos sin perder control. |
+
+Las comparativas públicas viven en docs/ESTRATEGIA.md con URL oficial, fecha y
+etiqueta ✅/📌/❓. Este documento evita afirmaciones volátiles sobre competidores.
+
+## 9. Métricas que deciden
+
+Toda métrica tiene definición, fuente, dueño, período, denominador y consulta
+reproducible antes de entrar a un tablero o pitch.
+
+| Grupo | Métricas iniciales |
+|---|---|
+| Activación | Tiempo a primer producto, canal, cobro y venta; porcentaje por hito. |
+| Confiabilidad | Éxito de checkout/pago, recuperaciones, diferencias de stock, restores e incidentes por organización. |
+| Valor comercial | Recompra, GMV conciliado, margen por canal, quiebres/envíos y tiempo de resolución. |
+| Finance | Documentos, correcciones, duplicados bloqueados, tiempo a borrador, excepciones y vencimientos. |
+| IA | Cobertura de hallazgos, AI Action Rate, aceptación/rechazo, reversión e impacto contra línea base. |
+| Plataforma | Organizaciones activas, segunda venta, integraciones sanas, cron/webhooks recuperados y costo de soporte. |
+| Negocio | Comercios activos, retención, ingreso recurrente/transaccional, margen de contribución y costo de servir. |
+
+F0 debe instrumentar la línea de base antes de fijar metas universales. No se
+optimiza conversión, retención o IA sobre la muestra actual de un comercio.
+
+## 10. Disciplina de ejecución
+
+Cada cambio se entrega como slice: migración y verificación de base real cuando
+aplique → UI/canal → pruebas de cálculo e integración → typecheck,
+check:functions, lint, test y build → evidencia operativa → commit →
+actualización de este roadmap.
+
+Cada actualización debe registrar:
+
+1. fase, proyecto de la cola y problema resuelto;
+2. estado real: pendiente, en curso, bloqueado, parcial o hecho;
+3. commit, migración, prueba, consulta o evidencia externa;
+4. métrica nueva o resultado de la existente;
+5. deuda, dependencia o decisión abierta.
+
+Una fase sólo termina al cumplir todas sus salidas. Una UI, ticket o migración
+sin verificación no cierra trabajo. Los conteos de tests y uso llevan fecha y
+comando.
+
+## 11. Congelado deliberadamente
+
+Hasta abrir sus puertas, no se prioriza:
+
+- ERP periférico que no reduzca riesgo ni ayude a vender;
+- duplicar stock, precio, cliente, proveedor o pago por canal/producto;
+- builders, experimentos o personalización visual sin tráfico y métrica;
+- agentes que escriban dinero, inventario o precios sin aprobación;
+- billetera, crédito, custodia, adquirencia o promesas financieras sin marco
+  regulatorio, capital, riesgo y responsable operativo;
+- marketplace de apps sin API estable, scopes, revocación y replay;
+- expansión internacional sin matriz fiscal, legal, logística y de soporte;
+- una segunda autenticación u organización para Finance.
+
+## 12. Fuentes y revisión
+
+- AGENTS.md: invariantes operativas, seguridad, migraciones y verificación.
+- docs/ESTRATEGIA.md: tesis de margen omnicanal y comparativas verificables.
+- docs/LEGAL.md: requisitos argentinos para precios, clientes y plataforma.
+- Análisis estratégico de producto recibido el 2026-08-21: referencia para
+  portfolio, Finance, plataforma e inteligencia.
+
+Se revisa al cerrar el primer slice de F0 o ante un incidente/decisión que
+cambie una puerta. El orden cambia con evidencia de comercio, riesgo o tracción,
+no por una feature atractiva aislada.
