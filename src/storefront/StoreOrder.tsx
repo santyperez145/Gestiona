@@ -33,6 +33,7 @@ export default function StoreOrder() {
   const [pagoError, setPagoError] = useState<string | null>(null);
   const [pagoAviso, setPagoAviso] = useState<string | null>(null);
   const [brickConfig, setBrickConfig] = useState<StorePaymentBrickConfig | null>(null);
+  const [tarjetaDisponible, setTarjetaDisponible] = useState(true);
   const [pagoEnProceso, setPagoEnProceso] = useState(false);
   const base = `/tienda/${store?.slug ?? ""}`;
   const pedidoPendiente = order?.payment_status === "pending";
@@ -127,10 +128,14 @@ export default function StoreOrder() {
       body: { action: "brick-config", slug: store.slug, orderNumber: order.order_number },
     });
     setPreparandoTarjeta(false);
-    const config = data as Partial<StorePaymentBrickConfig> & { error?: string } | null;
+    const config = data as Partial<StorePaymentBrickConfig> & { error?: string; fallback?: string } | null;
     if (!error && config && typeof config.publicKey === "string" &&
         Number.isFinite(Number(config.amount)) && Number(config.amount) > 0) {
+      setTarjetaDisponible(true);
       setBrickConfig({ publicKey: config.publicKey, amount: Number(config.amount) });
+    } else if (!error && config?.fallback === "redirect") {
+      setTarjetaDisponible(false);
+      setPagoAviso(config.error ?? "El pago con tarjeta está temporalmente pausado. Podés continuar en MercadoPago.");
     } else {
       setPagoError(config?.error ?? "No se pudo preparar el pago con tarjeta. Podés usar MercadoPago para elegir otro medio.");
     }
@@ -248,22 +253,24 @@ export default function StoreOrder() {
             </div>
           ) : (
             <div className="mt-3 flex flex-col sm:flex-row gap-2 justify-center">
-              <button
-                onClick={prepararPagoConTarjeta}
-                disabled={preparandoTarjeta || pagando}
-                className="w-full sm:w-auto px-6 py-2.5 text-sm font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
-                style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
-              >
-                {preparandoTarjeta ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                Pagar con tarjeta {fmt(Number(order.total))}
-              </button>
+              {tarjetaDisponible && (
+                <button
+                  onClick={prepararPagoConTarjeta}
+                  disabled={preparandoTarjeta || pagando}
+                  className="w-full sm:w-auto px-6 py-2.5 text-sm font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
+                  style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+                >
+                  {preparandoTarjeta ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                  Pagar con tarjeta {fmt(Number(order.total))}
+                </button>
+              )}
               <button
                 onClick={abrirPagoExterno}
                 disabled={pagando || preparandoTarjeta}
                 className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium border disabled:opacity-60"
                 style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
               >
-                {pagando ? "Abriendo MercadoPago..." : "Otros medios en MercadoPago"}
+                {pagando ? "Abriendo MercadoPago..." : tarjetaDisponible ? "Otros medios en MercadoPago" : "Pagar en MercadoPago"}
               </button>
             </div>
           )}

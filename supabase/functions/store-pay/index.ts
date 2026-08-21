@@ -47,6 +47,24 @@ function text(value: unknown, maxLength = 250): string | null {
   return clean && clean.length <= maxLength ? clean : null;
 }
 
+async function checkoutBrickEnabled(admin: any, orgId: string): Promise<boolean> {
+  const { data, error } = await admin.rpc("feature_flag_habilitada", {
+    p_flag_key: "checkout_brick",
+    p_org_id: orgId,
+    p_default: true,
+  });
+  if (!error) return data !== false;
+
+  // El deploy del cliente no puede suponer que su migración ya alcanzó la
+  // base. Sólo se conserva el comportamiento anterior si falta exactamente el
+  // contrato nuevo; cualquier otro error se hace visible y no se interpreta
+  // como un checkout habilitado.
+  const code = String((error as { code?: string } | null)?.code ?? "");
+  if (["42883", "42P01", "PGRST202", "PGRST205"].includes(code)) return true;
+  console.error("feature_flag_habilitada:", error);
+  throw new Error("No se pudo verificar la disponibilidad del pago con tarjeta.");
+}
+
 function safeReturnBase(value: unknown): string | null {
   const raw = text(value, 2_000);
   if (!raw) return null;
@@ -435,8 +453,19 @@ Deno.serve(async (req) => {
     const context = result.context!;
 
     const action = text(body.action, 60) ?? "redirect";
-    if (action === "brick-config") return await checkoutBrickConfig(admin, context);
-    if (action === "brick-payment") return await processBrickPayment(admin, context, body, supabaseUrl);
+    if (action === "brick-config" || action === "brick-payment") {
+      if (!await checkoutBrickEnabled(admin, context.store.org_id)) {
+        // No es un error técnico: el frontend necesita leer este payload para
+        // ofrecer el flujo existente de preferencia externa sin dejar al
+        // comprador frente a un botón roto.
+        return json({
+          error: "El pago con tarjeta está temporalmente pausado. Podés continuar en MercadoPago con otro medio.",
+          fallback: "redirect",
+        });
+      }
+      if (action === "brick-config") return await checkoutBrickConfig(admin, context);
+      return await processBrickPayment(admin, context, body, supabaseUrl);
+    }
     if (action === "redirect") {
       const attempt = await preparePaymentAttempt(admin, {
         orderId: context.order.id,

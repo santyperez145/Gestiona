@@ -12,6 +12,9 @@ const ALLOWED_ORIGINS = [
   "https://app.gestiona.app",
 ];
 
+const FEATURE_FLAG_KEYS = ["checkout_brick"] as const;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get("Origin") || "";
   const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -69,6 +72,7 @@ Deno.serve(async (req) => {
       getOrgActivity: ["support", "finance"],
       getAdminLogs: ["support", "finance"],
       checkSecrets: ["support", "finance"],
+      getFeatureFlags: ["support", "finance"],
       generateMagicLink: ["support"],
       resetUserPassword: ["support"],
       // Facturación / planes
@@ -171,6 +175,69 @@ Deno.serve(async (req) => {
       if (error) throw new Error(`No se pudo registrar el magic link: ${error.message}`);
     };
 
+    // ── CONTROLES DE LANZAMIENTO ──────────────────────────────
+    // La UI nunca toca la tabla. Las escrituras llaman a un RPC que comprueba
+    // superadmin y escribe su propia auditoría dentro de la misma transacción;
+    // así no existe un estado de checkout cambiado sin evidencia de quién lo
+    // hizo. Soporte/finanzas sólo pueden ver el alcance efectivo.
+    if (action === "getFeatureFlags") {
+      const [overridesResult, organizationsResult] = await Promise.all([
+        admin
+          .from("feature_flag_overrides" as any)
+          .select("id, flag_key, org_id, enabled, reason, updated_at, updated_by, organization:organizations(name, slug)")
+          .in("flag_key", FEATURE_FLAG_KEYS)
+          .order("updated_at", { ascending: false }),
+        admin
+          .from("organizations")
+          .select("id, name, slug")
+          .order("name", { ascending: true })
+          .limit(1000),
+      ]);
+      if (overridesResult.error) return json({ error: overridesResult.error.message }, 500);
+      if (organizationsResult.error) return json({ error: organizationsResult.error.message }, 500);
+      return json({
+        ok: true,
+        flags: FEATURE_FLAG_KEYS,
+        overrides: overridesResult.data ?? [],
+        organizations: organizationsResult.data ?? [],
+      });
+    }
+
+    if (action === "setFeatureFlag" || action === "clearFeatureFlag") {
+      const flagKey = typeof body.flagKey === "string" ? body.flagKey : "";
+      const rawOrgId = body.orgId;
+      const orgId = rawOrgId == null ? null : typeof rawOrgId === "string" && UUID_RE.test(rawOrgId) ? rawOrgId : undefined;
+      if (!FEATURE_FLAG_KEYS.includes(flagKey as typeof FEATURE_FLAG_KEYS[number])) {
+        return json({ error: "Control de lanzamiento no reconocido" }, 400);
+      }
+      if (orgId === undefined) return json({ error: "El comercio seleccionado no es válido" }, 400);
+
+      if (action === "setFeatureFlag") {
+        if (typeof body.enabled !== "boolean") return json({ error: "El estado del control es requerido" }, 400);
+        const reason = typeof body.reason === "string" ? body.reason.trim() : null;
+        if (reason && reason.length > 500) return json({ error: "La justificación supera los 500 caracteres" }, 400);
+        const { data, error } = await admin.rpc("platform_feature_flag_configurar", {
+          p_flag_key: flagKey,
+          p_org_id: orgId,
+          p_enabled: body.enabled,
+          p_actor: user.id,
+          p_actor_email: user.email ?? null,
+          p_reason: reason || null,
+        });
+        if (error) return json({ error: error.message }, 409);
+        return json({ ok: true, result: data });
+      }
+
+      const { data, error } = await admin.rpc("platform_feature_flag_eliminar", {
+        p_flag_key: flagKey,
+        p_org_id: orgId,
+        p_actor: user.id,
+        p_actor_email: user.email ?? null,
+      });
+      if (error) return json({ error: error.message }, 409);
+      return json({ ok: true, result: data });
+    }
+
     // ── REINTENTO MANUAL DE OUTBOX ────────────────────────────
     // Sólo superadmin llega acá: ACTION_ROLES no le delega esta operación a
     // soporte ni finanzas. La función SQL hace el cambio y el audit log en una
@@ -178,7 +245,7 @@ Deno.serve(async (req) => {
     // ambiguo se resuelve en el flujo de pagos para no crear doble cargo.
     if (action === "retryOutboxDelivery") {
       const ticketId = typeof body.ticketId === "string" ? body.ticketId : "";
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(ticketId)) {
+      if (!UUID_RE.test(ticketId)) {
         return json({ error: "El incidente de entrega no es válido" }, 400);
       }
 

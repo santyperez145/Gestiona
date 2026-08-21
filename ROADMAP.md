@@ -72,7 +72,7 @@ fecha y el comando o consulta que los produjo; no se reemplazan en silencio.
 | Señal | Estado al 2026-08-21 |
 |---|---|
 | Edge Functions | 63 |
-| Tests unitarios | 1.213, `npm test -- --maxWorkers=1 --fileParallelism=false` (2026-08-21) |
+| Tests unitarios | 1.217, `npm test -- --maxWorkers=1 --fileParallelism=false` (2026-08-21) |
 | Organizaciones / comercios que venden de verdad | 4 / 1 |
 | Registros POS / tiendas online | 34 / 6 |
 | Eventos de dominio / asientos del ledger | 10 / 0 |
@@ -91,7 +91,7 @@ en [docs/COMPARACION.md](docs/COMPARACION.md), con corte 2026-08-21.
 | POS + stock unificado | ✅ PWA offline y movimientos con triggers | Tiendanube, Shopify y Odoo ya integran POS e inventario | Paridad necesaria; no venderla como ventaja única |
 | Facturación argentina | 🟡 flujo ARCA nativo y delegado; 0 facturas reales | Tiendanube integra facturación mediante apps de terceros | Diferencial posible sólo después de emitir en producción |
 | Margen por canal | ✅ Core reúne costo landed, comisión, envío e IVA | No hay benchmark exhaustivo que permita afirmar exclusividad | Medir uso y mejora de margen antes de usarlo como promesa comercial |
-| Confiabilidad server-side | ✅ 63 Edge Functions chequeadas por Deno en CI | Estándar mínimo de operación, no feature de marketing | Reduce riesgo de cobro, webhook, envío y fiscal antes del segundo comercio |
+| Confiabilidad server-side | ✅ 63 Edge Functions chequeadas por Deno en CI; pausa auditada del Brick global o por comercio | Estándar mínimo de operación, no feature de marketing | Reduce el radio de impacto de un checkout integrado; aún no hay canary ni rollback automático |
 
 ### Lo que ya está
 
@@ -118,6 +118,10 @@ en [docs/COMPARACION.md](docs/COMPARACION.md), con corte 2026-08-21.
   pagos no se reintentan desde plataforma y el reintento deja auditoría.
 - Las 63 Edge Functions pasan `deno check` desde CI. El descubrimiento sale del
   filesystem, por lo que una función nueva no puede quedar fuera del gate.
+- Checkout Brick tiene un control de lanzamiento en Operaciones: un superadmin
+  puede habilitarlo o pausarlo globalmente o por comercio, con auditoría atómica.
+  La tienda no lee flags y, si se pausa, conserva el checkout externo de
+  MercadoPago; no hay todavía experimentos porcentuales ni canary.
 
 ### Lo que todavía no se puede afirmar
 
@@ -156,6 +160,8 @@ Debe quedar resuelto:
   CI; cobros, webhooks, cotización y facturación no quedan fuera del typecheck.
 - Operación observable: webhooks, crons, errores de pago y documentos con
   estado, reintento y responsable visible.
+- Lanzamiento controlado: Checkout Brick se puede pausar por comercio o de forma
+  global sin interrumpir la preferencia externa; el cambio queda auditado.
 
 **Salida:** un comercio real puede vender, cobrar, descontar stock, emitir o
 dejar documentado el comprobante, calcular margen y recuperar un fallo sin
@@ -244,7 +250,7 @@ porque produce la evidencia de salida de una fase.
 | 5 | Matriz de pagos y guardia Edge | En curso, 2026-08-21 | escenarios de proveedor | checkout/reintegro/webhook, ARCA y recepción parcial ya tienen guardas; 63 funciones chequeadas. Falta evidencia sandbox/producción y captura diferida sólo si un proveedor la incorpora |
 | 6 | Merchant 360 | Base ampliada, 2026-08-21 | señales de Core confiables | ficha operativa por organización con riesgos, próximos pasos y evidencia de conexión |
 | 7 | Registro de integraciones 2 | En curso, 2026-08-21 | health checks activos y eventos | versión, scopes, webhook, error y plan por conexión |
-| 8 | Centro de operaciones | Base hecha, 2026-08-21 | uso contra fallos reales | cola priorizada y reintento auditado de entrega descartada |
+| 8 | Centro de operaciones y lanzamiento | Base ampliada, 2026-08-21 | uso contra fallos reales | cola priorizada, reintento auditado de entrega descartada y pausa reversible del Brick por comercio/global |
 | 9 | Margen por canal | Pendiente | costos y comisiones reales | comparación de contribución por orden y canal |
 | 10 | MercadoLibre real | Pendiente | cuenta y operación comercial | publicación, orden importada y conciliación multi-org |
 
@@ -266,6 +272,7 @@ Core ni mostrar secretos.
 | Credential Control | Base hecha, 2026-08-21 | verificar con una organización real la rotación/revocación de Evolution sin exponer su valor |
 | Billing y comisiones | Pendiente | conciliar comisión, suscripción y venta |
 | Operations Queue | Base hecha, 2026-08-21 | verificar un reintento real de entrega y sumar resolución controlada de webhook/sync |
+| Release Control | Base hecha, 2026-08-21 | ejecutar una pausa controlada del Brick y medir que el checkout externo conserva la conversión; extender sólo a flujos con fallback explícito |
 
 Cada vista de plataforma debe tener estado de carga, vacío, error, permiso
 insuficiente y dato desactualizado. "Sin evidencia" no significa "todo bien".

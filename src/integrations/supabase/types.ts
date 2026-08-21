@@ -9488,6 +9488,89 @@ export type Database = {
           },
         ]
       }
+      feature_flag_overrides: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          flag_key: string
+          id: string
+          org_id: string | null
+          reason: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          enabled: boolean
+          flag_key: string
+          id?: string
+          org_id?: string | null
+          reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          flag_key?: string
+          id?: string
+          org_id?: string | null
+          reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flag_overrides_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_flag_overrides_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "feature_flag_overrides_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "feature_flag_overrides_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "feature_flag_overrides_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "feature_flag_overrides_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "feature_flag_overrides_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       financial_line_items: {
         Row: {
           category: string
@@ -33381,6 +33464,10 @@ export type Database = {
         Args: { p_limite?: number; p_org: string }
         Returns: Json
       }
+      feature_flag_habilitada: {
+        Args: { p_default?: boolean; p_flag_key: string; p_org_id?: string }
+        Returns: boolean
+      }
       generate_claim_number: { Args: { p_org_id: string }; Returns: string }
       generate_download_token: { Args: never; Returns: string }
       generate_dropship_number: { Args: { p_org_id: string }; Returns: string }
@@ -34169,6 +34256,26 @@ export type Database = {
       platform_commission_amount: {
         Args: { p_channel?: string; p_gross: number; p_org_id: string }
         Returns: number
+      }
+      platform_feature_flag_configurar: {
+        Args: {
+          p_actor: string
+          p_actor_email?: string
+          p_enabled: boolean
+          p_flag_key: string
+          p_org_id: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
+      platform_feature_flag_eliminar: {
+        Args: {
+          p_actor: string
+          p_actor_email?: string
+          p_flag_key: string
+          p_org_id: string
+        }
+        Returns: Json
       }
       platform_retry_outbox_delivery: {
         Args: {

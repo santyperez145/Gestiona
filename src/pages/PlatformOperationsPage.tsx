@@ -12,6 +12,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import FeatureFlagControls from '@/components/platform/FeatureFlagControls';
 
 type OperationRow = Database['public']['Views']['platform_operations_queue']['Row'];
 
@@ -140,6 +141,8 @@ export default function PlatformOperationsPage() {
           </div>
         </div>
       </section>
+
+      <FeatureFlagControls isSuperadmin={isSuperadmin} />
 
       <section className="overflow-hidden border border-border/60 rounded-[10px] bg-card">
         <div className="border-b border-border/50 px-4 sm:px-5 py-4">
