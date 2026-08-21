@@ -31,12 +31,16 @@ saltea para construir una pantalla más vistosa:
    permisos, catálogo, stock, caja, tienda y soporte con una organización que
    no nació de los datos de Exentry.
 
-Después de ese gate: dominios, multi-store, themes/page builder, migradores,
-Document AI y cuentas a pagar, margen por canal, MercadoLibre profundo y
-onboarding universal. B2B, búsqueda dedicada, recomendaciones, experimentos,
-developer platform, marketplace de apps, logística propia y automatizaciones en
-lenguaje natural esperan evidencia. Pay regulado, capital, multi-región,
-sharding y un ecosistema agentic son P3 y no se empiezan por anticipación.
+En paralelo, pero sin saltar el gate comercial, **P0.5a** profesionaliza
+`/platform` como Control Plane: Integration Registry, secretos server-side,
+webhooks, operaciones de pago, soporte, AI Operations y feature flags. Después
+de P0.5 se habilitan P1 dominios, multi-store, themes/Page Builder, migradores,
+Document AI + Payables, margen por canal, MercadoLibre profundo y onboarding
+universal. B2B, headless, búsqueda dedicada, recomendaciones, experimentos,
+Developer Platform pública, marketplace de apps/themes, logística y
+automatizaciones en lenguaje natural son P2. Pay regulado, capital,
+multi-región, sharding y agentic commerce son P3 y no se empiezan por
+anticipación.
 
 ### Slice ejecutado
 
@@ -241,6 +245,178 @@ respuesta real del organismo.
 La estética, los tabs, los layouts y las referencias de Figma siguen siendo
 criterios de experiencia: mejoran la operación del bloque prioritario, pero no
 reordenan estas dependencias ni crean módulos paralelos.
+
+### Traducción del análisis de `gestiona.txt` — 2026-08-21
+
+El archivo de análisis se incorpora como criterio de producto, no como una
+lista para implementar sin validar. Sus comparaciones de competidores se toman
+como hipótesis hasta verificarlas con una fuente primaria y una fecha; no
+convierten una afirmación comercial en un hecho del sistema.
+
+#### Tesis que ordena el producto
+
+Gestiona no compite por tener más pantallas que Tiendanube, Shopify, Empretienda
+o Mercado Libre. Busca ser el sistema donde vive el negocio completo:
+
+`operación + commerce + POS + inventario + clientes + pagos + finanzas + IA`
+
+La tienda es un canal, no el producto. La ventaja defendible es que cada venta
+puede cruzar producto, costo real, stock, cliente, canal, comisión, envío,
+impuestos y resultado. El objetivo de producto es convertir ese cruce en una
+respuesta accionable:
+
+> "Este producto vende más caro en Mercado Libre, pero deja menos margen que en
+> la tienda propia."
+
+El **Channel Profitability Engine** pasa a ser el norte de Analytics. Ningún
+canal puede inventar precio, costo, stock, cliente o margen propios; todos
+consumen el Business Core y dejan evidencia de la fuente de cada importe.
+
+#### Qué cambia respecto del roadmap anterior
+
+| Decisión | Traducción al roadmap |
+|---|---|
+| Business OS antes que store builder | P0 sigue cerrando confiabilidad, ARCA, pagos y segundo comercio antes de ampliar el catálogo de features. |
+| Commerce comparable, no sólo funcional | Dominios, carrito server-side, themes, Page Builder, checkout medido y migradores pasan a P1 después del segundo comercio. |
+| IA operacional | Descripciones y chat son capacidades auxiliares. La primera apuesta diferencial es Document AI + Payables; después Margin Intelligence, Purchasing Agent y Executive Agent. |
+| `/platform` es Control Plane | Integration Registry, secretos, salud, webhooks, pagos, soporte y flags se tratan como infraestructura crítica, no como CRUD de superadmin. |
+| Ecosistema después de las primitivas | La foundation de Developer Platform se prepara temprano; OAuth apps, CLI, sandbox, marketplace de apps/themes y revenue share esperan evidencia de merchants. |
+| Poder sin complejidad visible | El onboarding, los wizards y la configuración por capabilities deben ocultar credenciales y reducir la carga mental del comercio. |
+
+#### Workstream P0.5a — Gestiona Platform Control Plane
+
+Este workstream puede avanzar junto al onboarding del segundo comercio porque
+reduce riesgo operativo sin abrir todavía un marketplace público. La salida no
+es “hay más pantallas”: la plataforma tiene que poder responder qué pasó,
+quién está afectado y qué acción segura está disponible.
+
+| Orden | Slice | Condición de salida |
+|---|---|---|
+| 1 | Platform Overview | Métricas de merchants, tiendas, GMV/TPV, órdenes, take rate, conversión, pagos, webhooks, colas, errores y riesgos salen de vistas medibles con fecha; no se inventan KPIs. |
+| 2 | Merchant 360 | Una ficha con tabs de Overview, Stores, Users, Capabilities, Integrations, Payments, Billing, Usage, Events, Audit, Risk y Support, aislada por tenant y con acciones sensibles auditadas. |
+| 3 | Integration Registry | Cada proveedor declara capability, ambiente, scopes, método de conexión, health checks, webhooks, disponibilidad, plan y versión. No más integraciones hardcodeadas en múltiples pantallas. |
+| 4 | Credential Control Plane | Las credenciales maestras son de Gestiona y viven en secretos server-side. El merchant conecta por OAuth o wizard; nunca ve client secrets, tokens, certificados privados ni webhook secrets. |
+| 5 | Webhook Control Center | Recepción, firma, evento raw, deduplicación, cola, reintentos, estado final y dead-letter quedan observables por proveedor y organización, sin pedirle al soporte mirar logs manualmente. |
+| 6 | Payment Operations | Pagos, reintegros, contracargos, liquidaciones, comisiones y conciliaciones se observan desde un mismo timeline; el control plane no se convierte en una segunda fuente contable. |
+| 7 | AI Operations + Agent Registry | Cada agente declara versión, modelo permitido, herramientas, límites, costo, confidence, acciones y resultados. Se mide `AI Action Rate`, no aperturas de chat. |
+| 8 | Support Console + sesiones seguras | Soporte ve el camino Merchant → Store → Checkout → Payment → Webhook → Error. Impersonation exige motivo, ticket, operador, expiración, banner visible y auditoría; acciones fiscales, pagos y secretos pueden quedar bloqueadas. |
+| 9 | Feature Flags + Capabilities | Las releases grandes tienen rollout por organización, país, plan, cohorte o porcentaje. Onboarding activa capabilities; no se llenan todas las cuentas con módulos que no necesitan. |
+
+**Salida de P0.5a:** todo cambio de soporte, credenciales, pagos o flags deja
+auditoría; el staff no cruza organizaciones; no se expone ningún secreto al
+navegador; una incidencia de checkout se puede reconstruir desde eventos
+durables; y el panel muestra “sin datos” cuando no hay evidencia en vez de
+maquillar una métrica.
+
+#### P1 — Commerce y documentos que generan dependencia
+
+P1 empieza sólo después de que P0.5 tenga un segundo comercio operando y la
+plataforma pueda observar sus fallos. El orden recomendado por dependencia es:
+
+1. **P1.1 Dominios propios:** `domains`, verificación DNS, SSL, dominio
+   primario, redirects, canonical, health y resolución por hostname detrás de
+   un adapter de proveedor.
+2. **P1.2 Multi-store foundation:** una organización puede separar tiendas,
+   catálogo, navegación y configuración sin duplicar stock, clientes, órdenes o
+   ledger. La tienda sigue siendo canal del Business Core.
+3. **P1.3 Theme Engine + Page Builder:** manifest, design tokens, templates,
+   sections, blocks, preview, draft/publish, versiones y rollback. El editor
+   genera configuración real y editable, nunca una imagen estática.
+4. **P1.4 Migradores:** importación robusta desde CSV, Tiendanube, Shopify y
+   otros orígenes, con preview, mapeo, idempotencia, reporte de errores y
+   rollback lógico. Nunca sobreescribir datos sin una estrategia explícita.
+5. **P1.5 Gestiona Documents MVP:** upload de PDF/imagen → extracción
+   estructurada → proveedor → duplicados → match de productos → comparación de
+   costo → borrador de cuenta a pagar → aprobación humana.
+6. **P1.6 Payables + three-way matching:** factura ↔ orden de compra ↔
+   recepción, con diferencias de cantidad/precio, tolerancias configurables y
+   bloqueo de contabilización hasta resolver excepciones.
+7. **P1.7 Margin Intelligence:** costo, comisión, envío, impuestos, descuentos,
+   stock y demanda por canal, con explicación de la fuente y estado “pendiente”
+   cuando falta evidencia.
+8. **P1.8 MercadoLibre profundo y onboarding universal:** publicación,
+   preguntas, órdenes, reputación, cron multi-organización, importación,
+   checkout y guía adaptativa con medición de tiempo a primera venta.
+
+**Document AI es la primera apuesta de IA de P1** porque resuelve trabajo real,
+mejora los datos del ERP y abre compras, deuda, stock, costos, precios, caja y
+auditoría. El flujo ideal es:
+
+`documento → extracción → validación de schema → reglas fiscales → match → revisión → acción ERP`
+
+Una factura aprobada puede preparar compra, costo, stock, deuda, cashflow y una
+alerta de pricing, pero nunca escribe el ledger directamente desde un modelo.
+
+#### P2 — Ecosistema y extensibilidad
+
+Cuando el Business Core, el Control Plane y la experiencia de tienda estén
+probados con merchants reales:
+
+- B2B Commerce: compañías, catálogos, listas, condiciones, límites y pedidos.
+- `Storefront API`, Catalog API, Cart API, Checkout API y Customer API para
+  headless commerce.
+- Developer Platform pública: cuentas, apps, OAuth, scopes, instalaciones,
+  webhooks, billing, CLI, documentación, changelog y sandbox stores.
+- Theme Marketplace y App Marketplace con revisión, permisos, revenue share y
+  rollback.
+- Search Provider dedicado, recomendaciones, experimentos y automatizaciones
+  en lenguaje natural con preview del workflow antes de activarlo.
+- Shipping abstraction y conectores de logística cuando haya contratos reales.
+
+La foundation interna de registry, capabilities, OAuth broker y flags puede
+construirse en P0.5a; el lanzamiento público queda en P2. No se construye un
+marketplace para resolver la falta de adopción del producto base.
+
+Las superficies futuras son lógicas al principio: Developers, Partners,
+Themes, Apps, Pay, Status, Docs y Academy. No se crean doce repositorios ni
+doce aplicaciones ahora; se separan físicamente sólo cuando seguridad, volumen
+o ownership lo justifiquen.
+
+#### P3 — Infraestructura de escala
+
+Gestiona Pay más profundo, capital con partners regulados, multi-región,
+sharding y agentic commerce quedan fuera de los próximos ciclos. Sólo se
+desbloquean con evidencia de volumen, requerimientos regulatorios, límites del
+monolito modular o una demanda comercial concreta.
+
+#### Gestiona Intelligence: reglas de seguridad
+
+Los agentes se organizan por dominio: Finance, Purchasing, Inventory, Sales,
+Commerce, Pricing, Customer, Document, Audit y Executive. Cada uno recibe sólo
+las herramientas y referencias que necesita:
+
+- No hay SQL libre generado por el modelo.
+- Las herramientas son funciones tipadas como `get_stock_position`,
+  `simulate_purchase` o `create_purchase_draft`.
+- Toda extracción lleva schema, confidence por campo, validación determinística
+  y revisión humana cuando queda debajo del umbral.
+- Toda recomendación registra agente, modelo, versión de prompt, contexto,
+  tools, confidence, aprobación, acción, resultado y reversión.
+- Una acción sólo cuenta como ejecutada después de que la autoridad de la base
+  la confirma.
+- La métrica principal es `AI Action Rate`: producida → vista → aprobada →
+  ejecutada → resultado exitoso → revertida.
+
+#### Integraciones: una arquitectura, seis familias
+
+El roadmap no agrega API keys al frontend. Cada proveedor entra al
+`Integration Registry` con un adapter y una clase de conexión:
+
+1. IA/documentos: `OPENAI_API_KEY` server-side cuando se implemente Document AI;
+   Structured Outputs/JSON Schema y validación local.
+2. Pagos: credenciales maestras de Mercado Pago/Stripe en plataforma; merchants
+   conectados por OAuth; webhooks con firma, raw event, dedupe y conciliación.
+3. Fiscal: ARCA por certificado/delegación en Edge Functions, nunca en React.
+4. Email/WhatsApp: Resend y Meta con webhook verificado, descarga de adjuntos y
+   routing por organización.
+5. Marketplaces/ecommerce: MercadoLibre, Tiendanube y futuras conexiones por
+   OAuth o wizard, con scopes y estado por merchant.
+6. Logística: adapters de carriers sólo después de contrato y payload verificado.
+
+Las credenciales concretas, secret names, rotación y permisos viven en
+`docs/CONFIGURACION.md` y en el vault. Este roadmap sólo define la arquitectura
+y la condición de salida; no autoriza pegar tokens en settings ni pedirlos en
+una pantalla pública.
 
 ---
 ## 0.1 Lenguaje visual y experiencia
@@ -515,108 +691,146 @@ comercio, no declaradas) · **7 temas y tipografía elegible** · dominio propio
 
 📊 Antes de elegir: [docs/COMPARACION.md](docs/COMPARACION.md) tiene el
 relevamiento contra Tiendanube, Empretienda y Shopify medido el 2026-08-21, y
-la lista de lo que falta para operar como una empresa grande. Dos cosas de ahí
-cambian el pitch: **Tiendanube ya tiene POS** (perdimos ese diferencial) y
-**no factura ARCA de forma nativa** (ganamos uno mejor).
+la lista de lo que falta para operar como una empresa grande. El análisis de
+`gestiona.txt` propone dos hipótesis de posicionamiento: que Tiendanube ya
+ofrece POS y que no factura ARCA de forma nativa. Se mantienen como hipótesis
+de producto hasta verificar cada una con fuente primaria y fecha; no se usan
+como hechos en material comercial.
 
 
 ⚠️ Los bloques A–I de abajo son el **catálogo de referencia**. Esto es el plan.
 
 ---
 
-#### Dónde estamos — medido 2026-08-20
+#### Dónde estamos — medido 2026-08-21
 
 | | |
 |---|---|
-| Tablas · con `org_id` | 332 · 284 |
-| Tests | 1137 |
+| Tablas · con `org_id` | 282 · 298 |
+| Tests | 1196 (`npm test -- --maxWorkers=1 --fileParallelism=false`) |
 | Organizaciones | 4 · **1 vende de verdad** |
 | Ventas POS · órdenes online | 34 · 6 |
 | **Motores propios** | idempotencia, eventos con outbox, ledger de partida doble, ledger de stock, billetera, rate limiting |
-| **AFIP** | ✅ **primer CAE obtenido** (homologación, CUIT 20446484436). ⚠️ Por `openssl`/`curl`, **no por el circuito de la app**: 0 comprobantes emitidos desde el sistema |
+| **AFIP** | 🟡 Guard de autorización ARCA en código y base; reserva por punto/tipo, idempotencia y estado incierto. 0 comprobantes emitidos desde el sistema; falta certificado y prueba real |
 | Cobro | MercadoPago OAuth con comisión real · suscripción del SaaS también por MP |
-| Eventos emitidos · asientos | 2 · **0** |
+| Eventos emitidos · asientos | 10 · **0** |
 | **Ledger conectado a** | órdenes online **y, desde H8, mostrador**. Antes el libro no sabía del canal con el 85% de las ventas |
 | Facturas · con CAE | **0 · 0** — la de la sesión 114 se emitió y después se borró desde el panel |
 | **Ventas cobradas sin comprobante** | **2** (medido 2026-08-21). Desde C16 el panel de Facturas lo dice y ofrece generarlos |
 
 ⚠️ **El dato que ordena todo:** los motores existen y están verificados, pero
 **el ledger tiene 0 asientos**. Ninguna venta real los atravesó. Un motor que
-nunca corrió en tráfico no está probado: está escrito (R11).
+nunca corrió en tráfico no está probado: está escrito (R11). La foto actual
+también es mínima en adopción: 4 organizaciones, 1 comercio real, 34 ventas
+POS y 6 órdenes online.
 
 ---
 
-#### FASE 0 — Vender legalmente · casi cerrada
+#### FASE 0 — Producto confiable y vendible
 
 | Qué | Estado |
 |---|---|
-| C1 AFIP contra el organismo | 🟡 CAE en homologación. Falta emitir **por la app** y pasar a producción |
-| ~~C16~~ Las cobradas sin comprobante, visibles | ✅ Sesión 117. `ordenes_sin_facturar` existía desde C13 y **no la leía ninguna pantalla**; ahora Facturas muestra cuántas son y por cuánto, y las genera en una pasada. Una orden que falla no aborta el resto y vuelve con el motivo |
-| ~~C12~~ Autoridad de precio del POS | ✅ Sesión 116. El costo y la ganancia los calcula el servidor; el precio admite override registrado |
-| F1+F3 Privacidad y datos del proveedor | 🟡 Generador listo; falta cargar CUIT/domicilio y publicar |
-| ~~F10~~ El flete de vuelta lo paga el vendedor | ✅ Ya estaba. Medido 2026-08-21: `return_requests` tiene `return_shipping_payer/amount/method/notes` y el trigger `trg_return_requests_return_shipping`. Esta línea decía "no modelado" mientras el bloque F lo daba por hecho |
+| P0.1 Product Types + Attributes | ✅ Cerrado. El catálogo puede representar otros rubros sin ramas por categoría. |
+| P0.2 Identidad de producto y cliente | 🟡 Reporte, cola y export listos; falta completar SKU/EAN y contactos con datos reales. |
+| P0.3 Pagos e idempotencia | 🟡 Checkout, reintegros y RMA tienen contrato server-side; captura, factura y recepción de compra necesitan evidencia de tráfico y matriz sandbox. |
+| P0.4 ARCA | 🟡 Reserva y transición idempotente en código/base; falta certificado/delegación del comercio, factura emitida desde la app y paso a producción. |
+| F1+F3 Privacidad y datos del proveedor | 🟡 Generador listo; falta que el dueño cargue razón social, CUIT, domicilio, revise y publique. |
+| C2 Inventario físico | ⛔ Bloqueado por conteo real. No se corrige stock por código ni se inventa evidencia. |
 
-**Salida:** una factura con CAE emitida desde el sistema, y alta de comercio sin incumplir nada.
+**Salida:** una factura con CAE emitida desde el sistema, pagos y stock sin
+doble asiento, base legal publicada y un comercio listo para vender con datos
+reales. Las pruebas de código no sustituyen esa salida.
 
 ---
 
-#### FASE 1 — Que otro lo use, y medirlo
+#### FASE 1 — Segundo comercio + Control Plane operativo
 
 | Qué | Estado |
 |---|---|
-| D2 Onboarding guiado | 🔴 Lo más importante de esta fase |
-| G1–G5 Instrumentación | 🔴 Sin esto no hay condición de salida medible |
-| D4 Límites del plan | 🟠 Sólo productos |
-| R12 Primera suscripción cobrada de punta a punta | 🔴 MP configurado, nunca cobró |
-| ~~H8~~ El mostrador entra al libro | ✅ Sesión 117. `venta.registrada` por ticket → asiento con caja/banco/deudores, IVA según quién emite y costo de la mercadería. Fiado va a Deudores, no a Caja. Verificado con 18 pasos incluyendo cobro dividido |
+| P0.5 Segundo comercio real | 🔴 Gate comercial. Debe cargar catálogo, stock, permisos, tienda, POS y cobrar sin asistencia de desarrollo. |
+| D2 Onboarding adaptativo | 🔴 Debe medir tiempo a catálogo, publicación, primera venta y primer cobro. |
+| G1–G8 Métricas de activación, canales, salud y AI Action Rate | 🟡 Varias vistas existen; falta usarlas para decisiones de soporte y adopción real. |
+| D4 Límites de plan | 🟠 Productos, usuarios y tickets aplicados; falta empaquetar tiendas y comunicar packaging. |
+| R12 Suscripción del SaaS | 🔴 Mercado Pago configurado, nunca cobró una cuota real. |
+| P0.5a Control Plane | 🔴 Iniciar con Overview, Merchant 360, Integration Registry, Webhook Center, Payment Operations, AI Operations, Support Console y Flags. |
+| H8 Ledger del mostrador | ✅ Conectado en código; salida real pendiente porque el ledger todavía tiene 0 asientos. |
 
-**Salida:** un segundo comercio real cargó stock, publicó y cobró.
+**Salida:** un segundo comercio real cargó stock, publicó, cobró y recibió
+soporte desde el Control Plane; sus eventos, pagos y errores se pueden
+reconstruir sin consultar tablas manualmente.
 
 ---
 
-#### FASE 2 — Que el diferencial se vea
+#### FASE 2 — Diferencial de negocio y commerce competitivo
 
 | Qué | Estado |
 |---|---|
-| **E4 Margen real por canal** ⭐ | El diferencial. Los cuatro datos ya están |
-| C7 MercadoLibre completo | Publica e importa; falta cron multi-org |
-| E2 Stock del local = stock de la tienda | Casi: falta avisar al vender algo reservado |
-| C9 Multi-depósito en la tienda | Vende contra el total, no contra el depósito |
+| **E4 Channel Profitability Engine** ⭐ | 🟡 Las fuentes existen; falta cerrar costos de envío, liquidaciones y atribución POS para no prometer margen incompleto. |
+| K2 Carrito server-side + checkout medido | 🔴 Reemplaza la dependencia de `localStorage`, habilita multi-dispositivo, vendedor/WhatsApp y embudos comparables. |
+| K3 Dominios propios | 🔴 Pasa de congelado a P1.1: DNS, SSL, primary, canonical, redirects y health. |
+| K4 Multi-store foundation | 🔴 Separar tiendas sin duplicar Business Core. |
+| K5 Theme Engine + Page Builder | 🔴 Templates, sections, blocks, preview, draft/publish, versiones y rollback. |
+| C7 MercadoLibre profundo | 🟡 Publica/importa; falta operación multi-organización, reputación, preguntas, órdenes y conciliación completa. |
+| E2/E3 Stock y cliente omnicanal | 🟡 Stock único y vínculo de cliente son la regla; falta validación con segundo comercio. |
 
-**Salida:** vender por dos canales con un stock y ver qué canal deja más margen.
-
----
-
-#### FASE 3 — Aguantar varios comercios
-
-D6 impersonation visible · C11 auditoría interna · D8 backup con restore probado ·
-D5 portabilidad · D3 anuncios · D7 estado del servicio · F9 contrato de datos.
+**Salida:** dos comercios venden por más de un canal, el stock y cliente son
+únicos, y el dueño ve cuánto deja cada canal con evidencia suficiente.
 
 ---
 
-#### FASE 4 — Conversión de la tienda
+#### FASE 3 — Gestiona Documents + Intelligence
 
-Bloque B. Primeros: B3 checkout en un paso · B5 avisos de estado (ya tienen
-`shipped_at`/`delivered_at`) · B13 carrito entre dispositivos.
+Document AI + Payables es la primera gran apuesta de IA, no un chatbot más:
+
+`PDF/foto/email → extracción → duplicados → match SKU → match OC/recepción → revisión → compra/deuda/costo`
+
+Después: three-way matching, lista de precios de proveedor, Finance/CFO Agent,
+Purchasing Agent, Pricing Agent, Commerce Agent y Executive Agent. Todo con
+confidence, herramientas tipadas, aprobación humana cuando corresponda,
+auditoría y `AI Action Rate`.
+
+**Salida:** una factura de proveedor aprobada puede preparar compra, costo,
+stock, cuenta a pagar, vencimiento y alerta de margen sin transcripción manual,
+pero nunca escribe el ledger directamente desde el modelo.
 
 ---
 
-#### Lo que sigue, en orden
+#### FASE 4 — Ecosistema y extensibilidad
 
-1. ~~**I6**~~ — ✅ **Sesión 116, auditado camino por camino.** Se midió cuál faltaba en vez de envolver los cuatro: `mark_store_order_paid`, `return_store_order_item` y `facturar_orden_pagada` ya se protegen solas. **La recepción parcial de compra no**: verificado contra producción, recibir 4 de 10 dos veces dejaba **8**. Cerrado con `receive_purchase_order_idem`.
-2. ~~**C12**~~ — ✅ **Sesión 116.** Verificado el agujero antes de taparlo: el navegador decía "precio 1, costo 0, ganancia 999999" sobre un producto de USD 20 que vale $100.000, y **la base guardaba eso**. `create_sales_transaction_v2` recalcula: el precio admite override del cajero y queda registrado con el que correspondía; **el costo y la ganancia se pisan siempre**. Ahora ese mismo ataque guarda ganancia −31.999, que es la pérdida real.
-3. **AFIP por la app** — el CAE ya sale; falta que salga desde el circuito.
-4. ~~**K1**~~ — ✅ **Sesión 2026-08-21.** `product_types`, `attribute_definitions`
-   y `product_attribute_values` ya están en producción con RLS y validación de
-   organización/tipo. La ficha de Producto permite asignar el tipo y persistir
-   valores estructurados sin tocar `custom_fields` existentes.
-5. **E4** — margen por canal.
-6. **K2** — carrito del lado del servidor.
-7. **I8** — moneda del costo: `cost_usd` asume dólares y no hay columna de moneda. Medido: los 59 productos son USD 7–165, así que hoy está bien; se rompe en silencio con el primero en pesos.
+Developer Platform foundation → Storefront API → OAuth apps → scopes e
+instalaciones → webhooks externos → CLI/SDK → sandbox stores → marketplace de
+apps/themes. B2B, headless, recomendaciones, experimentos, automatización en
+lenguaje natural y shipping abstraction entran acá según evidencia.
 
-📌 **Los primeros tres cierran el circuito de plata. K1 abre el producto a otros
-rubros.** Ese es el orden: primero que lo que hay no pierda plata, después que
-sirva para otro negocio.
+**Salida:** un tercero puede extender Gestiona con permisos revocables y
+documentación, sin acceso directo a la base ni a secretos de otros merchants.
+
+---
+
+#### FASE 5 — Escala que se gana
+
+Gestiona Pay más profundo, Capital con partners regulados, multi-región,
+sharding y agentic commerce. No se empiezan por anticipación: requieren volumen,
+riesgo y demanda medidos.
+
+---
+
+#### Backlog inmediato después de este ajuste
+
+1. Completar y verificar P0.3 con captura, factura, recepción de compra y
+   matriz sandbox sin doble asiento.
+2. Ejecutar P0.4 contra ARCA con credenciales reales de homologación y una
+   factura desde la app; luego preparar producción.
+3. Incorporar el segundo comercio y cerrar el onboarding con métricas.
+4. Rediseñar `/platform` como Control Plane, empezando por Integration
+   Registry, secretos server-side, webhook timeline y Merchant 360.
+5. Cerrar E4 y K2 antes de expandir themes, B2B o marketplace.
+6. Implementar Document AI MVP sólo cuando compras y cuentas a pagar tengan
+   el contrato de revisión y la acción final definidos.
+
+📌 **El orden nuevo evita dos errores:** construir un ERP infinito sin adopción
+y construir una tienda bonita sin diferencial. Primero confiabilidad y uso,
+después comercio configurable, luego inteligencia y ecosistema.
 
 ---
 
@@ -635,17 +849,18 @@ ledger de stock · ledger financiero · idempotencia · eventos con outbox.
 | # | Pieza | Por qué bloquea |
 |---|---|---|
 | **K1** | **`product_types` + `attribute_definitions`** | ✅ **Cerrado 2026-08-21.** Tipos, atributos y valores tipados viven en tablas propias, con validación de organización y compatibilidad de tipo. `category` y `custom_fields` quedan como compatibilidad para los productos existentes. |
-| **K2** | **Carrito del lado del servidor** | Vive en `localStorage` por slug. Sin esto no hay carrito entre dispositivos (B13), ni carrito armado por un vendedor, ni de WhatsApp al checkout. |
-| **K3** | **`domains`** — dominio propio por tienda | Tiendanube lo tiene. Necesita verificación DNS, SSL automático, redirects y resolución por hostname. **No hardcodear Vercel**: va detrás de una abstracción de proveedor. |
-| **K4** | **`markets`** — país, moneda, idioma, impuestos | Hoy Argentina está en el núcleo. La fiscalidad debería salir a un *country pack* antes de que haya un segundo país. |
-| **K5** | **Máquinas de estado explícitas** en orden, pago y fulfillment | Hoy son campos de texto. `order.status = input` en vez de `confirmar()` es de donde salen los estados imposibles. |
-| **K6** | **Feature flags** | Sin esto, toda feature grande sale para todos a la vez. |
+| **K2** | **Carrito del lado del servidor** | Vive en `localStorage` por slug. Sin esto no hay carrito entre dispositivos (B13), ni carrito armado por un vendedor, ni de WhatsApp al checkout. Es P1 del gate de commerce. |
+| **K3** | **`domains`** — dominio propio por tienda | P1.1 después del segundo comercio. Necesita verificación DNS, SSL automático, redirects y resolución por hostname. **No hardcodear Vercel**: va detrás de una abstracción de proveedor. |
+| **K4** | **`markets`** — país, moneda, idioma, impuestos | P1 posterior a la prueba argentina. La fiscalidad sale a un *country pack* sólo cuando exista demanda de un segundo país. |
+| **K5** | **Máquinas de estado explícitas** en orden, pago y fulfillment | P0/P1 de confiabilidad. Hoy son campos de texto. `order.status = input` en vez de `confirmar()` es de donde salen los estados imposibles. |
+| **K6** | **Feature flags + capabilities** | P0.5a del Control Plane. Sin rollout por organización/cohorte, toda feature grande sale para todos a la vez. |
 | **K7** | **`SearchProvider` como interfaz** | La búsqueda difusa (B10) es buena y vive en el cliente. Cuando el catálogo crezca hay que poder cambiar el motor sin tocar la tienda. |
 
-⚠️ **K2 es la única pieza del kernel que vale antes de un segundo comercio.** K1
-ya está cerrado porque define si el catálogo puede modelar otro rubro; K2 porque
-el carrito en `localStorage` es una limitación que se nota vendiendo. K3 a K7 esperan
-evidencia — medido: **1 tienda, 1 organización con tienda, 0 listas de precio
+⚠️ **K2 sigue siendo la pieza de commerce más cercana al segundo comercio.** K1
+ya está cerrado porque define si el catálogo puede modelar otro rubro. K3/K4 y
+el theme engine necesitan primero evidencia de adopción; el Control Plane y las
+flags sí valen ahora porque reducen riesgo operativo. La base medida sigue
+siendo pequeña: **1 tienda, 1 organización con tienda, 0 listas de precio
 cargadas, 0 promociones activas**. Construir multi-market para eso es adivinar.
 
 📌 **Regla del kernel:** el núcleo **no conoce el rubro**. Nada de
@@ -677,11 +892,15 @@ y `AI Action Rate` medido. El chat ya es real desde la sesión 115.
 #### 🧊 Congelado
 
 Multi-moneda · reseñas con foto · comparador · preventa · push · automatizaciones
-visuales · reportes programados · marketplace de apps · LATAM · multi-store ·
-dominios propios · theme engine · headless · search dedicado · multi-región.
+visuales · reportes programados · marketplace de apps · LATAM · headless ·
+search dedicado · recomendaciones · experimentos · multi-región · capital ·
+agentic commerce.
 
-**Todo espera un segundo comercio, no una decisión de arquitectura.** B9 va acá
-por un motivo medible: la ficha olfativa está vacía en las 30 filas.
+Dominios, multi-store, themes y Page Builder ya no están congelados: son P1,
+pero esperan el segundo comercio y la validación de que el storefront se usa.
+Developer Platform pública y marketplace siguen en P2. El resto espera evidencia
+comercial, no una decisión de arquitectura. B9 va acá por un motivo medible: la
+ficha olfativa está vacía en las 30 filas.
 
 ---
 
