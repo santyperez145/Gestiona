@@ -358,8 +358,11 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
    preferencia externa como para Brick; el webhook reconcilia la misma orden.
    ✅ P0.3.2/P0.3.3 agrega el reintegro de RMA por MercadoPago con monto
    validado en SQL, token sólo server-side, `X-Idempotency-Key`, reconciliación
-   por webhook y recepción física idempotente. Quedan fuera captura, factura y
-   recepción de compra, que necesitan el mismo contrato y evidencia sandbox.
+   por webhook y recepción física idempotente. La factura ya reserva la
+   secuencia ARCA en base y la recepción parcial de compra usa su propia clave
+   idempotente. Queda captura diferida sólo si se incorpora un proveedor que
+   separe autorización y captura, más evidencia sandbox/producción de los
+   contratos existentes.
 10. **Separar el bundle de la tienda del bundle del panel.**
 11. **Suscripción cobrada de punta a punta.** Hay 3 registros, los 3 en
     `past_due`, y ninguno cobró nunca.

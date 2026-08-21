@@ -120,9 +120,12 @@ recepción física con `returns` y el Kardex sin tocar stock directamente.
 La autorización ARCA también tiene una reserva server-side por organización,
 punto de venta y tipo de comprobante: `afip_autorizacion_reservar` serializa el
 lease y `afip_autorizacion_resultado` es la única transición de la factura.
-Una respuesta incierta conserva `processing` y la reserva. ⚠️ Todavía falta
-llevar la misma primitiva a captura, factura y recepción de compra; cada uno
-que falta sigue siendo un doble asiento potencial. Va como I6.
+Una respuesta incierta conserva `processing` y la reserva. La factura ya usa
+esta primitiva y la recepción parcial de compra usa
+`receive_purchase_order_idem`: ambas transiciones están protegidas. Queda por
+diseñar captura diferida únicamente si un proveedor incorpora autorización y
+captura separadas; no se implementa una abstracción sin un contrato real. La
+evidencia sandbox/producción sigue pendiente.
 
 ### H2 — Eventos durables y outbox (✅ hecho, sesión 112)
 

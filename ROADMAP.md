@@ -148,9 +148,10 @@ Debe quedar resuelto:
   arrepentimiento cargados por el dueño y publicados conscientemente.
 - Stock conciliado: conteo físico, ajuste con asiento y cero diferencias
   inexplicadas entre stock, Kardex y ubicaciones.
-- Pagos: matriz de idempotencia para checkout, captura, reintegro, webhook,
-  factura y recepción de compra; cada resultado debe ser repetible sin duplicar
-  dinero ni stock.
+- Pagos: checkout, reintegro y webhook ya son idempotentes; ARCA reserva su
+  secuencia y la recepción de compra parcial usa clave idempotente. Falta definir
+  captura diferida si se incorpora un proveedor que la requiera y obtener
+  evidencia sandbox/producción sin duplicar dinero ni stock.
 - Funciones server-side: cada Edge Function debe pasar el chequeo de Deno en
   CI; cobros, webhooks, cotización y facturación no quedan fuera del typecheck.
 - Operación observable: webhooks, crons, errores de pago y documentos con
@@ -240,7 +241,7 @@ porque produce la evidencia de salida de una fase.
 | 2 | Publicación legal | Bloqueado externo | razón social, CUIT y domicilio | páginas publicadas y visibles desde la tienda |
 | 3 | Conciliación de stock | Bloqueado externo | conteo físico | ajuste trazable y Kardex sin diferencias |
 | 4 | Segundo comercio | Siguiente | disponibilidad del negocio | primera venta sin SQL ni corrección manual |
-| 5 | Matriz de pagos y guardia Edge | En curso, 2026-08-21 | escenarios de proveedor | checkout/reintegro/webhook ya idempotentes y 63 funciones chequeadas; faltan captura, factura y recepción de compra con evidencia sandbox |
+| 5 | Matriz de pagos y guardia Edge | En curso, 2026-08-21 | escenarios de proveedor | checkout/reintegro/webhook, ARCA y recepción parcial ya tienen guardas; 63 funciones chequeadas. Falta evidencia sandbox/producción y captura diferida sólo si un proveedor la incorpora |
 | 6 | Merchant 360 | Base ampliada, 2026-08-21 | señales de Core confiables | ficha operativa por organización con riesgos, próximos pasos y evidencia de conexión |
 | 7 | Registro de integraciones 2 | En curso, 2026-08-21 | health checks activos y eventos | versión, scopes, webhook, error y plan por conexión |
 | 8 | Centro de operaciones | Base hecha, 2026-08-21 | uso contra fallos reales | cola priorizada y reintento auditado de entrega descartada |
