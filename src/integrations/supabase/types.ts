@@ -17304,6 +17304,138 @@ export type Database = {
           },
         ]
       }
+      product_attribute_values: {
+        Row: {
+          attribute_definition_id: string
+          created_at: string
+          id: string
+          org_id: string
+          product_id: string
+          updated_at: string
+          value_boolean: boolean | null
+          value_date: string | null
+          value_json: Json | null
+          value_number: number | null
+          value_text: string | null
+        }
+        Insert: {
+          attribute_definition_id: string
+          created_at?: string
+          id?: string
+          org_id: string
+          product_id: string
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_json?: Json | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          attribute_definition_id?: string
+          created_at?: string
+          id?: string
+          org_id?: string
+          product_id?: string
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_json?: Json | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          { foreignKeyName: "product_attribute_values_attribute_definition_id_fkey"; columns: ["attribute_definition_id"]; isOneToOne: false; referencedRelation: "attribute_definitions"; referencedColumns: ["id"] },
+          { foreignKeyName: "product_attribute_values_org_id_fkey"; columns: ["org_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"] },
+          { foreignKeyName: "product_attribute_values_product_id_fkey"; columns: ["product_id"]; isOneToOne: false; referencedRelation: "products"; referencedColumns: ["id"] },
+        ]
+      }
+      attribute_definitions: {
+        Row: {
+          created_at: string
+          data_type: string
+          filterable: boolean
+          id: string
+          name: string
+          options: Json
+          org_id: string
+          product_type_id: string
+          required: boolean
+          slug: string
+          sort_order: number
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_type?: string
+          filterable?: boolean
+          id?: string
+          name: string
+          options?: Json
+          org_id: string
+          product_type_id: string
+          required?: boolean
+          slug: string
+          sort_order?: number
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_type?: string
+          filterable?: boolean
+          id?: string
+          name?: string
+          options?: Json
+          org_id?: string
+          product_type_id?: string
+          required?: boolean
+          slug?: string
+          sort_order?: number
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "attribute_definitions_org_id_fkey"; columns: ["org_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"] },
+          { foreignKeyName: "attribute_definitions_product_type_id_fkey"; columns: ["product_type_id"]; isOneToOne: false; referencedRelation: "product_types"; referencedColumns: ["id"] },
+        ]
+      }
+      product_types: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          org_id: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          org_id: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          org_id?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "product_types_org_id_fkey"; columns: ["org_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"] },
+        ]
+      }
       product_variants: {
         Row: {
           active: boolean
@@ -17474,6 +17606,7 @@ export type Database = {
           offer_stacks_payment: boolean | null
           org_id: string
           price_2x_ars: number | null
+          product_type_id: string | null
           profit_per_unit_ars: number
           profit_per_unit_usd: number
           sale_price_ars: number
@@ -17520,6 +17653,7 @@ export type Database = {
           offer_stacks_payment?: boolean | null
           org_id: string
           price_2x_ars?: number | null
+          product_type_id?: string | null
           profit_per_unit_ars?: number
           profit_per_unit_usd?: number
           sale_price_ars?: number
@@ -17566,6 +17700,7 @@ export type Database = {
           offer_stacks_payment?: boolean | null
           org_id?: string
           price_2x_ars?: number | null
+          product_type_id?: string | null
           profit_per_unit_ars?: number
           profit_per_unit_usd?: number
           sale_price_ars?: number

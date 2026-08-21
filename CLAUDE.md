@@ -45,9 +45,16 @@ nombre.
 
 ⚠️ **Antes de escribir código nuevo, leer
 [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).** Fija los quince principios y los
-límites de dominio que no hay que cruzar. Lo medido: 304 tablas, 269 con
-`org_id`, ledger de stock sólido — y **faltan idempotencia, eventos con outbox y
-ledger financiero** (H1–H3 del ROADMAP). Son baratos hoy y carísimos después.
+límites de dominio que no hay que cruzar. El estado medido del 2026-08-21 vive
+en [docs/COMPARACION.md](docs/COMPARACION.md): 280 tablas, 294 con `org_id`,
+61 Edge Functions y 1.170 tests (`npm test`, fecha al lado). Idempotencia,
+eventos con outbox y ledger financiero ya están construidos y verificados en
+los commits H1–H3; no deben volver a tratarse como pendientes ni duplicarse.
+
+El orden siguiente es el plan canónico de `ROADMAP.md` §0.0: P0.1 catálogo
+polimórfico, P0.2 identidad, P0.3 pagos, P0.4 ARCA y P0.5 segundo comercio.
+`gestiona.txt` es el análisis que fundamenta ese orden, no permiso para saltar
+las puertas de verificación.
 
 Y lo que ese documento dice que **no** hay que construir todavía —multi-store,
 dominios propios, theme engine, headless, marketplace— importa tanto como lo que

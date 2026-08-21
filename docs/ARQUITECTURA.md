@@ -229,8 +229,9 @@ Reglas concretas y verificables:
 reservas, devoluciones, CMS, temas, API keys, webhooks, los dos ledgers,
 idempotencia y eventos.
 
-❌ **Falta, en orden de palanca:** `product_types` + `attribute_definitions`
-(K1, el bloqueo real de "cualquier rubro") · carrito del lado del servidor (K2)
+✅ **K1 cerrado el 2026-08-21:** `product_types` + `attribute_definitions` y
+valores tipados con validación de organización. Sigue faltando el carrito del
+lado del servidor (K2)
 · `domains` (K3) · `markets` (K4) · máquinas de estado explícitas (K5) ·
 feature flags (K6) · `SearchProvider` como interfaz (K7).
 

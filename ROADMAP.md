@@ -4,6 +4,73 @@ Este documento dice qué es el producto, qué funciona hoy y qué sigue.
 Lo que está acá tiene que ser verificable: nada de porcentajes inventados ni de
 mercados a los que no vamos.
 ---
+## 0.0 Plan canónico de ejecución — 2026-08-21
+
+El archivo `C:\Users\Admin\Desktop\gestiona.txt` se incorporó como análisis de
+producto y criterio de priorización. No es una instrucción de implementación
+aislada: se traduce acá a slices verificables, respetando la arquitectura y los
+datos reales de Gestiona.
+
+### Orden obligatorio
+
+El orden de producto queda fijado por impacto y dependencias. Un bloque no se
+saltea para construir una pantalla más vistosa:
+
+1. **P0.1 Product Types + Attributes.** Sacar el catálogo de la herencia de
+   perfumes. El núcleo debe representar ropa, ferretería, repuestos, muebles,
+   alimentos, electrónica, servicios y digitales sin agregar columnas ni ramas
+   por rubro.
+2. **P0.2 Identidad limpia de producto y cliente.** SKU, código de barras,
+   identidad del cliente y deduplicación deben ser confiables entre POS, tienda
+   y canales.
+3. **P0.3 Pagos universales e idempotencia completa.** Todos los cobros,
+   reintentos, reintegros y conciliaciones deben pasar por el mismo contrato.
+4. **P0.4 ARCA en producción real.** La estructura ya existe; el cierre depende
+   del certificado, delegación y una factura de prueba del comercio.
+5. **P0.5 Segundo comercio real.** Es la puerta comercial: valida onboarding,
+   permisos, catálogo, stock, caja, tienda y soporte con una organización que
+   no nació de los datos de Exentry.
+
+Después de ese gate: dominios, multi-store, themes/page builder, migradores,
+Document AI y cuentas a pagar, margen por canal, MercadoLibre profundo y
+onboarding universal. B2B, búsqueda dedicada, recomendaciones, experimentos,
+developer platform, marketplace de apps, logística propia y automatizaciones en
+lenguaje natural esperan evidencia. Pay regulado, capital, multi-región,
+sharding y un ecosistema agentic son P3 y no se empiezan por anticipación.
+
+### Slice ejecutado
+
+**P0.1 — Commerce Kernel de catálogo (cerrado 2026-08-21).** La migración agrega `product_types`,
+`attribute_definitions` y valores tipados, y vincula `products` de forma
+nullable. La UI permite administrar tipos y atributos y asignarlos a una ficha.
+Los productos actuales conservan `category`, `custom_fields` y todo su flujo;
+no hay backfill inventado ni cambios de stock, precios o catálogo público.
+
+**Salida verificada:** `npm run typecheck`, los 4 tests unitarios del parser y
+reglas del kernel, migración registrada, objetos y RLS comprobados contra la base
+vinculada, y `db push --linked --dry-run` en `upToDate`. No hubo filas `ZZ`, ni
+backfill, ni cambios de inventario. Falta una pasada de navegador con sesión de
+organización: este equipo no tiene `.env` local.
+
+### Siguiente trabajo ya ordenado
+
+- P0.2: resolver identidad y duplicados sobre los datos reales, con reporte
+  antes de cualquier merge.
+- P0.3: completar el contrato de `PaymentIntent` y probar reintentos,
+  reintegros y conciliación sin doble asiento.
+- P0.4: ejecutar el circuito ARCA con certificado de homologación y una factura
+  de prueba.
+- P0.5: acompañar el alta de un segundo comercio y medir tiempo a catálogo,
+  primera venta, uso POS/tienda, stock accuracy y soporte.
+- P1 Document AI + Payables: PDF/imagen → extracción estructurada → revisión
+  con confianza → borrador de compra/cuenta a pagar; nunca escritura directa
+  del ledger por un modelo.
+
+La estética, los tabs, los layouts y las referencias de Figma siguen siendo
+criterios de experiencia: mejoran la operación del bloque prioritario, pero no
+reordenan estas dependencias ni crean módulos paralelos.
+
+---
 ## 0.1 Lenguaje visual y experiencia
 
 El rediseño visual acompana la tesis del sistema operativo omnicanal: la interfaz debe ayudar a operar, comparar y decidir. Los kits de Figma se usan como referencia de jerarquia y densidad, no como una copia de pantallas.
@@ -367,7 +434,10 @@ Bloque B. Primeros: B3 checkout en un paso · B5 avisos de estado (ya tienen
 1. ~~**I6**~~ — ✅ **Sesión 116, auditado camino por camino.** Se midió cuál faltaba en vez de envolver los cuatro: `mark_store_order_paid`, `return_store_order_item` y `facturar_orden_pagada` ya se protegen solas. **La recepción parcial de compra no**: verificado contra producción, recibir 4 de 10 dos veces dejaba **8**. Cerrado con `receive_purchase_order_idem`.
 2. ~~**C12**~~ — ✅ **Sesión 116.** Verificado el agujero antes de taparlo: el navegador decía "precio 1, costo 0, ganancia 999999" sobre un producto de USD 20 que vale $100.000, y **la base guardaba eso**. `create_sales_transaction_v2` recalcula: el precio admite override del cajero y queda registrado con el que correspondía; **el costo y la ganancia se pisan siempre**. Ahora ese mismo ataque guarda ganancia −31.999, que es la pérdida real.
 3. **AFIP por la app** — el CAE ya sale; falta que salga desde el circuito.
-4. **K1** — `product_types` + `attribute_definitions`. Define si el catálogo puede modelar otro rubro; sin esto "cualquier ecommerce" no es cierto.
+4. ~~**K1**~~ — ✅ **Sesión 2026-08-21.** `product_types`, `attribute_definitions`
+   y `product_attribute_values` ya están en producción con RLS y validación de
+   organización/tipo. La ficha de Producto permite asignar el tipo y persistir
+   valores estructurados sin tocar `custom_fields` existentes.
 5. **E4** — margen por canal.
 6. **K2** — carrito del lado del servidor.
 7. **I8** — moneda del costo: `cost_usd` asume dólares y no hay columna de moneda. Medido: los 59 productos son USD 7–165, así que hoy está bien; se rompe en silencio con el primero en pesos.
@@ -392,7 +462,7 @@ ledger de stock · ledger financiero · idempotencia · eventos con outbox.
 
 | # | Pieza | Por qué bloquea |
 |---|---|---|
-| **K1** | **`product_types` + `attribute_definitions`** | ⛔ **El bloqueo real de "cualquier rubro".** Hoy la categoría es un string y hay 3 en uso. Una ferretería necesita diámetro/largo/rosca; una gomería ancho/perfil/rodado. Sin motor de atributos, cada rubro nuevo es una columna — que es exactamente lo que no escala. **Es la pieza de mayor palanca de todo el Commerce Kernel.** |
+| **K1** | **`product_types` + `attribute_definitions`** | ✅ **Cerrado 2026-08-21.** Tipos, atributos y valores tipados viven en tablas propias, con validación de organización y compatibilidad de tipo. `category` y `custom_fields` quedan como compatibilidad para los productos existentes. |
 | **K2** | **Carrito del lado del servidor** | Vive en `localStorage` por slug. Sin esto no hay carrito entre dispositivos (B13), ni carrito armado por un vendedor, ni de WhatsApp al checkout. |
 | **K3** | **`domains`** — dominio propio por tienda | Tiendanube lo tiene. Necesita verificación DNS, SSL automático, redirects y resolución por hostname. **No hardcodear Vercel**: va detrás de una abstracción de proveedor. |
 | **K4** | **`markets`** — país, moneda, idioma, impuestos | Hoy Argentina está en el núcleo. La fiscalidad debería salir a un *country pack* antes de que haya un segundo país. |
@@ -400,9 +470,9 @@ ledger de stock · ledger financiero · idempotencia · eventos con outbox.
 | **K6** | **Feature flags** | Sin esto, toda feature grande sale para todos a la vez. |
 | **K7** | **`SearchProvider` como interfaz** | La búsqueda difusa (B10) es buena y vive en el cliente. Cuando el catálogo crezca hay que poder cambiar el motor sin tocar la tienda. |
 
-⚠️ **K1 y K2 son las únicas dos que valen antes de un segundo comercio.** K1
-porque define si el catálogo puede modelar otro rubro; K2 porque el carrito en
-`localStorage` es una limitación que se nota vendiendo. K3 a K7 esperan
+⚠️ **K2 es la única pieza del kernel que vale antes de un segundo comercio.** K1
+ya está cerrado porque define si el catálogo puede modelar otro rubro; K2 porque
+el carrito en `localStorage` es una limitación que se nota vendiendo. K3 a K7 esperan
 evidencia — medido: **1 tienda, 1 organización con tienda, 0 listas de precio
 cargadas, 0 promociones activas**. Construir multi-market para eso es adivinar.
 
@@ -1989,5 +2059,5 @@ rango de precio.
 
 ---
 
-*Última revisión: 2026-08-14*
+*Última revisión: 2026-08-21*
 *Para el detalle del día a día: `git log --oneline -20`.*

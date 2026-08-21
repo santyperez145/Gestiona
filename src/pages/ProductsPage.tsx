@@ -25,7 +25,16 @@ import PageHeader from "@/components/shared/PageHeader";
 import CalidadPublicaciones, { BadgeCalidad } from "@/components/products/CalidadPublicaciones";
 import CompletarPesos from "@/components/products/CompletarPesos";
 import CategorySelect, { useOrgCategories } from "@/components/products/CategorySelect";
+import ProductTypesManager from "@/components/products/ProductTypesManager";
 import { REGLAS, type ImpactoId } from "@/lib/productQuality";
+import {
+  listAttributeDefinitions,
+  listProductAttributeValues,
+  listProductTypes,
+  saveProductAttributeValues,
+  type AttributeDefinition,
+  type ProductType,
+} from "@/lib/productTypes";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -295,6 +304,7 @@ export default function ProductsPage() {
   const [salesVelocity, setSalesVelocity] = useState<Record<string, number>>({}); // units sold per day per product
   const [lastSaleDate, setLastSaleDate] = useState<Record<string, string>>({}); // last sale date per product id
   const [open, setOpen] = useState(false);
+  const [productTypesOpen, setProductTypesOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
@@ -687,6 +697,11 @@ export default function ProductsPage() {
                 </Button>
               </>
             )}
+            {canEdit && activeOrg?.id && (
+              <Button variant="outline" size="sm" onClick={() => setProductTypesOpen(true)} title="Configurar tipos y atributos del catálogo">
+                <Layers className="w-4 h-4 mr-2" />Tipos y atributos
+              </Button>
+            )}
             {canEdit && (
               <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="hidden md:flex">
                 <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
@@ -729,6 +744,14 @@ export default function ProductsPage() {
           </div>
         }
       />
+
+      {activeOrg?.id && (
+        <ProductTypesManager
+          orgId={activeOrg.id}
+          open={productTypesOpen}
+          onOpenChange={setProductTypesOpen}
+        />
+      )}
 
       <CalidadPublicaciones
         productos={paraCalidad}
@@ -1647,6 +1670,10 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [scanBarcodeOpen, setScanBarcodeOpen] = useState(false);
   const [customFieldDefs, setCustomFieldDefs] = useState<any[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>(product?.custom_fields ?? {});
+  const [productTypes, setProductTypes] = useState<ProductType[]>([]);
+  const [productTypeId, setProductTypeId] = useState<string>(product?.product_type_id || '');
+  const [attributeDefinitions, setAttributeDefinitions] = useState<AttributeDefinition[]>([]);
+  const [attributeValues, setAttributeValues] = useState<Record<string, unknown>>({});
   const [activeLocationCount, setActiveLocationCount] = useState(0);
 
   useEffect(() => {
@@ -1659,6 +1686,44 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       .order("sort_order")
       .then(({ data }) => { if (data) setCustomFieldDefs(data); });
   }, [orgId]);
+
+  useEffect(() => {
+    if (!orgId) return;
+    listProductTypes(orgId)
+      .then(types => {
+        setProductTypes(types);
+        if (product?.product_type_id && types.some(type => type.id === product.product_type_id)) {
+          setProductTypeId(product.product_type_id);
+        }
+      })
+      .catch((error: any) => toast.error(error?.message || 'No se pudieron cargar los tipos de producto'));
+  }, [orgId, product?.product_type_id]);
+
+  useEffect(() => {
+    if (!orgId || !productTypeId) {
+      setAttributeDefinitions([]);
+      setAttributeValues({});
+      return;
+    }
+    Promise.all([
+      listAttributeDefinitions(orgId, productTypeId),
+      product?.id ? listProductAttributeValues(orgId, product.id) : Promise.resolve([]),
+    ])
+      .then(([definitions, savedValues]) => {
+        setAttributeDefinitions(definitions);
+        const nextValues: Record<string, unknown> = {};
+        (savedValues as any[]).forEach(value => {
+          nextValues[value.attribute_definition_id] = value.value_text
+            ?? value.value_number
+            ?? value.value_boolean
+            ?? value.value_date
+            ?? value.value_json
+            ?? '';
+        });
+        setAttributeValues(nextValues);
+      })
+      .catch((error: any) => toast.error(error?.message || 'No se pudieron cargar los atributos'));
+  }, [orgId, product?.id, productTypeId]);
 
   // Con dos depósitos, el stock de una variante no es un número global: hay
   // que ajustarlo desde Sucursales indicando el lugar físico. La base aplica la
@@ -1849,6 +1914,15 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     e.preventDefault();
     if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
     if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
+    const missingAttribute = attributeDefinitions.find(definition => {
+      if (!definition.required) return false;
+      const value = attributeValues[definition.id];
+      return value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0);
+    });
+    if (missingAttribute) {
+      toast.error(`Completá el atributo obligatorio: ${missingAttribute.name}`);
+      return;
+    }
     try {
       if (variantsNeedLocation && showVariants) {
         const existingForLocation = product?.id ? await getVariantsDB(product.id) : [];
@@ -1894,6 +1968,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         length_cm: parseFloat(lengthCm) || null,
         width_cm: parseFloat(widthCm) || null,
         height_cm: parseFloat(heightCm) || null,
+        product_type_id: productTypeId || null,
         ...(Object.keys(customFieldValues).length > 0 ? { custom_fields: customFieldValues } : {}),
       };
       let productId = product?.id;
@@ -1920,6 +1995,9 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           stock: showVariants ? 0 : variantTotal,
         });
         await logAudit(userId, 'create', 'product', productId, { name: data.name });
+      }
+      if (productId && orgId) {
+        await saveProductAttributeValues(orgId, productId, attributeDefinitions, attributeValues);
       }
       // Ficha de perfume — solo para categorías perfume
       if (productId && (category === 'perfume_arabe' || category === 'perfume_diseñador') && orgId) {
@@ -2129,6 +2207,23 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
             className="bg-muted border-border"
           />
         </div>
+      </div>
+      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Tipo de producto</p>
+            <p className="text-[11px] text-muted-foreground">Define los atributos propios del rubro. Es opcional para fichas existentes.</p>
+          </div>
+          <Layers className="w-4 h-4 text-primary shrink-0" />
+        </div>
+        <Select value={productTypeId || "none"} onValueChange={value => setProductTypeId(value === "none" ? "" : value)}>
+          <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Sin tipo asignado" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Sin tipo asignado</SelectItem>
+            {productTypes.map(type => <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {productTypes.length === 0 && <p className="text-[11px] text-muted-foreground">Configurá el primer tipo desde “Tipos y atributos” en la barra de Productos.</p>}
       </div>
       {/* ── Smart suggestions panel ── */}
       {category === 'vaper' && (
@@ -2825,6 +2920,44 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               </span>
             </div>
           )}
+        </div>
+      )}
+      {attributeDefinitions.length > 0 && (
+        <div className="space-y-3 border-t border-primary/20 pt-4">
+          <div>
+            <p className="text-xs font-semibold text-primary uppercase tracking-wide">Atributos del tipo</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Datos estructurados para búsquedas, filtros y futuros canales.</p>
+          </div>
+          {attributeDefinitions.map(definition => {
+            const rawValue = attributeValues[definition.id];
+            const displayValue = Array.isArray(rawValue) ? rawValue.join(", ") : rawValue ?? "";
+            const setValue = (value: unknown) => setAttributeValues(values => ({ ...values, [definition.id]: value }));
+            return (
+              <div key={definition.id}>
+                <label className="text-sm text-muted-foreground block mb-1">
+                  {definition.name}{definition.unit ? ` (${definition.unit})` : ""}
+                  {definition.required && <span className="text-destructive ml-0.5">*</span>}
+                </label>
+                {definition.data_type === "text" && <Input value={String(displayValue)} onChange={event => setValue(event.target.value)} className="bg-muted border-border" />}
+                {definition.data_type === "number" && <Input type="number" value={String(displayValue)} onChange={event => setValue(event.target.value === "" ? "" : Number(event.target.value))} className="bg-muted border-border" />}
+                {definition.data_type === "date" && <Input type="date" value={String(displayValue)} onChange={event => setValue(event.target.value)} className="bg-muted border-border" />}
+                {definition.data_type === "boolean" && (
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <input type="checkbox" checked={rawValue === true} onChange={event => setValue(event.target.checked)} className="w-4 h-4 accent-primary" /> Activado
+                  </label>
+                )}
+                {definition.data_type === "select" && (
+                  <Select value={String(displayValue)} onValueChange={setValue}>
+                    <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccioná..." /></SelectTrigger>
+                    <SelectContent>{definition.options.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent>
+                  </Select>
+                )}
+                {definition.data_type === "multiselect" && (
+                  <Input value={String(displayValue)} onChange={event => setValue(event.target.value.split(",").map(value => value.trim()).filter(Boolean))} placeholder="Separá los valores con coma" className="bg-muted border-border" />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
       {/* Custom fields */}

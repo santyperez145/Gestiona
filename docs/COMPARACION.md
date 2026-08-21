@@ -80,18 +80,18 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 
 | | Valor | Comentario |
 |---|---:|---|
-| Tablas base | **277** | ✅ |
-| Tablas con `org_id` | **247** | ✅ 89% del esquema es multi-tenant por fila |
+| Tablas base | **280** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
+| Tablas con `org_id` | **294** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
 | Vistas | **56** | ✅ |
-| Funciones y procedimientos | **347** | ✅ La lógica de negocio vive mayormente en la base |
-| Triggers | **122** | ✅ |
-| Índices | **836** | ✅ |
-| Políticas RLS | **362** | ✅ |
-| Migraciones registradas | **361** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate` |
-| Cron jobs | **20** | ✅ 6.985 corridas exitosas y **0 fallidas** en 7 días |
+| Funciones y procedimientos | **349** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
+| Triggers | **127** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
+| Índices | **846** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
+| Políticas RLS | **365** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
+| Migraciones registradas | **362** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate` |
+| Cron jobs | **20** | ✅ 8.801 corridas exitosas y **0 fallidas** en 7 días |
 | Edge Functions | **61** | ✅ `ls supabase/functions` |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **1.166** | ✅ `npm test`, 2026-08-21 |
+| Tests unitarios | **1.170** | ✅ `npm test`, 2026-08-21 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -129,7 +129,7 @@ antes de conectarse— pero el invariante documentado quedó desactualizado.
 | Suscripciones cobradas | **0** | ✅ 3 registros, las 3 en `past_due` |
 
 ⚠️ **Este es el dato que ordena todo el documento.** Tenemos una plataforma de
-277 tablas y 1.166 tests sirviendo a **un solo comercio real**. Tiendanube tiene
+280 tablas y 1.170 tests sirviendo a **un solo comercio real**. Tiendanube tiene
 ❓ más de 130.000 tiendas activas (fuente secundaria: blog de un competidor,
 [tiendli.com](https://tiendli.com/blog/tiendanube-vs-empretienda-vs-shopify-vs-tiendli/),
 2026 — **verificar antes de citarlo**). Shopify tiene ✅ 2.898.351 tiendas vivas
@@ -249,7 +249,7 @@ chicos no tiene.
 - ✅ **La lógica de plata vive en la base, no en el navegador.** El checkout
   manda ids y cantidades; precios, stock, cupones, envío y comisiones se
   recalculan en Postgres. Un cliente comprometido no puede cambiar un precio.
-- ✅ **Multi-tenant por fila con RLS real**, 362 políticas, 0 tablas sin RLS.
+- ✅ **Multi-tenant por fila con RLS real**, 365 políticas, 0 tablas sin RLS.
   Verificado ejecutando como `anon` y `authenticated`, no como superusuario.
 - ✅ **Credenciales inalcanzables desde el navegador**: 4 tablas con RLS y cero
   policies. La UI lee vistas `*_status` que dicen si está conectado, nunca el
@@ -276,13 +276,13 @@ necesita un SaaS de 4 organizaciones. No es el cuello de botella.
 | **Observabilidad** | ✅ Sentry en el front. 🔴 Sin trazas, sin métricas, sin OpenTelemetry | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | ✅ **Ninguno** | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ 3 jobs: `build` (lint+typecheck+build), `test` (1.166 tests) y `security` (`npm audit`). ⚠️ **Sin `deno check` sobre las 61 Edge Functions** y sin E2E | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟠 Medio |
+| **CI** | ✅ 3 jobs: `build` (lint+typecheck+build), `test` (1.170 tests) y `security` (`npm audit`). ⚠️ **Sin `deno check` sobre las 61 Edge Functions** y sin E2E | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟠 Medio |
 | **API pública / webhooks salientes** | 🔴 No hay | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
 | **SOC 2 / ISO 27001** | 🔴 | Requisito para vender a empresas | 🟢 Bajo hoy |
 
-⚠️ **El agujero real del CI son las Edge Functions.** Los 1.166 tests sí corren
+⚠️ **El agujero real del CI son las Edge Functions.** Los 1.170 tests sí corren
 —en un job `test` separado— y además hay un job `security` con `npm audit`
 bloqueante para vulnerabilidades críticas de producción. Lo que **no** se chequea
 es el código de las 61 Edge Functions: no hay `deno check` en ningún paso.
@@ -365,14 +365,14 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
   temas es un compromiso de compatibilidad para siempre.
 - **Multi-idioma y multi-moneda.** No hay demanda medida.
 - **Más features de ERP.** El modo de falla de este proyecto no es quedarse
-  corto: es agregar. Ya hay 277 tablas para 34 ventas.
+  corto: es agregar. Ya hay 280 tablas para 34 ventas.
 
 ---
 
 ## 8. El resumen en cinco líneas
 
 1. ✅ **Técnicamente estamos mejor de lo que corresponde a nuestro tamaño**: RLS
-   real, ledger, outbox, idempotencia, 1.166 tests.
+   real, ledger, outbox, idempotencia, 1.170 tests.
 2. ✅ **Comercialmente no existimos todavía**: 1 comercio, 0 facturas, 0
    asientos, 0 suscripciones cobradas.
 3. ⚠️ **Perdimos el diferencial del POS** — Tiendanube ya lo tiene.
