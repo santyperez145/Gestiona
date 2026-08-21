@@ -10,8 +10,8 @@
  *   EVOLUTION_API_KEY      — Global API key (o instance key)
  *   EVOLUTION_INSTANCE     — Nombre de la instancia conectada (ej: "gestiona")
  *
- * Si no hay env vars globales, se leen de la tabla settings de la org
- * (columnas: evolution_api_url, evolution_api_key, evolution_instance).
+ * Si no hay configuración global, se usa la conexión privada de la
+ * organización; ninguna credencial se lee desde `settings` ni el navegador.
  *
  * Request body:
  *   { orgId, recipientIds: [customerId], campaignId }
@@ -26,6 +26,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
+import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -180,26 +181,15 @@ Deno.serve(async (req) => {
     }
 
     // ── Resolver credenciales Evolution API ─────────────────────────────────────
-    // 1) Env vars globales (Supabase secrets)
-    // 2) Columnas en settings de la org (guardadas desde Integraciones)
-    let evolutionUrl  = Deno.env.get("EVOLUTION_API_URL") || "";
-    let evolutionKey  = Deno.env.get("EVOLUTION_API_KEY") || "";
-    let evolutionInst = Deno.env.get("EVOLUTION_INSTANCE") || "";
-
+    const evolution = await getEvolutionCredentials(admin, orgId);
     const { data: settings, error: settingsError } = await admin
       .from("settings")
-      .select("evolution_api_url, evolution_api_key, evolution_instance, business_name")
+      .select("business_name")
       .eq("org_id", orgId)
       .maybeSingle();
     if (settingsError) throw settingsError;
 
-    if (settings) {
-      evolutionUrl  = evolutionUrl  || settings.evolution_api_url  || "";
-      evolutionKey  = evolutionKey  || settings.evolution_api_key  || "";
-      evolutionInst = evolutionInst || settings.evolution_instance || "";
-    }
-
-    if (!evolutionUrl || !evolutionKey || !evolutionInst) {
+    if (!evolution) {
       return new Response(JSON.stringify({
         error: "Evolution API no configurada. Ingresá las credenciales en Ajustes → Integraciones.",
       }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -244,7 +234,7 @@ Deno.serve(async (req) => {
           + `\n\nPara dejar de recibir promociones de ${businessName}: ${unsubscribeBaseUrl}?token=${unsubscribeToken}`;
 
         const result = await sendViaEvolution(
-          evolutionUrl, evolutionKey, evolutionInst,
+          evolution.apiUrl, evolution.apiKey, evolution.instance,
           r.phone, personalizedMsg,
         );
 

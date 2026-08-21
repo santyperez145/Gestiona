@@ -6,12 +6,13 @@
  *
  * Called daily at 20:00 UTC by pg_cron (end of business day Argentina time).
  * Only runs for orgs that have:
- *   - Evolution API configured (evolution_api_url + evolution_api_key + evolution_instance)
+ *   - a private Evolution API connection configured server-side
  *   - whatsapp_number set in settings (owner's personal number to receive the digest)
  *   - whatsapp_digest_enabled = true in settings (opt-in, defaults to false)
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -23,21 +24,17 @@ Deno.serve(async () => {
     const today = new Date().toISOString().slice(0, 10);
     const todayDisplay = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 
-    // Load orgs with Evolution API + WhatsApp digest opt-in
+    // La conexión se resuelve después desde el almacén privado; settings
+    // conserva sólo la preferencia y datos de negocio.
     const { data: orgSettings } = await supabase
       .from("settings")
       .select(`
         org_id,
         whatsapp_number,
         business_name,
-        evolution_api_url,
-        evolution_api_key,
-        evolution_instance,
         whatsapp_digest_enabled,
         exchange_rate
       `)
-      .not("evolution_api_url", "is", null)
-      .not("evolution_api_key", "is", null)
       .not("whatsapp_number", "is", null)
       .eq("whatsapp_digest_enabled", true);
 
@@ -49,12 +46,10 @@ Deno.serve(async () => {
 
     for (const s of orgSettings) {
       try {
-        const baseUrl = s.evolution_api_url?.replace(/\/$/, "");
-        const apiKey = s.evolution_api_key;
-        const instance = s.evolution_instance || "gestiona";
+        const evolution = await getEvolutionCredentials(supabase, s.org_id);
         const ownerNumber = s.whatsapp_number?.replace(/\D/g, "");
 
-        if (!baseUrl || !apiKey || !ownerNumber) continue;
+        if (!evolution || !ownerNumber) continue;
 
         // ── Load today's sales ────────────────────────────────
         const { data: sales } = await supabase
@@ -67,7 +62,7 @@ Deno.serve(async () => {
         if (!sales?.length) {
           // Even if no sales, send encouraging "no sales today" message
           const text = `📊 *Resumen del día — ${todayDisplay}*\n\n_Sin ventas registradas hoy._\n\nRecordá registrar tus ventas en Gestiona para ver tus métricas aquí. 💪\n\n_— ${s.business_name || "Gestiona"}_`;
-          await sendWhatsApp(baseUrl, apiKey, instance, ownerNumber, text);
+          await sendWhatsApp(evolution.apiUrl, evolution.apiKey, evolution.instance, ownerNumber, text);
           sent++;
           continue;
         }
@@ -110,7 +105,7 @@ Deno.serve(async () => {
           .filter((l) => l !== undefined)
           .join("\n");
 
-        await sendWhatsApp(baseUrl, apiKey, instance, ownerNumber, text.trim());
+        await sendWhatsApp(evolution.apiUrl, evolution.apiKey, evolution.instance, ownerNumber, text.trim());
         sent++;
 
         // ── Log notification ─────────────────────────────────

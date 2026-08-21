@@ -76,7 +76,7 @@ con el estado medido contra la base cuando se pudo.
 | **Derecho de acceso en 10 días** (art. 14) | 🟠 El export existe pero no hay un canal donde la persona lo pida ni un plazo medido. |
 | **Aviso en cada comunicación de que puede pedir la baja** (art. 27) | ✅ Email y WhatsApp de marketing incluyen una baja efectiva. En WhatsApp el enlace es opaco, personal y de un solo uso. |
 | **Transferencia internacional de datos** (art. 12) | 🟡 Los datos viven en Supabase (AWS `us-east-1`). Estados Unidos **no** tiene nivel adecuado de protección según la AAIP. La política generada lo declara explícitamente y lo apoya en el consentimiento informado al comprar. |
-| **Medidas de seguridad** (Res. AAIP 47/2018) | ✅ En buena forma: RLS, MFA obligatorio para staff de plataforma, credenciales fuera del navegador, tablas de tokens con cero policies. |
+| **Medidas de seguridad** (Res. AAIP 47/2018) | ✅ En buena forma: RLS, MFA obligatorio para staff de plataforma y credenciales fuera del navegador. Desde 2026-08-21 Evolution API vive en `evolution_connections` (RLS, cero policies); la UI sólo consulta estado sanitizado y el asistente abre el flujo de campaña que controla consentimiento y baja. |
 | **Notificación de incidentes** | 🔴 No hay procedimiento escrito. La AAIP recomienda notificar; no hay plazo legal duro, pero sin procedimiento no se cumple ninguno. |
 
 ---

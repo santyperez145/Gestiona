@@ -19,7 +19,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 
-/** Columnas de credencial que ya se resuelven por OAuth. */
+/** Columnas de credencial que nunca pueden volver a una pantalla. */
 const COLUMNAS_PROHIBIDAS = [
   'mp_access_token',
   'ml_access_token',
@@ -31,6 +31,12 @@ const COLUMNAS_PROHIBIDAS = [
   'afip_certificate',
   'afip_private_key',
   'private_key',
+  // Evolution API permite enviar WhatsApp como el comercio. No tiene OAuth,
+  // por eso entra una vez por `evolution-credentials` y queda en una tabla sin
+  // policies; la UI sólo ve `evolution_connection_status`.
+  'evolution_api_url',
+  'evolution_api_key',
+  'evolution_instance',
 ];
 
 /** Dónde vive la UI de la organización. */
@@ -89,5 +95,14 @@ describe('credenciales que ya tienen OAuth', () => {
     // Si se sacan los paneles sin reemplazo, no queda forma de conectar nada.
     expect(src).toContain('PaymentConnectionsPanel');
     expect(src).toContain('MercadoLibrePanel');
+  });
+
+  it('Evolution usa el endpoint seguro y el asistente no envía WhatsApp directo', () => {
+    const integrations = readFileSync(resolve(process.cwd(), 'src/pages/IntegrationsPage.tsx'), 'utf8');
+    const assistant = readFileSync(resolve(process.cwd(), 'src/components/ai-chat/AIChatAssistantTab.tsx'), 'utf8');
+    expect(integrations).toContain('evolution_connection_status');
+    expect(integrations).toContain('evolution-credentials');
+    expect(assistant).toContain('Abrir campañas seguras');
+    expect(assistant).not.toContain('/message/sendText/');
   });
 });

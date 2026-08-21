@@ -101,7 +101,7 @@ export const SNAPSHOT_TABLES = [
 
 export const EXCLUDED_CREDENTIAL_STORES = [
   "afip_credentials", "payment_connections", "meli_connections", "api_keys", "org_api_keys",
-  "oauth_states", "portal_sessions", "push_subscriptions", "webhook_configs",
+  "evolution_connections", "oauth_states", "portal_sessions", "push_subscriptions", "webhook_configs",
 ] as const;
 
 const SECRET_SETTINGS_COLUMNS = new Set([

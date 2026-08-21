@@ -3,6 +3,7 @@
 // creates in-app notifications for org admins AND sends a WhatsApp
 // alert via Evolution API if the org has it configured.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -97,16 +98,14 @@ Deno.serve(async () => {
       // ── WhatsApp alert via Evolution API ─────────────────────────────────
       const { data: settings } = await supabase
         .from("settings")
-        .select("evolution_api_url, evolution_api_key, evolution_instance, whatsapp_number")
+        .select("whatsapp_number")
         .eq("org_id", orgId)
         .maybeSingle();
 
-      const baseUrl = settings?.evolution_api_url?.replace(/\/$/, "");
-      const apiKey  = settings?.evolution_api_key;
-      const instance = settings?.evolution_instance;
+      const evolution = await getEvolutionCredentials(supabase, orgId);
       const waNumber = settings?.whatsapp_number;
 
-      if (baseUrl && apiKey && instance && waNumber) {
+      if (evolution && waNumber) {
         // Deduplicate: check if we already sent a WA overdue alert today
         const { data: existingWa } = await supabase
           .from("notifications")
@@ -134,7 +133,7 @@ Deno.serve(async () => {
             `\n\n💰 *Total pendiente: $${Math.round(totalARS).toLocaleString("es-AR")}*\n` +
             `_Revisá la sección de Clientes para gestionar los cobros._`;
 
-          const sent = await sendWhatsApp(baseUrl, apiKey, instance, number, text);
+          const sent = await sendWhatsApp(evolution.apiUrl, evolution.apiKey, evolution.instance, number, text);
           if (sent) {
             totalWaSent++;
             // Log so we don't double-send today

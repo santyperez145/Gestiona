@@ -20,6 +20,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
+import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -251,18 +252,9 @@ Deno.serve(async (req) => {
             }
 
           } else if (flow.action_type === "whatsapp_message") {
-            // Load Evolution API credentials for this org
-            const { data: evolSettings } = await supabase
-              .from("settings")
-              .select("evolution_api_url, evolution_api_key, evolution_instance")
-              .eq("org_id", orgId)
-              .maybeSingle();
+            const evolution = await getEvolutionCredentials(supabase, orgId);
 
-            const baseUrl = evolSettings?.evolution_api_url?.replace(/\/$/, "");
-            const apiKey = evolSettings?.evolution_api_key;
-            const instance = evolSettings?.evolution_instance;
-
-            if (!baseUrl || !apiKey || !instance) {
+            if (!evolution) {
               console.warn(`execute-automations: Evolution API not configured for org=${orgId}`);
               status = "skipped";
             } else {
@@ -288,9 +280,9 @@ Deno.serve(async (req) => {
                   .replace(/\{detalle\}/gi, entity.extra ?? "")
                   .replace(/\{monto\}/gi, entity.extra ?? "");
                 try {
-                  const res = await fetch(`${baseUrl}/message/sendText/${instance}`, {
+                  const res = await fetch(`${evolution.apiUrl}/message/sendText/${evolution.instance}`, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", apikey: apiKey },
+                    headers: { "Content-Type": "application/json", apikey: evolution.apiKey },
                     body: JSON.stringify({ number, text }),
                     signal: AbortSignal.timeout(15_000),
                   });

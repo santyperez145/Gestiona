@@ -3,6 +3,7 @@
 // sends a personalized WhatsApp greeting via Evolution API if configured.
 // Sólo alcanza a clientes con consentimiento vigente e incluye una baja real.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -65,20 +66,19 @@ Deno.serve(async () => {
     const todayStr = today.toISOString().slice(0, 10);
 
     for (const [orgId, orgCustomers] of Object.entries(byOrg)) {
-      // Load org's Evolution API settings + business name
+      // La conexión vive fuera de settings; acá sólo quedan preferencias y
+      // datos de negocio que pueden leer los miembros.
       const { data: settings } = await supabase
         .from("settings")
-        .select("evolution_api_url, evolution_api_key, evolution_instance, business_name, whatsapp_birthday_enabled")
+        .select("business_name, whatsapp_birthday_enabled")
         .eq("org_id", orgId)
         .maybeSingle();
 
-      const baseUrl = settings?.evolution_api_url?.replace(/\/$/, "");
-      const apiKey  = settings?.evolution_api_key;
-      const instance = settings?.evolution_instance;
+      const evolution = await getEvolutionCredentials(supabase, orgId);
       const businessName = settings?.business_name || "el equipo";
 
       // Skip org if Evolution API not configured or birthday WA not enabled
-      if (!baseUrl || !apiKey || !instance) continue;
+      if (!evolution) continue;
       if (settings?.whatsapp_birthday_enabled === false) continue;
 
       const unsubscribeBaseUrl = `${Deno.env.get("SUPABASE_URL")!.replace(/\/$/, "")}/functions/v1/whatsapp-unsubscribe`;
@@ -116,7 +116,7 @@ Deno.serve(async () => {
           `¡Esperamos verte pronto!\n\n` +
           `Para dejar de recibir promociones: ${unsubscribeBaseUrl}?token=${unsubscribeToken}`;
 
-        const sent = await sendWhatsApp(baseUrl, apiKey, instance, number, text);
+        const sent = await sendWhatsApp(evolution.apiUrl, evolution.apiKey, evolution.instance, number, text);
         if (sent) {
           totalSent++;
           // Log to avoid duplicate sends

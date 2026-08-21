@@ -72,7 +72,7 @@ fecha y el comando o consulta que los produjo; no se reemplazan en silencio.
 | Señal | Estado al 2026-08-21 |
 |---|---|
 | Edge Functions | 62 |
-| Tests unitarios | 1.201, `npm test` |
+| Tests unitarios | 1.205, `npm test` (2026-08-21) |
 | Organizaciones / comercios que venden de verdad | 4 / 1 |
 | Registros POS / tiendas online | 34 / 6 |
 | Eventos de dominio / asientos del ledger | 10 / 0 |
@@ -87,7 +87,9 @@ fecha y el comando o consulta que los produjo; no se reemplazan en silencio.
 - Checkout y reintegros online tienen idempotencia en los caminos cubiertos.
 - El stock se mueve en base de datos mediante movimientos y triggers.
 - Las credenciales de pagos, marketplaces y servicios privados no se leen desde
-  el navegador; la UI consume estados sanitizados.
+  el navegador; la UI consume estados sanitizados. Evolution API quedó migrada
+  el 2026-08-21 a `evolution_connections` (RLS sin policies) y el asistente ya
+  no puede enviar WhatsApp directo fuera del flujo con consentimiento y baja.
 - El resumen de plataforma consume señales operativas reales de salud,
   activación y cron, y muestra error explícito cuando una señal no está
   disponible.
@@ -237,7 +239,7 @@ Core ni mostrar secretos.
 | Platform Overview | Hecho, 2026-08-21 | sumar pagos, webhooks y colas como señales de primera clase |
 | Merchant 360 | Base hecha, 2026-08-21 | probar la ficha con una organización real y sumar conexiones/health checks |
 | Integration Registry | Base hecha, 2026-08-21 | completar health check, scopes, versión, webhook y plan |
-| Credential Control | Pendiente | rotar o revocar una conexión sin exponer su valor |
+| Credential Control | Base hecha, 2026-08-21 | verificar con una organización real la rotación/revocación de Evolution sin exponer su valor |
 | Billing y comisiones | Pendiente | conciliar comisión, suscripción y venta |
 | Operations Queue | Pendiente | reintentar un fallo y dejar auditoría visible |
 

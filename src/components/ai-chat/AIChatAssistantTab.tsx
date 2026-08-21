@@ -418,7 +418,7 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
   }
 
   if (action.type === "send_wa_segment") {
-    return <SendWaSegmentCard userId={userId} initialSegment={action.segment} onDone={onDone} />;
+    return <SendWaSegmentCard initialSegment={action.segment} onDone={onDone} />;
   }
 
   if (action.type === "query_supplier") {
@@ -1437,161 +1437,24 @@ function SalesSummaryCard({ userId, initialPeriod, onDone }: {
 }
 
 // ─── SendWaSegmentCard ────────────────────────────────────────────────────────
-function SendWaSegmentCard({ userId, initialSegment, onDone }: {
-  userId: string; initialSegment?: string; onDone: () => void;
-}) {
-  const { activeOrg } = useOrg();
-  // Los segmentos reales son los que la organización administra en CRM.
-  const [SEGMENTS, setSegments] = useState<string[]>([]);
-  const [segment, setSegment] = useState(initialSegment || "VIP");
-  const [customers, setCustomers] = useState<{ name: string; phone: string }[]>([]);
-  const [message, setMessage] = useState("Hola {nombre}, te contactamos desde el negocio. ¡Tenemos novedades para vos! 🎉");
-  const [loading, setLoading] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(0);
-  const [done, setDone] = useState(false);
-  const [settings, setSettings] = useState<any>(null);
-
-  useEffect(() => {
-    if (!activeOrg) return;
-    (async () => {
-      const { data } = await supabase.from("settings")
-        .select("evolution_api_url, evolution_api_key, evolution_instance")
-        .eq("org_id", activeOrg.id).maybeSingle();
-      setSettings(data);
-      const { data: segs } = await supabase.from("customer_segments")
-        .select("name").eq("org_id", activeOrg.id).eq("active", true).order("name");
-      const names = (segs ?? []).map((s: any) => s.name);
-      setSegments(names);
-      if (names.length && !names.includes(segment)) setSegment(names[0]);
-    })();
-  }, [activeOrg]);
-
-  const loadCustomers = async () => {
-    if (!activeOrg) return;
-    setLoading(true);
-    // `customers` no tiene columna `segment`: la pertenencia vive en
-    // `customer_segment_members` contra los segmentos de la organización.
-    const { data: seg } = await supabase.from("customer_segments")
-      .select("id").eq("org_id", activeOrg.id).eq("name", segment).maybeSingle();
-    if (!seg) { setCustomers([]); setLoading(false); return; }
-    const { data } = await supabase.from("customer_segment_members")
-      .select("customers(name, phone)").eq("segment_id", seg.id);
-    setCustomers(
-      (data || [])
-        .map((r: any) => r.customers)
-        .filter((c: any) => c?.phone) as { name: string; phone: string }[]
-    );
-    setLoading(false);
-  };
-
-  useEffect(() => { loadCustomers(); }, [segment, activeOrg]);
-
-  const hasEvolution = settings?.evolution_api_url && settings?.evolution_api_key && settings?.evolution_instance;
-  const withPhone = customers.filter(c => c.phone);
-
-  const handleSend = async () => {
-    if (!hasEvolution || !withPhone.length) return;
-    setSending(true);
-    let sentCount = 0;
-    const baseUrl = settings.evolution_api_url.replace(/\/$/, "");
-    for (const c of withPhone.slice(0, 30)) {
-      const number = c.phone.replace(/\D/g, "");
-      const text = message.replace(/\{nombre\}/gi, c.name);
-      try {
-        const res = await fetch(`${baseUrl}/message/sendText/${settings.evolution_instance}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", apikey: settings.evolution_api_key },
-          body: JSON.stringify({ number, text }),
-        });
-        if (res.ok) sentCount++;
-      } catch { /* skip */ }
-    }
-    setSent(sentCount);
-    setDone(true);
-    setSending(false);
-    toast.success(`${sentCount} mensaje${sentCount !== 1 ? "s" : ""} enviado${sentCount !== 1 ? "s" : ""} vía WhatsApp`);
-  };
-
-  if (done) {
-    return (
-      <div className="mt-2 flex items-center gap-2 text-xs text-emerald-400">
-        <CheckCircle2 className="w-4 h-4" />{sent} mensajes enviados a clientes {segment}
-      </div>
-    );
-  }
+function SendWaSegmentCard({ initialSegment, onDone }: { initialSegment?: string; onDone: () => void }) {
+  const navigate = useNavigate();
 
   return (
     <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-3 space-y-3 text-sm">
       <p className="text-xs font-semibold text-green-400 uppercase tracking-wider flex items-center gap-1.5">
-        <MessageSquare className="w-3.5 h-3.5" />Campaña WhatsApp por segmento
+        <MessageSquare className="w-3.5 h-3.5" />Campaña WhatsApp
       </p>
-
-      {!hasEvolution && (
-        <p className="text-xs text-amber-400 bg-amber-500/10 rounded-lg px-2.5 py-2">
-          ⚠️ Configurá Evolution API en Ajustes para enviar WhatsApp.
-        </p>
-      )}
-
-      <div className="space-y-1.5">
-        <p className="text-[10px] text-muted-foreground font-medium">Segmento de clientes</p>
-        {!SEGMENTS.length && (
-          <p className="text-[10px] text-muted-foreground/70">
-            No hay segmentos creados todavía. Creá uno en Clientes → Segmentos.
-          </p>
-        )}
-        <div className="flex flex-wrap gap-1">
-          {SEGMENTS.map(s => (
-            <button
-              key={s}
-              onClick={() => setSegment(s)}
-              className={`text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors ${segment === s ? "bg-green-500/30 text-green-300 border border-green-500/40" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 text-xs">
-        {loading ? (
-          <span className="text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />Buscando…</span>
-        ) : (
-          <span className={withPhone.length > 0 ? "text-green-400 font-medium" : "text-muted-foreground"}>
-            {withPhone.length > 0
-              ? `${withPhone.length} cliente${withPhone.length !== 1 ? "s" : ""} con teléfono en segmento ${segment}`
-              : `No hay clientes ${segment} con teléfono registrado`}
-          </span>
-        )}
-      </div>
-
-      {withPhone.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-[10px] text-muted-foreground font-medium">Mensaje <span className="opacity-60">(usá {'{nombre}'} para personalizar)</span></p>
-          <textarea
-            value={message}
-            onChange={e => setMessage(e.target.value)}
-            rows={3}
-            maxLength={500}
-            className="w-full text-xs bg-muted border border-border rounded-md px-2.5 py-2 resize-none text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-green-500/50"
-          />
-          {withPhone.length > 0 && (
-            <p className="text-[10px] text-muted-foreground italic">
-              Preview: {message.replace(/\{nombre\}/gi, withPhone[0].name).slice(0, 80)}{message.length > 80 ? "…" : ""}
-            </p>
-          )}
-        </div>
-      )}
-
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        {initialSegment ? `Prepará una campaña para “${initialSegment}”` : "Prepará una campaña"} en el módulo de WhatsApp. Ahí se valida el consentimiento y la baja vigente justo antes del envío.
+      </p>
       <div className="flex gap-2">
         <Button
           size="sm"
           className="h-7 text-xs bg-green-600 hover:bg-green-500 text-white flex-1 gap-1"
-          disabled={!hasEvolution || !withPhone.length || !message.trim() || sending}
-          onClick={handleSend}
+          onClick={() => { onDone(); navigate("/whatsapp-campaigns"); }}
         >
-          {sending ? <Loader2 className="w-3 h-3 animate-spin" /> : <MessageSquare className="w-3 h-3" />}
-          {sending ? "Enviando…" : `Enviar a ${withPhone.length} cliente${withPhone.length !== 1 ? "s" : ""}`}
+          <MessageSquare className="w-3 h-3" />Abrir campañas seguras
         </Button>
         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
       </div>

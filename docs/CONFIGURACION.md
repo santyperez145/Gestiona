@@ -1,6 +1,6 @@
 # Qué falta configurar
 
-Estado al 2026-07-29. Lo que **no** esté acá, ya funciona sin tocar nada.
+Estado al 2026-08-21. Lo que **no** esté acá, ya funciona sin tocar nada.
 
 ## Resumen
 
@@ -13,7 +13,7 @@ Estado al 2026-07-29. Lo que **no** esté acá, ya funciona sin tocar nada.
 | Notificaciones push | ✅ VAPID cargado |
 | **IA** (chat, descripciones, insights, OCR) | ❌ Falta `ANTHROPIC_API_KEY` |
 | **Emails** (campañas, secuencias, facturas) | ❌ Falta `RESEND_API_KEY` |
-| **WhatsApp automático** | ❌ Falta Evolution API |
+| **WhatsApp automático** | ⚠️ Requiere una conexión Evolution por comercio o una configuración global de plataforma |
 | **Cobros con tarjeta** | ❌ Falta Stripe |
 | **MercadoPago** | ⚠️ Token por org en Integraciones; falta el webhook |
 | **Tiendanube** | ❌ Falta `TIENDANUBE_CLIENT_SECRET` |
@@ -67,7 +67,7 @@ Sin `ANTHROPIC_API_KEY`, cada función de IA responde con error. Sin
 
 | Secreto | Para qué |
 |---|---|
-| `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE` | WhatsApp automático (cumpleaños, digest diario, campañas) |
+| `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE` | Alternativa global de plataforma para WhatsApp. Un comercio carga su propia conexión desde Integraciones; URL y clave entran por Edge Function y nunca se guardan en `settings` ni se devuelven al navegador. |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Cobro de suscripciones del SaaS |
 | `MP_WEBHOOK_SECRET` | Validar el webhook de MercadoPago (el token va por org en Integraciones) |
 | `TIENDANUBE_CLIENT_SECRET` | Sincronización con Tiendanube |

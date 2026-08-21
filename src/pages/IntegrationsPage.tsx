@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import MercadoLibrePanel from "@/components/integrations/MercadoLibrePanel";
 import PaymentConnectionsPanel from "@/components/integrations/PaymentConnectionsPanel";
@@ -754,15 +755,23 @@ function TwilioSection({ orgId }: { orgId: string | undefined }) {
 
 type ConnectionState = "open" | "connecting" | "close" | "unknown";
 
+type EvolutionConnectionStatus = {
+  configured: boolean;
+  instance: string | null;
+  updated_at: string;
+};
+
 function EvolutionSection({ orgId }: { orgId: string | undefined }) {
   const { session } = useAuth();
 
-  // Config fields
+  // Las credenciales sólo existen mientras se envían al endpoint seguro. Nunca
+  // se hidratan desde la base ni se conservan después de guardar.
   const [apiUrl,   setApiUrl]   = useState("");
   const [apiKey,   setApiKey]   = useState("");
   const [instance, setInstance] = useState("gestiona");
-  const [keyVisible, setKeyVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [connection, setConnection] = useState<EvolutionConnectionStatus | null>(null);
 
   // Connection state
   const [connState,    setConnState]    = useState<ConnectionState>("unknown");
@@ -771,39 +780,53 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
   const [loadingState, setLoadingState] = useState(false);
   const [polling,      setPolling]      = useState(false);
 
-  // Load saved config from DB settings via a direct supabase query
-  useEffect(() => {
+  // La vista devuelve sólo estado e instancia; URL y API key no vuelven nunca
+  // al navegador, ni siquiera al administrador que las cargó.
+  const loadConnectionStatus = useCallback(async () => {
     if (!orgId) return;
-    supabase
-      .from("settings")
-      .select("evolution_api_url, evolution_api_key, evolution_instance")
+    const { data, error } = await supabase
+      .from("evolution_connection_status")
+      .select("configured,instance,updated_at")
       .eq("org_id", orgId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setApiUrl(data.evolution_api_url   || "");
-          setApiKey(data.evolution_api_key   || "");
-          setInstance(data.evolution_instance || "gestiona");
-        }
-      });
+      .maybeSingle();
+    if (error) {
+      setConnection(null);
+      return;
+    }
+    const next = data as EvolutionConnectionStatus | null;
+    setConnection(next);
+    if (next?.instance) setInstance(next.instance);
   }, [orgId]);
 
-  // Save config to settings DB
+  useEffect(() => {
+    void loadConnectionStatus();
+  }, [loadConnectionStatus]);
+
+  // La API key viaja una vez por una Edge Function autenticada y se persiste en
+  // una tabla sin policies de navegador. La respuesta sólo confirma el estado.
   const handleSave = async () => {
-    if (!orgId) return;
+    if (!orgId || !session) return;
+    if (!apiUrl.trim() || !apiKey.trim()) {
+      toast.error("Ingresá la URL HTTPS y la API key para guardar la conexión");
+      return;
+    }
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("settings")
-        .upsert({
-          org_id: orgId,
-          user_id: session!.user.id,
-          evolution_api_url:  apiUrl.trim(),
-          evolution_api_key:  apiKey.trim(),
-          evolution_instance: instance.trim() || "gestiona",
-        }, { onConflict: "org_id" });
+      const { data, error } = await supabase.functions.invoke("evolution-credentials", {
+        body: {
+          action: "save",
+          orgId,
+          apiUrl: apiUrl.trim(),
+          apiKey: apiKey.trim(),
+          instance: instance.trim() || "gestiona",
+        },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
       if (error) throw error;
-      toast.success("Configuración Evolution API guardada ✓");
+      setApiUrl("");
+      setApiKey("");
+      setConnection({ configured: true, instance: data?.instance || instance.trim() || "gestiona", updated_at: new Date().toISOString() });
+      toast.success("Conexión de WhatsApp guardada de forma segura");
     } catch (err: any) {
       toast.error("Error al guardar: " + err.message);
     } finally {
@@ -811,8 +834,32 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
     }
   };
 
+  const handleRevokeCredentials = async () => {
+    if (!orgId || !session || !confirm("¿Revocar la conexión de Evolution? Se detendrán los envíos hasta configurarla otra vez.")) return;
+    setRevoking(true);
+    try {
+      const { error } = await supabase.functions.invoke("evolution-credentials", {
+        body: { action: "revoke", orgId },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      setConnection(null);
+      setApiUrl("");
+      setApiKey("");
+      setInstance("gestiona");
+      setConnState("unknown");
+      setQrBase64(null);
+      setPolling(false);
+      toast.success("Conexión revocada");
+    } catch (err: any) {
+      toast.error("No se pudo revocar: " + (err.message || "reintentá en unos minutos"));
+    } finally {
+      setRevoking(false);
+    }
+  };
+
   // Invoke edge function proxy
-  const callEvolution = async (action: string) => {
+  const callEvolution = useCallback(async (action: string) => {
     if (!orgId || !session) return null;
     const { data, error } = await supabase.functions.invoke("evolution-qr", {
       body: { orgId, action },
@@ -820,11 +867,11 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
     });
     if (error) throw new Error(error.message);
     return data;
-  };
+  }, [orgId, session]);
 
   // Check connection state
-  const checkState = async () => {
-    if (!apiUrl || !apiKey) return;
+  const checkState = useCallback(async () => {
+    if (!connection?.configured) return;
     setLoadingState(true);
     try {
       const data = await callEvolution("status");
@@ -836,12 +883,12 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
     } finally {
       setLoadingState(false);
     }
-  };
+  }, [callEvolution, connection?.configured]);
 
   // Get QR code
   const getQR = async () => {
-    if (!apiUrl || !apiKey) {
-      toast.error("Primero guardá la URL y API Key de Evolution API");
+    if (!connection?.configured) {
+      toast.error("Primero guardá la conexión de Evolution API");
       return;
     }
     setLoadingQR(true);
@@ -907,14 +954,14 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
       } catch { /* silent */ }
     }, 4000);
     return () => clearInterval(id);
-  }, [polling]);
+  }, [callEvolution, polling]);
 
-  // Check state on mount if config present
+  // Consultar estado sólo cuando una conexión sanitizada confirma que existe.
   useEffect(() => {
-    if (apiUrl && apiKey) checkState();
-  }, [apiUrl, apiKey]);
+    void checkState();
+  }, [checkState]);
 
-  const isConfigured = !!(apiUrl && apiKey);
+  const isConfigured = !!connection?.configured;
   const stateColor = {
     open: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
     connecting: "bg-amber-500/20 text-amber-400 border-amber-500/40",
@@ -952,10 +999,16 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
         </div>
 
         {isConfigured && (
-          <Button size="sm" variant="ghost" onClick={checkState} disabled={loadingState} className="gap-1.5 text-xs text-muted-foreground">
-            {loadingState ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-            Estado
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="ghost" onClick={checkState} disabled={loadingState} className="gap-1.5 text-xs text-muted-foreground">
+              {loadingState ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Estado
+            </Button>
+            <Button size="sm" variant="ghost" onClick={handleRevokeCredentials} disabled={revoking} className="gap-1.5 text-xs text-destructive hover:text-destructive">
+              {revoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unplug className="w-3.5 h-3.5" />}
+              Revocar
+            </Button>
+          </div>
         )}
       </div>
 
@@ -970,12 +1023,13 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
         <p>2. Copiá la URL pública (ej: <code className="bg-muted px-1 rounded">https://mi-evolution.up.railway.app</code>).</p>
         <p>3. La API Key la seteás como variable de entorno <code className="bg-muted px-1 rounded">AUTHENTICATION_API_KEY</code> en el deploy.</p>
         <p>4. Pegá ambas acá, guardá, y hacé clic en <strong className="text-foreground">Conectar WhatsApp</strong> para escanear el QR.</p>
+        <p className="text-emerald-400/90">La clave se envía una sola vez al servicio seguro y no vuelve a mostrarse en el navegador.</p>
       </div>
 
       {/* Config fields */}
       <div className="space-y-3 pb-12">
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">URL de Evolution API</label>
+          <label className="text-xs text-muted-foreground mb-1 block">URL de Evolution API {isConfigured ? "nueva" : ""}</label>
           <Input
             value={apiUrl}
             onChange={e => setApiUrl(e.target.value)}
@@ -985,23 +1039,15 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
         </div>
 
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">API Key (AUTHENTICATION_API_KEY)</label>
-          <div className="relative">
-            <Input
-              type={keyVisible ? "text" : "password"}
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-              placeholder="••••••••••••••••••••••••••••••••"
-              className="bg-muted border-border font-mono text-sm pr-9"
-            />
-            <button
-              type="button"
-              onClick={() => setKeyVisible(v => !v)}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              {keyVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            </button>
-          </div>
+          <label className="text-xs text-muted-foreground mb-1 block">API Key (AUTHENTICATION_API_KEY) {isConfigured ? "nueva" : ""}</label>
+          <Input
+            type="password"
+            value={apiKey}
+            onChange={e => setApiKey(e.target.value)}
+            placeholder="••••••••••••••••••••••••••••••••"
+            autoComplete="new-password"
+            className="bg-muted border-border font-mono text-sm"
+          />
         </div>
 
         <div>
@@ -1019,7 +1065,7 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
 
         <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold gap-1.5 w-full sm:w-auto">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          Guardar configuración
+          {isConfigured ? "Reemplazar conexión" : "Guardar conexión"}
         </Button>
       </div>
 

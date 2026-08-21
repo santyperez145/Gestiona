@@ -7,10 +7,11 @@
  *   - "create"  → POST /instance/create              (crea instancia nueva)
  *   - "logout"  → DELETE /instance/logout/{instance}
  *
- * Las credenciales se leen de la tabla settings de la org.
+ * Las credenciales se leen del almacén privado de la organización.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,25 +69,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Load credentials from settings
-    const { data: settings } = await admin
-      .from("settings")
-      .select("evolution_api_url, evolution_api_key, evolution_instance")
-      .eq("org_id", orgId)
-      .maybeSingle();
+    const evolution = await getEvolutionCredentials(admin, orgId);
 
-    const baseUrl  = settings?.evolution_api_url  || Deno.env.get("EVOLUTION_API_URL")  || "";
-    const apiKey   = settings?.evolution_api_key   || Deno.env.get("EVOLUTION_API_KEY")  || "";
-    const instance = settings?.evolution_instance  || Deno.env.get("EVOLUTION_INSTANCE") || "gestiona";
-
-    if (!baseUrl || !apiKey) {
+    if (!evolution) {
       return new Response(JSON.stringify({ error: "Evolution API no configurada" }), {
         status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const base = baseUrl.replace(/\/$/, "");
-    const headers = { apikey: apiKey, "Content-Type": "application/json" };
+    const base = evolution.apiUrl;
+    const headers = { apikey: evolution.apiKey, "Content-Type": "application/json" };
+    const instance = evolution.instance;
 
     let result: Response;
 

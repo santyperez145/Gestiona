@@ -8,6 +8,7 @@
 //                     create_task, create_purchase_order, webhook
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
+import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -434,18 +435,9 @@ async function actionWhatsApp(
   customMsg: string,
   triggerType: string,
 ): Promise<number> {
-  // Load Evolution API credentials from org settings
-  const { data: settings } = await supabase
-    .from("settings")
-    .select("evolution_api_url, evolution_api_key, evolution_instance")
-    .eq("org_id", orgId)
-    .maybeSingle();
+  const evolution = await getEvolutionCredentials(supabase, orgId);
 
-  const baseUrl = settings?.evolution_api_url?.replace(/\/$/, "");
-  const apiKey = settings?.evolution_api_key;
-  const instance = settings?.evolution_instance;
-
-  if (!baseUrl || !apiKey || !instance) {
+  if (!evolution) {
     console.warn(`run-automation-flows: Evolution API not configured for org=${orgId} — skipping WhatsApp action`);
     return 0;
   }
@@ -461,11 +453,11 @@ async function actionWhatsApp(
     const text = interpolate(customMsg || defaultWhatsAppMsg(triggerType), subject);
 
     try {
-      const res = await fetch(`${baseUrl}/message/sendText/${instance}`, {
+      const res = await fetch(`${evolution.apiUrl}/message/sendText/${evolution.instance}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          apikey: apiKey,
+          apikey: evolution.apiKey,
         },
         body: JSON.stringify({ number, text }),
         signal: AbortSignal.timeout(15_000),
