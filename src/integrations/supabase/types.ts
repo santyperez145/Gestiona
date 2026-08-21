@@ -31523,6 +31523,7 @@ export type Database = {
           connection_updated_at: string | null
           credential_current: boolean | null
           display_name: string | null
+          evidence_status: string | null
           has_connection: boolean | null
           integration_key: string | null
           last_event: string | null

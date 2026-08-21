@@ -48,6 +48,15 @@ const INTEGRATION_STATUS_META: Record<string, { label: string; className: string
   not_connected: { label: 'Sin conectar', className: 'text-muted-foreground bg-muted/40 border-border' },
 };
 
+const INTEGRATION_EVIDENCE_META: Record<string, string> = {
+  recent_runtime: 'Ejecución reciente',
+  runtime_warning: 'Última ejecución con alerta',
+  runtime_error: 'Última ejecución fallida',
+  stale_runtime: 'Evidencia vencida',
+  configured_only: 'Sólo configuración',
+  not_connected: 'Sin conexión',
+};
+
 function formatDate(value: string | null | undefined) {
   if (!value) return 'Sin dato';
   const date = new Date(value);
@@ -194,6 +203,16 @@ export default function PlatformMerchantPage() {
         title: 'Revisar una integración',
         detail: `${integrationsAtRisk.map(integration => integration.display_name || integration.integration_key).join(', ')} requiere atención según la última evidencia disponible.`,
         tone: 'warning',
+      });
+    }
+    const withoutRecentRuntimeEvidence = snapshot.integrations.filter(integration =>
+      integration.has_connection && ['configured_only', 'stale_runtime'].includes(integration.evidence_status || ''),
+    );
+    if (withoutRecentRuntimeEvidence.length > 0) {
+      steps.push({
+        title: 'Verificar evidencia operativa',
+        detail: `${withoutRecentRuntimeEvidence.map(integration => integration.display_name || integration.integration_key).join(', ')} tiene configuración registrada, pero no una ejecución reciente verificada.`,
+        tone: 'info',
       });
     }
     if (steps.length === 0) {
@@ -405,6 +424,7 @@ export default function PlatformMerchantPage() {
               <div className="grid gap-3 lg:grid-cols-2">
                 {snapshot.integrations.map(integration => {
                   const state = INTEGRATION_STATUS_META[integration.operational_status || 'not_connected'] || INTEGRATION_STATUS_META.not_connected;
+                  const evidence = INTEGRATION_EVIDENCE_META[integration.evidence_status || 'not_connected'] || 'Sin evidencia';
                   return (
                     <article key={integration.integration_key} className="rounded-[8px] border border-border/60 bg-muted/15 p-3.5 space-y-3">
                       <div className="flex items-start gap-3">
@@ -420,6 +440,7 @@ export default function PlatformMerchantPage() {
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <Metric label="Conexión" value={integration.has_connection ? 'Configurada' : 'Pendiente'} />
                         <Metric label="Credencial" value={integration.has_connection ? (integration.credential_current ? 'Vigente' : 'A revisar') : 'Sin evidencia'} />
+                        <Metric label="Evidencia" value={evidence} />
                         <Metric label="Último evento" value={integration.last_event || 'Sin evidencia'} />
                         <Metric label="Última ejecución" value={formatDateTime(integration.last_runtime_at)} />
                       </div>
@@ -430,7 +451,7 @@ export default function PlatformMerchantPage() {
             )}
           </section>
 
-          <p className="text-[11px] text-muted-foreground/70 px-1">“Conectada” significa que hay configuración registrada, no que el proveedor esté disponible en este instante. Los health checks activos y los detalles de webhooks siguen en el roadmap.</p>
+          <p className="text-[11px] text-muted-foreground/70 px-1">“Conectada” significa que hay configuración registrada, no que el proveedor esté disponible en este instante. “Ejecución reciente” es la última evidencia registrada por un flujo real, no un ping activo. Los health checks activos y los detalles de webhooks siguen en el roadmap.</p>
         </TabsContent>
 
         <TabsContent value="context" className="space-y-4">

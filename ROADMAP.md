@@ -72,7 +72,7 @@ fecha y el comando o consulta que los produjo; no se reemplazan en silencio.
 | Señal | Estado al 2026-08-21 |
 |---|---|
 | Edge Functions | 63 |
-| Tests unitarios | 1.217, `npm test -- --maxWorkers=1 --fileParallelism=false` (2026-08-21) |
+| Tests unitarios | 1.220, `npm test -- --maxWorkers=1 --fileParallelism=false` (2026-08-21) |
 | Organizaciones / comercios que venden de verdad | 4 / 1 |
 | Registros POS / tiendas online | 34 / 6 |
 | Eventos de dominio / asientos del ledger | 10 / 0 |
@@ -111,7 +111,9 @@ en [docs/COMPARACION.md](docs/COMPARACION.md), con corte 2026-08-21.
 - Merchant 360 ya permite abrir una organización desde el listado y leer, en
   tabs persistentes, negocio, canales, activación, contexto y evidencia
   sanitizada de Mercado Pago, Mercado Libre, ARCA y Evolution API. Una conexión
-  registrada no se presenta como disponibilidad actual del proveedor.
+  registrada no se presenta como disponibilidad actual: distingue configuración,
+  ejecución reciente, alerta, error o evidencia vencida sin fingir un ping al
+  proveedor.
 - La cola de Operaciones prioriza fallos reales de entregas, webhooks de
   MercadoLibre, intentos técnicos de pago y cron, sin exponer payloads ni
   errores crudos. Sólo un superadmin puede reintentar una entrega descartada;
@@ -248,7 +250,7 @@ porque produce la evidencia de salida de una fase.
 | 3 | Conciliación de stock | Bloqueado externo | conteo físico | ajuste trazable y Kardex sin diferencias |
 | 4 | Segundo comercio | Siguiente | disponibilidad del negocio | primera venta sin SQL ni corrección manual |
 | 5 | Matriz de pagos y guardia Edge | En curso, 2026-08-21 | escenarios de proveedor | checkout/reintegro/webhook, ARCA y recepción parcial ya tienen guardas; 63 funciones chequeadas. Falta evidencia sandbox/producción y captura diferida sólo si un proveedor la incorpora |
-| 6 | Merchant 360 | Base ampliada, 2026-08-21 | señales de Core confiables | ficha operativa por organización con riesgos, próximos pasos y evidencia de conexión |
+| 6 | Merchant 360 | Base ampliada, 2026-08-21 | señales de Core confiables | ficha operativa por organización con riesgos, próximos pasos y evidencia de conexión clasificada por frescura |
 | 7 | Registro de integraciones 2 | En curso, 2026-08-21 | health checks activos y eventos | versión, scopes, webhook, error y plan por conexión |
 | 8 | Centro de operaciones y lanzamiento | Base ampliada, 2026-08-21 | uso contra fallos reales | cola priorizada, reintento auditado de entrega descartada y pausa reversible del Brick por comercio/global |
 | 9 | Margen por canal | Pendiente | costos y comisiones reales | comparación de contribución por orden y canal |
@@ -267,8 +269,8 @@ Core ni mostrar secretos.
 | Slice | Estado | Próxima prueba |
 |---|---|---|
 | Platform Overview | Hecho, 2026-08-21 | sumar pagos, webhooks y colas como señales de primera clase |
-| Merchant 360 | Base ampliada, 2026-08-21 | probar la ficha con una organización real y sumar health checks activos |
-| Integration Registry | Base ampliada, 2026-08-21 | evidencia por comercio de conexión, vigencia y último evento; faltan health check, versión, webhook y plan operativos |
+| Merchant 360 | Base ampliada, 2026-08-21 | probar la ficha con una organización real; distingue evidencia de runtime reciente, alerta, error, vencida o sólo configuración sin declarar disponibilidad del proveedor |
+| Integration Registry | Base ampliada, 2026-08-21 | evidencia por comercio de conexión, vigencia y último evento; faltan health check activo, versión, webhook y plan operativos |
 | Credential Control | Base hecha, 2026-08-21 | verificar con una organización real la rotación/revocación de Evolution sin exponer su valor |
 | Billing y comisiones | Pendiente | conciliar comisión, suscripción y venta |
 | Operations Queue | Base hecha, 2026-08-21 | verificar un reintento real de entrega y sumar resolución controlada de webhook/sync |
