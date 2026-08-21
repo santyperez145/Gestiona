@@ -6,7 +6,10 @@
  */
 
 type RpcAdmin = {
-  rpc: (name: string, args: Record<string, unknown>) => Promise<{
+  // El SDK devuelve builders thenable, no `Promise` nativos. A `await` le
+  // alcanza con PromiseLike y así se mantiene compatible entre SDKs de las
+  // Edge Functions sin aflojar el contrato de la respuesta del RPC.
+  rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{
     data?: unknown;
     error?: { message?: string } | null;
   }>;

@@ -37,7 +37,11 @@ export async function recordPaymentTransaction(
   // Las dos funciones construyen el cliente service_role de Supabase. Mantener
   // esta interfaz mínima permite compartir el flujo sin acoplarlo a la versión
   // de `@supabase/supabase-js` que cada Edge Function importa desde esm.sh.
-  admin: { rpc: (name: string, args: Record<string, unknown>) => Promise<{ error: unknown }> },
+  // `@supabase/supabase-js` expone RPC como un builder thenable, no como un
+  // `Promise` nativo. `PromiseLike` conserva el contrato que necesitamos y
+  // permite reutilizar este helper desde Edge Functions con versiones distintas
+  // del SDK sin ocultar errores de tipo.
+  admin: { rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ error: unknown }> },
   args: {
     orgId: string;
     paymentId: string;

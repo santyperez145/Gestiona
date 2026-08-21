@@ -204,15 +204,20 @@ Deno.serve(async (req) => {
         memByUser[m.user_id].push({ role: m.role, orgName: m.organization?.name });
       });
 
-      const users = (authUsers?.users || []).map((u) => ({
+      const users = (authUsers?.users || []).map((u) => {
+        // `banned_until` existe en la respuesta administrativa de Auth, pero
+        // no en la versión de tipo que expone este SDK de Edge.
+        const bannedUntil = (u as typeof u & { banned_until?: string | null }).banned_until;
+        return {
         id: u.id,
         email: u.email,
         name: u.user_metadata?.full_name || u.user_metadata?.name || "",
         createdAt: u.created_at,
         lastSignIn: u.last_sign_in_at,
-        banned: u.banned_until ? new Date(u.banned_until) > new Date() : false,
+        banned: bannedUntil ? new Date(bannedUntil) > new Date() : false,
         memberships: memByUser[u.id] || [],
-      }));
+        };
+      });
 
       return json({ ok: true, users });
     }
@@ -605,6 +610,7 @@ Deno.serve(async (req) => {
         inviteLink = linkData?.properties?.action_link;
       }
 
+      if (!orgId) return json({ error: "No se pudo determinar la organización creada" }, 500);
       await logAction("createOrg", { orgId, userId: ownerUserId, details: { name, ownerEmail, planId, trialDays } });
       return json({ ok: true, orgId, ownerUserId, inviteLink, existing: !!existing });
     }

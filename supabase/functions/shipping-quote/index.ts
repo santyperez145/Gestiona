@@ -68,6 +68,19 @@ interface CarrierRow {
   default_origin: Record<string, string>;
 }
 
+interface StoreShippingConfig {
+  id: string;
+  org_id: string;
+  is_active: boolean;
+  shipping_mode: string | null;
+  shipping_cost: number | null;
+  free_shipping_above: number | null;
+  pickup_enabled: boolean;
+  pickup_address: string | null;
+  pickup_instructions: string | null;
+  default_item_weight_kg: number | null;
+}
+
 // ── Tarifario propio (espejo de src/lib/shippingCalc.ts) ────────────────────
 
 function pickBracket(rates: Rate[], weightKg: number): Rate | null {
@@ -236,7 +249,7 @@ Deno.serve(async (req) => {
     );
 
     // El slug es la única entrada de confianza para resolver el tenant
-    const { data: store } = await admin
+    const { data: storeData, error: storeError } = await admin
       .from("ecommerce_stores")
       .select(
         "id, org_id, is_active, shipping_mode, shipping_cost, free_shipping_above, " +
@@ -244,6 +257,15 @@ Deno.serve(async (req) => {
       )
       .eq("slug", storeSlug)
       .maybeSingle();
+
+    if (storeError) {
+      console.error("shipping-quote: no se pudo resolver la tienda", storeError);
+      return json({ error: "No se pudo cotizar el envío" }, 503);
+    }
+    // El cliente no lleva el schema de PostgREST, por lo que Deno conserva una
+    // unión de error aun después de revisar `storeError`. Esta forma es la
+    // interfaz pública exacta seleccionada arriba, nunca la respuesta cruda.
+    const store = storeData as unknown as StoreShippingConfig | null;
 
     if (!store || !store.is_active) return json({ error: "Tienda no encontrada" }, 404);
 

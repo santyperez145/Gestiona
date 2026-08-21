@@ -86,6 +86,7 @@ Deno.serve(async (req) => {
       const resuelto = await resolverCredencialesAfip(supabase, body.org_id);
       if (resuelto.error) return err(resuelto.error);
       const cred = resuelto.cred;
+      if (!cred) return err("No se pudo resolver la credencial de ARCA");
 
       const isProd = cred.environment === "produccion";
       const wsaaUrl = isProd
@@ -147,6 +148,7 @@ Deno.serve(async (req) => {
       const resuelto = await resolverCredencialesAfip(supabase, body.org_id);
       if (resuelto.error) return err(resuelto.error);
       const cred = resuelto.cred;
+      if (!cred) return err("No se pudo resolver la credencial de ARCA");
 
       const isProd = cred.environment === "produccion";
       const wsaaUrl = isProd
@@ -231,6 +233,7 @@ Deno.serve(async (req) => {
     const resuelto = await resolverCredencialesAfip(supabase, invoice.org_id);
     if (resuelto.error) return err(resuelto.error);
     const cred = resuelto.cred;
+    if (!cred) return err("No se pudo resolver la credencial de ARCA");
 
     const isProd = cred.environment === "produccion";
     const wsaaUrl = isProd
@@ -241,7 +244,7 @@ Deno.serve(async (req) => {
       : "https://wswhomo.afip.gov.ar/wsfev1/service.asmx";
 
     const puntoVenta = cred.punto_venta || 1;
-    const tipoCbte = invoice.tipo_comprobante || defaultTipoCbte(cred.tipo_emisor);
+    const tipoCbte = invoice.tipo_comprobante || defaultTipoCbte(cred.tipo_emisor ?? "");
     providerEnvironment = isProd ? "produccion" : "homologacion";
 
     // FECompUltimoAutorizado is scoped by point of sale + receipt type. The

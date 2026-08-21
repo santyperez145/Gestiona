@@ -357,7 +357,11 @@ async function processBrickPayment(
       status: "error",
       externalId: paymentId,
       reason: "La respuesta del proveedor no coincide con la orden",
-      raw: { kind: "payment", status: payment.status, external_reference: payment.external_reference },
+      raw: {
+        kind: "payment",
+        status: payment?.status,
+        external_reference: payment?.external_reference,
+      },
     });
     return json({ error: "No pudimos validar el cobro. Revisá el estado del pedido antes de reintentar." }, 502);
   }

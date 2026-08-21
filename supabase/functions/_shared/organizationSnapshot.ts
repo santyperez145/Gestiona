@@ -197,7 +197,10 @@ async function collectDirectTable(
 
   if (error) return failedTable(table, error.code ? `No se pudo leer la tabla (${error.code})` : "No se pudo leer la tabla");
   if (count === null) return failedTable(table, "No se pudo verificar la cantidad total de filas");
-  return tableResult(table, (data ?? []) as Record<string, unknown>[], count);
+  // El cliente sin schema generado expone una unión con su error genérico aun
+  // después de revisar `error`. El contrato del snapshot es deliberadamente
+  // estructural y no deja que esa unión convierta una lectura fallida en vacío.
+  return tableResult(table, (data ?? []) as unknown as Record<string, unknown>[], count);
 }
 
 async function collectRelatedTable(

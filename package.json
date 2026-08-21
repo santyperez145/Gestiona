@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check:functions": "node scripts/check-edge-functions.mjs",
     "deploy:functions": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-functions.ps1",
     "deploy:functions:sh": "bash scripts/deploy-functions.sh",
     "db": "node scripts/db.mjs",

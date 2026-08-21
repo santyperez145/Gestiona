@@ -29,6 +29,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Las Edge Functions manejan cobros, webhooks y facturación, pero quedan
+      # fuera de tsconfig.app.json porque corren en Deno. Su lista se descubre
+      # desde el filesystem: una función nueva no puede escapar del gate.
+      - name: Setup Deno for Edge Functions
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.5
+
+      - name: Type check Edge Functions
+        run: npm run check:functions
+
       # Bloqueante: falla el CI ante cualquier ERROR de eslint.
       # Los warnings (deuda de exhaustive-deps) todavía no bloquean.
       - name: Lint

@@ -14,6 +14,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
 
+// Disponible en Supabase Edge Runtime; Deno local no lo declara por defecto.
+declare const EdgeRuntime: {
+  waitUntil: (promise: Promise<unknown>) => void;
+};
+
 const API = "https://api.mercadolibre.com";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

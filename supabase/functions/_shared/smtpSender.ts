@@ -76,7 +76,10 @@ async function sendViaSmtp(cfg: SmtpConfig, payload: EmailPayload): Promise<void
       }));
     }
 
-    await client.send(mail as Parameters<typeof client.send>[0]);
+    // denomailer declara un tipo más estricto que el objeto que construimos
+    // dinámicamente al agregar adjuntos. Los campos requeridos se arman arriba;
+    // el doble cast sólo cruza esa diferencia de declaraciones de la librería.
+    await client.send(mail as unknown as Parameters<typeof client.send>[0]);
   }
 
   await client.close();

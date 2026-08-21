@@ -113,11 +113,19 @@ interface CoachContext {
   similarWins: { count: number; avgDays: number; dominantReason: string } | null;
 }
 
+// El SDK se importa desde esm.sh y cambia sus genéricos entre versiones. Este
+// copiloto sólo necesita iniciar consultas por relación; tipar ese límite evita
+// acoplar la lógica de negocio a un schema generado que no se distribuye a Deno.
+type ContextClient = {
+  // deno-lint-ignore no-explicit-any
+  from: (relation: string) => any;
+};
+
 function dayDiff(from: string): number {
   return Math.floor((Date.now() - new Date(from).getTime()) / 86_400_000);
 }
 
-async function buildContext(sb: ReturnType<typeof createClient>, dealId: string): Promise<CoachContext> {
+async function buildContext(sb: ContextClient, dealId: string): Promise<CoachContext> {
   // 1. Deal
   const { data: deal, error: dealErr } = await sb
     .from("deals")
@@ -125,7 +133,7 @@ async function buildContext(sb: ReturnType<typeof createClient>, dealId: string)
     .eq("id", dealId)
     .maybeSingle();
   if (dealErr || !deal) throw new Error("Deal no encontrado");
-  const d = deal as Deal;
+  const d = deal as unknown as Deal;
 
   // 2. Activities (last 20)
   const { data: acts } = await sb

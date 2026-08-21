@@ -72,13 +72,26 @@ fecha y el comando o consulta que los produjo; no se reemplazan en silencio.
 | Señal | Estado al 2026-08-21 |
 |---|---|
 | Edge Functions | 63 |
-| Tests unitarios | 1.211, `npm test` (2026-08-21) |
+| Tests unitarios | 1.213, `npm test -- --maxWorkers=1 --fileParallelism=false` (2026-08-21) |
 | Organizaciones / comercios que venden de verdad | 4 / 1 |
 | Registros POS / tiendas online | 34 / 6 |
 | Eventos de dominio / asientos del ledger | 10 / 0 |
 | Facturas emitidas por la app / CAE | 0 / 0 |
 | Pagos reales de prueba | 2 cobros de ARS 1 |
 | Control Plane | Overview, catálogo de integraciones, Merchant 360 y cola operativa sanitizada |
+
+### Comparativa que orienta el producto
+
+La comparación no se usa para declarar ganadores: se usa para no construir una
+paridad como si fuera un diferencial. Las fuentes y el detalle verificable viven
+en [docs/COMPARACION.md](docs/COMPARACION.md), con corte 2026-08-21.
+
+| Capacidad | Gestiona hecho y medido | Referencia de mercado verificada | Decisión |
+|---|---|---|---|
+| POS + stock unificado | ✅ PWA offline y movimientos con triggers | Tiendanube, Shopify y Odoo ya integran POS e inventario | Paridad necesaria; no venderla como ventaja única |
+| Facturación argentina | 🟡 flujo ARCA nativo y delegado; 0 facturas reales | Tiendanube integra facturación mediante apps de terceros | Diferencial posible sólo después de emitir en producción |
+| Margen por canal | ✅ Core reúne costo landed, comisión, envío e IVA | No hay benchmark exhaustivo que permita afirmar exclusividad | Medir uso y mejora de margen antes de usarlo como promesa comercial |
+| Confiabilidad server-side | ✅ 63 Edge Functions chequeadas por Deno en CI | Estándar mínimo de operación, no feature de marketing | Reduce riesgo de cobro, webhook, envío y fiscal antes del segundo comercio |
 
 ### Lo que ya está
 
@@ -103,6 +116,8 @@ fecha y el comando o consulta que los produjo; no se reemplazan en silencio.
   MercadoLibre, intentos técnicos de pago y cron, sin exponer payloads ni
   errores crudos. Sólo un superadmin puede reintentar una entrega descartada;
   pagos no se reintentan desde plataforma y el reintento deja auditoría.
+- Las 63 Edge Functions pasan `deno check` desde CI. El descubrimiento sale del
+  filesystem, por lo que una función nueva no puede quedar fuera del gate.
 
 ### Lo que todavía no se puede afirmar
 
@@ -136,6 +151,8 @@ Debe quedar resuelto:
 - Pagos: matriz de idempotencia para checkout, captura, reintegro, webhook,
   factura y recepción de compra; cada resultado debe ser repetible sin duplicar
   dinero ni stock.
+- Funciones server-side: cada Edge Function debe pasar el chequeo de Deno en
+  CI; cobros, webhooks, cotización y facturación no quedan fuera del typecheck.
 - Operación observable: webhooks, crons, errores de pago y documentos con
   estado, reintento y responsable visible.
 
@@ -223,7 +240,7 @@ porque produce la evidencia de salida de una fase.
 | 2 | Publicación legal | Bloqueado externo | razón social, CUIT y domicilio | páginas publicadas y visibles desde la tienda |
 | 3 | Conciliación de stock | Bloqueado externo | conteo físico | ajuste trazable y Kardex sin diferencias |
 | 4 | Segundo comercio | Siguiente | disponibilidad del negocio | primera venta sin SQL ni corrección manual |
-| 5 | Matriz de pagos | Pendiente | escenarios de proveedor | reintentos sin doble cobro, reintegro ni documento duplicado |
+| 5 | Matriz de pagos y guardia Edge | En curso, 2026-08-21 | escenarios de proveedor | checkout/reintegro/webhook ya idempotentes y 63 funciones chequeadas; faltan captura, factura y recepción de compra con evidencia sandbox |
 | 6 | Merchant 360 | Base ampliada, 2026-08-21 | señales de Core confiables | ficha operativa por organización con riesgos, próximos pasos y evidencia de conexión |
 | 7 | Registro de integraciones 2 | En curso, 2026-08-21 | health checks activos y eventos | versión, scopes, webhook, error y plan por conexión |
 | 8 | Centro de operaciones | Base hecha, 2026-08-21 | uso contra fallos reales | cola priorizada y reintento auditado de entrega descartada |
@@ -273,6 +290,8 @@ insuficiente y dato desactualizado. "Sin evidencia" no significa "todo bien".
 - No se prueba modificando datos reales sin respaldo y limpieza comprobable.
 - Una migración no se considera terminada si el camino real no fue verificado
   con el rol que lo usará.
+- Toda Edge Function pasa `npm run check:functions`; el script descubre los
+  entrypoints del filesystem y Deno valida imports remotos y el Edge Runtime.
 
 ## 7. Experiencia de producto
 
@@ -335,7 +354,7 @@ Cada slice sigue este orden:
 3. migración idempotente y tipos regenerados;
 4. verificación con base y rol reales, sin dejar datos de prueba;
 5. UI conectada a la fuente de verdad con estados completos;
-6. `typecheck`, `lint`, tests y `build` en verde;
+6. `typecheck`, `check:functions`, `lint`, tests y `build` en verde;
 7. navegador contra `localhost` cuando exista `.env`;
 8. actualizar este roadmap con estado, fecha y evidencia;
 9. commit descriptivo y push explícito.
@@ -345,6 +364,7 @@ Puerta local:
 ```bash
 set NODE_OPTIONS=--max-old-space-size=6144
 npm run typecheck
+npm run check:functions
 npm run lint
 npm test
 npm run build

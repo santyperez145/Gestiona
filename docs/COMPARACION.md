@@ -67,8 +67,12 @@ proyecto nació importando.
 
 Eso sigue siendo cierto y ahora tiene respaldo contable: desde H8 el ledger de
 partida doble registra la venta de mostrador con costo de mercadería, IVA y
-comisiones. Ninguna de las plataformas de tienda tiene un libro contable adentro
-(❓ no verificado exhaustivamente, pero no aparece en su documentación pública).
+comisiones. La comparación correcta no es decir que nadie más lleva
+contabilidad: Odoo documenta partida doble y asientos desde POS. Entre las
+plataformas de tienda relevadas no encontramos un ledger interno comparable
+(❓ relevamiento no exhaustivo). El diferencial a probar es la combinación
+argentina de costo landed, comisión, envío e IVA por canal, no la existencia
+aislada de un libro contable.
 
 ---
 
@@ -89,9 +93,9 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | Políticas RLS | **366** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
 | Migraciones registradas | **368** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate` |
 | Cron jobs | **20** | ✅ 9.227 corridas exitosas y **0 fallidas** en 7 días |
-| Edge Functions | **62** | ✅ `ls supabase/functions` |
+| Edge Functions | **63** | ✅ `npm run check:functions`, 2026-08-21 |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **1.201** | ✅ `npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21 |
+| Tests unitarios | **1.213** | ✅ `npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -129,7 +133,7 @@ antes de conectarse— pero el invariante documentado quedó desactualizado.
 | Suscripciones cobradas | **0** | ✅ 3 registros, las 3 en `past_due` |
 
 ⚠️ **Este es el dato que ordena todo el documento.** Tenemos una plataforma de
-282 tablas y 1.201 tests sirviendo a **un solo comercio real**. Tiendanube tiene
+282 tablas y 1.213 tests sirviendo a **un solo comercio real**. Tiendanube tiene
 ❓ más de 130.000 tiendas activas (fuente secundaria: blog de un competidor,
 [tiendli.com](https://tiendli.com/blog/tiendanube-vs-empretienda-vs-shopify-vs-tiendli/),
 2026 — **verificar antes de citarlo**). Shopify tiene ✅ 2.898.351 tiendas vivas
@@ -217,6 +221,23 @@ el plan, **además** de lo que cobre la pasarela
 consultado 2026-08-21). Nuestra regla base está en **5%**, que es entre 2,5× y
 7× más caro. 📌 Eso hay que revisarlo antes de vender: hoy no es competitivo.
 
+### 3.5 Estándar internacional: no confundir paridad con ventaja
+
+| Capacidad | Shopify | Odoo | Gestiona | Lectura honesta |
+|---|---|---|---|---|
+| Inventario compartido entre POS, tienda y ubicaciones | ✅ documentado | ✅ documentado | ✅ movimientos en base y `location_stock` | Es paridad obligatoria, no un claim diferencial. |
+| POS cuando se corta la conexión | ❓ no se relevó aquí | ✅ documentado | ✅ PWA offline | Diferencia potencial que requiere uso real, no una promesa. |
+| Contabilidad de partida doble ligada a venta/POS | ❓ no se relevó aquí | ✅ documentado | 🟡 conectada, 0 asientos reales | Odoo es el estándar funcional; Gestiona no puede declararse superior. |
+| Margen con costo landed, comisión, envío e IVA | ❓ sin relevamiento comparable | ❓ sin relevamiento comparable | ✅ Core modelado | Hipótesis de posicionamiento: se valida con decisiones de precio y margen de comercios reales. |
+
+Fuentes oficiales consultadas el 2026-08-21: Shopify documenta inventario
+sincronizado entre POS, tienda y ubicaciones
+([Shopify POS](https://www.shopify.com/pos/features)); Odoo documenta POS que
+continúa temporalmente offline, registra movimientos de stock y consolida los
+locales ([Odoo POS](https://www.odoo.com/documentation/18.0/applications/sales/point_of_sale.html))
+y su partida doble y asientos de POS ([Odoo Accounting](https://www.odoo.com/documentation/18.0/applications/finance/accounting.html)).
+No se infiere la ausencia de una función cuando no se la relevó.
+
 ---
 
 ## 4. Precios — lo que cobran ellos
@@ -276,25 +297,22 @@ necesita un SaaS de 4 organizaciones. No es el cuello de botella.
 | **Observabilidad** | ✅ Sentry en el front. 🔴 Sin trazas, sin métricas, sin OpenTelemetry | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | ✅ **Ninguno** | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ 3 jobs: `build` (lint+typecheck+build), `test` (1.201 tests) y `security` (`npm audit`). ⚠️ **Sin `deno check` sobre las 62 Edge Functions** y sin E2E | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟠 Medio |
+| **CI** | ✅ 3 jobs: `build` (Deno para 63 Edge Functions + lint+typecheck+build), `test` (1.213 tests) y `security` (`npm audit`). ❓ sin E2E bloqueante | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟠 Medio |
 | **API pública / webhooks salientes** | 🔴 No hay | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
 | **SOC 2 / ISO 27001** | 🔴 | Requisito para vender a empresas | 🟢 Bajo hoy |
 
-⚠️ **El agujero real del CI son las Edge Functions.** Los 1.201 tests sí corren
-—en un job `test` separado— y además hay un job `security` con `npm audit`
-bloqueante para vulnerabilidades críticas de producción. Lo que **no** se chequea
-es el código de las 62 Edge Functions: no hay `deno check` en ningún paso.
+✅ **El agujero de Edge Functions quedó cerrado el 2026-08-21.** Los 1.213 tests
+corren en un job separado y `security` mantiene `npm audit` bloqueante para
+vulnerabilidades críticas. El job `build` instala Deno y ejecuta
+`npm run check:functions`: descubre los 63 `index.ts` del filesystem, por lo que
+una función nueva no puede escapar de la puerta. La primera corrida encontró y
+corrigió 56 errores de tipo reales en ARCA, pagos, cotización, MercadoLibre,
+plataforma y helpers compartidos.
 
-Eso no es teórico. La facturación de AFIP estuvo rota **por un `invoice_id` que
-debía ser `invoiceId`** en el camino de éxito: ARCA otorgaba el CAE y el código
-lanzaba `ReferenceError` antes de guardarlo. `deno check` lo reporta. El CI no lo
-corre, así que llegó a producción y costó una sesión entera encontrarlo.
-
-📌 Está pendiente por una razón concreta: hay 2 errores de tipo preexistentes en
-`mercadopago-webhook` que habría que arreglar antes de volver el paso
-bloqueante.
+📌 El siguiente hueco de CI es distinto: no hay E2E bloqueante con un usuario de
+prueba. No se declara cerrado hasta que exista configuración segura para ello.
 
 ### 5.3 El bundle
 
@@ -313,11 +331,9 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
 
 ### Nivel 1 — Sin esto no se puede vender a nadie (semanas)
 
-1. **`deno check` en el CI.** Las 62 Edge Functions —donde vive el cobro, el
-   webhook de MercadoPago y la facturación— no tienen chequeo de tipos en
-   ninguna parte del pipeline. Es donde ya se escapó un bug que rompía la
-   facturación entera. Requiere arreglar antes 2 errores preexistentes en
-   `mercadopago-webhook`.
+1. ~~**`deno check` en el CI.**~~ ✅ Cerrado el 2026-08-21: las 63 funciones
+   pasan una puerta Deno que descubre los entrypoints; se corrigieron 56 errores
+   antes de hacerla bloqueante.
 2. **Emitir una factura real en producción.** El circuito ya emitió CAE en
    homologación; falta el certificado de producción y el punto de venta como
    *Web Services*. Es un trámite, no código.
@@ -377,15 +393,15 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
 ## 8. El resumen en cinco líneas
 
 1. ✅ **Técnicamente estamos mejor de lo que corresponde a nuestro tamaño**: RLS
-   real, ledger, outbox, idempotencia, 1.201 tests.
+   real, ledger, outbox, idempotencia, 1.213 tests y typecheck de 63 funciones.
 2. ✅ **Comercialmente no existimos todavía**: 1 comercio, 0 facturas, 0
    asientos, 0 suscripciones cobradas.
 3. ⚠️ **Perdimos el diferencial del POS** — Tiendanube ya lo tiene.
 4. ✅ **Ganamos uno mejor**: facturación ARCA nativa sin certificado por comercio
    y margen real con los cuatro datos. Falta probarlo en producción.
-5. ⚠️ **Lo más urgente es barato**: las 62 Edge Functions —cobros, webhooks,
-   facturación— no pasan por ningún chequeo de tipos en el CI, y ahí ya se
-   escapó un bug que dejó la facturación rota durante meses.
+5. ⚠️ **El riesgo barato que sigue abierto** es E2E bloqueante, restore probado
+   y factura real: el typecheck de las 63 Edge Functions ya está en CI, pero no
+   reemplaza evidencia de operación.
 
 ---
 
