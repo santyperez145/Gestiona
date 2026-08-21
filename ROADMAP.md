@@ -72,13 +72,13 @@ fecha y el comando o consulta que los produjo; no se reemplazan en silencio.
 | Señal | Estado al 2026-08-21 |
 |---|---|
 | Edge Functions | 63 |
-| Tests unitarios | 1.207, `npm test` (2026-08-21) |
+| Tests unitarios | 1.211, `npm test` (2026-08-21) |
 | Organizaciones / comercios que venden de verdad | 4 / 1 |
 | Registros POS / tiendas online | 34 / 6 |
 | Eventos de dominio / asientos del ledger | 10 / 0 |
 | Facturas emitidas por la app / CAE | 0 / 0 |
 | Pagos reales de prueba | 2 cobros de ARS 1 |
-| Control Plane | Overview, catálogo de integraciones y Merchant 360 con evidencia sanitizada por comercio |
+| Control Plane | Overview, catálogo de integraciones, Merchant 360 y cola operativa sanitizada |
 
 ### Lo que ya está
 
@@ -99,6 +99,10 @@ fecha y el comando o consulta que los produjo; no se reemplazan en silencio.
   tabs persistentes, negocio, canales, activación, contexto y evidencia
   sanitizada de Mercado Pago, Mercado Libre, ARCA y Evolution API. Una conexión
   registrada no se presenta como disponibilidad actual del proveedor.
+- La cola de Operaciones prioriza fallos reales de entregas, webhooks de
+  MercadoLibre, intentos técnicos de pago y cron, sin exponer payloads ni
+  errores crudos. Sólo un superadmin puede reintentar una entrega descartada;
+  pagos no se reintentan desde plataforma y el reintento deja auditoría.
 
 ### Lo que todavía no se puede afirmar
 
@@ -222,7 +226,7 @@ porque produce la evidencia de salida de una fase.
 | 5 | Matriz de pagos | Pendiente | escenarios de proveedor | reintentos sin doble cobro, reintegro ni documento duplicado |
 | 6 | Merchant 360 | Base ampliada, 2026-08-21 | señales de Core confiables | ficha operativa por organización con riesgos, próximos pasos y evidencia de conexión |
 | 7 | Registro de integraciones 2 | En curso, 2026-08-21 | health checks activos y eventos | versión, scopes, webhook, error y plan por conexión |
-| 8 | Centro de operaciones | Pendiente | logs y reintentos | cola accionable para pagos, cron, webhooks y sync |
+| 8 | Centro de operaciones | Base hecha, 2026-08-21 | uso contra fallos reales | cola priorizada y reintento auditado de entrega descartada |
 | 9 | Margen por canal | Pendiente | costos y comisiones reales | comparación de contribución por orden y canal |
 | 10 | MercadoLibre real | Pendiente | cuenta y operación comercial | publicación, orden importada y conciliación multi-org |
 
@@ -243,7 +247,7 @@ Core ni mostrar secretos.
 | Integration Registry | Base ampliada, 2026-08-21 | evidencia por comercio de conexión, vigencia y último evento; faltan health check, versión, webhook y plan operativos |
 | Credential Control | Base hecha, 2026-08-21 | verificar con una organización real la rotación/revocación de Evolution sin exponer su valor |
 | Billing y comisiones | Pendiente | conciliar comisión, suscripción y venta |
-| Operations Queue | Pendiente | reintentar un fallo y dejar auditoría visible |
+| Operations Queue | Base hecha, 2026-08-21 | verificar un reintento real de entrega y sumar resolución controlada de webhook/sync |
 
 Cada vista de plataforma debe tener estado de carga, vacío, error, permiso
 insuficiente y dato desactualizado. "Sin evidencia" no significa "todo bien".

@@ -171,6 +171,26 @@ Deno.serve(async (req) => {
       if (error) throw new Error(`No se pudo registrar el magic link: ${error.message}`);
     };
 
+    // ── REINTENTO MANUAL DE OUTBOX ────────────────────────────
+    // Sólo superadmin llega acá: ACTION_ROLES no le delega esta operación a
+    // soporte ni finanzas. La función SQL hace el cambio y el audit log en una
+    // única transacción. No hay reintento de pagos desde plataforma: un cobro
+    // ambiguo se resuelve en el flujo de pagos para no crear doble cargo.
+    if (action === "retryOutboxDelivery") {
+      const ticketId = typeof body.ticketId === "string" ? body.ticketId : "";
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(ticketId)) {
+        return json({ error: "El incidente de entrega no es válido" }, 400);
+      }
+
+      const { error } = await admin.rpc("platform_retry_outbox_delivery", {
+        p_ticket_id: ticketId,
+        p_admin_user_id: user.id,
+        p_admin_email: user.email ?? null,
+      });
+      if (error) return json({ error: error.message }, 409);
+      return json({ ok: true, ticketId });
+    }
+
     // ── GET USERS ──────────────────────────────────────────────
     if (action === "getUsers") {
       const { data: authUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });

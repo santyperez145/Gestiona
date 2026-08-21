@@ -31314,6 +31314,24 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_operations_queue: {
+        Row: {
+          attempts: number | null
+          can_retry: boolean | null
+          first_detected_at: string | null
+          last_activity_at: string | null
+          operation_label: string | null
+          org_id: string | null
+          org_name: string | null
+          priority: number | null
+          recommended_action: string | null
+          severity: string | null
+          source: string | null
+          status: string | null
+          ticket_id: string | null
+        }
+        Relationships: []
+      }
       platform_org_activation: {
         Row: {
           days_to_first_online_order: number | null
@@ -34151,6 +34169,14 @@ export type Database = {
       platform_commission_amount: {
         Args: { p_channel?: string; p_gross: number; p_org_id: string }
         Returns: number
+      }
+      platform_retry_outbox_delivery: {
+        Args: {
+          p_admin_email?: string
+          p_admin_user_id: string
+          p_ticket_id: string
+        }
+        Returns: boolean
       }
       platform_role: { Args: { _user_id?: string }; Returns: string }
       precio_pos_autoritativo: {
