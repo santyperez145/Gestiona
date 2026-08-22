@@ -153,6 +153,105 @@
   }
 }
 
+/* Shared admin/marketplace view navigation. */
+@layer components {
+  .workspace-view-tabs {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 3.75rem;
+    padding: 0.45rem;
+    border: 1px solid hsl(var(--border) / 0.82);
+    border-radius: 10px;
+    background: hsl(var(--card) / 0.78);
+    box-shadow: 0 12px 28px -28px hsl(var(--primary) / 0.9);
+  }
+
+  .workspace-view-tabs__list {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .workspace-view-tabs__tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0 0.9rem;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.78rem;
+    font-weight: 650;
+    white-space: nowrap;
+    transition: color 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  }
+
+  .workspace-view-tabs__tab:hover {
+    color: hsl(var(--foreground));
+    background: hsl(var(--muted) / 0.58);
+  }
+
+  .workspace-view-tabs__tab.is-active {
+    border-color: hsl(var(--primary) / 0.24);
+    color: hsl(var(--primary));
+    background: hsl(var(--card));
+    box-shadow: 0 6px 14px -12px hsl(var(--primary) / 0.9);
+  }
+
+  .workspace-view-tabs__count {
+    min-width: 1.35rem;
+    padding: 0.12rem 0.3rem;
+    border-radius: 999px;
+    background: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
+    font-size: 0.64rem;
+    text-align: center;
+  }
+
+  .workspace-view-tabs__tab.is-active .workspace-view-tabs__count {
+    background: hsl(var(--primary) / 0.14);
+    color: hsl(var(--primary));
+  }
+
+  .workspace-view-tabs__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0 0.7rem;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 580px) {
+    .workspace-view-tabs {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .workspace-view-tabs__list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .workspace-view-tabs__tab {
+      min-width: 0;
+      padding-inline: 0.55rem;
+    }
+
+    .workspace-view-tabs__meta {
+      justify-content: center;
+      min-height: 1.4rem;
+    }
+  }
+}
+
 /* CRM reference direction: compact navigation, filter rail and contextual
    customer selection inspired by the supplied CRM marketplace kit. */
 @layer components {

@@ -102,6 +102,34 @@ Medición actual (2026-08-21): 60 productos sin SKU/EAN, 33 clientes, 24 sin
 email/teléfono, 0 colisiones exactas. El detalle verificable y el slice P0.2.2
 están en `ROADMAP.md` §0.0.
 
+**Contrato visual Figma 2026-08-22:** la renovación del frontend sigue los
+patrones de CRM, eMarketplace y marketplace/admin kits compartidos por el
+dueño, sin copiar assets ni convertir Gestiona en una tienda genérica. La
+dirección canónica está en [docs/INTERFAZ.md](docs/INTERFAZ.md) y se aplica a
+tres superficies separadas: Business, Platform y Storefront.
+
+- Usar `PageHeader`, el shell de la superficie y los primitives compartidos
+  antes de crear CSS o navegación local.
+- Una pantalla larga se divide por tareas relacionadas: `WorkspaceViewTabs`
+  para vistas operativas compactas; Radix Tabs o un sidebar interno cuando hay
+  contenido profundo; siempre con persistencia por organización si la vista es
+  de un comercio.
+- La lista/tabla y su acción primaria son el centro de trabajo. KPIs,
+  insights, auditorías y configuración viven en una vista relacionada, no
+  debajo de una pared de tarjetas.
+- Los estados deben tener loading, vacío, error, permiso y datos desactualizados
+  explícitos; color solo acompaña a una etiqueta legible.
+- Mobile debe conservar búsqueda, filtros, tab activa y acciones críticas con
+  scroll horizontal controlado; verificar 360, 768, 1024 y desktop antes de
+  cerrar un slice.
+- El rediseño no duplica Business Core, permisos, stock, precios ni clientes:
+  cambia composición y jerarquía, no la fuente de verdad.
+
+El primitive `WorkspaceViewTabs` ya conecta Productos (`Catálogo` / `Operación`)
+y Ventas (`Ventas` / `Rendimiento`). Dashboard, Settings, Admin,
+Integraciones, Reportes y Tienda deben conservar el mismo lenguaje de tokens,
+densidad, foco y persistencia al evolucionar.
+
 Y lo que ese documento dice que **no** hay que construir todavía —multi-store,
 dominios propios, theme engine, headless, marketplace— importa tanto como lo que
 sí: espera un segundo comercio, no una decisión de arquitectura.

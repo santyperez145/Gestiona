@@ -22,6 +22,7 @@ import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
 import { useUserRole } from "@/lib/useUserRole";
 import PageHeader from "@/components/shared/PageHeader";
+import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import KPICard from "@/components/shared/KPICard";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
@@ -135,6 +136,10 @@ export default function SalesPage() {
 
   const [search, setSearch] = usePersistedState(orgViewKey("sales.search", activeOrg?.id), '');
   const [viewMode, setViewMode] = usePersistedState<"list" | "by_customer" | "by_session" | "by_product" | "by_date">(orgViewKey("sales.view", activeOrg?.id), "list");
+  const [salesWorkspaceTab, setSalesWorkspaceTab] = usePersistedState<"sales" | "performance">(
+    orgViewKey("sales.workspace-tab", activeOrg?.id),
+    "sales",
+  );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filterPaid, setFilterPaid] = usePersistedState<'all' | 'paid' | 'pending'>(orgViewKey("sales.payment-filter", activeOrg?.id), 'all');
@@ -667,6 +672,17 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         }
       />
 
+      <WorkspaceViewTabs
+        ariaLabel="Vistas de ventas"
+        activeTab={salesWorkspaceTab}
+        onChange={(tab) => setSalesWorkspaceTab(tab as "sales" | "performance")}
+        tabs={[
+          { id: "sales", label: "Ventas", icon: ShoppingCart, count: filtered.length },
+          { id: "performance", label: "Rendimiento", icon: TrendingUp, count: `${marginPct.toFixed(1)}% margen` },
+        ]}
+        meta={<span>{formatARS(totalSales)} en el período seleccionado</span>}
+      />
+
       {/* Today's quick stats */}
       {(() => {
         const todayStr = new Date().toISOString().slice(0, 10);
@@ -710,6 +726,8 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         </div>
       )}
 
+      {salesWorkspaceTab === "performance" && (
+      <>
       {/* KPIs */}
       <div className="workspace-sales-kpis grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Total facturado" value={formatARS(totalSales)} icon={DollarSign} color="primary" sub={`${filtered.length} venta${filtered.length !== 1 ? 's' : ''}`} trend={prevPeriod && delta(totalSales, prevPeriod.totalSales) !== undefined ? { value: delta(totalSales, prevPeriod.totalSales)!, label: "vs período ant." } : undefined} />
@@ -800,6 +818,11 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         })()}
       </div>
 
+      </>
+      )}
+
+      {salesWorkspaceTab === "sales" && (
+      <>
       {/* Date presets */}
       <div className="workspace-sales-presets flex flex-wrap gap-1.5 mb-3">
         {[
@@ -1398,6 +1421,8 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             </div>
           )}
         </>
+      )}
+      </>
       )}
     </div>
   );

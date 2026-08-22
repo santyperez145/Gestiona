@@ -22,6 +22,7 @@ import { normalizeText, literalFilter } from "@/lib/searchText";
 import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice } from "@/lib/pricing";
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
 import PageHeader from "@/components/shared/PageHeader";
+import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import CalidadPublicaciones, { BadgeCalidad } from "@/components/products/CalidadPublicaciones";
 import CompletarPesos from "@/components/products/CompletarPesos";
 import CategorySelect, { useOrgCategories } from "@/components/products/CategorySelect";
@@ -343,6 +344,10 @@ export default function ProductsPage() {
   const [showAging, setShowAging] = useState(false);
   const [productSort, setProductSort] = useState<{ col: "name" | "sale_price_ars" | "stock" | "margin"; dir: "asc" | "desc" }>({ col: "name", dir: "asc" });
   const [productView, setProductView] = usePersistedState<'list' | 'grid'>(orgViewKey("products.view", activeOrg?.id), 'list');
+  const [productsWorkspaceTab, setProductsWorkspaceTab] = usePersistedState<"catalog" | "overview">(
+    orgViewKey("products.workspace-tab", activeOrg?.id),
+    "catalog",
+  );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const { shareProduct, canShare } = useWebShare();
@@ -780,6 +785,19 @@ export default function ProductsPage() {
         />
       )}
 
+      <WorkspaceViewTabs
+        ariaLabel="Vistas del catálogo"
+        activeTab={productsWorkspaceTab}
+        onChange={(tab) => setProductsWorkspaceTab(tab as "catalog" | "overview")}
+        tabs={[
+          { id: "catalog", label: "Catálogo", icon: Package, count: filtered.length },
+          { id: "overview", label: "Operación", icon: BarChart2, count: `${lowStockCount + outOfStockCount} alertas` },
+        ]}
+        meta={<span>{products.length} productos · {totalStock} unidades</span>}
+      />
+
+      {productsWorkspaceTab === "overview" && (
+      <>
       {/* KPI row */}
       <div className="workspace-products-kpis grid grid-cols-2 md:grid-cols-5 gap-3">
         <KPICard label="Total productos" value={products.length} icon={Package} color="primary"
@@ -804,6 +822,8 @@ export default function ProductsPage() {
           />
         </button>
       </div>
+      </>
+      )}
 
       {/* Bulk price adjustment modal */}
       {/* Sobre la selección; sin selección, sobre lo filtrado. Es lo que hace
@@ -891,6 +911,8 @@ export default function ProductsPage() {
         </DialogContent>
       </Dialog>
 
+      {productsWorkspaceTab === "overview" && (
+      <>
       {(expired.length > 0 || critical.length > 0 || warning.length > 0) && (
         <div className={`rounded-xl border px-4 py-3 ${
           expired.length > 0
@@ -1025,7 +1047,11 @@ export default function ProductsPage() {
           </div>
         );
       })()}
+      </>
+      )}
 
+      {productsWorkspaceTab === "catalog" && (
+      <>
       <div className="workspace-products-filters flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1523,6 +1549,9 @@ export default function ProductsPage() {
             </div>
           )}
         </>
+      )}
+
+      </>
       )}
 
       {/* Profit Calculator Modal */}

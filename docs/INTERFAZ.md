@@ -70,6 +70,29 @@ ejecutan acciones, se revisan compras o se programa seguimiento.
 Este slice usa datos, permisos, exportaciones, notas, comunicaciones, cuotas y
 acciones existentes; el rediseño no crea un segundo modelo de clientes.
 
+## Contrato transversal admin / marketplace
+
+El patrón de navegación interna se extiende a las superficies operativas que
+comparten el lenguaje de los kits de admin y marketplace: una barra compacta de
+vistas, una sola tarea por vista, contadores de contexto y estado persistido por
+organización. `WorkspaceViewTabs` es el primitive común para este contrato.
+
+- **Productos** separa `Catálogo` de `Operación`: la lista, filtros y acciones
+  quedan enfocadas en publicar y editar; KPIs, vencimientos y antigüedad quedan
+  en la vista operativa.
+- **Ventas** separa `Ventas` de `Rendimiento`: la tabla y cobranza no compiten
+  con KPIs, métodos de pago ni tendencia diaria.
+- **Dashboard, Settings, Admin, Integraciones, Reportes y Tienda** conservan
+  sus primitives de tabs/sidebar porque necesitan contenido Radix o navegación
+  profunda; deben adoptar los mismos tokens de borde, densidad, foco, scroll
+  horizontal móvil y persistencia por organización.
+- La navegación no duplica datos ni permisos: sólo cambia la composición de la
+  vista y mantiene montadas las acciones/modales que el flujo ya utiliza.
+
+Esta es la traducción del patrón de CRM, eMarketplace y marketplace kits a la
+operación omnicanal de Gestiona: lista primero, contexto visible, detalle bajo
+demanda y una ruta clara a la acción.
+
 ## Referencias de dirección
 
 - [CRM app con clientes, deals y tareas](https://www.figma.com/design/y3iW4vARslK39hLDzTj37D/CRM-app-with-customers--deals--nested-data--tasks-and-menu-filtering--Community-)

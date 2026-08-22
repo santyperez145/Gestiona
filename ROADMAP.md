@@ -211,6 +211,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Sistema visual v2 | Workspace Business, dashboard, Finance, Platform y Settings comparten rail, toolbar, jerarquía, estados y responsive base; Platform conserva acento violeta y Settings conserva tabs por sección. Documentado en `docs/INTERFAZ.md` (2026-08-22). | Completar Storefront, revisar capturas en desktop/mobile y medir abandono o tiempo a tarea antes de declarar la renovación visual validada. |
 | Rediseño público v3 | Landing pública y Auth fueron reconstruidos el 2026-08-22 con propuesta omnicanal, preview del producto, registro directo desde CTA, responsive desktop/mobile y metadatos SEO alineados. | Validar conversión del CTA y continuar la auditoría visual de Storefront y rutas públicas de compra. |
 | CRM workspace v1 | Clientes / CRM incorpora tabs persistidos `Clientes`/`Insights`, rail de segmentos, toolbar de filtros y ficha contextual 360 siguiendo la referencia CRM compartida; mantiene acciones y datos existentes. | Captura autenticada desktop/mobile, validación con un comercio real y medición de tiempo para encontrar/actuar sobre un cliente. |
+| Admin/marketplace workspace v1 | `WorkspaceViewTabs` extiende el contrato Figma a Productos y Ventas: Catálogo/Operación y Ventas/Rendimiento, con contadores, meta contextual, responsive móvil y persistencia por organización; Dashboard, Settings, Admin, Integraciones, Reportes y Tienda quedan bajo el mismo contrato de tokens. | Captura autenticada de las superficies operativas y medición de tiempo a tarea antes de declarar la renovación visual validada. |
 
 ### Bloqueos externos vigentes
 
@@ -730,10 +731,16 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
      registro y recuperación bajo el mismo contrato visual. Falta medir
      conversión real; la implementación no se declara validada por una captura.
 22. CRM workspace con patrón de lista, filtros y detalle contextual — cerrado
-    técnicamente el 2026-08-22: `CustomersPage` conserva el Business Core y sus
-    acciones, pero separa operación e insights con estado persistido por
-    organización. La dirección principal es el diseño CRM compartido; falta
-    capturar la vista autenticada y probar el tiempo a tarea con datos reales.
+     técnicamente el 2026-08-22: `CustomersPage` conserva el Business Core y sus
+     acciones, pero separa operación e insights con estado persistido por
+     organización. La dirección principal es el diseño CRM compartido; falta
+     capturar la vista autenticada y probar el tiempo a tarea con datos reales.
+23. Admin/marketplace workspace transversal — cerrado técnicamente el
+    2026-08-22 en Productos y Ventas: `WorkspaceViewTabs` aplica la misma
+    navegación compacta, densidad, estados y persistencia por organización a
+    Catálogo/Operación y Ventas/Rendimiento sin separar el Business Core. El
+    siguiente gate es capturar todas las superficies autenticadas y medir tarea
+    completa en un comercio real.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
