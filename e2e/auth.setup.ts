@@ -10,9 +10,10 @@
  * archivo de sesión está en `.gitignore`: es un token válido, tratarlo como
  * cualquier otro secreto.
  *
- * Si no están definidas, los specs autenticados se saltean y el resto de la
- * suite sigue corriendo. Un test que no puede correr se saltea; no se inventa
- * un resultado.
+ * Localmente, si no están definidas, los specs autenticados se saltean y el
+ * resto de la suite sigue corriendo. En CI `E2E_REQUIRE_AUTH=true` transforma
+ * una credencial ausente en error: el gate nunca queda verde por no haber
+ * ejecutado la mitad autenticada.
  *
  *   E2E_USER=alguien@ejemplo.com
  *   E2E_PASSWORD=...
@@ -27,9 +28,15 @@ export const ARCHIVO_SESION = "e2e/.auth/usuario.json";
 setup("iniciar sesión", async ({ page }) => {
   const email = process.env.E2E_USER;
   const password = process.env.E2E_PASSWORD;
+  const requireAuth = process.env.E2E_REQUIRE_AUTH === "true";
 
-  setup.skip(!email || !password,
-    "Falta E2E_USER / E2E_PASSWORD: se saltean los tests del panel");
+  if (!email || !password) {
+    if (requireAuth) {
+      throw new Error("Falta E2E_USER / E2E_PASSWORD y E2E_REQUIRE_AUTH=true");
+    }
+    setup.skip(true,
+      "Falta E2E_USER / E2E_PASSWORD: se saltean los tests del panel");
+  }
 
   const url = process.env.VITE_SUPABASE_URL
     ?? `https://${process.env.VITE_SUPABASE_PROJECT_ID}.supabase.co`;

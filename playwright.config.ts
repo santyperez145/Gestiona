@@ -18,13 +18,17 @@ import { defineConfig, devices } from "@playwright/test";
 // clave anónima, que son públicas. Las credenciales del usuario de prueba van
 // aparte, en el entorno, y nunca en un archivo del repo.
 import { config as cargarEnv } from "dotenv";
-cargarEnv();
+cargarEnv({ quiet: true });
 
 // Relativa a la raíz del proyecto: `__dirname` no existe en módulos ES.
 const ARCHIVO_SESION = "e2e/.auth/usuario.json";
 
-const PORT = 8080;
+const PORT = Number.parseInt(process.env.E2E_PORT ?? "4173", 10);
+if (!Number.isInteger(PORT) || PORT < 1024 || PORT > 65_535) {
+  throw new Error("E2E_PORT debe ser un puerto válido entre 1024 y 65535");
+}
 const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${PORT}`;
+const reuseExistingServer = process.env.E2E_REUSE_SERVER === "true";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -71,11 +75,15 @@ export default defineConfig({
     },
   ],
 
-  // Reusa el server si ya está levantado: en desarrollo uno lo tiene abierto.
+  // El puerto es estricto y no se reusa por defecto. Antes Playwright aceptaba
+  // cualquier proceso que escuchara en 8080 y llegó a ejecutar los specs contra
+  // otra aplicación local: un falso resultado más peligroso que un test rojo.
+  // El opt-in local sólo se usa cuando quien corre la suite sabe qué servidor
+  // está escuchando en E2E_PORT.
   webServer: process.env.E2E_BASE_URL ? undefined : {
-    command: "npm run dev",
+    command: `npm run dev -- --port ${PORT} --strictPort`,
     port: PORT,
-    reuseExistingServer: true,
+    reuseExistingServer,
     timeout: 120_000,
   },
 });

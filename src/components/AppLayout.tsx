@@ -167,16 +167,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // Group nav items by section
   const groupedNav = useMemo(() => {
-    const groups: { section: string; label: string; items: typeof navItems }[] = [];
-    let currentSection = '';
-    navItems.forEach(item => {
-      if (item.section !== currentSection) {
-        currentSection = item.section;
-        groups.push({ section: item.section, label: SECTION_LABELS[item.section] || '', items: [] });
-      }
-      groups[groups.length - 1].items.push(item);
-    });
-    return groups;
+    // El orden de NAV_ITEMS no puede crear dos bloques con el mismo grupo.
+    // Pasó al insertar "Mi plan" (Sistema) entre Cobranzas y Finanzas: el
+    // algoritmo anterior asumía contigüidad, renderizaba Sistema dos veces y
+    // React advertía claves duplicadas. NAV_GROUPS es la autoridad de orden.
+    return NAV_GROUPS
+      .map(group => ({
+        section: group.id,
+        label: group.label,
+        items: navItems.filter(item => item.section === group.id),
+      }))
+      .filter(group => group.items.length > 0);
   }, [navItems]);
 
   const handleLogout = async () => {

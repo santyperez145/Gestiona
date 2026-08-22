@@ -17,6 +17,8 @@
     "deploy:functions:sh": "bash scripts/deploy-functions.sh",
     "db": "node scripts/db.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:public": "playwright test --project=chromium --project=mobile",
+    "test:e2e:ci": "playwright test --project=chromium --project=mobile --project=panel",
     "test:e2e:ui": "playwright test --ui",
     "drill:restore": "node scripts/restore-drill.mjs",
     "drill:payments": "node scripts/payment-matrix.mjs"

@@ -149,6 +149,7 @@ comparativas fechadas y con fuente oficial viven en docs/ESTRATEGIA.md.
 | IA | Asistencia dentro del flujo real. | Recomendación → aprobación → acción → resultado verificado. |
 | Plataforma | Health, replay, incidentes, soporte y billing. | Evidencia por merchant sin exponer secretos ni datos crudos. |
 | Ecosistema | API, OAuth, scopes, webhooks y sandbox. | Extensiones sobre contratos estables del Business Graph. |
+| Confiabilidad | Pruebas automáticas de los recorridos que venden y operan. | Tienda desktop/móvil y panel autenticado bloquean CI; restore y trazas prueban recuperación, no sólo compilación. |
 
 No son diferenciales suficientes por sí solos:
 
@@ -165,7 +166,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.233 tests pasan; typecheck, lint y build verdes; 63 Edge Functions verificadas. |
+| Calidad técnica | 1.238 tests pasan; typecheck, lint y build verdes; 63 Edge Functions verificadas; 41 E2E críticos (32 públicos, 8 de panel y setup autenticado) pasan contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -301,7 +302,8 @@ incluidos estados ambiguos y recuperación.
   proyecto para declarar RTO/RPO contractual.
 - Correlation ID desde checkout hasta proveedor, webhook, orden y ledger.
 - Trazas básicas y runbooks para pagos, ARCA, cron e integraciones críticas.
-- E2E críticos como puerta de CI cuando exista configuración segura.
+- E2E críticos como puerta bloqueante de CI: 32 recorridos públicos y 8 de
+  panel, más setup autenticado obligatorio, todos de sólo lectura.
 - Revisión legal/económica de comisión, billing y tratamiento de datos.
 - Procedimiento único de migración, verificación y rollback.
 
@@ -533,7 +535,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 4 | Restore drill | F0 | **Cerrado 2026-08-21:** v3, 147 tablas / 63 filas, RTO técnico 937,22 ms, cero restos | Repetición trimestral; reconstrucción completa queda como nivel siguiente. |
 | 5 | Payment test matrix | F0 | **Interna cerrada 2026-08-21:** 8 escenarios, 2 bugs corregidos, traza completa y cero restos. Certificación live bloqueada externamente | Pago/rechazo/webhook/timeout/refund reales reconciliados sin intervención de base. |
 | 6 | Correlation IDs y trazas críticas | F0 | **Cerrado para pagos 2026-08-21:** una correlación server-side une intent, attempt, metadata del proveedor, eventos, orden, settlement y ledger; timeline RLS sin PII | Matriz exige las 5 etapas y la UI reconstruye la operación desde Costos de cobro. Extender por riesgo, no como plataforma genérica. |
-| 7 | E2E bloqueante | F0 | Parcial: suite existe; faltan configuración y cobertura crítica | CI bloquea regresión con fixtures seguros. |
+| 7 | E2E bloqueante | F0 | **Cerrado 2026-08-21:** 41 pruebas reales; tienda desktop/móvil y panel autenticado bloquean CI. Puerto estricto corrigió reutilización de una app ajena; 6 fallas ocultas detectadas y corregidas. | GitHub Actions exige las 5 variables, no permite skips de auth y conserva specs de sólo lectura. |
 | 8 | Comisión, billing y unit economics | F0 | Pendiente; el 5% no es decisión final | Contratos, costos, margen y pricing aprobados. |
 | 9 | Segundo comercio | F1 | Pendiente / comercial | Primera venta sin cambios manuales de base. |
 | 10 | Onboarding universal y cohortes | F1 | En curso: primera venta/tiempo entregados en 13e48bd | Segundo y tercer merchant completan hitos medidos. |
@@ -560,7 +562,7 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
 1. ~~restore drill de datos~~ — cerrado el 2026-08-21;
 2. ~~payment test matrix interna~~ — cerrada; certificación live espera una operación controlada;
 3. ~~correlation IDs y trazas de pagos~~ — cerrado el 2026-08-21;
-4. E2E bloqueante;
+4. ~~E2E bloqueante~~ — cerrado el 2026-08-21 con 41 pruebas y credenciales técnicas rotadas;
 5. economics de comisión;
 6. onboarding del segundo comercio.
 
@@ -737,7 +739,10 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-21: 1.233 tests y 63 funciones verificadas.
+- Build y suites locales del 2026-08-21: 1.238 tests, 63 funciones verificadas
+  y 41 E2E críticos contra la base real.
+- docs/E2E.md: contrato del gate, puerto estricto, variables obligatorias y
+  política de sólo lectura.
 - Commit 13e48bd: primera venta y tiempo a vender por comercio.
 
 Se revisa:

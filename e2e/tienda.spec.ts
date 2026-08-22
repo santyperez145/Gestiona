@@ -1,8 +1,8 @@
 /**
  * La tienda, de punta a punta.
  *
- * Los 377 tests unitarios cubren cálculos; los bugs que costaron plata esta
- * semana fueron todos de integración y ninguno los habría agarrado:
+ * Los tests unitarios cubren cálculos; los bugs que costaron plata fueron de
+ * integración y ninguno los habría agarrado:
  *
  *   - La ficha de un producto agotado devolvía "Producto no encontrado",
  *     porque la vista del catálogo filtraba `stock > 0`. Se perdían la visita

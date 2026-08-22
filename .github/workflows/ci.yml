@@ -94,6 +94,54 @@ jobs:
       - name: Run tests
         run: npm test -- --reporter=verbose
 
+  e2e:
+    name: Critical E2E (store + panel)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: build
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      E2E_STORE_SLUG: ${{ secrets.E2E_STORE_SLUG }}
+      E2E_USER: ${{ secrets.E2E_USER }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      E2E_REQUIRE_AUTH: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Falla de forma explícita antes de arrancar el browser. Así una variable
+      # ausente no se convierte en "Tienda no encontrada" ni en tests del panel
+      # salteados que dejan el workflow verde.
+      - name: Validate E2E environment
+        shell: bash
+        run: |
+          required=(VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY E2E_STORE_SLUG E2E_USER E2E_PASSWORD)
+          for name in "${required[@]}"; do
+            if [ -z "${!name}" ]; then
+              echo "::error title=E2E sin configurar::Falta $name en GitHub Actions"
+              exit 1
+            fi
+          done
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Todos son de sólo lectura: tienda en escritorio/teléfono y superficies
+      # críticas del panel con una identidad técnica sin MFA ni acceso Platform.
+      - name: Run critical E2E
+        run: npm run test:e2e:ci
+
   security:
     name: Dependency Audit
     runs-on: ubuntu-latest

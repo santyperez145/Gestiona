@@ -7,7 +7,8 @@
  * exactamente lo que este archivo viene a eliminar.
  *
  * Sólo corren con `E2E_USER` / `E2E_PASSWORD` definidas — ver `auth.setup.ts`.
- * Sin eso se saltean, y la suite sigue verde para quien no las tenga.
+ * Sin eso se saltean localmente. En CI son obligatorias: el setup falla antes
+ * de que un panel sin probar pueda presentarse como verde.
  *
  * **De sólo lectura, como los de la tienda.** Miran que las pantallas abran y
  * que los controles estén donde tienen que estar; ninguno despacha una orden
@@ -18,7 +19,11 @@ import { test, expect, type Page } from "@playwright/test";
 // Sin credenciales no hay sesión que reusar y estos specs no pueden correr. Se
 // saltean enteros en vez de fallar: un test rojo por falta de configuración
 // enseña a ignorar los tests rojos.
-test.skip(!process.env.E2E_USER || !process.env.E2E_PASSWORD,
+const faltanCredenciales = !process.env.E2E_USER || !process.env.E2E_PASSWORD;
+if (faltanCredenciales && process.env.E2E_REQUIRE_AUTH === "true") {
+  throw new Error("El proyecto panel exige E2E_USER y E2E_PASSWORD en CI");
+}
+test.skip(faltanCredenciales,
   "Definí E2E_USER y E2E_PASSWORD para probar el panel");
 
 test.describe("tienda e-commerce", () => {
@@ -28,7 +33,13 @@ test.describe("tienda e-commerce", () => {
     // Si la sesión no viajó, la app manda al login y no hay nada que probar.
     await expect(page.getByRole("heading", { name: "Tienda E-Commerce" })).toBeVisible();
 
-    for (const pestaña of ["Órdenes", "Opiniones", "Páginas", "Banners", "Diseño"]) {
+    for (const pestaña of [
+      "Órdenes",
+      "Opiniones y preguntas",
+      "Páginas",
+      "Banners",
+      "Diseño & Tema",
+    ]) {
       await page.getByRole("button", { name: pestaña, exact: true }).click();
       await expect(page.getByRole("button", { name: pestaña, exact: true })).toBeVisible();
     }
@@ -50,7 +61,7 @@ test.describe("tienda e-commerce", () => {
 
   test("la identidad de la tienda se carga por archivo, no por URL", async ({ page }) => {
     await page.goto("/tienda-online");
-    await page.getByRole("button", { name: "Diseño", exact: true }).click();
+    await page.getByRole("button", { name: "Diseño & Tema", exact: true }).click();
 
     await expect(page.getByText("Identidad")).toBeVisible();
     await expect(page.getByText("Elegí, arrastrá o pegá una imagen").first()).toBeVisible();
@@ -62,19 +73,22 @@ test.describe("tienda e-commerce", () => {
     await page.goto("/tienda-online");
     await page.getByRole("button", { name: "Banners", exact: true }).click();
 
-    const hayBanners = await page.getByText("Imagen del banner").count();
-    if (!hayBanners) {
-      await expect(page.getByText("Sin banners")).toBeVisible();
+    // `count()` no espera la consulta. Primero se espera el estado cargado;
+    // recién entonces se decide si hay un banner o el empty state.
+    const imagen = page.getByText("Imagen del banner").first();
+    const vacio = page.getByText("Sin banners", { exact: true });
+    await expect(imagen.or(vacio)).toBeVisible();
+    if (await vacio.isVisible()) {
       test.skip(true, "no hay banners cargados todavía");
     }
-    await expect(page.getByText("Imagen del banner").first()).toBeVisible();
+    await expect(imagen).toBeVisible();
   });
 });
 
 test.describe("credenciales", () => {
   test("integraciones no pide pegar ningún token", async ({ page }) => {
     await page.goto("/integraciones");
-    await expect(page.getByRole("heading", { name: /Integraciones/i })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Integraciones & API" })).toBeVisible();
 
     // MercadoPago y MercadoLibre se conectan por OAuth. Un campo para pegar el
     // access token es lo que se sacó, y no tiene que volver.
@@ -86,7 +100,7 @@ test.describe("credenciales", () => {
 test.describe("clientes", () => {
   test("la ficha abre y muestra el historial", async ({ page }) => {
     await page.goto("/clientes");
-    await expect(page.getByRole("heading", { name: /Clientes/i })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Clientes / CRM" })).toBeVisible();
 
     const filas = page.locator("[role='button'], button").filter({ hasText: /./ });
     expect(await filas.count(), "la página cargó sin controles").toBeGreaterThan(0);

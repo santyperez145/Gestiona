@@ -27,6 +27,11 @@ describe("estructura de la navegación", () => {
     }
   });
 
+  it("los ids de grupo son únicos: el sidebar los usa como claves React", () => {
+    const ids = NAV_GROUPS.map(g => g.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it("todo item declara al menos un rol, o no lo ve nadie", () => {
     for (const i of NAV_ITEMS) {
       expect(i.roles.length, `${i.to} sin roles`).toBeGreaterThan(0);
