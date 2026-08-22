@@ -38,6 +38,31 @@ describe('estándar integral de experiencia competitiva', () => {
     expect(standard).toContain('Rewrite a otro framework/meta-framework');
   });
 
+  it('mantiene referentes regionales para Finance y el ecosistema argentino', () => {
+    for (const reference of [
+      'Mendel',
+      'Clara Global',
+      'Rindegastos',
+      'SAP Concur Argentina',
+      'Tiendanube',
+      'Empretienda',
+      'Contabilium',
+      'Xubio',
+      'Colppy',
+      'Mercado Libre + Mercado Pago',
+    ]) {
+      expect(standard, `falta el benchmark regional ${reference}`).toContain(reference);
+    }
+  });
+
+  it('convierte la comparación en alcance y límites explícitos', () => {
+    expect(standard).toContain('📌 **Límite Finance:**');
+    expect(standard).toContain('📌 **Paridad local obligatoria:**');
+    expect(standard).toContain('Emitir tarjetas o');
+    expect(standard).toContain('mover dinero exige demanda');
+    expect(standard).toContain('mismo Business Graph');
+  });
+
   it('queda enlazado desde los documentos rectores y las instrucciones del repo', () => {
     const requiredLinks = [
       'ROADMAP.md',

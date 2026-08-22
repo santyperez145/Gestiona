@@ -125,6 +125,10 @@ usa en material de producto o inversión.
 
 - benchmarks funcionales oficiales de Shopify, HubSpot, Salesforce, Stripe,
   Odoo, QuickBooks y Square;
+- benchmarks de Finance/spend regional de Mendel, Clara, Rindegastos y SAP
+  Concur Argentina;
+- benchmarks argentinos de Commerce/gestión de Tiendanube, Empretienda,
+  Contabilium, Xubio, Colppy y Mercado Libre/Mercado Pago;
 - inspección pública de Aerten, eMarketplace, CRM Customers/Deals y SaaS
   Marketplace Admin;
 - arquetipos para índices, ficha 360, colas, dashboards, Kanban, formularios,
@@ -202,7 +206,10 @@ perder contexto ni encontrar un patrón visual nuevo.
 - [x] Document Inbox con cola, inspector, confianza, versión y siguiente acción;
 - [x] Revisión estructurada por cabecera/importes/líneas, errores matemáticos y
   confirmación explícita de cero efectos operativos;
-- payables/aprobaciones con segregación visible;
+- payables/aprobaciones con segregación visible entre solicitante, manager,
+  contador y pago;
+- presupuesto, política, centro de costo/proyecto y fuera de política visibles
+  antes de aprobar; captura y reembolso mobile convergen en la misma cola;
 - Merchant 360 con salud, activación, integraciones y evidencia;
 - cola operativa con severidad, dueño, retry y resultado;
 - métricas de inversión separadas de operación;
@@ -218,6 +225,10 @@ crudos ni confundirse de organización.
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto, variantes, stock y confianza;
 - carrito y checkout responsive;
+- operación de órdenes con búsqueda, filtros persistentes, vistas rápidas,
+  exportación y bulk al nivel de paridad local de Tiendanube;
+- alta/importación y venta manual desde mobile con la simplicidad de referencia
+  de Empretienda, sin crear otro stock;
 - pago, seguimiento, devolución y errores recuperables;
 - legales y contacto consistentes;
 - performance visual, imágenes y skeletons sin layout shift.
@@ -262,7 +273,7 @@ declara validado porque “se ve mejor”.
 | 2 | Primitives v3 transversales | Hecho | Tres layouts y contrato automático. |
 | 3 | Selects de páginas de gestión | Hecho 2026-08-22 | 20 migrados; guarda en tests. |
 | 4 | Selects de componentes + decisión Storefront | Hecho 2026-08-22 | 10 migrados; SaaS en cero y 3 excepciones públicas bajo guarda. |
-| 5 | Estándar integral competitivo | Hecho 2026-08-22 | 7 referentes funcionales oficiales, 4 Figma observados, arquetipos, overlays, segmentación, matriz de cobertura y puerta tecnológica bajo guarda CI. |
+| 5 | Estándar integral competitivo | Hecho 2026-08-22 | 17 referencias oficiales (7 globales, 4 Finance/spend y 6 argentinas), 4 Figma observados, arquetipos, overlays, segmentación, matriz de cobertura y puerta tecnológica bajo guarda CI. |
 | 6 | Estados unificados | Pendiente | Doce estados del estándar demostrados según aplicación, sin confundir vacío/error/parcial. |
 | 7 | Modales, sheets y drawers | Pendiente | Inventario clasificado con árbol de decisión; sin overlays manuales en gestión. |
 | 8 | Productos end-to-end | Pendiente | Desktop/mobile + editor/importación. |

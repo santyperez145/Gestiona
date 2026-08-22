@@ -126,15 +126,22 @@ guardas.
 
 ## 3. Contra quién se compite, honestamente
 
-✅ / ❓ **Mapa actualizado el 2026-08-22.** Tiendanube, Shopify, Odoo y QuickBooks se
-contrastaron con sus fuentes oficiales; las demás filas siguen siendo hipótesis
-del análisis externo y no se usan como hechos en una presentación hasta
-verificarlas.
+✅ / ❓ **Mapa actualizado el 2026-08-22.** El corte suma referentes globales,
+Finance/spend regional y plataformas argentinas. Una fila `✅` sólo describe lo
+que su fuente oficial permite sostener; `❓` sigue siendo radar y no se usa como
+hecho en una presentación.
 
 | Competidor | Qué dice el análisis | Estado |
 |---|---|---|
 | **Tiendanube** | ✅ Tiene Punto de Venta en Argentina y stock centralizado entre canales. En costo transaccional publica 0% con Pago Nube; con proveedor externo, 2% Esencial, 1% Impulso y 0,7% Escala, más el arancel del proveedor; Evolución es negociable. | ✅ [Punto de Venta](https://ayuda.tiendanube.com/pdv/que-es-punto-de-venta-de-tiendanube), [stock](https://www.tiendanube.com/funcionalidades/gestion-de-stock) y [costos por transacción](https://ayuda.tiendanube.com/es_AR/123484-costos-por-transaccion/que-son-los-costos-por-transaccion-de-tiendanube), verificado 2026-08-21 |
-| **Contabilium** | ERP + POS + stock + facturación + ecommerce + marketplaces, argentino. El competidor local más directo. | ❓ |
+| **Empretienda** | ✅ Administra catálogo desde cualquier dispositivo, importa productos, contempla digitales/mayoristas/promociones y permite cargar una venta presencial, WhatsApp o redes descontando el mismo stock. | ✅ [producto](https://www.empretienda.com/), [productos](https://empretienda.helpjuice.com/es_AR/productos) y [agregar venta](https://empretienda.helpjuice.com/es_AR/conociendo-agregar-), verificado 2026-08-22 |
+| **Contabilium** | ✅ ERP argentino con POS, facturación, compras, stock multi-depósito, tesorería/contabilidad e integraciones de ecommerce y marketplaces. Es una referencia local directa para la continuidad Commerce → gestión. | ✅ [ERP Argentina](https://contabilium.com/ar) y [ERP ecommerce](https://contabilium.com/ar/industrias/erp-ecommerce/), verificado 2026-08-22 |
+| **Xubio** | ✅ Gestión argentina con facturación, compras, cobranzas/pagos, stock, importaciones, impuestos, contabilidad, permisos e integraciones con Mercado Libre, Mercado Pago, Tiendanube y WooCommerce. | ✅ [producto](https://xubio.com/ar/) y [funciones por plan](https://xubio.com/ar/precios-empresas), verificado 2026-08-22 |
+| **Colppy** | ✅ Gestión/contabilidad cloud para PyMEs con facturación, bancos, pagos/cobros, stock, cash flow e integraciones locales. | ✅ [plataforma](https://colppy.com/) y [gestión para PyMEs](https://colppy.com/sistema-de-gestion-para-pymes), verificado 2026-08-22 |
+| **Mendel** | ✅ Spend management regional con tarjetas, presupuestos, políticas preventivas, aprobaciones, centros de costo e integración con ERP. Es el benchmark principal de control de gasto, no sólo OCR. | ✅ [producto](https://mendel.com/ar/producto/), [tarjetas](https://mendel.com/ar/producto/tarjetas-mendel/) e [integraciones](https://mendel.com/ar/producto/integraciones/), verificado 2026-08-22 |
+| **Clara Global** | ✅ Unifica gasto con tarjeta y reembolso, comprobantes por WhatsApp/formulario, roles, aprobaciones, múltiples entidades y reporte de pago. | ✅ [plataforma Argentina](https://global.clara.com/es-AR), verificado 2026-08-22 |
+| **Rindegastos** | ✅ Rendiciones, políticas, aprobaciones, anticipos/fondos, viáticos, captura offline, duplicados e integraciones/API. | ✅ [gestión de gastos](https://rindegastos.com/), [controles](https://rindegastos.com/es-mx/gestion-de-gastos) y [API](https://rindegastos.com/es-co/documentacion-api), verificado 2026-08-22 |
+| **SAP Concur Argentina** | ✅ Referencia enterprise para integrar viajes, gastos y facturas con captura automática y visibilidad fiscal/regulatoria. | ✅ [servicios financieros](https://www.concur.com.ar/servicios-financieros), verificado 2026-08-22 |
 | **VentaWeb** | ERP + tienda argentina. ~1.200 comercios. | ❓ |
 | **Axon ERP** | POS + stock + ecommerce nativo + ARCA. Muy parecido al planteo de acá. | ❓ |
 | **Max24** | POS + stock + tienda + ARCA. ~1.200 tiendas. | ❓ |
@@ -143,11 +150,12 @@ verificarlas.
 | **QuickBooks** | ✅ Recibe comprobantes por web, móvil o email, extrae datos, deja revisar/matchear y separa roles de carga, aprobación y pago en Bill Pay. | ✅ [Captura y revisión](https://quickbooks.intuit.com/learn-support/en-uk/help-article/import-transactions/upload-receipts-bills-quickbooks-online/L862MmZHn_GB_en_GB) y [aprobaciones](https://quickbooks.intuit.com/learn-support/en-us/help-article/manage-workflows/set-use-bill-approval-payment-release-workflows/L1IOLL9hv_US_en_US), verificado 2026-08-22 |
 | **Lightspeed / Cin7** | Referencias de producto, no competidores directos en este mercado. | ❓ |
 
-✅ **Conclusión ya verificable:** la categoría omnicanal existe y Tiendanube
-ya ofrece POS y stock entre canales. Eso elimina cualquier argumento basado en
-la ausencia de esas funciones. La ejecución tiene que bajar a lo concreto de
-§2.3: margen por producto y canal con costo de importación, comisión, envío e
-IVA, preservando la evidencia que compone el número.
+✅ **Conclusión ya verificable:** la categoría omnicanal local está cubierta por
+Tiendanube/Empretienda y la continuidad ERP por Contabilium/Xubio/Colppy. POS,
+stock compartido, facturación e integraciones son paridad; no alcanzan como
+argumento. La ejecución tiene que bajar a lo concreto de §2.3: margen por
+producto y canal con costo de importación, comisión, envío e IVA, preservando
+la evidencia que compone el número y reduciendo el tiempo de implementación.
 
 ✅ **Margin facts medidos el 2026-08-22:** “tener margen” tampoco alcanza como
 argumento. Shopify ya documenta profit por orden/mercado y Odoo margen por
@@ -186,14 +194,18 @@ ventanas, conflicto ARS 2.600 bloqueado, reversión exacta, outsider/restos 0.
 Producción: 25 recomendaciones descartadas, 0 aplicadas y 0 outcomes; el valor
 comercial sigue sin validar. Contrato y fuentes: [PRICE_IMPACT_LOOP.md](PRICE_IMPACT_LOOP.md).
 
-✅ **Finance como producto, 2026-08-22:** Odoo y QuickBooks confirman que OCR,
-review, matching y aprobaciones son paridad. Gestiona cerró primero el límite que
-faltaba: `/finance` tiene chrome propio, misma identidad/organización,
-entitlement separado de `finance.view` y decisión Platform auditada. Su resumen
-lee proveedores, órdenes, obligaciones y ledger del Core existente mediante RPC,
-sin duplicarlos. Producción: 4 organizaciones con Finance disponible, 0
-solicitudes y 0 habilitaciones. Esto prueba arquitectura, no adopción. Contrato y
-fuentes: [ADR 001](ADR_001_FINANCE_PRODUCT_SURFACE.md).
+✅ **Finance como producto, 2026-08-22:** Odoo/QuickBooks confirman que OCR,
+review, matching y aprobaciones son paridad. Mendel, Clara, Rindegastos y Concur
+elevan la vara: control antes del gasto, presupuesto/política, centro de costo,
+roles, reembolso, captura móvil y operación por excepción. Gestiona cerró
+primero el límite que faltaba: `/finance` tiene chrome propio, misma
+identidad/organización, entitlement separado de `finance.view` y decisión
+Platform auditada. Su resumen lee proveedores, órdenes, obligaciones y ledger
+del Core existente mediante RPC, sin duplicarlos. Producción: 4 organizaciones
+con Finance disponible, 0 solicitudes y 0 habilitaciones. Esto prueba
+arquitectura, no adopción. Tarjetas, custodia y viajes quedan fuera hasta tener
+demanda, socio regulado, economics y revisión legal. Contrato:
+[ADR 001](ADR_001_FINANCE_PRODUCT_SURFACE.md).
 
 ✅ **Benchmark económico agregado el 2026-08-21:** la comparación de pricing
 no se usa para decir “somos más baratos”. Se usa para probar que el costo total

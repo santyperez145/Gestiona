@@ -1,8 +1,9 @@
 # Gestiona contra la competencia — medido, no estimado
 
-**Fecha de corte: 2026-08-21.** Todo número nuestro sale de una consulta a la
-base de producción y lleva el comando al lado. Todo dato de un competidor lleva
-fuente y fecha, o va marcado como no verificado.
+**Fecha de corte de base: 2026-08-21; investigación competitiva y suite
+actualizadas el 2026-08-22.** Todo número nuestro sale de una consulta a la base
+de producción o de un comando reproducible y lleva la fecha al lado. Todo dato
+de un competidor lleva fuente y fecha, o va marcado como no verificado.
 
 Esa disciplina no es formalismo. Este repo es público y su documentación se lee
 de afuera: ya pasó que un análisis externo citó "418 tests unitarios" tomándolo
@@ -93,9 +94,9 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | Políticas RLS | **367** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
 | Migraciones registradas | **377** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate` |
 | Cron jobs | **20** | ✅ 9.859 corridas exitosas y **0 fallidas** en 7 días |
-| Edge Functions | **64** | ✅ `npm run check:functions`, 2026-08-22 |
+| Edge Functions | **65** | ✅ `npm run check:functions`, 2026-08-22 |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **1.233** | ✅ `npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21 |
+| Tests unitarios | **1.453** | ✅ `npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-22 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -133,7 +134,7 @@ antes de conectarse— pero el invariante documentado quedó desactualizado.
 | Suscripciones cobradas | **0** | ✅ 3 registros, las 3 en `past_due` |
 
 ⚠️ **Este es el dato que ordena todo el documento.** Tenemos una plataforma de
-285 tablas y 1.233 tests sirviendo a **un solo comercio real**. Tiendanube tiene
+285 tablas y 1.453 tests sirviendo a **un solo comercio real**. Tiendanube tiene
 ❓ más de 130.000 tiendas activas (fuente secundaria: blog de un competidor,
 [tiendli.com](https://tiendli.com/blog/tiendanube-vs-empretienda-vs-shopify-vs-tiendli/),
 2026 — **verificar antes de citarlo**). Shopify tiene ✅ 2.898.351 tiendas vivas
@@ -159,7 +160,7 @@ Leyenda: ✅ está y se usó · 🟡 está pero nunca corrió en real · 🔴 no
 |---|---|---|---|---|
 | Catálogo, variantes, categorías | ✅ | ✅ | ✅ | ✅ |
 | Carrito y checkout propio | ✅ | ✅ | ✅ | ✅ |
-| Cupones, promos 2x, descuento por cantidad | ✅ | ✅ | ❓ | ✅ |
+| Cupones, promos 2x, descuento por cantidad | ✅ | ✅ | ✅ | ✅ |
 | Reseñas de compra verificada | ✅ | ❓ | ❓ | ✅ |
 | Preguntas sobre el producto | ✅ | ❓ | ❓ | ❓ |
 | Lista de deseos, aviso de reposición | ✅ | ❓ | ❓ | ✅ |
@@ -172,12 +173,20 @@ Leyenda: ✅ está y se usó · 🟡 está pero nunca corrió en real · 🔴 no
 propios, theme engine y marketplace de apps son infraestructura para el comercio
 número cincuenta, no para el segundo. Ver `docs/ARQUITECTURA.md`.
 
+✅ Empretienda documenta importación/carga de productos, productos digitales y
+mayoristas, y promociones; además, “Agregar venta” registra ventas de local,
+WhatsApp o redes y ajusta stock como el checkout. Eso prueba simplicidad
+operativa y stock compartido dentro de su plataforma, no un POS offline ni un
+Kardex auditable. Fuentes oficiales: [productos](https://empretienda.helpjuice.com/es_AR/productos)
+y [agregar venta](https://empretienda.helpjuice.com/es_AR/conociendo-agregar-),
+consultadas el 2026-08-22.
+
 ### 3.2 Gestión — acá es donde ganamos
 
 | | Gestiona | Tiendanube | Empretienda |
 |---|---|---|---|
-| POS de mostrador | ✅ PWA **con modo offline** | ✅ PDV, ✅ **no en su app móvil** | ❓ |
-| Stock único entre canales | ✅ ledger de stock con triggers | ✅ | ❓ |
+| POS de mostrador | ✅ PWA **con modo offline** | ✅ PDV, ✅ **no en su app móvil** | 🟡 carga manual de venta presencial/WhatsApp/redes |
+| Stock único entre canales | ✅ ledger de stock con triggers | ✅ | ✅ tienda + venta cargada manualmente |
 | Kardex auditable | ✅ `stock_movements`, única fuente | ❓ | ❓ |
 | Toma física auditada | ✅ `abrir/registrar/cerrar_conteo` | ❓ | ❓ |
 | Compras e importación con aduana | ✅ | 🔴 | 🔴 |
@@ -238,7 +247,7 @@ locales ([Odoo POS](https://www.odoo.com/documentation/18.0/applications/sales/p
 y su partida doble y asientos de POS ([Odoo Accounting](https://www.odoo.com/documentation/18.0/applications/finance/accounting.html)).
 No se infiere la ausencia de una función cuando no se la relevó.
 
-### 3.5 Finance documental — paridad verificada y límite propio
+### 3.6 Finance documental — paridad verificada y límite propio
 
 ✅ **Verificado el 2026-08-22 con fuentes oficiales vigentes.** [Odoo 19](https://www.odoo.com/documentation/19.0/applications/finance/accounting/vendor_bills/invoice_digitization.html)
 recibe facturas por carga o email, extrae campos, deja corregirlos y busca una
@@ -275,6 +284,32 @@ exactitud/costo con documentos autorizados.
 Finance disponible, 0 solicitudes y 0 habilitaciones. Faltan scanner y extractor
 aprobados, benchmark real, matching, aprobación y borradores del Core.
 
+### 3.7 Finance regional — el control empieza antes del OCR
+
+✅ **Verificado el 2026-08-22 con fuentes oficiales.** El benchmark relevante
+para Gestiona Finance no termina en digitalizar facturas:
+
+| Capacidad | Mendel | Clara Global | Rindegastos | Gestiona hoy / decisión |
+|---|---|---|---|---|
+| Política y presupuesto antes del gasto | ✅ reglas de monto, categoría, ubicación y frecuencia; presupuestos | ✅ políticas y aprobaciones | ✅ políticas por tipo, monto y centro de costo | 🔴 F5: política versionada + presupuesto + excepción; no bloquear desde UI sin autoridad server-side. |
+| Captura y rendición | ✅ gasto, comprobante y reembolso | ✅ WhatsApp/formulario, tarjeta y reembolso | ✅ web/móvil/offline, viáticos, kilometraje y fondos | 🟡 Document Inbox web; F5 agrega mobile/WhatsApp, reembolso y fondos sin duplicar documentos. |
+| Roles y aprobaciones | ✅ rutas de uno o varios niveles | ✅ empleado, manager, contador y admin | ✅ flujos por área/centro de costo | 🟡 permisos y revisión versionada; faltan grafo de aprobación, delegación, SLA y segregación hasta pago. |
+| ERP y auditoría | ✅ REST/WebServices/CSV/TXT/SFTP y asiento | ✅ reporte de pago y multi-entidad | ✅ API/exportaciones e integraciones | 🟡 Core y audit log propios; F5 agrega Finance Connect, exportación idempotente y reconciliación. |
+| Tarjeta/custodia/viajes | ✅ producto principal | ✅ tarjeta corporativa | 🔴 usa tarjetas existentes; sí viáticos | 🔴 fuera de F3/F5 salvo demanda, partner regulado, economics y revisión legal. |
+
+Fuentes: Mendel [producto](https://mendel.com/ar/producto/),
+[tarjetas](https://mendel.com/ar/producto/tarjetas-mendel/) e
+[integraciones](https://mendel.com/ar/producto/integraciones/); Clara
+[Argentina](https://global.clara.com/es-AR); Rindegastos
+[gestión](https://rindegastos.com/es-mx/gestion-de-gastos) y
+[API](https://rindegastos.com/es-co/documentacion-api).
+
+📌 **Decisión:** F3 permanece enfocado en documento → matching → borradores del
+Core → aprobación. F5 incorpora control preventivo, centros de costo/proyectos,
+reembolsos/fondos, captura móvil, cola de incumplimientos y exportación. No se
+agregan tarjetas ni viajes para imitar una matriz: son otro modelo operativo,
+económico y regulatorio.
+
 ---
 
 ## 4. Precios — lo que cobran ellos
@@ -282,7 +317,7 @@ aprobados, benchmark real, matching, aprobación y borradores del Core.
 | | Plan gratis | Pagos | Comisión |
 |---|---|---|---|
 | Tiendanube AR | ✅ sí, sin límite de tiempo | ❓ desde ~USD 18/mes | ✅ 0,7%–2% por transacción + pasarela |
-| Empretienda | ✅ con tope de productos | ❓ USD 7–30/mes | ❓ ~3–5% en plan gratis |
+| Empretienda | ❓ oferta AR no reverificada en este corte | ❓ precio AR no reverificado | ❓ no usar una comisión sin fuente local vigente |
 | Shopify | 🔴 sólo prueba | ❓ desde USD 29/mes | ✅ + comisión si no usás Shopify Payments |
 | **Gestiona** | 14 días de trial | ❓ planes definidos, **nunca cobrados** | ⚠️ **5%** |
 
@@ -290,10 +325,11 @@ Todos los planes de Tiendanube tienen ✅ 25% de descuento pagando anual, y ✅ 
 limitan cantidad de productos, visitas ni ventas.
 
 📌 **Dos decisiones de precio que hay que tomar antes del segundo comercio:**
-bajar la comisión a un rango competitivo, y definir si hay plan gratis. Sin plan
-gratis, competir contra dos rivales que sí lo tienen exige un argumento muy
-fuerte — y hoy el argumento (facturación nativa, margen real) todavía no está
-probado en producción.
+bajar la comisión a un rango competitivo, y definir si hay plan gratis. La
+oferta argentina vigente de Empretienda debe reverificarse antes de usarla; no
+se decide pricing con un dato de otro país o una captura vieja. Aun contra el
+plan gratuito verificado de Tiendanube, el argumento de facturación nativa y
+margen real todavía no está probado en producción.
 
 ---
 
@@ -334,13 +370,13 @@ necesita un SaaS de 4 organizaciones. No es el cuello de botella.
 | **Observabilidad** | 🟡 Sentry en front, Merchant 360 y traza correlacionada del pago desde checkout hasta ledger, visible con RLS y sin PII. Faltan métricas/SLO, OpenTelemetry, alertas y health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ Deno para 65 Edge Functions + lint + typecheck + build, 1.446 tests, audit y 42 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
+| **CI** | ✅ Deno para 65 Edge Functions + lint + typecheck + build, 1.453 tests, audit y 42 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
 | **API pública / webhooks salientes** | 🔴 No hay | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
 | **SOC 2 / ISO 27001** | 🔴 | Requisito para vender a empresas | 🟢 Bajo hoy |
 
-✅ **El agujero de Edge Functions quedó cerrado el 2026-08-21.** Los 1.446 tests
+✅ **El agujero de Edge Functions quedó cerrado el 2026-08-21.** Los 1.453 tests
 corren en un job separado y `security` mantiene `npm audit` bloqueante para
 vulnerabilidades críticas. El job `build` instala Deno y ejecuta
 `npm run check:functions`: descubre los 65 `index.ts` del filesystem, por lo que
@@ -387,19 +423,39 @@ copian pantallas: se copian controles que reducen errores de operación.
 - ✅ **Tiendanube:** su documentación de migración separa productos, clientes,
   dominios, pagos y envíos; la importación masiva es un proceso explícito y
   recomienda respaldar antes ([migración](https://ayuda.tiendanube.com/es_AR/migrar-mi-tienda),
-  consultado 2026-08-22). Esto respalda el pipeline del roadmap
+  consultado 2026-08-22). Su gestión de ventas documenta búsqueda por orden,
+  cliente, email e importe, filtros por estados/canal/producto/cupón, vistas
+  rápidas, exportación y bulk
+  ([ventas](https://ayuda.tiendanube.com/es_AR/123288-mis-ventas/como-buscar-y-filtrar-mis-ventas)).
+  Esto respalda el pipeline del roadmap
   `extract → staging → normalize → validate → preview → import → reconcile`, no
-  una importación que pisa datos en silencio.
+  una importación que pisa datos en silencio, y fija la paridad de operación de
+  órdenes para D3/D5.
 - ✅ **Empretienda:** comunica importación masiva, alertas de stock, medios de
-  pago, envíos y administración móvil como capacidades de comercio
-  ([producto](https://empretienda.com/), consultado 2026-08-22). Se considera
-  paridad de superficie; no se atribuyen detalles internos sin documentación
-  técnica pública.
-- ✅ **Mendel:** su producto muestra políticas de gasto, presupuestos/tarjetas,
-  aprobaciones, auditoría y detalle por categoría
-  ([Spend Management](https://mendel.com/en-ar/product/), consultado
-  2026-08-22). Finance toma ese estándar de control: quién solicita, quién
-  aprueba, qué evidencia queda y qué efecto está prohibido antes de aprobar.
+  pago, envíos y administración móvil; su ayuda confirma productos
+  digitales/mayoristas y venta manual con el mismo stock
+  ([producto](https://www.empretienda.com/), [productos](https://empretienda.helpjuice.com/es_AR/productos)
+  y [venta](https://empretienda.helpjuice.com/es_AR/conociendo-agregar-),
+  consultados 2026-08-22). Se considera paridad de superficie y simplicidad; no
+  se le atribuye POS offline ni arquitectura interna.
+- ✅ **Mendel:** documenta políticas de gasto, presupuestos/tarjetas, reglas,
+  aprobaciones, centros de costo, auditoría e integraciones contables
+  ([producto](https://mendel.com/ar/producto/), [tarjetas](https://mendel.com/ar/producto/tarjetas-mendel/)
+  e [integraciones](https://mendel.com/ar/producto/integraciones/), consultados
+  2026-08-22). Finance toma ese estándar de control: quién solicita, qué
+  presupuesto/política aplica, quién aprueba, qué evidencia queda y qué efecto
+  está prohibido antes de aprobar.
+- ✅ **Clara y Rindegastos:** agregan captura WhatsApp/mobile/offline,
+  reembolsos/fondos, roles, múltiples entidades y políticas por centro de costo
+  ([Clara](https://global.clara.com/es-AR), [Rindegastos](https://rindegastos.com/es-mx/gestion-de-gastos),
+  consultados 2026-08-22). F5 adopta el control y la operación por excepción;
+  no promete tarjetas, custodia ni viajes.
+- ✅ **Contabilium, Xubio y Colppy:** confirman que el benchmark argentino ya
+  integra facturación, compras, stock, caja/bancos, impuestos/contabilidad y
+  canales locales ([Contabilium](https://contabilium.com/ar/industrias/erp-ecommerce/),
+  [Xubio](https://xubio.com/ar/precios-empresas), [Colppy](https://colppy.com/sistema-de-gestion-para-pymes),
+  consultados 2026-08-22). Gestiona debe ganar en implementación y margen
+  explicable, no presentar esos módulos como novedad.
 
 📌 **Regla derivada:** cada integración nueva debe tener una autoridad canónica,
 un evento idempotente, una cola/reintento cuando sea asíncrona y una pantalla de
@@ -487,7 +543,7 @@ versión y auditoría antes de conectarse a IA o a un efecto financiero.
 ## 8. El resumen en cinco líneas
 
 1. ✅ **Técnicamente estamos mejor de lo que corresponde a nuestro tamaño**: RLS
-   real, ledger, outbox, idempotencia, 1.446 tests y typecheck de 65 funciones.
+   real, ledger, outbox, idempotencia, 1.453 tests y typecheck de 65 funciones.
 2. ✅ **Comercialmente no existimos todavía**: 1 comercio, 0 facturas, 0
    asientos, 0 suscripciones cobradas.
 3. ⚠️ **Perdimos el diferencial del POS** — Tiendanube ya lo tiene.

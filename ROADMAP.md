@@ -155,11 +155,11 @@ patrones de producto/UX y la matriz de ejecución viven en
 
 | Campo competitivo | Paridad mínima | Diferencial Gestiona que debe probarse |
 |---|---|---|
-| ERP / operación | Productos, inventario, compras, POS, clientes y reportes confiables. | Menor implementación y verdad conectada a Commerce y Finance. |
-| Commerce | Checkout, dominio, SEO, temas, migración, rendimiento y extensibilidad. | Costo y margen del mismo Core que ejecuta la venta. |
+| ERP / operación | Contabilium, Xubio y Colppy ya combinan facturación argentina, compras, stock, caja/bancos, contabilidad e integraciones locales. | Menor tiempo de implementación y una verdad conectada a Commerce y Finance; la amplitud de módulos no es ventaja por sí sola. |
+| Commerce | Tiendanube y Empretienda fijan la paridad local: checkout, catálogo/importación, promociones, pagos, envíos, dominio, operación mobile y stock entre ventas online/presenciales; Tiendanube suma PDV, filtros/bulk y ecosistema. | Costo y margen del mismo Core que ejecuta la venta, con migración reconciliada y una operación más simple para el segundo comercio. |
 | Margen y rentabilidad | Shopify ya reporta profit por producto/orden/mercado y Odoo margen por línea/pedido; tener un reporte es paridad, no ventaja. | Cuatro fuentes persistidas —costo histórico, cobro, envío real e IVA— por venta/canal/operación, con mix, promoción y devoluciones. El POS ahora convierte cada parte del cobro en evidencia conciliable y bloquea el ticket mientras falte el arancel; la autoridad existe, pero su impacto todavía debe probarse con una decisión real. |
 | Marketplace | Sincronización de catálogo, stock, órdenes y postventa. | Sistema neutral que decide canal por margen, capital y disponibilidad. |
-| Spend / Finance | Odoo y QuickBooks ya reciben PDF/imagen/email, extraen, muestran revisión y buscan coincidencias; QuickBooks además separa carga, aprobación y pago. | Finance comparte proveedor, producto, compra, stock y ledger nativos. La primera superficie ya separa entitlement de permisos y no llama “Finance” al OCR precursor; falta demostrar la cadena documento → borradores aprobados. |
+| Spend / Finance | Odoo/QuickBooks fijan OCR, revisión y matching. Mendel, Clara, Rindegastos y Concur agregan control preventivo, presupuestos/políticas, roles, reembolsos, captura mobile/offline e integración ERP. | Finance comparte proveedor, producto, compra, stock y ledger nativos. F3 demuestra documento → matching → borradores aprobados; F5 agrega política, centro de costo, presupuesto y operación por excepción. Tarjetas/custodia/viajes quedan fuera sin demanda, partner regulado y economics. |
 | IA | Asistencia dentro del flujo real. | Recomendación → aprobación → acción → resultado verificado. |
 | Plataforma | Health, replay, incidentes, soporte y billing. | Evidencia por merchant sin exponer secretos ni datos crudos. |
 | Monetización | Precio y costo total de cobro transparentes. | Merchant economics y platform economics separados; contribución y break-even auditables antes de activar pricing. |
@@ -186,7 +186,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.451 tests en 129 archivos pasan al 2026-08-22; typecheck, lint y build verdes; 65 Edge Functions verificadas; 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) pasan contra la base real. |
+| Calidad técnica | 1.453 tests en 129 archivos pasan al 2026-08-22; typecheck, lint y build verdes; 65 Edge Functions verificadas; 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) pasan contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -529,8 +529,11 @@ Finance, pero no autoaprobarlo; sólo staff `finance`/`superadmin` decide desde
 Merchant 360 y cada transición queda tanto en eventos append-only como en la
 auditoría de plataforma. La base real tiene 4 Business habilitados y 4 Finance
 disponibles, con 0 solicitudes/habilitaciones: existe el producto técnico, no su
-adopción. Odoo/QuickBooks confirman que OCR, review y matching son paridad; el
-siguiente gate es cadena de custodia y borradores conectados al Core.
+adopción. Odoo/QuickBooks confirman que OCR, review y matching son paridad;
+Mendel/Clara/Rindegastos muestran que el producto regional maduro también
+controla política, presupuesto, rol y excepción. F3 no se ensancha: el
+siguiente gate sigue siendo matching y borradores conectados al Core; ese
+control preventivo queda ordenado en F5.
 
 **Salida:** un conjunto de facturas reales completa ingreso → extracción →
 validación → matching → aprobación → compra/deuda sin SQL, duplicación ni
@@ -554,8 +557,11 @@ operación básica.
 - Theme draft/preview/publish/rollback.
 - SEO, medios y performance budgets.
 - Migrador inicial con extract → staging → normalize → map → validate →
-  preview → approve → import → reconcile.
-- Conectores priorizados por demanda real.
+  preview → approve → import → reconcile. El primer contrato debe cubrir las
+  exportaciones y semánticas verificadas de Tiendanube y Empretienda sin
+  inferir campos que el origen no entregue.
+- Conectores priorizados por demanda real; Mercado Libre/Mercado Pago se tratan
+  como canal e infraestructura del Core, no como inventarios paralelos.
 - Funnel y Core Web Vitals instrumentados.
 
 **Salida:** una tienda externa migra productos, variantes, categorías, imágenes,
@@ -572,15 +578,29 @@ rendimiento, conversión y errores de checkout.
 **Entregables**
 
 - Three-way match: purchase order, recepción y factura.
-- Expense Management y centros de costo.
-- Approval Engine reusable.
+- Expense Management con gastos, reembolsos, anticipos/fondos y centros de
+  costo/proyectos.
+- Políticas versionadas y presupuestos preventivos por monto, categoría,
+  frecuencia, centro de costo y periodo.
+- Captura mobile/offline y WhatsApp/email con deduplicación, consentimiento y
+  la misma cadena de custodia del Document Inbox.
+- Approval Engine reusable con niveles, delegación, SLA, sustitución y
+  segregación entre solicitante, aprobador, contador y pago.
+- Cola de fuera de política/anomalías con causa, dueño, vencimiento, evidencia
+  y resolución auditable.
 - AP Calendar y aging.
 - Conciliación asistida.
 - Audit Agent bajo herramientas autorizadas.
 - Cost Intelligence por proveedor/producto.
 - Email y WhatsApp ingestion.
 - Supplier Portal.
-- Finance Connect para un ERP externo mediante contrato estable.
+- Finance Connect para un ERP externo mediante contrato estable, exportación
+  idempotente, estado de sincronización y conciliación.
+
+**Límite competitivo:** Mendel y Clara usan tarjetas corporativas y Concur suma
+viajes. Gestiona no los incorpora por imitación. Emisión de tarjetas, custodia,
+movimiento de fondos o viajes requieren demanda real, socio regulado, economics,
+riesgo, soporte y revisión legal antes de entrar a una fase.
 
 **Salida:** la mayoría definida para el piloto sólo necesita intervención en
 excepciones y cada automatización puede auditarse, explicarse y revertirse.
@@ -808,11 +828,10 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     `PLATFORM_ALLOWED_ORIGINS`; guarda dedicada impide volver al wildcard o al
     fallback incorrecto.
 27. ~~Estándar integral de producto y experiencia competitiva~~ — línea de base
-    cerrada el 2026-08-22: se verificaron patrones funcionales oficiales de
-    Shopify, HubSpot, Salesforce, Stripe, Odoo, QuickBooks y Square, y se
-    inspeccionaron Aerten, eMarketplace, CRM Customers/Deals y SaaS Marketplace
-    Admin en sus previews públicos. El lineamiento separa evidencia/observación/
-    decisión/hipótesis; define anatomía, 11 arquetipos, overlays, filtros/vistas/
+    cerrada y ampliada el 2026-08-22: 17 referencias oficiales —7 globales de
+    operación, 4 de Finance/spend regional y 6 del ecosistema argentino— más 4
+    Figma observados. El lineamiento separa evidencia/observación/decisión/
+    hipótesis; define anatomía, 11 arquetipos, overlays, filtros/vistas/
     segmentos/cohortes/colas, tablas/bulk, 12 estados, responsive, WCAG,
     performance, cobertura mínima por producto y una puerta 80/100 antes de
     adoptar tecnología. Una guarda en CI exige que ROADMAP, DESIGNROADMAP,
@@ -820,6 +839,16 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     D2.5 estados unificados y D2.6 inventario/migración de overlays; próxima
     ejecución funcional: F3 supplier/product matching, sin saltar la evidencia
     externa pendiente.
+28. ~~Mapa competitivo regional para Finance y comercio argentino~~ — cerrado
+    documentalmente el 2026-08-22 con fuentes oficiales de Mendel, Clara,
+    Rindegastos, SAP Concur Argentina, Tiendanube, Empretienda, Contabilium,
+    Xubio, Colppy y Mercado Libre/Mercado Pago. La consecuencia no es agregar
+    diez módulos: F3 conserva matching/borradores como próximo gate; F5 explicita
+    políticas, presupuestos, centros de costo, reembolsos, captura mobile y cola
+    de excepciones; F4 prioriza migración compatible con Tiendanube/Empretienda.
+    Tarjetas, custodia y viajes quedan congelados sin demanda, partner regulado,
+    economics y revisión legal. La guarda CI impide borrar estas referencias o
+    volver a reducir Finance a OCR y Commerce a “tener tienda/POS”.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -1002,7 +1031,7 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-22: 1.451 tests en 129 archivos, 65
+- Build y suites locales del 2026-08-22: 1.453 tests en 129 archivos, 65
   funciones verificadas y 42 E2E críticos contra la base real.
 - docs/FINANCE_DOCUMENT_EXTRACTION.md: custodia, esquema estructurado,
   confianza, revisión append-only, gate de privacidad y operación.

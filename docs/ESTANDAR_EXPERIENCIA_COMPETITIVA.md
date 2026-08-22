@@ -41,7 +41,7 @@ Reglas:
 
 ## 2. Qué se estudió y qué aporta cada referencia
 
-### Plataformas operativas
+### Referencias globales de operación
 
 | Referencia | Evidencia | Patrón útil | Traducción, no copia |
 |---|---|---|---|
@@ -52,6 +52,43 @@ Reglas:
 | Odoo | ✅ [tipos de vista](https://www.odoo.com/documentation/19.0/applications/studio/views.html), [dashboards](https://www.odoo.com/documentation/19.0/applications/productivity/dashboards.html), [filtros globales](https://www.odoo.com/documentation/19.0/applications/productivity/spreadsheet/work_with_data/global_filters.html) | Lista, Kanban, búsqueda, pivots y dashboards con filtros globales y drill-down al registro fuente. | Un mismo Business Core con representaciones por tarea; todo KPI puede explicar y abrir su población. |
 | QuickBooks Online | ✅ [receipts/bills](https://quickbooks.intuit.com/learn-support/en-us/help-article/import-transactions/upload-receipts-bills-quickbooks-online/L862MmZHn_US_en_US), [aprobaciones](https://quickbooks.intuit.com/learn-support/en-us/help-article/manage-workflows/set-use-bill-approval-payment-release-workflows/L1IOLL9hv_US_en_US), [gestión de bills](https://quickbooks.intuit.com/learn-support/en-us/help-article/pay-bills/review-manage-bills-quickbooks-online/L8VbbnAd2_US_en_US) | Cola `For review`, documento y datos lado a lado, match o creación, estado de aprobación y tarea asignada. | Finance Document Inbox, revisión humana versionada y borradores sin efecto hasta aprobación. |
 | Square | ✅ [reportes](https://squareup.com/help/us/en/article/5072-summaries-and-reports-from-the-online-dashboard), [colas de disputa](https://squareup.com/help/us/en/article/8361-view-dispute-reports) | Fecha/local/dispositivo como contexto; tarjetas de performance y lista accionable; “requiere respuesta”. | POS/reportes por ubicación y colas con severidad, dueño, vencimiento y próxima acción. |
+
+### Finance y spend management regional
+
+| Referencia | Evidencia | Patrón útil | Traducción, no copia |
+|---|---|---|---|
+| Mendel | ✅ [producto](https://mendel.com/ar/producto/), [tarjetas](https://mendel.com/ar/producto/tarjetas-mendel/), [integraciones](https://mendel.com/ar/producto/integraciones/) y [MCP](https://mendel.com/ar/mendel-mcp/) | Control preventivo: presupuesto y política antes del gasto; tarjetas físicas/virtuales, reglas por monto/categoría/ubicación/frecuencia, aprobaciones multinivel, centros de costo y exportación a ERP. Su MCP permite consultar y aprobar en lote con herramientas autorizadas. | F5 debe unir solicitud, política, presupuesto, evidencia, aprobador, excepción y exportación sobre el mismo Business Graph. Las acciones de IA reutilizan permisos y auditoría; nunca evitan la aprobación humana. |
+| Clara Global | ✅ [plataforma Argentina](https://global.clara.com/es-AR) | Comprobante por WhatsApp/formulario, gasto con tarjeta y reembolso en un mismo flujo, roles diferenciados, entidades legales aisladas y reporte de pago estructurado. | Ingreso mobile/WhatsApp, reembolso y tarjeta externa convergen en una cola común sin mezclar organizaciones ni monedas. Solicitante, manager, contador y administrador ven alcances distintos. |
+| Rindegastos | ✅ [gestión de gastos](https://rindegastos.com/), [controles y flujos](https://rindegastos.com/es-mx/gestion-de-gastos) y [API](https://rindegastos.com/es-co/documentacion-api) | Rendiciones, anticipos/fondos, viáticos, kilometraje, captura offline, duplicados, políticas por centro de costo y aprobaciones por monto/tipo; API para usuarios, gastos, informes, fondos y políticas. | Expense Management necesita captura resiliente, fondos/reembolsos, política versionada, cola de infracciones y contrato de integración estable; el rol final sigue siendo responsable de la decisión. |
+| SAP Concur Argentina | ✅ [servicios financieros](https://www.concur.com.ar/servicios-financieros) | Viajes, gastos y facturas en una suite, captura automática y visibilidad fiscal/regulatoria. | Es referencia enterprise de cobertura y compliance, no alcance inmediato. Gestiona preserva evidencia fiscal argentina y escala por fases sin presentar una suite de viajes inexistente. |
+
+📌 **Límite Finance:** tarjetas corporativas, custodia de fondos y viajes no
+entran en F3 ni se prometen por paridad. Primero se valida documento → matching
+→ borrador → aprobación sobre el Core. F5 agrega política, presupuesto, centro
+de costo, reembolso, captura móvil y operación por excepción. Emitir tarjetas o
+mover dinero exige demanda, socio regulado, economics y análisis legal propios.
+
+### Ecosistema argentino de comercio y gestión
+
+| Referencia | Evidencia | Patrón útil | Traducción, no copia |
+|---|---|---|---|
+| Tiendanube | ✅ [funcionalidades](https://www.tiendanube.com/funcionalidades) y [búsqueda/filtros de ventas](https://ayuda.tiendanube.com/es_AR/123288-mis-ventas/como-buscar-y-filtrar-mis-ventas) | Tienda, redes, marketplaces, PDV, stock sincronizado, pagos, envíos, marketing y ecosistema de apps. Ventas ofrece filtros ricos, vistas rápidas, exportación y acciones masivas. | La paridad Commerce incluye el recorrido completo y una operación de órdenes veloz; POS o stock compartido ya no son diferenciales. Gestiona debe explicar costo y margen por canal desde la misma orden. |
+| Empretienda | ✅ [plataforma](https://www.empretienda.com/), [productos](https://empretienda.helpjuice.com/es_AR/productos) y [carga de venta](https://empretienda.helpjuice.com/es_AR/conociendo-agregar-) | Administración desde cualquier dispositivo, carga/importación de productos, productos digitales/mayoristas, promociones y una venta presencial/WhatsApp que descuenta el mismo stock. | El segundo comercio debe poder empezar y vender desde el celular con menos configuración. La venta fuera del checkout sigue entrando al Core, no crea otro inventario. |
+| Contabilium | ✅ [ERP Argentina](https://contabilium.com/ar) y [ERP ecommerce](https://contabilium.com/ar/industrias/erp-ecommerce/) | Facturación, compras, stock, tesorería, contabilidad y POS con integraciones a Mercado Libre, Tiendanube, WooCommerce y Shopify; depósitos, precios, órdenes y clientes sincronizados. | El benchmark local no termina en ecommerce: onboarding, ARCA, depósitos, compras y conciliación deben funcionar juntos. La amplitud sin adopción no cuenta como ventaja. |
+| Xubio | ✅ [producto](https://xubio.com/ar/) y [matriz de empresas](https://xubio.com/ar/precios-empresas) | Facturación, cobranzas, pagos, compras, stock/depósitos, importaciones, impuestos, contabilidad, permisos e integraciones locales en una matriz de planes explícita. | El lenguaje fiscal y las tareas argentinas deben ser nativos. Gestiona compite con menor tiempo a valor y evidencia de margen, no con una lista más larga de módulos. |
+| Colppy | ✅ [plataforma](https://colppy.com/) y [gestión para PyMEs](https://colppy.com/sistema-de-gestion-para-pymes) | Gestión y contabilidad cloud, facturación, bancos, pagos/cobros, stock, cash flow e integraciones con Mercado Pago, Tiendanube y Mercado Libre. | Finance y Business muestran continuidad entre operación, banco, impuesto y asiento, con estados conciliados y responsables visibles. |
+| Mercado Libre + Mercado Pago | ✅ [publicación](https://www.mercadolibre.com.ar/ayuda/como-publicar-en-mercado-libre_25316), [Orders API de Point](https://www.mercadopago.com.ar/developers/es/docs/mp-point/overview) y [marketplace fee](https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/how-tos/integrate-marketplace) | Catálogo/variantes/stock, fulfillment, cobro presencial y online, conciliación por notificaciones y comisión de marketplace mediante OAuth. | MercadoLibre es un canal del Core y Mercado Pago una infraestructura de cobro: cada evento se reconcilia, es idempotente y termina en orden, stock, pago y margen explicables. |
+
+📌 **Paridad local obligatoria:** catálogo/importación, venta de mostrador y
+online, stock único, promociones, pagos, envíos, dominio, facturación argentina,
+filtros/acciones de órdenes, uso mobile e integraciones. Ninguna de esas piezas
+aislada es el posicionamiento. El claim defendible a validar es que Gestiona
+reúne operación, Commerce y Finance con costo histórico, comisión, envío e IVA
+en la misma decisión de margen.
+
+❓ **Radar regional no usado como hecho:** Tango, Dragonfish, Fudo/Maxirest,
+VentaWeb, Axon y Max24 siguen siendo referencias por verificar contra fuentes
+oficiales vigentes antes de incorporarlas a una comparación o presentación.
 
 ### Dirección visual compartida
 
