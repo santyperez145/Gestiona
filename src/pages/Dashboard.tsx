@@ -18,6 +18,7 @@ import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, 
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
 import MetricCard from "@/components/shared/MetricCard";
 import PageHeader from "@/components/shared/PageHeader";
+import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -1328,6 +1329,22 @@ export default function Dashboard() {
   };
 
   const activeDashboardMeta = DASHBOARD_SECTIONS.find(section => section.id === visibleDashboardSection) ?? DASHBOARD_SECTIONS[0];
+  const selectDashboardSection = (sectionId: string) => {
+    if (!isDashboardViewId(sectionId)) return;
+    setActiveDashboardSection(sectionId);
+    const nextUrl = `${window.location.pathname}${window.location.search}#${sectionId}`;
+    window.history.replaceState(window.history.state, "", nextUrl);
+  };
+
+  const dashboardViewTabs = DASHBOARD_SECTIONS.map(section => ({
+    ...section,
+    count: section.id === "dashboard-overview" ? "Ahora"
+      : section.id === "dashboard-sales" ? stats.totalSalesCount
+      : section.id === "dashboard-customers" ? stats.uniqueCustomers
+      : section.id === "dashboard-inventory" ? (stats.lowStock + stats.outOfStock || "OK")
+      : section.id === "dashboard-finance" ? formatARS(stats.netMonthProfitARS)
+      : "IA",
+  }));
 
   return (
     <div className="workspace-page workspace-dashboard pb-12">
@@ -1384,43 +1401,20 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="dashboard-context-bar" aria-live="polite">
-        <div className="dashboard-context-bar__identity">
-          <span className="dashboard-context-bar__kicker">Vista activa</span>
-          <strong>{activeDashboardMeta.label}</strong>
-        </div>
-        <div className="dashboard-context-bar__status">
-          <span className="dashboard-context-bar__dot" />
-          Business Core conectado
-          <span className="dashboard-context-bar__separator" />
-          Datos de la organización activa
-        </div>
-      </div>
+      <WorkspaceViewTabs
+        ariaLabel="Vistas del dashboard"
+        activeTab={visibleDashboardSection}
+        onChange={selectDashboardSection}
+        tabs={dashboardViewTabs}
+        meta={(
+          <span className="dashboard-tabs-meta" aria-live="polite">
+            <span className="dashboard-context-bar__dot" />
+            {activeDashboardMeta.label} · Business Core conectado
+          </span>
+        )}
+      />
 
-      <div className="workspace-dashboard-layout">
-        <nav className="workspace-dashboard-nav" aria-label="Secciones del dashboard">
-          <div className="workspace-dashboard-nav__head">
-            <p className="workspace-dashboard-nav__label">Vistas</p>
-            <span>6</span>
-          </div>
-          {DASHBOARD_SECTIONS.map(section => {
-            const Icon = section.icon;
-            const isActive = visibleDashboardSection === section.id;
-            return (
-              <a
-                key={section.id}
-                href={`#${section.id}`}
-                aria-current={isActive ? "page" : undefined}
-                onClick={() => setActiveDashboardSection(section.id)}
-              >
-                <Icon className="h-3.5 w-3.5 shrink-0" />
-                <span>{section.label}</span>
-              </a>
-            );
-          })}
-        </nav>
-
-        <div className="workspace-dashboard-content" data-dashboard-view={visibleDashboardViewKey}>
+      <div className="workspace-dashboard-content" data-dashboard-view={visibleDashboardViewKey}>
         <div className="dashboard-view-section" data-dashboard-section="overview">
       {/* Activación medible: formulario completo no equivale a negocio listo. */}
       <SetupChecklist
@@ -3407,7 +3401,6 @@ export default function Dashboard() {
         />
       )}
         </div>
-      </div>
     </div>
   );
 }

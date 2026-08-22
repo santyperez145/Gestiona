@@ -208,10 +208,10 @@ usarse en una presentación, valuación o decisión de inversión.
 | Control Plane | Superficie operativa profesional en construcción. | Menor MTTR y menor intervención manual medidos. |
 | Finance OCR | Extracción/prellenado parcial. | Documento auditable que termina en compra/deuda correcta. |
 | Finance product surface | Ruta, chrome, sesión compartida, entitlement, permiso y snapshot del Core. | Primer comercio habilitado y primer documento procesado; 0 adopción real al corte. |
-| Sistema visual v3 Figma | El workspace claro adopta obligatoriamente la dirección de los kits CRM/marketplace compartidos: canvas casi blanco, superficies blancas, primary violeta `252 83% 62%`, secundarios turquesa/coral, rail persistente, topbar y profundidad baja; se aplica a Business y Platform sin alterar el Business Core. Dashboard separa seis vistas activas persistidas y conserva los hashes `#dashboard-*`; el incidente del 2026-08-22 donde el hash `dashboard-sales` no coincidía con el selector `sales` quedó corregido con traducción única y guarda exhaustiva de las seis vistas. Platform organiza su rail por grupos de trabajo filtrados por rol. | Captura autenticada desktop/mobile de todas las superficies, revisión de Storefront y medición de tiempo a tarea antes de declarar la renovación visual validada. |
+| Sistema visual v3 Figma | El workspace claro adopta obligatoriamente la dirección de los kits CRM/marketplace compartidos: canvas casi blanco, superficies blancas, primary violeta `252 83% 62%`, secundarios turquesa/coral, rail persistente, topbar y profundidad baja; se aplica a Business y Platform sin alterar el Business Core. Dashboard separa seis vistas activas persistidas con `WorkspaceViewTabs`, iconos, conteos reales y estado del Core, sin duplicar el rail global; conserva los hashes `#dashboard-*` y el incidente del 2026-08-22 donde `dashboard-sales` no coincidía con `sales` quedó corregido con traducción única y guarda exhaustiva. Platform organiza su rail por grupos de trabajo filtrados por rol. | Captura autenticada desktop/mobile de todas las superficies, revisión de Storefront y medición de tiempo a tarea antes de declarar la renovación visual validada. |
 | Rediseño público v3 | Landing pública y Auth fueron reconstruidos el 2026-08-22 con propuesta omnicanal, preview del producto, registro directo desde CTA, responsive desktop/mobile y metadatos SEO alineados. | Validar conversión del CTA y continuar la auditoría visual de Storefront y rutas públicas de compra. |
 | CRM workspace v1 | Clientes / CRM incorpora tabs persistidos `Clientes`/`Insights`, rail de segmentos, toolbar de filtros y ficha contextual 360 siguiendo la referencia CRM compartida; mantiene acciones y datos existentes. | Captura autenticada desktop/mobile, validación con un comercio real y medición de tiempo para encontrar/actuar sobre un cliente. |
-| Admin/marketplace workspace v1 | `WorkspaceViewTabs` extiende el contrato Figma a Productos y Ventas: Catálogo/Operación y Ventas/Rendimiento, con contadores, meta contextual, responsive móvil y persistencia por organización; Dashboard, Settings, Admin, Integraciones, Reportes y Tienda quedan bajo el mismo contrato de tokens. El shell compartido ahora expone identidad de workspace en topbar, breadcrumb, CTA, headers con acento, métricas con estados y plataforma con consola/rail violeta. | Captura autenticada de las superficies operativas y medición de tiempo a tarea antes de declarar la renovación visual validada. |
+| Admin/marketplace workspace v1 | `WorkspaceViewTabs` extiende el contrato Figma a Productos, Ventas y Dashboard: Catálogo/Operación, Ventas/Rendimiento y seis vistas ejecutivas con contadores, meta contextual, responsive móvil y persistencia por organización; Settings, Admin, Integraciones, Reportes y Tienda quedan bajo el mismo contrato de tokens. El shell compartido expone identidad de workspace en topbar, breadcrumb, CTA, headers con acento, métricas con estados y plataforma con consola/rail violeta. | Captura autenticada de las superficies operativas y medición de tiempo a tarea antes de declarar la renovación visual validada. |
 
 ### Bloqueos externos vigentes
 
@@ -736,9 +736,10 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
      organización. La dirección principal es el diseño CRM compartido; falta
      capturar la vista autenticada y probar el tiempo a tarea con datos reales.
 23. Admin/marketplace workspace transversal — cerrado técnicamente el
-    2026-08-22 en Productos y Ventas: `WorkspaceViewTabs` aplica la misma
+    2026-08-22 en Productos, Ventas y Dashboard: `WorkspaceViewTabs` aplica la misma
     navegación compacta, densidad, estados y persistencia por organización a
-    Catálogo/Operación y Ventas/Rendimiento sin separar el Business Core. El
+    Catálogo/Operación, Ventas/Rendimiento y seis vistas ejecutivas sin separar
+    el Business Core. El
     siguiente gate es capturar todas las superficies autenticadas y medir tarea
     completa en un comercio real.
 

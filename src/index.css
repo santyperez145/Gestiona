@@ -170,9 +170,16 @@
 
   .workspace-view-tabs__list {
     display: flex;
+    flex: 1;
     align-items: center;
     gap: 0.25rem;
     min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .workspace-view-tabs__list::-webkit-scrollbar {
+    display: none;
   }
 
   .workspace-view-tabs__tab {
@@ -226,6 +233,16 @@
     color: hsl(var(--muted-foreground));
     font-size: 0.7rem;
     white-space: nowrap;
+  }
+
+  .dashboard-tabs-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .workspace-dashboard > .workspace-view-tabs {
+    margin: 1rem 0 1.35rem;
   }
 
   @media (max-width: 580px) {

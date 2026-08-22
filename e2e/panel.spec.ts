@@ -34,7 +34,7 @@ test.describe("dashboard", () => {
     await expect(content).toHaveAttribute("data-dashboard-view", "sales");
     await expect(page.locator('[data-dashboard-section="sales"]')).toBeVisible();
     await expect(page.locator('[data-dashboard-section="overview"]')).toBeHidden();
-    const viewNav = page.getByRole("navigation", { name: "Secciones del dashboard" });
+    const viewTabs = page.getByRole("tablist", { name: "Vistas del dashboard" });
 
     const views = [
       ["Resumen", "overview"],
@@ -46,9 +46,10 @@ test.describe("dashboard", () => {
     ] as const;
 
     for (const [label, key] of views) {
-      await viewNav.getByRole("link", { name: label, exact: true }).click();
+      await viewTabs.getByRole("tab", { name: new RegExp(`^${label}`) }).click();
       await expect(content).toHaveAttribute("data-dashboard-view", key);
       await expect(page.locator(`[data-dashboard-section="${key}"]`)).toBeVisible();
+      await expect(page).toHaveURL(new RegExp(`#dashboard-${key}$`));
     }
   });
 });

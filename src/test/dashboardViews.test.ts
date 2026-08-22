@@ -27,6 +27,9 @@ describe('contrato de vistas del dashboard', () => {
   it('entrega al layout la clave CSS y no el hash completo', () => {
     expect(dashboard).toContain('data-dashboard-view={visibleDashboardViewKey}');
     expect(dashboard).not.toContain('data-dashboard-view={visibleDashboardSection}');
+    expect(dashboard).toContain('<WorkspaceViewTabs');
+    expect(dashboard).toContain('ariaLabel="Vistas del dashboard"');
+    expect(dashboard).not.toContain('aria-label="Secciones del dashboard"');
   });
 
   it('mantiene una regla visible para cada tab', () => {

@@ -109,7 +109,9 @@ organización. `WorkspaceViewTabs` es el primitive común para este contrato.
   con KPIs, métodos de pago ni tendencia diaria.
 - **Dashboard** separa `Resumen`, `Rendimiento`, `Clientes`, `Stock`, `Caja y
   finanzas` e `Inteligencia` en vistas activas persistidas por organización; no
-  se presenta como una columna de widgets sin fin. Los hashes históricos
+  se presenta como una columna de widgets sin fin. Usa `WorkspaceViewTabs`
+  con acento violeta, iconos, conteos reales y estado del Business Core; evita
+  sumar un segundo rail al rail global del Figma CRM. Los hashes históricos
   (`#dashboard-*`) siguen abriendo la vista correspondiente y un estado viejo
   de `localStorage` nunca puede ocultar todas las vistas. El contrato traduce
   explícitamente el hash (`dashboard-sales`) a la clave visual (`sales`) y una
