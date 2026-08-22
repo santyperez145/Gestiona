@@ -166,9 +166,9 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.238 tests pasan; typecheck, lint y build verdes; 63 Edge Functions verificadas; 41 E2E críticos (32 públicos, 8 de panel y setup autenticado) pasan contra la base real. |
+| Calidad técnica | 1.249 tests pasan al 2026-08-21; typecheck, lint y build verdes; 63 Edge Functions verificadas; 41 E2E críticos (32 públicos, 8 de panel y setup autenticado) pasan contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
-| Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. Falta certificación live para probar proveedor/economics. |
+| Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
 | Ledger | 10 eventos de ledger de dominio; 0 asientos contables operativos reales. |
 | Plataforma | Overview, Integration Registry, Merchant 360, evidencia de integración, cola operativa, reintentos auditados y control de Checkout Brick. |
@@ -536,7 +536,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 5 | Payment test matrix | F0 | **Interna cerrada 2026-08-21:** 8 escenarios, 2 bugs corregidos, traza completa y cero restos. Certificación live bloqueada externamente | Pago/rechazo/webhook/timeout/refund reales reconciliados sin intervención de base. |
 | 6 | Correlation IDs y trazas críticas | F0 | **Cerrado para pagos 2026-08-21:** una correlación server-side une intent, attempt, metadata del proveedor, eventos, orden, settlement y ledger; timeline RLS sin PII | Matriz exige las 5 etapas y la UI reconstruye la operación desde Costos de cobro. Extender por riesgo, no como plataforma genérica. |
 | 7 | E2E bloqueante | F0 | **Cerrado 2026-08-21:** 41 pruebas reales; tienda desktop/móvil y panel autenticado bloquean CI. Puerto estricto corrigió reutilización de una app ajena; 6 fallas ocultas detectadas y corregidas. | GitHub Actions exige las 5 variables, no permite skips de auth y conserva specs de sólo lectura. |
-| 8 | Comisión, billing y unit economics | F0 | Pendiente; el 5% no es decisión final | Contratos, costos, margen y pricing aprobados. |
+| 8 | Comisión, billing y unit economics | F0 | **En curso:** regla productiva no aprobada desactivada el 2026-08-21; propuestas ahora exigen motivo, términos, impuesto, vigencia y RPC auditado. La prueba real detectó y corrigió retiro con ventana inválida y diferencia fiscal SQL/cliente; 0 restos. Falta modelo de contribución, contrato y decisión de pricing | Contratos, costos, margen y pricing aprobados; ninguna comisión se activa por edición accidental. |
 | 9 | Segundo comercio | F1 | Pendiente / comercial | Primera venta sin cambios manuales de base. |
 | 10 | Onboarding universal y cohortes | F1 | En curso: primera venta/tiempo entregados en 13e48bd | Segundo y tercer merchant completan hitos medidos. |
 | 11 | Margin facts canónicos | F2 | Parcial: hay costos y margin facts en órdenes | Cobertura y fuentes reconciliadas por operación. |

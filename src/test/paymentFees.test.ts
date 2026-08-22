@@ -147,6 +147,19 @@ describe('platformFeeFor', () => {
   it('un bruto 0 no genera comisión aunque haya fijo', () => {
     expect(platformFeeFor(0, { percent: 2, fixed: 100, applies_to: 'online' })).toBe(0);
   });
+
+  it('no vuelve a sumar el impuesto cuando ya está incluido', () => {
+    expect(platformFeeFor(10000, {
+      percent: 2, fixed: 0, applies_to: 'online', tax_treatment: 'included', tax_rate_pct: 21,
+    })).toBe(200);
+  });
+
+  it('suma el impuesto después del tope cuando fue aprobado como adicionado', () => {
+    expect(platformFeeFor(10000, {
+      percent: 2, fixed: 0, max_per_transaction: 150, applies_to: 'online',
+      tax_treatment: 'added', tax_rate_pct: 21,
+    })).toBe(181.5);
+  });
 });
 
 // ── Liquidación ─────────────────────────────────────────────────────────────
@@ -238,6 +251,14 @@ describe('grossUpForNet', () => {
 
   it('se corrige cuando el tope por transacción distorsiona el despeje', () => {
     const rule: CommissionRule = { percent: 10, fixed: 0, max_per_transaction: 100, applies_to: 'online' };
+    const gross = grossUpForNet(50000, NO_IVA, rule)!;
+    expect(computeSettlement({ gross, providerFee: NO_IVA, platformRule: rule }).net).toBeCloseTo(50000, 1);
+  });
+
+  it('contempla el impuesto adicionado a la comisión', () => {
+    const rule: CommissionRule = {
+      percent: 2, fixed: 50, applies_to: 'online', tax_treatment: 'added', tax_rate_pct: 21,
+    };
     const gross = grossUpForNet(50000, NO_IVA, rule)!;
     expect(computeSettlement({ gross, providerFee: NO_IVA, platformRule: rule }).net).toBeCloseTo(50000, 1);
   });

@@ -5,7 +5,7 @@ normativa argentina aplicable, para que un abogado o un contador lo valide. Cada
 punto dice **qué exige la norma**, **qué hay hoy en el código** y **qué falta**,
 con el estado medido contra la base cuando se pudo.
 
-Última revisión: 2026-08-20 (AFIP emite en homologación).
+Última revisión: 2026-08-21 (AFIP emite en homologación).
 
 ---
 
@@ -90,7 +90,7 @@ con el estado medido contra la base cuando se pudo.
 | **MFA para el staff** | ✅ `MfaGate` sin excepción. |
 | **Separación de superficies** | ✅ Ser staff de plataforma no da permisos dentro de una organización. |
 | **Facturación de la suscripción** | 🟠 Stripe cobra y **no se emite comprobante fiscal argentino** al comercio. Si la plataforma factura desde Argentina, es una obligación de ARCA, no una opción. |
-| **Comisión por venta informada** | 🟠 El 5% se cobra vía `marketplace_fee`. Tiene que estar en los términos del servicio con el comercio, y hay que confirmar cuál es la cuenta de MercadoPago que la recibe. |
+| **Comisión por venta informada** | 🟡 El split técnico funciona, pero desde `20260821000058` ninguna regla cobra sin aprobación, versión de términos, tratamiento fiscal y vigencia. La propuesta encontrada de 0,5% quedó en borrador y cobra $0; los dos pagos de ARS 1 históricos registraron 5% (ARS 0,10 total) sólo como prueba. Falta contrato, facturación argentina de la comisión y decisión de pricing. |
 | **Baja del servicio y portabilidad** | 🟡 El dueño puede descargar un ZIP de datos operativos con CSV por tabla y un manifiesto que declara cobertura, errores y truncamientos. Las credenciales de acceso quedan fuera; ocho relaciones hijas operativas se incluyen desde su padre, pero todavía no hay importador/restauración ni garantía para el resto de relaciones sin `org_id` propio (D5 del ROADMAP). Retenerlo por falta de herramienta sigue siendo un problema legal y comercial. |
 
 ---

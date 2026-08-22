@@ -5,15 +5,17 @@ import { usePlatformAccess } from '@/lib/usePermissions';
 import { toast } from 'sonner';
 import {
   Percent, DollarSign, TrendingUp, Save, Plus, Trash2, Loader2,
-  Calculator, CreditCard, Building2, Info,
+  Calculator, CreditCard, Building2, Info, ShieldCheck, Clock3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -45,9 +47,29 @@ interface FeeRow extends ProviderFee {
 interface RuleRow extends CommissionRule {
   id: string;
   notes?: string | null;
+  approval_status: 'draft' | 'approved' | 'retired';
+  change_reason: string | null;
+  terms_version: string | null;
+  tax_treatment: 'included' | 'added' | null;
+  tax_rate_pct: number;
+  effective_from: string | null;
+  effective_until: string | null;
+  approved_at: string | null;
 }
 
 interface PlanOption { id: string; name: string; code: string }
+
+const commissionDraftArgs = (r: RuleRow) => ({
+  p_rule_id: r.id,
+  p_plan_id: r.plan_id,
+  p_org_id: r.org_id,
+  p_percent: r.percent,
+  p_fixed: r.fixed,
+  p_max_per_transaction: r.max_per_transaction,
+  p_min_per_transaction: r.min_per_transaction ?? 0,
+  p_applies_to: r.applies_to,
+  p_change_reason: r.change_reason,
+});
 
 export default function PlatformCommissionsPage() {
   usePageTitle('Comisiones');
@@ -59,6 +81,12 @@ export default function PlatformCommissionsPage() {
   const [plans, setPlans] = useState<PlanOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [approvalRule, setApprovalRule] = useState<RuleRow | null>(null);
+  const [approvalTerms, setApprovalTerms] = useState('');
+  const [approvalTaxTreatment, setApprovalTaxTreatment] = useState<'included' | 'added'>('included');
+  const [approvalTaxRate, setApprovalTaxRate] = useState(21);
+  const [approvalStartsAt, setApprovalStartsAt] = useState('');
+  const [approvalEndsAt, setApprovalEndsAt] = useState('');
 
   // Simulador
   const [simGross, setSimGross] = useState(10000);
@@ -69,16 +97,22 @@ export default function PlatformCommissionsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: rev }, { data: f }, { data: r }, { data: p }] = await Promise.all([
+    const [revResult, feeResult, ruleResult, planResult] = await Promise.all([
       supabase.from('platform_revenue_monthly').select('*').order('month', { ascending: false }).limit(12),
       supabase.from('payment_provider_fees').select('*').order('provider').order('method').order('installments'),
       supabase.from('platform_commission_rules').select('*').order('created_at'),
       supabase.from('plans').select('id, name, code').order('sort_order'),
     ]);
-    setRevenue((rev || []) as unknown as RevenueRow[]);
-    setFees((f || []) as unknown as FeeRow[]);
-    setRules((r || []) as unknown as RuleRow[]);
-    setPlans((p || []) as unknown as PlanOption[]);
+    const error = revResult.error || feeResult.error || ruleResult.error || planResult.error;
+    if (error) {
+      toast.error(`No se pudieron cargar las comisiones: ${error.message}`);
+      setLoading(false);
+      return;
+    }
+    setRevenue((revResult.data || []) as unknown as RevenueRow[]);
+    setFees((feeResult.data || []) as unknown as FeeRow[]);
+    setRules((ruleResult.data || []) as unknown as RuleRow[]);
+    setPlans((planResult.data || []) as unknown as PlanOption[]);
     setLoading(false);
   }, []);
 
@@ -110,38 +144,86 @@ export default function PlatformCommissionsPage() {
   }
 
   async function saveRule(r: RuleRow) {
+    if (!r.change_reason?.trim()) {
+      toast.error('Explicá por qué se propone este precio');
+      return;
+    }
     setSavingId(r.id);
-    const { error } = await supabase.from('platform_commission_rules').update({
-      percent: r.percent,
-      fixed: r.fixed,
-      max_per_transaction: r.max_per_transaction,
-      min_per_transaction: r.min_per_transaction,
-      applies_to: r.applies_to,
-      is_active: r.is_active,
-      plan_id: r.plan_id,
-    } as never).eq('id', r.id);
+    const { error } = await supabase.rpc('save_platform_commission_rule', commissionDraftArgs(r));
     setSavingId(null);
     if (error) { toast.error(error.message); return; }
-    toast.success('Regla actualizada');
+    toast.success('Propuesta guardada como borrador; no se está cobrando');
+    load();
   }
 
   async function addRule() {
-    const { error } = await supabase.from('platform_commission_rules').insert({
-      plan_id: null, org_id: null, percent: 0, fixed: 0, applies_to: 'online',
-    } as never);
+    const { error } = await supabase.rpc('save_platform_commission_rule', {
+      p_plan_id: null,
+      p_org_id: null,
+      p_percent: 0,
+      p_fixed: 0,
+      p_max_per_transaction: null,
+      p_min_per_transaction: 0,
+      p_applies_to: 'online',
+      p_change_reason: 'Nueva propuesta pendiente de definición',
+    });
     if (error) { toast.error(error.message); return; }
     load();
   }
 
-  async function deleteRule(r: RuleRow) {
-    if (!r.plan_id && !r.org_id) {
-      toast.error('No borres la regla base: poné el porcentaje en 0 si no querés cobrar comisión');
+  async function retireRule(r: RuleRow) {
+    const reason = window.prompt('Motivo para retirar la regla (queda en el historial):');
+    if (!reason?.trim()) return;
+    const { error } = await supabase.rpc('retire_platform_commission_rule', {
+      p_rule_id: r.id,
+      p_reason: reason,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success('Regla retirada; dejó de cobrar y conserva su auditoría');
+    load();
+  }
+
+  function openApproval(r: RuleRow) {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    setApprovalRule(r);
+    setApprovalTerms(r.terms_version || 'merchant-terms-v1');
+    setApprovalTaxTreatment(r.tax_treatment || 'included');
+    setApprovalTaxRate(Number(r.tax_rate_pct || 21));
+    setApprovalStartsAt(now.toISOString().slice(0, 16));
+    setApprovalEndsAt('');
+  }
+
+  async function approveRule() {
+    if (!approvalRule || !approvalTerms.trim() || !approvalStartsAt) {
+      toast.error('Completá términos y comienzo de vigencia');
       return;
     }
-    if (!confirm('¿Eliminar esta regla de comisión?')) return;
-    const { error } = await supabase.from('platform_commission_rules').delete().eq('id', r.id);
+    setSavingId(approvalRule.id);
+    // Persiste exactamente la propuesta visible antes de aprobar. Si esto
+    // falla, la regla queda segura como borrador y no se intenta activarla.
+    const { error: draftError } = await supabase.rpc(
+      'save_platform_commission_rule',
+      commissionDraftArgs(approvalRule),
+    );
+    if (draftError) {
+      setSavingId(null);
+      toast.error(draftError.message);
+      return;
+    }
+    const { error } = await supabase.rpc('approve_platform_commission_rule', {
+      p_rule_id: approvalRule.id,
+      p_terms_version: approvalTerms.trim(),
+      p_tax_treatment: approvalTaxTreatment,
+      p_tax_rate_pct: approvalTaxRate,
+      p_effective_from: new Date(approvalStartsAt).toISOString(),
+      p_effective_until: approvalEndsAt ? new Date(approvalEndsAt).toISOString() : null,
+    });
+    setSavingId(null);
     if (error) { toast.error(error.message); return; }
-    setRules(prev => prev.filter(x => x.id !== r.id));
+    setApprovalRule(null);
+    toast.success('Regla aprobada y activa dentro de su vigencia');
+    load();
   }
 
   // ── KPIs ─────────────────────────────────────────────────────────────────
@@ -220,15 +302,21 @@ export default function PlatformCommissionsPage() {
           <div className="bg-primary/6 border border-primary/20 rounded-[10px] px-4 py-3 flex gap-2">
             <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <p className="text-xs text-muted-foreground">
-              Esto es lo que la plataforma le cobra a cada tienda por venta online, además
-              del arancel del procesador. Se resuelve de lo más específico a lo más general:
+              Una edición queda como borrador y cobra $0 hasta registrar términos,
+              tratamiento fiscal y vigencia. Después se resuelve de lo más específico a lo más general:
               <span className="text-foreground"> acuerdo por org → plan → regla base</span>.
-              Poné un tope por transacción para no castigar tickets grandes.
+              El porcentaje de Mercado Pago lo paga el comercio por separado; no es costo de la plataforma.
             </p>
           </div>
 
           {rules.map(r => {
             const isBase = !r.plan_id && !r.org_id;
+            const now = Date.now();
+            const startsAt = r.effective_from ? new Date(r.effective_from).getTime() : null;
+            const endsAt = r.effective_until ? new Date(r.effective_until).getTime() : null;
+            const inForce = r.approval_status === 'approved'
+              && startsAt != null && startsAt <= now
+              && (endsAt == null || endsAt > now);
             return (
               <div key={r.id} className="bg-card border border-border/60 rounded-[10px] p-4 space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -240,8 +328,24 @@ export default function PlatformCommissionsPage() {
                     <code className="text-[10px] font-mono text-muted-foreground">org {r.org_id.slice(0, 8)}</code>
                   )}
                   <div className="flex-1" />
-                  <Switch checked={r.is_active !== false}
-                    onCheckedChange={v => patchRule(r.id, { is_active: v })} />
+                  <Badge
+                    variant={inForce ? 'secondary' : 'outline'}
+                    className={inForce
+                      ? 'text-[10px] border-emerald-500/30 text-emerald-400'
+                      : r.approval_status === 'retired'
+                        ? 'text-[10px] text-muted-foreground'
+                        : 'text-[10px] border-amber-500/30 text-amber-400'}
+                  >
+                    {inForce
+                      ? 'Aprobada · activa'
+                      : r.approval_status === 'approved' && startsAt != null && startsAt > now
+                        ? 'Aprobada · programada'
+                        : r.approval_status === 'approved'
+                          ? 'Aprobada · fuera de vigencia'
+                      : r.approval_status === 'retired'
+                        ? 'Retirada'
+                        : 'Borrador · cobra $0'}
+                  </Badge>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
@@ -296,18 +400,44 @@ export default function PlatformCommissionsPage() {
                   </div>
                 )}
 
+                <div>
+                  <Label className="text-[10px]">Motivo y evidencia de la propuesta</Label>
+                  <Input
+                    className="h-8 text-xs"
+                    value={r.change_reason || ''}
+                    placeholder="Ej: cubre soporte de pagos; validado con contrato y modelo v1"
+                    onChange={e => patchRule(r.id, { change_reason: e.target.value })}
+                  />
+                </div>
+
+                {r.approval_status === 'approved' && (
+                  <div className="rounded-[7px] bg-emerald-500/5 border border-emerald-500/20 px-3 py-2 text-[11px] text-muted-foreground">
+                    <span className="text-emerald-400 font-medium">{r.terms_version}</span>
+                    {' · '}{r.tax_treatment === 'included' ? 'impuesto incluido' : 'impuesto adicional'} {r.tax_rate_pct}%
+                    {' · desde '}{r.effective_from ? new Date(r.effective_from).toLocaleString('es-AR') : '—'}
+                    {r.effective_until && <> · hasta {new Date(r.effective_until).toLocaleString('es-AR')}</>}
+                  </div>
+                )}
+
                 <div className="flex justify-end gap-2">
-                  {!isBase && (
+                  {r.approval_status !== 'retired' && (
                     <Button variant="ghost" size="sm" className="text-destructive/70"
-                      onClick={() => deleteRule(r)}>
-                      <Trash2 className="w-3.5 h-3.5 mr-1" /> Eliminar
+                      onClick={() => retireRule(r)}>
+                      <Trash2 className="w-3.5 h-3.5 mr-1" /> Retirar
                     </Button>
                   )}
-                  <Button size="sm" onClick={() => saveRule(r)} disabled={savingId === r.id}>
+                  {r.approval_status === 'draft' && (
+                    <Button variant="outline" size="sm" onClick={() => openApproval(r)}
+                      disabled={savingId === r.id || !r.change_reason?.trim()}>
+                      <ShieldCheck className="w-3.5 h-3.5 mr-1" /> Aprobar y activar
+                    </Button>
+                  )}
+                  <Button size="sm" onClick={() => saveRule(r)}
+                    disabled={savingId === r.id || r.approval_status === 'retired'}>
                     {savingId === r.id
                       ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
                       : <Save className="w-3.5 h-3.5 mr-1" />}
-                    Guardar
+                    Guardar borrador
                   </Button>
                 </div>
               </div>
@@ -533,6 +663,89 @@ export default function PlatformCommissionsPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!approvalRule} onOpenChange={open => { if (!open) setApprovalRule(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+              Aprobar comisión comercial
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="rounded-[8px] border border-amber-500/25 bg-amber-500/6 px-3 py-2 text-xs text-muted-foreground">
+            Esta acción habilita el monto que Mercado Pago separa de cada venta.
+            Confirmá primero contrato, factura de la plataforma y tratamiento impositivo con profesionales.
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Versión de términos aceptados</Label>
+              <Input value={approvalTerms} onChange={e => setApprovalTerms(e.target.value)}
+                placeholder="merchant-terms-v1" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Tratamiento fiscal</Label>
+                <Select value={approvalTaxTreatment}
+                  onValueChange={v => setApprovalTaxTreatment(v as 'included' | 'added')}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="included">Impuesto incluido</SelectItem>
+                    <SelectItem value="added">Impuesto adicional</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Tasa fiscal %</Label>
+                <Input type="number" min="0" max="100" step="0.5" value={approvalTaxRate}
+                  onChange={e => setApprovalTaxRate(Number(e.target.value))} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Comienza</Label>
+                <Input type="datetime-local" value={approvalStartsAt}
+                  onChange={e => setApprovalStartsAt(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Termina (opcional)</Label>
+                <Input type="datetime-local" value={approvalEndsAt}
+                  onChange={e => setApprovalEndsAt(e.target.value)} />
+              </div>
+            </div>
+
+            {approvalRule && (
+              <div className="rounded-[8px] border border-border/50 divide-y divide-border/30 text-xs">
+                <div className="flex justify-between px-3 py-2">
+                  <span className="text-muted-foreground">Propuesta</span>
+                  <span className="font-mono">{approvalRule.percent}% + {fmt(approvalRule.fixed)}</span>
+                </div>
+                <div className="flex justify-between px-3 py-2">
+                  <span className="text-muted-foreground">Canal</span>
+                  <span>{approvalRule.applies_to}</span>
+                </div>
+                <div className="px-3 py-2 text-muted-foreground">
+                  {approvalRule.change_reason}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApprovalRule(null)}>Cancelar</Button>
+            <Button onClick={approveRule}
+              disabled={!approvalTerms.trim() || !approvalStartsAt || savingId === approvalRule?.id}>
+              {savingId === approvalRule?.id
+                ? <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                : <Clock3 className="w-4 h-4 mr-1" />}
+              Aprobar dentro de la vigencia
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

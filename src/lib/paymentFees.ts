@@ -57,6 +57,9 @@ export interface CommissionRule {
   min_per_transaction?: number;
   applies_to: 'online' | 'pos' | 'all';
   is_active?: boolean;
+  /** included = el impuesto ya está dentro de la comisión; added = se suma. */
+  tax_treatment?: 'included' | 'added' | null;
+  tax_rate_pct?: number | null;
 }
 
 export interface Settlement {
@@ -153,7 +156,13 @@ export function resolvePlatformRule(
   return candidates.reduce((best, r) => (score(r) > score(best) ? r : best), candidates[0]);
 }
 
-/** Comisión de plataforma para un bruto dado, respetando piso y techo. */
+/**
+ * Comisión de plataforma para un bruto dado, respetando piso y techo.
+ *
+ * Piso y techo pertenecen a la tarifa comercial antes de impuestos. Cuando el
+ * tratamiento aprobado es `added`, el impuesto se suma después. Esta función
+ * es espejo de `public.platform_commission_amount` en la base.
+ */
 export function platformFeeFor(gross: number, rule: CommissionRule | null): number {
   if (!rule || gross <= 0) return 0;
   let fee = gross * (rule.percent || 0) / 100 + (rule.fixed || 0);
@@ -161,6 +170,9 @@ export function platformFeeFor(gross: number, rule: CommissionRule | null): numb
   // El piso se aplica después del techo a propósito: si alguien configura
   // min > max, el piso manda — cobrar menos del mínimo no tiene sentido.
   if (rule.min_per_transaction) fee = Math.max(fee, rule.min_per_transaction);
+  if (rule.tax_treatment === 'added') {
+    fee *= 1 + Math.max(0, rule.tax_rate_pct || 0) / 100;
+  }
   return round2(Math.min(fee, gross));
 }
 
@@ -228,8 +240,11 @@ export function grossUpForNet(
   const ivaMult = 1 + (fee?.iva_on_fee_pct ?? 0) / 100;
   const providerPct = (fee?.percent_fee || 0) / 100 * ivaMult;
   const providerFixed = (fee?.fixed_fee || 0) * ivaMult;
-  const rulePct = (rule?.percent || 0) / 100;
-  const ruleFixed = rule?.fixed || 0;
+  const ruleTaxMult = rule?.tax_treatment === 'added'
+    ? 1 + Math.max(0, rule.tax_rate_pct || 0) / 100
+    : 1;
+  const rulePct = (rule?.percent || 0) / 100 * ruleTaxMult;
+  const ruleFixed = (rule?.fixed || 0) * ruleTaxMult;
 
   const totalPct = providerPct + rulePct;
   if (totalPct >= 1) return null;

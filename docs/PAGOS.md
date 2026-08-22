@@ -116,9 +116,21 @@ La infraestructura está implementada con una única autoridad
 - Checkout Brick envía `application_fee`;
 - `record_payment_settlement` registra la misma regla y el neto resultante.
 
-La regla base sigue en **0%** a propósito. Activar un porcentaje es una decisión
-comercial, fiscal y de unit economics, no un efecto colateral de desplegar
-código. El 5% mencionado históricamente no se considera pricing aprobado.
+La regla encontrada en producción el 2026-08-21 era **0,5% activa**, aunque la
+documentación decía 0%. Se preservó como propuesta, pero ahora está en estado
+`draft`, inactiva y cobra **$0**. Los dos pagos de prueba históricos (ARS 1 cada
+uno) habían registrado en total ARS 0,10 de plataforma, equivalente a 5%; eso
+es evidencia de la mecánica, no pricing aprobado.
+
+Desde `20260821000058_commission_approval_gate.sql`, editar una regla invalida
+su aprobación. Para activarla, Finance debe registrar versión de términos,
+tratamiento fiscal y ventana de vigencia; la tabla ya no admite escrituras
+directas del cliente. La función que llega a `marketplace_fee` sólo considera
+reglas aprobadas y vigentes. Si el impuesto se aprueba como adicional, se suma
+después del piso/tope comercial; si se declara incluido, no se duplica. Ambos
+caminos están espejados entre SQL y `paymentFees.ts`. Activar un porcentaje
+sigue siendo una decisión comercial, fiscal y de unit economics, no un efecto
+colateral del deploy.
 
 ## Matriz operativa
 

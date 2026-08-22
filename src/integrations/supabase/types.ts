@@ -16668,7 +16668,13 @@ export type Database = {
       platform_commission_rules: {
         Row: {
           applies_to: string
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          change_reason: string | null
           created_at: string
+          effective_from: string | null
+          effective_until: string | null
           fixed: number
           id: string
           is_active: boolean
@@ -16678,11 +16684,22 @@ export type Database = {
           org_id: string | null
           percent: number
           plan_id: string | null
+          proposed_at: string | null
+          proposed_by: string | null
+          tax_rate_pct: number
+          tax_treatment: string | null
+          terms_version: string | null
           updated_at: string
         }
         Insert: {
           applies_to?: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          change_reason?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_until?: string | null
           fixed?: number
           id?: string
           is_active?: boolean
@@ -16692,11 +16709,22 @@ export type Database = {
           org_id?: string | null
           percent?: number
           plan_id?: string | null
+          proposed_at?: string | null
+          proposed_by?: string | null
+          tax_rate_pct?: number
+          tax_treatment?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Update: {
           applies_to?: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          change_reason?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_until?: string | null
           fixed?: number
           id?: string
           is_active?: boolean
@@ -16706,6 +16734,11 @@ export type Database = {
           org_id?: string | null
           percent?: number
           plan_id?: string | null
+          proposed_at?: string | null
+          proposed_by?: string | null
+          tax_rate_pct?: number
+          tax_treatment?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -33237,6 +33270,17 @@ export type Database = {
         }
         Returns: string
       }
+      approve_platform_commission_rule: {
+        Args: {
+          p_effective_from: string
+          p_effective_until?: string
+          p_rule_id: string
+          p_tax_rate_pct: number
+          p_tax_treatment: string
+          p_terms_version: string
+        }
+        Returns: Json
+      }
       archive_platform_announcement: {
         Args: { p_id: string }
         Returns: {
@@ -34525,6 +34569,10 @@ export type Database = {
         Returns: Json
       }
       resumen_sin_facturar: { Args: { p_org: string }; Returns: Json }
+      retire_platform_commission_rule: {
+        Args: { p_reason: string; p_rule_id: string }
+        Returns: Json
+      }
       return_store_order_item: {
         Args: {
           p_notes?: string
@@ -34600,6 +34648,20 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      save_platform_commission_rule: {
+        Args: {
+          p_applies_to: string
+          p_change_reason: string
+          p_fixed: number
+          p_max_per_transaction: number
+          p_min_per_transaction: number
+          p_org_id: string
+          p_percent: number
+          p_plan_id: string
+          p_rule_id?: string
+        }
+        Returns: Json
       }
       save_store_cart: {
         Args: {
