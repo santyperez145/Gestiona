@@ -104,10 +104,16 @@ organización. `WorkspaceViewTabs` es el primitive común para este contrato.
   en la vista operativa.
 - **Ventas** separa `Ventas` de `Rendimiento`: la tabla y cobranza no compiten
   con KPIs, métodos de pago ni tendencia diaria.
-- **Dashboard, Settings, Admin, Integraciones, Reportes y Tienda** conservan
+- **Dashboard** separa `Resumen`, `Rendimiento`, `Clientes`, `Stock`, `Caja y
+  finanzas` e `Inteligencia` en vistas activas persistidas por organización; no
+  se presenta como una columna de widgets sin fin.
+- **Settings, Admin, Integraciones, Reportes y Tienda** conservan
   sus primitives de tabs/sidebar porque necesitan contenido Radix o navegación
   profunda; deben adoptar los mismos tokens de borde, densidad, foco, scroll
   horizontal móvil y persistencia por organización.
+- **Platform** usa un rail de control separado, con grupos de `Workspace`,
+  `Operaciones`, `Ingresos` y `Gobierno`; cada grupo se filtra por permisos de
+  plataforma y mantiene el acento violeta propio del control plane.
 - La navegación no duplica datos ni permisos: sólo cambia la composición de la
   vista y mantiene montadas las acciones/modales que el flujo ya utiliza.
 

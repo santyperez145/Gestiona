@@ -1343,7 +1343,8 @@ export default function Dashboard() {
           })}
         </nav>
 
-        <div className="workspace-dashboard-content">
+        <div className="workspace-dashboard-content" data-dashboard-view={activeDashboardSection}>
+        <div className="dashboard-view-section" data-dashboard-section="overview">
       {/* Activación medible: formulario completo no equivale a negocio listo. */}
       <SetupChecklist
         organizationId={activeOrg?.id}
@@ -2599,7 +2600,10 @@ export default function Dashboard() {
         );
       })()}
 
+      </div>
+
       {/* Secondary metrics remain available without competing with the core. */}
+      <div className="dashboard-view-section" data-dashboard-section="sales">
       <section id="dashboard-sales" className="mb-6">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Indicadores del negocio</p>
@@ -2632,6 +2636,9 @@ export default function Dashboard() {
         </div>
       )}
 
+      </div>
+
+      <div className="dashboard-view-section" data-dashboard-section="customers">
       <div id="dashboard-customers" className="dashboard-section-anchor" aria-hidden="true" />
 
       {/* CRM Follow-ups widget */}
@@ -2982,6 +2989,9 @@ export default function Dashboard() {
         </div>
       )}
 
+      </div>
+
+      <div className="dashboard-view-section" data-dashboard-section="inventory">
       <div id="dashboard-inventory" className="dashboard-section-anchor" aria-hidden="true" />
 
       {/* Stock Alerts */}
@@ -3111,11 +3121,17 @@ export default function Dashboard() {
         </div>
       )}
 
+      </div>
+
+      <div className="dashboard-view-section" data-dashboard-section="finance">
       <div id="dashboard-finance" className="dashboard-section-anchor" aria-hidden="true" />
 
       {/* Financial Tools */}
       <FinancialSection stats={stats} />
 
+      </div>
+
+      <div className="dashboard-view-section" data-dashboard-section="intelligence">
       <div id="dashboard-intelligence" className="dashboard-section-anchor" aria-hidden="true" />
 
       {/* Cash Flow + Health + AI */}
@@ -3281,6 +3297,8 @@ export default function Dashboard() {
             </>
           ) : <p className="p-5 text-muted-foreground text-sm">No hay ventas registradas aún.</p>}
         </div>
+      </div>
+
       </div>
 
       {/* Daily Briefing Modal */}

@@ -130,6 +130,13 @@ y Ventas (`Ventas` / `Rendimiento`). Dashboard, Settings, Admin,
 Integraciones, Reportes y Tienda deben conservar el mismo lenguaje de tokens,
 densidad, foco y persistencia al evolucionar.
 
+El Dashboard usa seis vistas persistidas por organización (`Resumen`,
+`Rendimiento`, `Clientes`, `Stock`, `Caja y finanzas` e `Inteligencia`). No se
+deben volver a mostrar como una sola columna larga: cada sección se monta bajo
+su propia vista activa y conserva las acciones/modales existentes. Platform
+mantiene un rail propio agrupado por `Workspace`, `Operaciones`, `Ingresos` y
+`Gobierno`; los grupos sólo muestran los módulos permitidos por el rol real.
+
 **Paleta obligatoria del frontend claro:** usar el token `primary` violeta
 `252 83% 62%` sobre canvas casi blanco, tarjetas blancas, turquesa para salud y
 coral para atención. No reintroducir el azul apagado ni el dorado como color

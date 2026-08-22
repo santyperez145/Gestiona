@@ -4397,4 +4397,44 @@
     background: hsl(252 92% 95%);
     color: hsl(252 72% 48%);
   }
+
+  /* Dashboard views are real workspaces, not anchors over one long feed. */
+  .workspace-dashboard-content[data-dashboard-view] > .dashboard-view-section {
+    display: none;
+    animation: workspace-view-in 180ms ease-out both;
+  }
+
+  .workspace-dashboard-content[data-dashboard-view="overview"] > .dashboard-view-section[data-dashboard-section="overview"],
+  .workspace-dashboard-content[data-dashboard-view="sales"] > .dashboard-view-section[data-dashboard-section="sales"],
+  .workspace-dashboard-content[data-dashboard-view="customers"] > .dashboard-view-section[data-dashboard-section="customers"],
+  .workspace-dashboard-content[data-dashboard-view="inventory"] > .dashboard-view-section[data-dashboard-section="inventory"],
+  .workspace-dashboard-content[data-dashboard-view="finance"] > .dashboard-view-section[data-dashboard-section="finance"],
+  .workspace-dashboard-content[data-dashboard-view="intelligence"] > .dashboard-view-section[data-dashboard-section="intelligence"] {
+    display: block;
+  }
+
+  .dashboard-view-section > .dashboard-section-anchor {
+    scroll-margin-top: 6rem;
+  }
+
+  .platform-sidebar__group + .platform-sidebar__group {
+    margin-top: 0.8rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid hsl(var(--border) / 0.62);
+  }
+
+  .platform-sidebar__group-label {
+    padding: 0.25rem 0.7rem 0.4rem;
+    color: hsl(var(--muted-foreground) / 0.66);
+    font-family: var(--font-display);
+    font-size: 0.59rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  @keyframes workspace-view-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 }

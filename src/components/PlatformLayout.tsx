@@ -21,25 +21,33 @@ interface NavItem {
   to: string;
   label: string;
   icon: typeof Crown;
+  group: 'workspace' | 'operations' | 'monetization' | 'governance';
   /** Roles de plataforma que pueden ver la sección; vacío = todos los staff */
   roles?: Array<'superadmin' | 'support' | 'finance'>;
 }
 
 const NAV: NavItem[] = [
-  { to: '/platform', label: 'Resumen', icon: Crown },
-  { to: '/platform/orgs', label: 'Organizaciones', icon: Building2 },
-  { to: '/platform/usuarios', label: 'Usuarios', icon: Users },
-  { to: '/platform/metricas', label: 'Métricas', icon: BarChart3 },
-  { to: '/platform/integraciones', label: 'Integraciones', icon: Cable },
-  { to: '/platform/operaciones', label: 'Operaciones', icon: ShieldCheck },
-  { to: '/platform/planes', label: 'Planes', icon: DollarSign, roles: ['finance'] },
-  { to: '/platform/negocio', label: 'Negocio', icon: TrendingUp, roles: ['finance'] },
-  { to: '/platform/comisiones', label: 'Comisiones', icon: Percent, roles: ['finance'] },
-  { to: '/platform/afip', label: 'AFIP', icon: FileText, roles: ['superadmin'] },
-  { to: '/platform/soporte', label: 'Soporte', icon: Headphones, roles: ['support'] },
-  { to: '/platform/anuncios', label: 'Anuncios', icon: Megaphone, roles: ['superadmin'] },
-  { to: '/platform/sistema', label: 'Sistema', icon: Server },
+  { to: '/platform', label: 'Resumen', icon: Crown, group: 'workspace' },
+  { to: '/platform/orgs', label: 'Organizaciones', icon: Building2, group: 'workspace' },
+  { to: '/platform/usuarios', label: 'Usuarios', icon: Users, group: 'workspace' },
+  { to: '/platform/metricas', label: 'Métricas', icon: BarChart3, group: 'operations' },
+  { to: '/platform/integraciones', label: 'Integraciones', icon: Cable, group: 'operations' },
+  { to: '/platform/operaciones', label: 'Operaciones', icon: ShieldCheck, group: 'operations' },
+  { to: '/platform/sistema', label: 'Sistema', icon: Server, group: 'operations' },
+  { to: '/platform/planes', label: 'Planes', icon: DollarSign, group: 'monetization', roles: ['finance'] },
+  { to: '/platform/negocio', label: 'Negocio', icon: TrendingUp, group: 'monetization', roles: ['finance'] },
+  { to: '/platform/comisiones', label: 'Comisiones', icon: Percent, group: 'monetization', roles: ['finance'] },
+  { to: '/platform/afip', label: 'AFIP', icon: FileText, group: 'governance', roles: ['superadmin'] },
+  { to: '/platform/soporte', label: 'Soporte', icon: Headphones, group: 'governance', roles: ['support'] },
+  { to: '/platform/anuncios', label: 'Anuncios', icon: Megaphone, group: 'governance', roles: ['superadmin'] },
 ];
+
+const NAV_GROUPS = [
+  { id: 'workspace', label: 'Workspace' },
+  { id: 'operations', label: 'Operaciones' },
+  { id: 'monetization', label: 'Ingresos' },
+  { id: 'governance', label: 'Gobierno' },
+] as const;
 
 const ROLE_LABEL: Record<string, string> = {
   superadmin: 'Superadmin',
@@ -54,6 +62,9 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   const { platformRole, canPlatform } = usePlatformAccess();
 
   const visible = NAV.filter(item => !item.roles || canPlatform(...item.roles));
+  const grouped = NAV_GROUPS
+    .map(group => ({ ...group, items: visible.filter(item => item.group === group.id) }))
+    .filter(group => group.items.length > 0);
 
   return (
     <div className="platform-surface workspace-platform min-h-screen bg-background">
@@ -105,20 +116,25 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
       <div className="platform-workspace-shell">
         <nav className="platform-sidebar" aria-label="Secciones de plataforma">
           <p className="platform-sidebar__label">Control de plataforma</p>
-          {visible.map(({ to, label, icon: Icon }) => {
-            const active = to === '/platform' ? pathname === '/platform' : pathname.startsWith(to);
-            return (
-              <Link
-                key={to}
-                to={to}
-                className={`platform-sidebar__link ${active ? 'is-active' : ''}`}
-                aria-current={active ? 'page' : undefined}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span>{label}</span>
-              </Link>
-            );
-          })}
+          {grouped.map(group => (
+            <div key={group.id} className="platform-sidebar__group">
+              <p className="platform-sidebar__group-label">{group.label}</p>
+              {group.items.map(({ to, label, icon: Icon }) => {
+                const active = to === '/platform' ? pathname === '/platform' : pathname.startsWith(to);
+                return (
+                  <Link
+                    key={to}
+                    to={to}
+                    className={`platform-sidebar__link ${active ? 'is-active' : ''}`}
+                    aria-current={active ? 'page' : undefined}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <main className="workspace-platform-main">{children}</main>
