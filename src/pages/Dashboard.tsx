@@ -20,6 +20,7 @@ import MetricCard from "@/components/shared/MetricCard";
 import PageHeader from "@/components/shared/PageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid,
   LineChart, Line, Legend, AreaChart, Area,
@@ -55,6 +56,36 @@ const DASHBOARD_SECTIONS = [
 ] as const;
 
 const DASHBOARD_SECTION_IDS = new Set<string>(DASHBOARD_SECTIONS.map(section => section.id));
+
+function DashboardDataError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="workspace-page workspace-dashboard workspace-dashboard-error pb-12">
+      <PageHeader
+        icon={AlertCircle}
+        eyebrow="Gestiona / Datos del negocio"
+        title="No pudimos cargar el dashboard"
+        description="La sesión está activa, pero una de las fuentes del Business Core no respondió correctamente."
+        actions={(
+          <Button type="button" className="workspace-primary-action" onClick={onRetry}>
+            Reintentar
+          </Button>
+        )}
+      />
+      <div className="workspace-dashboard-error__panel rounded-xl border border-destructive/25 bg-destructive/5 p-5 md:p-6">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+          <div className="min-w-0">
+            <h2 className="font-display text-sm font-bold text-foreground">Detalle de la carga</h2>
+            <p className="mt-1 break-words text-sm leading-relaxed text-muted-foreground">{message}</p>
+            <p className="mt-4 text-xs text-muted-foreground/80">
+              Si vuelve a aparecer, revisá la conectividad y la organización activa antes de modificar datos.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function SellerGoalsWidget({ sellers, orgId }: { sellers: [string, number][]; orgId: string }) {
   const goalsKey = `gestiona.seller_goals.${orgId}`;
@@ -379,6 +410,7 @@ export default function Dashboard() {
   const { permission, notify } = useNotifications();
   const { online, offlineSince, connection } = useNetworkStatus();
   const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any; expenses: any[] } | null>(null);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [activationSignals, setActivationSignals] = useState<ActivationRow | null>(null);
   const [activationError, setActivationError] = useState<string | null>(null);
   const [changingActivationGoal, setChangingActivationGoal] = useState(false);
@@ -456,15 +488,27 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     (async () => {
       setLoading(true);
-      await seedProductsForUser(user.id);
-      const [products, sales, purchases, debts, settings, expenses] = await Promise.all([
-        getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id), getExpensesDB(user.id),
-      ]);
-      setRawData({ products, sales, purchases, debts, settings, expenses });
-      setLoading(false);
+      setDashboardError(null);
+      try {
+        await seedProductsForUser(user.id);
+        const [products, sales, purchases, debts, settings, expenses] = await Promise.all([
+          getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id), getExpensesDB(user.id),
+        ]);
+        if (cancelled) return;
+        setRawData({ products, sales, purchases, debts, settings, expenses });
+      } catch (error) {
+        console.error("Error loading dashboard data", error);
+        if (cancelled) return;
+        setRawData(null);
+        setDashboardError(error instanceof Error ? error.message : "No se pudo conectar con los datos del negocio.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
+    return () => { cancelled = true; };
   }, [user, reloadKey]);
 
   // Live dollar rates — shared hook with 15-min sessionStorage cache
@@ -1233,6 +1277,7 @@ export default function Dashboard() {
     toast.success("Seguimiento marcado como completado");
   };
 
+  if (dashboardError) return <DashboardDataError message={dashboardError} onRetry={() => setReloadKey(value => value + 1)} />;
   if (loading || !stats) return <DashboardSkeleton />;
 
   const kpiCards = [
