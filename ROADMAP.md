@@ -210,6 +210,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Finance product surface | Ruta, chrome, sesión compartida, entitlement, permiso y snapshot del Core. | Primer comercio habilitado y primer documento procesado; 0 adopción real al corte. |
 | Sistema visual v2 | Workspace Business, dashboard, Finance, Platform y Settings comparten rail, toolbar, jerarquía, estados y responsive base; Platform conserva acento violeta y Settings conserva tabs por sección. Documentado en `docs/INTERFAZ.md` (2026-08-22). | Completar Storefront, revisar capturas en desktop/mobile y medir abandono o tiempo a tarea antes de declarar la renovación visual validada. |
 | Rediseño público v3 | Landing pública y Auth fueron reconstruidos el 2026-08-22 con propuesta omnicanal, preview del producto, registro directo desde CTA, responsive desktop/mobile y metadatos SEO alineados. | Validar conversión del CTA y continuar la auditoría visual de Storefront y rutas públicas de compra. |
+| CRM workspace v1 | Clientes / CRM incorpora tabs persistidos `Clientes`/`Insights`, rail de segmentos, toolbar de filtros y ficha contextual 360 siguiendo la referencia CRM compartida; mantiene acciones y datos existentes. | Captura autenticada desktop/mobile, validación con un comercio real y medición de tiempo para encontrar/actuar sobre un cliente. |
 
 ### Bloqueos externos vigentes
 
@@ -724,10 +725,15 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     medición de abandono o tiempo a tarea antes de declarar la renovación visual
     validada. Cada pantalla nueva debe cumplir `docs/INTERFAZ.md`.
 21. ~~Landing y Auth con dirección visual propia~~ — cerrado técnicamente el
-    2026-08-22: landing product-led con preview del Business Core, navegación
-    responsive, CTA de registro directo y Auth con panel de producto, login,
-    registro y recuperación bajo el mismo contrato visual. Falta medir
-    conversión real; la implementación no se declara validada por una captura.
+     2026-08-22: landing product-led con preview del Business Core, navegación
+     responsive, CTA de registro directo y Auth con panel de producto, login,
+     registro y recuperación bajo el mismo contrato visual. Falta medir
+     conversión real; la implementación no se declara validada por una captura.
+22. CRM workspace con patrón de lista, filtros y detalle contextual — cerrado
+    técnicamente el 2026-08-22: `CustomersPage` conserva el Business Core y sus
+    acciones, pero separa operación e insights con estado persistido por
+    organización. La dirección principal es el diseño CRM compartido; falta
+    capturar la vista autenticada y probar el tiempo a tarea con datos reales.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

@@ -51,6 +51,25 @@ pendiente deben conservar una etiqueta legible y no depender sólo del color.
 5. Contenido: primero la decisión o el dato operativo; después el detalle.
 6. Estado: carga, vacío, permiso, error y datos desactualizados explícitos.
 
+## Slice CRM implementado
+
+La vista **Clientes / CRM** toma como referencia principal el [CRM app con
+clientes, deals y tareas](https://www.figma.com/design/y3iW4vARslK39hLDzTj37D/CRM-app-with-customers--deals--nested-data--tasks-and-menu-filtering--Community-):
+la lista es el centro de trabajo, los segmentos funcionan como navegación
+rápida y la ficha seleccionada conserva el contexto de la persona mientras se
+ejecutan acciones, se revisan compras o se programa seguimiento.
+
+- `Clientes` y `Insights` son tabs internos persistidos por organización.
+- `Clientes` usa un rail de segmentos, toolbar de búsqueda/filtros y selección
+  contextual de la ficha 360.
+- `Insights` concentra KPI, top de clientes, segmentación, riesgo y RFM para
+  que la lista no se convierta en una página interminable.
+- En mobile el rail se convierte en una fila horizontal navegable y la ficha
+  mantiene una acción explícita para cerrarse.
+
+Este slice usa datos, permisos, exportaciones, notas, comunicaciones, cuotas y
+acciones existentes; el rediseño no crea un segundo modelo de clientes.
+
 ## Referencias de dirección
 
 - [CRM app con clientes, deals y tareas](https://www.figma.com/design/y3iW4vARslK39hLDzTj37D/CRM-app-with-customers--deals--nested-data--tasks-and-menu-filtering--Community-)

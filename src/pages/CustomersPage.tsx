@@ -15,7 +15,7 @@ import {
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin, EyeOff,
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
   Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer, Bell, BookUser,
-  Instagram, Droplets,
+  Instagram, Droplets, List, BarChart3, Search, Filter, ArrowUpRight, PanelRight,
 } from "lucide-react";
 import { NOTAS_COMUNES, taxLabel } from "@/lib/scentTaxonomy";
 import { recommendForPreferences } from "@/lib/perfumeMatch";
@@ -1346,6 +1346,10 @@ export default function CustomersPage() {
     orgViewKey("customers.selected", activeOrg?.id),
     null,
   );
+  const [crmWorkspaceTab, setCrmWorkspaceTab] = usePersistedState<"clientes" | "insights">(
+    orgViewKey("customers.workspace-tab", activeOrg?.id),
+    "clientes",
+  );
   const [customerDetailTab, setCustomerDetailTab] = usePersistedState(
     orgViewKey("customers.detail-tab", `${activeOrg?.id || "default"}.${selectedCustomer || "none"}`),
     "resumen",
@@ -1777,11 +1781,24 @@ export default function CustomersPage() {
     return list;
   }, [customers, search, segmentFilter, sortBy, filterBirthday, filterSeller, filterCompany]);
 
+  const selectedCustomerData = useMemo(
+    () => customers.find(customer => customer.name === selectedCustomer) ?? null,
+    [customers, selectedCustomer],
+  );
+
   const segmentCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     customers.forEach(c => { counts[c.segment] = (counts[c.segment] || 0) + 1; });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [customers]);
+
+  const quickSegmentOptions = useMemo(() => [
+    { key: "all", label: "Todos los clientes", count: customers.length },
+    { key: "Activo", label: "Activos", count: customers.filter(c => c.segment === "Activo").length },
+    { key: "VIP", label: "VIP", count: customers.filter(c => c.segment === "VIP").length },
+    { key: "En riesgo", label: "En riesgo", count: customers.filter(c => c.segment === "En riesgo").length },
+    { key: "Dormido", label: "Dormidos", count: customers.filter(c => c.segment === "Dormido").length },
+  ].filter(option => option.key === "all" || option.count > 0), [customers]);
 
   const rfmData = useMemo(() => {
     const withPurchases = customers.filter(c => c.purchaseCount > 0);
@@ -2202,6 +2219,43 @@ export default function CustomersPage() {
         />
       )}
 
+      <div className="crm-workspace-nav" role="tablist" aria-label="Vistas del CRM">
+        <div className="crm-workspace-nav__tabs">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={crmWorkspaceTab === "clientes"}
+            className={`crm-workspace-nav__tab ${crmWorkspaceTab === "clientes" ? "is-active" : ""}`}
+            onClick={() => setCrmWorkspaceTab("clientes")}
+          >
+            <List className="w-4 h-4" />
+            Clientes
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={crmWorkspaceTab === "insights"}
+            className={`crm-workspace-nav__tab ${crmWorkspaceTab === "insights" ? "is-active" : ""}`}
+            onClick={() => setCrmWorkspaceTab("insights")}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Insights
+          </button>
+        </div>
+        <div className="crm-workspace-nav__meta">
+          <span className="crm-workspace-nav__dot" />
+          <span>{filtered.length} registros visibles</span>
+          {selectedCustomerData && (
+            <span className="hidden sm:inline-flex items-center gap-1">
+              <PanelRight className="w-3.5 h-3.5" />
+              Ficha abierta
+            </span>
+          )}
+        </div>
+      </div>
+
+      {crmWorkspaceTab === "insights" && (
+        <section className="crm-insights-view" aria-label="Insights de clientes">
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KPICard label="Clientes" value={customers.length} icon={Users} color="primary"
@@ -2450,6 +2504,52 @@ export default function CustomersPage() {
           )}
         </div>
       )}
+
+        </section>
+      )}
+
+      {crmWorkspaceTab === "clientes" && (
+      <>
+      <div className="crm-customer-board">
+        <aside className="crm-customer-rail" aria-label="Segmentos rápidos">
+          <div className="crm-customer-rail__heading">
+            <span>Segmentos</span>
+            <Filter className="w-3.5 h-3.5" />
+          </div>
+          <div className="crm-customer-rail__items">
+            {quickSegmentOptions.map(option => (
+              <button
+                key={option.key}
+                type="button"
+                aria-pressed={segmentFilter === option.key}
+                className="crm-customer-rail__item"
+                onClick={() => setSegmentFilter(option.key)}
+              >
+                <span>{option.label}</span>
+                <span className="crm-customer-rail__count">{option.count}</span>
+              </button>
+            ))}
+          </div>
+          <div className="crm-customer-rail__footer">
+            <p>Orden actual</p>
+            <span>{sortBy === "totalSpent" ? "Mayor facturación" : sortBy === "healthScore" ? "Mayor score" : sortBy === "lastPurchase" ? "Más reciente" : "Mayor valor"}</span>
+          </div>
+        </aside>
+        <section className="crm-customer-board__main" aria-label="Listado de clientes">
+          {selectedCustomerData && (
+            <div className="crm-customer-selection">
+              <div className="flex min-w-0 items-center gap-2">
+                <div className="crm-customer-selection__avatar">{selectedCustomerData.name.charAt(0).toUpperCase()}</div>
+                <div className="min-w-0">
+                  <p className="crm-customer-selection__eyebrow">Ficha seleccionada</p>
+                  <p className="crm-customer-selection__name truncate">{selectedCustomerData.name}</p>
+                </div>
+              </div>
+              <button type="button" className="crm-customer-selection__close" onClick={() => setSelectedCustomer(null)}>
+                Cerrar ficha <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
       {/* Saved segments */}
       {(savedSegments.length > 0 || segmentFilter !== "all") && (
@@ -3851,6 +3951,10 @@ export default function CustomersPage() {
             );
           })}
         </div>
+      )}
+        </section>
+      </div>
+      </>
       )}
     </div>
   );
