@@ -525,7 +525,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         )}
 
         <div className="workspace-content p-4 md:p-6 lg:p-8 max-w-[1380px] mx-auto animate-fade-in">
-          {children}
+          <div className="workspace-page workspace-route-surface">
+            {children}
+          </div>
         </div>
         {/* Floating page guide — rendered per-route, no-op if no guide exists */}
         <PageGuide />

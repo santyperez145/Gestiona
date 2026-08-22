@@ -145,7 +145,9 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
           ))}
         </nav>
 
-        <main className="workspace-platform-main workspace-platform__main">{children}</main>
+        <main className="workspace-platform-main workspace-platform__main">
+          <div className="workspace-page workspace-route-surface">{children}</div>
+        </main>
       </div>
 
       <footer className="workspace-platform__footer px-6 py-4 border-t border-border/30 mt-8">

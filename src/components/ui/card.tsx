@@ -3,22 +3,20 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 // ── Card ─────────────────────────────────────────────────────────────────────
-// Distinctive dark card with inner top highlight, custom shadow, tighter radius.
-// Uses --shadow-card (defined in index.css) which includes an inset highlight.
+// Low-depth marketplace surface. Theme tokens keep the same hierarchy in light
+// and dark mode without each page inventing its own card treatment.
 
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        "relative rounded-[8px] border border-border/70 bg-card text-card-foreground",
-        "shadow-card",          // custom shadow with inner highlight from index.css
-        "overflow-hidden",
+        "relative isolate overflow-hidden rounded-[12px] border border-border/80 bg-card text-card-foreground shadow-card",
         className,
       )}
       {...props}
     >
-      {/* Inner top-edge highlight — feels like physical depth (dark theme only) */}
+      {/* Dark mode keeps a restrained inner highlight for separation. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px hidden dark:block bg-gradient-to-r from-white/5 via-white/8 to-transparent" />
       {props.children}
     </div>
@@ -32,7 +30,7 @@ const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("flex flex-col space-y-1.5 p-5", className)}
+      className={cn("flex flex-col space-y-1.5 p-5 sm:p-6", className)}
       {...props}
     />
   ),
@@ -46,7 +44,7 @@ const CardTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTML
     <h3
       ref={ref}
       className={cn(
-        "text-[1.05rem] font-display font-semibold leading-tight tracking-tight",
+        "text-[1.05rem] font-display font-semibold leading-tight tracking-[-0.015em]",
         className,
       )}
       {...props}
@@ -61,7 +59,7 @@ const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttribu
   ({ className, ...props }, ref) => (
     <p
       ref={ref}
-      className={cn("text-[13px] text-muted-foreground/70 leading-relaxed", className)}
+      className={cn("text-[13px] text-muted-foreground/80 leading-relaxed", className)}
       {...props}
     />
   ),
@@ -72,7 +70,7 @@ CardDescription.displayName = "CardDescription";
 
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("p-5 pt-0", className)} {...props} />
+    <div ref={ref} className={cn("p-5 pt-0 sm:px-6 sm:pb-6", className)} {...props} />
   ),
 );
 CardContent.displayName = "CardContent";
@@ -84,7 +82,7 @@ const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
     <div
       ref={ref}
       className={cn(
-        "flex items-center p-5 pt-0 border-t border-border/40 mt-0",
+        "flex items-center border-t border-border/60 p-5 pt-4 sm:px-6",
         className,
       )}
       {...props}

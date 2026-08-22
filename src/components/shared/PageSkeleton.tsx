@@ -9,7 +9,7 @@ export function DashboardSkeleton() {
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-8">
         {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} className="bg-card border border-border/60 rounded-lg p-4">
+          <div key={i} className="rounded-[12px] border border-border/70 bg-card p-4 shadow-card">
             <Skeleton className="h-3 w-20 mb-3" />
             <Skeleton className="h-6 w-28 mb-1" />
             <Skeleton className="h-3 w-16" />
@@ -17,11 +17,11 @@ export function DashboardSkeleton() {
         ))}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-        <div className="lg:col-span-2 bg-card border border-border/60 rounded-lg p-5">
+        <div className="rounded-[12px] border border-border/70 bg-card p-5 shadow-card lg:col-span-2">
           <Skeleton className="h-4 w-48 mb-4" />
           <Skeleton className="h-[220px] w-full rounded" />
         </div>
-        <div className="bg-card border border-border/60 rounded-lg p-5">
+        <div className="rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
           <Skeleton className="h-4 w-36 mb-4" />
           <Skeleton className="h-[200px] w-full rounded" />
         </div>
@@ -32,7 +32,7 @@ export function DashboardSkeleton() {
 
 export function TableSkeleton({ rows = 5, cols = 6 }: { rows?: number; cols?: number }) {
   return (
-    <div className="bg-card border border-border/60 rounded-lg overflow-hidden animate-in fade-in duration-300">
+    <div className="animate-in overflow-hidden rounded-[12px] border border-border/70 bg-card shadow-card fade-in duration-300">
       <div className="p-4 border-b border-border flex gap-3">
         {Array.from({ length: Math.min(cols, 4) }).map((_, i) => (
           <Skeleton key={i} className="h-4 w-20" />

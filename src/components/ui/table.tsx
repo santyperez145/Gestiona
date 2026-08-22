@@ -3,16 +3,14 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 // ── Table ────────────────────────────────────────────────────────────────────
-// Terminal-style data grid. No full borders, no bg on header — just bottom
-// dividers and ultra-compact all-caps column labels. Feels like a financial
-// terminal, not a generic admin panel.
+// Dense operational grid with a softly tinted header and clear row states.
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
     <div className="relative w-full overflow-auto">
       <table
         ref={ref}
-        className={cn("w-full caption-bottom text-[13px]", className)}
+        className={cn("w-full caption-bottom text-[13px] tabular-nums", className)}
         {...props}
       />
     </div>
@@ -43,7 +41,7 @@ const TableFooter = React.forwardRef<HTMLTableSectionElement, React.HTMLAttribut
     <tfoot
       ref={ref}
       className={cn(
-        "border-t border-border/40 bg-muted/20 font-medium [&>tr]:last:border-b-0",
+        "border-t border-border/60 bg-muted/35 font-medium [&>tr]:last:border-b-0",
         className,
       )}
       {...props}
@@ -58,8 +56,8 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
     <tr
       ref={ref}
       className={cn(
-        "border-b border-border/30 transition-colors duration-100",
-        "hover:bg-muted/25",
+        "border-b border-border/45 transition-colors duration-100",
+        "hover:bg-primary/[0.035]",
         "data-[state=selected]:bg-primary/6",
         className,
       )}
@@ -69,17 +67,16 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
 );
 TableRow.displayName = "TableRow";
 
-// ── TableHead — 9px ALL-CAPS label, no background ────────────────────────────
+// ── TableHead ────────────────────────────────────────────────────────────────
 const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<HTMLTableCellElement>>(
   ({ className, ...props }, ref) => (
     <th
       ref={ref}
       className={cn(
-        "h-9 px-3 pb-2 pt-3",
-        "text-left align-bottom",
-        "text-[9px] font-semibold uppercase tracking-[0.13em]",
-        "text-muted-foreground/50",
-        "border-b border-border/40",
+        "h-10 border-b border-border/65 bg-primary/[0.035] px-3 py-2",
+        "text-left align-middle",
+        "text-[10px] font-semibold uppercase tracking-[0.1em]",
+        "text-muted-foreground/75",
         "[&:has([role=checkbox])]:pr-0 [&:has([role=checkbox])]:w-10",
         className,
       )}
@@ -95,7 +92,7 @@ const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<
     <td
       ref={ref}
       className={cn(
-        "px-3 py-2.5 align-middle",
+        "px-3 py-3 align-middle",
         "[&:has([role=checkbox])]:pr-0 [&:has([role=checkbox])]:w-10",
         className,
       )}

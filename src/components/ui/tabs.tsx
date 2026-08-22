@@ -4,12 +4,11 @@ import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { cn } from "@/lib/utils";
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
-// Underline-indicator style — NO box container, no `bg-muted` pill.
-// Active tab gets a gold bottom bar. Feels like Linear/Vercel, not shadcn defaults.
+// Segmented navigation taken from the selected CRM / marketplace direction.
 
 const Tabs = TabsPrimitive.Root;
 
-// ── TabsList — just a bottom border, no box ───────────────────────────────────
+// ── TabsList ─────────────────────────────────────────────────────────────────
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
@@ -17,8 +16,8 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      // Scrollea horizontal en móvil en vez de desbordar cuando hay muchos tabs
-      "flex items-end gap-0 border-b border-border/40 overflow-x-auto scrollbar-hide",
+      // Scrollea horizontal en móvil en vez de desbordar cuando hay muchos tabs.
+      "flex items-center gap-1 overflow-x-auto rounded-[11px] border border-border/75 bg-muted/45 p-1 scrollbar-hide",
       className,
     )}
     {...props}
@@ -26,7 +25,7 @@ const TabsList = React.forwardRef<
 ));
 TabsList.displayName = TabsPrimitive.List.displayName;
 
-// ── TabsTrigger — text only, underline active indicator ──────────────────────
+// ── TabsTrigger ──────────────────────────────────────────────────────────────
 const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
@@ -36,17 +35,14 @@ const TabsTrigger = React.forwardRef<
     className={cn(
       // Base
       "relative shrink-0",
-      "px-4 pb-2.5 pt-1",
-      "text-[11px] font-semibold uppercase tracking-[0.1em]",
-      "text-muted-foreground/55 transition-colors duration-150",
+      "min-h-9 rounded-[8px] border border-transparent px-3 py-2",
+      "text-[11px] font-semibold tracking-[0.02em]",
+      "text-muted-foreground/75 transition-[background-color,border-color,color,box-shadow] duration-150",
       // Hover
       "hover:text-foreground/80",
       // Active text
-      "data-[state=active]:text-primary",
-      // Active bottom indicator — the gold bar
-      "after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:rounded-t-[2px]",
-      "after:bg-primary after:scale-x-0 after:transition-transform after:duration-200 after:origin-left",
-      "data-[state=active]:after:scale-x-100",
+      "data-[state=active]:border-primary/15 data-[state=active]:bg-card data-[state=active]:text-primary",
+      "data-[state=active]:shadow-[0_5px_14px_-10px_hsl(var(--primary)/0.85)]",
       // Disabled
       "disabled:pointer-events-none disabled:opacity-30",
       className,
@@ -64,7 +60,7 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      "mt-4 focus-visible:outline-none",
+      "mt-5 focus-visible:outline-none",
       className,
     )}
     {...props}

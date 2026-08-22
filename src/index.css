@@ -4992,6 +4992,33 @@
 /* Keep the shared shell contract last in the cascade so older utility blocks
    cannot silently flatten the new workspace composition. */
 @layer utilities {
+  .workspace-route-surface {
+    width: 100%;
+    min-width: 0;
+    color: hsl(var(--foreground));
+  }
+
+  .workspace-route-surface > * {
+    min-width: 0;
+  }
+
+  .light .workspace-route-surface [class~="bg-card"] {
+    border-color: hsl(var(--border) / 0.9);
+    background-color: hsl(var(--card));
+  }
+
+  .light .workspace-route-surface [class~="bg-muted"] {
+    border-color: hsl(var(--border) / 0.78);
+  }
+
+  .light .workspace-route-surface table thead {
+    background: hsl(var(--primary) / 0.035);
+  }
+
+  .light .workspace-route-surface table tbody tr:hover {
+    background: hsl(var(--primary) / 0.04);
+  }
+
   .light .workspace-sidebar__rail {
     background: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(250 60% 99%) 100%) !important;
     border-right-color: hsl(229 18% 87% / 0.9);

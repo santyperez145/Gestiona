@@ -5,8 +5,7 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ── Dialog ───────────────────────────────────────────────────────────────────
-// Dark overlay with backdrop blur. Content is darker than card bg with layered
-// shadows and inner highlight. Close button is a small square icon button.
+// Elevated workspace surface with one consistent modal hierarchy.
 
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
@@ -48,7 +47,7 @@ const DialogContent = React.forwardRef<
         "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
         "w-[calc(100vw-1.5rem)] max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto",
         // Appearance — popover surface, elevated
-        "rounded-[12px] border border-border/50",
+        "rounded-[14px] border border-border/80",
         "bg-popover",
         "shadow-elevated",
         // Inner top highlight (dark theme only)
@@ -65,7 +64,7 @@ const DialogContent = React.forwardRef<
       )}
     >
       {/* Inner top highlight layer */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-white/5 via-white/9 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 hidden h-px bg-gradient-to-r from-white/5 via-white/9 to-transparent dark:block" />
 
       {children}
 

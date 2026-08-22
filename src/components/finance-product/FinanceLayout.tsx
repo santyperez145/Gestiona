@@ -75,7 +75,9 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
           </div>
           <div className="flex items-center gap-2"><ThemeToggle /></div>
         </header>
-        <div className="mx-auto max-w-[1220px] p-4 sm:p-6 lg:p-8">{children}</div>
+        <div className="finance-content mx-auto max-w-[1220px] p-4 sm:p-6 lg:p-8">
+          <div className="workspace-page workspace-route-surface">{children}</div>
+        </div>
       </main>
     </div>
   );

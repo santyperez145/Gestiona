@@ -173,6 +173,29 @@ Esta es la traducción del patrón de CRM, eMarketplace y marketplace kits a la
 operación omnicanal de Gestiona: lista primero, contexto visible, detalle bajo
 demanda y una ruta clara a la acción.
 
+### Primitives y cobertura transversal
+
+`AppLayout`, `FinanceLayout` y `PlatformLayout` envuelven cada ruta autenticada
+en `workspace-route-surface`. Ese contrato evita que la renovación dependa de
+que cada una de las más de cien páginas recuerde agregar una clase: una vista
+heredada recibe automáticamente canvas, cards, tablas, hover y contraste del
+sistema v3 mientras se migra su composición particular.
+
+Los primitives compartidos son la unidad mínima del rediseño:
+
+- `Button` concentra alturas, radios, foco, profundidad y acción primaria;
+- `Input`, `Select` y `Textarea` usan superficie clara, borde visible y foco
+  violeta común;
+- `Card`, `Dialog`, `Popover` y `Tooltip` comparten borde, radio y elevación;
+- `Tabs` adopta navegación segmentada, con activa inequívoca y scroll móvil;
+- `Table` fija densidad, números tabulares, encabezado tintado y hover de fila;
+- `Badge`, `EmptyState` y los skeletons preservan contraste y estados sin que
+  cada módulo invente otro lenguaje.
+
+Una personalización puntual puede cambiar composición o tono semántico, pero no
+volver a definir estos fundamentos. El test `managementVisualContract` protege
+la cobertura de las tres superficies y los tokens esenciales.
+
 ## Referencias de dirección
 
 - [CRM app con clientes, deals y tareas](https://www.figma.com/design/y3iW4vARslK39hLDzTj37D/CRM-app-with-customers--deals--nested-data--tasks-and-menu-filtering--Community-)
