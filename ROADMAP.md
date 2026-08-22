@@ -173,12 +173,13 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.371 tests pasan al 2026-08-22; typecheck, lint y build verdes; 63 Edge Functions verificadas; 41 E2E críticos (32 públicos, 8 de panel y setup autenticado) pasan contra la base real. |
+| Calidad técnica | 1.383 tests pasan al 2026-08-22; typecheck, lint y build verdes; 63 Edge Functions verificadas; 41 E2E críticos (32 públicos, 8 de panel y setup autenticado) pasan contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
 | Ledger | 10 eventos de ledger de dominio; 0 asientos contables operativos reales. |
 | Margen canónico | `20260822000004/5/6` conserva 34/34 líneas y reconstruye 34 operaciones / ARS 1.143.696 sin diferencia. Exige costo + cobro + envío real + IVA, registra fuente, mix y bloqueos. La próxima venta POS crea partes de cobro atómicas: efectivo/transferencia prueban cero; tarjeta espera liquidación real y luego calcula neto + asiento + auditoría. Además persiste ingreso posterior a descuento y precio de referencia. Base histórica: 0 completas, 0% explicable, 2,9% cobertura, 0 liquidaciones POS y 0/34 baselines; no se inventó backfill. |
+| Action Loop de precio | `20260822000007` convierte recomendación en propuesta aprobable, baseline canónica, aplicación, medición y reversión con guard de concurrencia. Fixture: ARS 3.000 → ARS 2.700, 100% de cobertura antes/después, cambio manual a ARS 2.600 protegido, auditoría/RLS/restos 0. Producción: 25 descartadas, 0 aplicadas, 0 outcomes; todavía no prueba impacto comercial. |
 | Plataforma | Overview, Integration Registry, Merchant 360, evidencia de integración, cola operativa, reintentos auditados y control de Checkout Brick. |
 | Activación | Primera venta y tiempo a vender medidos por comercio, deduplicando organizaciones multi-tienda. La migración `20260821000059` suma objetivo POS/online y ocho hitos server-side compartidos con Merchant 360. `20260821000061` agrega cohortes por mes y ventanas maduras: 4 organizaciones, 1 activada en su canal objetivo, 3 pendientes, conversión histórica 25%; a 7/14 días 0/4 y a 30 días 0/1. Son datos técnicos, no PMF. Soporte autoservicio/minutos tiene watermark desde 2026-08-22: 0 altas elegibles y 0 minutos, por lo que la UI dice “sin base” en vez de atribuir falsos ceros. |
 | Importación de catálogo | La migración `20260821000060` reemplaza dos importadores client-side por un lote server-side Excel/CSV de hasta 5.000 filas: staging, preview, create/update/conflict, aprobación, aplicación atómica, retry idempotente y reconciliación. Verificación con rol `authenticated`: 1 válida + 1 inválida, bloqueo previo, 1 producto, stock 3, 1 movimiento, retry sin duplicación, anon/escritura directa sin permisos y 0 restos (2026-08-21). |
@@ -440,6 +441,16 @@ real: bruto 2.700, split 1.200/1.500, arancel 100 + IVA 21, asiento 1.500/1.500,
 100% de cobertura, outsider 0 y restos 0. La evidencia comercial sigue
 pendiente porque la producción histórica no tiene ventas v3.
 
+**Entregado 2026-08-22, propuesta → acción → resultado:** aplicar una oferta
+congela precio, costo y ventana comparativa; el servidor revalida piso de margen,
+audita y crea el evento. La medición lee hechos canónicos y sólo publica delta de
+contribución con 100% de cobertura en ambos períodos. Revertir restaura el estado
+anterior si nadie cambió el precio después. Todo antes/después se marca
+`observed_not_causal`. Fixture real: 3.000 → 2.700, cobertura 100%, conflicto a
+2.600 bloqueado, reversión exacta, outsider y restos 0. En el mismo ejercicio se
+detectó y corrigió que una venta POS sin override podía fallar por el nuevo campo
+`NOT NULL`. Falta aplicar una decisión comercial real.
+
 **Salida:** un merchant cambia precio, canal, compra o promoción basándose en
 Gestiona y el resultado posterior queda medido contra una línea de base.
 
@@ -613,7 +624,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 10 | Onboarding universal, Business Profiler, importación, cohortes y soporte consentido | F1 | **Infraestructura cerrada 2026-08-22:** alta segura, objetivo POS/online, ocho hitos server-side, 7 perfiles declarativos, onboarding atómico, importador reconciliado, cohortes maduras y diagnóstico Support con consentimiento/expiración. Sólo faltan merchants externos | Segundo y tercer merchant reciben acceso, eligen perfil, completan hitos, importan sin SQL y reciben ayuda medible sin impersonación; la cohorte produce conversión/costo sin historia falsa. |
 | 11 | Margin facts canónicos | F2 | **Cerrado 2026-08-22:** 34/34 líneas visibles; cuatro componentes con fuente, asignación exacta, cobertura y RLS; Analytics y Merchant 360 consumen la autoridad | Cobertura y fuentes reconciliadas por operación. Base inicial: 0 completas y 2,9% promedio; no se reconstruyó historia inexistente. |
 | 12 | Margen SKU/orden/canal/pago/promoción | F2 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** producto × canal y operación usan hechos canónicos. Venta v3 conserva total descontado + baseline y crea partes de cobro; split parcial bloquea, conciliación real calcula neto/asiento/auditoría. Fixture: ARS 2.700, mix 1.200/1.500, fee 121, asiento balanceado, cobertura 100%, outsider/restos 0 | Registrar y conciliar una venta POS real nueva; validar que el merchant usa la explicación sin doble conteo. |
-| 13 | Pricing proposal e impact outcome | F2 | Pendiente | Merchant aplica una propuesta y se mide resultado. |
+| 13 | Pricing proposal e impact outcome | F2 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** aprobación server-side, baseline canónica, costo revalidado, medición no causal, reversión con guard, auditoría y RLS. Fixture 3.000→2.700 con cobertura 100%, conflicto protegido y restos 0. Producción: 0/25 aplicadas | Merchant aplica una propuesta real; ventana madura con 100% de cobertura y decide mantener/revertir usando el resultado. |
 | 14 | Finance ADR, shell y acceso por producto | F3 | Pendiente; OCR actual no equivale a Finance | ADR de permisos/sesión y superficie navegable. |
 | 15 | Document storage seguro y versiones | F3 | Pendiente | Original privado, hash, cuarentena y auditoría. |
 | 16 | Extracción estructurada y confidence | F3 | Precursor parcial | Campos versionados, validadores y revisión por umbral. |
@@ -665,6 +676,11 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     descuento 300 medido, cupón sin importe marcado parcial, devolución bloquea
     contribución, outsider bloqueado y cero restos. El punto 14 sigue abierto
     porque requiere una operación real, no otro fixture.
+16. ~~Price Change Proposal aprobable, medible y reversible~~ — cerrado
+    técnicamente el 2026-08-22: baseline con ventana equivalente, costo/margen
+    revalidados en servidor, outcome observacional, guard de concurrencia,
+    auditoría/RLS y cero restos. Sigue abierto el gate comercial: producción
+    tiene 25 recomendaciones descartadas, 0 aplicadas y 0 outcomes.
 
 No se abre Finance MVP ni se separa Storefront antes de cerrar o demostrar que
 estas tareas no pueden avanzar.
@@ -841,8 +857,10 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-22: 1.371 tests, 63 funciones verificadas
+- Build y suites locales del 2026-08-22: 1.383 tests, 63 funciones verificadas
   y 41 E2E críticos contra la base real.
+- docs/PRICE_IMPACT_LOOP.md: benchmark oficial, autoridad, reversión y regla de
+  no causalidad para propuestas de precio.
 - docs/MARGIN_FACTS.md: contrato de cuatro fuentes, seguridad, línea de base y
   comparación oficial con Shopify/Odoo al 2026-08-22.
 - docs/E2E.md: contrato del gate, puerto estricto, variables obligatorias y

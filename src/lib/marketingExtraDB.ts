@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { requireActiveOrgId } from './orgContext';
+import { isMissingRelation } from './publicDataSource';
 
 // ===== Combos =====
 export async function listCombos() {
@@ -73,6 +74,39 @@ export async function dismissRecommendation(id: string) {
     .update({ status: 'dismissed', dismissed_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw error;
+}
+
+export async function listPriceChangeOutcomes() {
+  const orgId = requireActiveOrgId();
+  const { data, error } = await supabase
+    .from('price_change_proposal_outcomes')
+    .select('*')
+    .eq('org_id', orgId)
+    .order('applied_at', { ascending: false })
+    .limit(50);
+  if (isMissingRelation(error)) {
+    console.warn('[pricing] price_change_proposal_outcomes todavía no existe; se omite el historial de impacto');
+    return [];
+  }
+  if (error) throw error;
+  return data || [];
+}
+
+export async function measurePriceChangeOutcome(recommendationId: string) {
+  const { data, error } = await supabase.rpc('measure_price_change_outcome', {
+    p_recommendation_id: recommendationId,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function revertPriceChangeProposal(recommendationId: string, reason?: string) {
+  const { data, error } = await supabase.rpc('revert_price_change_proposal', {
+    p_recommendation_id: recommendationId,
+    p_reason: reason?.trim() || null,
+  });
+  if (error) throw error;
+  return data;
 }
 
 // ===== Exchange configs (status / type) =====

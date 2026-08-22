@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       activation_interventions: {
@@ -1631,18 +1606,29 @@ export type Database = {
       ai_offer_recommendations: {
         Row: {
           applied_at: string | null
+          applied_by: string | null
+          applied_price_ars: number | null
           created_at: string
           dismissed_at: string | null
           duration_hours: number | null
           id: string
+          measurement_due_at: string | null
+          measurement_window_hours: number | null
           offer_type: string
           org_id: string
+          original_discount_price_ars: number | null
+          original_featured: boolean | null
+          original_offer_expires_at: string | null
+          original_sale_price_ars: number | null
           payload: Json | null
           probability: string | null
           product_id: string | null
           reason: string
           recommended_channel: string | null
           resulting_margin_percent: number | null
+          revert_reason: string | null
+          reverted_at: string | null
+          reverted_by: string | null
           status: string | null
           suggested_discount_percent: number | null
           suggested_price_ars: number | null
@@ -1650,18 +1636,29 @@ export type Database = {
         }
         Insert: {
           applied_at?: string | null
+          applied_by?: string | null
+          applied_price_ars?: number | null
           created_at?: string
           dismissed_at?: string | null
           duration_hours?: number | null
           id?: string
+          measurement_due_at?: string | null
+          measurement_window_hours?: number | null
           offer_type: string
           org_id: string
+          original_discount_price_ars?: number | null
+          original_featured?: boolean | null
+          original_offer_expires_at?: string | null
+          original_sale_price_ars?: number | null
           payload?: Json | null
           probability?: string | null
           product_id?: string | null
           reason: string
           recommended_channel?: string | null
           resulting_margin_percent?: number | null
+          revert_reason?: string | null
+          reverted_at?: string | null
+          reverted_by?: string | null
           status?: string | null
           suggested_discount_percent?: number | null
           suggested_price_ars?: number | null
@@ -1669,18 +1666,29 @@ export type Database = {
         }
         Update: {
           applied_at?: string | null
+          applied_by?: string | null
+          applied_price_ars?: number | null
           created_at?: string
           dismissed_at?: string | null
           duration_hours?: number | null
           id?: string
+          measurement_due_at?: string | null
+          measurement_window_hours?: number | null
           offer_type?: string
           org_id?: string
+          original_discount_price_ars?: number | null
+          original_featured?: boolean | null
+          original_offer_expires_at?: string | null
+          original_sale_price_ars?: number | null
           payload?: Json | null
           probability?: string | null
           product_id?: string | null
           reason?: string
           recommended_channel?: string | null
           resulting_margin_percent?: number | null
+          revert_reason?: string | null
+          reverted_at?: string | null
+          reverted_by?: string | null
           status?: string | null
           suggested_discount_percent?: number | null
           suggested_price_ars?: number | null
@@ -20169,6 +20177,233 @@ export type Database = {
           },
         ]
       }
+      price_change_impact_events: {
+        Row: {
+          actor_id: string | null
+          baseline_contribution_ars: number | null
+          baseline_coverage_pct: number | null
+          baseline_explainable_revenue_ars: number
+          baseline_revenue_ars: number
+          baseline_units: number
+          contribution_per_day_delta_ars: number | null
+          created_at: string
+          event_type: string
+          id: string
+          interpretation: string
+          is_mature: boolean
+          metadata: Json
+          observed_contribution_ars: number | null
+          observed_coverage_pct: number | null
+          observed_explainable_revenue_ars: number | null
+          observed_revenue_ars: number | null
+          observed_units: number | null
+          occurred_at: string
+          org_id: string
+          product_id: string
+          recommendation_id: string
+          revenue_per_day_delta_ars: number | null
+          units_per_day_delta: number | null
+          updated_at: string
+          window_days: number | null
+          window_end_at: string | null
+          window_start_at: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          baseline_contribution_ars?: number | null
+          baseline_coverage_pct?: number | null
+          baseline_explainable_revenue_ars?: number
+          baseline_revenue_ars?: number
+          baseline_units?: number
+          contribution_per_day_delta_ars?: number | null
+          created_at?: string
+          event_type: string
+          id?: string
+          interpretation?: string
+          is_mature?: boolean
+          metadata?: Json
+          observed_contribution_ars?: number | null
+          observed_coverage_pct?: number | null
+          observed_explainable_revenue_ars?: number | null
+          observed_revenue_ars?: number | null
+          observed_units?: number | null
+          occurred_at?: string
+          org_id: string
+          product_id: string
+          recommendation_id: string
+          revenue_per_day_delta_ars?: number | null
+          units_per_day_delta?: number | null
+          updated_at?: string
+          window_days?: number | null
+          window_end_at?: string | null
+          window_start_at?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          baseline_contribution_ars?: number | null
+          baseline_coverage_pct?: number | null
+          baseline_explainable_revenue_ars?: number
+          baseline_revenue_ars?: number
+          baseline_units?: number
+          contribution_per_day_delta_ars?: number | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          interpretation?: string
+          is_mature?: boolean
+          metadata?: Json
+          observed_contribution_ars?: number | null
+          observed_coverage_pct?: number | null
+          observed_explainable_revenue_ars?: number | null
+          observed_revenue_ars?: number | null
+          observed_units?: number | null
+          occurred_at?: string
+          org_id?: string
+          product_id?: string
+          recommendation_id?: string
+          revenue_per_day_delta_ars?: number | null
+          units_per_day_delta?: number | null
+          updated_at?: string
+          window_days?: number | null
+          window_end_at?: string | null
+          window_start_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_change_impact_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_identity_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_offer_recommendations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "price_change_proposal_outcomes"
+            referencedColumns: ["recommendation_id"]
+          },
+        ]
+      }
       price_history: {
         Row: {
           change_pct: number | null
@@ -37090,6 +37325,47 @@ export type Database = {
           },
         ]
       }
+      price_change_proposal_outcomes: {
+        Row: {
+          applied_at: string | null
+          applied_by: string | null
+          applied_price_ars: number | null
+          baseline_contribution_ars: number | null
+          baseline_coverage_pct: number | null
+          baseline_explainable_revenue_ars: number | null
+          baseline_revenue_ars: number | null
+          baseline_units: number | null
+          contribution_per_day_delta_ars: number | null
+          created_at: string | null
+          interpretation: string | null
+          is_mature: boolean | null
+          measurement_due_at: string | null
+          measurement_window_hours: number | null
+          observed_contribution_ars: number | null
+          observed_coverage_pct: number | null
+          observed_explainable_revenue_ars: number | null
+          observed_revenue_ars: number | null
+          observed_units: number | null
+          observed_until: string | null
+          observed_window_days: number | null
+          org_id: string | null
+          original_discount_price_ars: number | null
+          original_offer_expires_at: string | null
+          original_sale_price_ars: number | null
+          outcome_updated_at: string | null
+          product_id: string | null
+          product_name: string | null
+          reason: string | null
+          recommendation_id: string | null
+          revenue_per_day_delta_ars: number | null
+          revert_reason: string | null
+          reverted_at: string | null
+          reverted_by: string | null
+          status: string | null
+          units_per_day_delta: number | null
+        }
+        Relationships: []
+      }
       product_availability: {
         Row: {
           available: number | null
@@ -40108,6 +40384,10 @@ export type Database = {
         Args: { p_method?: string; p_order_id: string; p_payment_id?: string }
         Returns: Json
       }
+      measure_price_change_outcome: {
+        Args: { p_recommendation_id: string }
+        Returns: Json
+      }
       medio_de_pago_conectado: {
         Args: { p_cuenta: string; p_org: string; p_provider: string }
         Returns: Json
@@ -40346,6 +40626,15 @@ export type Database = {
       }
       prepare_order_shipment: {
         Args: { p_carrier?: string; p_order_id: string; p_weight_kg?: number }
+        Returns: Json
+      }
+      price_change_window_metrics: {
+        Args: {
+          p_org_id: string
+          p_product_id: string
+          p_window_end: string
+          p_window_start: string
+        }
         Returns: Json
       }
       process_drip_unsubscribe: {
@@ -40593,6 +40882,10 @@ export type Database = {
           p_refund_method?: string
           p_variant_id?: string
         }
+        Returns: Json
+      }
+      revert_price_change_proposal: {
+        Args: { p_reason?: string; p_recommendation_id: string }
         Returns: Json
       }
       revoke_support_diagnostic_access: {
@@ -41010,9 +41303,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "viewer"],

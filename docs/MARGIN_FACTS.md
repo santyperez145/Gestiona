@@ -166,7 +166,10 @@ margen; una parte pendiente reduce cobertura en vez de transformarse en cero.
 2. Completar costo de transportista en tienda y fiscalidad de MercadoLibre.
 3. Persistir la base de cupón/precio promocional hacia adelante para medir su
    impacto sin backfill.
-4. Convertir el hallazgo en una propuesta aprobable y medir el resultado.
+4. Aplicar con un merchant una propuesta real y completar su ventana. El
+   contrato técnico ya congela baseline, revalida costo/margen, mide sin afirmar
+   causalidad y revierte con guard de concurrencia; ver
+   [PRICE_IMPACT_LOOP.md](PRICE_IMPACT_LOOP.md).
 
 No se hace backfill heurístico. Si el dato histórico no existe, queda pendiente;
 la cobertura mejora con operaciones nuevas y fuentes reales.

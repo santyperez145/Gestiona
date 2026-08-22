@@ -4,9 +4,26 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, TrendingDown, TrendingUp, Zap, Star, Package, X, Check, Loader2 } from 'lucide-react';
+import {
+  Sparkles, TrendingDown, TrendingUp, Zap, Star, Package, X, Check,
+  Loader2, Activity, RotateCcw, ShieldCheck, Clock3,
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { dismissRecommendation, listAIRecommendations } from '@/lib/marketingExtraDB';
+import {
+  dismissRecommendation,
+  listAIRecommendations,
+  listPriceChangeOutcomes,
+  measurePriceChangeOutcome,
+  revertPriceChangeProposal,
+} from '@/lib/marketingExtraDB';
+import { useHasPermission } from '@/lib/usePermissions';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
+import { observedPriceLabel, priceOutcomeProgress, priceOutcomeState } from '@/lib/priceChangeOutcome';
 
 const TYPE_META: Record<string, { icon: any; color: string; label: string }> = {
   liquidacion: { icon: TrendingDown, color: 'bg-red-500/20 text-red-300', label: 'Liquidación' },
@@ -20,18 +37,42 @@ function fmt(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0);
 }
 
+function signedMoney(value: number | null | undefined) {
+  if (value == null) return 'Sin evidencia completa';
+  const sign = value > 0 ? '+' : '';
+  return `${sign}${fmt(value)}/día`;
+}
+
 export default function OfferRecommenderPanel() {
   const { activeOrg } = useOrg();
+  const canEditMarketing = useHasPermission('marketing', 'edit');
   const [loading, setLoading] = useState(false);
   const [applyingId, setApplyingId] = useState<string | null>(null);
+  const [measuringId, setMeasuringId] = useState<string | null>(null);
+  const [revertingId, setRevertingId] = useState<string | null>(null);
   const [recs, setRecs] = useState<any[]>([]);
   const [combos, setCombos] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  const [outcomes, setOutcomes] = useState<any[]>([]);
+  const [revertTarget, setRevertTarget] = useState<any | null>(null);
+  const [revertReason, setRevertReason] = useState('');
 
   const loadHistory = async () => {
-    setHistory(await listAIRecommendations('pending'));
+    const [pending, appliedOutcomes] = await Promise.all([
+      listAIRecommendations('pending'),
+      listPriceChangeOutcomes(),
+    ]);
+    setHistory(pending);
+    setOutcomes(appliedOutcomes);
   };
-  useEffect(() => { loadHistory(); }, []);
+  useEffect(() => {
+    if (activeOrg?.id) {
+      void loadHistory().catch(error => {
+        console.error('No se pudo cargar el historial de recomendaciones:', error);
+        toast.error('No se pudo cargar el historial de decisiones');
+      });
+    }
+  }, [activeOrg?.id]);
 
   const generate = async () => {
     if (!activeOrg) return;
@@ -45,7 +86,7 @@ export default function OfferRecommenderPanel() {
       setRecs(data.ofertas || []);
       setCombos(data.combos || []);
       toast.success(`${data.ofertas?.length || 0} ofertas generadas`);
-      loadHistory();
+      await loadHistory();
     } catch (e: any) {
       toast.error(e.message || 'Error al generar');
     } finally {
@@ -82,6 +123,37 @@ export default function OfferRecommenderPanel() {
       toast.info('Recomendación descartada');
     } catch (e: any) {
       toast.error(e.message || 'No se pudo descartar la recomendación');
+    }
+  };
+
+  const measureOutcome = async (recommendationId: string) => {
+    setMeasuringId(recommendationId);
+    try {
+      const result = await measurePriceChangeOutcome(recommendationId) as any;
+      await loadHistory();
+      toast.success(result?.is_mature
+        ? 'Ventana medida con la evidencia disponible'
+        : 'Señal temprana actualizada; todavía no es un resultado final');
+    } catch (e: any) {
+      toast.error(e.message || 'No se pudo medir el resultado');
+    } finally {
+      setMeasuringId(null);
+    }
+  };
+
+  const confirmRevert = async () => {
+    if (!revertTarget) return;
+    setRevertingId(revertTarget.recommendation_id);
+    try {
+      await revertPriceChangeProposal(revertTarget.recommendation_id, revertReason);
+      setRevertTarget(null);
+      setRevertReason('');
+      await loadHistory();
+      toast.success('Precio anterior restaurado con trazabilidad');
+    } catch (e: any) {
+      toast.error(e.message || 'No se pudo revertir la propuesta');
+    } finally {
+      setRevertingId(null);
     }
   };
 
@@ -150,6 +222,111 @@ export default function OfferRecommenderPanel() {
         })}
       </div>
 
+      {outcomes.length > 0 && (
+        <section className="space-y-3 pt-2">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h3 className="font-semibold flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" /> Decisiones de precio
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Línea base congelada, acción reversible y resultado observado. Un antes/después no prueba causalidad.
+              </p>
+            </div>
+            <Badge variant="outline">{outcomes.length} con evidencia</Badge>
+          </div>
+
+          <div className="grid xl:grid-cols-2 gap-3">
+            {outcomes.map(outcome => {
+              const evidenceState = priceOutcomeState(outcome);
+              const progress = priceOutcomeProgress(outcome.applied_at, outcome.measurement_due_at);
+              const basePrice = Number(outcome.original_discount_price_ars || outcome.original_sale_price_ars || 0);
+              const contributionKnown = outcome.contribution_per_day_delta_ars != null;
+              const coverage = outcome.observed_coverage_pct == null
+                ? outcome.baseline_coverage_pct
+                : outcome.observed_coverage_pct;
+              return (
+                <Card key={outcome.recommendation_id} className="p-4 space-y-3 border-primary/15">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm truncate">{outcome.product_name}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{outcome.reason}</p>
+                    </div>
+                    <Badge variant={outcome.status === 'reverted' ? 'secondary' : 'outline'}>
+                      {outcome.status === 'reverted' ? 'Revertida' : 'Aplicada'}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/25 p-3 text-xs">
+                    <div><p className="text-muted-foreground">Precio previo</p><p className="font-mono font-semibold">{fmt(basePrice)}</p></div>
+                    <div><p className="text-muted-foreground">Precio aplicado</p><p className="font-mono font-semibold text-primary">{fmt(Number(outcome.applied_price_ars))}</p></div>
+                    <div><p className="text-muted-foreground">Cobertura</p><p className="font-mono font-semibold">{coverage == null ? 'Sin ventas' : `${coverage}%`}</p></div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className="flex items-center gap-1 text-muted-foreground"><Clock3 className="h-3.5 w-3.5" /> {observedPriceLabel(outcome)}</span>
+                      {progress != null && <span className="font-mono">{progress}%</span>}
+                    </div>
+                    {progress != null && <Progress value={progress} className="h-1.5" />}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-md border border-border/50 p-2">
+                      <p className="text-muted-foreground">Ingreso observado</p>
+                      <p className="font-mono font-semibold">{outcome.observed_revenue_ars == null ? 'Aún no medido' : fmt(Number(outcome.observed_revenue_ars))}</p>
+                    </div>
+                    <div className="rounded-md border border-border/50 p-2">
+                      <p className="text-muted-foreground">Δ contribución diaria</p>
+                      <p className={`font-mono font-semibold ${
+                        Number(outcome.contribution_per_day_delta_ars) > 0 ? 'text-emerald-400' :
+                        Number(outcome.contribution_per_day_delta_ars) < 0 ? 'text-red-400' : ''
+                      }`}>{signedMoney(outcome.contribution_per_day_delta_ars)}</p>
+                    </div>
+                  </div>
+
+                  {!contributionKnown && evidenceState !== 'awaiting_sales' && (
+                    <div className="flex gap-2 rounded-md border border-amber-500/20 bg-amber-500/5 p-2 text-xs text-amber-200">
+                      <ShieldCheck className="h-4 w-4 shrink-0" />
+                      <span>No se publica impacto en margen hasta que baseline y observación tengan costo, cobro, envío e IVA.</span>
+                    </div>
+                  )}
+
+                  {canEditMarketing && (
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        disabled={measuringId === outcome.recommendation_id}
+                        onClick={() => void measureOutcome(outcome.recommendation_id)}
+                      >
+                        {measuringId === outcome.recommendation_id
+                          ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                          : <Activity className="mr-1 h-3.5 w-3.5" />}
+                        Actualizar resultado
+                      </Button>
+                      {outcome.status === 'applied' && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          disabled={revertingId === outcome.recommendation_id}
+                          onClick={() => setRevertTarget(outcome)}
+                        >
+                          <RotateCcw className="mr-1 h-3.5 w-3.5" /> Revertir
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {combos.length > 0 && (
         <div>
           <h3 className="font-semibold mb-2 flex items-center gap-2"><Package className="w-4 h-4" /> Combos sugeridos</h3>
@@ -167,6 +344,39 @@ export default function OfferRecommenderPanel() {
           </div>
         </div>
       )}
+
+      <Dialog open={!!revertTarget} onOpenChange={open => {
+        if (!open && !revertingId) {
+          setRevertTarget(null);
+          setRevertReason('');
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revertir cambio de precio</DialogTitle>
+            <DialogDescription>
+              Gestiona restaura el precio anterior sólo si nadie lo modificó después. La decisión y el motivo quedan auditados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="price-revert-reason">Motivo</Label>
+            <Input
+              id="price-revert-reason"
+              value={revertReason}
+              onChange={event => setRevertReason(event.target.value)}
+              maxLength={500}
+              placeholder="Ej. rotación menor a la esperada"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" disabled={!!revertingId} onClick={() => setRevertTarget(null)}>Cancelar</Button>
+            <Button variant="destructive" disabled={!!revertingId} onClick={() => void confirmRevert()}>
+              {revertingId && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Restaurar precio anterior
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -173,6 +173,18 @@ recalcular `total_ars`, y el precio de referencia que el RPC decía auditar ahor
 sí se persiste. Esto mejora la evidencia futura; la base histórica sigue en 0
 operaciones completas y no se reconstruyó.
 
+✅ **Action Loop de precio, 2026-08-22:** el benchmark actualizado confirma que
+crear promociones y mirar sus ventas es paridad: Tiendanube ya reporta cupones,
+Shopify/Odoo conectan descuentos con analytics/margen, Sidekick exige aprobación
+y Pricefx tiene workflow/revocación. Gestiona ahora congela baseline, aplica con
+`marketing.edit`, recalcula el piso desde el Core, audita, mide con margin facts
+y revierte sin pisar un precio cambiado después. El resultado se etiqueta
+`observed_not_causal`: una comparación temporal no se vende como experimento.
+Fixture real con rollback: ARS 3.000 → ARS 2.700, cobertura 100% en ambas
+ventanas, conflicto ARS 2.600 bloqueado, reversión exacta, outsider/restos 0.
+Producción: 25 recomendaciones descartadas, 0 aplicadas y 0 outcomes; el valor
+comercial sigue sin validar. Contrato y fuentes: [PRICE_IMPACT_LOOP.md](PRICE_IMPACT_LOOP.md).
+
 ✅ **Benchmark económico agregado el 2026-08-21:** la comparación de pricing
 no se usa para decir “somos más baratos”. Se usa para probar que el costo total
 del merchant y la contribución de la plataforma cierran a la vez. Fórmulas,
