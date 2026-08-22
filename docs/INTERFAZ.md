@@ -9,6 +9,9 @@ pero no copia componentes, textos ni assets de terceros.
 La secuencia completa, cobertura por superficie, métricas y slices ejecutables
 viven en [`DESIGNROADMAP.md`](../DESIGNROADMAP.md). `INTERFAZ.md` conserva el
 contrato del sistema; el roadmap visual registra la ejecución y la evidencia.
+Los patrones competitivos obligatorios —anatomía de pantalla, overlays, vistas,
+segmentos, estados, responsive, accesibilidad y puerta tecnológica— viven en el
+[`estándar integral de experiencia`](ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
 
 ## Dirección
 

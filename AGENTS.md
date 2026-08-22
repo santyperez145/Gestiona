@@ -72,6 +72,15 @@ no de merge.
 Esta sección existe para que cualquier sesión, en cualquier PC, arranque con el
 mismo criterio. No es estilo: cada regla salió de algo que se rompió.
 
+**Antes de cambiar una pantalla, modal, tabla, filtro, segmento o dependencia
+de interfaz**, leer
+[`docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md`](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
+Ese documento fija la investigación competitiva, los arquetipos de pantalla,
+los estados completos y la puerta tecnológica. Una referencia se traduce al
+trabajo real de Gestiona: no se copia, y una librería no entra por reputación
+sin gap, benchmark, accesibilidad, seguridad, costo de salida y criterio de
+éxito.
+
 **No caer en "ERP feature factory".** El modo de falla de este proyecto no es
 quedarse corto: es agregar. Antes de construir algo nuevo, ubicarlo en uno de
 los cinco pilares del `ROADMAP.md`: productos/inventario, POS/caja, ecommerce,

@@ -4,6 +4,9 @@
 **Estado:** documento rector exclusivo del rediseño de producto.  
 **Documento de producto:** [ROADMAP.md](ROADMAP.md).
 
+**Estándar de ejecución:**
+[docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
+
 Este roadmap separa la evolución visual de la evolución funcional. No crea un
 segundo producto ni cambia la prioridad comercial: ordena cómo se presenta,
 entiende y opera el mismo Business Core. `ROADMAP.md` decide **qué problema de
@@ -115,6 +118,26 @@ usa en material de producto o inversión.
 | Estados públicos | Pago, tracking, legales, invitación. | Parcial | Sistema público y accesibilidad. |
 
 ## 5. Fases ejecutables
+
+### D-1 — Investigación y estándar competitivo
+
+**Estado:** hecho como línea de base el 2026-08-22; revisión continua.
+
+- benchmarks funcionales oficiales de Shopify, HubSpot, Salesforce, Stripe,
+  Odoo, QuickBooks y Square;
+- inspección pública de Aerten, eMarketplace, CRM Customers/Deals y SaaS
+  Marketplace Admin;
+- arquetipos para índices, ficha 360, colas, dashboards, Kanban, formularios,
+  importadores, POS, Storefront y Platform;
+- árbol de decisión para Dialog/AlertDialog/Sheet/Drawer/Popover/Toast;
+- contrato separado para filtros, vistas, segmentos, cohortes, audiencias y
+  colas;
+- inventario mínimo de pantallas/estados por producto;
+- radar y puerta medible antes de agregar o reemplazar tecnología;
+- guarda CI que exige mantener el estándar conectado a los documentos rectores.
+
+**Salida:** cada slice parte de evidencia fechada, cubre el flujo y sus estados
+y justifica tecnología; no copia un Figma ni instala por moda.
 
 ### D0 — Identidad y aislamiento de temas
 
@@ -231,7 +254,7 @@ prioritarios estables en los cuatro viewports.
 **Salida:** el rediseño demuestra menor tiempo/error y mayor confianza; no se
 declara validado porque “se ve mejor”.
 
-## 6. Próximos 20 slices de diseño
+## 6. Próximos 21 slices de diseño
 
 | # | Slice | Estado | Evidencia de cierre |
 |---:|---|---|---|
@@ -239,22 +262,23 @@ declara validado porque “se ve mejor”.
 | 2 | Primitives v3 transversales | Hecho | Tres layouts y contrato automático. |
 | 3 | Selects de páginas de gestión | Hecho 2026-08-22 | 20 migrados; guarda en tests. |
 | 4 | Selects de componentes + decisión Storefront | Hecho 2026-08-22 | 10 migrados; SaaS en cero y 3 excepciones públicas bajo guarda. |
-| 5 | Estados unificados | Pendiente | Seis estados demostrados en Story/fixture. |
-| 6 | Modales, sheets y drawers | Pendiente | Sin overlays manuales en gestión. |
-| 7 | Productos end-to-end | Pendiente | Desktop/mobile + editor/importación. |
-| 8 | Ventas y devolución | Pendiente | Lista→detalle→acción sin perder filtros. |
-| 9 | POS teclado/touch/offline | Pendiente | Cobro y recuperación medidos. |
-| 10 | Compras, recepción y Kardex | Pendiente | Autoridad de stock visible. |
-| 11 | Reportes orientados a decisión | Pendiente | Menos filtros duplicados; acción clara. |
-| 12 | Settings e Integraciones | Pendiente | Secretos, permisos y estados consistentes. |
-| 13 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza y revisión estructurada visibles; falta proveedor aprobado y validación responsive con documentos reales. |
-| 14 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
-| 15 | Storefront home/PLP/PDP | Pendiente | Marca, performance y mobile aprobados. |
-| 16 | Carrito/checkout/pago | Pendiente | Compra completa 360 px/red lenta. |
-| 17 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
-| 18 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
-| 19 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |
-| 20 | Investor demo mode con datos seguros | Pendiente tras validación | Narrativa reproducible, sin métricas falsas. |
+| 5 | Estándar integral competitivo | Hecho 2026-08-22 | 7 referentes funcionales oficiales, 4 Figma observados, arquetipos, overlays, segmentación, matriz de cobertura y puerta tecnológica bajo guarda CI. |
+| 6 | Estados unificados | Pendiente | Doce estados del estándar demostrados según aplicación, sin confundir vacío/error/parcial. |
+| 7 | Modales, sheets y drawers | Pendiente | Inventario clasificado con árbol de decisión; sin overlays manuales en gestión. |
+| 8 | Productos end-to-end | Pendiente | Desktop/mobile + editor/importación. |
+| 9 | Ventas y devolución | Pendiente | Lista→detalle→acción sin perder filtros. |
+| 10 | POS teclado/touch/offline | Pendiente | Cobro y recuperación medidos. |
+| 11 | Compras, recepción y Kardex | Pendiente | Autoridad de stock visible. |
+| 12 | Reportes orientados a decisión | Pendiente | Menos filtros duplicados; acción clara. |
+| 13 | Settings e Integraciones | Pendiente | Secretos, permisos y estados consistentes. |
+| 14 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza y revisión estructurada visibles; falta proveedor aprobado y validación responsive con documentos reales. |
+| 15 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
+| 16 | Storefront home/PLP/PDP | Pendiente | Marca, performance y mobile aprobados. |
+| 17 | Carrito/checkout/pago | Pendiente | Compra completa 360 px/red lenta. |
+| 18 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
+| 19 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
+| 20 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |
+| 21 | Investor demo mode con datos seguros | Pendiente tras validación | Narrativa reproducible, sin métricas falsas. |
 
 Máximo dos slices visuales activos. Un problema de seguridad, datos, stock,
 pagos o legal interrumpe esta secuencia y vuelve a `ROADMAP.md`.
@@ -299,6 +323,11 @@ tesis de negocio. No se usan vanity metrics como cantidad de pantallas
 rediseñadas sin tarea terminada.
 
 ## 9. Referencias y criterio competitivo
+
+El benchmark completo, sus fuentes oficiales y la traducción obligatoria a
+pantallas, overlays, segmentación y tecnología vive en
+[`docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md`](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
+Esta sección conserva sólo la dirección visual resumida.
 
 Referencias visuales compartidas y verificadas en preview público al
 2026-08-22; CRM Customers/Deals y eMarketplace Admin se reabrieron durante
