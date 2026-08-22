@@ -126,13 +126,13 @@ guardas.
 
 ## 3. Contra quién se compite, honestamente
 
-✅ / ❓ **Mapa actualizado el 2026-08-15.** Tiendanube se contrastó con sus
+✅ / ❓ **Mapa actualizado el 2026-08-21.** Tiendanube se contrastó con sus
 fuentes oficiales; las demás filas siguen siendo hipótesis del análisis externo
 y no se usan como hechos en una presentación hasta verificarlas.
 
 | Competidor | Qué dice el análisis | Estado |
 |---|---|---|
-| **Tiendanube** | ✅ Tiene Punto de Venta en Argentina: registra ventas de local, showroom, WhatsApp, teléfono y redes; permite catálogo, stock, clientes, descuentos y órdenes desde su administrador. También comunica stock centralizado entre canales. | ✅ [Punto de Venta](https://ayuda.tiendanube.com/pdv/que-es-punto-de-venta-de-tiendanube) y [stock](https://www.tiendanube.com/funcionalidades/gestion-de-stock), 2026-08-15 |
+| **Tiendanube** | ✅ Tiene Punto de Venta en Argentina y stock centralizado entre canales. En costo transaccional publica 0% con Pago Nube; con proveedor externo, 2% Esencial, 1% Impulso y 0,7% Escala, más el arancel del proveedor; Evolución es negociable. | ✅ [Punto de Venta](https://ayuda.tiendanube.com/pdv/que-es-punto-de-venta-de-tiendanube), [stock](https://www.tiendanube.com/funcionalidades/gestion-de-stock) y [costos por transacción](https://ayuda.tiendanube.com/es_AR/123484-costos-por-transaccion/que-son-los-costos-por-transaccion-de-tiendanube), verificado 2026-08-21 |
 | **Contabilium** | ERP + POS + stock + facturación + ecommerce + marketplaces, argentino. El competidor local más directo. | ❓ |
 | **VentaWeb** | ERP + tienda argentina. ~1.200 comercios. | ❓ |
 | **Axon ERP** | POS + stock + ecommerce nativo + ARCA. Muy parecido al planteo de acá. | ❓ |
@@ -144,6 +144,11 @@ ya ofrece POS y stock entre canales. Eso elimina cualquier argumento basado en
 la ausencia de esas funciones. La ejecución tiene que bajar a lo concreto de
 §2.3: margen por producto y canal con costo de importación, comisión, envío e
 IVA, preservando la evidencia que compone el número.
+
+✅ **Benchmark económico agregado el 2026-08-21:** la comparación de pricing
+no se usa para decir “somos más baratos”. Se usa para probar que el costo total
+del merchant y la contribución de la plataforma cierran a la vez. Fórmulas,
+calidad de supuestos y gate de aprobación: [ECONOMICS.md](ECONOMICS.md).
 
 ---
 

@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
+import UnitEconomicsWorkbench from '@/components/platform/UnitEconomicsWorkbench';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import {
   PROVIDER_LABEL, METHOD_LABEL, computeSettlement, resolveProviderFee,
@@ -26,6 +27,14 @@ import {
 
 const fmt = (n: number) =>
   `$${Math.round(n).toLocaleString('es-AR')}`;
+
+const monthLabel = (value: string) => {
+  const [year, month] = value.slice(0, 7).split('-').map(Number);
+  if (!year || !month) return value;
+  return new Date(year, month - 1, 1, 12).toLocaleDateString('es-AR', {
+    month: 'long', year: 'numeric',
+  });
+};
 
 interface RevenueRow {
   month: string;
@@ -46,6 +55,7 @@ interface FeeRow extends ProviderFee {
 
 interface RuleRow extends CommissionRule {
   id: string;
+  created_at: string;
   notes?: string | null;
   approval_status: 'draft' | 'approved' | 'retired';
   change_reason: string | null;
@@ -241,6 +251,19 @@ export default function PlatformCommissionsPage() {
     };
   }, [revenue]);
 
+  const economicsBaseline = useMemo(() => {
+    const current = revenue.find(row => row.currency === 'ARS');
+    const proposedRule = rules
+      .filter(rule => !rule.plan_id && !rule.org_id && rule.approval_status !== 'retired'
+        && (rule.applies_to === 'online' || rule.applies_to === 'all'))
+      .sort((a, b) => Number(Boolean(b.is_active)) - Number(Boolean(a.is_active))
+        || b.created_at.localeCompare(a.created_at))[0] || null;
+    const providerFee = resolveProviderFee(fees, {
+      provider: 'mercadopago', method: 'credit', installments: 0,
+    });
+    return { current, proposedRule, providerFee };
+  }, [fees, revenue, rules]);
+
   // ── Simulación ───────────────────────────────────────────────────────────
 
   const simulation = useMemo(() => {
@@ -290,11 +313,12 @@ export default function PlatformCommissionsPage() {
       </div>
 
       <Tabs defaultValue="reglas">
-        <TabsList className="bg-muted/50">
+        <TabsList className="bg-muted/50 max-w-full overflow-x-auto justify-start">
           <TabsTrigger value="reglas" className="gap-2"><Percent className="w-3.5 h-3.5" /> Nuestra comisión</TabsTrigger>
           <TabsTrigger value="aranceles" className="gap-2"><CreditCard className="w-3.5 h-3.5" /> Aranceles</TabsTrigger>
           <TabsTrigger value="revenue" className="gap-2"><TrendingUp className="w-3.5 h-3.5" /> Revenue mensual</TabsTrigger>
           <TabsTrigger value="simulador" className="gap-2"><Calculator className="w-3.5 h-3.5" /> Simulador</TabsTrigger>
+          <TabsTrigger value="economics" className="gap-2"><Building2 className="w-3.5 h-3.5" /> Unit economics</TabsTrigger>
         </TabsList>
 
         {/* ── Reglas de comisión ─────────────────────────────────── */}
@@ -544,7 +568,7 @@ export default function PlatformCommissionsPage() {
                   {revenue.map(r => (
                     <tr key={`${r.month}-${r.currency}`} className="hover:bg-muted/20">
                       <td className="px-3 py-2 font-medium">
-                        {new Date(r.month).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}
+                        {monthLabel(r.month)}
                         {r.currency !== 'ARS' && <span className="text-muted-foreground ml-1">({r.currency})</span>}
                       </td>
                       <td className="px-3 py-2 text-right font-mono">{r.transactions}</td>
@@ -661,6 +685,19 @@ export default function PlatformCommissionsPage() {
               )}
             </p>
           </div>
+        </TabsContent>
+
+        <TabsContent value="economics" className="mt-4">
+          <UnitEconomicsWorkbench
+            actualGmv={Number(economicsBaseline.current?.gross_processed || 0)}
+            actualTransactions={Number(economicsBaseline.current?.transactions || 0)}
+            actualMerchants={Number(economicsBaseline.current?.active_orgs || 0)}
+            actualPeriodLabel={economicsBaseline.current?.month
+              ? monthLabel(economicsBaseline.current.month)
+              : null}
+            proposedRule={economicsBaseline.proposedRule}
+            providerFee={economicsBaseline.providerFee}
+          />
         </TabsContent>
       </Tabs>
 

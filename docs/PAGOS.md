@@ -132,6 +132,10 @@ caminos están espejados entre SQL y `paymentFees.ts`. Activar un porcentaje
 sigue siendo una decisión comercial, fiscal y de unit economics, no un efecto
 colateral del deploy.
 
+Las fórmulas de contribución, break-even, calidad de supuestos y benchmark de
+costo transaccional están en [ECONOMICS.md](ECONOMICS.md). El workbench del
+panel es una simulación local: no escribe reglas ni activa pricing.
+
 ## Matriz operativa
 
 ~~~bash
