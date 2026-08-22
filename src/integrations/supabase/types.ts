@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_audit_logs: {
@@ -19811,6 +19836,378 @@ export type Database = {
           },
         ]
       }
+      product_import_batches: {
+        Row: {
+          applied_at: string | null
+          calculation_params: Json
+          cancelled_at: string | null
+          create_rows: number
+          created_at: string
+          created_by: string
+          created_count: number
+          error_message: string | null
+          filename: string
+          id: string
+          invalid_rows: number
+          location_id: string | null
+          org_id: string
+          payload_hash: string
+          skipped_count: number
+          source_format: string
+          status: string
+          stock_mode: string
+          stock_movements_count: number
+          total_rows: number
+          update_rows: number
+          updated_count: number
+          valid_rows: number
+        }
+        Insert: {
+          applied_at?: string | null
+          calculation_params?: Json
+          cancelled_at?: string | null
+          create_rows?: number
+          created_at?: string
+          created_by: string
+          created_count?: number
+          error_message?: string | null
+          filename: string
+          id?: string
+          invalid_rows?: number
+          location_id?: string | null
+          org_id: string
+          payload_hash: string
+          skipped_count?: number
+          source_format: string
+          status?: string
+          stock_mode?: string
+          stock_movements_count?: number
+          total_rows?: number
+          update_rows?: number
+          updated_count?: number
+          valid_rows?: number
+        }
+        Update: {
+          applied_at?: string | null
+          calculation_params?: Json
+          cancelled_at?: string | null
+          create_rows?: number
+          created_at?: string
+          created_by?: string
+          created_count?: number
+          error_message?: string | null
+          filename?: string
+          id?: string
+          invalid_rows?: number
+          location_id?: string | null
+          org_id?: string
+          payload_hash?: string
+          skipped_count?: number
+          source_format?: string
+          status?: string
+          stock_mode?: string
+          stock_movements_count?: number
+          total_rows?: number
+          update_rows?: number
+          updated_count?: number
+          valid_rows?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_import_batches_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      product_import_rows: {
+        Row: {
+          action: string
+          applied_at: string | null
+          batch_id: string
+          id: string
+          match_key: string
+          normalized: Json
+          org_id: string
+          result_product_id: string | null
+          row_number: number
+          status: string
+          stock_after: number | null
+          stock_before: number | null
+          target_product_id: string | null
+          validation_errors: string[]
+          validation_warnings: string[]
+        }
+        Insert: {
+          action: string
+          applied_at?: string | null
+          batch_id: string
+          id?: string
+          match_key: string
+          normalized: Json
+          org_id: string
+          result_product_id?: string | null
+          row_number: number
+          status?: string
+          stock_after?: number | null
+          stock_before?: number | null
+          target_product_id?: string | null
+          validation_errors?: string[]
+          validation_warnings?: string[]
+        }
+        Update: {
+          action?: string
+          applied_at?: string | null
+          batch_id?: string
+          id?: string
+          match_key?: string
+          normalized?: Json
+          org_id?: string
+          result_product_id?: string | null
+          row_number?: number
+          status?: string
+          stock_after?: number | null
+          stock_before?: number | null
+          target_product_id?: string | null
+          validation_errors?: string[]
+          validation_warnings?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_import_rows_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "product_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_result_product_id_fkey"
+            columns: ["result_product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_result_product_id_fkey"
+            columns: ["result_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_result_product_id_fkey"
+            columns: ["result_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_identity_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_result_product_id_fkey"
+            columns: ["result_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_result_product_id_fkey"
+            columns: ["result_product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_result_product_id_fkey"
+            columns: ["result_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_result_product_id_fkey"
+            columns: ["result_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_result_product_id_fkey"
+            columns: ["result_product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_target_product_id_fkey"
+            columns: ["target_product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_target_product_id_fkey"
+            columns: ["target_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_target_product_id_fkey"
+            columns: ["target_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_identity_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_target_product_id_fkey"
+            columns: ["target_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_target_product_id_fkey"
+            columns: ["target_product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_target_product_id_fkey"
+            columns: ["target_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_target_product_id_fkey"
+            columns: ["target_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_target_product_id_fkey"
+            columns: ["target_product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_perfume_details: {
         Row: {
           created_at: string
@@ -35077,6 +35474,10 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_product_import: {
+        Args: { p_batch_id: string; p_skip_invalid?: boolean }
+        Returns: Json
+      }
       apply_territory_rules: {
         Args: {
           p_attributes: Json
@@ -35163,6 +35564,7 @@ export type Database = {
         Args: { p_product_id: string; p_slug: string }
         Returns: Json
       }
+      cancel_product_import: { Args: { p_batch_id: string }; Returns: Json }
       cancelar_conteo: { Args: { p_count_id: string }; Returns: undefined }
       capture_platform_org_health_snapshot: {
         Args: { p_snapshot_date?: string }
@@ -36186,6 +36588,7 @@ export type Database = {
         Returns: Json
       }
       process_whatsapp_unsubscribe: { Args: { p_token: string }; Returns: Json }
+      product_import_number: { Args: { p_value: Json }; Returns: number }
       prorratear: {
         Args: { p_moneda?: string; p_pesos: number[]; p_total: number }
         Returns: number[]
@@ -36525,6 +36928,21 @@ export type Database = {
         Returns: Json
       }
       siguiente_numero_factura: { Args: { p_org: string }; Returns: string }
+      stage_product_import: {
+        Args: {
+          p_auto_fill_sale_price?: boolean
+          p_customs_percent?: number
+          p_default_margin_percent?: number
+          p_exchange_rate?: number
+          p_filename: string
+          p_location_id?: string
+          p_org_id: string
+          p_rows: Json
+          p_source_format: string
+          p_stock_mode?: string
+        }
+        Returns: Json
+      }
       stock_disponible: {
         Args: {
           p_location_id?: string
@@ -36793,6 +37211,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "viewer"],

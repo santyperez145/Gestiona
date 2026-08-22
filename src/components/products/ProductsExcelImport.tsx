@@ -1,658 +1,328 @@
-import { useState, useRef, useMemo } from "react";
-import { useOrg } from "@/lib/orgContext";
-import { useAuth } from "@/lib/auth";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { calculateProductProfits } from "@/lib/supabaseStore";
-import { Button } from "@/components/ui/button";
+import type { Json } from "@/integrations/supabase/types";
+import { useOrg } from "@/lib/orgContext";
+import {
+  PRODUCT_IMPORT_MAX_ROWS,
+  buildProductImportRow,
+  previewProductImportRow,
+  productImportFormat,
+  type ProductImportPayloadRow,
+} from "@/lib/productImport";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
-  Upload, FileSpreadsheet, CheckCircle2, AlertCircle,
-  Loader2, X, Download, Info, Sparkles, ChevronDown, ChevronUp,
+  AlertCircle, ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Download,
+  FileCheck2, FileSpreadsheet, Info, Loader2, PackageCheck, ShieldCheck,
+  Upload, X,
 } from "lucide-react";
 
-/**
- * Generic products Excel/CSV importer with automatic price calculations.
- *
- * Supports fuzzy column matching so customers can use whatever header
- * names they have. The computed fields (customs_fee, total_cost_usd,
- * profit_per_unit_*) are derived from cost_usd + sale_price_ars using
- * the org's exchange_rate and customs_percent from settings.
- */
-
-const COL_ALIASES = {
-  name: ["Nombre", "Name", "Producto", "Product", "Descripción", "Description", "Titulo", "Título"],
-  brand: ["Marca", "Brand", "Fabricante", "Manufacturer"],
-  category: ["Categoría", "Categoria", "Category", "Categorías", "Categorias", "Rubro", "Tipo"],
-  gender: ["Género", "Genero", "Gender", "Sexo"],
-  sku: ["SKU", "Código", "Codigo", "Code", "Ref", "Referencia"],
-  barcode: ["Código de barras", "Codigo de barras", "Barcode", "EAN", "Codigo barras"],
-  cost_usd: ["Costo USD", "Cost USD", "Precio costo USD", "Precio de costo USD", "Costo en USD", "Cost", "Costo"],
-  sale_price_ars: [
-    "Precio Venta ARS", "Precio venta", "Precio de venta", "Sale Price", "Price",
-    "Precio ARS", "Precio", "PVP", "Precio Final",
-  ],
-  discount_price_ars: [
-    "Precio Descuento", "Precio Oferta", "Precio promocional", "Discount Price",
-    "Precio Promocional", "Promo", "Promocion",
-  ],
-  stock: ["Stock", "Cantidad", "Quantity", "Existencia", "Existencias"],
-  content_ml: ["Contenido ml", "ML", "Volumen", "Volume", "Contenido", "Tamaño"],
-  description: ["Descripción larga", "Descripcion", "Detalles", "Notes", "Observaciones"],
+type Step = "upload" | "preview" | "staged" | "done";
+type Location = { id: string; name: string };
+type StageSummary = {
+  ok: boolean; reused?: boolean; batch_id: string; status: string;
+  total: number; valid: number; invalid: number; creates: number; updates: number;
+};
+type ApplySummary = {
+  ok: boolean; reused?: boolean; status?: string; created?: number; updated?: number;
+  stock_movements?: number; skipped?: number; reconciled?: boolean; motivo?: string; error?: string;
+};
+type StagedRow = {
+  id: string; row_number: number; action: "create" | "update" | "invalid";
+  normalized: Json; validation_errors: string[]; validation_warnings: string[];
+  status: "staged" | "applied" | "skipped";
 };
 
-type ColumnKey = keyof typeof COL_ALIASES;
-
-const CATEGORY_HINTS: Array<[RegExp, string]> = [
-  [/perfum|fragran|eau de/i, "perfume_diseñador"],
-  [/arab|oud|attar/i, "perfume_arabe"],
-  [/vaper|vape|pod|cigarrillo elect/i, "vaper"],
-  [/accesorio|accessory/i, "accesorio"],
-  [/ropa|talle|indumentaria|prenda/i, "ropa"],
-];
-
-const GENDER_HINTS: Array<[RegExp, string]> = [
-  [/femenin|mujer|woman|female|women/i, "femenino"],
-  [/masculin|hombre|man|male|men/i, "masculino"],
-  [/unisex|both/i, "unisex"],
-];
-
-function detectCategory(name: string, raw: string): string {
-  const all = `${name} ${raw}`.toLowerCase();
-  for (const [re, cat] of CATEGORY_HINTS) if (re.test(all)) return cat;
-  return raw.trim().toLowerCase() || "otro";
+function jsonObject(value: Json): Record<string, Json | undefined> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, Json | undefined>
+    : {};
 }
 
-function detectGender(raw: string, name: string): string {
-  const all = `${name} ${raw}`;
-  for (const [re, g] of GENDER_HINTS) if (re.test(all)) return g;
-  return "unisex";
+function ars(value: number) {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency", currency: "ARS", maximumFractionDigits: 0,
+  }).format(value || 0);
 }
 
-function parseNum(v: unknown): number {
-  if (typeof v === "number") return v;
-  if (!v) return 0;
-  const s = String(v).replace(/[$\s]/g, "").replace(/\./g, "").replace(/,/g, ".");
-  const n = parseFloat(s);
-  return isFinite(n) ? n : 0;
+function SummaryCard({ label, value, tone = "text-foreground" }: { label: string; value: number; tone?: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 px-3 py-2">
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className={`text-xl font-semibold ${tone}`}>{value.toLocaleString("es-AR")}</p>
+    </div>
+  );
 }
 
-function resolveCol(row: Record<string, unknown>, key: ColumnKey): string {
-  const aliases = COL_ALIASES[key];
-  // First try exact alias match
-  for (const a of aliases) {
-    if (row[a] !== undefined && row[a] !== null && row[a] !== "") return String(row[a]).trim();
-  }
-  // Then try case-insensitive partial match
-  const lowerAliases = aliases.map(a => a.toLowerCase());
-  for (const k of Object.keys(row)) {
-    const lk = k.toLowerCase();
-    if (lowerAliases.some(a => lk === a || lk.includes(a))) {
-      const val = row[k];
-      if (val !== undefined && val !== null && val !== "") return String(val).trim();
-    }
-  }
-  return "";
-}
-
-interface ParsedRow {
-  name: string;
-  brand: string;
-  category: string;
-  gender: string;
-  sku: string;
-  barcode: string;
-  cost_usd: number;
-  sale_price_ars: number;
-  discount_price_ars: number | null;
-  stock: number;
-  content_ml: number | null;
-  description: string;
-
-  // Derived (computed in real-time)
-  customs_fee: number;
-  total_cost_usd: number;
-  profit_per_unit_ars: number;
-  profit_per_unit_usd: number;
-  margin_pct: number;
-
-  // Status
-  action: "create" | "update";
-  warning?: string;
-}
-
-export default function ProductsExcelImport({
-  onClose,
-  onImported,
-}: {
+export default function ProductsExcelImport({ onClose, onImported }: {
   onClose: () => void;
   onImported: () => void;
 }) {
-  const { activeOrg } = useOrg();
-  const { user } = useAuth();
+  const { activeOrg, activeRole } = useOrg();
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const [rows, setRows] = useState<ParsedRow[]>([]);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [parsing, setParsing] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [exchangeRate, setExchangeRate] = useState<number>(1695);
-  const [customsPercent, setCustomsPercent] = useState<number>(15);
-  const [defaultMarginPct, setDefaultMarginPct] = useState<number>(80);
-  const [autoFillSalePrice, setAutoFillSalePrice] = useState(true);
+  const [step, setStep] = useState<Step>("upload");
+  const [fileName, setFileName] = useState("");
+  const [rows, setRows] = useState<ProductImportPayloadRow[]>([]);
+  const [stage, setStage] = useState<StageSummary | null>(null);
+  const [stagedRows, setStagedRows] = useState<StagedRow[]>([]);
+  const [result, setResult] = useState<ApplySummary | null>(null);
+  const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [skipInvalid, setSkipInvalid] = useState(false);
+  const [stockMode, setStockMode] = useState<"replace" | "ignore">("replace");
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [locationId, setLocationId] = useState("");
+  const [exchangeRate, setExchangeRate] = useState(1695);
+  const [customsPercent, setCustomsPercent] = useState(15);
+  const [marginPercent, setMarginPercent] = useState(80);
+  const [autoPrice, setAutoPrice] = useState(true);
+  const canImport = activeRole === "owner" || activeRole === "admin";
 
-  // Load org settings to pre-fill defaults
-  useMemo(() => {
-    if (!activeOrg) return;
-    supabase
-      .from("settings")
-      .select("exchange_rate, customs_percent")
-      .eq("org_id", activeOrg.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.exchange_rate) setExchangeRate(Number(data.exchange_rate));
-        if (data?.customs_percent) setCustomsPercent(Number(data.customs_percent));
-      });
-  }, [activeOrg]);
-
-  // Re-compute derived fields whenever rates or rows change
-  const computedRows = useMemo(() => {
-    return rows.map((r) => {
-      let salePriceARS = r.sale_price_ars;
-
-      // Auto-fill sale price if missing
-      if (autoFillSalePrice && salePriceARS <= 0 && r.cost_usd > 0) {
-        const totalCostARS = r.cost_usd * (1 + customsPercent / 100) * exchangeRate;
-        salePriceARS = Math.round(totalCostARS * (1 + defaultMarginPct / 100));
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    let mounted = true;
+    Promise.all([
+      supabase.from("settings").select("exchange_rate, customs_percent").eq("org_id", activeOrg.id).maybeSingle(),
+      supabase.from("locations").select("id, name").eq("org_id", activeOrg.id).eq("active", true).order("name"),
+    ]).then(([settings, locationResult]) => {
+      if (!mounted) return;
+      if (settings.error) toast.error("No pudimos cargar la cotización del negocio");
+      else {
+        const rate = Number(settings.data?.exchange_rate);
+        const customs = Number(settings.data?.customs_percent);
+        if (rate > 0) setExchangeRate(rate);
+        if (customs >= 0) setCustomsPercent(customs);
       }
-
-      const calc = calculateProductProfits(r.cost_usd, customsPercent, salePriceARS, exchangeRate);
-      const margin_pct = salePriceARS > 0 ? Math.round((calc.profitPerUnitARS / salePriceARS) * 100) : 0;
-
-      let warning: string | undefined;
-      if (!r.name) warning = "Sin nombre";
-      else if (r.cost_usd <= 0) warning = "Sin costo USD";
-      else if (salePriceARS <= 0) warning = "Sin precio venta";
-      else if (margin_pct < 10) warning = "Margen muy bajo";
-      else if (margin_pct < 0) warning = "Precio venta menor al costo";
-
-      return {
-        ...r,
-        sale_price_ars: salePriceARS,
-        customs_fee: calc.customsFee,
-        total_cost_usd: calc.totalCostUSD,
-        profit_per_unit_ars: calc.profitPerUnitARS,
-        profit_per_unit_usd: calc.profitPerUnitUSD,
-        margin_pct,
-        warning,
-      };
+      if (locationResult.error) toast.error("No pudimos cargar las sucursales");
+      else {
+        const next = locationResult.data || [];
+        setLocations(next);
+        if (next.length === 1) setLocationId(next[0].id);
+      }
     });
-  }, [rows, exchangeRate, customsPercent, defaultMarginPct, autoFillSalePrice]);
+    return () => { mounted = false; };
+  }, [activeOrg?.id]);
 
-  const stats = useMemo(() => {
-    const valid = computedRows.filter((r) => !r.warning).length;
-    const warnings = computedRows.filter((r) => r.warning).length;
-    const creates = computedRows.filter((r) => r.action === "create").length;
-    const updates = computedRows.filter((r) => r.action === "update").length;
-    const totalCostUSD = computedRows.reduce((s, r) => s + r.total_cost_usd * r.stock, 0);
-    const totalRevenueARS = computedRows.reduce((s, r) => s + r.sale_price_ars * r.stock, 0);
-    return { total: computedRows.length, valid, warnings, creates, updates, totalCostUSD, totalRevenueARS };
-  }, [computedRows]);
+  const params = useMemo(() => ({
+    exchangeRate, customsPercent, defaultMarginPercent: marginPercent, autoFillSalePrice: autoPrice,
+  }), [exchangeRate, customsPercent, marginPercent, autoPrice]);
+  const previews = useMemo(() => rows.map(row => previewProductImportRow(row, params)), [rows, params]);
+  const localStats = useMemo(() => ({
+    issues: previews.filter(row => row.localIssues.length).length,
+    withStock: rows.filter(row => row.provided.includes("stock")).length,
+    revenue: previews.reduce((sum, row) => sum + row.salePriceARS * (row.stock || 0), 0),
+  }), [rows, previews]);
+  const needsLocation = stockMode === "replace" && locations.length > 1
+    && rows.some(row => row.provided.includes("stock"));
 
-  const handleFile = async (file: File) => {
-    if (!activeOrg || !user) return;
-    setParsing(true);
-    setFileName(file.name);
+  async function parseFile(file: File) {
+    if (!productImportFormat(file.name)) return void toast.error("Usá un archivo .xlsx, .xls o .csv");
+    setBusy(true);
     try {
       const { read, utils } = await import("xlsx");
-      const buf = await file.arrayBuffer();
-      const wb = read(buf, { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const raw: Record<string, unknown>[] = utils.sheet_to_json(ws, { defval: "" });
-
-      if (raw.length === 0) {
-        toast.error("El archivo está vacío");
-        setParsing(false);
-        return;
-      }
-
-      // Check what SKUs/names already exist to determine action
-      const skus = raw.map((r) => resolveCol(r, "sku")).filter(Boolean);
-      const names = raw.map((r) => resolveCol(r, "name")).filter(Boolean);
-
-      const { data: existing } = await supabase
-        .from("products")
-        .select("name, sku")
-        .eq("org_id", activeOrg.id);
-
-      const existingBySku = new Map((existing || []).filter((e) => e.sku).map((e) => [e.sku!.toLowerCase(), e]));
-      const existingByName = new Map((existing || []).map((e) => [e.name.toLowerCase(), e]));
-
-      const parsed: ParsedRow[] = raw
-        .map((row) => {
-          const name = resolveCol(row, "name");
-          if (!name) return null;
-          const brand = resolveCol(row, "brand") || "Sin marca";
-          const categoryRaw = resolveCol(row, "category");
-          const category = detectCategory(name, categoryRaw);
-          const gender = detectGender(resolveCol(row, "gender"), name);
-          const sku = resolveCol(row, "sku");
-          const cost_usd = parseNum(resolveCol(row, "cost_usd"));
-          const sale_price_ars = parseNum(resolveCol(row, "sale_price_ars"));
-          const discount = parseNum(resolveCol(row, "discount_price_ars"));
-          const stock = parseNum(resolveCol(row, "stock")) || 0;
-          const content_ml = parseNum(resolveCol(row, "content_ml")) || null;
-
-          const existsBySku = sku ? existingBySku.get(sku.toLowerCase()) : null;
-          const existsByName = existingByName.get(name.toLowerCase());
-          const action = existsBySku || existsByName ? "update" : "create";
-
-          return {
-            name,
-            brand,
-            category,
-            gender,
-            sku,
-            barcode: resolveCol(row, "barcode"),
-            cost_usd,
-            sale_price_ars,
-            discount_price_ars: discount > 0 ? discount : null,
-            stock,
-            content_ml,
-            description: resolveCol(row, "description"),
-            customs_fee: 0,
-            total_cost_usd: 0,
-            profit_per_unit_ars: 0,
-            profit_per_unit_usd: 0,
-            margin_pct: 0,
-            action: action as "create" | "update",
-          };
-        })
-        .filter((r): r is ParsedRow => r !== null);
-
-      setRows(parsed);
-      if (parsed.length === 0) {
-        toast.error("No se encontraron productos válidos. Verificá que tu Excel tenga columnas como 'Nombre', 'Costo USD', 'Precio Venta'.");
-      } else {
-        toast.success(`${parsed.length} productos detectados`);
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error("Error al leer el archivo. Verificá que sea .xlsx, .xls o .csv");
-    }
-    setParsing(false);
-  };
-
-  const handleImport = async () => {
-    if (!activeOrg || !user) return;
-    const validRows = computedRows.filter((r) => r.name && r.cost_usd > 0 && r.sale_price_ars > 0);
-    if (validRows.length === 0) {
-      toast.error("No hay productos válidos para importar");
-      return;
-    }
-
-    setImporting(true);
-    try {
-      // Build the payload — only fields the products table accepts
-      const payload = validRows.map((r) => ({
-        org_id: activeOrg.id,
-        user_id: user.id,
-        name: r.name,
-        brand: r.brand,
-        category: r.category,
-        gender: r.gender,
-        sku: r.sku || null,
-        barcode: r.barcode || null,
-        description: r.description || null,
-        cost_usd: r.cost_usd,
-        customs_fee: r.customs_fee,
-        total_cost_usd: r.total_cost_usd,
-        sale_price_ars: r.sale_price_ars,
-        discount_price_ars: r.discount_price_ars,
-        profit_per_unit_ars: r.profit_per_unit_ars,
-        profit_per_unit_usd: r.profit_per_unit_usd,
-        stock: r.stock,
-        content_ml: r.content_ml,
-      }));
-
-      // Upsert in batches (by name + org_id to update if it exists)
-      let imported = 0;
-      let updated = 0;
-      let failed = 0;
-      const BATCH = 50;
-      for (let i = 0; i < payload.length; i += BATCH) {
-        const batch = payload.slice(i, i + BATCH);
-        // For each row, check if it exists and decide insert vs update
-        for (const row of batch) {
-          const matchKey = row.sku
-            ? { sku: row.sku }
-            : { name: row.name };
-          const { data: existing } = await supabase
-            .from("products")
-            .select("id")
-            .eq("org_id", activeOrg.id)
-            .match(matchKey)
-            .maybeSingle();
-
-          if (existing) {
-            const { error } = await supabase
-              .from("products")
-              .update(row)
-              .eq("id", existing.id);
-            if (error) failed++; else updated++;
-          } else {
-            const { error } = await supabase.from("products").insert(row);
-            if (error) failed++; else imported++;
-          }
-        }
-      }
-
-      toast.success(
-        `Importación completada: ${imported} creados, ${updated} actualizados${failed > 0 ? `, ${failed} fallidos` : ""}`,
+      const workbook = read(await file.arrayBuffer(), { type: "array" });
+      const raw = utils.sheet_to_json<Record<string, unknown>>(
+        workbook.Sheets[workbook.SheetNames[0]], { defval: "" },
       );
-      onImported();
-      onClose();
-    } catch (e) {
-      console.error(e);
-      toast.error("Error en la importación. Revisá la consola para más detalles.");
+      if (!raw.length) throw new Error("El archivo está vacío");
+      if (raw.length > PRODUCT_IMPORT_MAX_ROWS) throw new Error(`El máximo por lote es ${PRODUCT_IMPORT_MAX_ROWS.toLocaleString("es-AR")} filas`);
+      setRows(raw.map(buildProductImportRow));
+      setFileName(file.name);
+      setStage(null); setStagedRows([]); setResult(null); setSkipInvalid(false);
+      setStep("preview");
+      toast.success(`${raw.length.toLocaleString("es-AR")} filas listas para revisar`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No pudimos leer el archivo");
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
     }
-    setImporting(false);
-  };
+  }
 
-  const downloadTemplate = async () => {
+  async function loadStagedRows(batchId: string) {
+    const { data, error } = await supabase.from("product_import_rows")
+      .select("id, row_number, action, normalized, validation_errors, validation_warnings, status")
+      .eq("batch_id", batchId).order("row_number");
+    if (error) throw error;
+    setStagedRows((data || []) as StagedRow[]);
+  }
+
+  async function prepare() {
+    if (!activeOrg?.id || !fileName || !canImport) return;
+    const format = productImportFormat(fileName);
+    if (!format) return;
+    if (exchangeRate <= 0) return void toast.error("Ingresá una cotización USD válida");
+    if (needsLocation && !locationId) return void toast.error("Elegí la sucursal del stock");
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.rpc("stage_product_import", {
+        p_org_id: activeOrg.id,
+        p_filename: fileName,
+        p_source_format: format,
+        p_rows: rows as unknown as Json,
+        p_stock_mode: stockMode,
+        p_location_id: locationId || undefined,
+        p_exchange_rate: exchangeRate,
+        p_customs_percent: customsPercent,
+        p_default_margin_percent: marginPercent,
+        p_auto_fill_sale_price: autoPrice,
+      });
+      if (error) throw error;
+      const next = data as unknown as StageSummary;
+      if (!next?.ok || !next.batch_id) throw new Error("El servidor no pudo preparar el lote");
+      await loadStagedRows(next.batch_id);
+      setStage(next); setStep("staged");
+      toast.success(next.invalid ? `${next.valid} filas válidas y ${next.invalid} para corregir` : `${next.valid} filas listas`);
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "No pudimos preparar la importación");
+    } finally { setBusy(false); }
+  }
+
+  async function apply() {
+    if (!stage?.batch_id || !canImport) return;
+    if (stage.invalid && !skipInvalid) return void toast.error("Confirmá si querés omitir las filas inválidas");
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.rpc("apply_product_import", {
+        p_batch_id: stage.batch_id, p_skip_invalid: skipInvalid,
+      });
+      if (error) throw error;
+      const next = data as unknown as ApplySummary;
+      if (!next?.ok) throw new Error(next?.error || "El lote no pudo aplicarse");
+      if (!next.reconciled) throw new Error("El servidor no pudo reconciliar todas las filas válidas");
+      setResult(next); setStep("done"); onImported();
+      toast.success("Catálogo importado y reconciliado");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "No pudimos aplicar la importación");
+    } finally { setBusy(false); }
+  }
+
+  function reset() {
+    setRows([]); setFileName(""); setStage(null); setStagedRows([]); setResult(null);
+    setSkipInvalid(false); setStep("upload");
+  }
+
+  async function downloadTemplate() {
     const { utils, writeFile } = await import("xlsx");
-    const sampleData = [
-      {
-        Nombre: "Eau de Parfum Floral 100ml",
-        Marca: "Marca Ejemplo",
-        Categoría: "Perfume",
-        Género: "Femenino",
-        SKU: "EJM-001",
-        "Código de barras": "7891234567890",
-        "Costo USD": 25.50,
-        "Precio Venta ARS": 65000,
-        "Precio Descuento": 55000,
-        Stock: 10,
-        "Contenido ml": 100,
-        Descripción: "Fragancia floral femenina con notas de jazmín",
-      },
-      {
-        Nombre: "Vaper Frutas 5000 puffs",
-        Marca: "VapeMax",
-        Categoría: "Vaper",
-        Género: "Unisex",
-        SKU: "VAPE-001",
-        "Código de barras": "",
-        "Costo USD": 7.00,
-        "Precio Venta ARS": "",
-        "Precio Descuento": "",
-        Stock: 25,
-        "Contenido ml": "",
-        Descripción: "",
-      },
-    ];
-    const ws = utils.json_to_sheet(sampleData);
-    ws["!cols"] = [
-      { wch: 35 }, { wch: 18 }, { wch: 14 }, { wch: 10 }, { wch: 12 },
-      { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 8 }, { wch: 12 }, { wch: 40 },
-    ];
-    const wb = utils.book_new();
-    utils.book_append_sheet(wb, ws, "Productos");
-    writeFile(wb, "plantilla_productos.xlsx");
-    toast.success("Plantilla descargada");
-  };
+    const sheet = utils.json_to_sheet([{
+      Nombre: "Eau de Parfum Floral 100ml", Marca: "Marca Ejemplo", Categoría: "Perfume",
+      Género: "Femenino", SKU: "EJM-001", "Código de barras": "7891234567890",
+      "Costo USD": 25.5, "Precio Venta ARS": 65000, "Precio Oferta": 55000,
+      Stock: 10, "Contenido ml": 100, Descripción: "Fragancia floral con notas de jazmín",
+    }]);
+    const workbook = utils.book_new();
+    utils.book_append_sheet(workbook, sheet, "Productos");
+    writeFile(workbook, "plantilla_productos_gestiona.xlsx");
+  }
+
+  if (!canImport) return (
+    <div className="space-y-4 py-2">
+      <Alert variant="warning"><ShieldCheck className="h-4 w-4 shrink-0" /><div>
+        <AlertTitle>Importación reservada a owner o admin</AlertTitle>
+        <AlertDescription>El lote puede cambiar costos, precios y stock. Pedile a un administrador que lo revise y apruebe.</AlertDescription>
+      </div></Alert>
+      <Button variant="outline" onClick={onClose}>Cerrar</Button>
+    </div>
+  );
 
   return (
-    <div className="space-y-4 max-h-[85vh] overflow-y-auto">
-      {/* Header */}
+    <div className="max-h-[86vh] space-y-4 overflow-y-auto pr-1">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 flex-1">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <FileSpreadsheet className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h3 className="font-semibold">Importar productos desde Excel</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Subí tu archivo y Gestiona calcula <strong>automáticamente</strong> costos totales, márgenes y ganancias.
-            </p>
-          </div>
-        </div>
-        <Button variant="ghost" size="sm" onClick={onClose} className="shrink-0">
-          <X className="w-4 h-4" />
-        </Button>
+        <div className="flex items-start gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+          <FileSpreadsheet className="h-5 w-5 text-primary" />
+        </div><div><h3 className="font-semibold">Importar catálogo</h3><p className="text-xs text-muted-foreground">Excel o CSV · validación · aprobación · Kardex y reconciliación</p></div></div>
+        <Button variant="ghost" size="sm" onClick={onClose} aria-label="Cerrar"><X className="h-4 w-4" /></Button>
       </div>
 
-      {/* Calculation params (collapsible) */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="w-full px-4 py-2.5 flex items-center gap-2 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-primary" />
-          <span className="text-sm font-medium flex-1">Parámetros de cálculo</span>
-          <span className="text-xs text-muted-foreground hidden sm:inline">
-            USD ${exchangeRate} · {customsPercent}% pasero · {defaultMarginPct}% margen
-          </span>
-          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+      <div className="grid grid-cols-3 gap-2 text-[11px]">
+        {[["1", "Archivo", step !== "upload"], ["2", "Validación", ["staged", "done"].includes(step)], ["3", "Aplicación", step === "done"]].map(([number, label, done]) => (
+          <div key={String(number)} className={`rounded-lg border px-3 py-2 ${done ? "border-emerald-500/30 bg-emerald-500/5" : "border-border"}`}>
+            <b className="mr-1.5">{done ? "✓" : number}.</b>{label}
+          </div>
+        ))}
+      </div>
+
+      {step === "upload" && <div className="space-y-3">
+        <button type="button" onClick={() => fileRef.current?.click()} onDragOver={event => event.preventDefault()}
+          onDrop={event => { event.preventDefault(); const file = event.dataTransfer.files[0]; if (file) void parseFile(file); }}
+          className="w-full rounded-xl border-2 border-dashed border-border p-10 text-center transition hover:border-primary/50 hover:bg-primary/5">
+          {busy ? <Loader2 className="mx-auto mb-3 h-9 w-9 animate-spin text-primary" /> : <Upload className="mx-auto mb-3 h-9 w-9 text-primary/70" />}
+          <p className="text-sm font-medium">Seleccioná o arrastrá tu Excel/CSV</p><p className="mt-1 text-xs text-muted-foreground">Hasta 5.000 productos por lote</p>
         </button>
-        {expanded && (
-          <div className="p-4 space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs">Cotización USD → ARS</Label>
-                <Input
-                  type="number"
-                  value={exchangeRate}
-                  onChange={(e) => setExchangeRate(parseFloat(e.target.value) || 0)}
-                  className="h-8 text-sm mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Pasero / impuestos (%)</Label>
-                <Input
-                  type="number"
-                  value={customsPercent}
-                  onChange={(e) => setCustomsPercent(parseFloat(e.target.value) || 0)}
-                  className="h-8 text-sm mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Margen sugerido (%)</Label>
-                <Input
-                  type="number"
-                  value={defaultMarginPct}
-                  onChange={(e) => setDefaultMarginPct(parseFloat(e.target.value) || 0)}
-                  className="h-8 text-sm mt-1"
-                />
-              </div>
-            </div>
-            <label className="flex items-center gap-2 text-xs">
-              <input
-                type="checkbox"
-                checked={autoFillSalePrice}
-                onChange={(e) => setAutoFillSalePrice(e.target.checked)}
-                className="w-3.5 h-3.5"
-              />
-              <span>
-                <strong>Auto-completar precio de venta</strong> si falta en el Excel (usa margen sugerido sobre costo)
-              </span>
-            </label>
-            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-blue-500/5 border border-blue-500/20">
-              <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                <strong>Cómo calculamos:</strong> Costo total USD = Costo + (Costo × Pasero%). Precio ARS sugerido = Costo total USD × Cotización × (1 + Margen%). Ganancia = Venta ARS − Costo total ARS.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+        <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={event => { const file = event.target.files?.[0]; if (file) void parseFile(file); }} />
+        <div className="flex items-center justify-between gap-3"><p className="text-xs text-muted-foreground">Las columnas desconocidas se ignoran.</p>
+          <Button variant="outline" size="sm" onClick={() => void downloadTemplate()}><Download className="mr-2 h-4 w-4" />Plantilla</Button></div>
+        <Alert variant="info"><ShieldCheck className="h-4 w-4 shrink-0" /><div><AlertTitle>Nada cambia al subir</AlertTitle>
+          <AlertDescription>Primero el servidor detecta altas, actualizaciones, duplicados y errores. El catálogo cambia recién con tu aprobación.</AlertDescription></div></Alert>
+      </div>}
 
-      {/* Upload */}
-      {rows.length === 0 ? (
-        <div
-          onClick={() => fileRef.current?.click()}
-          className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 hover:bg-primary/5 transition cursor-pointer"
-        >
-          {parsing ? (
-            <>
-              <Loader2 className="w-8 h-8 mx-auto mb-3 text-primary animate-spin" />
-              <p className="text-sm font-medium">Procesando archivo...</p>
-            </>
-          ) : (
-            <>
-              <Upload className="w-8 h-8 mx-auto mb-3 text-primary/60" />
-              <p className="text-sm font-medium mb-1">Click para seleccionar un Excel</p>
-              <p className="text-xs text-muted-foreground/60">.xlsx, .xls o .csv</p>
-              <div className="mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    downloadTemplate();
-                  }}
-                >
-                  <Download className="w-3.5 h-3.5 mr-1.5" /> Descargar plantilla
-                </Button>
-              </div>
-            </>
-          )}
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-          />
+      {step === "preview" && <div className="space-y-4">
+        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2"><div className="min-w-0">
+          <p className="truncate text-sm font-medium">{fileName}</p><p className="text-xs text-muted-foreground">{rows.length.toLocaleString("es-AR")} filas</p></div>
+          <Button variant="ghost" size="sm" onClick={reset}><ArrowLeft className="mr-2 h-4 w-4" />Cambiar</Button></div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4"><SummaryCard label="Filas" value={rows.length} />
+          <SummaryCard label="A revisar" value={localStats.issues} tone={localStats.issues ? "text-amber-500" : "text-emerald-500"} />
+          <SummaryCard label="Con stock" value={localStats.withStock} /><SummaryCard label="Venta potencial (mil ARS)" value={Math.round(localStats.revenue / 1000)} /></div>
+        <div className="overflow-hidden rounded-lg border border-border">
+          <button type="button" className="flex w-full items-center gap-2 bg-muted/30 px-4 py-2.5 text-left" onClick={() => setExpanded(value => !value)}>
+            <Info className="h-4 w-4 text-primary" /><span className="flex-1 text-sm font-medium">Reglas de costo y margen</span>
+            <span className="hidden text-xs text-muted-foreground sm:inline">USD {exchangeRate} · aduana {customsPercent}%</span>{expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          {expanded && <div className="grid gap-3 p-4 sm:grid-cols-3">
+            <div><Label className="text-xs">Cotización USD → ARS</Label><Input type="number" min="1" value={exchangeRate} onChange={event => setExchangeRate(Number(event.target.value))} className="mt-1 h-9" /></div>
+            <div><Label className="text-xs">Aduana / pasero (%)</Label><Input type="number" min="0" max="500" value={customsPercent} onChange={event => setCustomsPercent(Number(event.target.value))} className="mt-1 h-9" /></div>
+            <div><Label className="text-xs">Margen sugerido (%)</Label><Input type="number" min="-99" max="5000" value={marginPercent} onChange={event => setMarginPercent(Number(event.target.value))} className="mt-1 h-9" /></div>
+            <label className="flex items-center gap-2 text-xs sm:col-span-3"><Checkbox checked={autoPrice} onCheckedChange={value => setAutoPrice(value === true)} />Sugerir precio cuando hay costo pero falta precio</label>
+          </div>}
         </div>
-      ) : (
-        <>
-          {/* File summary */}
-          <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 border border-border">
-            <div className="flex items-center gap-3 min-w-0">
-              <FileSpreadsheet className="w-5 h-5 text-primary shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{fileName}</p>
-                <p className="text-xs text-muted-foreground">{stats.total} productos · {stats.creates} nuevos · {stats.updates} actualizar</p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setRows([]);
-                setFileName(null);
-                if (fileRef.current) fileRef.current.value = "";
-              }}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className={`cursor-pointer rounded-lg border p-3 ${stockMode === "replace" ? "border-primary bg-primary/5" : "border-border"}`}><input type="radio" name="stock-mode" className="mr-2" checked={stockMode === "replace"} onChange={() => setStockMode("replace")} /><b className="text-sm">Usar stock del archivo</b><p className="ml-5 mt-1 text-xs text-muted-foreground">Ajusta la diferencia y deja asiento en Kardex.</p></label>
+          <label className={`cursor-pointer rounded-lg border p-3 ${stockMode === "ignore" ? "border-primary bg-primary/5" : "border-border"}`}><input type="radio" name="stock-mode" className="mr-2" checked={stockMode === "ignore"} onChange={() => setStockMode("ignore")} /><b className="text-sm">Conservar stock actual</b><p className="ml-5 mt-1 text-xs text-muted-foreground">Importa catálogo y precios sin mover unidades.</p></label>
+        </div>
+        {stockMode === "replace" && locations.length > 0 && <div><Label className="text-xs">Sucursal del stock {needsLocation && "(obligatoria)"}</Label>
+          <select value={locationId} onChange={event => setLocationId(event.target.value)} disabled={locations.length === 1} className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+            <option value="">{locations.length > 1 ? "Elegí una sucursal" : "Stock general"}</option>{locations.map(location => <option key={location.id} value={location.id}>{location.name}</option>)}
+          </select></div>}
+        <div className="overflow-x-auto rounded-lg border border-border"><table className="w-full min-w-[760px] text-xs">
+          <thead className="bg-muted/40 text-muted-foreground"><tr><th className="p-2 text-left">Fila</th><th className="p-2 text-left">Producto</th><th className="p-2 text-left">SKU</th><th className="p-2 text-right">Costo total</th><th className="p-2 text-right">Venta</th><th className="p-2 text-right">Stock</th><th className="p-2 text-left">Vista local</th></tr></thead>
+          <tbody>{rows.slice(0, 100).map((row, index) => { const preview = previews[index]; return <tr key={`${index}-${row.name}`} className="border-t border-border/60">
+            <td className="p-2 text-muted-foreground">{index + 1}</td><td className="max-w-[220px] truncate p-2 font-medium">{row.name || "Sin nombre"}</td><td className="p-2 font-mono">{String(row.sku || "—")}</td>
+            <td className="p-2 text-right">USD {preview.totalCostUSD.toFixed(2)}</td><td className="p-2 text-right">{ars(preview.salePriceARS)}</td><td className="p-2 text-right">{preview.stock ?? "—"}</td>
+            <td className="p-2">{preview.localIssues.length ? <span className="text-amber-500">{preview.localIssues.join(" · ")}</span> : <span className="text-emerald-500">Lista</span>}</td>
+          </tr>; })}</tbody></table>{rows.length > 100 && <p className="border-t border-border p-2 text-center text-xs text-muted-foreground">Mostrando 100; el servidor validará las {rows.length}.</p>}</div>
+        <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={() => void prepare()} disabled={busy || (needsLocation && !locationId)}>
+          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileCheck2 className="mr-2 h-4 w-4" />}Preparar y validar</Button></div>
+      </div>}
 
-          {/* Summary cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div className="bg-card border border-border/60 rounded-lg p-2.5">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Válidos</p>
-              <p className="text-lg font-bold text-green-400">{stats.valid}</p>
-            </div>
-            <div className="bg-card border border-border/60 rounded-lg p-2.5">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Con alertas</p>
-              <p className="text-lg font-bold text-yellow-400">{stats.warnings}</p>
-            </div>
-            <div className="bg-card border border-border/60 rounded-lg p-2.5">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Inv. (USD)</p>
-              <p className="text-sm font-mono font-bold">${Math.round(stats.totalCostUSD).toLocaleString("en")}</p>
-            </div>
-            <div className="bg-card border border-border/60 rounded-lg p-2.5">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Ventas pot.</p>
-              <p className="text-sm font-mono font-bold">${Math.round(stats.totalRevenueARS).toLocaleString("es-AR")}</p>
-            </div>
-          </div>
+      {step === "staged" && stage && <div className="space-y-4">
+        <Alert variant={stage.invalid ? "warning" : "success"}>{stage.invalid ? <AlertCircle className="h-4 w-4 shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />}<div>
+          <AlertTitle>{stage.invalid ? "Hay filas que no se aplicarán" : "Validación completa"}</AlertTitle><AlertDescription>El servidor revisó {stage.total} filas. Todavía no cambió ningún producto ni unidad.</AlertDescription></div></Alert>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5"><SummaryCard label="Total" value={stage.total} /><SummaryCard label="Válidas" value={stage.valid} tone="text-emerald-500" /><SummaryCard label="Nuevas" value={stage.creates} /><SummaryCard label="Actualizan" value={stage.updates} /><SummaryCard label="Inválidas" value={stage.invalid} tone={stage.invalid ? "text-destructive" : "text-emerald-500"} /></div>
+        <div className="max-h-[360px] overflow-auto rounded-lg border border-border"><table className="w-full min-w-[720px] text-xs"><thead className="sticky top-0 bg-muted text-muted-foreground"><tr><th className="p-2 text-left">Fila</th><th className="p-2 text-left">Acción</th><th className="p-2 text-left">Producto</th><th className="p-2 text-left">SKU</th><th className="p-2 text-left">Resultado del servidor</th></tr></thead>
+          <tbody>{stagedRows.slice(0, 200).map(row => { const normalized = jsonObject(row.normalized); return <tr key={row.id} className="border-t border-border/60 align-top"><td className="p-2">{row.row_number}</td>
+            <td className="p-2"><Badge variant={row.action === "invalid" ? "destructive" : row.action === "create" ? "default" : "secondary"}>{row.action === "create" ? "Crear" : row.action === "update" ? "Actualizar" : "Inválida"}</Badge></td>
+            <td className="max-w-[220px] p-2 font-medium">{String(normalized.name || "Sin nombre")}</td><td className="p-2 font-mono">{String(normalized.sku || "—")}</td><td className="p-2">
+              {row.validation_errors.map(message => <p key={message} className="text-destructive">{message}</p>)}{row.validation_warnings.map(message => <p key={message} className="text-amber-500">{message}</p>)}
+              {!row.validation_errors.length && !row.validation_warnings.length && <span className="text-emerald-500">Lista para aplicar</span>}</td></tr>; })}</tbody></table>
+          {stagedRows.length > 200 && <p className="border-t border-border p-2 text-center text-xs text-muted-foreground">Mostrando 200 de {stagedRows.length}; el lote completo quedó validado.</p>}</div>
+        {stage.invalid > 0 && <label className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm"><Checkbox className="mt-0.5" checked={skipInvalid} onCheckedChange={value => setSkipInvalid(value === true)} /><span><b>Omitir {stage.invalid} filas inválidas</b><span className="mt-1 block text-xs text-muted-foreground">Se aplicarán sólo las {stage.valid} válidas y el descarte quedará registrado.</span></span></label>}
+        <div className="flex flex-wrap justify-between gap-2"><Button variant="outline" onClick={reset}><ArrowLeft className="mr-2 h-4 w-4" />Corregir archivo</Button><Button onClick={() => void apply()} disabled={busy || !stage.valid || (stage.invalid > 0 && !skipInvalid)}>
+          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}Aprobar {stage.valid} filas</Button></div>
+      </div>}
 
-          {/* Preview table — scrollable horizontally on mobile */}
-          <div className="border border-border rounded-lg overflow-hidden">
-            <p className="md:hidden text-[10px] text-muted-foreground italic px-3 py-1.5 bg-muted/20 border-b border-border">
-              ← Deslizá horizontalmente para ver todas las columnas
-            </p>
-            <div className="overflow-x-auto max-h-[400px] table-wrap">
-              <table className="w-full text-xs min-w-[700px]">
-                <thead className="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground sticky top-0">
-                  <tr>
-                    <th className="text-left px-2 py-2">Producto</th>
-                    <th className="text-right px-2 py-2">Costo USD</th>
-                    <th className="text-right px-2 py-2">Costo tot.</th>
-                    <th className="text-right px-2 py-2">Venta ARS</th>
-                    <th className="text-right px-2 py-2">Ganancia</th>
-                    <th className="text-right px-2 py-2">Margen</th>
-                    <th className="text-right px-2 py-2">Stock</th>
-                    <th className="text-left px-2 py-2">Acción</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40">
-                  {computedRows.map((r, i) => (
-                    <tr key={i} className={r.warning ? "bg-yellow-500/5" : "hover:bg-muted/20"}>
-                      <td className="px-2 py-1.5">
-                        <div className="font-medium truncate max-w-[200px]" title={r.name}>{r.name || "—"}</div>
-                        <div className="text-[10px] text-muted-foreground">{r.brand} · {r.category}</div>
-                      </td>
-                      <td className="px-2 py-1.5 text-right font-mono">${r.cost_usd.toFixed(2)}</td>
-                      <td className="px-2 py-1.5 text-right font-mono text-muted-foreground">${r.total_cost_usd.toFixed(2)}</td>
-                      <td className="px-2 py-1.5 text-right font-mono">
-                        ${r.sale_price_ars.toLocaleString("es-AR")}
-                      </td>
-                      <td className="px-2 py-1.5 text-right font-mono">
-                        ${Math.round(r.profit_per_unit_ars).toLocaleString("es-AR")}
-                      </td>
-                      <td className="px-2 py-1.5 text-right">
-                        <span className={
-                          r.margin_pct < 0 ? "text-red-400"
-                          : r.margin_pct < 15 ? "text-yellow-400"
-                          : "text-green-400"
-                        }>
-                          {r.margin_pct}%
-                        </span>
-                      </td>
-                      <td className="px-2 py-1.5 text-right">{r.stock}</td>
-                      <td className="px-2 py-1.5">
-                        {r.warning ? (
-                          <Badge variant="outline" className="text-[9px] h-4 px-1 border-yellow-500/30 text-yellow-400" title={r.warning}>
-                            <AlertCircle className="w-2.5 h-2.5 mr-0.5" /> {r.warning}
-                          </Badge>
-                        ) : r.action === "update" ? (
-                          <Badge variant="outline" className="text-[9px] h-4 px-1 border-blue-500/30 text-blue-400">Actualizar</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[9px] h-4 px-1 border-green-500/30 text-green-400">Crear</Badge>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 justify-between sticky bottom-0 bg-background pt-3 border-t border-border/40">
-            <p className="text-xs text-muted-foreground">
-              {stats.warnings > 0 && `${stats.warnings} productos serán omitidos por errores. `}
-              Solo se importarán los <strong className="text-foreground">{stats.valid}</strong> válidos.
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onClose} disabled={importing}>Cancelar</Button>
-              <Button onClick={handleImport} disabled={importing || stats.valid === 0}>
-                {importing ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Importando...</>
-                ) : (
-                  <><CheckCircle2 className="w-4 h-4 mr-2" /> Importar {stats.valid} productos</>
-                )}
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
+      {step === "done" && result && <div className="space-y-5 py-4 text-center"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10"><PackageCheck className="h-9 w-9 text-emerald-500" /></div>
+        <div><h4 className="text-xl font-semibold">Catálogo reconciliado</h4><p className="mt-1 text-sm text-muted-foreground">Cada fila válida terminó exactamente una vez.</p></div>
+        <div className="mx-auto grid max-w-xl grid-cols-2 gap-2 sm:grid-cols-4"><SummaryCard label="Creados" value={result.created || 0} tone="text-emerald-500" /><SummaryCard label="Actualizados" value={result.updated || 0} /><SummaryCard label="Movimientos Kardex" value={result.stock_movements || 0} /><SummaryCard label="Omitidos" value={result.skipped || 0} tone={result.skipped ? "text-amber-500" : "text-foreground"} /></div>
+        <Alert variant="success" className="text-left"><ShieldCheck className="h-4 w-4 shrink-0" /><div><AlertTitle>Aplicación atómica e idempotente</AlertTitle><AlertDescription>Reintentar el mismo lote no duplica productos ni movimientos de stock.</AlertDescription></div></Alert>
+        <div className="flex justify-center gap-2"><Button variant="outline" onClick={reset}><Upload className="mr-2 h-4 w-4" />Importar otro</Button><Button onClick={onClose}>Volver a Productos</Button></div>
+      </div>}
     </div>
   );
 }

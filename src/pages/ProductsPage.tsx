@@ -40,7 +40,6 @@ import IdentityHealthPanel from "@/components/shared/IdentityHealthPanel";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import ProductsExcelImport from "@/components/products/ProductsExcelImport";
-import CSVImportWizard from "@/components/products/CSVImportWizard";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
@@ -295,7 +294,7 @@ export default function ProductsPage() {
   usePageTitle("Productos");
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { activeOrg } = useOrg();
+  const { activeOrg, activeRole } = useOrg();
   const { productLimit, plan } = useEntitlements();
   const [identityParams, setIdentityParams] = useSearchParams();
   // Module-aware permissions: admins can grant/deny per-module via role_permissions
@@ -309,7 +308,6 @@ export default function ProductsPage() {
   const [productTypesOpen, setProductTypesOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [search, setSearch] = usePersistedState(orgViewKey("products.search", activeOrg?.id), '');
   const [filterCat, setFilterCat] = usePersistedState(orgViewKey("products.category-filter", activeOrg?.id), 'all');
   const [filterStock, setFilterStock] = usePersistedState(orgViewKey("products.stock-filter", activeOrg?.id), 'all');
@@ -701,15 +699,10 @@ export default function ProductsPage() {
             <Button variant="outline" size="sm" onClick={() => setBarcodeOpen(true)} title="Imprimir etiquetas con código de barras">
               <Layers className="w-4 h-4 mr-2" />Barcodes
             </Button>
-            {canCreate && (
-              <>
-                <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-                  <Upload className="w-4 h-4 mr-2" />Importar Excel
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setCsvImportOpen(true)} title="Importar productos desde archivo CSV">
-                  <FileSpreadsheet className="w-4 h-4 mr-2" />Importar CSV
-                </Button>
-              </>
+            {(activeRole === 'owner' || activeRole === 'admin') && (
+              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} title="Importar Excel o CSV con validación y reconciliación">
+                <Upload className="w-4 h-4 mr-2" />Importar Excel/CSV
+              </Button>
             )}
             {canEdit && activeOrg?.id && (
               <Button variant="outline" size="sm" onClick={() => setProductTypesOpen(true)} title="Configurar tipos y atributos del catálogo">
@@ -831,19 +824,12 @@ export default function ProductsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Excel import modal */}
+      {/* Importación unificada: el servidor valida antes de tocar catálogo o stock. */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent className="bg-card border-border max-w-5xl">
           <ProductsExcelImport onClose={() => setImportOpen(false)} onImported={reload} />
         </DialogContent>
       </Dialog>
-
-      {/* CSV Import Wizard */}
-      <CSVImportWizard
-        open={csvImportOpen}
-        onClose={() => setCsvImportOpen(false)}
-        onImported={() => { setCsvImportOpen(false); reload(); }}
-      />
 
       {/* Price history modal */}
       <PriceHistoryModal
