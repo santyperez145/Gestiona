@@ -10,6 +10,7 @@ import {
   summarizeMarginCoverage,
   type CanonicalMarginFact,
 } from "@/lib/channelMargins";
+import MarginOperationsTable, { type MarginOperation } from "@/components/analytics/MarginOperationsTable";
 
 type Props = {
   enabled: boolean;
@@ -39,6 +40,9 @@ function ratio(known: number, total: number) {
 export default function ChannelMarginTab({ enabled, from, to }: Props) {
   const { orgId } = useOrganization();
   const [facts, setFacts] = useState<CanonicalMarginFact[]>([]);
+  const [operations, setOperations] = useState<MarginOperation[]>([]);
+  const [viewMode, setViewMode] = useState<"products" | "operations">("products");
+  const [operationsUnavailable, setOperationsUnavailable] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,16 +53,25 @@ export default function ChannelMarginTab({ enabled, from, to }: Props) {
     const load = async () => {
       setLoading(true);
       setError(null);
+      setOperationsUnavailable(false);
 
       let query = supabase
         .from("sale_margin_facts")
-        .select("sale_id,product_id,product_name,channel,quantity,revenue_ars,cogs_ars,payment_fee_ars,shipping_cost_ars,tax_ars,contribution_margin_ars,coverage_pct,is_explainable,missing_components")
+        .select("sale_id,product_id,product_name,channel,quantity,revenue_ars,cogs_ars,payment_fee_ars,shipping_cost_ars,tax_ars,contribution_margin_ars,coverage_pct,is_explainable,missing_components,margin_blockers")
         .eq("org_id", orgId)
         .order("sold_at", { ascending: false });
       if (from) query = query.gte("sold_at", `${from}T00:00:00`);
       if (to) query = query.lte("sold_at", `${to}T23:59:59`);
 
-      const result = await query;
+      let operationsQuery = supabase
+        .from("sale_margin_operations")
+        .select("*")
+        .eq("org_id", orgId)
+        .order("sold_at", { ascending: false });
+      if (from) operationsQuery = operationsQuery.gte("sold_at", `${from}T00:00:00`);
+      if (to) operationsQuery = operationsQuery.lte("sold_at", `${to}T23:59:59`);
+
+      const [result, operationsResult] = await Promise.all([query, operationsQuery]);
       if (cancelled) return;
       if (result.error) {
         const message = isMissingRelation(result.error)
@@ -71,7 +84,22 @@ export default function ChannelMarginTab({ enabled, from, to }: Props) {
         return;
       }
 
+      if (operationsResult.error && !isMissingRelation(operationsResult.error)) {
+        const message = "No se pudo leer la explicación por operación.";
+        console.error("Margen por operación:", operationsResult.error.message);
+        setError(message);
+        toast.error(message);
+        setLoading(false);
+        return;
+      }
+
       setFacts((result.data ?? []) as CanonicalMarginFact[]);
+      if (operationsResult.error) {
+        setOperations([]);
+        setOperationsUnavailable(true);
+      } else {
+        setOperations((operationsResult.data ?? []) as MarginOperation[]);
+      }
       setLoading(false);
     };
 
@@ -140,7 +168,28 @@ export default function ChannelMarginTab({ enabled, from, to }: Props) {
         </>
       )}
 
-      {summaries.length === 0 ? (
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className={`rounded-lg border px-3 py-2 text-xs transition-colors ${viewMode === "products" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
+          onClick={() => setViewMode("products")}
+        >
+          Producto × canal
+        </button>
+        <button
+          type="button"
+          className={`rounded-lg border px-3 py-2 text-xs transition-colors ${viewMode === "operations" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
+          onClick={() => setViewMode("operations")}
+          disabled={operationsUnavailable}
+        >
+          Explicar operaciones
+        </button>
+        {operationsUnavailable && <span className="text-[10px] text-amber-700 dark:text-amber-300">La vista por operación todavía no está disponible en esta base.</span>}
+      </div>
+
+      {viewMode === "operations" ? (
+        <MarginOperationsTable operations={operations} />
+      ) : summaries.length === 0 ? (
         <div className="bg-card border border-border rounded-2xl p-10 text-center text-sm text-muted-foreground">
           No hay ventas en el período seleccionado.
         </div>

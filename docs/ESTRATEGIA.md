@@ -156,6 +156,13 @@ envío e IVA y sólo publica contribución si están los cuatro. La base inicial
 honesta, todavía no ventaja validada. Contrato y consulta reproducible:
 [MARGIN_FACTS.md](MARGIN_FACTS.md).
 
+✅ **Explicación por operación, 2026-08-22:** las 34 líneas reconstruyen 34
+operaciones y ARS 1.143.696 sin duplicación; los seis medios históricos cierran
+contra ingresos. 31 operaciones tienen flag de precio promocional, pero ninguna
+conserva su precio de referencia: aparecen como evidencia parcial. Los pagos
+divididos se desglosan por importe y una devolución bloquea la contribución
+hasta reconciliar el neto. Esto cierra el contrato técnico, no el impacto real.
+
 ✅ **Benchmark económico agregado el 2026-08-21:** la comparación de pricing
 no se usa para decir “somos más baratos”. Se usa para probar que el costo total
 del merchant y la contribución de la plataforma cierran a la vez. Fórmulas,

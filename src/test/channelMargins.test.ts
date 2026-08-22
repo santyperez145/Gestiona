@@ -16,6 +16,7 @@ const fact = (overrides: Partial<CanonicalMarginFact> = {}): CanonicalMarginFact
   coverage_pct: 100,
   is_explainable: true,
   missing_components: [],
+  margin_blockers: [],
   ...overrides,
 });
 
@@ -95,5 +96,19 @@ describe("margen canónico por canal", () => {
       shippingKnownLines: 1,
       taxKnownLines: 1,
     });
+  });
+
+  it("bloquea una devolución aunque estén cubiertas las cuatro fuentes", () => {
+    const [summary] = summarizeChannelMargins([
+      fact({
+        contribution_margin_ars: null,
+        is_explainable: false,
+        margin_blockers: ["devolucion_neta"],
+      }),
+    ]);
+
+    expect(summary.contributionMarginARS).toBeNull();
+    expect(summary.coveragePct).toBe(100);
+    expect(summary.pending).toEqual(["neteo de devolución"]);
   });
 });

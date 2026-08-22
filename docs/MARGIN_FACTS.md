@@ -52,6 +52,25 @@ hecho de origen.
 La UI de Analytics sólo lee `sale_margin_facts`; ya no cruza `sales`,
 liquidaciones de tienda y líneas de MercadoLibre en el navegador.
 
+### Explicación por operación
+
+`sale_margin_operations` agrupa las líneas por ticket u orden y conserva:
+
+- la suma exacta de los cuatro componentes sólo si todas las líneas los tienen;
+- los orígenes usados en cada componente;
+- el mix de cobro persistido, incluidos pagos divididos, y su diferencia contra
+  los ingresos del ticket;
+- descuento global medido, cupones y flags de precio promocional;
+- bloqueos que impiden llamar final al margen, como una devolución todavía no
+  neteada.
+
+El descuento no se vuelve a restar del margen: `sales.total_ars` ya es ingreso
+neto. `measured_discount_ars` sirve para reconstruir la base de comparación,
+no es un quinto costo. Un descuento global guarda importe por línea; un cupón
+histórico sólo conserva el código y un precio promocional no conserva el precio
+de referencia. Esos dos casos aparecen como evidencia parcial en vez de usar el
+precio actual del producto.
+
 ## Línea de base real
 
 Medido en producción el 2026-08-22, después de aplicar
@@ -68,6 +87,10 @@ Medido en producción el 2026-08-22, después de aplicar
 | Comisión conocida | 4/34 |
 | Envío real conocido | 0/34 |
 | IVA conocido | 0/34 |
+| Operaciones reconstruidas | 34; 34 líneas y ARS 1.143.696, sin diferencias |
+| Mixes de cobro que no cierran | 0/34 |
+| Operaciones marcadas con promoción | 31/34 |
+| Promociones con impacto completo | 0/31; falta precio de referencia histórico |
 
 Esto no prueba que el negocio no tenga margen. Prueba que su historial no tiene
 evidencia suficiente para afirmarlo. Antes, 32 líneas `manual` quedaban fuera y
@@ -113,7 +136,8 @@ esa verdad cambia una decisión y mejora un resultado en un comercio externo.
 
 1. Hacer que una venta real nueva cierre los cuatro componentes.
 2. Completar costo de transportista en tienda y fiscalidad de MercadoLibre.
-3. Explicar por SKU, orden, canal, medio de pago y promoción sin doble conteo.
+3. Persistir la base de cupón/precio promocional hacia adelante para medir su
+   impacto sin backfill.
 4. Convertir el hallazgo en una propuesta aprobable y medir el resultado.
 
 No se hace backfill heurístico. Si el dato histórico no existe, queda pendiente;

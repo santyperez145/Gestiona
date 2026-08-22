@@ -16,6 +16,7 @@ export interface CanonicalMarginFact {
   coverage_pct: number | null;
   is_explainable: boolean | null;
   missing_components: string[] | null;
+  margin_blockers: string[] | null;
 }
 
 export interface ChannelMarginSummary {
@@ -52,6 +53,7 @@ const MISSING_LABELS: Record<string, string> = {
   comision_cobro: "comisión de cobro",
   costo_envio_real: "costo real de envío",
   iva: "IVA",
+  devolucion_neta: "neteo de devolución",
 };
 
 const roundMoney = (amount: number) => Math.round((amount + Number.EPSILON) * 100) / 100;
@@ -78,7 +80,10 @@ export function summarizeChannelMargins(facts: CanonicalMarginFact[]): ChannelMa
   return [...groups.values()].map(group => {
     const first = group[0];
     const revenueARS = roundMoney(group.reduce((sum, line) => sum + Number(line.revenue_ars || 0), 0));
-    const pendingCodes = [...new Set(group.flatMap(line => line.missing_components ?? []))];
+    const pendingCodes = [...new Set(group.flatMap(line => [
+      ...(line.missing_components ?? []),
+      ...(line.margin_blockers ?? []),
+    ]))];
 
     return {
       productId: first.product_id || `line:${first.sale_id || "unknown"}`,

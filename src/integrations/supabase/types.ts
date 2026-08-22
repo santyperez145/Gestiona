@@ -380,6 +380,13 @@ export type Database = {
             foreignKeyName: "affiliate_conversions_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "_sale_margin_facts_effective"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "affiliate_conversions_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "_sale_margin_facts_source"
             referencedColumns: ["sale_id"]
           },
@@ -6564,6 +6571,13 @@ export type Database = {
             foreignKeyName: "customer_payments_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "_sale_margin_facts_effective"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "customer_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "_sale_margin_facts_source"
             referencedColumns: ["sale_id"]
           },
@@ -6704,6 +6718,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_referrals_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "_sale_margin_facts_effective"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "customer_referrals_sale_id_fkey"
@@ -7783,6 +7804,13 @@ export type Database = {
             foreignKeyName: "debts_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "_sale_margin_facts_effective"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "debts_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "_sale_margin_facts_source"
             referencedColumns: ["sale_id"]
           },
@@ -8007,6 +8035,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deliveries_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "_sale_margin_facts_effective"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "deliveries_sale_id_fkey"
@@ -12533,6 +12568,13 @@ export type Database = {
             foreignKeyName: "installment_schedule_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "_sale_margin_facts_effective"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "installment_schedule_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "_sale_margin_facts_source"
             referencedColumns: ["sale_id"]
           },
@@ -13594,6 +13636,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "_sale_margin_facts_effective"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "invoices_sale_id_fkey"
@@ -16121,6 +16170,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: true
+            referencedRelation: "_sale_margin_facts_effective"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "meli_order_sale_lines_sale_id_fkey"
@@ -25781,6 +25837,13 @@ export type Database = {
             foreignKeyName: "returns_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "_sale_margin_facts_effective"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "returns_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "_sale_margin_facts_source"
             referencedColumns: ["sale_id"]
           },
@@ -33532,6 +33595,161 @@ export type Database = {
       }
     }
     Views: {
+      _sale_margin_facts_effective: {
+        Row: {
+          channel: string | null
+          cogs_ars: number | null
+          cogs_source: string | null
+          contribution_margin_ars: number | null
+          coverage_pct: number | null
+          gross_margin_ars: number | null
+          is_explainable: boolean | null
+          known_components: number | null
+          margin_blockers: string[] | null
+          missing_components: string[] | null
+          operation_id: string | null
+          operation_key: string | null
+          operation_type: string | null
+          org_id: string | null
+          payment_fee_ars: number | null
+          payment_fee_source: string | null
+          product_id: string | null
+          product_name: string | null
+          quality_status: string | null
+          quantity: number | null
+          recorded_source: string | null
+          returned: boolean | null
+          returned_quantity: number | null
+          revenue_ars: number | null
+          sale_id: string | null
+          shipping_cost_ars: number | null
+          shipping_cost_source: string | null
+          sold_at: string | null
+          tax_ars: number | null
+          tax_source: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_identity_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       _sale_margin_facts_source: {
         Row: {
           channel: string | null
@@ -33683,6 +33901,111 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "store_catalog_products"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      _sale_margin_operations_source: {
+        Row: {
+          channel: string | null
+          cogs_ars: number | null
+          cogs_sources: string[] | null
+          contribution_margin_ars: number | null
+          coupon_codes: string[] | null
+          coverage_pct: number | null
+          has_promotion: boolean | null
+          is_explainable: boolean | null
+          known_components: number | null
+          line_count: number | null
+          margin_blockers: string[] | null
+          measured_discount_ars: number | null
+          missing_components: string[] | null
+          operation_id: string | null
+          operation_key: string | null
+          operation_reference: string | null
+          operation_type: string | null
+          org_id: string | null
+          payment_fee_ars: number | null
+          payment_fee_sources: string[] | null
+          payment_methods: string[] | null
+          payment_mix: Json | null
+          payment_mix_difference_ars: number | null
+          price_discount_lines: number | null
+          promotion_evidence_status: string | null
+          promotion_missing_evidence: string[] | null
+          quality_status: string | null
+          recorded_source: string | null
+          returned_units: number | null
+          revenue_ars: number | null
+          shipping_cost_ars: number | null
+          shipping_sources: string[] | null
+          sold_at: string | null
+          tax_ars: number | null
+          tax_sources: string[] | null
+          units: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
           },
         ]
       }
@@ -37086,6 +37409,7 @@ export type Database = {
           gross_margin_ars: number | null
           is_explainable: boolean | null
           known_components: number | null
+          margin_blockers: string[] | null
           missing_components: string[] | null
           operation_id: string | null
           operation_key: string | null
@@ -37227,6 +37551,111 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "store_catalog_products"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_margin_operations: {
+        Row: {
+          channel: string | null
+          cogs_ars: number | null
+          cogs_sources: string[] | null
+          contribution_margin_ars: number | null
+          coupon_codes: string[] | null
+          coverage_pct: number | null
+          has_promotion: boolean | null
+          is_explainable: boolean | null
+          known_components: number | null
+          line_count: number | null
+          margin_blockers: string[] | null
+          measured_discount_ars: number | null
+          missing_components: string[] | null
+          operation_id: string | null
+          operation_key: string | null
+          operation_reference: string | null
+          operation_type: string | null
+          org_id: string | null
+          payment_fee_ars: number | null
+          payment_fee_sources: string[] | null
+          payment_methods: string[] | null
+          payment_mix: Json | null
+          payment_mix_difference_ars: number | null
+          price_discount_lines: number | null
+          promotion_evidence_status: string | null
+          promotion_missing_evidence: string[] | null
+          quality_status: string | null
+          recorded_source: string | null
+          returned_units: number | null
+          revenue_ars: number | null
+          shipping_cost_ars: number | null
+          shipping_sources: string[] | null
+          sold_at: string | null
+          tax_ars: number | null
+          tax_sources: string[] | null
+          units: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
           },
         ]
       }
