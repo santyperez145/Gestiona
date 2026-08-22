@@ -16,6 +16,29 @@ export interface OnlineUser {
   online_at: string;
 }
 
+/**
+ * Presence puede conservar más de una meta para la misma key durante una
+ * reconexión o cuando el mismo usuario abre varias pestañas. La UI representa
+ * personas, no sockets: conserva una fila por user_id y gana la más reciente.
+ */
+export function dedupeOnlineUsers(
+  presences: Array<Partial<OnlineUser> | null | undefined>,
+): OnlineUser[] {
+  const byUser = new Map<string, OnlineUser>();
+  for (const presence of presences) {
+    if (!presence?.user_id || !presence.name || !presence.online_at) continue;
+    const candidate = presence as OnlineUser;
+    const current = byUser.get(candidate.user_id);
+    const candidateAt = Date.parse(candidate.online_at);
+    const currentAt = current ? Date.parse(current.online_at) : Number.NEGATIVE_INFINITY;
+    if (!current || !Number.isFinite(currentAt)
+      || (Number.isFinite(candidateAt) && candidateAt >= currentAt)) {
+      byUser.set(candidate.user_id, candidate);
+    }
+  }
+  return Array.from(byUser.values());
+}
+
 export function useOrgPresence(orgId: string | undefined) {
   const { user } = useAuth();
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
@@ -35,26 +58,24 @@ export function useOrgPresence(orgId: string | undefined) {
     });
 
     channelRef.current = channel;
+    const currentPresence = () => dedupeOnlineUsers(
+      Object.values(channel.presenceState<OnlineUser>()).flat(),
+    );
 
     channel
       .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState<OnlineUser>();
-        const users = Object.values(state)
-          .flat()
-          .filter((u: any) => !!u.user_id) as unknown as OnlineUser[];
-        setOnlineUsers(users);
+        setOnlineUsers(currentPresence());
       })
       .on("presence", { event: "join" }, ({ newPresences }) => {
-        setOnlineUsers(prev => {
-          const joined = (newPresences as unknown as OnlineUser[]).filter(
-            np => !prev.some(u => u.user_id === np.user_id)
-          );
-          return [...prev, ...joined];
-        });
+        setOnlineUsers(prev => dedupeOnlineUsers([
+          ...prev,
+          ...(newPresences as unknown as OnlineUser[]),
+        ]));
       })
-      .on("presence", { event: "leave" }, ({ leftPresences }) => {
-        const leftIds = new Set((leftPresences as unknown as OnlineUser[]).map(u => u.user_id));
-        setOnlineUsers(prev => prev.filter(u => !leftIds.has(u.user_id)));
+      .on("presence", { event: "leave" }, () => {
+        // El estado del canal sabe si queda otra pestaña/socket para esa key;
+        // remover por user_id desde leftPresences borraba usuarios aún online.
+        setOnlineUsers(currentPresence());
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
@@ -76,7 +97,7 @@ export function useOrgPresence(orgId: string | undefined) {
   }, [orgId, user]);
 
   // Filter out self from display (optional — pass includeSelf: true to show yourself)
-  const others = onlineUsers.filter(u => u.user_id !== user?.id);
+  const others = dedupeOnlineUsers(onlineUsers).filter(u => u.user_id !== user?.id);
 
   return { onlineUsers, others, selfIncluded: onlineUsers };
 }
