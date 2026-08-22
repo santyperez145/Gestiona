@@ -1577,6 +1577,11 @@ export default function POSPage() {
         const itemGlobalDiscount = globalDiscountARS * proportion;
         const itemCouponDiscount = couponDiscount * proportion;
         const adjustedTotal = Math.max(0, lineTotal - itemGlobalDiscount - itemCouponDiscount);
+        // v2/v3 recalcula `total_ars` como precio unitario × cantidad. Mandar
+        // acá el precio anterior al cupón/descuento global hacía que la UI
+        // cobrara un total y la base guardara otro. El override sigue siendo
+        // legítimo para el cajero y queda auditado contra el precio servidor.
+        const finalUnitPrice = item.quantity > 0 ? adjustedTotal / item.quantity : 0;
 
         const costARS = item.costUSD * item.exchangeRate;
         const profitARS = adjustedTotal - costARS * item.quantity;
@@ -1596,7 +1601,7 @@ export default function POSPage() {
           product_id: item.productId,
           product_name: item.name,
           quantity: item.quantity,
-          unit_price_ars: unitPrice,
+          unit_price_ars: finalUnitPrice,
           discount_applied: usesDiscount && !!item.discountPrice,
           total_ars: adjustedTotal,
           cost_per_unit_usd: item.costUSD,

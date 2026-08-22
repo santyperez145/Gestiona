@@ -71,10 +71,31 @@ histórico sólo conserva el código y un precio promocional no conserva el prec
 de referencia. Esos dos casos aparecen como evidencia parcial en vez de usar el
 precio actual del producto.
 
+### Evidencia de cobro del POS hacia adelante
+
+Desde `20260822000006_pos_payment_settlements.sql`, una venta nueva de POS y
+sus partes de cobro se confirman en la misma transacción:
+
+- efectivo y transferencia generan una liquidación aprobada con arancel cero
+  explícito;
+- débito, crédito y billeteras quedan `pending` hasta copiar la liquidación
+  real del adquirente;
+- si un ticket combina efectivo y tarjeta, la parte aprobada no puede esconder
+  la pendiente: todo el componente queda bloqueado como `liquidacion_cobro`;
+- confirmar exige `payments.edit`; la base valida los importes, calcula el
+  neto, registra auditoría y crea el asiento banco + arancel + comisión contra
+  valores a liquidar;
+- el precio final posterior a cupón/descuento global se guarda como ingreso y
+  `precio_autoritativo` conserva la base que antes se descartaba.
+
+No se asigna un arancel a `mayorista`: hoy es una modalidad comercial dentro
+del selector de pagos, no evidencia de cómo entró el dinero. Queda faltante
+hasta modelarlo correctamente.
+
 ## Línea de base real
 
 Medido en producción el 2026-08-22, después de aplicar
-`20260822000004_canonical_margin_facts.sql`:
+`20260822000004`–`20260822000006`:
 
 | Señal | Resultado |
 |---|---:|
@@ -91,6 +112,8 @@ Medido en producción el 2026-08-22, después de aplicar
 | Mixes de cobro que no cierran | 0/34 |
 | Operaciones marcadas con promoción | 31/34 |
 | Promociones con impacto completo | 0/31; falta precio de referencia histórico |
+| Liquidaciones POS históricas | 0; la captura empieza con la próxima venta v3 |
+| Overrides históricos con precio de referencia | 0/34; no se hizo backfill |
 
 Esto no prueba que el negocio no tenga margen. Prueba que su historial no tiene
 evidencia suficiente para afirmarlo. Antes, 32 líneas `manual` quedaban fuera y
@@ -132,9 +155,14 @@ Business Core; conservar la procedencia de costo, cobro, logística e IVA; y
 mostrar cobertura antes de afirmar rentabilidad. Todavía falta demostrar que
 esa verdad cambia una decisión y mejora un resultado en un comercio externo.
 
+La conciliación POS no se presenta como una función que Shopify u Odoo no
+tengan. Refuerza la tesis verificable de Gestiona: el mismo ticket que mueve
+stock conserva precio de referencia, partes del cobro, arancel real, asiento y
+margen; una parte pendiente reduce cobertura en vez de transformarse en cero.
+
 ## Próximo gate
 
-1. Hacer que una venta real nueva cierre los cuatro componentes.
+1. Hacer una venta POS real nueva y conciliar su liquidación desde Finanzas.
 2. Completar costo de transportista en tienda y fiscalidad de MercadoLibre.
 3. Persistir la base de cupón/precio promocional hacia adelante para medir su
    impacto sin backfill.

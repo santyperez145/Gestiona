@@ -144,7 +144,7 @@ comparativas fechadas y con fuente oficial viven en docs/ESTRATEGIA.md.
 |---|---|---|
 | ERP / operación | Productos, inventario, compras, POS, clientes y reportes confiables. | Menor implementación y verdad conectada a Commerce y Finance. |
 | Commerce | Checkout, dominio, SEO, temas, migración, rendimiento y extensibilidad. | Costo y margen del mismo Core que ejecuta la venta. |
-| Margen y rentabilidad | Shopify ya reporta profit por producto/orden/mercado y Odoo margen por línea/pedido; tener un reporte es paridad, no ventaja. | Cuatro fuentes persistidas —costo histórico, cobro, envío real e IVA— por venta/canal/operación, con mix de cobro, promoción y devoluciones explicados sin doble conteo. La autoridad ya existe, pero su impacto todavía debe probarse con una decisión real. |
+| Margen y rentabilidad | Shopify ya reporta profit por producto/orden/mercado y Odoo margen por línea/pedido; tener un reporte es paridad, no ventaja. | Cuatro fuentes persistidas —costo histórico, cobro, envío real e IVA— por venta/canal/operación, con mix, promoción y devoluciones. El POS ahora convierte cada parte del cobro en evidencia conciliable y bloquea el ticket mientras falte el arancel; la autoridad existe, pero su impacto todavía debe probarse con una decisión real. |
 | Marketplace | Sincronización de catálogo, stock, órdenes y postventa. | Sistema neutral que decide canal por margen, capital y disponibilidad. |
 | Spend / Finance | Ingesta, extracción, duplicados, aprobaciones y conciliación. | Finance comparte proveedor, producto, compra, stock y ledger nativos. |
 | IA | Asistencia dentro del flujo real. | Recomendación → aprobación → acción → resultado verificado. |
@@ -173,12 +173,12 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.360 tests pasan al 2026-08-22; typecheck, lint y build verdes; 63 Edge Functions verificadas; 41 E2E críticos (32 públicos, 8 de panel y setup autenticado) pasan contra la base real. |
+| Calidad técnica | 1.371 tests pasan al 2026-08-22; typecheck, lint y build verdes; 63 Edge Functions verificadas; 41 E2E críticos (32 públicos, 8 de panel y setup autenticado) pasan contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
 | Ledger | 10 eventos de ledger de dominio; 0 asientos contables operativos reales. |
-| Margen canónico | `20260822000004/5` conserva 34/34 líneas (antes la UI descartaba 32 `manual`) y reconstruye 34 operaciones / ARS 1.143.696 sin diferencia. Exige costo + cobro + envío real + IVA, registra la fuente, desglosa seis medios y bloquea devoluciones. Base real: 0 líneas completas, 0% de ingresos explicables y 2,9% de cobertura; 31 operaciones con flag promocional tienen evidencia parcial por falta de precio histórico. Es deuda observable, no rentabilidad inventada. |
+| Margen canónico | `20260822000004/5/6` conserva 34/34 líneas y reconstruye 34 operaciones / ARS 1.143.696 sin diferencia. Exige costo + cobro + envío real + IVA, registra fuente, mix y bloqueos. La próxima venta POS crea partes de cobro atómicas: efectivo/transferencia prueban cero; tarjeta espera liquidación real y luego calcula neto + asiento + auditoría. Además persiste ingreso posterior a descuento y precio de referencia. Base histórica: 0 completas, 0% explicable, 2,9% cobertura, 0 liquidaciones POS y 0/34 baselines; no se inventó backfill. |
 | Plataforma | Overview, Integration Registry, Merchant 360, evidencia de integración, cola operativa, reintentos auditados y control de Checkout Brick. |
 | Activación | Primera venta y tiempo a vender medidos por comercio, deduplicando organizaciones multi-tienda. La migración `20260821000059` suma objetivo POS/online y ocho hitos server-side compartidos con Merchant 360. `20260821000061` agrega cohortes por mes y ventanas maduras: 4 organizaciones, 1 activada en su canal objetivo, 3 pendientes, conversión histórica 25%; a 7/14 días 0/4 y a 30 días 0/1. Son datos técnicos, no PMF. Soporte autoservicio/minutos tiene watermark desde 2026-08-22: 0 altas elegibles y 0 minutos, por lo que la UI dice “sin base” en vez de atribuir falsos ceros. |
 | Importación de catálogo | La migración `20260821000060` reemplaza dos importadores client-side por un lote server-side Excel/CSV de hasta 5.000 filas: staging, preview, create/update/conflict, aprobación, aplicación atómica, retry idempotente y reconciliación. Verificación con rol `authenticated`: 1 válida + 1 inválida, bloqueo previo, 1 producto, stock 3, 1 movimiento, retry sin duplicación, anon/escritura directa sin permisos y 0 restos (2026-08-21). |
@@ -430,6 +430,16 @@ separa descuento ya incluido en ingreso de costo y declara evidencia promocional
 parcial cuando falta la base histórica. Una devolución impide publicar margen
 final hasta reconciliar el neto.
 
+**Entregado 2026-08-22, cobro POS conciliable:** `create_sales_transaction_v3`
+confirma venta + partes de pago en un commit. Cero de efectivo/transferencia es
+evidencia; tarjeta queda pendiente y bloquea todo el componente, incluso en un
+split. Finanzas puede cargar arancel + IVA reales con `payments.edit`; el
+servidor calcula neto, audita y asienta. El total posterior a cupón/descuento
+global y la referencia anterior al override también quedan persistidos. Fixture
+real: bruto 2.700, split 1.200/1.500, arancel 100 + IVA 21, asiento 1.500/1.500,
+100% de cobertura, outsider 0 y restos 0. La evidencia comercial sigue
+pendiente porque la producción histórica no tiene ventas v3.
+
 **Salida:** un merchant cambia precio, canal, compra o promoción basándose en
 Gestiona y el resultado posterior queda medido contra una línea de base.
 
@@ -602,7 +612,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 9 | Segundo comercio | F1 | **Gate técnico cerrado; pendiente comercial:** alta Platform ahora es atómica/idempotente, bloquea owners vinculados y envía acceso sin revelar sesión | Primera venta sin cambios manuales de base. |
 | 10 | Onboarding universal, Business Profiler, importación, cohortes y soporte consentido | F1 | **Infraestructura cerrada 2026-08-22:** alta segura, objetivo POS/online, ocho hitos server-side, 7 perfiles declarativos, onboarding atómico, importador reconciliado, cohortes maduras y diagnóstico Support con consentimiento/expiración. Sólo faltan merchants externos | Segundo y tercer merchant reciben acceso, eligen perfil, completan hitos, importan sin SQL y reciben ayuda medible sin impersonación; la cohorte produce conversión/costo sin historia falsa. |
 | 11 | Margin facts canónicos | F2 | **Cerrado 2026-08-22:** 34/34 líneas visibles; cuatro componentes con fuente, asignación exacta, cobertura y RLS; Analytics y Merchant 360 consumen la autoridad | Cobertura y fuentes reconciliadas por operación. Base inicial: 0 completas y 2,9% promedio; no se reconstruyó historia inexistente. |
-| 12 | Margen SKU/orden/canal/pago/promoción | F2 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** producto × canal y operación usan hechos canónicos; split payments, descuento medido, evidencia parcial y devolución se explican. Fixture 2 líneas: ARS 2.700, costo 900, fee 121, mix 1.200/1.500, descuento 300 y margen exacto; cero restos | Una venta real nueva cierra los cuatro componentes y valida la explicación sin doble conteo. |
+| 12 | Margen SKU/orden/canal/pago/promoción | F2 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** producto × canal y operación usan hechos canónicos. Venta v3 conserva total descontado + baseline y crea partes de cobro; split parcial bloquea, conciliación real calcula neto/asiento/auditoría. Fixture: ARS 2.700, mix 1.200/1.500, fee 121, asiento balanceado, cobertura 100%, outsider/restos 0 | Registrar y conciliar una venta POS real nueva; validar que el merchant usa la explicación sin doble conteo. |
 | 13 | Pricing proposal e impact outcome | F2 | Pendiente | Merchant aplica una propuesta y se mide resultado. |
 | 14 | Finance ADR, shell y acceso por producto | F3 | Pendiente; OCR actual no equivale a Finance | ADR de permisos/sesión y superficie navegable. |
 | 15 | Document storage seguro y versiones | F3 | Pendiente | Original privado, hash, cuarentena y auditoría. |
@@ -646,7 +656,10 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     cerrado el 2026-08-22: 34/34 líneas, fuente por componente, asignaciones
     reconciliadas, RLS tenant, agregado sanitizado de plataforma y cero restos;
 14. cerrar costo + cobro + envío + IVA de una operación real nueva y extender
-    la explicación a orden, medio de pago y promoción.
+    la explicación a orden, medio de pago y promoción. **Infraestructura
+    cerrada 2026-08-22:** POS v3 persiste bruto descontado, baseline, efectivo/
+    transferencia exactos y tarjeta pendiente; Finanzas concilia el arancel y
+    genera asiento. Sigue faltando ejecutar una operación comercial real.
 15. ~~explicación técnica por ticket, mix de cobro, promoción y devolución~~ —
     cerrada el 2026-08-22: prorrateo y sumas exactas, split 1.200/1.500,
     descuento 300 medido, cupón sin importe marcado parcial, devolución bloquea
@@ -828,7 +841,7 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-22: 1.360 tests, 63 funciones verificadas
+- Build y suites locales del 2026-08-22: 1.371 tests, 63 funciones verificadas
   y 41 E2E críticos contra la base real.
 - docs/MARGIN_FACTS.md: contrato de cuatro fuentes, seguridad, línea de base y
   comparación oficial con Shopify/Odoo al 2026-08-22.

@@ -163,6 +163,16 @@ conserva su precio de referencia: aparecen como evidencia parcial. Los pagos
 divididos se desglosan por importe y una devolución bloquea la contribución
 hasta reconciliar el neto. Esto cierra el contrato técnico, no el impacto real.
 
+✅ **Cobro POS conciliable, 2026-08-22:** la próxima venta de mostrador crea
+evidencia de cada parte del pago en el mismo commit. Efectivo/transferencia
+prueban costo cero; débito/crédito esperan el arancel real y bloquean el margen
+del ticket completo mientras tanto. La conciliación exige permiso financiero,
+calcula el neto en servidor, audita y asienta banco/arancel/valores. También se
+corrigió que cupón o descuento global podían verse en el POS pero perderse al
+recalcular `total_ars`, y el precio de referencia que el RPC decía auditar ahora
+sí se persiste. Esto mejora la evidencia futura; la base histórica sigue en 0
+operaciones completas y no se reconstruyó.
+
 ✅ **Benchmark económico agregado el 2026-08-21:** la comparación de pricing
 no se usa para decir “somos más baratos”. Se usa para probar que el costo total
 del merchant y la contribución de la plataforma cierran a la vez. Fórmulas,

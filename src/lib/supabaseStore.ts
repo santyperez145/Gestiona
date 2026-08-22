@@ -328,7 +328,8 @@ export async function addSalesDB(sales: any[], source?: string) {
     prepared.push({ sale, attributedExchangeId });
   }
 
-  // C12 — el servidor recalcula el dinero.
+  // C12 / F2 — el servidor recalcula el dinero y conserva la evidencia de
+  // cobro en el mismo commit.
   //
   // Hasta la sesión 116 esta llamada mandaba precio, costo y ganancia desde el
   // navegador y la base los guardaba tal cual. Verificado contra producción:
@@ -349,10 +350,19 @@ export async function addSalesDB(sales: any[], source?: string) {
     p_source: transactionSource,
   };
 
+  // v3 envuelve esa autoridad y agrega `payment_transactions`: efectivo y
+  // transferencia quedan como costo cero probado; tarjeta queda pendiente de
+  // su liquidación real. Si el commit de la migración todavía no llegó a la
+  // base, el fallback conserva el despliegue desacoplado habitual del repo.
   let { data, error } = await supabase.rpc(
-    'create_sales_transaction_v2' as never, args as never) as
+    'create_sales_transaction_v3' as never, args as never) as
     { data: unknown; error: { code?: string; message: string } | null };
 
+  if (error && ['42883', 'PGRST202'].includes(String(error.code))) {
+    console.warn('[POS] create_sales_transaction_v3 no existe todavía; se usa v2');
+    ({ data, error } = await supabase.rpc('create_sales_transaction_v2' as never, args as never) as
+      { data: unknown; error: { code?: string; message: string } | null });
+  }
   if (error && ['42883', 'PGRST202'].includes(String(error.code))) {
     console.warn('[POS] create_sales_transaction_v2 no existe todavía; se usa la anterior');
     ({ data, error } = await supabase.rpc('create_sales_transaction', args) as

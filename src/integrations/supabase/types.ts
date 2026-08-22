@@ -26172,8 +26172,10 @@ export type Database = {
           invoice_id: string | null
           location_id: string | null
           org_id: string
+          override_de_precio: boolean
           paid: boolean
           payment_method: string
+          precio_autoritativo: number | null
           product_id: string | null
           product_name: string
           profit_ars: number
@@ -26214,8 +26216,10 @@ export type Database = {
           invoice_id?: string | null
           location_id?: string | null
           org_id: string
+          override_de_precio?: boolean
           paid?: boolean
           payment_method?: string
+          precio_autoritativo?: number | null
           product_id?: string | null
           product_name: string
           profit_ars?: number
@@ -26256,8 +26260,10 @@ export type Database = {
           invoice_id?: string | null
           location_id?: string | null
           org_id?: string
+          override_de_precio?: boolean
           paid?: boolean
           payment_method?: string
+          precio_autoritativo?: number | null
           product_id?: string | null
           product_name?: string
           profit_ars?: number
@@ -33904,6 +33910,111 @@ export type Database = {
           },
         ]
       }
+      _sale_margin_operations_effective: {
+        Row: {
+          channel: string | null
+          cogs_ars: number | null
+          cogs_sources: string[] | null
+          contribution_margin_ars: number | null
+          coupon_codes: string[] | null
+          coverage_pct: number | null
+          has_promotion: boolean | null
+          is_explainable: boolean | null
+          known_components: number | null
+          line_count: number | null
+          margin_blockers: string[] | null
+          measured_discount_ars: number | null
+          missing_components: string[] | null
+          operation_id: string | null
+          operation_key: string | null
+          operation_reference: string | null
+          operation_type: string | null
+          org_id: string | null
+          payment_fee_ars: number | null
+          payment_fee_sources: string[] | null
+          payment_methods: string[] | null
+          payment_mix: Json | null
+          payment_mix_difference_ars: number | null
+          price_discount_lines: number | null
+          promotion_evidence_status: string | null
+          promotion_missing_evidence: string[] | null
+          quality_status: string | null
+          recorded_source: string | null
+          returned_units: number | null
+          revenue_ars: number | null
+          shipping_cost_ars: number | null
+          shipping_sources: string[] | null
+          sold_at: string | null
+          tax_ars: number | null
+          tax_sources: string[] | null
+          units: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       _sale_margin_operations_source: {
         Row: {
           channel: string | null
@@ -39175,6 +39286,10 @@ export type Database = {
         Args: { p_snapshot_date?: string }
         Returns: number
       }
+      capture_pos_payment_transactions: {
+        Args: { p_org_id: string; p_transaction_id: string }
+        Returns: Json
+      }
       cerrar_conteo: { Args: { p_count_id: string }; Returns: Json }
       check_overdue_debts: { Args: never; Returns: undefined }
       check_rotting_deals: { Args: { p_org_id: string }; Returns: number }
@@ -39259,6 +39374,17 @@ export type Database = {
         Args: { p_id: string }
         Returns: boolean
       }
+      confirm_pos_payment_settlement: {
+        Args: {
+          p_payment_transaction_id: string
+          p_provider: string
+          p_provider_fee: number
+          p_provider_fee_iva?: number
+          p_provider_reference?: string
+          p_released_at?: string
+        }
+        Returns: Json
+      }
       convert_store_cart: {
         Args: { p_slug: string; p_token: string }
         Returns: undefined
@@ -39268,6 +39394,10 @@ export type Database = {
         Returns: Json
       }
       create_sales_transaction_v2: {
+        Args: { p_org_id: string; p_sales: Json; p_source?: string }
+        Returns: Json
+      }
+      create_sales_transaction_v3: {
         Args: { p_org_id: string; p_sales: Json; p_source?: string }
         Returns: Json
       }
@@ -39919,6 +40049,10 @@ export type Database = {
         }
         Returns: string
       }
+      ledger_asentar_liquidacion_pos: {
+        Args: { p_payment_transaction_id: string }
+        Returns: string
+      }
       ledger_asentar_orden_pagada: { Args: { p_evento: Json }; Returns: string }
       ledger_asentar_venta_pos: { Args: { p_evento: Json }; Returns: string }
       ledger_contraasentar: {
@@ -40193,6 +40327,14 @@ export type Database = {
         Returns: boolean
       }
       platform_role: { Args: { _user_id?: string }; Returns: string }
+      pos_payment_method_codes: {
+        Args: { p_sale_method: string }
+        Returns: {
+          method: string
+          provider: string
+          requires_settlement: boolean
+        }[]
+      }
       precio_pos_autoritativo: {
         Args: {
           p_org: string

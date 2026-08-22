@@ -1,16 +1,24 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrg } from '@/lib/orgContext';
-import { CreditCard, ChevronDown, ChevronRight, Info, Route, Loader2 } from 'lucide-react';
+import { CreditCard, ChevronDown, ChevronRight, Info, Route, Loader2, BadgeCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { PROVIDER_LABEL, METHOD_LABEL, round2 } from '@/lib/paymentFees';
+import { previewPosSettlement } from '@/lib/posPaymentSettlement';
+import { useHasPermission } from '@/lib/usePermissions';
+import { toast } from 'sonner';
 
 /**
  * Lo que la tienda realmente recibe por cada cobro digital.
@@ -78,6 +86,7 @@ const TRACE_STAGE: Record<string, string> = {
 
 export default function PaymentSettlementsPanel() {
   const { activeOrg } = useOrg();
+  const canReconcile = useHasPermission('payments', 'edit');
   const orgId = activeOrg?.id ?? '';
   const [txs, setTxs] = useState<PaymentTx[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,6 +97,13 @@ export default function PaymentSettlementsPanel() {
   const [traceRows, setTraceRows] = useState<PaymentTraceRow[]>([]);
   const [traceLoading, setTraceLoading] = useState(false);
   const [traceError, setTraceError] = useState<string | null>(null);
+  const [settlementOpen, setSettlementOpen] = useState(false);
+  const [settlementTx, setSettlementTx] = useState<PaymentTx | null>(null);
+  const [settlementProvider, setSettlementProvider] = useState('mercadopago');
+  const [providerFee, setProviderFee] = useState('');
+  const [providerFeeIva, setProviderFeeIva] = useState('');
+  const [providerReference, setProviderReference] = useState('');
+  const [settling, setSettling] = useState(false);
 
   const load = useCallback(async () => {
     if (!orgId) return;
@@ -154,6 +170,46 @@ export default function PaymentSettlementsPanel() {
       pendingCount: txs.filter(t => t.status === 'pending').length,
     };
   }, [txs]);
+
+  const settlementPreview = useMemo(() => previewPosSettlement(
+    Number(settlementTx?.gross_amount ?? 0),
+    providerFee === '' ? 0 : Number(providerFee),
+    providerFeeIva === '' ? 0 : Number(providerFeeIva),
+    Number(settlementTx?.platform_fee ?? 0),
+  ), [providerFee, providerFeeIva, settlementTx]);
+
+  const openSettlement = useCallback((tx: PaymentTx) => {
+    setSettlementTx(tx);
+    setSettlementProvider(tx.provider === 'otro' ? 'mercadopago' : tx.provider);
+    setProviderFee('');
+    setProviderFeeIva('');
+    setProviderReference('');
+    setSettlementOpen(true);
+  }, []);
+
+  const confirmSettlement = useCallback(async () => {
+    if (!settlementTx || settlementPreview.error) return;
+    setSettling(true);
+    const { error } = await supabase.rpc('confirm_pos_payment_settlement' as never, {
+      p_payment_transaction_id: settlementTx.id,
+      p_provider: settlementProvider,
+      p_provider_fee: settlementPreview.providerFee,
+      p_provider_fee_iva: settlementPreview.providerFeeIva,
+      p_provider_reference: providerReference.trim() || null,
+      p_released_at: new Date().toISOString(),
+    } as never);
+    setSettling(false);
+
+    if (error) {
+      console.error('confirm_pos_payment_settlement:', error);
+      toast.error(error.message || 'No se pudo conciliar el cobro');
+      return;
+    }
+
+    toast.success('Liquidación conciliada y asentada');
+    setSettlementOpen(false);
+    await load();
+  }, [load, providerReference, settlementPreview, settlementProvider, settlementTx]);
 
   // Sin cobros digitales todavía: no vale la pena ocupar espacio en la página
   if (loading) return null;
@@ -252,12 +308,14 @@ export default function PaymentSettlementsPanel() {
                       </td>
                       <td className="py-1.5 pr-2 text-right font-mono">{fmt(Number(t.gross_amount))}</td>
                       <td className="py-1.5 pr-2 text-right font-mono text-muted-foreground">
-                        {fmt(Number(t.provider_fee) + Number(t.provider_fee_iva))}
+                        {t.status === 'pending' ? 'Pendiente' : fmt(Number(t.provider_fee) + Number(t.provider_fee_iva))}
                       </td>
                       <td className="py-1.5 pr-2 text-right font-mono text-muted-foreground">
                         {Number(t.platform_fee) > 0 ? fmt(Number(t.platform_fee)) : '—'}
                       </td>
-                      <td className="py-1.5 pr-2 text-right font-mono font-medium">{fmt(Number(t.net_amount))}</td>
+                      <td className="py-1.5 pr-2 text-right font-mono font-medium">
+                        {t.status === 'pending' ? '—' : fmt(Number(t.net_amount))}
+                      </td>
                       <td className="py-1.5 text-right">
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
                         {t.status === 'pending' && t.expected_release_at && (
@@ -267,6 +325,18 @@ export default function PaymentSettlementsPanel() {
                         )}
                       </td>
                       <td className="py-1.5 pl-2 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                        {t.status === 'pending' && t.source === 'pos' && canReconcile && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-[10px]"
+                            onClick={() => openSettlement(t)}
+                          >
+                            <BadgeCheck className="mr-1 h-3.5 w-3.5" /> Conciliar
+                          </Button>
+                        )}
                         {t.correlation_id && (
                         <button
                           type="button"
@@ -278,6 +348,7 @@ export default function PaymentSettlementsPanel() {
                           <Route className="h-3.5 w-3.5" />
                         </button>
                         )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -339,6 +410,111 @@ export default function PaymentSettlementsPanel() {
             ))}
           </ol>
         )}
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={settlementOpen} onOpenChange={(open) => !settling && setSettlementOpen(open)}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Conciliar cobro del POS</DialogTitle>
+          <DialogDescription>
+            Copiá los importes de la liquidación del adquirente. La base calcula el neto,
+            completa el margen y genera el asiento; el bruto no se puede modificar.
+          </DialogDescription>
+        </DialogHeader>
+
+        {settlementTx && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2 rounded-md border border-border/50 bg-muted/20 p-3 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Cobrado bruto</p>
+                <p className="font-mono font-semibold">{fmt(Number(settlementTx.gross_amount))}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Comisión Gestiona aprobada</p>
+                <p className="font-mono">{fmt(Number(settlementTx.platform_fee))}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="settlement-provider">Proveedor que liquidó</Label>
+              <Select value={settlementProvider} onValueChange={setSettlementProvider}>
+                <SelectTrigger id="settlement-provider"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mercadopago">MercadoPago</SelectItem>
+                  <SelectItem value="modo">MODO</SelectItem>
+                  <SelectItem value="stripe">Stripe</SelectItem>
+                  <SelectItem value="otro">Otro adquirente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="settlement-fee">Arancel sin IVA</Label>
+                <Input
+                  id="settlement-fee"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={providerFee}
+                  onChange={(event) => setProviderFee(event.target.value)}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="settlement-fee-iva">IVA del arancel</Label>
+                <Input
+                  id="settlement-fee-iva"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={providerFeeIva}
+                  onChange={(event) => setProviderFeeIva(event.target.value)}
+                  placeholder="0,00"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="settlement-reference">Referencia del proveedor (opcional)</Label>
+              <Input
+                id="settlement-reference"
+                value={providerReference}
+                onChange={(event) => setProviderReference(event.target.value)}
+                maxLength={250}
+                placeholder="ID de liquidación o cupón"
+              />
+            </div>
+
+            <div className={`rounded-md border px-3 py-2 ${
+              settlementPreview.error
+                ? 'border-destructive/30 bg-destructive/10 text-destructive'
+                : 'border-emerald-500/30 bg-emerald-500/10'
+            }`}>
+              {settlementPreview.error ? (
+                <p className="text-sm">{settlementPreview.error}</p>
+              ) : (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-muted-foreground">Neto que entra al banco</span>
+                  <span className="font-mono font-semibold text-emerald-400">{fmt(settlementPreview.net)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setSettlementOpen(false)} disabled={settling}>
+            Cancelar
+          </Button>
+          <Button onClick={() => void confirmSettlement()} disabled={settling || !!settlementPreview.error}>
+            {settling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Confirmar y asentar
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
     </>
