@@ -62,8 +62,12 @@ La confirmación humana:
 - no toca `purchases`, `supplier_debts`, `products.stock`, `stock_movements` ni
   `journal_entries`.
 
-El siguiente slice debe hacer matching determinístico y, más adelante, crear
-borradores separados. La revisión no se convertirá en una compra directa.
+El matching determinístico quedó entregado el 2026-08-22: propone aliases o
+identidades exactas, conserva empates y aprende sólo después de confirmación
+humana. Contrato y verificación:
+[FINANCE_DOCUMENT_MATCHING.md](FINANCE_DOCUMENT_MATCHING.md). El siguiente
+slice crea borradores separados; la revisión ni el matching se convierten en
+una compra directa.
 
 ## Gate de privacidad y proveedor
 

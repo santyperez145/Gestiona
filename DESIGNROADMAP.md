@@ -206,6 +206,8 @@ perder contexto ni encontrar un patrón visual nuevo.
 - [x] Document Inbox con cola, inspector, confianza, versión y siguiente acción;
 - [x] Revisión estructurada por cabecera/importes/líneas, errores matemáticos y
   confirmación explícita de cero efectos operativos;
+- [x] Matching con proveedor/producto canónicos, método visible, empates sin
+  autoselección y confirmación que aprende aliases por tenant;
 - payables/aprobaciones con segregación visible entre solicitante, manager,
   contador y pago;
 - presupuesto, política, centro de costo/proyecto y fuera de política visibles
@@ -282,7 +284,7 @@ declara validado porque “se ve mejor”.
 | 11 | Compras, recepción y Kardex | Pendiente | Autoridad de stock visible. |
 | 12 | Reportes orientados a decisión | Pendiente | Menos filtros duplicados; acción clara. |
 | 13 | Settings e Integraciones | Pendiente | Secretos, permisos y estados consistentes. |
-| 14 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza y revisión estructurada visibles; falta proveedor aprobado y validación responsive con documentos reales. |
+| 14 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión estructurada y matching exacto/ambiguo visibles; falta proveedor OCR aprobado, drafts y validación responsive con documentos reales. |
 | 15 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
 | 16 | Storefront home/PLP/PDP | Pendiente | Marca, performance y mobile aprobados. |
 | 17 | Carrito/checkout/pago | Pendiente | Compra completa 360 px/red lenta. |

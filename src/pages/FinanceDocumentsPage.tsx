@@ -8,6 +8,7 @@ import {
   FilePlus2,
   FileSearch2,
   FileText,
+  Link2,
   Loader2,
   LockKeyhole,
   PencilLine,
@@ -32,21 +33,26 @@ import {
   createFinanceDocumentSignedUrl,
   createFinanceDocumentUpload,
   createFinanceDocumentVersion,
+  confirmFinanceDocumentMatching,
   extractFinanceDocument,
   financeDocumentStatusLabel,
   financeDocumentTypeLabel,
   getFinanceDocuments,
+  getFinanceMatchingOptions,
   inspectFinanceDocument,
   markFinanceDocumentUploadFailed,
   reviewFinanceDocumentExtraction,
+  runFinanceDocumentMatching,
   sha256File,
   uploadFinanceDocument,
   validateFinanceDocumentFile,
   type FinanceDocument,
   type FinanceDocumentExtraction,
   type FinanceDocumentExtractionPayload,
+  type FinanceDocumentMatching,
   type FinanceDocumentStatus,
   type FinanceDocumentType,
+  type FinanceMatchingOptions,
   type FinanceUploadIntent,
 } from '@/lib/financeDocumentUpload';
 
@@ -69,6 +75,12 @@ export default function FinanceDocumentsPage() {
   const [reviewPayload, setReviewPayload] = useState<FinanceDocumentExtractionPayload | null>(null);
   const [reviewNote, setReviewNote] = useState('');
   const [reviewing, setReviewing] = useState(false);
+  const [matchingExtractionId, setMatchingExtractionId] = useState<string | null>(null);
+  const [matchTarget, setMatchTarget] = useState<FinanceDocumentMatching | null>(null);
+  const [matchSupplierId, setMatchSupplierId] = useState('');
+  const [matchProductIds, setMatchProductIds] = useState<Record<number, string>>({});
+  const [matchOptions, setMatchOptions] = useState<FinanceMatchingOptions>({ suppliers: [], products: [] });
+  const [confirmingMatch, setConfirmingMatch] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -232,6 +244,52 @@ export default function FinanceDocumentsPage() {
     }
   };
 
+  const openMatching = async (extraction: FinanceDocumentExtraction) => {
+    if (!activeOrg?.id) return;
+    setMatchingExtractionId(extraction.id);
+    setError(null);
+    setNotice(null);
+    try {
+      const [matching, options] = await Promise.all([
+        extraction.matching?.status === 'proposed'
+          ? Promise.resolve(extraction.matching)
+          : runFinanceDocumentMatching(extraction.id),
+        getFinanceMatchingOptions(activeOrg.id),
+      ]);
+      setMatchTarget(matching);
+      setMatchOptions(options);
+      setMatchSupplierId(matching.supplier.selectedSupplierId || '');
+      setMatchProductIds(Object.fromEntries(matching.lines.map(line => [line.lineNumber, line.selectedProductId || ''])));
+    } catch (cause) {
+      setError(errorMessage(cause, 'No se pudo ejecutar el matching.'));
+    } finally {
+      setMatchingExtractionId(null);
+    }
+  };
+
+  const submitMatching = async () => {
+    if (!matchTarget || !matchSupplierId) return;
+    setConfirmingMatch(true);
+    setError(null);
+    try {
+      await confirmFinanceDocumentMatching(
+        matchTarget.runId,
+        matchSupplierId,
+        matchTarget.lines.map(line => ({
+          line_number: line.lineNumber,
+          product_id: matchProductIds[line.lineNumber] || null,
+        })),
+      );
+      setNotice('Matching confirmado. Los aliases aprendidos se usarán en la próxima factura; todavía no se creó compra, deuda, stock ni asiento.');
+      setMatchTarget(null);
+      await loadDocuments();
+    } catch (cause) {
+      setError(errorMessage(cause, 'No se pudo confirmar el matching.'));
+    } finally {
+      setConfirmingMatch(false);
+    }
+  };
+
   const pending = documents.filter(document => document.status === 'awaiting_inspection' || document.status === 'pending_upload').length;
   const approved = documents.filter(document => document.status === 'approved').length;
 
@@ -310,7 +368,7 @@ export default function FinanceDocumentsPage() {
           <div><h2 className="text-sm font-semibold">Bandeja de documentos</h2><p className="mt-1 text-xs text-muted-foreground">Los originales se abren con una URL firmada de corta duración.</p></div>
           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{documents.length} registrados</span>
         </div>
-        {loading ? <div className="flex items-center justify-center py-14 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Leyendo documentos...</div> : documents.length === 0 ? <EmptyState /> : <div className="divide-y divide-border/60">{documents.map(document => <DocumentRow key={document.id} document={document} openingPath={openingPath} inspectingVersionId={inspectingVersionId} extractingVersionId={extractingVersionId} onOpen={openDocument} onInspect={inspectDocument} onExtract={extractDocument} onReview={openReview} onNewVersion={id => { clearFile(); setNewVersionFor(id); }} />)}</div>}
+        {loading ? <div className="flex items-center justify-center py-14 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Leyendo documentos...</div> : documents.length === 0 ? <EmptyState /> : <div className="divide-y divide-border/60">{documents.map(document => <DocumentRow key={document.id} document={document} openingPath={openingPath} inspectingVersionId={inspectingVersionId} extractingVersionId={extractingVersionId} matchingExtractionId={matchingExtractionId} onOpen={openDocument} onInspect={inspectDocument} onExtract={extractDocument} onReview={openReview} onMatch={openMatching} onNewVersion={id => { clearFile(); setNewVersionFor(id); }} />)}</div>}
       </section>
 
       <div className="grid gap-3 text-xs text-muted-foreground sm:grid-cols-3">
@@ -329,17 +387,29 @@ export default function FinanceDocumentsPage() {
         onClose={() => { if (!reviewing) { setReviewTarget(null); setReviewPayload(null); } }}
         onSubmit={() => void submitReview()}
       />
+      <MatchingReviewDialog
+        matching={matchTarget}
+        supplierId={matchSupplierId}
+        productIds={matchProductIds}
+        options={matchOptions}
+        saving={confirmingMatch}
+        onSupplierChange={setMatchSupplierId}
+        onProductChange={(lineNumber, productId) => setMatchProductIds(current => ({ ...current, [lineNumber]: productId }))}
+        onClose={() => { if (!confirmingMatch) setMatchTarget(null); }}
+        onSubmit={() => void submitMatching()}
+      />
     </div>
   );
 }
 
-function DocumentRow({ document, openingPath, inspectingVersionId, extractingVersionId, onOpen, onInspect, onExtract, onReview, onNewVersion }: { document: FinanceDocument; openingPath: string | null; inspectingVersionId: string | null; extractingVersionId: string | null; onOpen: (path: string) => void; onInspect: (documentId: string, versionId: string) => void; onExtract: (documentId: string, versionId: string) => void; onReview: (extraction: FinanceDocumentExtraction) => void; onNewVersion: (id: string) => void }) {
+function DocumentRow({ document, openingPath, inspectingVersionId, extractingVersionId, matchingExtractionId, onOpen, onInspect, onExtract, onReview, onMatch, onNewVersion }: { document: FinanceDocument; openingPath: string | null; inspectingVersionId: string | null; extractingVersionId: string | null; matchingExtractionId: string | null; onOpen: (path: string) => void; onInspect: (documentId: string, versionId: string) => void; onExtract: (documentId: string, versionId: string) => void; onReview: (extraction: FinanceDocumentExtraction) => void; onMatch: (extraction: FinanceDocumentExtraction) => void; onNewVersion: (id: string) => void }) {
   const latest = document.versions[0];
   const extraction = latest?.extraction;
   const canVersion = document.status !== 'approved';
   const canInspect = latest?.uploadStatus === 'uploaded' && ['pending', 'scanner_unavailable'].includes(latest.inspectionStatus);
   const canExtract = latest?.inspectionStatus === 'ready_for_extraction' && (!extraction || extraction.status === 'failed');
   const canReview = extraction?.payload && ['needs_review', 'ready_for_review'].includes(extraction.status);
+  const canMatch = extraction?.payload && extraction.status === 'reviewed' && (!extraction.matching || extraction.matching.status === 'proposed');
   return (
     <article className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex min-w-0 items-start gap-3">
@@ -357,6 +427,7 @@ function DocumentRow({ document, openingPath, inspectingVersionId, extractingVer
         {latest && canInspect && <Button size="xs" disabled={inspectingVersionId === latest.id} onClick={() => onInspect(document.id, latest.id)}>{inspectingVersionId === latest.id ? <Loader2 className="animate-spin" /> : <FileSearch2 />} {inspectingVersionId === latest.id ? 'Inspeccionando...' : 'Inspeccionar'}</Button>}
         {latest && canExtract && <Button size="xs" disabled={extractingVersionId === latest.id} onClick={() => onExtract(document.id, latest.id)}>{extractingVersionId === latest.id ? <Loader2 className="animate-spin" /> : <Sparkles />} {extractingVersionId === latest.id ? 'Extrayendo...' : extraction?.status === 'failed' ? 'Reintentar extracción' : 'Extraer datos'}</Button>}
         {extraction && canReview && <Button variant="outline" size="xs" onClick={() => onReview(extraction)}><PencilLine /> Revisar datos</Button>}
+        {extraction && canMatch && <Button size="xs" disabled={matchingExtractionId === extraction.id} onClick={() => onMatch(extraction)}>{matchingExtractionId === extraction.id ? <Loader2 className="animate-spin" /> : <Link2 />} {matchingExtractionId === extraction.id ? 'Buscando...' : extraction.matching ? 'Confirmar matching' : 'Buscar coincidencias'}</Button>}
         {canVersion && <Button variant="ghost" size="xs" onClick={() => onNewVersion(document.id)}><FilePlus2 /> Nueva versión</Button>}
       </div>
     </article>
@@ -372,6 +443,8 @@ function ExtractionSummary({ extraction }: { extraction: FinanceDocumentExtracti
       {confidence !== null && <span className="tabular-nums">Confianza {confidence}%</span>}
       {payload && <span>{payload.supplier_name || 'Proveedor no detectado'} · {payload.items.length} líneas · {formatMoney(payload.total, payload.currency)}</span>}
       {extraction.validationErrors.length > 0 && <span className="text-amber-700 dark:text-amber-300">{extraction.validationErrors.length} observaciones</span>}
+      {extraction.matching?.status === 'proposed' && <Badge variant="warning">Matching pendiente</Badge>}
+      {extraction.matching?.status === 'confirmed' && <Badge variant="success"><Link2 className="h-3 w-3" /> Matching confirmado</Badge>}
       {extraction.failureReason && <span className="text-destructive">{extraction.failureReason}</span>}
     </div>
   );
@@ -461,6 +534,104 @@ function ExtractionReviewDialog({ extraction, payload, note, saving, onPayloadCh
       </DialogContent>
     </Dialog>
   );
+}
+
+function MatchingReviewDialog({ matching, supplierId, productIds, options, saving, onSupplierChange, onProductChange, onClose, onSubmit }: { matching: FinanceDocumentMatching | null; supplierId: string; productIds: Record<number, string>; options: FinanceMatchingOptions; saving: boolean; onSupplierChange: (supplierId: string) => void; onProductChange: (lineNumber: number, productId: string) => void; onClose: () => void; onSubmit: () => void }) {
+  if (!matching) return null;
+  const products = [...options.products].sort((a, b) => {
+    const aPreferred = supplierId && a.supplierId === supplierId ? 0 : 1;
+    const bPreferred = supplierId && b.supplierId === supplierId ? 0 : 1;
+    return aPreferred - bPreferred || a.name.localeCompare(b.name, 'es');
+  });
+  const matchedLines = matching.lines.filter(line => productIds[line.lineNumber]).length;
+  return (
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Confirmar proveedor y productos</DialogTitle>
+          <p className="text-xs leading-relaxed text-muted-foreground">Las propuestas usan sólo aliases o identidades exactas. Confirmar aprende el vocabulario de este proveedor para la próxima factura; no crea compras, deuda, stock ni asientos.</p>
+        </DialogHeader>
+
+        <section className="grid gap-3 rounded-[10px] border border-teal-500/20 bg-teal-500/[0.04] p-4 sm:grid-cols-[minmax(0,1fr)_minmax(220px,1fr)]">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.11em] text-muted-foreground">Detectado en el documento</p>
+            <p className="mt-1 text-sm font-semibold">{matching.supplier.extractedName || 'Proveedor sin nombre'}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{matching.supplier.extractedTaxId || 'CUIT no detectado'} · {supplierMatchLabel(matching.supplier.matchMethod, matching.supplier.candidateCount)}</p>
+          </div>
+          <ReviewField label="Proveedor canónico">
+            <Select value={supplierId || '__none'} onValueChange={value => onSupplierChange(value === '__none' ? '' : value)}>
+              <SelectTrigger><SelectValue placeholder="Elegí un proveedor" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">Sin seleccionar</SelectItem>
+                {options.suppliers.map(supplier => <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </ReviewField>
+        </section>
+
+        {options.suppliers.length === 0 && (
+          <div className="rounded-[9px] border border-amber-500/25 bg-amber-500/[0.05] p-3 text-xs text-amber-700 dark:text-amber-300">No hay proveedores activos. Crealo en Proveedores antes de confirmar esta factura.</div>
+        )}
+
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div><p className="text-sm font-semibold">Líneas del documento</p><p className="mt-0.5 text-[11px] text-muted-foreground">Un empate nunca se elige solo. Podés dejar una línea sin producto y resolverla después.</p></div>
+            <Badge variant={matchedLines === matching.lines.length ? 'success' : 'warning'}>{matchedLines}/{matching.lines.length} vinculadas</Badge>
+          </div>
+          {matching.lines.map(line => (
+            <div key={line.lineNumber} className="grid gap-3 rounded-[9px] border border-border/70 bg-muted/[0.08] p-3 sm:grid-cols-[minmax(0,1fr)_minmax(260px,1.2fr)] sm:items-end">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-muted text-[10px] font-semibold tabular-nums">{line.lineNumber}</span>
+                  <p className="truncate text-sm font-medium">{line.description}</p>
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">SKU {line.sku || 'no detectado'} · {productMatchLabel(line.matchMethod, line.candidateCount)}</p>
+              </div>
+              <ReviewField label="Producto canónico">
+                <Select value={productIds[line.lineNumber] || '__unmatched'} onValueChange={value => onProductChange(line.lineNumber, value === '__unmatched' ? '' : value)}>
+                  <SelectTrigger><SelectValue placeholder="Elegí un producto" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__unmatched">Dejar sin vincular</SelectItem>
+                    {products.map(product => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.brand ? `${product.brand} · ` : ''}{product.name}{product.sku ? ` · ${product.sku}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </ReviewField>
+            </div>
+          ))}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button onClick={onSubmit} disabled={saving || !supplierId || options.suppliers.length === 0}>{saving ? <Loader2 className="animate-spin" /> : <Link2 />}{saving ? 'Confirmando...' : 'Confirmar y aprender aliases'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function supplierMatchLabel(method: FinanceDocumentMatching['supplier']['matchMethod'], candidateCount: number) {
+  return {
+    tax_alias: 'CUIT aprendido en una confirmación anterior',
+    name_alias: 'nombre aprendido en una confirmación anterior',
+    exact_name: 'nombre exacto del proveedor',
+    none: 'sin coincidencia automática',
+    ambiguous: `${candidateCount} proveedores posibles`,
+  }[method];
+}
+
+function productMatchLabel(method: FinanceDocumentMatching['lines'][number]['matchMethod'], candidateCount: number) {
+  return {
+    supplier_sku_alias: 'SKU aprendido para este proveedor',
+    exact_sku: 'SKU exacto del catálogo',
+    description_alias: 'descripción aprendida para este proveedor',
+    exact_name: 'nombre exacto del catálogo',
+    none: 'sin coincidencia automática',
+    ambiguous: `${candidateCount} productos posibles; requiere elección`,
+  }[method];
 }
 
 function ReviewField({ label, children }: { label: string; children: React.ReactNode }) {

@@ -96,7 +96,7 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | Cron jobs | **20** | ✅ 9.859 corridas exitosas y **0 fallidas** en 7 días |
 | Edge Functions | **65** | ✅ `npm run check:functions`, 2026-08-22 |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **1.453** | ✅ `npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-22 |
+| Tests unitarios | **1.461** | ✅ `npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-22 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -134,7 +134,7 @@ antes de conectarse— pero el invariante documentado quedó desactualizado.
 | Suscripciones cobradas | **0** | ✅ 3 registros, las 3 en `past_due` |
 
 ⚠️ **Este es el dato que ordena todo el documento.** Tenemos una plataforma de
-285 tablas y 1.453 tests sirviendo a **un solo comercio real**. Tiendanube tiene
+285 tablas y 1.461 tests sirviendo a **un solo comercio real**. Tiendanube tiene
 ❓ más de 130.000 tiendas activas (fuente secundaria: blog de un competidor,
 [tiendli.com](https://tiendli.com/blog/tiendanube-vs-empretienda-vs-shopify-vs-tiendli/),
 2026 — **verificar antes de citarlo**). Shopify tiene ✅ 2.898.351 tiendas vivas
@@ -280,9 +280,16 @@ persona confirma una revisión append-only; no se crean compras, deudas, stock o
 asientos. El flag y el modelo siguen ausentes hasta aprobar privacidad y medir
 exactitud/costo con documentos autorizados.
 
+✅ **Cuarto límite técnico cerrado:** el matching sólo usa aliases confirmados o
+identidades exactas. Una primera factura puede exigir selección manual; la
+siguiente reutiliza CUIT/SKU por proveedor. Los empates quedan ambiguos, la UI
+muestra método y candidatos, y confirmar no crea efectos operativos. Fixture
+tenant-safe con retry: outsider/compras/deuda/stock/ledger/restos 0.
+
 ⚠️ **No es todavía un producto validado:** producción tiene 4 organizaciones con
-Finance disponible, 0 solicitudes y 0 habilitaciones. Faltan scanner y extractor
-aprobados, benchmark real, matching, aprobación y borradores del Core.
+Finance disponible, 0 solicitudes, 0 habilitaciones, 0 match runs y 0 aliases.
+Faltan scanner y extractor aprobados, benchmark real, borradores del Core y su
+aprobación.
 
 ### 3.7 Finance regional — el control empieza antes del OCR
 
@@ -370,13 +377,13 @@ necesita un SaaS de 4 organizaciones. No es el cuello de botella.
 | **Observabilidad** | 🟡 Sentry en front, Merchant 360 y traza correlacionada del pago desde checkout hasta ledger, visible con RLS y sin PII. Faltan métricas/SLO, OpenTelemetry, alertas y health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ Deno para 65 Edge Functions + lint + typecheck + build, 1.453 tests, audit y 42 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
+| **CI** | ✅ Deno para 65 Edge Functions + lint + typecheck + build, 1.461 tests, audit y 42 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
 | **API pública / webhooks salientes** | 🔴 No hay | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
 | **SOC 2 / ISO 27001** | 🔴 | Requisito para vender a empresas | 🟢 Bajo hoy |
 
-✅ **El agujero de Edge Functions quedó cerrado el 2026-08-21.** Los 1.453 tests
+✅ **El agujero de Edge Functions quedó cerrado el 2026-08-21.** Los 1.461 tests
 corren en un job separado y `security` mantiene `npm audit` bloqueante para
 vulnerabilidades críticas. El job `build` instala Deno y ejecuta
 `npm run check:functions`: descubre los 65 `index.ts` del filesystem, por lo que
@@ -543,7 +550,7 @@ versión y auditoría antes de conectarse a IA o a un efecto financiero.
 ## 8. El resumen en cinco líneas
 
 1. ✅ **Técnicamente estamos mejor de lo que corresponde a nuestro tamaño**: RLS
-   real, ledger, outbox, idempotencia, 1.453 tests y typecheck de 65 funciones.
+   real, ledger, outbox, idempotencia, 1.461 tests y typecheck de 65 funciones.
 2. ✅ **Comercialmente no existimos todavía**: 1 comercio, 0 facturas, 0
    asientos, 0 suscripciones cobradas.
 3. ⚠️ **Perdimos el diferencial del POS** — Tiendanube ya lo tiene.

@@ -11295,6 +11295,374 @@ export type Database = {
           },
         ]
       }
+      finance_document_line_matches: {
+        Row: {
+          candidate_count: number
+          confirmation_method: string | null
+          confirmed_product_id: string | null
+          extracted_description: string
+          extracted_sku: string | null
+          id: string
+          line_number: number
+          match_run_id: string
+          org_id: string
+          proposed_method: string
+          proposed_product_id: string | null
+        }
+        Insert: {
+          candidate_count?: number
+          confirmation_method?: string | null
+          confirmed_product_id?: string | null
+          extracted_description: string
+          extracted_sku?: string | null
+          id?: string
+          line_number: number
+          match_run_id: string
+          org_id: string
+          proposed_method: string
+          proposed_product_id?: string | null
+        }
+        Update: {
+          candidate_count?: number
+          confirmation_method?: string | null
+          confirmed_product_id?: string | null
+          extracted_description?: string
+          extracted_sku?: string | null
+          id?: string
+          line_number?: number
+          match_run_id?: string
+          org_id?: string
+          proposed_method?: string
+          proposed_product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_document_line_matches_confirmed_product_org_fk"
+            columns: ["confirmed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_confirmed_product_org_fk"
+            columns: ["confirmed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_confirmed_product_org_fk"
+            columns: ["confirmed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "product_identity_review"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_confirmed_product_org_fk"
+            columns: ["confirmed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_confirmed_product_org_fk"
+            columns: ["confirmed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_confirmed_product_org_fk"
+            columns: ["confirmed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_confirmed_product_org_fk"
+            columns: ["confirmed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_confirmed_product_org_fk"
+            columns: ["confirmed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_proposed_product_org_fk"
+            columns: ["proposed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_proposed_product_org_fk"
+            columns: ["proposed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_proposed_product_org_fk"
+            columns: ["proposed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "product_identity_review"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_proposed_product_org_fk"
+            columns: ["proposed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_proposed_product_org_fk"
+            columns: ["proposed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_proposed_product_org_fk"
+            columns: ["proposed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_proposed_product_org_fk"
+            columns: ["proposed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_proposed_product_org_fk"
+            columns: ["proposed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_run_org_fk"
+            columns: ["match_run_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "finance_document_match_runs"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      finance_document_match_runs: {
+        Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
+          confirmed_supplier_id: string | null
+          created_at: string
+          created_by: string
+          extraction_id: string
+          id: string
+          org_id: string
+          proposed_supplier_id: string | null
+          revision_id: string
+          revision_number: number
+          status: string
+          supplier_candidate_count: number
+          supplier_match_method: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          confirmed_supplier_id?: string | null
+          created_at?: string
+          created_by: string
+          extraction_id: string
+          id?: string
+          org_id: string
+          proposed_supplier_id?: string | null
+          revision_id: string
+          revision_number: number
+          status?: string
+          supplier_candidate_count?: number
+          supplier_match_method: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          confirmed_supplier_id?: string | null
+          created_at?: string
+          created_by?: string
+          extraction_id?: string
+          id?: string
+          org_id?: string
+          proposed_supplier_id?: string | null
+          revision_id?: string
+          revision_number?: number
+          status?: string
+          supplier_candidate_count?: number
+          supplier_match_method?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_document_match_runs_confirmed_supplier_org_fk"
+            columns: ["confirmed_supplier_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_match_runs_extraction_org_fk"
+            columns: ["extraction_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "finance_document_extractions"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_match_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_match_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_document_match_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_match_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_match_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_match_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_match_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_match_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_match_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_match_runs_proposed_supplier_org_fk"
+            columns: ["proposed_supplier_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_match_runs_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "finance_document_extraction_revisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_document_versions: {
         Row: {
           actual_mime_type: string | null
@@ -11557,6 +11925,299 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      finance_product_aliases: {
+        Row: {
+          alias_type: string
+          confirmation_count: number
+          confirmed_by: string
+          first_confirmed_at: string
+          id: string
+          last_confirmed_at: string
+          normalized_alias: string
+          org_id: string
+          product_id: string
+          source_extraction_id: string
+          supplier_id: string
+        }
+        Insert: {
+          alias_type: string
+          confirmation_count?: number
+          confirmed_by: string
+          first_confirmed_at?: string
+          id?: string
+          last_confirmed_at?: string
+          normalized_alias: string
+          org_id: string
+          product_id: string
+          source_extraction_id: string
+          supplier_id: string
+        }
+        Update: {
+          alias_type?: string
+          confirmation_count?: number
+          confirmed_by?: string
+          first_confirmed_at?: string
+          id?: string
+          last_confirmed_at?: string
+          normalized_alias?: string
+          org_id?: string
+          product_id?: string
+          source_extraction_id?: string
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_product_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "product_identity_review"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_source_extraction_id_fkey"
+            columns: ["source_extraction_id"]
+            isOneToOne: false
+            referencedRelation: "finance_document_extractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_supplier_org_fk"
+            columns: ["supplier_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      finance_supplier_aliases: {
+        Row: {
+          alias_type: string
+          confirmation_count: number
+          confirmed_by: string
+          first_confirmed_at: string
+          id: string
+          last_confirmed_at: string
+          normalized_alias: string
+          org_id: string
+          source_extraction_id: string
+          supplier_id: string
+        }
+        Insert: {
+          alias_type: string
+          confirmation_count?: number
+          confirmed_by: string
+          first_confirmed_at?: string
+          id?: string
+          last_confirmed_at?: string
+          normalized_alias: string
+          org_id: string
+          source_extraction_id: string
+          supplier_id: string
+        }
+        Update: {
+          alias_type?: string
+          confirmation_count?: number
+          confirmed_by?: string
+          first_confirmed_at?: string
+          id?: string
+          last_confirmed_at?: string
+          normalized_alias?: string
+          org_id?: string
+          source_extraction_id?: string
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_supplier_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_aliases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_aliases_source_extraction_id_fkey"
+            columns: ["source_extraction_id"]
+            isOneToOne: false
+            referencedRelation: "finance_document_extractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_aliases_supplier_org_fk"
+            columns: ["supplier_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id", "org_id"]
           },
         ]
       }
@@ -40727,6 +41388,10 @@ export type Database = {
           version_id: string
         }[]
       }
+      finance_document_confirm_matching: {
+        Args: { p_lines: Json; p_match_run_id: string; p_supplier_id: string }
+        Returns: Json
+      }
       finance_document_create_upload: {
         Args: {
           p_document_type: string
@@ -40770,10 +41435,18 @@ export type Database = {
           version_id: string
         }[]
       }
+      finance_document_get_matching: {
+        Args: { p_extraction_id: string }
+        Returns: Json
+      }
       finance_document_json_number: { Args: { p_value: Json }; Returns: number }
       finance_document_mark_upload_failed: {
         Args: { p_document_id: string; p_reason: string; p_version_id: string }
         Returns: undefined
+      }
+      finance_document_run_matching: {
+        Args: { p_extraction_id: string }
+        Returns: Json
       }
       finance_document_storage_read_allowed: {
         Args: { p_path: string }

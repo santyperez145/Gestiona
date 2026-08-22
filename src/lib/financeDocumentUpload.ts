@@ -29,6 +29,9 @@ export type FinanceDocumentExtractionStatus =
   | 'ready_for_review'
   | 'reviewed'
   | 'failed';
+export type FinanceDocumentMatchingStatus = 'proposed' | 'confirmed' | 'superseded';
+export type FinanceSupplierMatchMethod = 'tax_alias' | 'name_alias' | 'exact_name' | 'none' | 'ambiguous';
+export type FinanceProductMatchMethod = 'supplier_sku_alias' | 'exact_sku' | 'description_alias' | 'exact_name' | 'none' | 'ambiguous';
 
 export interface FinanceDocumentExtractionItem {
   description: string;
@@ -64,7 +67,60 @@ export interface FinanceDocumentExtraction {
   revisionNumber: number | null;
   revisionSource: 'model' | 'human' | null;
   payload: FinanceDocumentExtractionPayload | null;
+  matching: FinanceDocumentMatching | null;
   updatedAt: string;
+}
+
+export interface FinanceDocumentMatchingSupplier {
+  extractedName: string | null;
+  extractedTaxId: string | null;
+  proposedSupplierId: string | null;
+  confirmedSupplierId: string | null;
+  selectedSupplierId: string | null;
+  selectedSupplierName: string | null;
+  matchMethod: FinanceSupplierMatchMethod;
+  candidateCount: number;
+}
+
+export interface FinanceDocumentLineMatching {
+  lineNumber: number;
+  description: string;
+  sku: string | null;
+  proposedProductId: string | null;
+  confirmedProductId: string | null;
+  selectedProductId: string | null;
+  selectedProductName: string | null;
+  selectedProductSku: string | null;
+  matchMethod: FinanceProductMatchMethod;
+  candidateCount: number;
+  confirmationMethod: 'accepted' | 'manual' | 'unmatched' | null;
+}
+
+export interface FinanceDocumentMatching {
+  runId: string;
+  extractionId: string;
+  revisionNumber: number;
+  status: FinanceDocumentMatchingStatus;
+  supplier: FinanceDocumentMatchingSupplier;
+  lines: FinanceDocumentLineMatching[];
+}
+
+export interface FinanceMatchingSupplierOption {
+  id: string;
+  name: string;
+}
+
+export interface FinanceMatchingProductOption {
+  id: string;
+  name: string;
+  brand: string;
+  sku: string | null;
+  supplierId: string | null;
+}
+
+export interface FinanceMatchingOptions {
+  suppliers: FinanceMatchingSupplierOption[];
+  products: FinanceMatchingProductOption[];
 }
 
 export interface FinanceDocumentVersion {
@@ -211,12 +267,14 @@ export async function getFinanceDocuments(orgId: string): Promise<FinanceDocumen
         revisionNumber: null,
         revisionSource: null,
         payload: null,
+        matching: null,
         updatedAt: String(row.updated_at),
       });
     }
 
     const extractionIds = [...latestByVersion.values()].map(extraction => extraction.id);
     if (extractionIds.length) {
+      const extractionById = new Map([...latestByVersion.values()].map(extraction => [extraction.id, extraction]));
       const { data: revisionRows, error: revisionError } = await supabase
         .from('finance_document_extraction_revisions')
         .select('extraction_id, revision_number, source, payload')
@@ -228,11 +286,76 @@ export async function getFinanceDocuments(orgId: string): Promise<FinanceDocumen
         const extractionId = String(row.extraction_id);
         if (seen.has(extractionId)) continue;
         seen.add(extractionId);
-        const extraction = [...latestByVersion.values()].find(candidate => candidate.id === extractionId);
+        const extraction = extractionById.get(extractionId);
         if (!extraction) continue;
         extraction.revisionNumber = Number(row.revision_number);
         extraction.revisionSource = row.source as 'model' | 'human';
         extraction.payload = row.payload as unknown as FinanceDocumentExtractionPayload;
+      }
+
+      const { data: runRows, error: runError } = await supabase
+        .from('finance_document_match_runs')
+        .select('id, extraction_id, revision_number, status, proposed_supplier_id, supplier_match_method, supplier_candidate_count, confirmed_supplier_id, created_at')
+        .in('extraction_id', extractionIds)
+        .order('created_at', { ascending: false });
+      if (runError && !isMissingFinanceMatchingRelation(runError)) throw runError;
+
+      const latestRunByExtraction = new Map<string, Record<string, unknown>>();
+      for (const row of (runRows || []) as unknown as Array<Record<string, unknown>>) {
+        const extractionId = String(row.extraction_id);
+        if (!latestRunByExtraction.has(extractionId)) latestRunByExtraction.set(extractionId, row);
+      }
+      const runIds = [...latestRunByExtraction.values()].map(row => String(row.id));
+      if (runIds.length) {
+        const { data: lineRows, error: lineError } = await supabase
+          .from('finance_document_line_matches')
+          .select('match_run_id, line_number, extracted_sku, extracted_description, proposed_product_id, proposed_method, candidate_count, confirmed_product_id, confirmation_method')
+          .in('match_run_id', runIds)
+          .order('line_number');
+        if (lineError && !isMissingFinanceMatchingRelation(lineError)) throw lineError;
+        const linesByRun = new Map<string, Array<Record<string, unknown>>>();
+        for (const row of (lineRows || []) as unknown as Array<Record<string, unknown>>) {
+          const runId = String(row.match_run_id);
+          const lines = linesByRun.get(runId) || [];
+          lines.push(row);
+          linesByRun.set(runId, lines);
+        }
+
+        for (const [extractionId, run] of latestRunByExtraction) {
+          const extraction = extractionById.get(extractionId);
+          if (!extraction) continue;
+          const payload = extraction.payload;
+          const runId = String(run.id);
+          extraction.matching = {
+            runId,
+            extractionId,
+            revisionNumber: Number(run.revision_number),
+            status: run.status as FinanceDocumentMatchingStatus,
+            supplier: {
+              extractedName: payload?.supplier_name || null,
+              extractedTaxId: payload?.supplier_tax_id || null,
+              proposedSupplierId: (run.proposed_supplier_id as string | null) || null,
+              confirmedSupplierId: (run.confirmed_supplier_id as string | null) || null,
+              selectedSupplierId: ((run.confirmed_supplier_id || run.proposed_supplier_id) as string | null) || null,
+              selectedSupplierName: null,
+              matchMethod: run.supplier_match_method as FinanceSupplierMatchMethod,
+              candidateCount: Number(run.supplier_candidate_count || 0),
+            },
+            lines: (linesByRun.get(runId) || []).map(line => ({
+              lineNumber: Number(line.line_number),
+              description: String(line.extracted_description),
+              sku: (line.extracted_sku as string | null) || null,
+              proposedProductId: (line.proposed_product_id as string | null) || null,
+              confirmedProductId: (line.confirmed_product_id as string | null) || null,
+              selectedProductId: ((line.confirmed_product_id || line.proposed_product_id) as string | null) || null,
+              selectedProductName: null,
+              selectedProductSku: null,
+              matchMethod: line.proposed_method as FinanceProductMatchMethod,
+              candidateCount: Number(line.candidate_count || 0),
+              confirmationMethod: (line.confirmation_method as FinanceDocumentLineMatching['confirmationMethod']) || null,
+            })),
+          };
+        }
       }
     }
 
@@ -363,6 +486,51 @@ export async function reviewFinanceDocumentExtraction(
   if (error) throw error;
 }
 
+export async function runFinanceDocumentMatching(extractionId: string): Promise<FinanceDocumentMatching> {
+  const { data, error } = await supabase.rpc('finance_document_run_matching', {
+    p_extraction_id: extractionId,
+  });
+  if (error) throw error;
+  const matching = parseFinanceDocumentMatching(data);
+  if (!matching) throw new Error('La base no devolvió una propuesta de matching.');
+  return matching;
+}
+
+export async function confirmFinanceDocumentMatching(
+  matchRunId: string,
+  supplierId: string,
+  lines: Array<{ line_number: number; product_id: string | null }>,
+): Promise<FinanceDocumentMatching> {
+  const { data, error } = await supabase.rpc('finance_document_confirm_matching', {
+    p_match_run_id: matchRunId,
+    p_supplier_id: supplierId,
+    p_lines: lines as unknown as Json,
+  });
+  if (error) throw error;
+  const matching = parseFinanceDocumentMatching(data);
+  if (!matching) throw new Error('La base no devolvió el matching confirmado.');
+  return matching;
+}
+
+export async function getFinanceMatchingOptions(orgId: string): Promise<FinanceMatchingOptions> {
+  const [supplierResult, productResult] = await Promise.all([
+    supabase.from('suppliers').select('id, name').eq('org_id', orgId).eq('active', true).order('name'),
+    supabase.from('products').select('id, name, brand, sku, supplier_id').eq('org_id', orgId).eq('is_active', true).order('name'),
+  ]);
+  if (supplierResult.error) throw supplierResult.error;
+  if (productResult.error) throw productResult.error;
+  return {
+    suppliers: (supplierResult.data || []).map(row => ({ id: row.id, name: row.name })),
+    products: (productResult.data || []).map(row => ({
+      id: row.id,
+      name: row.name,
+      brand: row.brand,
+      sku: row.sku,
+      supplierId: row.supplier_id,
+    })),
+  };
+}
+
 export async function createFinanceDocumentSignedUrl(storagePath: string): Promise<string> {
   const { data, error } = await supabase.storage
     .from(FINANCE_DOCUMENT_BUCKET)
@@ -396,4 +564,56 @@ function isMissingFinanceExtractionRelation(error: { code?: string; message?: st
   return ['42P01', 'PGRST205'].includes(error.code || '')
     || /finance_document_extractions|finance_document_extraction_revisions/i.test(error.message || '')
       && /does not exist|schema cache/i.test(error.message || '');
+}
+
+function isMissingFinanceMatchingRelation(error: { code?: string; message?: string }): boolean {
+  return ['42P01', '42883', 'PGRST202', 'PGRST205'].includes(error.code || '')
+    || /finance_document_(get_matching|match_runs|line_matches)/i.test(error.message || '')
+      && /does not exist|schema cache|could not find/i.test(error.message || '');
+}
+
+function parseFinanceDocumentMatching(value: Json | null): FinanceDocumentMatching | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const raw = value as Record<string, Json | undefined>;
+  const supplierRaw = raw.supplier;
+  if (!raw.run_id || !raw.extraction_id || !supplierRaw || typeof supplierRaw !== 'object' || Array.isArray(supplierRaw)) return null;
+  const supplier = supplierRaw as Record<string, Json | undefined>;
+  const lines = Array.isArray(raw.lines) ? raw.lines : [];
+  return {
+    runId: String(raw.run_id),
+    extractionId: String(raw.extraction_id),
+    revisionNumber: Number(raw.revision_number),
+    status: String(raw.status) as FinanceDocumentMatchingStatus,
+    supplier: {
+      extractedName: nullableString(supplier.extracted_name),
+      extractedTaxId: nullableString(supplier.extracted_tax_id),
+      proposedSupplierId: nullableString(supplier.proposed_supplier_id),
+      confirmedSupplierId: nullableString(supplier.confirmed_supplier_id),
+      selectedSupplierId: nullableString(supplier.selected_supplier_id),
+      selectedSupplierName: nullableString(supplier.selected_supplier_name),
+      matchMethod: String(supplier.match_method) as FinanceSupplierMatchMethod,
+      candidateCount: Number(supplier.candidate_count || 0),
+    },
+    lines: lines.flatMap(line => {
+      if (!line || typeof line !== 'object' || Array.isArray(line)) return [];
+      const item = line as Record<string, Json | undefined>;
+      return [{
+        lineNumber: Number(item.line_number),
+        description: String(item.description || ''),
+        sku: nullableString(item.sku),
+        proposedProductId: nullableString(item.proposed_product_id),
+        confirmedProductId: nullableString(item.confirmed_product_id),
+        selectedProductId: nullableString(item.selected_product_id),
+        selectedProductName: nullableString(item.selected_product_name),
+        selectedProductSku: nullableString(item.selected_product_sku),
+        matchMethod: String(item.match_method) as FinanceProductMatchMethod,
+        candidateCount: Number(item.candidate_count || 0),
+        confirmationMethod: nullableString(item.confirmation_method) as FinanceDocumentLineMatching['confirmationMethod'],
+      }];
+    }),
+  };
+}
+
+function nullableString(value: Json | undefined): string | null {
+  return typeof value === 'string' && value ? value : null;
 }

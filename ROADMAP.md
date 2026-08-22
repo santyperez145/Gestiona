@@ -186,7 +186,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.453 tests en 129 archivos pasan al 2026-08-22; typecheck, lint y build verdes; 65 Edge Functions verificadas; 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) pasan contra la base real. |
+| Calidad técnica | 1.461 tests en 130 archivos pasan al 2026-08-22; typecheck, lint y build verdes; 65 Edge Functions verificadas; 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) pasan contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -201,6 +201,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Alta de comercios | `20260822000003` reemplaza escrituras parciales por un RPC superadmin: identidad técnica sin workspace prematuro; 1 org/owner/trial/settings/auditoría; retry conserva `org_id`; key con datos distintos, owner existente y outsider bloqueados; organización previa idéntica y 0 restos. El acceso se envía por email sin exponer enlace. Base real: 4 organizaciones; el segundo merchant aún no existe. |
 | Finance surface | `20260822000008` agrega `/finance`, `FinanceLayout`, entitlement separado de `finance.view`, solicitud tenant, decisión Platform auditada y snapshot agregado de proveedores/órdenes/obligaciones/ledger existentes. Fixture real: owner solicita pero no autoaprueba; staff finance habilita/deshabilita; permiso, outsider y anon bloqueados; 3 eventos append-only y restos 0. Base: Business habilitado 4/4; Finance disponible 4/4, 0 solicitudes y 0 habilitaciones. |
 | Finance Document Inbox | El original ya entra a bucket privado, queda inmutable/versionado y la Edge `inspect-finance-document` recalcula SHA-256, tamaño y magic bytes, bloquea capacidades activas de PDF, detecta duplicados por tenant y sólo `service_role` cierra un lease auditable. La migración `20260822000010` está aplicada: `authenticated` puede iniciar pero no completar, `service_role` sí, y quedaron 0 leases. El scanner privado no está configurado, por lo que ningún archivo puede llegar todavía a `ready_for_extraction`; esto es bloqueo seguro, no éxito simulado. |
+| Finance matching | `20260822000012` propone proveedor/productos desde la última revisión humana con aliases o identidad exacta, guarda `none/ambiguous`, confirma por RPC y aprende vocabulario por tenant sin reasignarlo. Fixture de dos facturas: `exact_name` manual → `tax_alias` + `supplier_sku_alias`, homónimos 2 candidatos, outsider/retry/cero efectos/restos verificados. Producción: 0 runs, 0 aliases y 0 adopción. |
 | Finance precursor | El OCR anterior prellena una orden de compra y producción mostró un esquema distinto al archivo histórico (`extracted`, sin `document_type`). Sigue fuera del producto Finance: no cumple todavía extracción versionada, confidence, matching, aprobación ni payable draft. |
 | Storefront | Funcional, pero aún comparte aplicación/ciclo de despliegue con el panel; falta aislamiento, dominios y carrito persistente completo. |
 | Recuperación | Backups programados y restore drill de datos aprobado el 2026-08-21: snapshot v3, 147 tablas / 63 filas, 937,22 ms y cero restos. Falta reconstrucción completa para RTO/RPO contractual. |
@@ -512,13 +513,19 @@ protegido/creado verificable y tiempo entre hallazgo y acción.
   error; desde 0,85 sin errores queda lista para revisión.
 - ~~Detección de duplicados.~~ **Cerrada técnicamente:** compara hash real sólo
   dentro del tenant y deriva `duplicate` antes de OCR.
-- Matching determinístico de proveedor y producto.
-- Supplier product aliases aprendidos mediante confirmación.
+- ~~Matching determinístico de proveedor y producto.~~ **Entregado 2026-08-22:**
+  sólo propone CUIT/nombre, SKU y descripción por alias confirmado o identidad
+  exacta; 0 candidatos queda `none` y más de uno `ambiguous`, sin fuzzy match
+  convertido en autoridad.
+- ~~Supplier product aliases aprendidos mediante confirmación.~~ **Entregado
+  2026-08-22:** proveedor y líneas se confirman por RPC tenant-safe; el
+  vocabulario externo se aprende sin reasignaciones silenciosas y la factura
+  siguiente reutiliza CUIT/SKU.
 - Purchase Draft, Supplier Invoice Draft y Payable Draft.
 - ~~Revisión humana versionada y audit log.~~ **Cerrada técnicamente:** el
   editor crea una revisión append-only con actor/nota/evento y declara cero
   efectos sobre compra, deuda, stock o ledger. La aprobación de borradores del
-  Core sigue pendiente junto con matching.
+  Core sigue pendiente; matching ya quedó cerrado como etapa separada.
 - AI Gateway mínimo para costo, versión, trazas y apagado.
 
 **No incluye:** pagos autónomos, contabilidad completa, conciliación masiva ni
@@ -532,8 +539,8 @@ disponibles, con 0 solicitudes/habilitaciones: existe el producto técnico, no s
 adopción. Odoo/QuickBooks confirman que OCR, review y matching son paridad;
 Mendel/Clara/Rindegastos muestran que el producto regional maduro también
 controla política, presupuesto, rol y excepción. F3 no se ensancha: el
-siguiente gate sigue siendo matching y borradores conectados al Core; ese
-control preventivo queda ordenado en F5.
+siguiente gate es crear Purchase/Supplier Invoice/Payable Draft separados y
+conectados al Core; el control preventivo queda ordenado en F5.
 
 **Salida:** un conjunto de facturas reales completa ingreso → extracción →
 validación → matching → aprobación → compra/deuda sin SQL, duplicación ni
@@ -701,7 +708,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 14 | Finance ADR, shell y acceso por producto | F3 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** `/finance`, chrome propio, sesión/org compartidas, entitlement ≠ permiso ≠ flag, solicitud y aprobación auditada. Snapshot prueba que no duplica el Core. Fixture owner/platform/outsider/anon y restos 0; producción 0/4 habilitadas | Un comercio solicita/recibe acceso y navega Finance con su rol real; medir solicitud → habilitación. |
 | 15 | Document storage seguro, versiones e inspección | F3 | **Gate técnico cerrado 2026-08-22; scanner externo bloqueado** | Original privado, intención server-side, hash recalculado, magic bytes/tamaño, leases, cuarentena, deduplicación y auditoría. `ready_for_extraction` exige scanner privado limpio; secrets ausentes al corte. |
 | 16 | Extracción estructurada y confidence | F3 | **Gate técnico cerrado 2026-08-22; proveedor/modelo bloqueados por privacidad y benchmark** | Original limpio → ids → descarga/hash privado → esquema forzado → validación/confianza → revisión append-only. Fixture con roles reales, dos revisiones, cero efectos y cero restos. |
-| 17 | Supplier/product matching y alias memory | F3 | Pendiente | Confirmación aprendida resuelve la siguiente factura. |
+| 17 | Supplier/product matching y alias memory | F3 | **Gate técnico cerrado 2026-08-22; evidencia real pendiente** | Primera factura exige confirmación; la segunda reutiliza CUIT/SKU. Homónimos ambiguos, retry idempotente, outsider bloqueado, cero efectos/restos. Producción: 0 runs/aliases. |
 | 18 | Invoice-to-purchase/payable draft | F3 | Pendiente | Factura real crea borradores sin tocar stock/deuda antes. |
 | 19 | Split Storefront | F4 | Pendiente | Despliegue, SLO y fallas aislados del panel. |
 | 20 | Cart y order canónicos | F4 | Pendiente | Carrito server-side y estados independientes. |
@@ -837,18 +844,28 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     adoptar tecnología. Una guarda en CI exige que ROADMAP, DESIGNROADMAP,
     INTERFAZ y AGENTS sigan apuntando al estándar. Próxima ejecución visual:
     D2.5 estados unificados y D2.6 inventario/migración de overlays; próxima
-    ejecución funcional: F3 supplier/product matching, sin saltar la evidencia
-    externa pendiente.
+    ejecución funcional: F3 Invoice-to-purchase/payable draft, sin saltar la
+    evidencia externa pendiente.
 28. ~~Mapa competitivo regional para Finance y comercio argentino~~ — cerrado
     documentalmente el 2026-08-22 con fuentes oficiales de Mendel, Clara,
     Rindegastos, SAP Concur Argentina, Tiendanube, Empretienda, Contabilium,
     Xubio, Colppy y Mercado Libre/Mercado Pago. La consecuencia no es agregar
-    diez módulos: F3 conserva matching/borradores como próximo gate; F5 explicita
-    políticas, presupuestos, centros de costo, reembolsos, captura mobile y cola
+    diez módulos: F3 conserva borradores conectados al Core como próximo gate;
+    F5 explicita políticas, presupuestos, centros de costo, reembolsos, captura mobile y cola
     de excepciones; F4 prioriza migración compatible con Tiendanube/Empretienda.
     Tarjetas, custodia y viajes quedan congelados sin demanda, partner regulado,
     economics y revisión legal. La guarda CI impide borrar estas referencias o
     volver a reducir Finance a OCR y Commerce a “tener tienda/POS”.
+29. ~~Matching determinístico y memoria de aliases Finance~~ — gate técnico
+    cerrado el 2026-08-22: cuatro tablas con RLS/ACL, propuesta por revisión,
+    confirmación humana y RPC idempotentes. El fixture real hizo que una primera
+    factura aprendiera nombre/CUIT y SKU/descripción de proveedor; la siguiente
+    resolvió `tax_alias` + `supplier_sku_alias`, dos homónimos quedaron
+    `ambiguous`, outsider bloqueado y compras/deuda/stock/ledger/restos en 0. La
+    UI muestra método, candidato, selección canónica y efecto prohibido. La base
+    productiva quedó en 0 runs/aliases: arquitectura probada, adopción pendiente.
+    Próximo gate F3: borradores de compra/factura/deuda separados, sin mover
+    stock antes de recepción.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -1031,10 +1048,12 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-22: 1.453 tests en 129 archivos, 65
+- Build y suites locales del 2026-08-22: 1.461 tests en 130 archivos, 65
   funciones verificadas y 42 E2E críticos contra la base real.
 - docs/FINANCE_DOCUMENT_EXTRACTION.md: custodia, esquema estructurado,
   confianza, revisión append-only, gate de privacidad y operación.
+- docs/FINANCE_DOCUMENT_MATCHING.md: orden determinístico, aliases confirmados,
+  ambigüedad, RPC/ACL, verificación real y siguiente límite de borradores.
 - docs/PRICE_IMPACT_LOOP.md: benchmark oficial, autoridad, reversión y regla de
   no causalidad para propuestas de precio.
 - docs/ADR_001_FINANCE_PRODUCT_SURFACE.md: acceso por producto, sesión,
