@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  BadgeDollarSign,
   CheckCircle2,
+  ClipboardCheck,
   Clock3,
   FileCheck2,
   FileClock,
@@ -11,6 +13,7 @@ import {
   Link2,
   Loader2,
   LockKeyhole,
+  PackageCheck,
   PencilLine,
   Plus,
   RefreshCw,
@@ -30,6 +33,8 @@ import PageHeader from '@/components/shared/PageHeader';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useOrg } from '@/lib/orgContext';
 import {
+  approveFinanceDocumentDrafts,
+  createFinanceDocumentDrafts,
   createFinanceDocumentSignedUrl,
   createFinanceDocumentUpload,
   createFinanceDocumentVersion,
@@ -37,6 +42,7 @@ import {
   extractFinanceDocument,
   financeDocumentStatusLabel,
   financeDocumentTypeLabel,
+  getFinanceDocumentDrafts,
   getFinanceDocuments,
   getFinanceMatchingOptions,
   inspectFinanceDocument,
@@ -47,6 +53,7 @@ import {
   uploadFinanceDocument,
   validateFinanceDocumentFile,
   type FinanceDocument,
+  type FinanceDocumentDraftBundle,
   type FinanceDocumentExtraction,
   type FinanceDocumentExtractionPayload,
   type FinanceDocumentMatching,
@@ -81,6 +88,13 @@ export default function FinanceDocumentsPage() {
   const [matchProductIds, setMatchProductIds] = useState<Record<number, string>>({});
   const [matchOptions, setMatchOptions] = useState<FinanceMatchingOptions>({ suppliers: [], products: [] });
   const [confirmingMatch, setConfirmingMatch] = useState(false);
+  const [draftingExtractionId, setDraftingExtractionId] = useState<string | null>(null);
+  const [draftTarget, setDraftTarget] = useState<FinanceDocumentDraftBundle | null>(null);
+  const [draftProducts, setDraftProducts] = useState<FinanceMatchingOptions['products']>([]);
+  const [draftLineChoices, setDraftLineChoices] = useState<Record<number, string>>({});
+  const [draftDueDate, setDraftDueDate] = useState('');
+  const [draftExchangeRate, setDraftExchangeRate] = useState('');
+  const [approvingDraft, setApprovingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -290,6 +304,68 @@ export default function FinanceDocumentsPage() {
     }
   };
 
+  const openDrafts = async (extraction: FinanceDocumentExtraction) => {
+    if (!activeOrg?.id) return;
+    setDraftingExtractionId(extraction.id);
+    setError(null);
+    setNotice(null);
+    try {
+      const [drafts, options] = await Promise.all([
+        extraction.draft
+          ? getFinanceDocumentDrafts(extraction.id)
+          : createFinanceDocumentDrafts(extraction.id),
+        getFinanceMatchingOptions(activeOrg.id),
+      ]);
+      setDraftTarget(drafts);
+      setDraftProducts(options.products);
+      setDraftLineChoices(Object.fromEntries(drafts.lines.map(line => [
+        line.lineNumber,
+        line.disposition === 'inventory' && line.productId
+          ? line.productId
+          : line.disposition === 'non_inventory' ? '__non_inventory' : '__unresolved',
+      ])));
+      setDraftDueDate(drafts.payable.dueDate || drafts.invoice.issueDate || '');
+      setDraftExchangeRate(drafts.invoice.currency === 'ARS'
+        ? '1'
+        : drafts.payable.exchangeRate ? String(drafts.payable.exchangeRate) : '');
+    } catch (cause) {
+      setError(errorMessage(cause, 'No se pudieron preparar los borradores.'));
+    } finally {
+      setDraftingExtractionId(null);
+    }
+  };
+
+  const submitDraftApproval = async () => {
+    if (!draftTarget) return;
+    const decisions = draftTarget.lines.map(line => {
+      const choice = draftLineChoices[line.lineNumber] || '__unresolved';
+      return {
+        line_number: line.lineNumber,
+        disposition: choice === '__non_inventory' ? 'non_inventory' as const : 'inventory' as const,
+        product_id: choice.startsWith('__') ? null : choice,
+      };
+    });
+    if (Object.values(draftLineChoices).some(choice => !choice || choice === '__unresolved')) return;
+
+    setApprovingDraft(true);
+    setError(null);
+    try {
+      const result = await approveFinanceDocumentDrafts(
+        draftTarget.invoiceDraftId,
+        draftDueDate || null,
+        draftTarget.invoice.currency === 'USD' ? nullableNumber(draftExchangeRate) : null,
+        decisions,
+      );
+      setDraftTarget(result);
+      setNotice('Factura aprobada: se creó una orden confirmada y una obligación. El stock sigue inmóvil hasta registrar la recepción.');
+      await loadDocuments();
+    } catch (cause) {
+      setError(errorMessage(cause, 'No se pudieron aprobar los borradores.'));
+    } finally {
+      setApprovingDraft(false);
+    }
+  };
+
   const pending = documents.filter(document => document.status === 'awaiting_inspection' || document.status === 'pending_upload').length;
   const approved = documents.filter(document => document.status === 'approved').length;
 
@@ -368,7 +444,7 @@ export default function FinanceDocumentsPage() {
           <div><h2 className="text-sm font-semibold">Bandeja de documentos</h2><p className="mt-1 text-xs text-muted-foreground">Los originales se abren con una URL firmada de corta duración.</p></div>
           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{documents.length} registrados</span>
         </div>
-        {loading ? <div className="flex items-center justify-center py-14 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Leyendo documentos...</div> : documents.length === 0 ? <EmptyState /> : <div className="divide-y divide-border/60">{documents.map(document => <DocumentRow key={document.id} document={document} openingPath={openingPath} inspectingVersionId={inspectingVersionId} extractingVersionId={extractingVersionId} matchingExtractionId={matchingExtractionId} onOpen={openDocument} onInspect={inspectDocument} onExtract={extractDocument} onReview={openReview} onMatch={openMatching} onNewVersion={id => { clearFile(); setNewVersionFor(id); }} />)}</div>}
+        {loading ? <div className="flex items-center justify-center py-14 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Leyendo documentos...</div> : documents.length === 0 ? <EmptyState /> : <div className="divide-y divide-border/60">{documents.map(document => <DocumentRow key={document.id} document={document} openingPath={openingPath} inspectingVersionId={inspectingVersionId} extractingVersionId={extractingVersionId} matchingExtractionId={matchingExtractionId} draftingExtractionId={draftingExtractionId} onOpen={openDocument} onInspect={inspectDocument} onExtract={extractDocument} onReview={openReview} onMatch={openMatching} onDraft={openDrafts} onNewVersion={id => { clearFile(); setNewVersionFor(id); }} />)}</div>}
       </section>
 
       <div className="grid gap-3 text-xs text-muted-foreground sm:grid-cols-3">
@@ -398,18 +474,35 @@ export default function FinanceDocumentsPage() {
         onClose={() => { if (!confirmingMatch) setMatchTarget(null); }}
         onSubmit={() => void submitMatching()}
       />
+      <DraftApprovalDialog
+        drafts={draftTarget}
+        products={draftProducts}
+        lineChoices={draftLineChoices}
+        dueDate={draftDueDate}
+        exchangeRate={draftExchangeRate}
+        saving={approvingDraft}
+        onLineChoice={(lineNumber, choice) => setDraftLineChoices(current => ({ ...current, [lineNumber]: choice }))}
+        onDueDateChange={setDraftDueDate}
+        onExchangeRateChange={setDraftExchangeRate}
+        onClose={() => { if (!approvingDraft) setDraftTarget(null); }}
+        onSubmit={() => void submitDraftApproval()}
+      />
     </div>
   );
 }
 
-function DocumentRow({ document, openingPath, inspectingVersionId, extractingVersionId, matchingExtractionId, onOpen, onInspect, onExtract, onReview, onMatch, onNewVersion }: { document: FinanceDocument; openingPath: string | null; inspectingVersionId: string | null; extractingVersionId: string | null; matchingExtractionId: string | null; onOpen: (path: string) => void; onInspect: (documentId: string, versionId: string) => void; onExtract: (documentId: string, versionId: string) => void; onReview: (extraction: FinanceDocumentExtraction) => void; onMatch: (extraction: FinanceDocumentExtraction) => void; onNewVersion: (id: string) => void }) {
+function DocumentRow({ document, openingPath, inspectingVersionId, extractingVersionId, matchingExtractionId, draftingExtractionId, onOpen, onInspect, onExtract, onReview, onMatch, onDraft, onNewVersion }: { document: FinanceDocument; openingPath: string | null; inspectingVersionId: string | null; extractingVersionId: string | null; matchingExtractionId: string | null; draftingExtractionId: string | null; onOpen: (path: string) => void; onInspect: (documentId: string, versionId: string) => void; onExtract: (documentId: string, versionId: string) => void; onReview: (extraction: FinanceDocumentExtraction) => void; onMatch: (extraction: FinanceDocumentExtraction) => void; onDraft: (extraction: FinanceDocumentExtraction) => void; onNewVersion: (id: string) => void }) {
   const latest = document.versions[0];
   const extraction = latest?.extraction;
   const canVersion = document.status !== 'approved';
   const canInspect = latest?.uploadStatus === 'uploaded' && ['pending', 'scanner_unavailable'].includes(latest.inspectionStatus);
   const canExtract = latest?.inspectionStatus === 'ready_for_extraction' && (!extraction || extraction.status === 'failed');
-  const canReview = extraction?.payload && ['needs_review', 'ready_for_review'].includes(extraction.status);
-  const canMatch = extraction?.payload && extraction.status === 'reviewed' && (!extraction.matching || extraction.matching.status === 'proposed');
+  const matchingStale = Boolean(extraction?.matching && extraction.matching.revisionNumber !== extraction.revisionNumber);
+  const canReview = extraction?.payload && extraction.draft?.status !== 'approved' && ['needs_review', 'ready_for_review', 'reviewed'].includes(extraction.status);
+  const canMatch = extraction?.payload && extraction.status === 'reviewed' && (!extraction.matching || extraction.matching.status === 'proposed' || matchingStale);
+  const canDraft = document.documentType === 'supplier_invoice'
+    && extraction?.matching?.status === 'confirmed'
+    && !matchingStale;
   return (
     <article className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex min-w-0 items-start gap-3">
@@ -426,8 +519,9 @@ function DocumentRow({ document, openingPath, inspectingVersionId, extractingVer
         {latest && latest.uploadStatus === 'uploaded' && <Button variant="outline" size="xs" disabled={openingPath === latest.storagePath} onClick={() => onOpen(latest.storagePath)}><FileCheck2 /> {openingPath === latest.storagePath ? 'Abriendo...' : 'Ver original'}</Button>}
         {latest && canInspect && <Button size="xs" disabled={inspectingVersionId === latest.id} onClick={() => onInspect(document.id, latest.id)}>{inspectingVersionId === latest.id ? <Loader2 className="animate-spin" /> : <FileSearch2 />} {inspectingVersionId === latest.id ? 'Inspeccionando...' : 'Inspeccionar'}</Button>}
         {latest && canExtract && <Button size="xs" disabled={extractingVersionId === latest.id} onClick={() => onExtract(document.id, latest.id)}>{extractingVersionId === latest.id ? <Loader2 className="animate-spin" /> : <Sparkles />} {extractingVersionId === latest.id ? 'Extrayendo...' : extraction?.status === 'failed' ? 'Reintentar extracción' : 'Extraer datos'}</Button>}
-        {extraction && canReview && <Button variant="outline" size="xs" onClick={() => onReview(extraction)}><PencilLine /> Revisar datos</Button>}
+        {extraction && canReview && <Button variant="outline" size="xs" onClick={() => onReview(extraction)}><PencilLine /> {extraction.status === 'reviewed' ? 'Corregir revisión' : 'Revisar datos'}</Button>}
         {extraction && canMatch && <Button size="xs" disabled={matchingExtractionId === extraction.id} onClick={() => onMatch(extraction)}>{matchingExtractionId === extraction.id ? <Loader2 className="animate-spin" /> : <Link2 />} {matchingExtractionId === extraction.id ? 'Buscando...' : extraction.matching ? 'Confirmar matching' : 'Buscar coincidencias'}</Button>}
+        {extraction && canDraft && <Button size="xs" variant={extraction.draft?.status === 'approved' ? 'outline' : 'default'} disabled={draftingExtractionId === extraction.id} onClick={() => onDraft(extraction)}>{draftingExtractionId === extraction.id ? <Loader2 className="animate-spin" /> : <ClipboardCheck />} {draftingExtractionId === extraction.id ? 'Preparando...' : extraction.draft?.status === 'approved' ? 'Ver aprobación' : extraction.draft ? 'Revisar borradores' : 'Preparar borradores'}</Button>}
         {canVersion && <Button variant="ghost" size="xs" onClick={() => onNewVersion(document.id)}><FilePlus2 /> Nueva versión</Button>}
       </div>
     </article>
@@ -437,6 +531,7 @@ function DocumentRow({ document, openingPath, inspectingVersionId, extractingVer
 function ExtractionSummary({ extraction }: { extraction: FinanceDocumentExtraction }) {
   const payload = extraction.payload;
   const confidence = extraction.overallConfidence === null ? null : Math.round(extraction.overallConfidence * 100);
+  const draftStale = Boolean(extraction.draft && extraction.draft.revisionNumber !== extraction.revisionNumber);
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
       <ExtractionBadge status={extraction.status} />
@@ -445,6 +540,8 @@ function ExtractionSummary({ extraction }: { extraction: FinanceDocumentExtracti
       {extraction.validationErrors.length > 0 && <span className="text-amber-700 dark:text-amber-300">{extraction.validationErrors.length} observaciones</span>}
       {extraction.matching?.status === 'proposed' && <Badge variant="warning">Matching pendiente</Badge>}
       {extraction.matching?.status === 'confirmed' && <Badge variant="success"><Link2 className="h-3 w-3" /> Matching confirmado</Badge>}
+      {extraction.draft?.status === 'draft' && <Badge variant="warning"><ClipboardCheck className="h-3 w-3" /> {draftStale ? 'Borradores por regenerar' : 'Borradores pendientes'}</Badge>}
+      {extraction.draft?.status === 'approved' && <Badge variant="success"><PackageCheck className="h-3 w-3" /> Orden y deuda creadas</Badge>}
       {extraction.failureReason && <span className="text-destructive">{extraction.failureReason}</span>}
     </div>
   );
@@ -611,6 +708,128 @@ function MatchingReviewDialog({ matching, supplierId, productIds, options, savin
       </DialogContent>
     </Dialog>
   );
+}
+
+function DraftApprovalDialog({ drafts, products, lineChoices, dueDate, exchangeRate, saving, onLineChoice, onDueDateChange, onExchangeRateChange, onClose, onSubmit }: { drafts: FinanceDocumentDraftBundle | null; products: FinanceMatchingOptions['products']; lineChoices: Record<number, string>; dueDate: string; exchangeRate: string; saving: boolean; onLineChoice: (lineNumber: number, choice: string) => void; onDueDateChange: (value: string) => void; onExchangeRateChange: (value: string) => void; onClose: () => void; onSubmit: () => void }) {
+  if (!drafts) return null;
+  const approved = drafts.status === 'approved';
+  const hasUnresolved = drafts.lines.some(line => (lineChoices[line.lineNumber] || '__unresolved') === '__unresolved');
+  const rate = drafts.invoice.currency === 'ARS' ? 1 : nullableNumber(exchangeRate);
+  const rateInvalid = drafts.invoice.currency === 'USD' && (!rate || rate <= 0);
+  const hardBlockers = drafts.blockers.filter(blocker => !['lines_unresolved', 'exchange_rate_missing'].includes(blocker));
+  const canSubmit = !approved && drafts.canApprove && !hasUnresolved && !rateInvalid && hardBlockers.length === 0;
+  const amountArs = drafts.invoice.total !== null && rate ? drafts.invoice.total * rate : drafts.payable.amountArs;
+
+  return (
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent className="max-h-[94vh] max-w-5xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{approved ? 'Factura aprobada y conectada al Core' : 'Revisar los tres borradores'}</DialogTitle>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Factura, compra y obligación permanecen separadas hasta esta aprobación. Al aprobar se crean una orden confirmada y una deuda; el stock no cambia hasta registrar la recepción.
+          </p>
+        </DialogHeader>
+
+        {approved && (
+          <div className="flex items-start gap-3 rounded-[10px] border border-emerald-500/25 bg-emerald-500/[0.05] p-4 text-emerald-700 dark:text-emerald-300">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            <div><p className="text-sm font-semibold">Aprobación materializada una sola vez</p><p className="mt-1 text-xs text-muted-foreground">La orden espera recepción y la obligación quedó pendiente de pago. Reabrir el diálogo no duplica ninguna de las dos.</p></div>
+          </div>
+        )}
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <DraftCard icon={ClipboardCheck} eyebrow="Supplier Invoice Draft" title={drafts.invoice.documentNumber || 'Número pendiente'}>
+            <p>{drafts.supplier.name}</p>
+            <p>{drafts.supplier.taxId || 'CUIT no informado'} · {drafts.invoice.issueDate || 'fecha pendiente'}</p>
+            <p className="mt-2 font-semibold text-foreground">{formatMoney(drafts.invoice.total, drafts.invoice.currency)}</p>
+          </DraftCard>
+          <DraftCard icon={PackageCheck} eyebrow="Purchase Draft" title={`${drafts.lines.length} ${drafts.lines.length === 1 ? 'línea' : 'líneas'}`}>
+            <p>{approved ? 'Orden confirmada, sin recepción' : 'Todavía no existe una orden del Core'}</p>
+            {drafts.purchase.purchaseOrderId && <p className="mt-2 break-all font-mono text-[10px]">OC {drafts.purchase.purchaseOrderId}</p>}
+          </DraftCard>
+          <DraftCard icon={BadgeDollarSign} eyebrow="Payable Draft" title={amountArs === null ? 'Monto pendiente' : formatMoney(amountArs, 'ARS')}>
+            <p>{approved ? 'Obligación pendiente creada' : 'Todavía no existe deuda exigible'}</p>
+            {drafts.payable.supplierDebtId && <p className="mt-2 break-all font-mono text-[10px]">Deuda {drafts.payable.supplierDebtId}</p>}
+          </DraftCard>
+        </div>
+
+        {!approved && (
+          <section className="grid gap-3 rounded-[10px] border border-border/70 bg-muted/[0.08] p-4 sm:grid-cols-2">
+            <ReviewField label="Vencimiento de la obligación">
+              <Input type="date" value={dueDate} onChange={event => onDueDateChange(event.target.value)} />
+            </ReviewField>
+            <ReviewField label={drafts.invoice.currency === 'USD' ? 'Tipo de cambio ARS por USD' : 'Conversión a ARS'}>
+              <Input type="number" min="0.0001" step="0.0001" value={drafts.invoice.currency === 'ARS' ? '1' : exchangeRate} disabled={drafts.invoice.currency === 'ARS'} placeholder="Obligatorio para USD" onChange={event => onExchangeRateChange(event.target.value)} />
+            </ReviewField>
+          </section>
+        )}
+
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div><p className="text-sm font-semibold">Destino de cada línea</p><p className="mt-0.5 text-[11px] text-muted-foreground">Producto mueve stock sólo al recibirse. Un flete o servicio debe marcarse explícitamente como cargo no inventariable.</p></div>
+            {!approved && <Badge variant={hasUnresolved ? 'warning' : 'success'}>{hasUnresolved ? 'Hay líneas sin resolver' : 'Todas las líneas resueltas'}</Badge>}
+          </div>
+          {drafts.lines.map(line => {
+            const choice = lineChoices[line.lineNumber] || '__unresolved';
+            return (
+              <div key={line.lineNumber} className="grid gap-3 rounded-[9px] border border-border/70 bg-card p-3 sm:grid-cols-[minmax(0,1fr)_minmax(280px,1fr)] sm:items-end">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-[10px] font-semibold tabular-nums">{line.lineNumber}</span><p className="truncate text-sm font-medium">{line.description}</p></div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{line.quantity ?? '—'} × {formatMoney(line.unitCost, drafts.invoice.currency)} · línea {formatMoney(line.lineTotal, drafts.invoice.currency)}</p>
+                </div>
+                {approved ? (
+                  <div className="rounded-[8px] border border-border/70 bg-muted/10 px-3 py-2 text-xs">
+                    {line.disposition === 'inventory' ? line.productName || 'Producto vinculado' : 'Cargo no inventariable'}
+                  </div>
+                ) : (
+                  <ReviewField label="Tratamiento al recibir">
+                    <Select value={choice} onValueChange={value => onLineChoice(line.lineNumber, value)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__unresolved">Resolver antes de aprobar</SelectItem>
+                        <SelectItem value="__non_inventory">Cargo no inventariable</SelectItem>
+                        {products.map(product => <SelectItem key={product.id} value={product.id}>{product.brand ? `${product.brand} · ` : ''}{product.name}{product.sku ? ` · ${product.sku}` : ''}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </ReviewField>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {!approved && hardBlockers.length > 0 && (
+          <div className="rounded-[9px] border border-amber-500/25 bg-amber-500/[0.05] p-3">
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">La revisión documental necesita correcciones antes de aprobar</p>
+            <ul className="mt-1.5 space-y-1 text-[11px] text-muted-foreground">{hardBlockers.map(blocker => <li key={blocker}>· {draftBlockerLabel(blocker)}</li>)}</ul>
+          </div>
+        )}
+        {!approved && !drafts.canApprove && (
+          <div className="rounded-[9px] border border-amber-500/25 bg-amber-500/[0.05] p-3 text-xs text-amber-700 dark:text-amber-300">Podés preparar y revisar, pero la aprobación final requiere owner/admin con permiso `finance.edit`.</div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>{approved ? 'Cerrar' : 'Cancelar'}</Button>
+          {!approved && <Button onClick={onSubmit} disabled={saving || !canSubmit}>{saving ? <Loader2 className="animate-spin" /> : <ClipboardCheck />}{saving ? 'Aprobando...' : 'Aprobar orden y obligación'}</Button>}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DraftCard({ icon: Icon, eyebrow, title, children }: { icon: typeof ClipboardCheck; eyebrow: string; title: string; children: React.ReactNode }) {
+  return <section className="rounded-[10px] border border-teal-500/20 bg-teal-500/[0.035] p-4"><div className="flex items-center gap-2 text-teal-700 dark:text-teal-300"><Icon className="h-4 w-4" /><p className="text-[10px] font-semibold uppercase tracking-[0.1em]">{eyebrow}</p></div><h3 className="mt-3 text-sm font-semibold">{title}</h3><div className="mt-2 space-y-1 text-xs text-muted-foreground">{children}</div></section>;
+}
+
+function draftBlockerLabel(blocker: string) {
+  return {
+    document_number_missing: 'Falta el número de factura.',
+    issue_date_missing: 'Falta la fecha de emisión.',
+    currency_missing: 'Falta una moneda soportada (ARS o USD).',
+    total_invalid: 'El total debe ser mayor que cero.',
+    quantity_invalid: 'Las cantidades deben ser enteras y positivas para el Core actual.',
+    line_amount_invalid: 'Cada línea necesita precio y total válidos.',
+  }[blocker] || blocker;
 }
 
 function supplierMatchLabel(method: FinanceDocumentMatching['supplier']['matchMethod'], candidateCount: number) {

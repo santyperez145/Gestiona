@@ -130,3 +130,8 @@ para “aprobar” una factura.
 Recibe base64 desde el cliente y prellena una orden; no satisface este contrato
 de privacidad, custodia, versionado o revisión. No se reutiliza dentro de
 Finance y deberá retirarse cuando su flujo tenga una migración segura.
+
+La salida aprobable de esta revisión ya está separada del precursor: matching y
+borradores consumen la revisión append-only mediante RPC, y la orden/deuda sólo
+aparecen después de una aprobación owner/admin. Ver
+[FINANCE_DOCUMENT_DRAFTS.md](FINANCE_DOCUMENT_DRAFTS.md).

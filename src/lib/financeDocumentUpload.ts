@@ -30,6 +30,8 @@ export type FinanceDocumentExtractionStatus =
   | 'reviewed'
   | 'failed';
 export type FinanceDocumentMatchingStatus = 'proposed' | 'confirmed' | 'superseded';
+export type FinanceDocumentDraftStatus = 'draft' | 'approved' | 'rejected';
+export type FinancePurchaseDraftDisposition = 'inventory' | 'non_inventory' | 'unresolved';
 export type FinanceSupplierMatchMethod = 'tax_alias' | 'name_alias' | 'exact_name' | 'none' | 'ambiguous';
 export type FinanceProductMatchMethod = 'supplier_sku_alias' | 'exact_sku' | 'description_alias' | 'exact_name' | 'none' | 'ambiguous';
 
@@ -68,7 +70,61 @@ export interface FinanceDocumentExtraction {
   revisionSource: 'model' | 'human' | null;
   payload: FinanceDocumentExtractionPayload | null;
   matching: FinanceDocumentMatching | null;
+  draft: FinanceDocumentDraftSummary | null;
   updatedAt: string;
+}
+
+export interface FinanceDocumentDraftSummary {
+  invoiceDraftId: string;
+  status: FinanceDocumentDraftStatus;
+  revisionNumber: number;
+}
+
+export interface FinanceDocumentDraftLine {
+  lineNumber: number;
+  disposition: FinancePurchaseDraftDisposition;
+  productId: string | null;
+  productName: string | null;
+  description: string;
+  sku: string | null;
+  quantity: number | null;
+  unitCost: number | null;
+  taxRate: number | null;
+  lineTotal: number | null;
+}
+
+export interface FinanceDocumentDraftBundle {
+  invoiceDraftId: string;
+  extractionId: string;
+  status: FinanceDocumentDraftStatus;
+  revisionNumber: number;
+  supplier: { id: string; name: string; taxId: string | null };
+  invoice: {
+    documentNumber: string | null;
+    issueDate: string | null;
+    currency: 'ARS' | 'USD' | null;
+    subtotal: number | null;
+    taxTotal: number | null;
+    total: number | null;
+  };
+  purchase: {
+    draftId: string;
+    status: FinanceDocumentDraftStatus;
+    purchaseOrderId: string | null;
+  };
+  payable: {
+    draftId: string;
+    status: FinanceDocumentDraftStatus;
+    currency: 'ARS' | 'USD' | null;
+    amountOriginal: number | null;
+    exchangeRate: number | null;
+    amountArs: number | null;
+    dueDate: string | null;
+    supplierDebtId: string | null;
+  };
+  lines: FinanceDocumentDraftLine[];
+  blockers: string[];
+  canApprove: boolean;
 }
 
 export interface FinanceDocumentMatchingSupplier {
@@ -268,6 +324,7 @@ export async function getFinanceDocuments(orgId: string): Promise<FinanceDocumen
         revisionSource: null,
         payload: null,
         matching: null,
+        draft: null,
         updatedAt: String(row.updated_at),
       });
     }
@@ -356,6 +413,21 @@ export async function getFinanceDocuments(orgId: string): Promise<FinanceDocumen
             })),
           };
         }
+      }
+
+      const { data: draftRows, error: draftError } = await supabase
+        .from('finance_supplier_invoice_drafts')
+        .select('id, extraction_id, status, revision_number')
+        .in('extraction_id', extractionIds);
+      if (draftError && !isMissingFinanceDraftRelation(draftError)) throw draftError;
+      for (const row of (draftRows || []) as unknown as Array<Record<string, unknown>>) {
+        const extraction = extractionById.get(String(row.extraction_id));
+        if (!extraction) continue;
+        extraction.draft = {
+          invoiceDraftId: String(row.id),
+          status: row.status as FinanceDocumentDraftStatus,
+          revisionNumber: Number(row.revision_number),
+        };
       }
     }
 
@@ -531,6 +603,48 @@ export async function getFinanceMatchingOptions(orgId: string): Promise<FinanceM
   };
 }
 
+export async function createFinanceDocumentDrafts(extractionId: string): Promise<FinanceDocumentDraftBundle> {
+  const { data, error } = await supabase.rpc('finance_document_create_drafts', {
+    p_extraction_id: extractionId,
+  });
+  if (error) throw error;
+  const drafts = parseFinanceDocumentDrafts(data);
+  if (!drafts) throw new Error('La base no devolvió los borradores documentales.');
+  return drafts;
+}
+
+export async function getFinanceDocumentDrafts(extractionId: string): Promise<FinanceDocumentDraftBundle> {
+  const { data, error } = await supabase.rpc('finance_document_get_drafts', {
+    p_extraction_id: extractionId,
+  });
+  if (error) throw error;
+  const drafts = parseFinanceDocumentDrafts(data);
+  if (!drafts) throw new Error('Todavía no existen borradores para este documento.');
+  return drafts;
+}
+
+export async function approveFinanceDocumentDrafts(
+  invoiceDraftId: string,
+  dueDate: string | null,
+  exchangeRate: number | null,
+  lines: Array<{
+    line_number: number;
+    disposition: Exclude<FinancePurchaseDraftDisposition, 'unresolved'>;
+    product_id: string | null;
+  }>,
+): Promise<FinanceDocumentDraftBundle> {
+  const { data, error } = await supabase.rpc('finance_document_approve_drafts', {
+    p_invoice_draft_id: invoiceDraftId,
+    p_due_date: dueDate,
+    p_exchange_rate: exchangeRate,
+    p_lines: lines as unknown as Json,
+  });
+  if (error) throw error;
+  const drafts = parseFinanceDocumentDrafts(data);
+  if (!drafts) throw new Error('La base no devolvió el resultado de aprobación.');
+  return drafts;
+}
+
 export async function createFinanceDocumentSignedUrl(storagePath: string): Promise<string> {
   const { data, error } = await supabase.storage
     .from(FINANCE_DOCUMENT_BUCKET)
@@ -569,6 +683,12 @@ function isMissingFinanceExtractionRelation(error: { code?: string; message?: st
 function isMissingFinanceMatchingRelation(error: { code?: string; message?: string }): boolean {
   return ['42P01', '42883', 'PGRST202', 'PGRST205'].includes(error.code || '')
     || /finance_document_(get_matching|match_runs|line_matches)/i.test(error.message || '')
+      && /does not exist|schema cache|could not find/i.test(error.message || '');
+}
+
+function isMissingFinanceDraftRelation(error: { code?: string; message?: string }): boolean {
+  return ['42P01', '42883', 'PGRST202', 'PGRST205'].includes(error.code || '')
+    || /finance_(supplier_invoice_drafts|document_(create|approve)_drafts)/i.test(error.message || '')
       && /does not exist|schema cache|could not find/i.test(error.message || '');
 }
 
@@ -612,6 +732,81 @@ function parseFinanceDocumentMatching(value: Json | null): FinanceDocumentMatchi
       }];
     }),
   };
+}
+
+function parseFinanceDocumentDrafts(value: Json | null): FinanceDocumentDraftBundle | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const raw = value as Record<string, Json | undefined>;
+  const supplierRaw = objectValue(raw.supplier);
+  const invoiceRaw = objectValue(raw.invoice);
+  const purchaseRaw = objectValue(raw.purchase);
+  const payableRaw = objectValue(raw.payable);
+  if (!raw.invoice_draft_id || !raw.extraction_id || !supplierRaw || !invoiceRaw || !purchaseRaw || !payableRaw) return null;
+  const lines = Array.isArray(raw.lines) ? raw.lines : [];
+  return {
+    invoiceDraftId: String(raw.invoice_draft_id),
+    extractionId: String(raw.extraction_id),
+    status: String(raw.status) as FinanceDocumentDraftStatus,
+    revisionNumber: Number(raw.revision_number),
+    supplier: {
+      id: String(supplierRaw.id),
+      name: String(supplierRaw.name),
+      taxId: nullableString(supplierRaw.tax_id),
+    },
+    invoice: {
+      documentNumber: nullableString(invoiceRaw.document_number),
+      issueDate: nullableString(invoiceRaw.issue_date),
+      currency: nullableString(invoiceRaw.currency) as FinanceDocumentDraftBundle['invoice']['currency'],
+      subtotal: nullableNumber(invoiceRaw.subtotal),
+      taxTotal: nullableNumber(invoiceRaw.tax_total),
+      total: nullableNumber(invoiceRaw.total),
+    },
+    purchase: {
+      draftId: String(purchaseRaw.draft_id),
+      status: String(purchaseRaw.status) as FinanceDocumentDraftStatus,
+      purchaseOrderId: nullableString(purchaseRaw.purchase_order_id),
+    },
+    payable: {
+      draftId: String(payableRaw.draft_id),
+      status: String(payableRaw.status) as FinanceDocumentDraftStatus,
+      currency: nullableString(payableRaw.currency) as FinanceDocumentDraftBundle['payable']['currency'],
+      amountOriginal: nullableNumber(payableRaw.amount_original),
+      exchangeRate: nullableNumber(payableRaw.exchange_rate),
+      amountArs: nullableNumber(payableRaw.amount_ars),
+      dueDate: nullableString(payableRaw.due_date),
+      supplierDebtId: nullableString(payableRaw.supplier_debt_id),
+    },
+    lines: lines.flatMap(value => {
+      const line = objectValue(value);
+      if (!line) return [];
+      return [{
+        lineNumber: Number(line.line_number),
+        disposition: String(line.disposition) as FinancePurchaseDraftDisposition,
+        productId: nullableString(line.product_id),
+        productName: nullableString(line.product_name),
+        description: String(line.description || ''),
+        sku: nullableString(line.sku),
+        quantity: nullableNumber(line.quantity),
+        unitCost: nullableNumber(line.unit_cost),
+        taxRate: nullableNumber(line.tax_rate),
+        lineTotal: nullableNumber(line.line_total),
+      }];
+    }),
+    blockers: Array.isArray(raw.blockers) ? raw.blockers.map(String) : [],
+    canApprove: raw.can_approve === true,
+  };
+}
+
+function objectValue(value: Json | undefined): Record<string, Json | undefined> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, Json | undefined>
+    : null;
+}
+
+function nullableNumber(value: Json | undefined): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function nullableString(value: Json | undefined): string | null {

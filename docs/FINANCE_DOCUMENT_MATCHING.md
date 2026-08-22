@@ -116,7 +116,7 @@ rate y tiempo ahorrado siguen sin evidencia de adopción.
 
 ## Próximo límite
 
-El siguiente slice es `Invoice-to-purchase/payable draft`. Debe consumir un
-matching confirmado y crear borradores separados, nunca una compra o deuda
-efectiva. La aprobación del borrador será otra acción, con idempotencia, estado,
-segregación y cero movimiento de stock hasta una recepción real.
+`Invoice-to-purchase/payable draft` quedó entregado en
+[FINANCE_DOCUMENT_DRAFTS.md](FINANCE_DOCUMENT_DRAFTS.md). Consume el matching
+confirmado, conserva factura/compra/obligación separadas y sólo owner/admin puede
+materializar la orden y la deuda. El stock sigue esperando una recepción real.

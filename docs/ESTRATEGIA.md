@@ -203,12 +203,15 @@ identidad/organización, entitlement separado de `finance.view` y decisión
 Platform auditada. Su resumen lee proveedores, órdenes, obligaciones y ledger
 del Core existente mediante RPC, sin duplicarlos. El matching ya propone sólo
 aliases confirmados o identidad exacta, preserva ambigüedades y aprende CUIT/SKU
-después de una decisión humana; el siguiente gate son borradores sin efecto.
+después de una decisión humana. La factura revisada ya crea Supplier Invoice,
+Purchase y Payable Draft separados; owner/admin materializa una orden confirmada
+y una deuda, mientras la recepción sigue siendo la única puerta al stock.
 Producción: 4 organizaciones con Finance disponible, 0 solicitudes, 0
-habilitaciones y 0 matches reales. Esto prueba arquitectura, no adopción.
+habilitaciones, 0 matches y 0 borradores reales. Esto prueba arquitectura, no
+adopción.
 Tarjetas, custodia y viajes quedan fuera hasta tener demanda, socio regulado,
 economics y revisión legal. Contratos: [ADR 001](ADR_001_FINANCE_PRODUCT_SURFACE.md)
-y [matching](FINANCE_DOCUMENT_MATCHING.md).
+y [borradores](FINANCE_DOCUMENT_DRAFTS.md).
 
 ✅ **Benchmark económico agregado el 2026-08-21:** la comparación de pricing
 no se usa para decir “somos más baratos”. Se usa para probar que el costo total

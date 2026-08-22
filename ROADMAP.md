@@ -186,7 +186,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.461 tests en 130 archivos pasan al 2026-08-22; typecheck, lint y build verdes; 65 Edge Functions verificadas; 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) pasan contra la base real. |
+| Calidad técnica | 1.469 tests en 131 archivos pasan al 2026-08-22; typecheck, lint y build/PWA verdes; 65 Edge Functions verificadas. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -202,7 +202,8 @@ usarse en una presentación, valuación o decisión de inversión.
 | Finance surface | `20260822000008` agrega `/finance`, `FinanceLayout`, entitlement separado de `finance.view`, solicitud tenant, decisión Platform auditada y snapshot agregado de proveedores/órdenes/obligaciones/ledger existentes. Fixture real: owner solicita pero no autoaprueba; staff finance habilita/deshabilita; permiso, outsider y anon bloqueados; 3 eventos append-only y restos 0. Base: Business habilitado 4/4; Finance disponible 4/4, 0 solicitudes y 0 habilitaciones. |
 | Finance Document Inbox | El original ya entra a bucket privado, queda inmutable/versionado y la Edge `inspect-finance-document` recalcula SHA-256, tamaño y magic bytes, bloquea capacidades activas de PDF, detecta duplicados por tenant y sólo `service_role` cierra un lease auditable. La migración `20260822000010` está aplicada: `authenticated` puede iniciar pero no completar, `service_role` sí, y quedaron 0 leases. El scanner privado no está configurado, por lo que ningún archivo puede llegar todavía a `ready_for_extraction`; esto es bloqueo seguro, no éxito simulado. |
 | Finance matching | `20260822000012` propone proveedor/productos desde la última revisión humana con aliases o identidad exacta, guarda `none/ambiguous`, confirma por RPC y aprende vocabulario por tenant sin reasignarlo. Fixture de dos facturas: `exact_name` manual → `tax_alias` + `supplier_sku_alias`, homónimos 2 candidatos, outsider/retry/cero efectos/restos verificados. Producción: 0 runs, 0 aliases y 0 adopción. |
-| Finance precursor | El OCR anterior prellena una orden de compra y producción mostró un esquema distinto al archivo histórico (`extracted`, sin `document_type`). Sigue fuera del producto Finance: no cumple todavía extracción versionada, confidence, matching, aprobación ni payable draft. |
+| Finance drafts | `20260822000013` separa Supplier Invoice/Purchase/Payable Draft, exige resolución inventario/no inventariable y aprobación owner/admin. Aprobar crea una única orden `confirmed` y una deuda; recepción, `purchases`, stock y ledger permanecen afuera. Fixture productivo: outsider/retry/RLS, dos líneas, stock 7→7 y restos 0. Producción: 0 borradores reales y 0 adopción. |
+| Finance precursor | El OCR anterior prellena una orden de compra y producción mostró un esquema distinto al archivo histórico (`extracted`, sin `document_type`). Sigue fuera de Finance porque no cumple custodia, revisión ni segregación, aunque el producto nuevo ya cubre extracción → matching → borradores → aprobación. |
 | Storefront | Funcional, pero aún comparte aplicación/ciclo de despliegue con el panel; falta aislamiento, dominios y carrito persistente completo. |
 | Recuperación | Backups programados y restore drill de datos aprobado el 2026-08-21: snapshot v3, 147 tablas / 63 filas, 937,22 ms y cero restos. Falta reconstrucción completa para RTO/RPO contractual. |
 | Observabilidad | Pagos ya conserva una correlación de checkout a ledger y ofrece timeline sin PII; faltan métricas/SLO, health checks activos y extender el contrato a los demás flujos críticos. |
@@ -220,7 +221,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Importación CSV/Excel | Lote auditable y reconciliado contra el Business Core. | Usarlo con un segundo comercio y medir tiempo, correcciones y abandono; todavía no prueba una migración completa de tienda, clientes, imágenes u órdenes. |
 | Intelligence | Varias funciones y recomendadores. | Acciones adoptadas con impacto económico atribuible. |
 | Control Plane | Superficie operativa profesional en construcción. | Menor MTTR y menor intervención manual medidos. |
-| Finance OCR | Extracción/prellenado parcial. | Documento auditable que termina en compra/deuda correcta. |
+| Finance documental | Custodia, extracción, revisión, matching, borradores y aprobación conectada al Core. | Primera factura autorizada procesada y recibida sin SQL; proveedor privado y métricas reales siguen pendientes. |
 | Finance product surface | Ruta, chrome, sesión compartida, entitlement, permiso y snapshot del Core. | Primer comercio habilitado y primer documento procesado; 0 adopción real al corte. |
 | Sistema visual v3 Figma | El workspace claro adopta obligatoriamente la dirección de los kits CRM/marketplace compartidos: canvas casi blanco, superficies blancas, primary violeta `252 83% 62%`, secundarios turquesa/coral, rail persistente, topbar y profundidad baja; se aplica a Business, Finance y Platform sin alterar el Business Core. El 2026-08-22 se eliminó la mutación global que convertía el color secundario de un comercio en fondo/rail del panel: Gestión mantiene tokens oficiales y las paletas quedan limitadas a tienda pública y catálogo PDF; Finance ya no fuerza un rail negro en modo claro. Las tres superficies ahora envuelven todas sus rutas en `workspace-route-surface`, por lo que más de cien páginas heredan el contrato aunque todavía no declaren la clase; Button, Card, Input, Select, Textarea, Tabs, Table, Badge, Dialog, Popover, Tooltip, EmptyState y skeletons fueron alineados a radios, foco, profundidad, estados y contraste del Figma. Ajustes, Perfil, resumen/Document Inbox de Finance y Anuncios de Platform adoptaron `PageHeader`; POS queda documentado como workspace de caja a viewport completo. `DESIGNROADMAP.md` separa desde ahora fases, cobertura, métricas y 21 slices visuales del plan de producto. D2.2–D2.3 retiraron 30 selects nativos: 20 de páginas y 10 de componentes; el SaaS queda en cero, mientras Storefront conserva sólo 3 excepciones mobile/autofill fijadas por test. Dashboard conserva seis vistas persistidas y los hashes `#dashboard-*`; Platform organiza su rail por trabajo/rol. El estándar competitivo agrega anatomía, 11 arquetipos, árbol de overlays, segmentación, cobertura por producto y adopción tecnológica con umbral verificable. | Consolidar estados comunes y auditar overlays con el nuevo estándar; captura autenticada desktop/mobile, revisión end-to-end de Storefront y medición de tiempo a tarea antes de declarar la renovación visual validada. |
 | Rediseño público v3 | Landing pública y Auth fueron reconstruidos el 2026-08-22 con propuesta omnicanal, preview del producto, registro directo desde CTA, responsive desktop/mobile y metadatos SEO alineados. | Validar conversión del CTA y continuar la auditoría visual de Storefront y rutas públicas de compra. |
@@ -521,11 +522,15 @@ protegido/creado verificable y tiempo entre hallazgo y acción.
   2026-08-22:** proveedor y líneas se confirman por RPC tenant-safe; el
   vocabulario externo se aprende sin reasignaciones silenciosas y la factura
   siguiente reutiliza CUIT/SKU.
-- Purchase Draft, Supplier Invoice Draft y Payable Draft.
+- ~~Purchase Draft, Supplier Invoice Draft y Payable Draft.~~ **Entregado
+  2026-08-22:** snapshots separados, líneas inventario/no inventariable,
+  vencimiento y tipo de cambio; aprobación owner/admin materializa una orden
+  `confirmed` y una deuda idempotentes. `purchases`, stock y ledger esperan la
+  recepción real.
 - ~~Revisión humana versionada y audit log.~~ **Cerrada técnicamente:** el
   editor crea una revisión append-only con actor/nota/evento y declara cero
-  efectos sobre compra, deuda, stock o ledger. La aprobación de borradores del
-  Core sigue pendiente; matching ya quedó cerrado como etapa separada.
+  efectos sobre compra, deuda, stock o ledger. Matching y borradores consumen
+  esa revisión sin reescribirla; una factura aprobada queda inmutable.
 - AI Gateway mínimo para costo, versión, trazas y apagado.
 
 **No incluye:** pagos autónomos, contabilidad completa, conciliación masiva ni
@@ -538,9 +543,9 @@ auditoría de plataforma. La base real tiene 4 Business habilitados y 4 Finance
 disponibles, con 0 solicitudes/habilitaciones: existe el producto técnico, no su
 adopción. Odoo/QuickBooks confirman que OCR, review y matching son paridad;
 Mendel/Clara/Rindegastos muestran que el producto regional maduro también
-controla política, presupuesto, rol y excepción. F3 no se ensancha: el
-siguiente gate es crear Purchase/Supplier Invoice/Payable Draft separados y
-conectados al Core; el control preventivo queda ordenado en F5.
+controla política, presupuesto, rol y excepción. F3 ya cerró la cadena técnica
+hasta orden/deuda; no se ensancha a F5 sin facturas autorizadas, proveedor
+privado y evidencia de recepción/adopción.
 
 **Salida:** un conjunto de facturas reales completa ingreso → extracción →
 validación → matching → aprobación → compra/deuda sin SQL, duplicación ni
@@ -709,7 +714,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 15 | Document storage seguro, versiones e inspección | F3 | **Gate técnico cerrado 2026-08-22; scanner externo bloqueado** | Original privado, intención server-side, hash recalculado, magic bytes/tamaño, leases, cuarentena, deduplicación y auditoría. `ready_for_extraction` exige scanner privado limpio; secrets ausentes al corte. |
 | 16 | Extracción estructurada y confidence | F3 | **Gate técnico cerrado 2026-08-22; proveedor/modelo bloqueados por privacidad y benchmark** | Original limpio → ids → descarga/hash privado → esquema forzado → validación/confianza → revisión append-only. Fixture con roles reales, dos revisiones, cero efectos y cero restos. |
 | 17 | Supplier/product matching y alias memory | F3 | **Gate técnico cerrado 2026-08-22; evidencia real pendiente** | Primera factura exige confirmación; la segunda reutiliza CUIT/SKU. Homónimos ambiguos, retry idempotente, outsider bloqueado, cero efectos/restos. Producción: 0 runs/aliases. |
-| 18 | Invoice-to-purchase/payable draft | F3 | Pendiente | Factura real crea borradores sin tocar stock/deuda antes. |
+| 18 | Invoice-to-purchase/payable draft | F3 | **Gate técnico cerrado 2026-08-22; evidencia real pendiente** | Tres borradores separados; preparar deja Core en 0. Owner/admin aprueba una orden y deuda idempotentes; stock 7→7 hasta recepción, outsider/restos 0. |
 | 19 | Split Storefront | F4 | Pendiente | Despliegue, SLO y fallas aislados del panel. |
 | 20 | Cart y order canónicos | F4 | Pendiente | Carrito server-side y estados independientes. |
 | 21 | Store first-class | F4 | Pendiente | Una organización opera dos stores sin duplicar Core. |
@@ -844,13 +849,13 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     adoptar tecnología. Una guarda en CI exige que ROADMAP, DESIGNROADMAP,
     INTERFAZ y AGENTS sigan apuntando al estándar. Próxima ejecución visual:
     D2.5 estados unificados y D2.6 inventario/migración de overlays; próxima
-    ejecución funcional: F3 Invoice-to-purchase/payable draft, sin saltar la
-    evidencia externa pendiente.
+    ejecución funcional: recepción/E2E del flujo F3 y evidencia externa, sin
+    saltar a automatización F5.
 28. ~~Mapa competitivo regional para Finance y comercio argentino~~ — cerrado
     documentalmente el 2026-08-22 con fuentes oficiales de Mendel, Clara,
     Rindegastos, SAP Concur Argentina, Tiendanube, Empretienda, Contabilium,
     Xubio, Colppy y Mercado Libre/Mercado Pago. La consecuencia no es agregar
-    diez módulos: F3 conserva borradores conectados al Core como próximo gate;
+    diez módulos: F3 conserva borradores conectados al Core ya entregados;
     F5 explicita políticas, presupuestos, centros de costo, reembolsos, captura mobile y cola
     de excepciones; F4 prioriza migración compatible con Tiendanube/Empretienda.
     Tarjetas, custodia y viajes quedan congelados sin demanda, partner regulado,
@@ -864,8 +869,16 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     `ambiguous`, outsider bloqueado y compras/deuda/stock/ledger/restos en 0. La
     UI muestra método, candidato, selección canónica y efecto prohibido. La base
     productiva quedó en 0 runs/aliases: arquitectura probada, adopción pendiente.
-    Próximo gate F3: borradores de compra/factura/deuda separados, sin mover
-    stock antes de recepción.
+    El gate siguiente dejó de ser otra tabla: facturas autorizadas deben probar
+    la cadena completa y la recepción debe conservar la autoridad única de stock.
+30. ~~Invoice-to-purchase/payable drafts Finance~~ — gate técnico cerrado el
+    2026-08-22: cuatro tablas de preparación con RLS/ACL, identidad única por
+    proveedor+número, regeneración desde la última revisión y aprobación
+    owner/admin. El fixture clasificó producto+flete, creó una sola OC confirmada
+    y una sola deuda aun con retry, mantuvo `purchases`/Kardex/ledger en 0, stock
+    7→7, bloqueó outsider y limpió todos los restos. La UI muestra los tres
+    borradores, vencimiento, TC, destinos de línea y efecto antes del CTA.
+    Producción quedó en 0 borradores reales: implementación no es adopción.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -1048,12 +1061,15 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-22: 1.461 tests en 130 archivos, 65
-  funciones verificadas y 42 E2E críticos contra la base real.
+- Build y suites locales del 2026-08-22: 1.469 tests en 131 archivos, typecheck,
+  lint sin errores, build/PWA y 65 funciones verificadas. Última evidencia: 42
+  E2E críticos contra la base real.
 - docs/FINANCE_DOCUMENT_EXTRACTION.md: custodia, esquema estructurado,
   confianza, revisión append-only, gate de privacidad y operación.
 - docs/FINANCE_DOCUMENT_MATCHING.md: orden determinístico, aliases confirmados,
-  ambigüedad, RPC/ACL, verificación real y siguiente límite de borradores.
+  ambigüedad, RPC/ACL y verificación real.
+- docs/FINANCE_DOCUMENT_DRAFTS.md: tres borradores, segregación, aprobación,
+  idempotencia y límite físico hasta la recepción.
 - docs/PRICE_IMPACT_LOOP.md: benchmark oficial, autoridad, reversión y regla de
   no causalidad para propuestas de precio.
 - docs/ADR_001_FINANCE_PRODUCT_SURFACE.md: acceso por producto, sesión,

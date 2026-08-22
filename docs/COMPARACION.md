@@ -85,18 +85,18 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 
 | | Valor | Comentario |
 |---|---:|---|
-| Tablas base | **285** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Tablas con `org_id` | **304** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Vistas | **62** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Funciones y procedimientos | **374** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Triggers | **134** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Índices | **865** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Políticas RLS | **367** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Migraciones registradas | **377** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate` |
+| Tablas base | **308** | ✅ catálogo de producción, 2026-08-22 |
+| Relaciones con `org_id` | **340** | ✅ `information_schema.columns`, incluye vistas, 2026-08-22 |
+| Vistas | **77** | ✅ catálogo de producción, 2026-08-22 |
+| Funciones y procedimientos | **427** | ✅ catálogo de producción, 2026-08-22 |
+| Triggers | **131** | ✅ catálogo de producción, 2026-08-22 |
+| Índices | **946** | ✅ catálogo de producción, 2026-08-22 |
+| Políticas RLS | **384** | ✅ catálogo de producción, 2026-08-22 |
+| Migraciones registradas | **394** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate` |
 | Cron jobs | **20** | ✅ 9.859 corridas exitosas y **0 fallidas** en 7 días |
 | Edge Functions | **65** | ✅ `npm run check:functions`, 2026-08-22 |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **1.461** | ✅ `npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-22 |
+| Tests unitarios | **1.469** | ✅ `npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-22 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -134,7 +134,7 @@ antes de conectarse— pero el invariante documentado quedó desactualizado.
 | Suscripciones cobradas | **0** | ✅ 3 registros, las 3 en `past_due` |
 
 ⚠️ **Este es el dato que ordena todo el documento.** Tenemos una plataforma de
-285 tablas y 1.461 tests sirviendo a **un solo comercio real**. Tiendanube tiene
+308 tablas y 1.469 tests sirviendo a **un solo comercio real**. Tiendanube tiene
 ❓ más de 130.000 tiendas activas (fuente secundaria: blog de un competidor,
 [tiendli.com](https://tiendli.com/blog/tiendanube-vs-empretienda-vs-shopify-vs-tiendli/),
 2026 — **verificar antes de citarlo**). Shopify tiene ✅ 2.898.351 tiendas vivas
@@ -286,10 +286,18 @@ siguiente reutiliza CUIT/SKU por proveedor. Los empates quedan ambiguos, la UI
 muestra método y candidatos, y confirmar no crea efectos operativos. Fixture
 tenant-safe con retry: outsider/compras/deuda/stock/ledger/restos 0.
 
+✅ **Quinto límite técnico cerrado:** la última revisión y su matching crean
+Supplier Invoice, Purchase y Payable Draft separados sin tocar el Core. Sólo
+owner/admin con `finance.edit` puede aprobar; esa transacción crea una orden
+`confirmed` y una obligación idempotentes. Las líneas distinguen inventario de
+cargos no inventariables, USD exige tipo de cambio y la recepción sigue siendo
+la única puerta a `purchases` y stock. Fixture real: producto 7→7,
+outsider/retry/RLS/restos 0.
+
 ⚠️ **No es todavía un producto validado:** producción tiene 4 organizaciones con
-Finance disponible, 0 solicitudes, 0 habilitaciones, 0 match runs y 0 aliases.
-Faltan scanner y extractor aprobados, benchmark real, borradores del Core y su
-aprobación.
+Finance disponible, 0 solicitudes, 0 habilitaciones, 0 match runs, 0 aliases y
+0 borradores. Faltan scanner y extractor aprobados, benchmark y facturas reales
+que atraviesen aprobación y recepción.
 
 ### 3.7 Finance regional — el control empieza antes del OCR
 
@@ -300,7 +308,7 @@ para Gestiona Finance no termina en digitalizar facturas:
 |---|---|---|---|---|
 | Política y presupuesto antes del gasto | ✅ reglas de monto, categoría, ubicación y frecuencia; presupuestos | ✅ políticas y aprobaciones | ✅ políticas por tipo, monto y centro de costo | 🔴 F5: política versionada + presupuesto + excepción; no bloquear desde UI sin autoridad server-side. |
 | Captura y rendición | ✅ gasto, comprobante y reembolso | ✅ WhatsApp/formulario, tarjeta y reembolso | ✅ web/móvil/offline, viáticos, kilometraje y fondos | 🟡 Document Inbox web; F5 agrega mobile/WhatsApp, reembolso y fondos sin duplicar documentos. |
-| Roles y aprobaciones | ✅ rutas de uno o varios niveles | ✅ empleado, manager, contador y admin | ✅ flujos por área/centro de costo | 🟡 permisos y revisión versionada; faltan grafo de aprobación, delegación, SLA y segregación hasta pago. |
+| Roles y aprobaciones | ✅ rutas de uno o varios niveles | ✅ empleado, manager, contador y admin | ✅ flujos por área/centro de costo | 🟡 preparación con `finance.edit` y aprobación final owner/admin; faltan grafo multinivel, delegación, SLA y segregación hasta pago. |
 | ERP y auditoría | ✅ REST/WebServices/CSV/TXT/SFTP y asiento | ✅ reporte de pago y multi-entidad | ✅ API/exportaciones e integraciones | 🟡 Core y audit log propios; F5 agrega Finance Connect, exportación idempotente y reconciliación. |
 | Tarjeta/custodia/viajes | ✅ producto principal | ✅ tarjeta corporativa | 🔴 usa tarjetas existentes; sí viáticos | 🔴 fuera de F3/F5 salvo demanda, partner regulado, economics y revisión legal. |
 
@@ -377,13 +385,13 @@ necesita un SaaS de 4 organizaciones. No es el cuello de botella.
 | **Observabilidad** | 🟡 Sentry en front, Merchant 360 y traza correlacionada del pago desde checkout hasta ledger, visible con RLS y sin PII. Faltan métricas/SLO, OpenTelemetry, alertas y health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ Deno para 65 Edge Functions + lint + typecheck + build, 1.461 tests, audit y 42 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
+| **CI** | ✅ Deno para 65 Edge Functions + lint + typecheck + build, 1.469 tests, audit y 42 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
 | **API pública / webhooks salientes** | 🔴 No hay | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
 | **SOC 2 / ISO 27001** | 🔴 | Requisito para vender a empresas | 🟢 Bajo hoy |
 
-✅ **El agujero de Edge Functions quedó cerrado el 2026-08-21.** Los 1.461 tests
+✅ **El agujero de Edge Functions quedó cerrado el 2026-08-21.** Los 1.469 tests
 corren en un job separado y `security` mantiene `npm audit` bloqueante para
 vulnerabilidades críticas. El job `build` instala Deno y ejecuta
 `npm run check:functions`: descubre los 65 `index.ts` del filesystem, por lo que
@@ -543,14 +551,14 @@ versión y auditoría antes de conectarse a IA o a un efecto financiero.
   temas es un compromiso de compatibilidad para siempre.
 - **Multi-idioma y multi-moneda.** No hay demanda medida.
 - **Más features de ERP.** El modo de falla de este proyecto no es quedarse
-  corto: es agregar. Ya hay 285 tablas para 34 ventas.
+  corto: es agregar. Ya hay 308 tablas para 34 ventas.
 
 ---
 
 ## 8. El resumen en cinco líneas
 
 1. ✅ **Técnicamente estamos mejor de lo que corresponde a nuestro tamaño**: RLS
-   real, ledger, outbox, idempotencia, 1.461 tests y typecheck de 65 funciones.
+   real, ledger, outbox, idempotencia, 1.469 tests y typecheck de 65 funciones.
 2. ✅ **Comercialmente no existimos todavía**: 1 comercio, 0 facturas, 0
    asientos, 0 suscripciones cobradas.
 3. ⚠️ **Perdimos el diferencial del POS** — Tiendanube ya lo tiene.

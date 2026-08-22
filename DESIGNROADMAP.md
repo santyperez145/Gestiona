@@ -112,7 +112,7 @@ usa en material de producto o inversión.
 | Inventario/Compras | Sistema heredado bajo tokens v3. | Parcial | Composición lista/detalle y estados. |
 | Reportes/Intelligence | Primitives compartidos, alta densidad histórica. | Parcial | Simplificar filtros y priorizar decisión. |
 | Settings/Integraciones | Cabecera y navegación común. | Parcial | Formularios, secretos y permisos. |
-| Finance | Shell teal, overview, Document Inbox, inspector, confianza y editor de revisión. | Parcial | Proveedor aprobado + prueba responsive con documentos reales. |
+| Finance | Shell teal, overview, Document Inbox, inspector, confidence, matching y aprobación de tres borradores. | Parcial | Proveedor aprobado + prueba responsive con documentos reales. |
 | Platform | Rail/control plane violeta y Merchant 360. | Parcial | Cola, métricas y soporte mobile. |
 | Storefront | Marca configurable aislada del SaaS. | Parcial | Home, PDP, carrito y checkout completo. |
 | Estados públicos | Pago, tracking, legales, invitación. | Parcial | Sistema público y accesibilidad. |
@@ -284,7 +284,7 @@ declara validado porque “se ve mejor”.
 | 11 | Compras, recepción y Kardex | Pendiente | Autoridad de stock visible. |
 | 12 | Reportes orientados a decisión | Pendiente | Menos filtros duplicados; acción clara. |
 | 13 | Settings e Integraciones | Pendiente | Secretos, permisos y estados consistentes. |
-| 14 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión estructurada y matching exacto/ambiguo visibles; falta proveedor OCR aprobado, drafts y validación responsive con documentos reales. |
+| 14 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos y aprobación/resultado usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
 | 15 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
 | 16 | Storefront home/PLP/PDP | Pendiente | Marca, performance y mobile aprobados. |
 | 17 | Carrito/checkout/pago | Pendiente | Compra completa 360 px/red lenta. |

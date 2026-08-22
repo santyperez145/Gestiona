@@ -11928,6 +11928,138 @@ export type Database = {
           },
         ]
       }
+      finance_payable_drafts: {
+        Row: {
+          amount_ars: number | null
+          amount_original: number | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          currency: string | null
+          due_date: string | null
+          exchange_rate: number | null
+          id: string
+          invoice_draft_id: string
+          org_id: string
+          status: string
+          supplier_debt_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_ars?: number | null
+          amount_original?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string | null
+          due_date?: string | null
+          exchange_rate?: number | null
+          id?: string
+          invoice_draft_id: string
+          org_id: string
+          status?: string
+          supplier_debt_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_ars?: number | null
+          amount_original?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string | null
+          due_date?: string | null
+          exchange_rate?: number | null
+          id?: string
+          invoice_draft_id?: string
+          org_id?: string
+          status?: string
+          supplier_debt_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_payable_drafts_debt_org_fk"
+            columns: ["supplier_debt_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_debts"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_payable_drafts_invoice_org_fk"
+            columns: ["invoice_draft_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "finance_supplier_invoice_drafts"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_payable_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_payable_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_payable_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_payable_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_payable_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_payable_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_payable_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_payable_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_payable_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       finance_product_aliases: {
         Row: {
           alias_type: string
@@ -12104,6 +12236,295 @@ export type Database = {
           },
         ]
       }
+      finance_purchase_draft_lines: {
+        Row: {
+          disposition: string
+          extracted_description: string
+          extracted_sku: string | null
+          id: string
+          line_number: number
+          line_total: number | null
+          org_id: string
+          product_id: string | null
+          purchase_draft_id: string
+          quantity: number | null
+          tax_rate: number | null
+          unit_cost: number | null
+        }
+        Insert: {
+          disposition?: string
+          extracted_description: string
+          extracted_sku?: string | null
+          id?: string
+          line_number: number
+          line_total?: number | null
+          org_id: string
+          product_id?: string | null
+          purchase_draft_id: string
+          quantity?: number | null
+          tax_rate?: number | null
+          unit_cost?: number | null
+        }
+        Update: {
+          disposition?: string
+          extracted_description?: string
+          extracted_sku?: string | null
+          id?: string
+          line_number?: number
+          line_total?: number | null
+          org_id?: string
+          product_id?: string | null
+          purchase_draft_id?: string
+          quantity?: number | null
+          tax_rate?: number | null
+          unit_cost?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_purchase_draft_lines_draft_org_fk"
+            columns: ["purchase_draft_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "finance_purchase_drafts"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "product_identity_review"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      finance_purchase_drafts: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          id: string
+          invoice_draft_id: string
+          org_id: string
+          purchase_order_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          invoice_draft_id: string
+          org_id: string
+          purchase_order_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          invoice_draft_id?: string
+          org_id?: string
+          purchase_order_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_purchase_drafts_invoice_org_fk"
+            columns: ["invoice_draft_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "finance_supplier_invoice_drafts"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_drafts_order_org_fk"
+            columns: ["purchase_order_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       finance_supplier_aliases: {
         Row: {
           alias_type: string
@@ -12214,6 +12635,183 @@ export type Database = {
           },
           {
             foreignKeyName: "finance_supplier_aliases_supplier_org_fk"
+            columns: ["supplier_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      finance_supplier_invoice_drafts: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          currency: string | null
+          document_id: string
+          document_number: string | null
+          extraction_id: string
+          id: string
+          issue_date: string | null
+          match_run_id: string
+          normalized_document_number: string | null
+          org_id: string
+          revision_id: string
+          revision_number: number
+          status: string
+          subtotal: number | null
+          supplier_id: string
+          supplier_name: string
+          supplier_tax_id: string | null
+          tax_total: number | null
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string | null
+          document_id: string
+          document_number?: string | null
+          extraction_id: string
+          id?: string
+          issue_date?: string | null
+          match_run_id: string
+          normalized_document_number?: string | null
+          org_id: string
+          revision_id: string
+          revision_number: number
+          status?: string
+          subtotal?: number | null
+          supplier_id: string
+          supplier_name: string
+          supplier_tax_id?: string | null
+          tax_total?: number | null
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string | null
+          document_id?: string
+          document_number?: string | null
+          extraction_id?: string
+          id?: string
+          issue_date?: string | null
+          match_run_id?: string
+          normalized_document_number?: string | null
+          org_id?: string
+          revision_id?: string
+          revision_number?: number
+          status?: string
+          subtotal?: number | null
+          supplier_id?: string
+          supplier_name?: string
+          supplier_tax_id?: string | null
+          tax_total?: number | null
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_document_org_fk"
+            columns: ["document_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "finance_documents"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_extraction_org_fk"
+            columns: ["extraction_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "finance_document_extractions"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_match_org_fk"
+            columns: ["match_run_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "finance_document_match_runs"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_revision_org_fk"
+            columns: ["revision_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "finance_document_extraction_revisions"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_supplier_invoice_drafts_supplier_org_fk"
             columns: ["supplier_id", "org_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
@@ -41316,6 +41914,15 @@ export type Database = {
           suppliers_count: number
         }[]
       }
+      finance_document_approve_drafts: {
+        Args: {
+          p_due_date: string
+          p_exchange_rate: number
+          p_invoice_draft_id: string
+          p_lines: Json
+        }
+        Returns: Json
+      }
       finance_document_begin_extraction: {
         Args: { p_document_id: string; p_version_id: string }
         Returns: {
@@ -41392,6 +41999,10 @@ export type Database = {
         Args: { p_lines: Json; p_match_run_id: string; p_supplier_id: string }
         Returns: Json
       }
+      finance_document_create_drafts: {
+        Args: { p_extraction_id: string }
+        Returns: Json
+      }
       finance_document_create_upload: {
         Args: {
           p_document_type: string
@@ -41434,6 +42045,10 @@ export type Database = {
           upload_status: string
           version_id: string
         }[]
+      }
+      finance_document_get_drafts: {
+        Args: { p_extraction_id: string }
+        Returns: Json
       }
       finance_document_get_matching: {
         Args: { p_extraction_id: string }
