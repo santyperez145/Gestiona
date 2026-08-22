@@ -126,7 +126,7 @@ guardas.
 
 ## 3. Contra quién se compite, honestamente
 
-✅ / ❓ **Mapa actualizado el 2026-08-22.** Tiendanube, Shopify y Odoo se
+✅ / ❓ **Mapa actualizado el 2026-08-22.** Tiendanube, Shopify, Odoo y QuickBooks se
 contrastaron con sus fuentes oficiales; las demás filas siguen siendo hipótesis
 del análisis externo y no se usan como hechos en una presentación hasta
 verificarlas.
@@ -140,6 +140,7 @@ verificarlas.
 | **Max24** | POS + stock + tienda + ARCA. ~1.200 tiendas. | ❓ |
 | **Shopify** | ✅ Sus reportes de rentabilidad cubren producto, orden y mercado; en orden/mercado contemplan producto, envío, aranceles e impuestos. La ayuda advierte que `Cost per item` es estático y exige haberlo cargado al vender. | ✅ [Profit reports](https://help.shopify.com/en/manual/reports-and-analytics/shopify-reports/report-types/default-reports/profit-reports), verificado 2026-08-22 |
 | **Odoo** | ✅ Margen por línea y pedido desde precio de venta menos costo del producto, incluyendo el efecto de tarifas y descuentos. | ✅ [Márgenes](https://www.odoo.com/documentation/18.0/es/applications/sales/sales/sales_quotations/margin.html), verificado 2026-08-22 |
+| **QuickBooks** | ✅ Recibe comprobantes por web, móvil o email, extrae datos, deja revisar/matchear y separa roles de carga, aprobación y pago en Bill Pay. | ✅ [Captura y revisión](https://quickbooks.intuit.com/learn-support/en-uk/help-article/import-transactions/upload-receipts-bills-quickbooks-online/L862MmZHn_GB_en_GB) y [aprobaciones](https://quickbooks.intuit.com/learn-support/en-us/help-article/manage-workflows/set-use-bill-approval-payment-release-workflows/L1IOLL9hv_US_en_US), verificado 2026-08-22 |
 | **Lightspeed / Cin7** | Referencias de producto, no competidores directos en este mercado. | ❓ |
 
 ✅ **Conclusión ya verificable:** la categoría omnicanal existe y Tiendanube
@@ -184,6 +185,15 @@ Fixture real con rollback: ARS 3.000 → ARS 2.700, cobertura 100% en ambas
 ventanas, conflicto ARS 2.600 bloqueado, reversión exacta, outsider/restos 0.
 Producción: 25 recomendaciones descartadas, 0 aplicadas y 0 outcomes; el valor
 comercial sigue sin validar. Contrato y fuentes: [PRICE_IMPACT_LOOP.md](PRICE_IMPACT_LOOP.md).
+
+✅ **Finance como producto, 2026-08-22:** Odoo y QuickBooks confirman que OCR,
+review, matching y aprobaciones son paridad. Gestiona cerró primero el límite que
+faltaba: `/finance` tiene chrome propio, misma identidad/organización,
+entitlement separado de `finance.view` y decisión Platform auditada. Su resumen
+lee proveedores, órdenes, obligaciones y ledger del Core existente mediante RPC,
+sin duplicarlos. Producción: 4 organizaciones con Finance disponible, 0
+solicitudes y 0 habilitaciones. Esto prueba arquitectura, no adopción. Contrato y
+fuentes: [ADR 001](ADR_001_FINANCE_PRODUCT_SURFACE.md).
 
 ✅ **Benchmark económico agregado el 2026-08-21:** la comparación de pricing
 no se usa para decir “somos más baratos”. Se usa para probar que el costo total

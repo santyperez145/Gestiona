@@ -117,6 +117,7 @@ La topología actual se conserva:
 | Superficie | Ruta actual | Usuario | Límite |
 |---|---|---|---|
 | Organización | / | Miembros del comercio | AppLayout; no hereda permisos de Platform. |
+| Finance | /finance | Miembros con producto + `finance.view` | FinanceLayout; misma identidad/organización, sin heredar onboarding de Business. |
 | Plataforma | /platform | Staff de Gestiona | PlatformLayout, MFA y auditoría. |
 | Tienda pública | /tienda/:slug | Comprador | StoreLayout y superficie pública mínima. |
 
@@ -146,7 +147,7 @@ comparativas fechadas y con fuente oficial viven en docs/ESTRATEGIA.md.
 | Commerce | Checkout, dominio, SEO, temas, migración, rendimiento y extensibilidad. | Costo y margen del mismo Core que ejecuta la venta. |
 | Margen y rentabilidad | Shopify ya reporta profit por producto/orden/mercado y Odoo margen por línea/pedido; tener un reporte es paridad, no ventaja. | Cuatro fuentes persistidas —costo histórico, cobro, envío real e IVA— por venta/canal/operación, con mix, promoción y devoluciones. El POS ahora convierte cada parte del cobro en evidencia conciliable y bloquea el ticket mientras falte el arancel; la autoridad existe, pero su impacto todavía debe probarse con una decisión real. |
 | Marketplace | Sincronización de catálogo, stock, órdenes y postventa. | Sistema neutral que decide canal por margen, capital y disponibilidad. |
-| Spend / Finance | Ingesta, extracción, duplicados, aprobaciones y conciliación. | Finance comparte proveedor, producto, compra, stock y ledger nativos. |
+| Spend / Finance | Odoo y QuickBooks ya reciben PDF/imagen/email, extraen, muestran revisión y buscan coincidencias; QuickBooks además separa carga, aprobación y pago. | Finance comparte proveedor, producto, compra, stock y ledger nativos. La primera superficie ya separa entitlement de permisos y no llama “Finance” al OCR precursor; falta demostrar la cadena documento → borradores aprobados. |
 | IA | Asistencia dentro del flujo real. | Recomendación → aprobación → acción → resultado verificado. |
 | Plataforma | Health, replay, incidentes, soporte y billing. | Evidencia por merchant sin exponer secretos ni datos crudos. |
 | Monetización | Precio y costo total de cobro transparentes. | Merchant economics y platform economics separados; contribución y break-even auditables antes de activar pricing. |
@@ -173,7 +174,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.383 tests pasan al 2026-08-22; typecheck, lint y build verdes; 63 Edge Functions verificadas; 41 E2E críticos (32 públicos, 8 de panel y setup autenticado) pasan contra la base real. |
+| Calidad técnica | 1.393 tests pasan al 2026-08-22; typecheck, lint y build verdes; 63 Edge Functions verificadas; 41 E2E críticos (32 públicos, 8 de panel y setup autenticado) pasan contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -186,7 +187,8 @@ usarse en una presentación, valuación o decisión de inversión.
 | Business Profiler | La migración `20260822000001` declara 7 perfiles, 8 tipos y 28 atributos sobre `product_types`; onboarding y reconfiguración pasan por RPC owner/admin, son atómicos e idempotentes y preservan colisiones `custom`. Verificación real: 1 tipo/4 atributos, retry 0/0, outsider bloqueado y 0 restos. Línea de base tras rollback: 0 organizaciones configuradas y 0 tipos, por lo que todavía no es adopción. |
 | Soporte consentido | `20260822000002` reemplaza magic links de impersonación por solicitud Support → aprobación owner → snapshot sanitizado con expiración por lectura. Retry de solicitud conserva 1 ID; retry de aprobación no extiende la ventana; outsider bloqueado; 2 vistas auditadas; revocación efectiva y 0 restos. Línea de base: 0 solicitudes reales/0 diagnósticos consumidos. |
 | Alta de comercios | `20260822000003` reemplaza escrituras parciales por un RPC superadmin: identidad técnica sin workspace prematuro; 1 org/owner/trial/settings/auditoría; retry conserva `org_id`; key con datos distintos, owner existente y outsider bloqueados; organización previa idéntica y 0 restos. El acceso se envía por email sin exponer enlace. Base real: 4 organizaciones; el segundo merchant aún no existe. |
-| Finance precursor | OCR prellena una orden de compra; todavía no cumple cadena de custodia, validación, matching, duplicados, aprobación ni payable draft. |
+| Finance surface | `20260822000008` agrega `/finance`, `FinanceLayout`, entitlement separado de `finance.view`, solicitud tenant, decisión Platform auditada y snapshot agregado de proveedores/órdenes/obligaciones/ledger existentes. Fixture real: owner solicita pero no autoaprueba; staff finance habilita/deshabilita; permiso, outsider y anon bloqueados; 3 eventos append-only y restos 0. Base: Business habilitado 4/4; Finance disponible 4/4, 0 solicitudes y 0 habilitaciones. |
+| Finance precursor | El OCR anterior prellena una orden de compra y producción mostró un esquema distinto al archivo histórico (`extracted`, sin `document_type`). Sigue fuera del producto Finance: no cumple cadena de custodia, validación, matching, duplicados, aprobación ni payable draft. |
 | Storefront | Funcional, pero aún comparte aplicación/ciclo de despliegue con el panel; falta aislamiento, dominios y carrito persistente completo. |
 | Recuperación | Backups programados y restore drill de datos aprobado el 2026-08-21: snapshot v3, 147 tablas / 63 filas, 937,22 ms y cero restos. Falta reconstrucción completa para RTO/RPO contractual. |
 | Observabilidad | Pagos ya conserva una correlación de checkout a ledger y ofrece timeline sin PII; faltan métricas/SLO, health checks activos y extender el contrato a los demás flujos críticos. |
@@ -205,6 +207,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Intelligence | Varias funciones y recomendadores. | Acciones adoptadas con impacto económico atribuible. |
 | Control Plane | Superficie operativa profesional en construcción. | Menor MTTR y menor intervención manual medidos. |
 | Finance OCR | Extracción/prellenado parcial. | Documento auditable que termina en compra/deuda correcta. |
+| Finance product surface | Ruta, chrome, sesión compartida, entitlement, permiso y snapshot del Core. | Primer comercio habilitado y primer documento procesado; 0 adopción real al corte. |
 
 ### Bloqueos externos vigentes
 
@@ -463,8 +466,14 @@ protegido/creado verificable y tiempo entre hallazgo y acción.
 
 **Entregables**
 
-- ADR de acceso por producto, roles, segregación y sesión.
-- Finance app/surface sobre identidad y organización compartidas.
+- ~~ADR de acceso por producto, roles, segregación y sesión.~~ **Entregado
+  2026-08-22:** entitlement comercial, `finance.view` y feature flags quedan
+  separados; misma sesión/organización con MFA y chrome propio; staff de Platform
+  sin membresía no ingresa al tenant.
+- ~~Finance app/surface sobre identidad y organización compartidas.~~ **Entregado
+  2026-08-22:** `/finance` tiene resumen y contrato de Document Inbox; consume un
+  RPC agregado sobre proveedores, órdenes, obligaciones y ledger del Business
+  Core, sin tablas paralelas ni joins del navegador.
 - Document Inbox con storage privado, original inmutable y versiones.
 - MIME, tamaño, malware/cuarentena y hash SHA-256.
 - Extracción estructurada mediante proveedor intercambiable.
@@ -478,6 +487,14 @@ protegido/creado verificable y tiempo entre hallazgo y acción.
 
 **No incluye:** pagos autónomos, contabilidad completa, conciliación masiva ni
 actualización automática de precios.
+
+**Entregado 2026-08-22, límite de producto:** el owner/admin puede solicitar
+Finance, pero no autoaprobarlo; sólo staff `finance`/`superadmin` decide desde
+Merchant 360 y cada transición queda tanto en eventos append-only como en la
+auditoría de plataforma. La base real tiene 4 Business habilitados y 4 Finance
+disponibles, con 0 solicitudes/habilitaciones: existe el producto técnico, no su
+adopción. Odoo/QuickBooks confirman que OCR, review y matching son paridad; el
+siguiente gate es cadena de custodia y borradores conectados al Core.
 
 **Salida:** un conjunto de facturas reales completa ingreso → extracción →
 validación → matching → aprobación → compra/deuda sin SQL, duplicación ni
@@ -625,7 +642,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 11 | Margin facts canónicos | F2 | **Cerrado 2026-08-22:** 34/34 líneas visibles; cuatro componentes con fuente, asignación exacta, cobertura y RLS; Analytics y Merchant 360 consumen la autoridad | Cobertura y fuentes reconciliadas por operación. Base inicial: 0 completas y 2,9% promedio; no se reconstruyó historia inexistente. |
 | 12 | Margen SKU/orden/canal/pago/promoción | F2 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** producto × canal y operación usan hechos canónicos. Venta v3 conserva total descontado + baseline y crea partes de cobro; split parcial bloquea, conciliación real calcula neto/asiento/auditoría. Fixture: ARS 2.700, mix 1.200/1.500, fee 121, asiento balanceado, cobertura 100%, outsider/restos 0 | Registrar y conciliar una venta POS real nueva; validar que el merchant usa la explicación sin doble conteo. |
 | 13 | Pricing proposal e impact outcome | F2 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** aprobación server-side, baseline canónica, costo revalidado, medición no causal, reversión con guard, auditoría y RLS. Fixture 3.000→2.700 con cobertura 100%, conflicto protegido y restos 0. Producción: 0/25 aplicadas | Merchant aplica una propuesta real; ventana madura con 100% de cobertura y decide mantener/revertir usando el resultado. |
-| 14 | Finance ADR, shell y acceso por producto | F3 | Pendiente; OCR actual no equivale a Finance | ADR de permisos/sesión y superficie navegable. |
+| 14 | Finance ADR, shell y acceso por producto | F3 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** `/finance`, chrome propio, sesión/org compartidas, entitlement ≠ permiso ≠ flag, solicitud y aprobación auditada. Snapshot prueba que no duplica el Core. Fixture owner/platform/outsider/anon y restos 0; producción 0/4 habilitadas | Un comercio solicita/recibe acceso y navega Finance con su rol real; medir solicitud → habilitación. |
 | 15 | Document storage seguro y versiones | F3 | Pendiente | Original privado, hash, cuarentena y auditoría. |
 | 16 | Extracción estructurada y confidence | F3 | Precursor parcial | Campos versionados, validadores y revisión por umbral. |
 | 17 | Supplier/product matching y alias memory | F3 | Pendiente | Confirmación aprendida resuelve la siguiente factura. |
@@ -681,9 +698,19 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     revalidados en servidor, outcome observacional, guard de concurrencia,
     auditoría/RLS y cero restos. Sigue abierto el gate comercial: producción
     tiene 25 recomendaciones descartadas, 0 aplicadas y 0 outcomes.
+17. ~~ADR, shell y acceso por producto de Gestiona Finance~~ — cerrado
+    técnicamente el 2026-08-22: `/finance` usa sesión/organización compartidas,
+    entitlement y `finance.view` independientes, decisión Platform auditada y
+    snapshot agregado del mismo proveedor/compra/obligación/ledger. Producción:
+    4 disponibles, 0 solicitadas, 0 habilitadas.
+18. Document Inbox seguro: bucket privado, original inmutable, hash SHA-256,
+    MIME/tamaño reales, cuarentena, versiones y auditoría antes de invocar OCR.
 
-No se abre Finance MVP ni se separa Storefront antes de cerrar o demostrar que
-estas tareas no pueden avanzar.
+Los gates comerciales previos quedaron demostrados como externos al código: el
+segundo comercio requiere founder-led sales, la operación de margen requiere una
+venta/control real y el impact event requiere una decisión del merchant. Eso
+habilita F3 sin declararlos cerrados. No se separa Storefront ni se salta a F4
+antes de cerrar el Document Inbox y el flujo Finance aprobado.
 
 ## 8. Modelo económico objetivo
 
@@ -857,10 +884,12 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-22: 1.383 tests, 63 funciones verificadas
+- Build y suites locales del 2026-08-22: 1.393 tests, 63 funciones verificadas
   y 41 E2E críticos contra la base real.
 - docs/PRICE_IMPACT_LOOP.md: benchmark oficial, autoridad, reversión y regla de
   no causalidad para propuestas de precio.
+- docs/ADR_001_FINANCE_PRODUCT_SURFACE.md: acceso por producto, sesión,
+  segregación, benchmark Odoo/QuickBooks y línea de base Finance.
 - docs/MARGIN_FACTS.md: contrato de cuatro fuentes, seguridad, línea de base y
   comparación oficial con Shopify/Odoo al 2026-08-22.
 - docs/E2E.md: contrato del gate, puerto estricto, variables obligatorias y

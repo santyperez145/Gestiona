@@ -17,6 +17,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
 import ActivationInterventionsPanel from '@/components/platform/ActivationInterventionsPanel';
 import SupportDiagnosticAccessPanel from '@/components/platform/SupportDiagnosticAccessPanel';
+import ProductAccessPanel from '@/components/platform/ProductAccessPanel';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -187,7 +188,7 @@ export default function PlatformMerchantPage() {
     if (isPlatformStaff && !accessLoading) void load();
   }, [accessLoading, isPlatformStaff, load]);
 
-  const selectedTab = ['overview', 'channels', 'integrations', 'support', 'context'].includes(tab) ? tab : 'overview';
+  const selectedTab = ['overview', 'channels', 'integrations', 'products', 'support', 'context'].includes(tab) ? tab : 'overview';
   const health = snapshot?.health;
   const activation = snapshot?.activation;
   const marginCoverage = snapshot?.marginCoverage;
@@ -338,6 +339,7 @@ export default function PlatformMerchantPage() {
           <TabsTrigger value="overview">Resumen</TabsTrigger>
           <TabsTrigger value="channels">Canales</TabsTrigger>
           <TabsTrigger value="integrations">Integraciones</TabsTrigger>
+          <TabsTrigger value="products">Productos SaaS</TabsTrigger>
           <TabsTrigger value="support">Acompañamiento</TabsTrigger>
           <TabsTrigger value="context">Contexto</TabsTrigger>
         </TabsList>
@@ -560,6 +562,14 @@ export default function PlatformMerchantPage() {
           </section>
 
           <p className="text-[11px] text-muted-foreground/70 px-1">“Conectada” significa que hay configuración registrada, no que el proveedor esté disponible en este instante. “Ejecución reciente” es la última evidencia registrada por un flujo real, no un ping activo. Los health checks activos y los detalles de webhooks siguen en el roadmap.</p>
+        </TabsContent>
+
+        <TabsContent value="products" className="space-y-4">
+          <ProductAccessPanel
+            orgId={snapshot.organization.id}
+            canManage={canPlatform('finance')}
+          />
+          <p className="px-1 text-[11px] text-muted-foreground/70">Habilitar un producto no otorga permisos personales: la organización sigue controlando `finance.view` desde su matriz de roles.</p>
         </TabsContent>
 
         <TabsContent value="support" className="space-y-4">

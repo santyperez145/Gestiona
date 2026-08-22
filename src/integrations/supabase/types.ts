@@ -17791,6 +17791,212 @@ export type Database = {
           },
         ]
       }
+      organization_product_access: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          org_id: string
+          product_key: string
+          requested_at: string | null
+          requested_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          org_id: string
+          product_key: string
+          requested_at?: string | null
+          requested_by?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          org_id?: string
+          product_key?: string
+          requested_at?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_product_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      organization_product_access_events: {
+        Row: {
+          actor_id: string | null
+          actor_surface: string
+          created_at: string
+          event_type: string
+          id: string
+          next_status: string
+          org_id: string
+          previous_status: string | null
+          product_key: string
+          reason: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_surface: string
+          created_at?: string
+          event_type: string
+          id?: string
+          next_status: string
+          org_id: string
+          previous_status?: string | null
+          product_key: string
+          reason?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_surface?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          next_status?: string
+          org_id?: string
+          previous_status?: string | null
+          product_key?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_product_access_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_product_access_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -39777,6 +39983,17 @@ export type Database = {
         Args: { p_default?: boolean; p_flag_key: string; p_org_id?: string }
         Returns: boolean
       }
+      finance_core_snapshot: {
+        Args: { p_org_id: string }
+        Returns: {
+          ledger_entries_count: number
+          open_payables_ars: number
+          open_payables_count: number
+          open_purchase_orders: number
+          precursor_ocr_documents: number
+          suppliers_count: number
+        }[]
+      }
       generate_claim_number: { Args: { p_org_id: string }; Returns: string }
       generate_download_token: { Args: never; Returns: string }
       generate_dropship_number: { Args: { p_org_id: string }; Returns: string }
@@ -40598,6 +40815,16 @@ export type Database = {
         }
         Returns: Json
       }
+      platform_product_access_set: {
+        Args: {
+          p_actor: string
+          p_enabled: boolean
+          p_org_id: string
+          p_product_key: string
+          p_reason: string
+        }
+        Returns: string
+      }
       platform_retry_outbox_delivery: {
         Args: {
           p_admin_email?: string
@@ -40643,6 +40870,18 @@ export type Database = {
       }
       process_whatsapp_unsubscribe: { Args: { p_token: string }; Returns: Json }
       product_import_number: { Args: { p_value: Json }; Returns: number }
+      product_surface_access: {
+        Args: { p_org_id: string; p_product_key: string }
+        Returns: {
+          allowed: boolean
+          blocker: string
+          can_request: boolean
+          decided_at: string
+          product_key: string
+          requested_at: string
+          status: string
+        }[]
+      }
       prorratear: {
         Args: { p_moneda?: string; p_pesos: number[]; p_total: number }
         Returns: number[]
@@ -40825,6 +41064,10 @@ export type Database = {
       }
       renew_subscription: {
         Args: { p_subscription_id: string }
+        Returns: string
+      }
+      request_product_access: {
+        Args: { p_org_id: string; p_product_key: string }
         Returns: string
       }
       request_stock_alert: {

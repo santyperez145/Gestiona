@@ -13,6 +13,8 @@ import AppLayout from "@/components/AppLayout";
 import MfaGate from "@/components/auth/MfaGate";
 import ModuleGuard from "@/components/auth/ModuleGuard";
 import PlatformLayout from "@/components/PlatformLayout";
+import FinanceLayout from "@/components/finance-product/FinanceLayout";
+import FinanceProductGate from "@/components/finance-product/FinanceProductGate";
 import { PermissionsProvider } from "@/lib/permissionsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { hardReload } from "@/lib/hardReload";
@@ -62,6 +64,8 @@ const PlatformCommissionsPage = lazy(() => import("@/pages/PlatformCommissionsPa
 const PlatformBusinessPage = lazy(() => import("@/pages/PlatformBusinessPage"));
 const PlatformAfipPage = lazy(() => import("@/pages/PlatformAfipPage"));
 const PlatformAnnouncementsPage = lazy(() => import("@/pages/PlatformAnnouncementsPage"));
+const FinanceOverviewPage     = lazy(() => import("@/pages/FinanceOverviewPage"));
+const FinanceDocumentsPage    = lazy(() => import("@/pages/FinanceDocumentsPage"));
 const AnalyticsPage          = lazy(() => import("@/pages/AnalyticsPage"));
 const InvoicesPage           = lazy(() => import("@/pages/InvoicesPage"));
 const POSPage                = lazy(() => import("@/pages/POSPage"));
@@ -221,6 +225,55 @@ function PlatformRoutes() {
         </Routes>
       </Suspense>
     </PlatformLayout>
+    </MfaGate>
+  );
+}
+
+/**
+ * Superficie de PRODUCTO Finance.
+ *
+ * Comparte la sesión y la organización con Business, pero no su onboarding ni
+ * su chrome. El RPC `product_surface_access` vuelve a exigir membresía,
+ * entitlement `finance` y permiso `finance.view`; este gate sólo representa el
+ * resultado y nunca es la autoridad.
+ */
+function FinanceRoutes() {
+  const { user, loading: authLoading } = useAuth();
+  const { activeOrg, activeRole, platformRole, loading: orgLoading } = useOrg();
+  const [orgRequiresMfa, setOrgRequiresMfa] = useState(false);
+  const [mfaPolicyLoading, setMfaPolicyLoading] = useState(true);
+
+  useEffect(() => {
+    if (!activeOrg?.id) { setOrgRequiresMfa(false); setMfaPolicyLoading(false); return; }
+    setMfaPolicyLoading(true);
+    supabase.from('settings').select('mfa_required').eq('org_id', activeOrg.id).maybeSingle()
+      .then(
+        ({ data }) => { setOrgRequiresMfa(Boolean(data?.mfa_required)); setMfaPolicyLoading(false); },
+        () => { setOrgRequiresMfa(false); setMfaPolicyLoading(false); },
+      );
+  }, [activeOrg?.id]);
+
+  if (authLoading || orgLoading || mfaPolicyLoading) return <AppLoader label="Verificando acceso a Finance..." />;
+  if (!user) return <AuthPage />;
+  if (!activeOrg || !activeRole) {
+    return platformRole ? <Navigate to="/platform" replace /> : <ViewerGate />;
+  }
+
+  return (
+    <MfaGate isAdmin={activeRole === 'owner' || activeRole === 'admin'} orgRequiresMfa={orgRequiresMfa}>
+      <PermissionsProvider>
+        <FinanceLayout>
+          <FinanceProductGate>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route index element={<FinanceOverviewPage />} />
+                <Route path="documentos" element={<FinanceDocumentsPage />} />
+                <Route path="*" element={<Navigate to="/finance" replace />} />
+              </Routes>
+            </Suspense>
+          </FinanceProductGate>
+        </FinanceLayout>
+      </PermissionsProvider>
     </MfaGate>
   );
 }
@@ -471,6 +524,7 @@ const App = () => (
                 <Route path="/portal-influencer/:token" element={<InfluencerPortalPage />} />
                 <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />
                 <Route path="/platform/*" element={<PlatformRoutes />} />
+                <Route path="/finance/*" element={<FinanceRoutes />} />
                 <Route path="/app/*" element={<ProtectedRoutes />} />
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>

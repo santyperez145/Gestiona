@@ -8,10 +8,10 @@ de pago propio, plataforma abierta— y esa ambición **no se alcanza escribiend
 más features**: se alcanza no cerrándose puertas ahora. Casi todo lo que hay acá
 es barato hoy y carísimo dentro de dos años.
 
-Última revisión: 2026-08-21 (H1–H3 cerrados y endurecidos).
+Última revisión: 2026-08-22 (H1–H3 y límite inicial de Finance cerrados).
 
 ⚠️ **Este documento no autoriza una reescritura.** El sistema funciona, cobra de
-verdad y tiene 1.196 tests (`npm test`, 2026-08-21). Todo se aplica de forma incremental, y cada slice deja
+verdad y tiene 1.393 tests (`npm test`, 2026-08-22). Todo se aplica de forma incremental, y cada slice deja
 el sistema usable.
 
 ---
@@ -233,6 +233,20 @@ Reglas concretas y verificables:
 - **Commerce Core no conoce el rubro.** Nada de ramas por categoría en el
   núcleo. Los verticales aportan atributos y defaults, no `if`.
 - **La UI no hace joins entre dominios.** Si hace falta, es una vista o un RPC.
+
+### 4 bis. Finance como producto, no como Core paralelo
+
+✅ **Límite inicial cerrado el 2026-08-22.** `/finance` tiene chrome propio pero
+comparte `auth.users`, organización, membresía y MFA. El acceso exige dos
+condiciones server-side independientes: la organización tiene el entitlement
+`finance` y la persona tiene `finance.view`. Un feature flag sigue siendo sólo
+un control de rollout y no reemplaza ninguna de las dos.
+
+El snapshot de Finance lee proveedores, órdenes de compra, obligaciones y
+asientos existentes mediante un RPC agregado. No existen `finance_suppliers`,
+`finance_products`, `finance_purchases` ni otro ledger. El OCR viejo se muestra
+como precursor y no como producto terminado. Decisión completa y amenazas en
+[ADR 001](ADR_001_FINANCE_PRODUCT_SURFACE.md).
 
 ---
 

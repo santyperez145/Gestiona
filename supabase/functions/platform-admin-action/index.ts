@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
       getAdminLogs: ["support", "finance"],
       checkSecrets: ["support", "finance"],
       getFeatureFlags: ["support", "finance"],
+      getProductAccess: ["support", "finance"],
       resetUserPassword: ["support"],
       sendOnboardingAccess: ["support"],
       // Facturación / planes
@@ -97,6 +98,7 @@ Deno.serve(async (req) => {
       updatePlan: ["finance"],
       suspendOrg: ["finance"],
       reactivateOrg: ["finance"],
+      setProductAccess: ["finance"],
       // Sin entrada = sólo superadmin: deleteOrg, addPlatformAdmin,
       // removePlatformAdmin, toggleBanUser, updateMemberRole,
       // removeMember, createOrg.
@@ -196,6 +198,44 @@ Deno.serve(async (req) => {
       });
       if (error) return json({ error: error.message }, 409);
       return json({ ok: true, result: data });
+    }
+
+    // ── ACCESO POR PRODUCTO ────────────────────────────────────
+    // Entitlements no son feature flags ni permisos de usuario. Platform decide
+    // si una organización tiene Finance; el tenant decide después quién lo usa
+    // mediante finance.view. La función SQL repite el control del actor y audita
+    // la transición en la misma transacción.
+    if (action === "getProductAccess") {
+      const orgId = typeof body.orgId === "string" && UUID_RE.test(body.orgId) ? body.orgId : "";
+      if (!orgId) return json({ error: "El comercio seleccionado no es válido" }, 400);
+
+      const { data, error } = await admin
+        .from("organization_product_access" as any)
+        .select("product_key,status,requested_at,decided_at,updated_at")
+        .eq("org_id", orgId)
+        .order("product_key");
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true, products: data ?? [] });
+    }
+
+    if (action === "setProductAccess") {
+      const orgId = typeof body.orgId === "string" && UUID_RE.test(body.orgId) ? body.orgId : "";
+      const productKey = typeof body.productKey === "string" ? body.productKey : "";
+      const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+      if (!orgId) return json({ error: "El comercio seleccionado no es válido" }, 400);
+      if (productKey !== "finance") return json({ error: "Producto no reconocido" }, 400);
+      if (typeof body.enabled !== "boolean") return json({ error: "El estado del producto es requerido" }, 400);
+      if (reason.length < 10 || reason.length > 500) return json({ error: "La decisión requiere un motivo de 10 a 500 caracteres" }, 400);
+
+      const { data, error } = await admin.rpc("platform_product_access_set", {
+        p_org_id: orgId,
+        p_product_key: productKey,
+        p_enabled: body.enabled,
+        p_actor: user.id,
+        p_reason: reason,
+      });
+      if (error) return json({ error: error.message }, 409);
+      return json({ ok: true, status: data });
     }
 
     // ── REINTENTO MANUAL DE OUTBOX ────────────────────────────

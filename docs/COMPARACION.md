@@ -238,6 +238,31 @@ locales ([Odoo POS](https://www.odoo.com/documentation/18.0/applications/sales/p
 y su partida doble y asientos de POS ([Odoo Accounting](https://www.odoo.com/documentation/18.0/applications/finance/accounting.html)).
 No se infiere la ausencia de una función cuando no se la relevó.
 
+### 3.5 Finance documental — paridad verificada y límite propio
+
+✅ **Verificado el 2026-08-22 con fuentes oficiales vigentes.** [Odoo 19](https://www.odoo.com/documentation/19.0/applications/finance/accounting/vendor_bills/invoice_digitization.html)
+recibe facturas por carga o email, extrae campos, deja corregirlos y busca una
+orden de compra coincidente. [QuickBooks](https://quickbooks.intuit.com/learn-support/en-uk/help-article/import-transactions/upload-receipts-bills-quickbooks-online/L862MmZHn_GB_en_GB)
+acepta web, móvil y email, extrae y deja el comprobante en “For review” antes de
+agregarlo o emparejarlo. Sus [workflows de Bill Pay](https://quickbooks.intuit.com/learn-support/en-us/help-article/manage-workflows/set-use-bill-approval-payment-release-workflows/L1IOLL9hv_US_en_US)
+separan quien carga, aprueba y paga.
+
+Conclusión: OCR, revisión, matching y aprobaciones son **paridad**, no un claim
+defendible. Gestiona estaba atrás: su OCR sólo prellenaba Compras y ni siquiera
+tenía cadena de custodia.
+
+✅ **Primer límite cerrado.** `/finance` tiene chrome propio, misma identidad y
+organización, y exige entitlement de producto + `finance.view`; ninguno se
+reemplaza por un feature flag. El comercio solicita, Platform aprueba y cada
+transición queda auditada. El resumen consume el proveedor, la orden, la
+obligación y el ledger existentes mediante RPC agregado, sin inventar un Core
+paralelo.
+
+⚠️ **No es todavía un producto validado:** producción tiene 4 organizaciones con
+Finance disponible, 0 solicitudes y 0 habilitaciones. El siguiente gate es
+original privado/inmutable, hash, inspección, versiones y revisión antes de
+conectar extracción.
+
 ---
 
 ## 4. Precios — lo que cobran ellos
@@ -297,13 +322,13 @@ necesita un SaaS de 4 organizaciones. No es el cuello de botella.
 | **Observabilidad** | 🟡 Sentry en front, Merchant 360 y traza correlacionada del pago desde checkout hasta ledger, visible con RLS y sin PII. Faltan métricas/SLO, OpenTelemetry, alertas y health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ 3 jobs: `build` (Deno para 63 Edge Functions + lint+typecheck+build), `test` (1.233 tests) y `security` (`npm audit`). ❓ sin E2E bloqueante | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟠 Medio |
+| **CI** | ✅ Deno para 63 Edge Functions + lint + typecheck + build, 1.393 tests, audit y 41 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
 | **API pública / webhooks salientes** | 🔴 No hay | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
 | **SOC 2 / ISO 27001** | 🔴 | Requisito para vender a empresas | 🟢 Bajo hoy |
 
-✅ **El agujero de Edge Functions quedó cerrado el 2026-08-21.** Los 1.233 tests
+✅ **El agujero de Edge Functions quedó cerrado el 2026-08-21.** Los 1.393 tests
 corren en un job separado y `security` mantiene `npm audit` bloqueante para
 vulnerabilidades críticas. El job `build` instala Deno y ejecuta
 `npm run check:functions`: descubre los 63 `index.ts` del filesystem, por lo que
@@ -311,8 +336,10 @@ una función nueva no puede escapar de la puerta. La primera corrida encontró y
 corrigió 56 errores de tipo reales en ARCA, pagos, cotización, MercadoLibre,
 plataforma y helpers compartidos.
 
-📌 El siguiente hueco de CI es distinto: no hay E2E bloqueante con un usuario de
-prueba. No se declara cerrado hasta que exista configuración segura para ello.
+✅ El E2E bloqueante quedó cerrado el 2026-08-21: setup autenticado obligatorio,
+tienda desktop/móvil y panel son de sólo lectura y bloquean el merge/deploy. El
+siguiente hueco ya no es sumar recorridos por cantidad, sino incorporar cada
+nuevo flujo crítico cuando tenga una acción y datos de prueba seguros.
 
 ### 5.3 El bundle
 
@@ -403,17 +430,18 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
 ## 8. El resumen en cinco líneas
 
 1. ✅ **Técnicamente estamos mejor de lo que corresponde a nuestro tamaño**: RLS
-   real, ledger, outbox, idempotencia, 1.233 tests y typecheck de 63 funciones.
+   real, ledger, outbox, idempotencia, 1.393 tests y typecheck de 63 funciones.
 2. ✅ **Comercialmente no existimos todavía**: 1 comercio, 0 facturas, 0
    asientos, 0 suscripciones cobradas.
 3. ⚠️ **Perdimos el diferencial del POS** — Tiendanube ya lo tiene.
 4. ✅ **Ganamos uno mejor**: facturación ARCA nativa sin certificado por comercio
    y margen real con los cuatro datos. Falta probarlo en producción.
-5. ⚠️ **El riesgo barato que sigue abierto** es E2E bloqueante, restore probado
-   y factura real: el typecheck de las 63 Edge Functions ya está en CI, pero no
-   reemplaza evidencia de operación.
+5. ⚠️ **El riesgo principal ya es evidencia comercial:** factura productiva,
+   segundo comercio, una decisión de margen aplicada y el primer documento
+   Finance aprobado. CI y restore de datos están cerrados para su alcance, pero
+   no reemplazan esas operaciones reales.
 
 ---
 
 *Consultas usadas para los números de §1 y §2: `supabase/verificaciones/`. Para
-regenerar, ver `docs/consultas/escala.sql`. Última revisión: 2026-08-21.*
+regenerar, ver `docs/consultas/escala.sql`. Última revisión: 2026-08-22.*

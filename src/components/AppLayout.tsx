@@ -345,6 +345,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <OrgSwitcher collapsed={effectiveCollapsed} />
           <NotificationBell collapsed={effectiveCollapsed} />
           <ThemeToggle collapsed={effectiveCollapsed} />
+          {role === 'admin' && forModule('finance').canView && (
+            <Link
+              to="/finance"
+              title={effectiveCollapsed ? 'Gestiona Finance' : undefined}
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium transition-all duration-150 w-full border border-transparent ${
+                effectiveCollapsed ? 'justify-center' : ''
+              } text-teal-600/80 hover:bg-teal-500/10 hover:text-teal-700 hover:border-teal-500/25 dark:text-teal-300/70 dark:hover:text-teal-200`}
+            >
+              <Receipt className="w-3.5 h-3.5 shrink-0" />
+              {!effectiveCollapsed && <span>Gestiona Finance</span>}
+            </Link>
+          )}
           {isPlatformAdmin && (
             <Link
               to="/platform"
