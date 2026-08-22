@@ -136,6 +136,13 @@ export type Database = {
             foreignKeyName: "activation_interventions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -220,6 +227,13 @@ export type Database = {
             columns: ["target_org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "admin_audit_logs_target_org_id_fkey"
+            columns: ["target_org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -345,6 +359,13 @@ export type Database = {
             foreignKeyName: "affiliate_conversions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_conversions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -359,6 +380,13 @@ export type Database = {
             foreignKeyName: "affiliate_conversions_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "_sale_margin_facts_source"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "affiliate_conversions_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "sale_items"
             referencedColumns: ["id"]
           },
@@ -367,6 +395,13 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "affiliate_conversions_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_margin_facts"
             referencedColumns: ["sale_id"]
           },
           {
@@ -503,6 +538,13 @@ export type Database = {
             foreignKeyName: "affiliate_partners_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_partners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -602,6 +644,13 @@ export type Database = {
             foreignKeyName: "affiliate_payouts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "affiliate_payouts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -684,6 +733,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_alicuotas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -831,6 +887,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_authorization_locks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -991,6 +1054,13 @@ export type Database = {
             foreignKeyName: "afip_comprobantes_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_comprobantes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -1090,6 +1160,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_config_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -1204,6 +1281,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_credentials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -1393,6 +1477,13 @@ export type Database = {
             foreignKeyName: "ai_chat_messages_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_chat_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -1512,6 +1603,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_chat_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -1674,6 +1772,13 @@ export type Database = {
             foreignKeyName: "ai_prompts_library_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_prompts_library_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -1788,6 +1893,13 @@ export type Database = {
             foreignKeyName: "ai_recommendations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_recommendations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -1878,6 +1990,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ai_usage_stats_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -1986,6 +2105,13 @@ export type Database = {
             foreignKeyName: "alert_events_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "alert_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -2083,6 +2209,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "alert_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -2209,6 +2342,13 @@ export type Database = {
             foreignKeyName: "anomaly_detections_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "anomaly_detections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -2311,6 +2451,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -2420,6 +2567,13 @@ export type Database = {
             foreignKeyName: "asset_depreciation_entries_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "asset_depreciation_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -2519,6 +2673,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "attribute_definitions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -2694,6 +2855,13 @@ export type Database = {
             foreignKeyName: "automation_flows_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_flows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -2791,6 +2959,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "automation_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -2896,6 +3071,13 @@ export type Database = {
             foreignKeyName: "bank_transactions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -2984,6 +3166,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "batch_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -3086,6 +3275,13 @@ export type Database = {
             foreignKeyName: "bi_snapshots_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bi_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -3171,6 +3367,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "bin_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -3371,6 +3574,13 @@ export type Database = {
             foreignKeyName: "breakeven_analysis_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "breakeven_analysis_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -3465,6 +3675,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budget_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -3571,6 +3788,13 @@ export type Database = {
             foreignKeyName: "budget_transactions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budget_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -3665,6 +3889,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "budgets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -3861,6 +4092,13 @@ export type Database = {
             foreignKeyName: "carriers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "carriers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -3954,6 +4192,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -4073,6 +4318,13 @@ export type Database = {
             foreignKeyName: "cash_projections_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_projections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -4176,6 +4428,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -4290,6 +4549,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cashflow_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -4455,6 +4721,13 @@ export type Database = {
             foreignKeyName: "cheques_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cheques_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -4536,6 +4809,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "content_ideas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -4700,6 +4980,13 @@ export type Database = {
             foreignKeyName: "contracts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -4828,6 +5115,13 @@ export type Database = {
             foreignKeyName: "coupon_usages_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -4946,6 +5240,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -5081,6 +5382,13 @@ export type Database = {
             foreignKeyName: "crm_activities_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_activities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -5200,6 +5508,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_contacts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -5364,6 +5679,13 @@ export type Database = {
             foreignKeyName: "crm_deals_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -5491,6 +5813,13 @@ export type Database = {
             foreignKeyName: "crm_followups_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_followups_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -5575,6 +5904,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_pipelines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -5671,6 +6007,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_stages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -5783,6 +6126,13 @@ export type Database = {
             foreignKeyName: "currency_price_updates_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "currency_price_updates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -5873,6 +6223,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "custom_field_defs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -5989,6 +6346,13 @@ export type Database = {
             foreignKeyName: "customer_communications_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_communications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -6070,6 +6434,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_notes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -6179,8 +6550,22 @@ export type Database = {
             foreignKeyName: "customer_payments_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "_sale_margin_facts_source"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "customer_payments_sale_id_fkey"
@@ -6194,6 +6579,13 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "customer_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_margin_facts"
             referencedColumns: ["sale_id"]
           },
           {
@@ -6303,8 +6695,22 @@ export type Database = {
             foreignKeyName: "customer_referrals_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_referrals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_referrals_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "_sale_margin_facts_source"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "customer_referrals_sale_id_fkey"
@@ -6318,6 +6724,13 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "customer_referrals_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_margin_facts"
             referencedColumns: ["sale_id"]
           },
           {
@@ -6476,6 +6889,13 @@ export type Database = {
             foreignKeyName: "customer_segments_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_segments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -6607,6 +7027,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -6755,6 +7182,13 @@ export type Database = {
             foreignKeyName: "customers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -6853,6 +7287,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_activities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -6980,6 +7421,13 @@ export type Database = {
             foreignKeyName: "deal_outcomes_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_outcomes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -7082,6 +7530,13 @@ export type Database = {
             foreignKeyName: "deals_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -7176,6 +7631,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "debt_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -7307,8 +7769,22 @@ export type Database = {
             foreignKeyName: "debts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "debts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "debts_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "_sale_margin_facts_source"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "debts_sale_id_fkey"
@@ -7322,6 +7798,13 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "debts_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_margin_facts"
             referencedColumns: ["sale_id"]
           },
           {
@@ -7515,8 +7998,22 @@ export type Database = {
             foreignKeyName: "deliveries_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deliveries_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "_sale_margin_facts_source"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "deliveries_sale_id_fkey"
@@ -7530,6 +8027,13 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "deliveries_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_margin_facts"
             referencedColumns: ["sale_id"]
           },
           {
@@ -7692,6 +8196,13 @@ export type Database = {
             foreignKeyName: "demand_forecasts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "demand_forecasts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -7838,6 +8349,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "demand_signals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -7991,6 +8509,13 @@ export type Database = {
             foreignKeyName: "document_access_log_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_access_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -8072,6 +8597,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -8178,6 +8710,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -8326,6 +8865,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -8605,6 +9151,13 @@ export type Database = {
             foreignKeyName: "drip_sequences_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "drip_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -8804,6 +9357,13 @@ export type Database = {
             foreignKeyName: "ecommerce_cart_sessions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_cart_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -8918,6 +9478,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -9199,6 +9766,13 @@ export type Database = {
             foreignKeyName: "ecommerce_orders_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -9439,6 +10013,13 @@ export type Database = {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_stores_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -9550,6 +10131,13 @@ export type Database = {
             foreignKeyName: "email_campaigns_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -9641,6 +10229,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -9746,6 +10341,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "email_unsubscribes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -9872,6 +10474,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "evolution_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -10010,6 +10619,13 @@ export type Database = {
             foreignKeyName: "exchange_rates_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "exchange_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -10131,6 +10747,13 @@ export type Database = {
             foreignKeyName: "expenses_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "expenses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -10215,6 +10838,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "feature_flag_overrides_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -10320,6 +10950,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_line_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -10471,6 +11108,13 @@ export type Database = {
             foreignKeyName: "financial_movements_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -10570,6 +11214,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "financial_scenarios_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -10714,6 +11365,13 @@ export type Database = {
             foreignKeyName: "fixed_assets_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -10805,6 +11463,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "forecast_accuracy_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -10907,6 +11572,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "forecast_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -11059,6 +11731,13 @@ export type Database = {
             foreignKeyName: "fx_exposure_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fx_exposure_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -11152,6 +11831,13 @@ export type Database = {
             foreignKeyName: "fx_rates_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "fx_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -11230,6 +11916,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "hashtag_sets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -11362,6 +12055,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "iibb_registrations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -11545,6 +12245,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "influencer_exchanges_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -11812,8 +12519,22 @@ export type Database = {
             foreignKeyName: "installment_schedule_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "installment_schedule_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "installment_schedule_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "_sale_margin_facts_source"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "installment_schedule_sale_id_fkey"
@@ -11827,6 +12548,13 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "installment_schedule_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_margin_facts"
             referencedColumns: ["sale_id"]
           },
           {
@@ -11927,6 +12655,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "integration_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -12047,6 +12782,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -12199,6 +12941,13 @@ export type Database = {
             foreignKeyName: "inventory_snapshots_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -12345,6 +13094,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_transfer_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -12525,6 +13281,13 @@ export type Database = {
             foreignKeyName: "inventory_transfers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_transfers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -12626,6 +13389,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoice_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -12815,8 +13585,22 @@ export type Database = {
             foreignKeyName: "invoices_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "_sale_margin_facts_source"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "invoices_sale_id_fkey"
@@ -12830,6 +13614,13 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "invoices_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_margin_facts"
             referencedColumns: ["sale_id"]
           },
           {
@@ -12948,6 +13739,13 @@ export type Database = {
             foreignKeyName: "kb_articles_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kb_articles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -13038,6 +13836,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -13138,6 +13943,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_dashboards_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -13246,6 +14058,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_goals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -13383,6 +14202,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "kpi_widgets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -13637,6 +14463,13 @@ export type Database = {
             foreignKeyName: "location_stock_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "location_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -13781,6 +14614,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -13947,6 +14787,13 @@ export type Database = {
             foreignKeyName: "locations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "locations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -14045,6 +14892,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -14162,6 +15016,13 @@ export type Database = {
             foreignKeyName: "loyalty_points_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_points_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -14255,6 +15116,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_programs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -14366,6 +15234,13 @@ export type Database = {
             foreignKeyName: "loyalty_rewards_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_rewards_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -14465,6 +15340,13 @@ export type Database = {
             foreignKeyName: "loyalty_tiers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_tiers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -14556,6 +15438,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "loyalty_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -14706,6 +15595,13 @@ export type Database = {
             foreignKeyName: "marketing_posts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "marketing_posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -14802,6 +15698,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "marketing_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -14937,6 +15840,13 @@ export type Database = {
             foreignKeyName: "meli_connections_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -15030,6 +15940,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_listings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -15195,8 +16112,22 @@ export type Database = {
             foreignKeyName: "meli_order_sale_lines_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: true
+            referencedRelation: "_sale_margin_facts_source"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "meli_order_sale_lines_sale_id_fkey"
@@ -15210,6 +16141,13 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: true
             referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: true
+            referencedRelation: "sale_margin_facts"
             referencedColumns: ["sale_id"]
           },
           {
@@ -15340,6 +16278,13 @@ export type Database = {
             foreignKeyName: "meli_orders_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -15448,6 +16393,13 @@ export type Database = {
             foreignKeyName: "meli_webhook_events_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_webhook_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -15535,6 +16487,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -15640,6 +16599,13 @@ export type Database = {
             foreignKeyName: "multi_currency_transactions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "multi_currency_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -15736,6 +16702,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notification_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -15857,6 +16830,13 @@ export type Database = {
             foreignKeyName: "notification_rules_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notification_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -15953,6 +16933,13 @@ export type Database = {
             foreignKeyName: "notifications_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "notifications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -16034,6 +17021,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "oauth_states_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -16142,6 +17136,13 @@ export type Database = {
             foreignKeyName: "ocr_documents_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ocr_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -16242,6 +17243,13 @@ export type Database = {
             foreignKeyName: "ocr_line_items_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ocr_line_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -16335,6 +17343,13 @@ export type Database = {
             foreignKeyName: "org_api_keys_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -16422,6 +17437,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -16592,6 +17614,13 @@ export type Database = {
             foreignKeyName: "organization_backup_snapshots_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_backup_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -16680,6 +17709,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_business_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -17007,6 +18043,13 @@ export type Database = {
             foreignKeyName: "payment_connections_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -17191,6 +18234,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_links_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -17447,6 +18497,13 @@ export type Database = {
             foreignKeyName: "payment_refunds_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -17621,6 +18678,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -17938,6 +19002,13 @@ export type Database = {
             foreignKeyName: "platform_commission_rules_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_commission_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -18117,6 +19188,13 @@ export type Database = {
             foreignKeyName: "platform_org_health_snapshots_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_org_health_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -18201,6 +19279,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_organization_provisionings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -18344,6 +19429,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plm_products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -18604,6 +19696,13 @@ export type Database = {
             foreignKeyName: "po_sequences_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "po_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -18709,6 +19808,13 @@ export type Database = {
             foreignKeyName: "portal_configs_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -18807,6 +19913,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -18988,6 +20101,13 @@ export type Database = {
             foreignKeyName: "portal_tickets_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "portal_tickets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -19078,6 +20198,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -19345,6 +20472,13 @@ export type Database = {
             foreignKeyName: "price_lists_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "price_lists_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -19445,6 +20579,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_attribute_values_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -19609,6 +20750,13 @@ export type Database = {
             foreignKeyName: "product_batches_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -19750,6 +20898,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_bundle_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -19911,6 +21066,13 @@ export type Database = {
             foreignKeyName: "product_bundles_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_bundles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -20040,6 +21202,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_cooccurrences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -20300,6 +21469,13 @@ export type Database = {
             foreignKeyName: "product_import_batches_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_batches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -20412,6 +21588,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -20644,6 +21827,13 @@ export type Database = {
             foreignKeyName: "product_perfume_details_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_perfume_details_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -20793,6 +21983,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_questions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -21012,6 +22209,13 @@ export type Database = {
             foreignKeyName: "product_reviews_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -21195,6 +22399,13 @@ export type Database = {
             foreignKeyName: "product_types_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_types_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -21294,6 +22505,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "product_variants_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -21557,6 +22775,13 @@ export type Database = {
             foreignKeyName: "products_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -21699,6 +22924,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotion_usages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -21851,6 +23083,13 @@ export type Database = {
             foreignKeyName: "promotions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -21954,6 +23193,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -22123,6 +23369,13 @@ export type Database = {
             foreignKeyName: "purchase_order_receipts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_receipts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -22253,6 +23506,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -22479,6 +23739,13 @@ export type Database = {
             foreignKeyName: "purchase_requests_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -22606,6 +23873,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "purchases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -22762,6 +24036,13 @@ export type Database = {
             foreignKeyName: "push_subscriptions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -22861,6 +24142,13 @@ export type Database = {
             foreignKeyName: "quantity_discounts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quantity_discounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -22927,6 +24215,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quote_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -23058,6 +24353,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "quotes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -23278,6 +24580,13 @@ export type Database = {
             foreignKeyName: "recipe_productions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recipe_productions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -23390,6 +24699,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recipes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -23550,6 +24866,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recommendation_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -23761,6 +25084,13 @@ export type Database = {
             foreignKeyName: "recommendation_rules_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "recommendation_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -23957,6 +25287,13 @@ export type Database = {
             foreignKeyName: "return_reasons_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "return_reasons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -24145,6 +25482,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "return_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -24360,6 +25704,13 @@ export type Database = {
             foreignKeyName: "returns_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "returns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -24430,6 +25781,13 @@ export type Database = {
             foreignKeyName: "returns_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "_sale_margin_facts_source"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "returns_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "sale_items"
             referencedColumns: ["id"]
           },
@@ -24438,6 +25796,13 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "returns_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_margin_facts"
             referencedColumns: ["sale_id"]
           },
           {
@@ -24555,6 +25920,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "role_permissions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -24698,6 +26070,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -24939,6 +26318,13 @@ export type Database = {
             foreignKeyName: "sales_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -25151,6 +26537,13 @@ export type Database = {
             foreignKeyName: "sales_forecasts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_forecasts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -25309,6 +26702,13 @@ export type Database = {
             foreignKeyName: "saved_reports_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "saved_reports_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -25423,6 +26823,13 @@ export type Database = {
             foreignKeyName: "segment_campaigns_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "segment_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -25520,6 +26927,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "seller_goals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -25631,6 +27045,13 @@ export type Database = {
             foreignKeyName: "seller_payouts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "seller_payouts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -25728,6 +27149,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "service_order_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -25960,6 +27388,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "service_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -26335,6 +27770,13 @@ export type Database = {
             foreignKeyName: "settings_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -26465,6 +27907,13 @@ export type Database = {
             foreignKeyName: "shipments_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -26562,6 +28011,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_carriers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -26676,6 +28132,13 @@ export type Database = {
             foreignKeyName: "shipping_rates_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -26767,6 +28230,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "shipping_zones_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -26878,6 +28348,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "smart_alert_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -27019,6 +28496,13 @@ export type Database = {
             foreignKeyName: "social_posts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "social_posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -27116,6 +28600,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -27278,6 +28769,13 @@ export type Database = {
             foreignKeyName: "stock_counts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -27365,6 +28863,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -27563,6 +29068,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -27795,6 +29307,13 @@ export type Database = {
             foreignKeyName: "stock_reservations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -27968,6 +29487,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -28162,6 +29688,13 @@ export type Database = {
             foreignKeyName: "store_banners_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_banners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -28288,6 +29821,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -28481,6 +30021,13 @@ export type Database = {
             foreignKeyName: "store_pages_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_pages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -28589,6 +30136,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_stock_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -28757,6 +30311,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_wishlists_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -29021,6 +30582,13 @@ export type Database = {
             foreignKeyName: "subscription_invoices_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscription_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -29127,6 +30695,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscription_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -29241,6 +30816,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -29369,6 +30951,13 @@ export type Database = {
             foreignKeyName: "supplier_debts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "supplier_debts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -29464,6 +31053,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -29576,6 +31172,13 @@ export type Database = {
             foreignKeyName: "suppliers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "suppliers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -29675,6 +31278,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -29783,6 +31393,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tasks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -29913,6 +31530,13 @@ export type Database = {
             foreignKeyName: "tax_declarations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tax_declarations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -30016,6 +31640,13 @@ export type Database = {
             foreignKeyName: "tax_rates_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "tax_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -30094,6 +31725,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "team_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -30184,6 +31822,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "territories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -30366,6 +32011,13 @@ export type Database = {
             foreignKeyName: "territory_rules_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "territory_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -30505,6 +32157,13 @@ export type Database = {
             foreignKeyName: "vendor_catalog_items_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_catalog_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -30629,6 +32288,13 @@ export type Database = {
             foreignKeyName: "vendor_invoices_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -30732,6 +32398,13 @@ export type Database = {
             foreignKeyName: "vendor_messages_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -30826,6 +32499,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_portal_access_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -31057,6 +32737,13 @@ export type Database = {
             foreignKeyName: "warehouse_bins_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouse_bins_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -31168,6 +32855,13 @@ export type Database = {
             foreignKeyName: "warehouse_zones_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouse_zones_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -31265,6 +32959,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "warehouses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -31385,6 +33086,13 @@ export type Database = {
             foreignKeyName: "webhook_configs_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -31478,6 +33186,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -31580,6 +33295,13 @@ export type Database = {
             foreignKeyName: "whatsapp_campaigns_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -31672,6 +33394,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_unsubscribe_tokens_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -31789,6 +33518,13 @@ export type Database = {
             foreignKeyName: "withholding_records_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "withholding_records_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -31796,6 +33532,160 @@ export type Database = {
       }
     }
     Views: {
+      _sale_margin_facts_source: {
+        Row: {
+          channel: string | null
+          cogs_ars: number | null
+          cogs_source: string | null
+          contribution_margin_ars: number | null
+          coverage_pct: number | null
+          gross_margin_ars: number | null
+          is_explainable: boolean | null
+          known_components: number | null
+          missing_components: string[] | null
+          operation_id: string | null
+          operation_key: string | null
+          operation_type: string | null
+          org_id: string | null
+          payment_fee_ars: number | null
+          payment_fee_source: string | null
+          product_id: string | null
+          product_name: string | null
+          quality_status: string | null
+          quantity: number | null
+          recorded_source: string | null
+          returned: boolean | null
+          returned_quantity: number | null
+          revenue_ars: number | null
+          sale_id: string | null
+          shipping_cost_ars: number | null
+          shipping_cost_source: string | null
+          sold_at: string | null
+          tax_ars: number | null
+          tax_source: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_identity_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       active_promotions: {
         Row: {
           applies_to: string | null
@@ -31923,6 +33813,13 @@ export type Database = {
             foreignKeyName: "promotions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "promotions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -32034,6 +33931,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "afip_credentials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -32162,6 +34066,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -32319,6 +34230,13 @@ export type Database = {
             foreignKeyName: "products_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -32394,6 +34312,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -32531,6 +34456,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -32698,6 +34630,13 @@ export type Database = {
             foreignKeyName: "contracts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -32791,6 +34730,13 @@ export type Database = {
             foreignKeyName: "customer_communications_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customer_communications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -32857,6 +34803,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "crm_deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -32961,6 +34914,13 @@ export type Database = {
             foreignKeyName: "coupons_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "coupons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -33041,6 +35001,13 @@ export type Database = {
             foreignKeyName: "customers_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -33104,6 +35071,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "deal_outcomes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -33174,6 +35148,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_stores_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -33258,6 +35239,13 @@ export type Database = {
             foreignKeyName: "evolution_connections_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "evolution_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -33322,6 +35310,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -33503,6 +35498,13 @@ export type Database = {
             foreignKeyName: "meli_connections_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "meli_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -33590,6 +35592,13 @@ export type Database = {
             foreignKeyName: "ecommerce_orders_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -33652,6 +35661,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -33742,6 +35758,13 @@ export type Database = {
             foreignKeyName: "memberships_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -33771,6 +35794,88 @@ export type Database = {
           store_published_at: string | null
         }
         Relationships: []
+      }
+      organization_margin_coverage: {
+        Row: {
+          average_coverage_pct: number | null
+          cogs_known_lines: number | null
+          explainable_lines: number | null
+          explainable_revenue_ars: number | null
+          explainable_revenue_pct: number | null
+          measured_contribution_margin_ars: number | null
+          operations: number | null
+          org_id: string | null
+          payment_fee_known_lines: number | null
+          revenue_ars: number | null
+          sales_lines: number | null
+          shipping_known_lines: number | null
+          tax_known_lines: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
       }
       organization_support_accesses: {
         Row: {
@@ -33870,6 +35975,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -34003,6 +36115,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -34225,6 +36344,13 @@ export type Database = {
             foreignKeyName: "activation_interventions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -34386,6 +36512,24 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_org_margin_coverage: {
+        Row: {
+          average_coverage_pct: number | null
+          cogs_known_lines: number | null
+          explainable_lines: number | null
+          explainable_revenue_ars: number | null
+          explainable_revenue_pct: number | null
+          measured_contribution_margin_ars: number | null
+          operations: number | null
+          org_id: string | null
+          payment_fee_known_lines: number | null
+          revenue_ars: number | null
+          sales_lines: number | null
+          shipping_known_lines: number | null
+          tax_known_lines: number | null
+        }
+        Relationships: []
+      }
       platform_org_risk_series: {
         Row: {
           cayendo: number | null
@@ -34500,6 +36644,13 @@ export type Database = {
             foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -34562,6 +36713,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -34645,6 +36803,13 @@ export type Database = {
             foreignKeyName: "products_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -34713,6 +36878,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -34830,6 +37002,167 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_identity_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_margin_facts: {
+        Row: {
+          channel: string | null
+          cogs_ars: number | null
+          cogs_source: string | null
+          contribution_margin_ars: number | null
+          coverage_pct: number | null
+          gross_margin_ars: number | null
+          is_explainable: boolean | null
+          known_components: number | null
+          missing_components: string[] | null
+          operation_id: string | null
+          operation_key: string | null
+          operation_type: string | null
+          org_id: string | null
+          payment_fee_ars: number | null
+          payment_fee_source: string | null
+          product_id: string | null
+          product_name: string | null
+          quality_status: string | null
+          quantity: number | null
+          recorded_source: string | null
+          returned: boolean | null
+          returned_quantity: number | null
+          revenue_ars: number | null
+          sale_id: string | null
+          shipping_cost_ars: number | null
+          shipping_cost_source: string | null
+          sold_at: string | null
+          tax_ars: number | null
+          tax_source: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -34959,6 +37292,13 @@ export type Database = {
             foreignKeyName: "sales_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -35049,6 +37389,13 @@ export type Database = {
             foreignKeyName: "settings_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -35119,6 +37466,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -35252,6 +37606,13 @@ export type Database = {
             foreignKeyName: "stock_reservations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -35373,6 +37734,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -35507,6 +37875,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -35657,6 +38032,13 @@ export type Database = {
             foreignKeyName: "products_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -35737,6 +38119,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -35838,6 +38227,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
@@ -36046,6 +38442,13 @@ export type Database = {
             foreignKeyName: "vendor_invoices_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -36131,6 +38534,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sale_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {

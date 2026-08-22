@@ -1,176 +1,121 @@
-// Hechos de margen por canal. La base conserva los importes; este módulo sólo
-// los agrupa para mostrarlos. Un null significa "no medido", nunca cero.
+// La base resuelve procedencia, asignaciones y cobertura. Este módulo sólo
+// agrupa los hechos canónicos para presentarlos; null significa "no medido".
 
-export type MarginChannel = "pos" | "tienda_online" | "mercadolibre";
-
-export interface MarginSaleFact {
-  id: string;
+export interface CanonicalMarginFact {
+  sale_id: string | null;
   product_id: string | null;
-  product_name: string;
-  source: string;
-  quantity: number;
-  total_ars: number;
-  cost_of_goods_ars: number;
-}
-
-export interface StoreMarginFact {
-  sale_id: string;
+  product_name: string | null;
+  channel: string | null;
+  quantity: number | null;
+  revenue_ars: number | null;
+  cogs_ars: number | null;
   payment_fee_ars: number | null;
-  carrier_shipping_cost_ars: number | null;
+  shipping_cost_ars: number | null;
   tax_ars: number | null;
-}
-
-export interface MeliMarginFact {
-  sale_id: string;
-  sale_fee_ars: number | null;
-  seller_shipping_cost_ars: number | null;
-}
-
-export interface ChannelMarginLine {
-  saleId: string;
-  productId: string;
-  productName: string;
-  channel: MarginChannel;
-  quantity: number;
-  revenueARS: number;
-  cogsARS: number;
-  paymentFeeARS: number | null;
-  carrierShippingCostARS: number | null;
-  taxARS: number | null;
-  marginAfterMeasuredCostsARS: number | null;
+  contribution_margin_ars: number | null;
+  coverage_pct: number | null;
+  is_explainable: boolean | null;
+  missing_components: string[] | null;
 }
 
 export interface ChannelMarginSummary {
   productId: string;
   productName: string;
-  channel: MarginChannel;
+  channel: string;
   lines: number;
   units: number;
   revenueARS: number;
-  cogsARS: number;
+  cogsARS: number | null;
   paymentFeeARS: number | null;
-  carrierShippingCostARS: number | null;
+  shippingCostARS: number | null;
   taxARS: number | null;
-  marginAfterMeasuredCostsARS: number | null;
+  contributionMarginARS: number | null;
+  coveragePct: number;
   pending: string[];
 }
 
+export interface MarginCoverageSummary {
+  lines: number;
+  explainableLines: number;
+  revenueARS: number;
+  explainableRevenueARS: number;
+  explainableRevenuePct: number;
+  averageCoveragePct: number;
+  cogsKnownLines: number;
+  paymentFeeKnownLines: number;
+  shippingKnownLines: number;
+  taxKnownLines: number;
+}
+
+const MISSING_LABELS: Record<string, string> = {
+  costo_mercaderia: "costo de mercadería",
+  comision_cobro: "comisión de cobro",
+  costo_envio_real: "costo real de envío",
+  iva: "IVA",
+};
+
 const roundMoney = (amount: number) => Math.round((amount + Number.EPSILON) * 100) / 100;
+const roundOne = (amount: number) => Math.round((amount + Number.EPSILON) * 10) / 10;
 
-function knownMargin(
-  revenue: number,
-  cogs: number,
-  paymentFee: number | null,
-  shipping: number | null,
-  tax: number | null,
+function sumIfAllKnown(
+  lines: CanonicalMarginFact[],
+  field: keyof Pick<CanonicalMarginFact, "cogs_ars" | "payment_fee_ars" | "shipping_cost_ars" | "tax_ars" | "contribution_margin_ars">,
 ) {
-  if (paymentFee === null || shipping === null || tax === null) return null;
-  return roundMoney(revenue - cogs - paymentFee - shipping - tax);
-}
-
-/** Convierte ventas por línea a hechos comparables sin completar datos ausentes. */
-export function buildChannelMarginLines(
-  sales: MarginSaleFact[],
-  storeFacts: StoreMarginFact[],
-  meliFacts: MeliMarginFact[],
-): ChannelMarginLine[] {
-  const storeBySale = new Map(storeFacts.map(fact => [fact.sale_id, fact]));
-  const meliBySale = new Map(meliFacts.map(fact => [fact.sale_id, fact]));
-
-  return sales.flatMap((sale): ChannelMarginLine[] => {
-    if (!sale.product_id) return [];
-    if (sale.source !== "pos" && sale.source !== "tienda_online" && sale.source !== "mercadolibre") return [];
-
-    const revenueARS = Number(sale.total_ars || 0);
-    const cogsARS = Number(sale.cost_of_goods_ars || 0);
-    const base = {
-      saleId: sale.id,
-      productId: sale.product_id,
-      productName: sale.product_name || "Sin nombre",
-      channel: sale.source as MarginChannel,
-      quantity: Number(sale.quantity || 0),
-      revenueARS,
-      cogsARS,
-    };
-
-    if (sale.source === "tienda_online") {
-      const fact = storeBySale.get(sale.id);
-      const paymentFeeARS = fact?.payment_fee_ars ?? null;
-      const carrierShippingCostARS = fact?.carrier_shipping_cost_ars ?? null;
-      return [{
-        ...base,
-        paymentFeeARS,
-        carrierShippingCostARS,
-        taxARS: fact?.tax_ars ?? null,
-        marginAfterMeasuredCostsARS: knownMargin(revenueARS, cogsARS, paymentFeeARS, carrierShippingCostARS, fact?.tax_ars ?? null),
-      }];
-    }
-
-    if (sale.source === "mercadolibre") {
-      const fact = meliBySale.get(sale.id);
-      const paymentFeeARS = fact?.sale_fee_ars ?? null;
-      const carrierShippingCostARS = fact?.seller_shipping_cost_ars ?? null;
-      return [{
-        ...base,
-        paymentFeeARS,
-        carrierShippingCostARS,
-        taxARS: null,
-        marginAfterMeasuredCostsARS: knownMargin(revenueARS, cogsARS, paymentFeeARS, carrierShippingCostARS, null),
-      }];
-    }
-
-    // En mostrador no hay despacho: su costo de envío es cero conocido. POS
-    // todavía no vincula cada línea a la liquidación de su medio de pago.
-    return [{
-      ...base,
-      paymentFeeARS: null,
-      carrierShippingCostARS: 0,
-      taxARS: null,
-      marginAfterMeasuredCostsARS: null,
-    }];
-  });
-}
-
-function sumIfAllKnown(lines: ChannelMarginLine[], field: keyof Pick<ChannelMarginLine, "paymentFeeARS" | "carrierShippingCostARS" | "taxARS">) {
-  if (lines.some(line => line[field] === null)) return null;
+  if (lines.some(line => line[field] === null || line[field] === undefined)) return null;
   return roundMoney(lines.reduce((sum, line) => sum + Number(line[field]), 0));
 }
 
-/** Agrupa por producto/canal y declara explícitamente qué término falta. */
-export function summarizeChannelMargins(lines: ChannelMarginLine[]): ChannelMarginSummary[] {
-  const groups = new Map<string, ChannelMarginLine[]>();
-  for (const line of lines) {
-    const key = `${line.productId}::${line.channel}`;
-    groups.set(key, [...(groups.get(key) ?? []), line]);
+/** Agrupa sin recalcular la autoridad financiera que ya resolvió SQL. */
+export function summarizeChannelMargins(facts: CanonicalMarginFact[]): ChannelMarginSummary[] {
+  const groups = new Map<string, CanonicalMarginFact[]>();
+  for (const fact of facts) {
+    const productId = fact.product_id || `line:${fact.sale_id || "unknown"}`;
+    const channel = fact.channel || "sin_atribuir";
+    const key = `${productId}::${channel}`;
+    groups.set(key, [...(groups.get(key) ?? []), fact]);
   }
 
   return [...groups.values()].map(group => {
     const first = group[0];
-    const paymentFeeARS = sumIfAllKnown(group, "paymentFeeARS");
-    const carrierShippingCostARS = sumIfAllKnown(group, "carrierShippingCostARS");
-    const taxARS = sumIfAllKnown(group, "taxARS");
-    const revenueARS = roundMoney(group.reduce((sum, line) => sum + line.revenueARS, 0));
-    const cogsARS = roundMoney(group.reduce((sum, line) => sum + line.cogsARS, 0));
-    const pending: string[] = [];
-    if (paymentFeeARS === null) pending.push("comisión de cobro");
-    if (carrierShippingCostARS === null) pending.push("costo real de envío");
-    if (taxARS === null) pending.push("IVA por línea");
+    const revenueARS = roundMoney(group.reduce((sum, line) => sum + Number(line.revenue_ars || 0), 0));
+    const pendingCodes = [...new Set(group.flatMap(line => line.missing_components ?? []))];
 
     return {
-      productId: first.productId,
-      productName: first.productName,
-      channel: first.channel,
+      productId: first.product_id || `line:${first.sale_id || "unknown"}`,
+      productName: first.product_name || "Producto sin nombre",
+      channel: first.channel || "sin_atribuir",
       lines: group.length,
-      units: group.reduce((sum, line) => sum + line.quantity, 0),
+      units: group.reduce((sum, line) => sum + Number(line.quantity || 0), 0),
       revenueARS,
-      cogsARS,
-      paymentFeeARS,
-      carrierShippingCostARS,
-      taxARS,
-      marginAfterMeasuredCostsARS: pending.length === 0
-        ? roundMoney(revenueARS - cogsARS - paymentFeeARS - carrierShippingCostARS - taxARS)
-        : null,
-      pending,
+      cogsARS: sumIfAllKnown(group, "cogs_ars"),
+      paymentFeeARS: sumIfAllKnown(group, "payment_fee_ars"),
+      shippingCostARS: sumIfAllKnown(group, "shipping_cost_ars"),
+      taxARS: sumIfAllKnown(group, "tax_ars"),
+      contributionMarginARS: sumIfAllKnown(group, "contribution_margin_ars"),
+      coveragePct: roundOne(group.reduce((sum, line) => sum + Number(line.coverage_pct || 0), 0) / group.length),
+      pending: pendingCodes.map(code => MISSING_LABELS[code] || code),
     };
   }).sort((a, b) => b.revenueARS - a.revenueARS || a.productName.localeCompare(b.productName));
+}
+
+/** Cobertura de la selección actual. El porcentaje principal pondera ingresos. */
+export function summarizeMarginCoverage(facts: CanonicalMarginFact[]): MarginCoverageSummary {
+  const revenueARS = roundMoney(facts.reduce((sum, fact) => sum + Number(fact.revenue_ars || 0), 0));
+  const explainable = facts.filter(fact => fact.is_explainable === true);
+  const explainableRevenueARS = roundMoney(explainable.reduce((sum, fact) => sum + Number(fact.revenue_ars || 0), 0));
+
+  return {
+    lines: facts.length,
+    explainableLines: explainable.length,
+    revenueARS,
+    explainableRevenueARS,
+    explainableRevenuePct: revenueARS > 0 ? roundOne(explainableRevenueARS * 100 / revenueARS) : 0,
+    averageCoveragePct: facts.length > 0
+      ? roundOne(facts.reduce((sum, fact) => sum + Number(fact.coverage_pct || 0), 0) / facts.length)
+      : 0,
+    cogsKnownLines: facts.filter(fact => fact.cogs_ars !== null && fact.cogs_ars !== undefined).length,
+    paymentFeeKnownLines: facts.filter(fact => fact.payment_fee_ars !== null && fact.payment_fee_ars !== undefined).length,
+    shippingKnownLines: facts.filter(fact => fact.shipping_cost_ars !== null && fact.shipping_cost_ars !== undefined).length,
+    taxKnownLines: facts.filter(fact => fact.tax_ars !== null && fact.tax_ars !== undefined).length,
+  };
 }

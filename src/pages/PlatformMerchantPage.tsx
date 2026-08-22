@@ -3,7 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import {
   Activity, AlertTriangle, ArrowLeft, Building2, CalendarClock, CheckCircle2,
   CircleAlert, Clock3, ExternalLink, Loader2, Package, RefreshCw, Rocket, Store,
-  TrendingDown, Users, Wallet, Webhook, Zap,
+  ShieldCheck, TrendingDown, Users, Wallet, Webhook, Zap,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
@@ -28,12 +28,14 @@ type HealthRow = Database['public']['Views']['platform_org_health']['Row'];
 type ActivationRow = ChannelActivationRow;
 type ReadinessRow = Database['public']['Views']['organization_activation_readiness']['Row'];
 type IntegrationHealthRow = Database['public']['Views']['platform_org_integration_health']['Row'];
+type MarginCoverageRow = Database['public']['Views']['platform_org_margin_coverage']['Row'];
 
 interface MerchantSnapshot {
   organization: Organization;
   health: HealthRow | null;
   activation: ActivationRow | null;
   readiness: ReadinessRow;
+  marginCoverage: MarginCoverageRow | null;
   integrations: IntegrationHealthRow[];
   interventions: ActivationInterventionRow[];
   loadedAt: string;
@@ -105,7 +107,7 @@ export default function PlatformMerchantPage() {
 
     setLoading(true);
     setError(null);
-    const [organizationResponse, healthResponse, activationResponse, readinessResponse, integrationsResponse, interventionsResponse] = await Promise.all([
+    const [organizationResponse, healthResponse, activationResponse, readinessResponse, marginCoverageResponse, integrationsResponse, interventionsResponse] = await Promise.all([
       supabase
         .from('organizations')
         .select('id,name,slug,created_at,trial_ends_at,plan_id,onboarding_completed,logo_url')
@@ -126,6 +128,11 @@ export default function PlatformMerchantPage() {
         .eq('org_id', orgId)
         .maybeSingle(),
       supabase
+        .from('platform_org_margin_coverage')
+        .select('*')
+        .eq('org_id', orgId)
+        .maybeSingle(),
+      supabase
         .from('platform_org_integration_health')
         .select('*')
         .eq('org_id', orgId)
@@ -142,6 +149,7 @@ export default function PlatformMerchantPage() {
       queryError('salud del comercio', healthResponse.error),
       queryError('adopción por canal', activationResponse.error),
       queryError('ruta a la primera venta', readinessResponse.error),
+      queryError('cobertura de margen', marginCoverageResponse.error),
       queryError('evidencia de integraciones', integrationsResponse.error),
       queryError('acompañamiento de activación', interventionsResponse.error),
     ].filter(Boolean) as string[];
@@ -167,6 +175,7 @@ export default function PlatformMerchantPage() {
       health: (healthResponse.data || null) as HealthRow | null,
       activation: calculateChannelMetrics((activationResponse.data || []) as PlatformActivationRow[]).rows[0] || null,
       readiness: readinessResponse.data as ReadinessRow,
+      marginCoverage: (marginCoverageResponse.data || null) as MarginCoverageRow | null,
       integrations: (integrationsResponse.data || []) as IntegrationHealthRow[],
       interventions: (interventionsResponse.data || []) as ActivationInterventionRow[],
       loadedAt: new Date().toISOString(),
@@ -181,6 +190,7 @@ export default function PlatformMerchantPage() {
   const selectedTab = ['overview', 'channels', 'integrations', 'support', 'context'].includes(tab) ? tab : 'overview';
   const health = snapshot?.health;
   const activation = snapshot?.activation;
+  const marginCoverage = snapshot?.marginCoverage;
   const readiness = useMemo(
     () => snapshot ? evaluateActivationReadiness(snapshot.readiness) : null,
     [snapshot],
@@ -221,6 +231,16 @@ export default function PlatformMerchantPage() {
         title: 'Verificar evidencia operativa',
         detail: `${withoutRecentRuntimeEvidence.map(integration => integration.display_name || integration.integration_key).join(', ')} tiene configuración registrada, pero no una ejecución reciente verificada.`,
         tone: 'info',
+      });
+    }
+    if (
+      Number(snapshot.marginCoverage?.sales_lines || 0) > 0
+      && Number(snapshot.marginCoverage?.explainable_revenue_pct || 0) < 80
+    ) {
+      steps.push({
+        title: 'Completar fuentes de margen',
+        detail: `Sólo ${snapshot.marginCoverage?.explainable_revenue_pct || 0}% de los ingresos tiene costo, cobro, envío e IVA trazables. Priorizar el componente con menor cobertura.`,
+        tone: 'warning',
       });
     }
     if (steps.length === 0) {
@@ -329,6 +349,35 @@ export default function PlatformMerchantPage() {
             <KPICard label="Órdenes online" value={activation ? activation.online_orders_30d || 0 : '—'} icon={Store} color="blue" sub="últimos 30 días" />
             <KPICard label="Ventas POS" value={activation ? activation.pos_sales_30d || 0 : '—'} icon={Package} color="warning" sub="últimos 30 días" />
           </div>
+
+          <section className="rounded-[10px] border border-violet-500/20 bg-card p-4 space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-violet-300" />
+                <div>
+                  <h2 className="text-sm font-semibold">Calidad del margen</h2>
+                  <p className="text-[11px] text-muted-foreground">Cobertura agregada; no expone productos, clientes ni costos por operación.</p>
+                </div>
+              </div>
+              <span className={`text-[10px] font-medium ${Number(marginCoverage?.explainable_revenue_pct || 0) >= 80 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {marginCoverage?.sales_lines ? `${marginCoverage.explainable_revenue_pct || 0}% de ingresos explicables` : 'Sin ventas medidas'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs lg:grid-cols-4">
+              <Metric label="Líneas completas" value={marginCoverage ? `${marginCoverage.explainable_lines || 0}/${marginCoverage.sales_lines || 0}` : 'Sin dato'} />
+              <Metric label="Cobertura promedio" value={marginCoverage?.average_coverage_pct == null ? 'Sin dato' : `${marginCoverage.average_coverage_pct}%`} />
+              <Metric label="Ingresos explicables" value={marginCoverage ? formatMoney(marginCoverage.explainable_revenue_ars) : 'Sin dato'} />
+              <Metric label="Margen medido" value={marginCoverage?.measured_contribution_margin_ars == null ? 'Pendiente' : formatMoney(marginCoverage.measured_contribution_margin_ars)} />
+            </div>
+            {Number(marginCoverage?.sales_lines || 0) > 0 && Number(marginCoverage?.explainable_revenue_pct || 0) < 100 && (
+              <div className="grid grid-cols-2 gap-2 text-[10px] text-muted-foreground sm:grid-cols-4">
+                <span>Costo {marginCoverage?.cogs_known_lines || 0}/{marginCoverage?.sales_lines || 0}</span>
+                <span>Cobro {marginCoverage?.payment_fee_known_lines || 0}/{marginCoverage?.sales_lines || 0}</span>
+                <span>Envío {marginCoverage?.shipping_known_lines || 0}/{marginCoverage?.sales_lines || 0}</span>
+                <span>IVA {marginCoverage?.tax_known_lines || 0}/{marginCoverage?.sales_lines || 0}</span>
+              </div>
+            )}
+          </section>
 
           <div className="grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
             <section className="border border-border/60 rounded-[10px] bg-card p-4 space-y-4">

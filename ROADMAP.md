@@ -144,6 +144,7 @@ comparativas fechadas y con fuente oficial viven en docs/ESTRATEGIA.md.
 |---|---|---|
 | ERP / operación | Productos, inventario, compras, POS, clientes y reportes confiables. | Menor implementación y verdad conectada a Commerce y Finance. |
 | Commerce | Checkout, dominio, SEO, temas, migración, rendimiento y extensibilidad. | Costo y margen del mismo Core que ejecuta la venta. |
+| Margen y rentabilidad | Shopify ya reporta profit por producto/orden/mercado y Odoo margen por línea/pedido; tener un reporte es paridad, no ventaja. | Cuatro fuentes persistidas —costo histórico, cobro, envío real e IVA— por venta y canal; cobertura explícita antes de afirmar contribución. La autoridad ya existe, pero su impacto todavía debe probarse con una decisión real. |
 | Marketplace | Sincronización de catálogo, stock, órdenes y postventa. | Sistema neutral que decide canal por margen, capital y disponibilidad. |
 | Spend / Finance | Ingesta, extracción, duplicados, aprobaciones y conciliación. | Finance comparte proveedor, producto, compra, stock y ledger nativos. |
 | IA | Asistencia dentro del flujo real. | Recomendación → aprobación → acción → resultado verificado. |
@@ -172,11 +173,12 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.351 tests pasan al 2026-08-22; typecheck, lint y build verdes; 63 Edge Functions verificadas; 41 E2E críticos (32 públicos, 8 de panel y setup autenticado) pasan contra la base real. |
+| Calidad técnica | 1.355 tests pasan al 2026-08-22; typecheck, lint y build verdes; 63 Edge Functions verificadas; 41 E2E críticos (32 públicos, 8 de panel y setup autenticado) pasan contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
 | Ledger | 10 eventos de ledger de dominio; 0 asientos contables operativos reales. |
+| Margen canónico | `20260822000004` conserva 34/34 líneas (antes la UI descartaba 32 `manual`), exige costo + cobro + envío real + IVA y registra la fuente de cada término. Línea de base real: ARS 1.143.696 registrados, 0 líneas completas, 0% de ingresos explicables y 2,9% de cobertura promedio; costo 0/34, cobro 4/34, envío 0/34 e IVA 0/34. Es deuda observable, no rentabilidad inventada. |
 | Plataforma | Overview, Integration Registry, Merchant 360, evidencia de integración, cola operativa, reintentos auditados y control de Checkout Brick. |
 | Activación | Primera venta y tiempo a vender medidos por comercio, deduplicando organizaciones multi-tienda. La migración `20260821000059` suma objetivo POS/online y ocho hitos server-side compartidos con Merchant 360. `20260821000061` agrega cohortes por mes y ventanas maduras: 4 organizaciones, 1 activada en su canal objetivo, 3 pendientes, conversión histórica 25%; a 7/14 días 0/4 y a 30 días 0/1. Son datos técnicos, no PMF. Soporte autoservicio/minutos tiene watermark desde 2026-08-22: 0 altas elegibles y 0 minutos, por lo que la UI dice “sin base” en vez de atribuir falsos ceros. |
 | Importación de catálogo | La migración `20260821000060` reemplaza dos importadores client-side por un lote server-side Excel/CSV de hasta 5.000 filas: staging, preview, create/update/conflict, aprobación, aplicación atómica, retry idempotente y reconciliación. Verificación con rol `authenticated`: 1 válida + 1 inválida, bloqueo previo, 1 producto, stock 3, 1 movimiento, retry sin duplicación, anon/escritura directa sin permisos y 0 restos (2026-08-21). |
@@ -415,6 +417,13 @@ orden online, intervenciones manuales, incidentes y tiempo de soporte.
 - Dashboard accionable que conecta hallazgo, decisión y resultado.
 - Primer impact_event verificable.
 
+**Entregado 2026-08-22:** `sale_margin_facts` unifica todas las ventas y
+declara importe, fuente, faltantes y cobertura para los cuatro componentes. El
+margen final queda `NULL` si falta evidencia. Analytics dejó de cruzar tablas
+en el navegador y Merchant 360 recibe sólo cobertura agregada y sanitizada.
+Shopify/Odoo se verificaron como paridad de reportes; la tesis diferencial queda
+en procedencia omnicanal + Action Loop, no en tener un dashboard.
+
 **Salida:** un merchant cambia precio, canal, compra o promoción basándose en
 Gestiona y el resultado posterior queda medido contra una línea de base.
 
@@ -586,8 +595,8 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 8 | Comisión, billing y unit economics | F0 | **En curso:** aprobación segura + workbench de merchant/platform economics, impuesto, leakage, contribución y break-even entregados el 2026-08-21. Benchmark oficial: Tiendanube 0% con Pago Nube o 2%/1%/0,7% con proveedor externo, más su arancel. La muestra real sigue siendo 1 merchant y 2 pagos de ARS 1; faltan costos medidos, contrato y decisión | Contratos, costos, margen y pricing aprobados; ninguna comisión se activa por edición accidental y el escenario aprobado conserva contribución positiva bajo estrés. |
 | 9 | Segundo comercio | F1 | **Gate técnico cerrado; pendiente comercial:** alta Platform ahora es atómica/idempotente, bloquea owners vinculados y envía acceso sin revelar sesión | Primera venta sin cambios manuales de base. |
 | 10 | Onboarding universal, Business Profiler, importación, cohortes y soporte consentido | F1 | **Infraestructura cerrada 2026-08-22:** alta segura, objetivo POS/online, ocho hitos server-side, 7 perfiles declarativos, onboarding atómico, importador reconciliado, cohortes maduras y diagnóstico Support con consentimiento/expiración. Sólo faltan merchants externos | Segundo y tercer merchant reciben acceso, eligen perfil, completan hitos, importan sin SQL y reciben ayuda medible sin impersonación; la cohorte produce conversión/costo sin historia falsa. |
-| 11 | Margin facts canónicos | F2 | Parcial: hay costos y margin facts en órdenes | Cobertura y fuentes reconciliadas por operación. |
-| 12 | Margen SKU/orden/canal/pago/promoción | F2 | Parcial | Una venta se explica completamente y sin doble conteo. |
+| 11 | Margin facts canónicos | F2 | **Cerrado 2026-08-22:** 34/34 líneas visibles; cuatro componentes con fuente, asignación exacta, cobertura y RLS; Analytics y Merchant 360 consumen la autoridad | Cobertura y fuentes reconciliadas por operación. Base inicial: 0 completas y 2,9% promedio; no se reconstruyó historia inexistente. |
+| 12 | Margen SKU/orden/canal/pago/promoción | F2 | **En curso:** producto × canal ya usa hechos canónicos e incluye historia sin atribuir. Faltan vista por orden/pago/promoción y cerrar las fuentes reales de una operación | Una venta se explica completamente y sin doble conteo. |
 | 13 | Pricing proposal e impact outcome | F2 | Pendiente | Merchant aplica una propuesta y se mide resultado. |
 | 14 | Finance ADR, shell y acceso por producto | F3 | Pendiente; OCR actual no equivale a Finance | ADR de permisos/sesión y superficie navegable. |
 | 15 | Document storage seguro y versiones | F3 | Pendiente | Original privado, hash, cuarentena y auditoría. |
@@ -627,6 +636,11 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     sesión visible~~ — cerrada el 2026-08-22: RPC transaccional, retry
     idempotente, owner previo protegido, acceso por email y cero restos;
 12. onboarding acompañado del segundo comercio y primera cohorte real.
+13. ~~hechos canónicos de margen sin ceros optimistas ni ventas omitidas~~ —
+    cerrado el 2026-08-22: 34/34 líneas, fuente por componente, asignaciones
+    reconciliadas, RLS tenant, agregado sanitizado de plataforma y cero restos;
+14. cerrar costo + cobro + envío + IVA de una operación real nueva y extender
+    la explicación a orden, medio de pago y promoción.
 
 No se abre Finance MVP ni se separa Storefront antes de cerrar o demostrar que
 estas tareas no pueden avanzar.
@@ -803,8 +817,10 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-22: 1.351 tests, 63 funciones verificadas
+- Build y suites locales del 2026-08-22: 1.355 tests, 63 funciones verificadas
   y 41 E2E críticos contra la base real.
+- docs/MARGIN_FACTS.md: contrato de cuatro fuentes, seguridad, línea de base y
+  comparación oficial con Shopify/Odoo al 2026-08-22.
 - docs/E2E.md: contrato del gate, puerto estricto, variables obligatorias y
   política de sólo lectura.
 - docs/IMPORTACION_PRODUCTOS.md: autoridad, estados, diagnóstico, métricas y

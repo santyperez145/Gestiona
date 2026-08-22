@@ -1,49 +1,99 @@
 import { describe, expect, it } from "vitest";
-import { buildChannelMarginLines, summarizeChannelMargins } from "@/lib/channelMargins";
+import { summarizeChannelMargins, summarizeMarginCoverage, type CanonicalMarginFact } from "@/lib/channelMargins";
 
-describe("margen por canal", () => {
-  it("sólo declara un margen completo cuando los cuatro conceptos están medidos", () => {
-    const lines = buildChannelMarginLines(
-      [
-        { id: "ml", product_id: "p", product_name: "Producto", source: "mercadolibre", quantity: 1, total_ars: 1000, cost_of_goods_ars: 400 },
-        { id: "store", product_id: "p", product_name: "Producto", source: "tienda_online", quantity: 1, total_ars: 1000, cost_of_goods_ars: 400 },
-      ],
-      [{ sale_id: "store", payment_fee_ars: 50, carrier_shipping_cost_ars: 100, tax_ars: 210 }],
-      [{ sale_id: "ml", sale_fee_ars: 130, seller_shipping_cost_ars: 120 }],
-    );
+const fact = (overrides: Partial<CanonicalMarginFact> = {}): CanonicalMarginFact => ({
+  sale_id: "sale-1",
+  product_id: "product-1",
+  product_name: "Producto",
+  channel: "pos",
+  quantity: 1,
+  revenue_ars: 1000,
+  cogs_ars: 400,
+  payment_fee_ars: 50,
+  shipping_cost_ars: 0,
+  tax_ars: 210,
+  contribution_margin_ars: 340,
+  coverage_pct: 100,
+  is_explainable: true,
+  missing_components: [],
+  ...overrides,
+});
 
-    expect(lines.find(line => line.saleId === "ml")?.marginAfterMeasuredCostsARS).toBeNull();
-    expect(lines.find(line => line.saleId === "store")?.marginAfterMeasuredCostsARS).toBe(240);
+describe("margen canónico por canal", () => {
+  it("agrupa importes persistidos sin recalcular un margen incompleto", () => {
+    const summary = summarizeChannelMargins([
+      fact(),
+      fact({
+        sale_id: "sale-2",
+        quantity: 2,
+        revenue_ars: 2000,
+        cogs_ars: null,
+        contribution_margin_ars: null,
+        coverage_pct: 75,
+        is_explainable: false,
+        missing_components: ["costo_mercaderia"],
+      }),
+    ])[0];
+
+    expect(summary.revenueARS).toBe(3000);
+    expect(summary.units).toBe(3);
+    expect(summary.cogsARS).toBeNull();
+    expect(summary.paymentFeeARS).toBe(100);
+    expect(summary.contributionMarginARS).toBeNull();
+    expect(summary.coveragePct).toBe(87.5);
+    expect(summary.pending).toEqual(["costo de mercadería"]);
   });
 
-  it("agrupa por producto y canal, preservando cero como dato y null como pendiente", () => {
-    const lines = buildChannelMarginLines(
-      [
-        { id: "a", product_id: "p", product_name: "Producto", source: "mercadolibre", quantity: 1, total_ars: 100, cost_of_goods_ars: 20 },
-        { id: "b", product_id: "p", product_name: "Producto", source: "mercadolibre", quantity: 2, total_ars: 200, cost_of_goods_ars: 40 },
-      ],
-      [],
-      [
-        { sale_id: "a", sale_fee_ars: 0, seller_shipping_cost_ars: 0 },
-        { sale_id: "b", sale_fee_ars: 20, seller_shipping_cost_ars: 30 },
-      ],
-    );
+  it("conserva las ventas históricas sin producto ni canal confiable", () => {
+    const [summary] = summarizeChannelMargins([
+      fact({
+        sale_id: "legacy",
+        product_id: null,
+        product_name: null,
+        channel: "sin_atribuir",
+        cogs_ars: null,
+        shipping_cost_ars: null,
+        tax_ars: null,
+        contribution_margin_ars: null,
+        coverage_pct: 25,
+        is_explainable: false,
+        missing_components: ["costo_mercaderia", "costo_envio_real", "iva"],
+      }),
+    ]);
 
-    expect(summarizeChannelMargins(lines)).toEqual([{
-      productId: "p", productName: "Producto", channel: "mercadolibre",
-      lines: 2, units: 3, revenueARS: 300, cogsARS: 60,
-      paymentFeeARS: 20, carrierShippingCostARS: 30, taxARS: null,
-      marginAfterMeasuredCostsARS: null, pending: ["IVA por línea"],
-    }]);
+    expect(summary.productId).toBe("line:legacy");
+    expect(summary.productName).toBe("Producto sin nombre");
+    expect(summary.channel).toBe("sin_atribuir");
+    expect(summary.pending).toEqual(["costo de mercadería", "costo real de envío", "IVA"]);
   });
 
-  it("deja POS explícitamente incompleto hasta que exista la liquidación por venta", () => {
-    const [summary] = summarizeChannelMargins(buildChannelMarginLines(
-      [{ id: "pos", product_id: "p", product_name: "Producto", source: "pos", quantity: 1, total_ars: 500, cost_of_goods_ars: 200 }],
-      [], [],
-    ));
+  it("mide cobertura de ingresos y de cada fuente por separado", () => {
+    const coverage = summarizeMarginCoverage([
+      fact(),
+      fact({
+        sale_id: "partial",
+        revenue_ars: 3000,
+        cogs_ars: null,
+        shipping_cost_ars: null,
+        tax_ars: null,
+        contribution_margin_ars: null,
+        coverage_pct: 25,
+        is_explainable: false,
+        missing_components: ["costo_mercaderia", "costo_envio_real", "iva"],
+      }),
+    ]);
 
-    expect(summary.marginAfterMeasuredCostsARS).toBeNull();
-    expect(summary.pending).toEqual(["comisión de cobro", "IVA por línea"]);
+    expect(coverage).toMatchObject({
+      lines: 2,
+      explainableLines: 1,
+      revenueARS: 4000,
+      explainableRevenueARS: 1000,
+      explainableRevenuePct: 25,
+      averageCoveragePct: 62.5,
+      cogsKnownLines: 1,
+      paymentFeeKnownLines: 2,
+      shippingKnownLines: 1,
+      taxKnownLines: 1,
+    });
   });
 });

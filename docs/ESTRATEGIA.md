@@ -8,7 +8,7 @@ es ilegible para cualquier otro.
 Acá va la otra mitad: **qué es este producto, contra quién compite y qué habría
 que demostrar para que sea un negocio** y no sólo un sistema que funciona.
 
-Última revisión: 2026-08-14.
+Última revisión: 2026-08-22.
 
 ---
 
@@ -126,9 +126,10 @@ guardas.
 
 ## 3. Contra quién se compite, honestamente
 
-✅ / ❓ **Mapa actualizado el 2026-08-21.** Tiendanube se contrastó con sus
-fuentes oficiales; las demás filas siguen siendo hipótesis del análisis externo
-y no se usan como hechos en una presentación hasta verificarlas.
+✅ / ❓ **Mapa actualizado el 2026-08-22.** Tiendanube, Shopify y Odoo se
+contrastaron con sus fuentes oficiales; las demás filas siguen siendo hipótesis
+del análisis externo y no se usan como hechos en una presentación hasta
+verificarlas.
 
 | Competidor | Qué dice el análisis | Estado |
 |---|---|---|
@@ -137,13 +138,23 @@ y no se usan como hechos en una presentación hasta verificarlas.
 | **VentaWeb** | ERP + tienda argentina. ~1.200 comercios. | ❓ |
 | **Axon ERP** | POS + stock + ecommerce nativo + ARCA. Muy parecido al planteo de acá. | ❓ |
 | **Max24** | POS + stock + tienda + ARCA. ~1.200 tiendas. | ❓ |
-| **Lightspeed / Cin7 / Odoo / Shopify** | Referencias de producto, no competidores directos en este mercado. | ❓ |
+| **Shopify** | ✅ Sus reportes de rentabilidad cubren producto, orden y mercado; en orden/mercado contemplan producto, envío, aranceles e impuestos. La ayuda advierte que `Cost per item` es estático y exige haberlo cargado al vender. | ✅ [Profit reports](https://help.shopify.com/en/manual/reports-and-analytics/shopify-reports/report-types/default-reports/profit-reports), verificado 2026-08-22 |
+| **Odoo** | ✅ Margen por línea y pedido desde precio de venta menos costo del producto, incluyendo el efecto de tarifas y descuentos. | ✅ [Márgenes](https://www.odoo.com/documentation/18.0/es/applications/sales/sales/sales_quotations/margin.html), verificado 2026-08-22 |
+| **Lightspeed / Cin7** | Referencias de producto, no competidores directos en este mercado. | ❓ |
 
 ✅ **Conclusión ya verificable:** la categoría omnicanal existe y Tiendanube
 ya ofrece POS y stock entre canales. Eso elimina cualquier argumento basado en
 la ausencia de esas funciones. La ejecución tiene que bajar a lo concreto de
 §2.3: margen por producto y canal con costo de importación, comisión, envío e
 IVA, preservando la evidencia que compone el número.
+
+✅ **Margin facts medidos el 2026-08-22:** “tener margen” tampoco alcanza como
+argumento. Shopify ya documenta profit por orden/mercado y Odoo margen por
+línea/pedido. Gestiona ahora conserva por venta la fuente de costo, comisión,
+envío e IVA y sólo publica contribución si están los cuatro. La base inicial es
+34/34 líneas visibles, 0 completas y 2,9% de cobertura promedio: instrumentación
+honesta, todavía no ventaja validada. Contrato y consulta reproducible:
+[MARGIN_FACTS.md](MARGIN_FACTS.md).
 
 ✅ **Benchmark económico agregado el 2026-08-21:** la comparación de pricing
 no se usa para decir “somos más baratos”. Se usa para probar que el costo total
