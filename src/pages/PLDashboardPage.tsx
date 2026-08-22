@@ -14,6 +14,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import FinancialScenariosTab from "@/components/finance/FinancialScenariosTab";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
@@ -310,15 +311,14 @@ export default function PLDashboardPage() {
                 </button>
               ))}
             </div>
-            <select
-              value={months}
-              onChange={e => setMonths(Number(e.target.value))}
-              className="px-2 py-1.5 rounded-lg bg-muted/40 border border-border/40 text-xs outline-none shrink-0"
-            >
-              <option value={6}>6 meses</option>
-              <option value={12}>12 meses</option>
-              <option value={24}>24 meses</option>
-            </select>
+            <Select value={String(months)} onValueChange={value => setMonths(Number(value))}>
+              <SelectTrigger className="h-9 w-[112px] shrink-0 text-xs" aria-label="Rango de meses"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="6">6 meses</SelectItem>
+                <SelectItem value="12">12 meses</SelectItem>
+                <SelectItem value="24">24 meses</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Income statement card */}

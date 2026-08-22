@@ -5,6 +5,11 @@
 versión anterior del roadmap. No promete fechas ni transforma hipótesis en
 hechos.
 
+El rediseño completo se ejecuta y mide por separado en
+[`DESIGNROADMAP.md`](DESIGNROADMAP.md). Este documento conserva la prioridad de
+producto; ambos se actualizan juntos cuando una entrega cambia experiencia y
+capacidad.
+
 ## 0. Resumen ejecutivo
 
 Gestiona construye la infraestructura operativa y comercial para PyMEs
@@ -174,7 +179,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.421 tests pasan al 2026-08-22; typecheck, lint y build verdes; 63 Edge Functions verificadas; 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) pasan contra la base real. |
+| Calidad técnica | 1.422 tests pasan al 2026-08-22; typecheck, lint y build verdes; 63 Edge Functions verificadas; 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) pasan contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -208,7 +213,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Control Plane | Superficie operativa profesional en construcción. | Menor MTTR y menor intervención manual medidos. |
 | Finance OCR | Extracción/prellenado parcial. | Documento auditable que termina en compra/deuda correcta. |
 | Finance product surface | Ruta, chrome, sesión compartida, entitlement, permiso y snapshot del Core. | Primer comercio habilitado y primer documento procesado; 0 adopción real al corte. |
-| Sistema visual v3 Figma | El workspace claro adopta obligatoriamente la dirección de los kits CRM/marketplace compartidos: canvas casi blanco, superficies blancas, primary violeta `252 83% 62%`, secundarios turquesa/coral, rail persistente, topbar y profundidad baja; se aplica a Business, Finance y Platform sin alterar el Business Core. El 2026-08-22 se eliminó la mutación global que convertía el color secundario de un comercio en fondo/rail del panel: Gestión mantiene tokens oficiales y las paletas quedan limitadas a tienda pública y catálogo PDF; Finance ya no fuerza un rail negro en modo claro. Las tres superficies ahora envuelven todas sus rutas en `workspace-route-surface`, por lo que más de cien páginas heredan el contrato aunque todavía no declaren la clase; Button, Card, Input, Select, Textarea, Tabs, Table, Badge, Dialog, Popover, Tooltip, EmptyState y skeletons fueron alineados a radios, foco, profundidad, estados y contraste del Figma. Ajustes, Perfil, resumen/Document Inbox de Finance y Anuncios de Platform adoptaron `PageHeader`, selects compartidos y contraste claro; POS queda documentado como workspace de caja a viewport completo, no como excepción cromática. Dashboard separa seis vistas activas persistidas con `WorkspaceViewTabs`, iconos, conteos reales y estado del Core, sin duplicar el rail global; conserva los hashes `#dashboard-*` y el incidente donde `dashboard-sales` no coincidía con `sales` quedó corregido con traducción única y guarda exhaustiva. Platform organiza su rail por grupos de trabajo filtrados por rol. | Captura autenticada desktop/mobile de todas las superficies, revisión de Storefront y medición de tiempo a tarea antes de declarar la renovación visual validada. |
+| Sistema visual v3 Figma | El workspace claro adopta obligatoriamente la dirección de los kits CRM/marketplace compartidos: canvas casi blanco, superficies blancas, primary violeta `252 83% 62%`, secundarios turquesa/coral, rail persistente, topbar y profundidad baja; se aplica a Business, Finance y Platform sin alterar el Business Core. El 2026-08-22 se eliminó la mutación global que convertía el color secundario de un comercio en fondo/rail del panel: Gestión mantiene tokens oficiales y las paletas quedan limitadas a tienda pública y catálogo PDF; Finance ya no fuerza un rail negro en modo claro. Las tres superficies ahora envuelven todas sus rutas en `workspace-route-surface`, por lo que más de cien páginas heredan el contrato aunque todavía no declaren la clase; Button, Card, Input, Select, Textarea, Tabs, Table, Badge, Dialog, Popover, Tooltip, EmptyState y skeletons fueron alineados a radios, foco, profundidad, estados y contraste del Figma. Ajustes, Perfil, resumen/Document Inbox de Finance y Anuncios de Platform adoptaron `PageHeader`; POS queda documentado como workspace de caja a viewport completo. `DESIGNROADMAP.md` separa desde ahora fases, cobertura, métricas y 20 slices visuales del plan de producto. Su primer slice retiró los 20 `<select>` nativos que quedaban en 12 páginas de gestión y agregó una guarda transversal. Dashboard conserva seis vistas persistidas y los hashes `#dashboard-*`; Platform organiza su rail por trabajo/rol. | Completar selects embebidos y estados comunes; captura autenticada desktop/mobile, revisión de Storefront y medición de tiempo a tarea antes de declarar la renovación visual validada. |
 | Rediseño público v3 | Landing pública y Auth fueron reconstruidos el 2026-08-22 con propuesta omnicanal, preview del producto, registro directo desde CTA, responsive desktop/mobile y metadatos SEO alineados. | Validar conversión del CTA y continuar la auditoría visual de Storefront y rutas públicas de compra. |
 | CRM command center v2 | Clientes / CRM reemplaza la referencia minimalista anterior por la estructura de gestión densa de Aerten y el lenguaje violeta/tintado de eMarketplace Admin, ambos inspeccionados en preview público el 2026-08-22. Incorpora resumen ejecutivo de cartera/actividad/recurrencia/riesgo, tabs persistidos, rail de segmentos, filtros, tabla responsive con relación/compras/facturación/ticket/salud y ficha 360; conserva campañas, notas, comunicaciones, permisos y el mismo Business Core. La comparativa visual y su traducción están en `docs/INTERFAZ.md`. | Captura autenticada desktop/mobile, validación con un comercio real y medición de tiempo para encontrar/actuar sobre un cliente; el rediseño está implementado, no validado comercialmente. |
 | Admin/marketplace workspace v1 | `WorkspaceViewTabs` extiende el contrato Figma a Productos, Ventas y Dashboard: Catálogo/Operación, Ventas/Rendimiento y seis vistas ejecutivas con contadores, meta contextual, responsive móvil y persistencia por organización; Settings, Admin, Integraciones, Reportes y Tienda quedan bajo el mismo contrato de tokens. El shell compartido expone identidad de workspace en topbar, breadcrumb, CTA, headers con acento, métricas con estados y plataforma con consola/rail violeta. | Captura autenticada de las superficies operativas y medición de tiempo a tarea antes de declarar la renovación visual validada. |
@@ -746,6 +751,9 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     el Business Core. El
     siguiente gate es capturar todas las superficies autenticadas y medir tarea
     completa en un comercio real.
+    La ejecución visual detallada se trasladó a `DESIGNROADMAP.md`; D2.2 cerró
+    el 2026-08-22 retirando 20 selects nativos de las 12 páginas que aún los
+    usaban y una guarda impide reintroducirlos en `src/pages`.
 24. Recuperación atómica entre deploys PWA — cerrado técnicamente el
     2026-08-22 después del incidente de chunks obsoletos: la salida ahora es
     común a Vite, promesas rechazadas y React; desregistra el worker, limpia
@@ -932,7 +940,7 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-22: 1.421 tests, 63 funciones verificadas
+- Build y suites locales del 2026-08-22: 1.422 tests, 63 funciones verificadas
   y 42 E2E críticos contra la base real.
 - docs/PRICE_IMPACT_LOOP.md: benchmark oficial, autoridad, reversión y regla de
   no causalidad para propuestas de precio.

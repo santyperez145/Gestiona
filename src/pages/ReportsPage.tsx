@@ -3213,16 +3213,15 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
       <div className="flex items-center justify-between">
         <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50 font-display">Tendencia de Márgenes</h3>
         <div className="flex items-center gap-2">
-          <select
-            value={months}
-            onChange={e => setMonths(Number(e.target.value))}
-            className="text-xs border border-border rounded px-2 py-1 bg-background text-foreground"
-          >
-            <option value={3}>3 meses</option>
-            <option value={6}>6 meses</option>
-            <option value={12}>12 meses</option>
-            <option value={24}>24 meses</option>
-          </select>
+          <Select value={String(months)} onValueChange={value => setMonths(Number(value))}>
+            <SelectTrigger className="h-8 w-[108px] text-xs" aria-label="Período de tendencia"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="3">3 meses</SelectItem>
+              <SelectItem value="6">6 meses</SelectItem>
+              <SelectItem value="12">12 meses</SelectItem>
+              <SelectItem value="24">24 meses</SelectItem>
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" onClick={printPDF} className="h-8 text-xs">
             <Printer className="w-3.5 h-3.5 mr-1.5" />PDF
           </Button>
@@ -3393,15 +3392,17 @@ function PeriodComparisonPanel({ sales, expenses }: { sales: any[]; expenses: an
             <div className="flex gap-3 mb-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground w-12">Período A:</span>
-                <select value={monthA} onChange={e => setMonthA(e.target.value)} className="text-xs bg-muted border border-border rounded-lg px-2 py-1">
-                  {allMonths.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
-                </select>
+                <Select value={monthA} onValueChange={setMonthA}>
+                  <SelectTrigger className="h-8 w-[132px] text-xs" aria-label="Período A"><SelectValue /></SelectTrigger>
+                  <SelectContent>{allMonths.map(m => <SelectItem key={m} value={m}>{monthLabel(m)}</SelectItem>)}</SelectContent>
+                </Select>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground w-12">Período B:</span>
-                <select value={monthB} onChange={e => setMonthB(e.target.value)} className="text-xs bg-muted border border-border rounded-lg px-2 py-1">
-                  {allMonths.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
-                </select>
+                <Select value={monthB} onValueChange={setMonthB}>
+                  <SelectTrigger className="h-8 w-[132px] text-xs" aria-label="Período B"><SelectValue /></SelectTrigger>
+                  <SelectContent>{allMonths.map(m => <SelectItem key={m} value={m}>{monthLabel(m)}</SelectItem>)}</SelectContent>
+                </Select>
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -3682,15 +3683,14 @@ function WeeklyTrendTab({ sales }: { sales: any[] }) {
           <p className="text-xs text-muted-foreground mt-0.5">Promedio de ingresos y ganancias por día, últimas {weeks} semanas</p>
         </div>
         <div className="flex items-center gap-2">
-          <select
-            value={weeks}
-            onChange={e => setWeeks(Number(e.target.value))}
-            className="text-xs bg-muted border border-border rounded px-2 py-1"
-          >
-            <option value={4}>Últimas 4 semanas</option>
-            <option value={8}>Últimas 8 semanas</option>
-            <option value={12}>Últimas 12 semanas</option>
-          </select>
+          <Select value={String(weeks)} onValueChange={value => setWeeks(Number(value))}>
+            <SelectTrigger className="h-8 w-[166px] text-xs" aria-label="Período por día de semana"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="4">Últimas 4 semanas</SelectItem>
+              <SelectItem value="8">Últimas 8 semanas</SelectItem>
+              <SelectItem value="12">Últimas 12 semanas</SelectItem>
+            </SelectContent>
+          </Select>
           <button onClick={exportCSV2} className="text-xs text-primary hover:underline flex items-center gap-1">
             <FileSpreadsheet className="w-3.5 h-3.5" />CSV
           </button>
@@ -3883,12 +3883,14 @@ function ByWeekTab({ sales }: { sales: any[] }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <select value={weeksCount} onChange={e => setWeeksCount(Number(e.target.value))}
-            className="text-xs bg-muted border border-border rounded px-2 py-1">
-            <option value={4}>4 semanas</option>
-            <option value={8}>8 semanas</option>
-            <option value={12}>12 semanas</option>
-          </select>
+          <Select value={String(weeksCount)} onValueChange={value => setWeeksCount(Number(value))}>
+            <SelectTrigger className="h-8 w-[116px] text-xs" aria-label="Semanas a comparar"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="4">4 semanas</SelectItem>
+              <SelectItem value="8">8 semanas</SelectItem>
+              <SelectItem value="12">12 semanas</SelectItem>
+            </SelectContent>
+          </Select>
           <button onClick={exportWeeksCSV} className="text-xs text-primary hover:underline flex items-center gap-1">
             <FileSpreadsheet className="w-3.5 h-3.5" />CSV
           </button>
@@ -4099,15 +4101,14 @@ function ScheduledReportsTab({ userId, settings }: { userId: string; settings: a
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Dia del mes</label>
-            <select
-              value={dayOfMonth}
-              onChange={e => setDayOfMonth(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
-                <option key={d} value={d}>Dia {d}</option>
-              ))}
-            </select>
+            <Select value={dayOfMonth} onValueChange={setDayOfMonth}>
+              <SelectTrigger className="w-full" aria-label="Día del reporte mensual"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
+                  <SelectItem key={d} value={String(d)}>Día {d}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div>

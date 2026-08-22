@@ -2788,17 +2788,16 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-emerald-400" />{variantLabel}</label>
-              <select
-                value={variantType}
-                onChange={e => setVariantType(e.target.value)}
-                className="text-[10px] bg-muted border border-border rounded px-1.5 py-0.5 text-muted-foreground"
-              >
-                <option value="sabor">Sabor</option>
-                <option value="talle">Talle</option>
-                <option value="color">Color</option>
-                <option value="medida">Medida</option>
-                <option value="otro">Otro</option>
-              </select>
+              <Select value={variantType} onValueChange={setVariantType}>
+                <SelectTrigger className="h-7 w-[92px] text-[10px]" aria-label="Tipo de variante"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sabor">Sabor</SelectItem>
+                  <SelectItem value="talle">Talle</SelectItem>
+                  <SelectItem value="color">Color</SelectItem>
+                  <SelectItem value="medida">Medida</SelectItem>
+                  <SelectItem value="otro">Otro</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <button type="button" onClick={() => setShowBulkImport(!showBulkImport)} className="text-[10px] text-primary hover:underline">
               {showBulkImport ? 'Cerrar' : 'Importar lista'}

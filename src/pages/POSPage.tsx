@@ -9,6 +9,7 @@ import { loadActivePromotions, bestPromoPrice, type Promotion, type BestPromo } 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
@@ -1939,17 +1940,16 @@ export default function POSPage() {
         {locations.length > 0 && (
           <div className="relative">
             <Store className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none z-10" />
-            <select
-              value={selectedLocationId ?? ""}
-              onChange={(e) => selectLocation(e.target.value)}
-              className="h-8 w-full text-sm bg-muted border border-border rounded-md pl-8 pr-2 text-foreground"
-            >
-              {locations.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}{l.is_main ? " (principal)" : ""}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedLocationId ?? undefined} onValueChange={selectLocation}>
+              <SelectTrigger className="h-8 w-full pl-8 text-sm" aria-label="Sucursal del punto de venta">
+                <SelectValue placeholder="Elegir sucursal" />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map((l) => (
+                  <SelectItem key={l.id} value={l.id}>{l.name}{l.is_main ? " (principal)" : ""}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
         <div className="relative">

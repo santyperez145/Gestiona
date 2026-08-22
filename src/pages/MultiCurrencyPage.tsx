@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PageHeader from "@/components/shared/PageHeader";
 import {
   DollarSign, TrendingUp, TrendingDown, RefreshCw, Plus, ArrowRight,
@@ -320,10 +321,10 @@ export default function MultiCurrencyPage() {
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">De</label>
                 <div className="flex gap-2">
-                  <select value={convFrom} onChange={e => setConvFrom(e.target.value)}
-                    className="w-28 h-10 rounded-lg border border-input bg-background px-3 text-sm font-semibold">
-                    {Object.keys(CURRENCIES_INFO).map(c => <option key={c}>{c}</option>)}
-                  </select>
+                  <Select value={convFrom} onValueChange={setConvFrom}>
+                    <SelectTrigger className="h-10 w-28 font-semibold" aria-label="Moneda de origen"><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.keys(CURRENCIES_INFO).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
                   <Input type="number" value={convAmount} onChange={e => setConvAmount(e.target.value)} className="h-10 flex-1 text-lg font-bold" placeholder="0" />
                 </div>
               </div>
@@ -338,10 +339,10 @@ export default function MultiCurrencyPage() {
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">A</label>
                 <div className="flex gap-2">
-                  <select value={convTo} onChange={e => setConvTo(e.target.value)}
-                    className="w-28 h-10 rounded-lg border border-input bg-background px-3 text-sm font-semibold">
-                    {Object.keys(CURRENCIES_INFO).map(c => <option key={c}>{c}</option>)}
-                  </select>
+                  <Select value={convTo} onValueChange={setConvTo}>
+                    <SelectTrigger className="h-10 w-28 font-semibold" aria-label="Moneda de destino"><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.keys(CURRENCIES_INFO).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
                   <div className="flex-1 h-10 rounded-lg border border-primary/30 bg-primary/5 flex items-center px-3">
                     <span className="text-lg font-bold text-primary">{convResult.toLocaleString("es-AR", { maximumFractionDigits: 2 })}</span>
                   </div>
@@ -473,26 +474,28 @@ export default function MultiCurrencyPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1.5 block">De</label>
-                  <select value={newRate.currency_from} onChange={e => setNewRate(p => ({ ...p, currency_from: e.target.value }))}
-                    className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm">
-                    {Object.keys(CURRENCIES_INFO).map(c => <option key={c}>{c}</option>)}
-                  </select>
+                  <Select value={newRate.currency_from} onValueChange={currency_from => setNewRate(p => ({ ...p, currency_from }))}>
+                    <SelectTrigger className="h-9 w-full" aria-label="Moneda de origen"><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.keys(CURRENCIES_INFO).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1.5 block">A</label>
-                  <select value={newRate.currency_to} onChange={e => setNewRate(p => ({ ...p, currency_to: e.target.value }))}
-                    className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm">
-                    {Object.keys(CURRENCIES_INFO).map(c => <option key={c}>{c}</option>)}
-                  </select>
+                  <Select value={newRate.currency_to} onValueChange={currency_to => setNewRate(p => ({ ...p, currency_to }))}>
+                    <SelectTrigger className="h-9 w-full" aria-label="Moneda de destino"><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.keys(CURRENCIES_INFO).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">Tipo de cotización</label>
-                <select value={newRate.rate_type} onChange={e => setNewRate(p => ({ ...p, rate_type: e.target.value }))}
-                  className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm">
-                  {RATE_TYPES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                  <option value="custom">Personalizado</option>
-                </select>
+                <Select value={newRate.rate_type} onValueChange={rate_type => setNewRate(p => ({ ...p, rate_type }))}>
+                  <SelectTrigger className="h-9 w-full" aria-label="Tipo de cotización"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {RATE_TYPES.map(r => <SelectItem key={r.id} value={r.id}>{r.label}</SelectItem>)}
+                    <SelectItem value="custom">Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">Tasa</label>

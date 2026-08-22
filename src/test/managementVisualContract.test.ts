@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
@@ -63,5 +63,14 @@ describe('contrato visual transversal de Gestión', () => {
 
     expect(source('src/pages/POSPage.tsx')).toContain('h-[calc(100vh-4rem)]');
     expect(source('src/pages/POSPage.tsx')).not.toContain('<PageHeader');
+  });
+
+  it('ninguna página vuelve a crear un select nativo fuera del primitive compartido', () => {
+    const pages = readdirSync(resolve(process.cwd(), 'src/pages'))
+      .filter(path => path.endsWith('.tsx'));
+    const offenders = pages.filter(path => /<select\b/.test(source(`src/pages/${path}`)));
+
+    expect(offenders, 'Los selects nativos rompen foco, contraste y menú entre módulos')
+      .toEqual([]);
   });
 });

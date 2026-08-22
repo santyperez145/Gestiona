@@ -995,13 +995,15 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                     <Input value={orgSearch} onChange={e => setOrgSearch(e.target.value)} placeholder="Buscar..." className="pl-8 h-8 text-sm bg-muted" />
                   </div>
-                  <select value={orgSort} onChange={e => setOrgSort(e.target.value as typeof orgSort)}
-                    className="h-8 text-xs bg-muted border border-border rounded-md px-2 text-foreground">
-                    <option value="created">Más nuevas</option>
-                    <option value="name">Nombre</option>
-                    <option value="status">Estado</option>
-                    <option value="plan">Plan</option>
-                  </select>
+                  <Select value={orgSort} onValueChange={value => setOrgSort(value as typeof orgSort)}>
+                    <SelectTrigger className="h-8 w-[126px] text-xs" aria-label="Ordenar organizaciones"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="created">Más nuevas</SelectItem>
+                      <SelectItem value="name">Nombre</SelectItem>
+                      <SelectItem value="status">Estado</SelectItem>
+                      <SelectItem value="plan">Plan</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button size="sm" variant="outline" className="h-8" onClick={exportOrgsCSV} title="Exportar CSV">
                     <FileDown className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline ml-1.5">CSV</span>

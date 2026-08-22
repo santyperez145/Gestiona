@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   BarChart3, TrendingUp, PieChart, LineChart, Plus, Download, Share2,
   Play, Search, Star, Clock, Filter, RefreshCw, Calendar,
@@ -588,18 +589,22 @@ export default function BIReportsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1.5 block">Tipo</label>
-                  <select value={newReport.type} onChange={e => setNewReport(p => ({ ...p, type: e.target.value }))}
-                    className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm">
-                    {REPORT_TYPES.map(t => <option key={t}>{t}</option>)}
-                    <option value="custom">custom</option>
-                  </select>
+                  <Select value={newReport.type} onValueChange={type => setNewReport(p => ({ ...p, type }))}>
+                    <SelectTrigger className="h-9 w-full" aria-label="Tipo de reporte"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {REPORT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      <SelectItem value="custom">custom</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1.5 block">Tipo de gráfico</label>
-                  <select value={newReport.chart} onChange={e => setNewReport(p => ({ ...p, chart: e.target.value }))}
-                    className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm">
-                    {["bar", "line", "pie", "area", "table", "heatmap"].map(c => <option key={c}>{c}</option>)}
-                  </select>
+                  <Select value={newReport.chart} onValueChange={chart => setNewReport(p => ({ ...p, chart }))}>
+                    <SelectTrigger className="h-9 w-full" aria-label="Tipo de gráfico"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["bar", "line", "pie", "area", "table", "heatmap"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>

@@ -26,6 +26,7 @@ import MetricCard from "@/components/shared/MetricCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -420,15 +421,14 @@ export default function WalletPage() {
             {cuentas.length > 1 && (
               <div>
                 <Label>Cuenta destino</Label>
-                <select
-                  className="w-full mt-1 h-9 rounded-[6px] border border-border bg-background px-3 text-sm"
-                  value={cuentaElegida ?? cuentaDefault?.id ?? ""}
-                  onChange={e => setCuentaElegida(e.target.value)}
-                >
-                  {cuentas.map(c => (
-                    <option key={c.id} value={c.id}>{c.alias} — {formatearCbu(c.cbu)}</option>
-                  ))}
-                </select>
+                <Select value={cuentaElegida ?? cuentaDefault?.id ?? undefined} onValueChange={setCuentaElegida}>
+                  <SelectTrigger className="mt-1 h-9 w-full" aria-label="Cuenta bancaria de destino"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {cuentas.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.alias} — {formatearCbu(c.cbu)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 

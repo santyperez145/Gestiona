@@ -8,6 +8,7 @@ import {
 import { TrendingUp, TrendingDown, Minus, Target, AlertTriangle, Info, Loader2 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -212,28 +213,26 @@ export default function SalesForecastPage() {
           <div className="flex items-center flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <label className="text-xs text-muted-foreground">Historial:</label>
-              <select
-                value={historyMonths}
-                onChange={e => setHistoryMonths(Number(e.target.value))}
-                className="px-2 py-1.5 rounded-lg bg-muted/40 border border-border/40 text-xs outline-none"
-              >
-                <option value={6}>6 meses</option>
-                <option value={12}>12 meses</option>
-                <option value={18}>18 meses</option>
-                <option value={24}>24 meses</option>
-              </select>
+              <Select value={String(historyMonths)} onValueChange={value => setHistoryMonths(Number(value))}>
+                <SelectTrigger className="h-9 w-[108px] text-xs" aria-label="Meses de historial"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="6">6 meses</SelectItem>
+                  <SelectItem value="12">12 meses</SelectItem>
+                  <SelectItem value="18">18 meses</SelectItem>
+                  <SelectItem value="24">24 meses</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center gap-2">
               <label className="text-xs text-muted-foreground">Proyección:</label>
-              <select
-                value={forecastMonths}
-                onChange={e => setForecastMonths(Number(e.target.value))}
-                className="px-2 py-1.5 rounded-lg bg-muted/40 border border-border/40 text-xs outline-none"
-              >
-                <option value={1}>1 mes</option>
-                <option value={3}>3 meses</option>
-                <option value={6}>6 meses</option>
-              </select>
+              <Select value={String(forecastMonths)} onValueChange={value => setForecastMonths(Number(value))}>
+                <SelectTrigger className="h-9 w-[100px] text-xs" aria-label="Meses de proyección"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 mes</SelectItem>
+                  <SelectItem value="3">3 meses</SelectItem>
+                  <SelectItem value="6">6 meses</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         }

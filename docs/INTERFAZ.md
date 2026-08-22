@@ -6,6 +6,10 @@ Este documento fija la dirección visual de Gestiona. El producto se inspira en
 los patrones de CRM, marketplace y admin panel de las referencias compartidas,
 pero no copia componentes, textos ni assets de terceros.
 
+La secuencia completa, cobertura por superficie, métricas y slices ejecutables
+viven en [`DESIGNROADMAP.md`](../DESIGNROADMAP.md). `INTERFAZ.md` conserva el
+contrato del sistema; el roadmap visual registra la ejecución y la evidencia.
+
 ## Dirección
 
 Gestiona es una herramienta operativa que se usa muchas horas seguidas. La
@@ -191,6 +195,14 @@ Los primitives compartidos son la unidad mínima del rediseño:
 - `Table` fija densidad, números tabulares, encabezado tintado y hover de fila;
 - `Badge`, `EmptyState` y los skeletons preservan contraste y estados sin que
   cada módulo invente otro lenguaje.
+
+El slice D2.2 eliminó los 20 `<select>` nativos que permanecían en 12 páginas de
+gestión. Business, POS, Reportes, Finance y Platform usan ahora el mismo
+primitive con trigger, portal, foco, teclado y contraste compartidos; una guarda
+recorre `src/pages` para impedir que la inconsistencia reaparezca. Los selects
+embebidos en componentes especializados y Storefront forman el siguiente slice:
+en checkout mobile un control nativo sólo puede sobrevivir como excepción de
+usabilidad documentada, no por olvido.
 
 `PageHeader` es también transversal: Ajustes, Perfil, Document Inbox, resumen
 de Finance y comunicaciones de Platform ya comparten ubicación, contexto,

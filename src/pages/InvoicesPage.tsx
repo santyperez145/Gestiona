@@ -955,18 +955,19 @@ export default function InvoicesPage() {
               </button>
             ))}
           </div>
-          <select
-            value={filterType}
-            onChange={e => setFilterType(e.target.value)}
-            className="h-8 text-xs bg-muted/40 border border-border rounded-lg px-2 focus:outline-none focus:ring-1 focus:ring-primary/40"
-          >
-            <option value="all">Tipo: Todos</option>
-            <option value="A">Factura A</option>
-            <option value="B">Factura B</option>
-            <option value="C">Factura C</option>
-            <option value="NC">Nota de Crédito</option>
-            <option value="none">Sin tipo</option>
-          </select>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="h-8 w-[148px] text-xs" aria-label="Filtrar por tipo de factura">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tipo: Todos</SelectItem>
+              <SelectItem value="A">Factura A</SelectItem>
+              <SelectItem value="B">Factura B</SelectItem>
+              <SelectItem value="C">Factura C</SelectItem>
+              <SelectItem value="NC">Nota de Crédito</SelectItem>
+              <SelectItem value="none">Sin tipo</SelectItem>
+            </SelectContent>
+          </Select>
           <div className="relative ml-auto">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             <input

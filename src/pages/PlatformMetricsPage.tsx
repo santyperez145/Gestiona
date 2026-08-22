@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -328,10 +329,13 @@ export default function PlatformMetricsPage() {
         <TabsContent value="health" className="mt-5 space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1"><Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar organización, slug o plan" className="pl-9" /></div>
-            <select value={signalFilter} onChange={event => setSignalFilter(event.target.value)} className="h-10 rounded-md border border-border bg-muted px-3 text-sm text-foreground">
-              <option value="all">Todas las señales</option>
-              {Object.entries(SIGNALS).map(([value, config]) => <option key={value} value={value}>{config.label}</option>)}
-            </select>
+            <Select value={signalFilter} onValueChange={setSignalFilter}>
+              <SelectTrigger className="h-10 w-full sm:w-[210px]" aria-label="Filtrar por señal"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las señales</SelectItem>
+                {Object.entries(SIGNALS).map(([value, config]) => <SelectItem key={value} value={value}>{config.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">
             {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando salud de organizaciones...</div> : filteredRows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">No hay organizaciones con esos filtros.</div> : (

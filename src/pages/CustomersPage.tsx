@@ -2981,18 +2981,23 @@ export default function CustomersPage() {
                   {csvPreview.headers.map((h, i) => (
                     <div key={i} className="space-y-1 pb-12">
                       <label className="text-[10px] text-muted-foreground font-medium truncate block" title={h}>{h}</label>
-                      <select
-                        value={csvPreview.mapping[String(i)] || ''}
-                        onChange={e => {
-                          const newMapping = { ...csvPreview.mapping, [String(i)]: e.target.value };
+                      <Select
+                        value={csvPreview.mapping[String(i)] || '__ignore__'}
+                        onValueChange={value => {
+                          const mappedValue = value === '__ignore__' ? '' : value;
+                          const newMapping = { ...csvPreview.mapping, [String(i)]: mappedValue };
                           setCsvPreview({ ...csvPreview, mapping: newMapping });
                         }}
-                        className="w-full text-xs bg-muted border border-border rounded px-2 py-1"
                       >
-                        {CSV_FIELD_OPTIONS.map(opt => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="h-8 w-full text-xs" aria-label={`Mapear columna ${h}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CSV_FIELD_OPTIONS.map(opt => (
+                            <SelectItem key={opt.value || '__ignore__'} value={opt.value || '__ignore__'}>{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   ))}
                 </div>
