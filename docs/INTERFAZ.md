@@ -11,7 +11,8 @@ pero no copia componentes, textos ni assets de terceros.
 Gestiona es una herramienta operativa que se usa muchas horas seguidas. La
 interfaz debe ayudar a escanear, comparar y ejecutar, no competir con los datos.
 
-- Rail lateral oscuro y estable para identidad y navegación.
+- Rail lateral estable para identidad y navegación; claro en Business y
+  violeta en Platform para distinguir las dos superficies.
 - Superficie de trabajo clara, con fondo neutro y contenido agrupado.
 - Una acción primaria por contexto; las secundarias viven en menú o toolbar.
 - Tablas densas, números alineados y estados expresados con color + texto.
@@ -50,7 +51,7 @@ slice nuevo.
 
 | Superficie | Navegación | Acento | Objetivo |
 |---|---|---|---|
-| Business | Rail + vistas internas | Dorado | Operar productos, stock, ventas y clientes. |
+| Business | Rail + vistas internas | Violeta | Operar productos, stock, ventas y clientes. |
 | Finance | Rail propio + documentos | Teal | Revisar evidencia y aprobar decisiones. |
 | Platform | Topbar de identidad + rail de control plane | Violeta | Operar merchants, salud, riesgo y soporte sin confundirse con un tenant. |
 | Storefront | Navegación de tienda | Configurable | Comprar sin ver el backoffice. |
@@ -76,24 +77,48 @@ pendiente deben conservar una etiqueta legible y no depender sólo del color.
 5. Contenido: primero la decisión o el dato operativo; después el detalle.
 6. Estado: carga, vacío, permiso, error y datos desactualizados explícitos.
 
-## Slice CRM implementado
+## CRM command center implementado
 
-La vista **Clientes / CRM** toma como referencia principal el [CRM app con
-clientes, deals y tareas](https://www.figma.com/design/y3iW4vARslK39hLDzTj37D/CRM-app-with-customers--deals--nested-data--tasks-and-menu-filtering--Community-):
-la lista es el centro de trabajo, los segmentos funcionan como navegación
-rápida y la ficha seleccionada conserva el contexto de la persona mientras se
-ejecutan acciones, se revisan compras o se programa seguimiento.
+La referencia anterior de CRM quedó descartada como dirección principal el
+2026-08-22: resolvía navegación y detalle, pero era demasiado minimalista para
+la densidad operativa de Gestiona y el resultado se confundía con la interfaz
+anterior. La nueva composición combina dos referencias verificadas en su
+preview público:
+
+- [Aerten Web App](https://www.figma.com/community/file/1252610051102275471/aerten-web-app)
+  aporta el patrón de gestión completo: rail, encabezado, tabs, búsqueda,
+  filtros, tabla densa, estados y acción primaria.
+- [eMarketplace Admin Dashboard](https://www.figma.com/design/ojLD3JQrTWpUzCRFnS4WXC/eMarketplace-%F0%9F%9B%8D%EF%B8%8F-%7C-Admin-Dashboard--Community-)
+  aporta el violeta protagonista, las superficies claras y las tarjetas
+  tintadas que hacen distinguibles salud, recurrencia y atención.
+
+Gestiona traduce esos patrones al trabajo real del comercio: la lista sigue
+siendo el centro, los segmentos funcionan como navegación rápida y la ficha
+seleccionada conserva el contexto mientras se ejecutan acciones, se revisan
+compras o se programa seguimiento.
 
 - `Clientes` y `Insights` son tabs internos persistidos por organización.
+- El command center muestra cartera total, actividad a 30 días, recurrencia y
+  clientes que requieren atención antes de entrar al detalle.
 - `Clientes` usa un rail de segmentos, toolbar de búsqueda/filtros y selección
-  contextual de la ficha 360.
+  contextual de la ficha 360; en desktop la cartera es una tabla operativa con
+  relación, compras, facturación, ticket y salud visibles en la misma lectura.
 - `Insights` concentra KPI, top de clientes, segmentación, riesgo y RFM para
   que la lista no se convierta en una página interminable.
 - En mobile el rail se convierte en una fila horizontal navegable y la ficha
-  mantiene una acción explícita para cerrarse.
+  mantiene una acción explícita para cerrarse; las columnas pasan a campos
+  rotulados y no a una tabla comprimida.
 
 Este slice usa datos, permisos, exportaciones, notas, comunicaciones, cuotas y
-acciones existentes; el rediseño no crea un segundo modelo de clientes.
+acciones existentes; el rediseño no crea un segundo modelo de clientes. El
+criterio competitivo es conservar la ficha 360 y el margen por cliente que ya
+existen en Gestiona, pero llevarlos a la velocidad de lectura de un CRM maduro.
+
+| Referencia | Patrón observado | Traducción en Gestiona |
+|---|---|---|
+| Aerten | Gestión de registros con tabla, filtros, tabs, roles/estado y CTA. | Cartera densa con estado comercial, métricas y ficha 360. |
+| eMarketplace Admin | Violeta fuerte, canvas claro y tarjetas de señal diferenciadas. | Command center de cuatro señales con tonos violeta, mint, sky y coral. |
+| CRM anterior | Lista, segmentos y detalle contextual con baja densidad. | Se conservan navegación y contexto; deja de definir la composición visual. |
 
 ## Contrato transversal admin / marketplace
 

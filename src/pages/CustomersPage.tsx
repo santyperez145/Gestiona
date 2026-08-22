@@ -16,6 +16,7 @@ import {
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
   Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer, Bell, BookUser,
   Instagram, Droplets, List, BarChart3, Search, Filter, ArrowUpRight, PanelRight,
+  Sparkles, UserCheck, RefreshCcw, ShieldAlert,
 } from "lucide-react";
 import { NOTAS_COMUNES, taxLabel } from "@/lib/scentTaxonomy";
 import { recommendForPreferences } from "@/lib/perfumeMatch";
@@ -2106,7 +2107,7 @@ export default function CustomersPage() {
     background: "hsl(var(--popover))",
     border: "1px solid hsl(var(--border))",
     borderRadius: 8,
-    color: "hsl(40, 20%, 92%)",
+    color: "hsl(var(--popover-foreground))",
   };
 
   // Top 5 clientes del mes actual
@@ -2136,6 +2137,9 @@ export default function CustomersPage() {
   const totalDebt = customers.reduce((s, c) => s + c.pendingDebt, 0);
   const totalPurchases = customers.reduce((s, c) => s + c.purchaseCount, 0);
   const avgTicketGlobal = totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
+  const activeCustomers = customers.filter(c => c.daysSinceLastPurchase <= 30).length;
+  const repeatCustomers = customers.filter(c => c.purchaseCount >= 2).length;
+  const atRiskCustomers = customers.filter(c => c.segment === "En riesgo" || c.segment === "Dormido").length;
 
   return (
     <div className="workspace-page workspace-customers space-y-6 pb-12">
@@ -2204,20 +2208,36 @@ export default function CustomersPage() {
         }
       />
 
-      {/* Compradores que nunca entraron a la lista */}
-      <UnlinkedSalesPanel />
-
-      {activeOrg?.id && (
-        <IdentityHealthPanel
-          entity="customers"
-          orgId={activeOrg.id}
-          onOpenCustomer={canEdit ? (id) => {
-            const profile = profiles.find(item => item.id === id);
-            if (!profile) return;
-            setFormModal({ open: true, profile });
-          } : undefined}
-        />
-      )}
+      <section className="crm-command-center" aria-label="Centro de control del CRM">
+        <div className="crm-command-center__intro">
+          <span className="crm-command-center__eyebrow">
+            <Sparkles className="h-3.5 w-3.5" /> CRM operativo
+          </span>
+          <h2>Convertí relaciones en próximas ventas</h2>
+          <p>
+            Una cartera unificada para encontrar a quién cuidar, reactivar o contactar
+            sin perder el contexto de compras, margen y deuda.
+          </p>
+        </div>
+        <div className="crm-command-center__signals">
+          <article className="crm-signal-card" data-tone="violet">
+            <Users aria-hidden="true" />
+            <div><strong>{customers.length}</strong><span>cartera total</span></div>
+          </article>
+          <article className="crm-signal-card" data-tone="mint">
+            <UserCheck aria-hidden="true" />
+            <div><strong>{activeCustomers}</strong><span>activos en 30 días</span></div>
+          </article>
+          <article className="crm-signal-card" data-tone="sky">
+            <RefreshCcw aria-hidden="true" />
+            <div><strong>{repeatCustomers}</strong><span>clientes recurrentes</span></div>
+          </article>
+          <article className="crm-signal-card" data-tone="coral">
+            <ShieldAlert aria-hidden="true" />
+            <div><strong>{atRiskCustomers}</strong><span>requieren atención</span></div>
+          </article>
+        </div>
+      </section>
 
       <div className="crm-workspace-nav" role="tablist" aria-label="Vistas del CRM">
         <div className="crm-workspace-nav__tabs">
@@ -2230,6 +2250,7 @@ export default function CustomersPage() {
           >
             <List className="w-4 h-4" />
             Clientes
+            <span className="crm-workspace-nav__count">{customers.length}</span>
           </button>
           <button
             type="button"
@@ -2240,6 +2261,7 @@ export default function CustomersPage() {
           >
             <BarChart3 className="w-4 h-4" />
             Insights
+            <span className="crm-workspace-nav__count">4</span>
           </button>
         </div>
         <div className="crm-workspace-nav__meta">
@@ -2510,6 +2532,21 @@ export default function CustomersPage() {
 
       {crmWorkspaceTab === "clientes" && (
       <>
+      {/* Compradores que nunca entraron a la lista */}
+      <UnlinkedSalesPanel />
+
+      {activeOrg?.id && (
+        <IdentityHealthPanel
+          entity="customers"
+          orgId={activeOrg.id}
+          onOpenCustomer={canEdit ? (id) => {
+            const profile = profiles.find(item => item.id === id);
+            if (!profile) return;
+            setFormModal({ open: true, profile });
+          } : undefined}
+        />
+      )}
+
       <div className="crm-customer-board">
         <aside className="crm-customer-rail" aria-label="Segmentos rápidos">
           <div className="crm-customer-rail__heading">
@@ -3025,6 +3062,15 @@ export default function CustomersPage() {
         </div>
       ) : (
       <div className="workspace-customer-list pb-12">
+          <div className="workspace-customer-list__header" aria-hidden="true">
+            <span>Cliente</span>
+            <span>Relación</span>
+            <span>Compras</span>
+            <span>Facturación</span>
+            <span>Ticket</span>
+            <span>Salud</span>
+            <span />
+          </div>
           {filtered.map(c => {
             const isExpanded = selectedCustomer === c.name;
             return (
@@ -3034,11 +3080,10 @@ export default function CustomersPage() {
               >
                 {/* Main row */}
                 <div
-                  className="workspace-customer-row__main p-4 cursor-pointer"
+                  className="workspace-customer-row__main cursor-pointer"
                   onClick={() => setSelectedCustomer(isExpanded ? null : c.name)}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="workspace-customer-row__identity">
                       <input
                         type="checkbox"
                         checked={selectedCustomerNames.has(c.name)}
@@ -3056,33 +3101,35 @@ export default function CustomersPage() {
                         {c.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium text-sm">{c.name}</p>
+                        <p className="workspace-customer-row__name">{c.name}</p>
                         {c.company && (
-                          <p className="text-[10px] text-amber-400/80 font-medium truncate">{c.company}</p>
+                          <p className="workspace-customer-row__company">{c.company}</p>
                         )}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {c.purchaseCount > 0 ? (
-                            <p className="text-xs text-muted-foreground">{c.purchaseCount} compras · Última: {new Date(c.lastPurchase).toLocaleDateString("es-AR")}</p>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">Sin compras registradas</p>
-                          )}
+                        <div className="workspace-customer-row__contact">
                           {c.phone && (
                             <a
                               href={`https://wa.me/${c.phone.replace(/[^0-9]/g, "")}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={e => e.stopPropagation()}
-                              className="text-[10px] text-green-400 flex items-center gap-0.5 hover:underline"
+                              className="flex items-center gap-0.5 hover:underline"
                             >
                               <MessageCircle className="w-3 h-3" />{c.phone}
                             </a>
                           )}
+                          {!c.phone && <span>Sin teléfono</span>}
                         </div>
+                        {c.tags && c.tags.length > 0 && (
+                          <div className="workspace-customer-row__tags">
+                            {c.tags.slice(0, 2).map(tag => <span key={tag}>{tag}</span>)}
+                            {c.tags.length > 2 && <span>+{c.tags.length - 2}</span>}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
+
+                    <div className="workspace-customer-row__relationship">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${c.segmentColor}`}>{c.segment}</span>
-                      {c.purchaseCount > 0 && <HealthScoreBadge score={c.healthScore} />}
                       <ChurnRiskBadge risk={c.churnRisk} />
                       {c.birthday && bdayInRange(c.birthday, 'this_week') && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-pink-500/20 text-pink-400 hidden sm:inline-flex items-center gap-0.5" title={`Cumpleaños: ${new Date(c.birthday + 'T12:00:00').toLocaleDateString('es-AR')}`}>🎂 Esta semana</span>
@@ -3104,33 +3151,33 @@ export default function CustomersPage() {
                         </span>
                       )}
                       {c.pendingDebt > 0 && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-destructive/20 text-destructive hidden sm:block">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-destructive/10 text-destructive">
                           Debe {formatARS(c.pendingDebt)}
                         </span>
                       )}
-                      {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                     </div>
-                  </div>
 
-                  {/* Tags */}
-                  {c.tags && c.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {c.tags.map(tag => (
-                        <span key={tag} className="px-2 py-0.5 rounded-full bg-muted text-[10px] text-muted-foreground border border-border">
-                          {tag}
-                        </span>
-                      ))}
+                    <div className="workspace-customer-row__cell" data-label="Compras">
+                      <strong>{c.purchaseCount}</strong>
+                      <span>{c.purchaseCount > 0 ? `Última ${new Date(c.lastPurchase).toLocaleDateString("es-AR")}` : "Sin actividad"}</span>
                     </div>
-                  )}
-
-                  {c.purchaseCount > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                      <div><span className="text-muted-foreground">Facturado: </span><span className="font-medium">{formatARS(c.totalSpent)}</span></div>
-                      <div><span className="text-muted-foreground">Ganancia: </span><span className="font-medium text-emerald-400">{formatARS(c.totalProfit)}</span></div>
-                      <div><span className="text-muted-foreground">Ticket prom.: </span><span className="font-medium">{formatARS(c.avgTicket)}</span></div>
-                      <div><span className="text-muted-foreground">Frecuencia: </span><span className="font-medium">{c.frequency < 999 ? `c/${c.frequency}d` : "Única vez"}</span></div>
+                    <div className="workspace-customer-row__cell" data-label="Facturación">
+                      <strong>{formatARS(c.totalSpent)}</strong>
+                      <span className="text-emerald-400">Margen {formatARS(c.totalProfit)}</span>
                     </div>
-                  )}
+                    <div className="workspace-customer-row__cell" data-label="Ticket">
+                      <strong>{formatARS(c.avgTicket)}</strong>
+                      <span>{c.frequency < 999 ? `Cada ${c.frequency} días` : "Única vez"}</span>
+                    </div>
+                    <div className="workspace-customer-row__health" data-label="Salud">
+                      {c.purchaseCount > 0 ? <HealthScoreBadge score={c.healthScore} /> : <span className="text-xs text-muted-foreground">Sin score</span>}
+                      {c.daysSinceLastPurchase >= 60 && c.daysSinceLastPurchase < 999 && (
+                        <small>{c.daysSinceLastPurchase}d sin comprar</small>
+                      )}
+                    </div>
+                    <div className="workspace-customer-row__toggle" aria-hidden="true">
+                      {isExpanded ? <ChevronUp /> : <ChevronDown />}
+                    </div>
                 </div>
 
                 {/* Expanded details — Ficha 360 */}

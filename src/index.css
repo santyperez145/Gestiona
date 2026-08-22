@@ -153,6 +153,392 @@
   }
 }
 
+/* CRM command center — Aerten's dense record-management structure combined
+   with the vivid violet and tinted cards from the supplied eMarketplace kit. */
+@layer components {
+  .crm-command-center {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: minmax(15rem, 0.85fr) minmax(28rem, 1.55fr);
+    gap: clamp(1.25rem, 3vw, 3rem);
+    overflow: hidden;
+    padding: clamp(1.25rem, 2.5vw, 2rem);
+    border: 1px solid hsl(252 83% 72% / 0.34);
+    border-radius: 18px;
+    background:
+      radial-gradient(circle at 87% 10%, hsl(174 76% 64% / 0.24), transparent 24%),
+      radial-gradient(circle at 8% 110%, hsl(290 88% 72% / 0.26), transparent 34%),
+      linear-gradient(128deg, hsl(262 72% 48%), hsl(252 83% 58%) 56%, hsl(232 82% 54%));
+    box-shadow: 0 24px 54px -34px hsl(252 83% 32% / 0.8);
+    color: white;
+  }
+
+  .crm-command-center::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    width: 13rem;
+    height: 13rem;
+    right: -4rem;
+    bottom: -8rem;
+    border: 1px solid hsl(0 0% 100% / 0.2);
+    border-radius: 999px;
+    box-shadow: 0 0 0 2.5rem hsl(0 0% 100% / 0.035), 0 0 0 5rem hsl(0 0% 100% / 0.025);
+  }
+
+  .crm-command-center__intro {
+    align-self: center;
+  }
+
+  .crm-command-center__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.75rem;
+    color: hsl(0 0% 100% / 0.74);
+    font-size: 0.66rem;
+    font-weight: 780;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  .crm-command-center h2 {
+    max-width: 26rem;
+    margin: 0;
+    color: white;
+    font-family: var(--font-display);
+    font-size: clamp(1.55rem, 2.5vw, 2.2rem);
+    font-weight: 720;
+    letter-spacing: -0.04em;
+    line-height: 1.04;
+  }
+
+  .crm-command-center__intro p {
+    max-width: 31rem;
+    margin: 0.8rem 0 0;
+    color: hsl(0 0% 100% / 0.72);
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+
+  .crm-command-center__signals {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .crm-signal-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 5rem;
+    padding: 0.85rem;
+    border: 1px solid hsl(0 0% 100% / 0.19);
+    border-radius: 13px;
+    background: hsl(0 0% 100% / 0.11);
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.08);
+    backdrop-filter: blur(12px);
+  }
+
+  .crm-signal-card > svg {
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: 0 0 auto;
+    padding: 0.55rem;
+    border-radius: 10px;
+    background: hsl(0 0% 100% / 0.92);
+  }
+
+  .crm-signal-card[data-tone="violet"] > svg { color: hsl(252 72% 52%); }
+  .crm-signal-card[data-tone="mint"] > svg { color: hsl(166 72% 34%); }
+  .crm-signal-card[data-tone="sky"] > svg { color: hsl(202 82% 44%); }
+  .crm-signal-card[data-tone="coral"] > svg { color: hsl(12 78% 52%); }
+
+  .crm-signal-card div {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+
+  .crm-signal-card strong {
+    color: white;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .crm-signal-card span {
+    overflow: hidden;
+    color: hsl(0 0% 100% / 0.7);
+    font-size: 0.66rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .crm-workspace-nav__count {
+    min-width: 1.35rem;
+    padding: 0.12rem 0.32rem;
+    border-radius: 999px;
+    background: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
+    font-size: 0.62rem;
+    text-align: center;
+  }
+
+  .crm-workspace-nav__tab.is-active .crm-workspace-nav__count {
+    background: hsl(0 0% 100% / 0.18);
+    color: inherit;
+  }
+
+  .workspace-customer-list__header,
+  .workspace-customer-row__main {
+    display: grid;
+    grid-template-columns: minmax(12rem, 2fr) minmax(8rem, 1.15fr) 5.25rem minmax(7.5rem, 1fr) minmax(6.5rem, 0.9fr) minmax(6.5rem, 0.85fr) 1.4rem;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .workspace-customer-list__header {
+    padding: 0 1rem 0.4rem;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.61rem;
+    font-weight: 760;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .workspace-customer-row__main {
+    position: relative;
+    min-height: 5.4rem !important;
+    padding: 0.8rem 1rem;
+  }
+
+  .workspace-customer-row__identity {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+  }
+
+  .workspace-customer-row__name {
+    overflow: hidden;
+    margin: 0;
+    color: hsl(var(--foreground));
+    font-size: 0.78rem;
+    font-weight: 720;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workspace-customer-row__company {
+    overflow: hidden;
+    margin: 0.1rem 0 0;
+    color: hsl(var(--primary));
+    font-size: 0.62rem;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workspace-customer-row__contact {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.2rem;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.62rem;
+  }
+
+  .workspace-customer-row__contact a { color: hsl(158 64% 34%); }
+
+  .workspace-customer-row__tags {
+    display: flex;
+    gap: 0.25rem;
+    overflow: hidden;
+    margin-top: 0.3rem;
+  }
+
+  .workspace-customer-row__tags span {
+    overflow: hidden;
+    max-width: 5rem;
+    padding: 0.08rem 0.35rem;
+    border: 1px solid hsl(var(--border));
+    border-radius: 999px;
+    background: hsl(var(--muted) / 0.72);
+    color: hsl(var(--muted-foreground));
+    font-size: 0.54rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workspace-customer-row__relationship {
+    display: flex;
+    align-items: center;
+    align-content: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+  }
+
+  .workspace-customer-row__cell,
+  .workspace-customer-row__health {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+
+  .workspace-customer-row__cell strong {
+    overflow: hidden;
+    color: hsl(var(--foreground));
+    font-size: 0.72rem;
+    font-weight: 720;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workspace-customer-row__cell span,
+  .workspace-customer-row__health small {
+    overflow: hidden;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.59rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workspace-customer-row__toggle {
+    display: grid;
+    width: 1.55rem;
+    height: 1.55rem;
+    place-items: center;
+    border-radius: 7px;
+    background: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
+  }
+
+  .workspace-customer-row__toggle svg { width: 0.85rem; height: 0.85rem; }
+
+  @media (max-width: 1280px) {
+    .workspace-customer-list__header { display: none; }
+
+    .workspace-customer-row__main {
+      grid-template-columns: minmax(0, 1.5fr) minmax(8rem, 1fr) minmax(7rem, 1fr) 1.5rem;
+    }
+
+    .workspace-customer-row__identity { grid-column: 1 / 3; }
+    .workspace-customer-row__relationship { grid-column: 3; }
+    .workspace-customer-row__toggle { grid-column: 4; grid-row: 1; }
+  }
+
+  @media (max-width: 900px) {
+    .crm-command-center { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 700px) {
+    .crm-command-center__signals { grid-template-columns: 1fr 1fr; }
+
+    .workspace-customer-row__main {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.8rem;
+    }
+
+    .workspace-customer-row__identity,
+    .workspace-customer-row__relationship { grid-column: 1 / -1; }
+
+    .workspace-customer-row__toggle {
+      position: absolute;
+      top: 0.85rem;
+      right: 0.85rem;
+    }
+
+    .workspace-customer-row__relationship { padding-right: 2rem; }
+  }
+
+  @media (max-width: 520px) {
+    .crm-command-center { padding: 1.15rem; border-radius: 15px; }
+    .crm-command-center__signals { grid-template-columns: 1fr; }
+    .crm-signal-card { min-height: 4.2rem; }
+
+    .workspace-customer-row__main { grid-template-columns: 1fr; }
+    .workspace-customer-row__identity,
+    .workspace-customer-row__relationship { grid-column: auto; }
+
+    .workspace-customer-row__cell::before,
+    .workspace-customer-row__health::before {
+      content: attr(data-label);
+      color: hsl(var(--muted-foreground));
+      font-size: 0.56rem;
+      font-weight: 720;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+  }
+}
+
+@layer utilities {
+  .light .crm-workspace-nav {
+    min-height: 4.25rem;
+    border-color: hsl(229 18% 87% / 0.94);
+    border-radius: 13px;
+    background: white;
+    box-shadow: 0 12px 24px -24px hsl(252 83% 42% / 0.55);
+  }
+
+  .light .crm-workspace-nav__tab {
+    min-height: 3.1rem;
+    border-radius: 9px;
+  }
+
+  .light .crm-workspace-nav__tab.is-active {
+    border-color: hsl(252 83% 62%);
+    background: linear-gradient(135deg, hsl(268 82% 66%), hsl(252 83% 58%));
+    box-shadow: 0 10px 18px -13px hsl(252 83% 42% / 0.9);
+    color: white;
+  }
+
+  .light .crm-customer-rail {
+    border-color: hsl(252 54% 90%);
+    border-radius: 13px;
+    background: linear-gradient(180deg, white, hsl(252 75% 98%));
+    box-shadow: 0 14px 28px -26px hsl(252 83% 42% / 0.6);
+  }
+
+  .light .crm-customer-rail__item[aria-pressed="true"] {
+    border-color: hsl(252 83% 62% / 0.22);
+    background: hsl(252 83% 62% / 0.11);
+    box-shadow: inset 3px 0 0 hsl(252 83% 62%);
+  }
+
+  .light .workspace-customer-filters {
+    border-color: hsl(229 18% 87% / 0.94);
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 10px 24px -24px hsl(230 25% 12% / 0.5);
+  }
+
+  .light .workspace-customer-row {
+    border-color: hsl(229 18% 87% / 0.92);
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 8px 22px -22px hsl(230 25% 12% / 0.55);
+  }
+
+  .light .workspace-customer-row:hover {
+    border-color: hsl(252 83% 62% / 0.34);
+    background: hsl(252 75% 99%);
+    box-shadow: 0 14px 28px -22px hsl(252 83% 42% / 0.35);
+  }
+
+  .light .workspace-customer-row-expanded {
+    border-color: hsl(252 83% 62% / 0.5);
+    box-shadow: 0 18px 34px -24px hsl(252 83% 42% / 0.5);
+  }
+
+  .light .workspace-customer-row__detail {
+    background: linear-gradient(180deg, hsl(252 75% 99%), white);
+  }
+}
+
 /* Shared admin/marketplace view navigation. */
 @layer components {
   .workspace-view-tabs {

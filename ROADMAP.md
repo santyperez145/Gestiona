@@ -210,7 +210,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Finance product surface | Ruta, chrome, sesión compartida, entitlement, permiso y snapshot del Core. | Primer comercio habilitado y primer documento procesado; 0 adopción real al corte. |
 | Sistema visual v3 Figma | El workspace claro adopta obligatoriamente la dirección de los kits CRM/marketplace compartidos: canvas casi blanco, superficies blancas, primary violeta `252 83% 62%`, secundarios turquesa/coral, rail persistente, topbar y profundidad baja; se aplica a Business y Platform sin alterar el Business Core. Dashboard separa seis vistas activas persistidas con `WorkspaceViewTabs`, iconos, conteos reales y estado del Core, sin duplicar el rail global; conserva los hashes `#dashboard-*` y el incidente del 2026-08-22 donde `dashboard-sales` no coincidía con `sales` quedó corregido con traducción única y guarda exhaustiva. Platform organiza su rail por grupos de trabajo filtrados por rol. | Captura autenticada desktop/mobile de todas las superficies, revisión de Storefront y medición de tiempo a tarea antes de declarar la renovación visual validada. |
 | Rediseño público v3 | Landing pública y Auth fueron reconstruidos el 2026-08-22 con propuesta omnicanal, preview del producto, registro directo desde CTA, responsive desktop/mobile y metadatos SEO alineados. | Validar conversión del CTA y continuar la auditoría visual de Storefront y rutas públicas de compra. |
-| CRM workspace v1 | Clientes / CRM incorpora tabs persistidos `Clientes`/`Insights`, rail de segmentos, toolbar de filtros y ficha contextual 360 siguiendo la referencia CRM compartida; mantiene acciones y datos existentes. | Captura autenticada desktop/mobile, validación con un comercio real y medición de tiempo para encontrar/actuar sobre un cliente. |
+| CRM command center v2 | Clientes / CRM reemplaza la referencia minimalista anterior por la estructura de gestión densa de Aerten y el lenguaje violeta/tintado de eMarketplace Admin, ambos inspeccionados en preview público el 2026-08-22. Incorpora resumen ejecutivo de cartera/actividad/recurrencia/riesgo, tabs persistidos, rail de segmentos, filtros, tabla responsive con relación/compras/facturación/ticket/salud y ficha 360; conserva campañas, notas, comunicaciones, permisos y el mismo Business Core. La comparativa visual y su traducción están en `docs/INTERFAZ.md`. | Captura autenticada desktop/mobile, validación con un comercio real y medición de tiempo para encontrar/actuar sobre un cliente; el rediseño está implementado, no validado comercialmente. |
 | Admin/marketplace workspace v1 | `WorkspaceViewTabs` extiende el contrato Figma a Productos, Ventas y Dashboard: Catálogo/Operación, Ventas/Rendimiento y seis vistas ejecutivas con contadores, meta contextual, responsive móvil y persistencia por organización; Settings, Admin, Integraciones, Reportes y Tienda quedan bajo el mismo contrato de tokens. El shell compartido expone identidad de workspace en topbar, breadcrumb, CTA, headers con acento, métricas con estados y plataforma con consola/rail violeta. | Captura autenticada de las superficies operativas y medición de tiempo a tarea antes de declarar la renovación visual validada. |
 
 ### Bloqueos externos vigentes
@@ -730,11 +730,14 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
      responsive, CTA de registro directo y Auth con panel de producto, login,
      registro y recuperación bajo el mismo contrato visual. Falta medir
      conversión real; la implementación no se declara validada por una captura.
-22. CRM workspace con patrón de lista, filtros y detalle contextual — cerrado
-     técnicamente el 2026-08-22: `CustomersPage` conserva el Business Core y sus
-     acciones, pero separa operación e insights con estado persistido por
-     organización. La dirección principal es el diseño CRM compartido; falta
-     capturar la vista autenticada y probar el tiempo a tarea con datos reales.
+22. CRM command center con patrón de tabla, señales y detalle contextual —
+     cerrado técnicamente el 2026-08-22: `CustomersPage` conserva el Business
+     Core y todas sus acciones, separa operación e insights con estado
+     persistido y suma una lectura ejecutiva de cartera, actividad, recurrencia
+     y riesgo. La referencia minimalista anterior se reemplazó por Aerten para
+     densidad/jerarquía y eMarketplace Admin para color/superficies; la
+     comparativa verificada vive en `docs/INTERFAZ.md`. Falta capturar la vista
+     autenticada y probar el tiempo a tarea con datos reales.
 23. Admin/marketplace workspace transversal — cerrado técnicamente el
     2026-08-22 en Productos, Ventas y Dashboard: `WorkspaceViewTabs` aplica la misma
     navegación compacta, densidad, estados y persistencia por organización a

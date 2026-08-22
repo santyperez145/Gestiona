@@ -126,12 +126,21 @@ test.describe("credenciales", () => {
 });
 
 test.describe("clientes", () => {
-  test("la ficha abre y muestra el historial", async ({ page }) => {
+  test("el command center separa cartera e insights sin perder el contexto", async ({ page }) => {
     await page.goto("/clientes");
     await expect(page.getByRole("heading", { level: 1, name: "Clientes / CRM" })).toBeVisible();
 
-    const filas = page.locator("[role='button'], button").filter({ hasText: /./ });
-    expect(await filas.count(), "la página cargó sin controles").toBeGreaterThan(0);
+    await expect(page.getByRole("region", { name: "Centro de control del CRM" })).toBeVisible();
+    const tabs = page.getByRole("tablist", { name: "Vistas del CRM" });
+    await expect(tabs.getByRole("tab", { name: /Clientes/ })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("complementary", { name: "Segmentos rápidos" })).toBeVisible();
+
+    await tabs.getByRole("tab", { name: /Insights/ }).click();
+    await expect(tabs.getByRole("tab", { name: /Insights/ })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("region", { name: "Insights de clientes" })).toBeVisible();
+
+    await tabs.getByRole("tab", { name: /Clientes/ }).click();
+    await expect(page.getByRole("region", { name: "Listado de clientes" })).toBeVisible();
   });
 });
 
