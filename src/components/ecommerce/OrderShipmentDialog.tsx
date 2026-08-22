@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -255,14 +256,14 @@ export default function OrderShipmentDialog({
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="text-xs text-muted-foreground">Transportista</label>
-                <select
-                  value={carrier}
-                  onChange={e => setCarrier(e.target.value)}
-                  disabled={yaPreparada || !canEditEcommerce}
-                  className="mt-1 w-full h-9 px-2 text-sm bg-background border border-border rounded-lg"
-                >
-                  {CARRIER_IDS.map(id => <option key={id} value={id}>{CARRIER_LABELS[id]}</option>)}
-                </select>
+                <Select value={carrier} onValueChange={setCarrier} disabled={yaPreparada || !canEditEcommerce}>
+                  <SelectTrigger className="mt-1 h-9 w-full text-sm" aria-label="Transportista">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CARRIER_IDS.map(id => <SelectItem key={id} value={id}>{CARRIER_LABELS[id]}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Peso (kg, opcional)</label>

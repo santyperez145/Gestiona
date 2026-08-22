@@ -4,6 +4,7 @@ import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   Brain, Send, Loader2, Trash2, Bot, User, Sparkles, ShoppingCart,
@@ -341,15 +342,16 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
         <Input value={eDesc} onChange={e => setEDesc(e.target.value)} placeholder="Descripción *" className="h-7 text-xs" />
         <div className="flex gap-2">
           <Input value={eAmount} onChange={e => setEAmount(e.target.value)} placeholder="Monto ARS *" className="h-7 text-xs" type="number" />
-          <select
-            value={eCategory}
-            onChange={e => setECategory(e.target.value)}
-            className="h-7 text-xs rounded-md border border-border bg-background px-2 flex-1"
-          >
+          <Select value={eCategory} onValueChange={setECategory}>
+            <SelectTrigger className="h-7 flex-1 text-xs" aria-label="Categoría del gasto">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
             {["alquiler","servicios","marketing","sueldos","logistica","impuestos","insumos","otros"].map(c => (
-              <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+              <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
             ))}
-          </select>
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex gap-2">
           <Button size="sm" className="h-7 text-xs bg-yellow-500 text-white flex-1" disabled={!eDesc.trim() || !eAmount || loading} onClick={handleCreate}>
@@ -517,16 +519,17 @@ function AdjustStockCard({ userId, onDone }: { userId: string; onDone: () => voi
       {loadingProducts ? (
         <p className="text-xs text-muted-foreground">Cargando productos...</p>
       ) : (
-        <select
-          value={selectedId}
-          onChange={e => setSelectedId(e.target.value)}
-          className="w-full h-7 text-xs rounded-md border border-border bg-background px-2"
-        >
-          <option value="">Seleccioná un producto...</option>
+        <Select value={selectedId || "__none"} onValueChange={value => setSelectedId(value === "__none" ? "" : value)}>
+          <SelectTrigger className="h-7 w-full text-xs" aria-label="Producto cuyo stock se ajustará">
+            <SelectValue placeholder="Seleccioná un producto..." />
+          </SelectTrigger>
+          <SelectContent>
+          <SelectItem value="__none">Seleccioná un producto...</SelectItem>
           {products.map(p => (
-            <option key={p.id} value={p.id}>{p.name} (stock actual: {p.stock})</option>
+            <SelectItem key={p.id} value={p.id}>{p.name} (stock actual: {p.stock})</SelectItem>
           ))}
-        </select>
+          </SelectContent>
+        </Select>
       )}
       <Input
         value={newStock}
@@ -612,16 +615,17 @@ function CreateSaleCard({ userId, initialCustomer, initialQty, onDone }: {
       {loadingProducts ? (
         <p className="text-xs text-muted-foreground">Cargando productos...</p>
       ) : (
-        <select
-          value={selectedId}
-          onChange={e => setSelectedId(e.target.value)}
-          className="w-full h-7 text-xs rounded-md border border-border bg-background px-2"
-        >
-          <option value="">Seleccioná un producto *</option>
+        <Select value={selectedId || "__none"} onValueChange={value => setSelectedId(value === "__none" ? "" : value)}>
+          <SelectTrigger className="h-7 w-full text-xs" aria-label="Producto de la venta">
+            <SelectValue placeholder="Seleccioná un producto *" />
+          </SelectTrigger>
+          <SelectContent>
+          <SelectItem value="__none">Seleccioná un producto *</SelectItem>
           {products.map(p => (
-            <option key={p.id} value={p.id}>{p.name} — ${Number(p.sale_price_ars).toLocaleString('es-AR')}</option>
+            <SelectItem key={p.id} value={p.id}>{p.name} — ${Number(p.sale_price_ars).toLocaleString('es-AR')}</SelectItem>
           ))}
-        </select>
+          </SelectContent>
+        </Select>
       )}
       <div className="flex gap-2">
         <Input value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="Cantidad *" className="h-7 text-xs w-20" type="number" min="1" />
@@ -709,16 +713,17 @@ function CreatePurchaseCard({ userId, initialSupplier, initialQty, initialCostUS
       <p className="text-xs font-medium text-primary flex items-center gap-1.5">
         <Package className="w-3.5 h-3.5" />Registrar compra
       </p>
-      <select
-        value={selectedId}
-        onChange={e => setSelectedId(e.target.value)}
-        className="w-full h-7 text-xs rounded-md border border-border bg-background px-2"
-      >
-        <option value="">Seleccioná un producto *</option>
+      <Select value={selectedId || "__none"} onValueChange={value => setSelectedId(value === "__none" ? "" : value)}>
+        <SelectTrigger className="h-7 w-full text-xs" aria-label="Producto de la compra">
+          <SelectValue placeholder="Seleccioná un producto *" />
+        </SelectTrigger>
+        <SelectContent>
+        <SelectItem value="__none">Seleccioná un producto *</SelectItem>
         {products.map(p => (
-          <option key={p.id} value={p.id}>{p.name}</option>
+          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
         ))}
-      </select>
+        </SelectContent>
+      </Select>
       <div className="flex gap-2">
         <Input value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="Cantidad *" className="h-7 text-xs w-20" type="number" min="1" />
         <Input value={costUSD} onChange={e => setCostUSD(e.target.value)} placeholder="Costo unit. USD" className="h-7 text-xs w-28" type="number" step="0.01" />
@@ -1542,15 +1547,16 @@ function CreateTaskCard({ userId, onDone }: { userId: string; onDone: () => void
           onChange={e => setDueDate(e.target.value)}
           className="flex-1 h-7 text-xs bg-muted border border-border rounded-md px-2 text-foreground"
         />
-        <select
-          value={priority}
-          onChange={e => setPriority(e.target.value as "low" | "medium" | "high")}
-          className="h-7 text-xs bg-muted border border-border rounded-md px-2 text-foreground"
-        >
-          <option value="low">🟢 Baja</option>
-          <option value="medium">🟡 Media</option>
-          <option value="high">🔴 Alta</option>
-        </select>
+        <Select value={priority} onValueChange={value => setPriority(value as "low" | "medium" | "high")}>
+          <SelectTrigger className="h-7 w-[112px] text-xs" aria-label="Prioridad de la tarea">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="low">🟢 Baja</SelectItem>
+            <SelectItem value="medium">🟡 Media</SelectItem>
+            <SelectItem value="high">🔴 Alta</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex gap-2">
         <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-500 text-white flex-1" disabled={!title.trim() || loading} onClick={handleCreate}>

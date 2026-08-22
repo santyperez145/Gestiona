@@ -196,13 +196,19 @@ Los primitives compartidos son la unidad mínima del rediseño:
 - `Badge`, `EmptyState` y los skeletons preservan contraste y estados sin que
   cada módulo invente otro lenguaje.
 
-El slice D2.2 eliminó los 20 `<select>` nativos que permanecían en 12 páginas de
-gestión. Business, POS, Reportes, Finance y Platform usan ahora el mismo
-primitive con trigger, portal, foco, teclado y contraste compartidos; una guarda
-recorre `src/pages` para impedir que la inconsistencia reaparezca. Los selects
-embebidos en componentes especializados y Storefront forman el siguiente slice:
-en checkout mobile un control nativo sólo puede sobrevivir como excepción de
-usabilidad documentada, no por olvido.
+Los slices D2.2–D2.3 eliminaron 30 `<select>` nativos: 20 de 12 páginas y 10 de
+6 componentes internos. Business, POS, Reportes, Finance, Platform, alertas,
+webhooks, envíos, importación y el Copilot usan ahora el mismo primitive con
+trigger, portal, foco, teclado y contraste compartidos. La guarda recorre de
+forma recursiva páginas y componentes: ambos inventarios quedan en cero.
+
+Storefront conserva exactamente tres controles nativos bajo contrato: provincia
+y cuotas en checkout, donde importan autofill y teclado del navegador móvil, y
+orden del listado mobile, donde evita un popover portaleado sobre el catálogo.
+El test fija archivos y cantidad; una cuarta excepción rompe CI. La decisión se
+contrastó reabriendo los previews públicos de CRM Customers/Deals y eMarketplace
+Admin el 2026-08-22: se adopta su densidad y jerarquía compacta en el SaaS, sin
+forzar controles administrativos sobre formularios públicos del comprador.
 
 `PageHeader` es también transversal: Ajustes, Perfil, Document Inbox, resumen
 de Finance y comunicaciones de Platform ya comparten ubicación, contexto,

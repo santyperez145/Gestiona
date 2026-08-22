@@ -4,6 +4,15 @@ import { resolve } from 'node:path';
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
 
+function tsxFiles(directory: string, prefix = ''): string[] {
+  return readdirSync(resolve(process.cwd(), directory), { withFileTypes: true })
+    .flatMap(entry => {
+      const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) return tsxFiles(`${directory}/${entry.name}`, relative);
+      return entry.name.endsWith('.tsx') ? [relative] : [];
+    });
+}
+
 describe('contrato visual transversal de Gestión', () => {
   it('Business, Finance y Platform envuelven todas sus páginas con el mismo contrato', () => {
     const layouts = [
@@ -72,5 +81,23 @@ describe('contrato visual transversal de Gestión', () => {
 
     expect(offenders, 'Los selects nativos rompen foco, contraste y menú entre módulos')
       .toEqual([]);
+  });
+
+  it('los componentes internos usan Select y Storefront conserva sólo excepciones mobile explícitas', () => {
+    const components = tsxFiles('src/components');
+    const componentOffenders = components.filter(path => /<select\b/.test(source(`src/components/${path}`)));
+    expect(componentOffenders, 'Un componente del SaaS volvió a introducir un select nativo')
+      .toEqual([]);
+
+    const storefrontExceptions = Object.fromEntries(
+      tsxFiles('src/storefront')
+        .map(path => [path, source(`src/storefront/${path}`).match(/<select\b/g)?.length || 0] as const)
+        .filter(([, count]) => count > 0),
+    );
+    expect(storefrontExceptions, 'Checkout/listado mobile sólo admiten las excepciones documentadas')
+      .toEqual({
+        'StoreCheckout.tsx': 2,
+        'StoreProducts.tsx': 1,
+      });
   });
 });

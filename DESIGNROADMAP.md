@@ -84,9 +84,11 @@ Medición del código al 2026-08-22:
   layout, por lo que el canvas y los primitives no dependen de cada página;
 - 20 `<select>` nativos estaban repartidos en 12 páginas de gestión; el slice
   D2.2 los migra al primitive común y deja una guarda automática;
-- todavía quedan selects nativos dentro de componentes especializados y del
-  Storefront: se auditan por separado porque checkout mobile puede justificar
-  un control nativo, pero la excepción debe ser explícita;
+- D2.3 retiró otros 10 `<select>` nativos de 6 componentes internos; páginas y
+  componentes del SaaS quedan en cero y una guarda recursiva bloquea regresiones;
+- Storefront conserva exactamente 3 selects nativos: dos en checkout
+  (autofill/teclado de dirección y cuotas) y uno en listado mobile. La guarda
+  fija archivo y cantidad para que la excepción no crezca por accidente;
 - la validación visual autenticada desktop/mobile sigue pendiente de una sesión
   de prueba disponible en esta PC.
 
@@ -146,8 +148,8 @@ usa en material de producto o inversión.
 - [x] `PageHeader` común y excepción POS documentada.
 - [x] D2.2: retirar 20 selects nativos de las 12 páginas de gestión y bloquear
   regresiones a nivel página.
-- [ ] D2.3: revisar selects nativos en componentes especializados; documentar la
-  excepción mobile de Storefront o migrarla a un primitive propio.
+- [x] D2.3: migrar 10 selects de componentes especializados y limitar Storefront
+  a 3 excepciones mobile/autofill verificadas por test.
 - [ ] D2.4: unificar date pickers, uploader, combobox, pagination y menús.
 - [ ] D2.5: consolidar estados `loading/empty/error/permission/offline/partial`.
 - [ ] D2.6: retirar modales manuales que duplican Dialog/Sheet/Drawer.
@@ -234,7 +236,7 @@ declara validado porque “se ve mejor”.
 | 1 | Aislamiento de branding del backoffice | Hecho | Colores de tienda no mutan tokens SaaS. |
 | 2 | Primitives v3 transversales | Hecho | Tres layouts y contrato automático. |
 | 3 | Selects de páginas de gestión | Hecho 2026-08-22 | 20 migrados; guarda en tests. |
-| 4 | Selects de componentes + decisión Storefront | Pendiente | Cero excepciones sin justificar. |
+| 4 | Selects de componentes + decisión Storefront | Hecho 2026-08-22 | 10 migrados; SaaS en cero y 3 excepciones públicas bajo guarda. |
 | 5 | Estados unificados | Pendiente | Seis estados demostrados en Story/fixture. |
 | 6 | Modales, sheets y drawers | Pendiente | Sin overlays manuales en gestión. |
 | 7 | Productos end-to-end | Pendiente | Desktop/mobile + editor/importación. |
@@ -297,7 +299,8 @@ rediseñadas sin tarea terminada.
 ## 9. Referencias y criterio competitivo
 
 Referencias visuales compartidas y verificadas en preview público al
-2026-08-22:
+2026-08-22; CRM Customers/Deals y eMarketplace Admin se reabrieron durante
+D2.3 para contrastar densidad, jerarquía compacta, canvas claro y violeta:
 
 - Aerten: tabla densa, filtros, roles y detalle de registro;
 - eMarketplace Admin: canvas claro, violeta protagonista y señales tintadas;

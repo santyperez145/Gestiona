@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -611,14 +612,15 @@ export default function LegacyAlertRulesTab() {
               const types = [...new Set(notifications.map(n => n.type))];
               if (types.length < 2) return null;
               return (
-                <select
-                  value={historialTypeFilter}
-                  onChange={e => setHistorialTypeFilter(e.target.value)}
-                  className="bg-card border border-border/60 rounded-lg px-2 py-1 text-xs text-foreground"
-                >
-                  <option value="all">Todos los tipos</option>
-                  {types.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
-                </select>
+                <Select value={historialTypeFilter} onValueChange={setHistorialTypeFilter}>
+                  <SelectTrigger className="h-7 w-[160px] text-xs" aria-label="Filtrar historial por tipo">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los tipos</SelectItem>
+                    {types.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               );
             })()}
             {unreadCount > 0 && (

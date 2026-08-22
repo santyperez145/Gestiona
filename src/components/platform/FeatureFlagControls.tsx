@@ -3,6 +3,7 @@ import { AlertTriangle, Building2, Loader2, Power, RotateCcw, ShieldCheck } from
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type FlagOverride = {
   id: string;
@@ -174,16 +175,15 @@ export default function FeatureFlagControls({ isSuperadmin }: { isSuperadmin: bo
         <article className="rounded-[8px] border border-border/60 p-4">
           <div className="flex items-center gap-2"><Building2 className="w-3.5 h-3.5 text-muted-foreground" /><p className="text-xs font-semibold">Excepción por comercio</p></div>
           <p className="mt-1 text-[11px] text-muted-foreground">Sirve para un lanzamiento controlado o para aislar un comercio sin afectar al resto.</p>
-          <select
-            className="mt-3 h-9 w-full rounded-md border border-input bg-background px-3 text-xs"
-            value={selectedOrgId}
-            onChange={event => setSelectedOrgId(event.target.value)}
-            disabled={loading}
-            aria-label="Seleccionar comercio para el control de lanzamiento"
-          >
-            <option value="">Seleccioná un comercio</option>
-            {organizations.map(org => <option key={org.id} value={org.id}>{org.name}{org.slug ? ` · ${org.slug}` : ''}</option>)}
-          </select>
+          <Select value={selectedOrgId || '__none'} onValueChange={value => setSelectedOrgId(value === '__none' ? '' : value)} disabled={loading}>
+            <SelectTrigger className="mt-3 h-9 w-full text-xs" aria-label="Seleccionar comercio para el control de lanzamiento">
+              <SelectValue placeholder="Seleccioná un comercio" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none">Seleccioná un comercio</SelectItem>
+              {organizations.map(org => <SelectItem key={org.id} value={org.id}>{org.name}{org.slug ? ` · ${org.slug}` : ''}</SelectItem>)}
+            </SelectContent>
+          </Select>
           {selectedOrg && (
             <>
               <div className="mt-3 flex items-center justify-between gap-3">

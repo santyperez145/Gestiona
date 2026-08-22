@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   AlertCircle, ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Download,
@@ -287,9 +288,10 @@ export default function ProductsExcelImport({ onClose, onImported }: {
           <label className={`cursor-pointer rounded-lg border p-3 ${stockMode === "ignore" ? "border-primary bg-primary/5" : "border-border"}`}><input type="radio" name="stock-mode" className="mr-2" checked={stockMode === "ignore"} onChange={() => setStockMode("ignore")} /><b className="text-sm">Conservar stock actual</b><p className="ml-5 mt-1 text-xs text-muted-foreground">Importa catálogo y precios sin mover unidades.</p></label>
         </div>
         {stockMode === "replace" && locations.length > 0 && <div><Label className="text-xs">Sucursal del stock {needsLocation && "(obligatoria)"}</Label>
-          <select value={locationId} onChange={event => setLocationId(event.target.value)} disabled={locations.length === 1} className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
-            <option value="">{locations.length > 1 ? "Elegí una sucursal" : "Stock general"}</option>{locations.map(location => <option key={location.id} value={location.id}>{location.name}</option>)}
-          </select></div>}
+          <Select value={locationId || "__general"} onValueChange={value => setLocationId(value === "__general" ? "" : value)} disabled={locations.length === 1}>
+            <SelectTrigger className="mt-1 h-9 w-full text-sm" aria-label="Sucursal que recibirá el stock importado"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="__general">{locations.length > 1 ? "Elegí una sucursal" : "Stock general"}</SelectItem>{locations.map(location => <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>)}</SelectContent>
+          </Select></div>}
         <div className="overflow-x-auto rounded-lg border border-border"><table className="w-full min-w-[760px] text-xs">
           <thead className="bg-muted/40 text-muted-foreground"><tr><th className="p-2 text-left">Fila</th><th className="p-2 text-left">Producto</th><th className="p-2 text-left">SKU</th><th className="p-2 text-right">Costo total</th><th className="p-2 text-right">Venta</th><th className="p-2 text-right">Stock</th><th className="p-2 text-left">Vista local</th></tr></thead>
           <tbody>{rows.slice(0, 100).map((row, index) => { const preview = previews[index]; return <tr key={`${index}-${row.name}`} className="border-t border-border/60">

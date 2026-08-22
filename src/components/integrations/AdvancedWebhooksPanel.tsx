@@ -18,6 +18,7 @@ import {
 import KPICard from "@/components/shared/KPICard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -481,14 +482,14 @@ export default function AdvancedWebhooksPanel() {
                   </button>
 
                   <div className="flex items-center gap-1 shrink-0">
-                    <select
-                      value={testEvent}
-                      onChange={e => setTestEvent(e.target.value)}
-                      className="text-[10px] bg-muted border border-border rounded-md px-1 py-1 max-w-[120px]"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      {ALL_EVENTS.map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
-                    </select>
+                    <Select value={testEvent} onValueChange={setTestEvent}>
+                      <SelectTrigger className="h-7 w-[132px] text-[10px]" aria-label="Evento para probar el webhook" onClick={event => event.stopPropagation()}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ALL_EVENTS.map(event => <SelectItem key={event.key} value={event.key}>{event.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                     <Button size="sm" variant="outline" onClick={() => testWebhook(webhook)} disabled={testing === webhook.id} className="gap-1 text-xs h-7">
                       {testing === webhook.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                       Test
