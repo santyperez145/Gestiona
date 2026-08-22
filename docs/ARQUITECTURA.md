@@ -11,7 +11,7 @@ es barato hoy y carísimo dentro de dos años.
 Última revisión: 2026-08-22 (H1–H3 y límite inicial de Finance cerrados).
 
 ⚠️ **Este documento no autoriza una reescritura.** El sistema funciona, cobra de
-verdad y tiene 1.422 tests (`npm test`, 2026-08-22). Todo se aplica de forma incremental, y cada slice deja
+verdad y tiene 1.431 tests (`npm test`, 2026-08-22). Todo se aplica de forma incremental, y cada slice deja
 el sistema usable.
 
 ---
@@ -247,6 +247,14 @@ asientos existentes mediante un RPC agregado. No existen `finance_suppliers`,
 `finance_products`, `finance_purchases` ni otro ledger. El OCR viejo se muestra
 como precursor y no como producto terminado. Decisión completa y amenazas en
 [ADR 001](ADR_001_FINANCE_PRODUCT_SURFACE.md).
+
+El Document Inbox también separa captura de confianza. El usuario abre un lease
+bajo entitlement + `finance.edit`; una Edge Function descarga el original
+privado, recalcula hash/tamaño/MIME y consulta un scanner privado. Sólo un RPC
+ejecutable por `service_role` deriva `ready_for_extraction`, duplicado,
+diferido o cuarentena, y el token evita que un timeout viejo pise un retry. Sin
+scanner configurado la salida es siempre diferida. Contrato operativo en
+[FINANCE_DOCUMENT_INSPECTION.md](FINANCE_DOCUMENT_INSPECTION.md).
 
 ---
 

@@ -86,6 +86,7 @@ con el estado medido contra la base cuando se pudo.
 | Requisito | Estado |
 |---|---|
 | **Contrato de tratamiento de datos con el comercio** (art. 25) | 🔴 No existe. La plataforma trata datos personales *por cuenta* del comercio: hace falta el contrato que diga qué puede y qué no. |
+| **Scanner de documentos Finance** | 🟡 La inspección técnica está desplegada, pero el scanner privado no está configurado y por eso ningún archivo se envía afuera ni se habilita para extracción. Antes de configurar `FINANCE_DOCUMENT_SCANNER_URL/TOKEN` se necesita proveedor privado, retención cero, subencargados/región declarados y contrato/DPA; no se permite VirusTotal ni un corpus público para facturas. |
 | **Auditoría de accesos del staff** | ✅ Desde 2026-08-22 no existe impersonación por magic link. Support solicita un diagnóstico agregado; sólo owner autoriza por 15/30/60 minutos y ve solicitante, motivo, vencimiento, revocación y contador de lecturas. Cada lectura revalida el permiso y no incluye clientes, órdenes, montos, credenciales ni errores crudos. En altas nuevas, el acceso llega al email del owner y Platform nunca recibe el token. El historial anterior de enlaces permanece visible como mecanismo retirado. |
 | **MFA para el staff** | ✅ `MfaGate` sin excepción. |
 | **Separación de superficies** | ✅ Ser staff de plataforma no da permisos dentro de una organización. |

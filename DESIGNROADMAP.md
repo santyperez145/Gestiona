@@ -107,7 +107,7 @@ usa en material de producto o inversión.
 | Inventario/Compras | Sistema heredado bajo tokens v3. | Parcial | Composición lista/detalle y estados. |
 | Reportes/Intelligence | Primitives compartidos, alta densidad histórica. | Parcial | Simplificar filtros y priorizar decisión. |
 | Settings/Integraciones | Cabecera y navegación común. | Parcial | Formularios, secretos y permisos. |
-| Finance | Shell teal, overview y Document Inbox. | Parcial | Revisión documental end-to-end. |
+| Finance | Shell teal, overview, Document Inbox e inspector con estados visibles. | Parcial | Scanner privado + extracción/revisión end-to-end. |
 | Platform | Rail/control plane violeta y Merchant 360. | Parcial | Cola, métricas y soporte mobile. |
 | Storefront | Marca configurable aislada del SaaS. | Parcial | Home, PDP, carrito y checkout completo. |
 | Estados públicos | Pago, tracking, legales, invitación. | Parcial | Sistema público y accesibilidad. |
@@ -174,7 +174,7 @@ perder contexto ni encontrar un patrón visual nuevo.
 
 **Estado:** parcial.
 
-- Document Inbox con cola, inspector, confianza, versión y siguiente acción;
+- [x] Document Inbox con cola, inspector, confianza, versión y siguiente acción;
 - payables/aprobaciones con segregación visible;
 - Merchant 360 con salud, activación, integraciones y evidencia;
 - cola operativa con severidad, dueño, retry y resultado;
@@ -243,7 +243,7 @@ declara validado porque “se ve mejor”.
 | 10 | Compras, recepción y Kardex | Pendiente | Autoridad de stock visible. |
 | 11 | Reportes orientados a decisión | Pendiente | Menos filtros duplicados; acción clara. |
 | 12 | Settings e Integraciones | Pendiente | Secretos, permisos y estados consistentes. |
-| 13 | Finance Document Inbox | Pendiente | Cola→inspección→revisión responsive. |
+| 13 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo y cuarentena visibles; falta scanner/extracción/revisión responsive. |
 | 14 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
 | 15 | Storefront home/PLP/PDP | Pendiente | Marca, performance y mobile aprobados. |
 | 16 | Carrito/checkout/pago | Pendiente | Compra completa 360 px/red lenta. |

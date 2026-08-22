@@ -11,8 +11,17 @@ export const FINANCE_DOCUMENT_MIME_TYPES = [
 
 export type FinanceDocumentMimeType = typeof FINANCE_DOCUMENT_MIME_TYPES[number];
 export type FinanceDocumentType = 'supplier_invoice' | 'receipt' | 'purchase_order' | 'other';
-export type FinanceDocumentStatus = 'pending_upload' | 'upload_failed' | 'awaiting_inspection' | 'in_review' | 'approved' | 'rejected';
+export type FinanceDocumentStatus = 'pending_upload' | 'upload_failed' | 'awaiting_inspection' | 'in_review' | 'approved' | 'rejected' | 'quarantined';
 export type FinanceDocumentUploadStatus = 'pending_upload' | 'uploaded' | 'failed';
+export type FinanceDocumentInspectionStatus =
+  | 'pending'
+  | 'scanning'
+  | 'scanner_unavailable'
+  | 'clean'
+  | 'ready_for_extraction'
+  | 'duplicate'
+  | 'quarantined'
+  | 'rejected';
 
 export interface FinanceDocumentVersion {
   id: string;
@@ -24,7 +33,7 @@ export interface FinanceDocumentVersion {
   sha256: string;
   hashStatus: 'declared' | 'verified' | 'mismatch';
   uploadStatus: FinanceDocumentUploadStatus;
-  inspectionStatus: 'pending' | 'clean' | 'rejected';
+  inspectionStatus: FinanceDocumentInspectionStatus;
   failureReason: string | null;
   storagePath: string;
   createdAt: string;
@@ -47,6 +56,15 @@ export interface FinanceUploadIntent {
   versionId: string;
   versionNumber: number;
   storagePath: string;
+}
+
+export interface FinanceDocumentInspectionResult {
+  document_id: string;
+  version_id: string;
+  document_status: FinanceDocumentStatus;
+  inspection_status: FinanceDocumentInspectionStatus;
+  hash_status: FinanceDocumentVersion['hashStatus'];
+  duplicate_of_version_id: string | null;
 }
 
 export function validateFinanceDocumentFile(file: Pick<File, 'name' | 'type' | 'size'>): string | null {
@@ -197,6 +215,19 @@ export async function markFinanceDocumentUploadFailed(intent: FinanceUploadInten
   if (error) throw error;
 }
 
+export async function inspectFinanceDocument(
+  documentId: string,
+  versionId: string,
+): Promise<FinanceDocumentInspectionResult | null> {
+  const { data, error } = await supabase.functions.invoke('inspect-finance-document', {
+    body: { documentId, versionId },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(String(data.error));
+  if (data?.skipped) return null;
+  return (data?.result || null) as FinanceDocumentInspectionResult | null;
+}
+
 export async function createFinanceDocumentSignedUrl(storagePath: string): Promise<string> {
   const { data, error } = await supabase.storage
     .from(FINANCE_DOCUMENT_BUCKET)
@@ -222,5 +253,6 @@ export function financeDocumentStatusLabel(status: FinanceDocumentStatus): strin
     in_review: 'En revisión',
     approved: 'Aprobado',
     rejected: 'Rechazado',
+    quarantined: 'En cuarentena',
   }[status];
 }

@@ -212,6 +212,12 @@ como superficie de caja y conserva búsqueda, categorías, carrito y estado del
 turno siempre visibles; agregarle un hero administrativo reduciría velocidad de
 cobro, pero sus controles y tokens sí pertenecen al mismo sistema.
 
+Document Inbox expresa la cadena de confianza en la misma fila del original:
+`Sin inspeccionar`, `Inspeccionando`, `Scanner pendiente`, `Listo para extraer`,
+`Duplicado` o `Cuarentena`. La acción de inspeccionar aparece sólo cuando puede
+progresar; un scanner ausente se muestra como bloqueo recuperable y nunca como
+éxito verde. Esto traduce un estado de seguridad real, no una decoración.
+
 Una personalización puntual puede cambiar composición o tono semántico, pero no
 volver a definir estos fundamentos. El test `managementVisualContract` protege
 la cobertura de las tres superficies y los tokens esenciales.

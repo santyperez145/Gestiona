@@ -27,6 +27,7 @@ import {
   financeDocumentStatusLabel,
   financeDocumentTypeLabel,
   getFinanceDocuments,
+  inspectFinanceDocument,
   markFinanceDocumentUploadFailed,
   sha256File,
   uploadFinanceDocument,
@@ -50,6 +51,7 @@ export default function FinanceDocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [openingPath, setOpeningPath] = useState<string | null>(null);
+  const [inspectingVersionId, setInspectingVersionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -137,6 +139,33 @@ export default function FinanceDocumentsPage() {
     }
   };
 
+  const inspectDocument = async (documentId: string, versionId: string) => {
+    setInspectingVersionId(versionId);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await inspectFinanceDocument(documentId, versionId);
+      if (!result) {
+        setNotice('La versión ya tenía un estado final de inspección.');
+      } else if (result.inspection_status === 'ready_for_extraction') {
+        setNotice('Integridad, formato y scanner confirmados. El documento quedó listo para extracción.');
+      } else if (result.inspection_status === 'duplicate') {
+        setNotice('El contenido ya existía. Quedó marcado como duplicado para revisión, sin ejecutar OCR otra vez.');
+      } else if (result.inspection_status === 'scanner_unavailable') {
+        setError('El original pasó la lectura server-side, pero el scanner privado no está disponible. Sigue bloqueado antes de extracción.');
+      } else if (result.inspection_status === 'quarantined') {
+        setError('La inspección encontró una diferencia o contenido riesgoso. El original quedó aislado en cuarentena.');
+      } else {
+        setError('La inspección no habilitó este documento para extracción.');
+      }
+      await loadDocuments();
+    } catch (cause) {
+      setError(errorMessage(cause, 'No se pudo inspeccionar el documento.'));
+    } finally {
+      setInspectingVersionId(null);
+    }
+  };
+
   const pending = documents.filter(document => document.status === 'awaiting_inspection' || document.status === 'pending_upload').length;
   const approved = documents.filter(document => document.status === 'approved').length;
 
@@ -205,7 +234,7 @@ export default function FinanceDocumentsPage() {
           <Stat icon={CheckCircle2} label="Aprobados" value={approved} />
           <div className="col-span-2 rounded-[10px] border border-amber-500/20 bg-amber-500/[0.04] p-4 lg:col-span-1">
             <div className="flex items-center gap-2 text-amber-600 dark:text-amber-300"><LockKeyhole className="h-3.5 w-3.5" /><p className="text-[10px] font-semibold uppercase tracking-[0.1em]">Cadena de custodia</p></div>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">El hash está declarado por la carga. La verificación server-side y el antivirus son el siguiente paso antes de habilitar extracción.</p>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">El servidor recalcula hash, tamaño y firma binaria. Sólo un resultado limpio del scanner privado habilita extracción; si no está disponible, el documento sigue bloqueado.</p>
           </div>
         </aside>
       </section>
@@ -215,7 +244,7 @@ export default function FinanceDocumentsPage() {
           <div><h2 className="text-sm font-semibold">Bandeja de documentos</h2><p className="mt-1 text-xs text-muted-foreground">Los originales se abren con una URL firmada de corta duración.</p></div>
           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{documents.length} registrados</span>
         </div>
-        {loading ? <div className="flex items-center justify-center py-14 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Leyendo documentos...</div> : documents.length === 0 ? <EmptyState /> : <div className="divide-y divide-border/60">{documents.map(document => <DocumentRow key={document.id} document={document} openingPath={openingPath} onOpen={openDocument} onNewVersion={id => { clearFile(); setNewVersionFor(id); }} />)}</div>}
+        {loading ? <div className="flex items-center justify-center py-14 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Leyendo documentos...</div> : documents.length === 0 ? <EmptyState /> : <div className="divide-y divide-border/60">{documents.map(document => <DocumentRow key={document.id} document={document} openingPath={openingPath} inspectingVersionId={inspectingVersionId} onOpen={openDocument} onInspect={inspectDocument} onNewVersion={id => { clearFile(); setNewVersionFor(id); }} />)}</div>}
       </section>
 
       <div className="grid gap-3 text-xs text-muted-foreground sm:grid-cols-3">
@@ -227,9 +256,10 @@ export default function FinanceDocumentsPage() {
   );
 }
 
-function DocumentRow({ document, openingPath, onOpen, onNewVersion }: { document: FinanceDocument; openingPath: string | null; onOpen: (path: string) => void; onNewVersion: (id: string) => void }) {
+function DocumentRow({ document, openingPath, inspectingVersionId, onOpen, onInspect, onNewVersion }: { document: FinanceDocument; openingPath: string | null; inspectingVersionId: string | null; onOpen: (path: string) => void; onInspect: (documentId: string, versionId: string) => void; onNewVersion: (id: string) => void }) {
   const latest = document.versions[0];
   const canVersion = document.status !== 'approved';
+  const canInspect = latest?.uploadStatus === 'uploaded' && ['pending', 'scanner_unavailable'].includes(latest.inspectionStatus);
   return (
     <article className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex min-w-0 items-start gap-3">
@@ -237,11 +267,13 @@ function DocumentRow({ document, openingPath, onOpen, onNewVersion }: { document
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-medium">{document.title}</h3><StatusBadge status={document.status} /></div>
           <p className="mt-1 text-xs text-muted-foreground">{financeDocumentTypeLabel(document.documentType)} · {latest ? `v${latest.versionNumber} · ${formatBytes(latest.sizeBytes)}` : 'sin versión'}</p>
-          {latest && <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground/70">SHA-256 {latest.sha256.slice(0, 16)}... · {latest.hashStatus === 'declared' ? 'declarado' : latest.hashStatus}</p>}
+          {latest && <div className="mt-1 flex flex-wrap items-center gap-2"><p className="truncate font-mono text-[10px] text-muted-foreground/70">SHA-256 {latest.sha256.slice(0, 16)}... · {latest.hashStatus === 'declared' ? 'declarado' : latest.hashStatus}</p><InspectionBadge status={latest.inspectionStatus} /></div>}
+          {latest?.failureReason && <p className="mt-1 max-w-2xl text-[11px] text-amber-700 dark:text-amber-300">{latest.failureReason}</p>}
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 lg:justify-end">
         {latest && latest.uploadStatus === 'uploaded' && <Button variant="outline" size="xs" disabled={openingPath === latest.storagePath} onClick={() => onOpen(latest.storagePath)}><FileCheck2 /> {openingPath === latest.storagePath ? 'Abriendo...' : 'Ver original'}</Button>}
+        {latest && canInspect && <Button size="xs" disabled={inspectingVersionId === latest.id} onClick={() => onInspect(document.id, latest.id)}>{inspectingVersionId === latest.id ? <Loader2 className="animate-spin" /> : <FileSearch2 />} {inspectingVersionId === latest.id ? 'Inspeccionando...' : 'Inspeccionar'}</Button>}
         {canVersion && <Button variant="ghost" size="xs" onClick={() => onNewVersion(document.id)}><FilePlus2 /> Nueva versión</Button>}
       </div>
     </article>
@@ -249,8 +281,22 @@ function DocumentRow({ document, openingPath, onOpen, onNewVersion }: { document
 }
 
 function StatusBadge({ status }: { status: FinanceDocumentStatus }) {
-  const variant = status === 'approved' ? 'success' : status === 'rejected' || status === 'upload_failed' ? 'destructive' : status === 'awaiting_inspection' || status === 'pending_upload' ? 'warning' : 'blue';
+  const variant = status === 'approved' ? 'success' : status === 'rejected' || status === 'upload_failed' || status === 'quarantined' ? 'destructive' : status === 'awaiting_inspection' || status === 'pending_upload' ? 'warning' : 'blue';
   return <Badge variant={variant}>{status === 'awaiting_inspection' ? <FileClock className="h-3 w-3" /> : status === 'approved' ? <CheckCircle2 className="h-3 w-3" /> : <Clock3 className="h-3 w-3" />}{financeDocumentStatusLabel(status)}</Badge>;
+}
+
+function InspectionBadge({ status }: { status: FinanceDocument['versions'][number]['inspectionStatus'] }) {
+  const config = {
+    pending: { label: 'Sin inspeccionar', variant: 'warning' as const },
+    scanning: { label: 'Inspeccionando', variant: 'blue' as const },
+    scanner_unavailable: { label: 'Scanner pendiente', variant: 'warning' as const },
+    clean: { label: 'Limpio', variant: 'success' as const },
+    ready_for_extraction: { label: 'Listo para extraer', variant: 'success' as const },
+    duplicate: { label: 'Duplicado', variant: 'blue' as const },
+    quarantined: { label: 'Cuarentena', variant: 'destructive' as const },
+    rejected: { label: 'Rechazado', variant: 'destructive' as const },
+  }[status];
+  return <Badge variant={config.variant}>{config.label}</Badge>;
 }
 
 function Stat({ icon: Icon, label, value }: { icon: typeof FileText; label: string; value: number }) {

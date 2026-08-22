@@ -11037,17 +11037,27 @@ export type Database = {
       }
       finance_document_versions: {
         Row: {
+          actual_mime_type: string | null
+          actual_sha256: string | null
+          actual_size_bytes: number | null
           created_at: string
           created_by: string
           document_id: string
+          duplicate_of_version_id: string | null
           failure_reason: string | null
           hash_status: string
           id: string
           inspected_at: string | null
+          inspection_attempts: number
+          inspection_started_at: string | null
           inspection_status: string
+          inspection_token: string | null
           mime_type: string
           org_id: string
           original_filename: string
+          scanner_provider: string | null
+          scanner_reference: string | null
+          scanner_status: string
           sha256: string
           size_bytes: number
           storage_path: string
@@ -11056,17 +11066,27 @@ export type Database = {
           version_number: number
         }
         Insert: {
+          actual_mime_type?: string | null
+          actual_sha256?: string | null
+          actual_size_bytes?: number | null
           created_at?: string
           created_by: string
           document_id: string
+          duplicate_of_version_id?: string | null
           failure_reason?: string | null
           hash_status?: string
           id?: string
           inspected_at?: string | null
+          inspection_attempts?: number
+          inspection_started_at?: string | null
           inspection_status?: string
+          inspection_token?: string | null
           mime_type: string
           org_id: string
           original_filename: string
+          scanner_provider?: string | null
+          scanner_reference?: string | null
+          scanner_status?: string
           sha256: string
           size_bytes: number
           storage_path: string
@@ -11075,17 +11095,27 @@ export type Database = {
           version_number: number
         }
         Update: {
+          actual_mime_type?: string | null
+          actual_sha256?: string | null
+          actual_size_bytes?: number | null
           created_at?: string
           created_by?: string
           document_id?: string
+          duplicate_of_version_id?: string | null
           failure_reason?: string | null
           hash_status?: string
           id?: string
           inspected_at?: string | null
+          inspection_attempts?: number
+          inspection_started_at?: string | null
           inspection_status?: string
+          inspection_token?: string | null
           mime_type?: string
           org_id?: string
           original_filename?: string
+          scanner_provider?: string | null
+          scanner_reference?: string | null
+          scanner_status?: string
           sha256?: string
           size_bytes?: number
           storage_path?: string
@@ -11100,6 +11130,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "finance_documents"
             referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_versions_duplicate_fk"
+            columns: ["duplicate_of_version_id"]
+            isOneToOne: false
+            referencedRelation: "finance_document_versions"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "finance_document_versions_org_id_fkey"
@@ -40358,9 +40395,44 @@ export type Database = {
           suppliers_count: number
         }[]
       }
+      finance_document_begin_inspection: {
+        Args: { p_document_id: string; p_version_id: string }
+        Returns: {
+          declared_mime_type: string
+          declared_sha256: string
+          declared_size_bytes: number
+          document_id: string
+          inspection_token: string
+          should_inspect: boolean
+          storage_path: string
+          version_id: string
+        }[]
+      }
       finance_document_can: {
         Args: { p_action: string; p_org_id: string }
         Returns: boolean
+      }
+      finance_document_complete_inspection: {
+        Args: {
+          p_actor_id: string
+          p_actual_mime_type: string
+          p_actual_sha256: string
+          p_actual_size_bytes: number
+          p_inspection_token: string
+          p_reason: string
+          p_scanner_provider: string
+          p_scanner_reference: string
+          p_scanner_status: string
+          p_version_id: string
+        }
+        Returns: {
+          document_id: string
+          document_status: string
+          duplicate_of_version_id: string
+          hash_status: string
+          inspection_status: string
+          version_id: string
+        }[]
       }
       finance_document_create_upload: {
         Args: {

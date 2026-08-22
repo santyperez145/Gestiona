@@ -40,6 +40,7 @@ describe('autoridad de Finance Document Inbox', () => {
   it('mantiene el hash como declaración hasta la verificación server-side', () => {
     expect(migration).toMatch(/hash_status\s+text NOT NULL DEFAULT 'declared'/);
     expect(migration).toContain('Hash declarado al cargar');
-    expect(page).toContain('La verificación server-side y el antivirus');
+    expect(page).toContain('El servidor recalcula hash, tamaño y firma binaria');
+    expect(page).toContain('scanner privado');
   });
 });

@@ -179,7 +179,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.422 tests pasan al 2026-08-22; typecheck, lint y build verdes; 63 Edge Functions verificadas; 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) pasan contra la base real. |
+| Calidad técnica | 1.431 tests pasan al 2026-08-22; typecheck, lint y build verdes; 64 Edge Functions verificadas; 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) pasan contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -193,7 +193,8 @@ usarse en una presentación, valuación o decisión de inversión.
 | Soporte consentido | `20260822000002` reemplaza magic links de impersonación por solicitud Support → aprobación owner → snapshot sanitizado con expiración por lectura. Retry de solicitud conserva 1 ID; retry de aprobación no extiende la ventana; outsider bloqueado; 2 vistas auditadas; revocación efectiva y 0 restos. Línea de base: 0 solicitudes reales/0 diagnósticos consumidos. |
 | Alta de comercios | `20260822000003` reemplaza escrituras parciales por un RPC superadmin: identidad técnica sin workspace prematuro; 1 org/owner/trial/settings/auditoría; retry conserva `org_id`; key con datos distintos, owner existente y outsider bloqueados; organización previa idéntica y 0 restos. El acceso se envía por email sin exponer enlace. Base real: 4 organizaciones; el segundo merchant aún no existe. |
 | Finance surface | `20260822000008` agrega `/finance`, `FinanceLayout`, entitlement separado de `finance.view`, solicitud tenant, decisión Platform auditada y snapshot agregado de proveedores/órdenes/obligaciones/ledger existentes. Fixture real: owner solicita pero no autoaprueba; staff finance habilita/deshabilita; permiso, outsider y anon bloqueados; 3 eventos append-only y restos 0. Base: Business habilitado 4/4; Finance disponible 4/4, 0 solicitudes y 0 habilitaciones. |
-| Finance precursor | El OCR anterior prellena una orden de compra y producción mostró un esquema distinto al archivo histórico (`extracted`, sin `document_type`). Sigue fuera del producto Finance: no cumple cadena de custodia, validación, matching, duplicados, aprobación ni payable draft. |
+| Finance Document Inbox | El original ya entra a bucket privado, queda inmutable/versionado y la Edge `inspect-finance-document` recalcula SHA-256, tamaño y magic bytes, bloquea capacidades activas de PDF, detecta duplicados por tenant y sólo `service_role` cierra un lease auditable. La migración `20260822000010` está aplicada: `authenticated` puede iniciar pero no completar, `service_role` sí, y quedaron 0 leases. El scanner privado no está configurado, por lo que ningún archivo puede llegar todavía a `ready_for_extraction`; esto es bloqueo seguro, no éxito simulado. |
+| Finance precursor | El OCR anterior prellena una orden de compra y producción mostró un esquema distinto al archivo histórico (`extracted`, sin `document_type`). Sigue fuera del producto Finance: no cumple todavía extracción versionada, confidence, matching, aprobación ni payable draft. |
 | Storefront | Funcional, pero aún comparte aplicación/ciclo de despliegue con el panel; falta aislamiento, dominios y carrito persistente completo. |
 | Recuperación | Backups programados y restore drill de datos aprobado el 2026-08-21: snapshot v3, 147 tablas / 63 filas, 937,22 ms y cero restos. Falta reconstrucción completa para RTO/RPO contractual. |
 | Observabilidad | Pagos ya conserva una correlación de checkout a ledger y ofrece timeline sin PII; faltan métricas/SLO, health checks activos y extender el contrato a los demás flujos críticos. |
@@ -488,12 +489,15 @@ protegido/creado verificable y tiempo entre hallazgo y acción.
   **Gate técnico cerrado 2026-08-22:** bucket privado, intención de carga
   server-side, paths por tenant, versiones y eventos append-only; la bandeja
   `/finance/documentos` abre sólo URLs firmadas de corta duración.
-- MIME, tamaño, malware/cuarentena y hash SHA-256. **Storage cerrado; falta
-  inspector server-side:** el hash hoy queda `declared` hasta ser recalculado y
-  no se marca un documento como listo antes de esa inspección.
+- ~~MIME, tamaño, malware/cuarentena y hash SHA-256.~~ **Autoridad técnica
+  cerrada 2026-08-22:** `inspect-finance-document` descarga el original privado,
+  recalcula SHA-256/tamaño/magic bytes, bloquea acciones activas de PDF y un RPC
+  service-only deriva listo/diferido/cuarentena. El scanner privado externo aún
+  no está configurado; sin resultado `clean` no existe bypass a extracción.
 - Extracción estructurada mediante proveedor intercambiable.
 - Confianza por campo, validación matemática, fiscal y de esquema.
-- Detección de duplicados.
+- ~~Detección de duplicados.~~ **Cerrada técnicamente:** compara hash real sólo
+  dentro del tenant y deriva `duplicate` antes de OCR.
 - Matching determinístico de proveedor y producto.
 - Supplier product aliases aprendidos mediante confirmación.
 - Purchase Draft, Supplier Invoice Draft y Payable Draft.
@@ -658,7 +662,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 12 | Margen SKU/orden/canal/pago/promoción | F2 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** producto × canal y operación usan hechos canónicos. Venta v3 conserva total descontado + baseline y crea partes de cobro; split parcial bloquea, conciliación real calcula neto/asiento/auditoría. Fixture: ARS 2.700, mix 1.200/1.500, fee 121, asiento balanceado, cobertura 100%, outsider/restos 0 | Registrar y conciliar una venta POS real nueva; validar que el merchant usa la explicación sin doble conteo. |
 | 13 | Pricing proposal e impact outcome | F2 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** aprobación server-side, baseline canónica, costo revalidado, medición no causal, reversión con guard, auditoría y RLS. Fixture 3.000→2.700 con cobertura 100%, conflicto protegido y restos 0. Producción: 0/25 aplicadas | Merchant aplica una propuesta real; ventana madura con 100% de cobertura y decide mantener/revertir usando el resultado. |
 | 14 | Finance ADR, shell y acceso por producto | F3 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** `/finance`, chrome propio, sesión/org compartidas, entitlement ≠ permiso ≠ flag, solicitud y aprobación auditada. Snapshot prueba que no duplica el Core. Fixture owner/platform/outsider/anon y restos 0; producción 0/4 habilitadas | Un comercio solicita/recibe acceso y navega Finance con su rol real; medir solicitud → habilitación. |
-| 15 | Document storage seguro y versiones | F3 | **Gate técnico cerrado 2026-08-22; inspección pendiente** | Original privado, intención server-side, hash declarado, MIME/tamaño, versiones y auditoría. Falta recalcular hash, antivirus y deduplicación. |
+| 15 | Document storage seguro, versiones e inspección | F3 | **Gate técnico cerrado 2026-08-22; scanner externo bloqueado** | Original privado, intención server-side, hash recalculado, magic bytes/tamaño, leases, cuarentena, deduplicación y auditoría. `ready_for_extraction` exige scanner privado limpio; secrets ausentes al corte. |
 | 16 | Extracción estructurada y confidence | F3 | Precursor parcial | Campos versionados, validadores y revisión por umbral. |
 | 17 | Supplier/product matching y alias memory | F3 | Pendiente | Confirmación aprendida resuelve la siguiente factura. |
 | 18 | Invoice-to-purchase/payable draft | F3 | Pendiente | Factura real crea borradores sin tocar stock/deuda antes. |
@@ -722,9 +726,15 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     SHA-256, MIME/tamaño, versiones y auditoría~~ — gate técnico cerrado el
     2026-08-22 con `/finance/documentos`, bucket privado, RPCs, URLs firmadas y
     cero mutación de originales.
-19. Inspector server-side del Document Inbox: recalcular hash, validar MIME y
-    tamaño reales, antivirus/cuarentena, deduplicación y transición auditable a
-    `ready_for_extraction` antes de invocar OCR.
+19. ~~Inspector server-side del Document Inbox~~ — autoridad técnica cerrada el
+    2026-08-22: recalcula bytes, valida SHA-256/MIME/tamaño, bloquea PDF activo,
+    usa lease contra concurrencia, detecta duplicados por tenant y deriva estados
+    con RPC sólo para `service_role`. Migración aplicada, Edge desplegada,
+    permisos `authenticated begin=true/complete=false`, `service complete=true`
+    y 0 leases remanentes. El scanner privado sigue bloqueado externamente: al
+    faltar `FINANCE_DOCUMENT_SCANNER_URL/TOKEN`, la única salida es
+    `scanner_unavailable`, nunca `ready_for_extraction`. Contrato y runbook en
+    `docs/FINANCE_DOCUMENT_INSPECTION.md`.
 20. ~~Continuar el sistema visual v2 sobre Platform y Settings~~ — cerrado
     técnicamente el 2026-08-22: Platform tiene topbar/rail propio con contraste
     en tema claro y oscuro; Settings usa la cabecera compartida y mantiene sus
@@ -940,7 +950,7 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-22: 1.422 tests, 63 funciones verificadas
+- Build y suites locales del 2026-08-22: 1.431 tests, 64 funciones verificadas
   y 42 E2E críticos contra la base real.
 - docs/PRICE_IMPACT_LOOP.md: benchmark oficial, autoridad, reversión y regla de
   no causalidad para propuestas de precio.
