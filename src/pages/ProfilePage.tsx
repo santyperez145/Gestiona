@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { User, Lock, Building2, Camera, Save, Crown, ShieldCheck, Mail, Smartphone, Shield, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { QRCodeSVG } from 'qrcode.react';
+import PageHeader from '@/components/shared/PageHeader';
 
 // ─── MFA types ────────────────────────────────────────────────────────────────
 interface MfaFactor {
@@ -237,17 +238,15 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
-      {/* Header */}
-      <div className="mb-2">
-        <h1 className="font-display text-[1.7rem] font-bold tracking-tight flex items-center gap-2.5">
-          <User className="w-5 h-5 text-primary/70" /> Mi Perfil
-        </h1>
-        <p className="text-[12px] text-muted-foreground/55 mt-1">Administrá tu información personal y seguridad.</p>
-      </div>
+      <PageHeader
+        icon={User}
+        eyebrow="Gestiona / Cuenta"
+        title="Mi perfil"
+        description="Administrá tu información personal, organizaciones y seguridad de acceso."
+      />
 
       {/* Avatar + Name */}
-      <div className="rounded-[10px] border border-border/60 p-5 space-y-5 relative overflow-hidden"
-        style={{ background: 'hsl(var(--card))' }}>
+      <div className="relative space-y-5 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
         <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display">Información personal</p>
 
@@ -338,8 +337,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Password change */}
-      <div className="rounded-[10px] border border-border/60 p-5 space-y-4 relative overflow-hidden"
-        style={{ background: 'hsl(var(--card))' }}>
+      <div className="relative space-y-4 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
         <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
           <Lock className="w-3 h-3" /> Cambiar contraseña
@@ -379,8 +377,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Memberships */}
-      <div className="rounded-[10px] border border-border/60 p-5 space-y-4 relative overflow-hidden"
-        style={{ background: 'hsl(var(--card))' }}>
+      <div className="relative space-y-4 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
         <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
           <Building2 className="w-3 h-3" /> Mis organizaciones
@@ -410,8 +407,7 @@ export default function ProfilePage() {
       </div>
 
       {/* MFA / 2FA */}
-      <div className="rounded-[10px] border border-border/60 p-5 space-y-4 relative overflow-hidden"
-        style={{ background: 'hsl(var(--card))' }}>
+      <div className="relative space-y-4 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
         <div className="flex items-center justify-between">
           <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
@@ -535,8 +531,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Account info */}
-      <div className="rounded-[10px] border border-border/60 p-5 space-y-3 relative overflow-hidden"
-        style={{ background: 'hsl(var(--card))' }}>
+      <div className="relative space-y-3 overflow-hidden rounded-[12px] border border-border/70 bg-card p-5 shadow-card">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
         <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display">Información de cuenta</p>
         <div className="space-y-0 pb-12">

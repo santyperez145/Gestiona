@@ -4,6 +4,8 @@ import { BookOpenCheck, Building2, FileClock, FileStack, Landmark, Loader2, Rece
 import { useOrg } from '@/lib/orgContext';
 import { getFinanceCoreSnapshot, type FinanceCoreSnapshot } from '@/lib/financeProductDB';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { Button } from '@/components/ui/button';
+import PageHeader from '@/components/shared/PageHeader';
 
 function formatArs(value: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(value);
@@ -27,17 +29,22 @@ export default function FinanceOverviewPage() {
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        icon={ReceiptText}
+        eyebrow="Gestiona Finance / Resumen"
+        title="Finance"
+        description={`Evidencia documental, obligaciones y asientos conectados al mismo Business Core de ${activeOrg?.name || 'la organización'}.`}
+        actions={(
+          <Button asChild variant="secondary" className="!border-teal-600/20 !bg-teal-600 !text-white shadow-[0_10px_22px_-14px_rgba(13,148,136,.8)] hover:!bg-teal-700">
+            <Link to="/finance/documentos"><FileStack className="h-3.5 w-3.5" />Ver bandeja documental</Link>
+          </Button>
+        )}
+      />
+
       <section className="rounded-[14px] border border-teal-500/20 bg-gradient-to-br from-teal-500/[0.08] via-card to-card p-5 sm:p-7">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-600 dark:text-teal-300">Finance MVP · Business Core compartido</p>
-        <div className="mt-3 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Documentos que terminan en datos revisables</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Finance no crea otra contabilidad: conecta cada comprobante con el proveedor, la compra, la obligación y el asiento de {activeOrg?.name || 'la organización'}.</p>
-          </div>
-          <Link to="/finance/documentos" className="inline-flex h-9 items-center justify-center gap-2 rounded-[7px] bg-teal-600 px-4 text-xs font-semibold text-white hover:bg-teal-700">
-            <FileStack className="h-3.5 w-3.5" /> Ver bandeja documental
-          </Link>
-        </div>
+        <h2 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">Documentos que terminan en datos revisables</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Finance no crea otra contabilidad: conecta cada comprobante con el proveedor, la compra, la obligación y el asiento.</p>
       </section>
 
       {error ? (

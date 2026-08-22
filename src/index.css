@@ -5019,6 +5019,25 @@
     background: hsl(var(--primary) / 0.04);
   }
 
+  .finance-content .page-header__icon {
+    border-color: hsl(174 67% 42% / 0.18);
+    background: hsl(174 67% 42% / 0.1);
+    color: hsl(174 67% 34%);
+  }
+
+  .finance-content .page-header__eyebrow {
+    color: hsl(174 67% 34% / 0.88);
+  }
+
+  .light .finance-content .workspace-page-header::before {
+    background: linear-gradient(180deg, hsl(174 67% 42%), hsl(190 72% 42%));
+  }
+
+  .dark .finance-content .page-header__icon,
+  .dark .finance-content .page-header__eyebrow {
+    color: hsl(174 67% 66%);
+  }
+
   .light .workspace-sidebar__rail {
     background: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(250 60% 99%) 100%) !important;
     border-right-color: hsl(229 18% 87% / 0.9);

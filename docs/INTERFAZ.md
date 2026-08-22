@@ -192,6 +192,14 @@ Los primitives compartidos son la unidad mínima del rediseño:
 - `Badge`, `EmptyState` y los skeletons preservan contraste y estados sin que
   cada módulo invente otro lenguaje.
 
+`PageHeader` es también transversal: Ajustes, Perfil, Document Inbox, resumen
+de Finance y comunicaciones de Platform ya comparten ubicación, contexto,
+título, descripción y acciones. Finance traduce el acento del primitive a teal
+sin bifurcar el componente. POS es la excepción deliberada: ocupa el viewport
+como superficie de caja y conserva búsqueda, categorías, carrito y estado del
+turno siempre visibles; agregarle un hero administrativo reduciría velocidad de
+cobro, pero sus controles y tokens sí pertenecen al mismo sistema.
+
 Una personalización puntual puede cambiar composición o tono semántico, pero no
 volver a definir estos fundamentos. El test `managementVisualContract` protege
 la cobertura de las tres superficies y los tokens esenciales.

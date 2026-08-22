@@ -545,8 +545,12 @@ export default function SettingsPage() {
 
   if (loading) return (
     <div>
-      <h1 className="text-2xl md:text-3xl font-display font-bold mb-1">Ajustes</h1>
-      <p className="text-muted-foreground mb-6 md:mb-8">Cargando configuración...</p>
+      <PageHeader
+        icon={Building2}
+        eyebrow="Gestiona / Configuración"
+        title="Ajustes"
+        description="Cargando la configuración de tu organización..."
+      />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><FormSkeleton /><FormSkeleton /></div>
     </div>
   );

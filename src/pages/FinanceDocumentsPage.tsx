@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import PageHeader from '@/components/shared/PageHeader';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useOrg } from '@/lib/orgContext';
 import {
@@ -140,19 +142,17 @@ export default function FinanceDocumentsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 border-b border-border/70 pb-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-teal-600 dark:text-teal-300">
-            <FileLock2 className="h-4 w-4" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em]">Document Inbox</p>
-          </div>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Documentos bajo custodia</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Cada original entra privado, queda versionado y espera inspección antes de que cualquier dato pueda sugerir una compra, una obligación o un asiento.</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => void loadDocuments()} disabled={loading || uploading}>
-          <RefreshCw className={loading ? 'animate-spin' : ''} /> Actualizar
-        </Button>
-      </header>
+      <PageHeader
+        icon={FileLock2}
+        eyebrow="Gestiona Finance / Document Inbox"
+        title="Documentos bajo custodia"
+        description="Cada original entra privado, queda versionado y espera inspección antes de que cualquier dato pueda sugerir una compra, una obligación o un asiento."
+        actions={(
+          <Button variant="outline" size="sm" onClick={() => void loadDocuments()} disabled={loading || uploading}>
+            <RefreshCw className={loading ? 'animate-spin' : ''} />Actualizar
+          </Button>
+        )}
+      />
 
       {error && <Feedback tone="error" icon={XCircle}>{error}</Feedback>}
       {notice && <Feedback tone="success" icon={CheckCircle2}>{notice}</Feedback>}
@@ -171,9 +171,12 @@ export default function FinanceDocumentsPage() {
             {!newVersionFor && (
               <label className="space-y-1.5">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Tipo</span>
-                <select value={documentType} onChange={event => setDocumentType(event.target.value as FinanceDocumentType)} className="h-9 w-full rounded-[7px] border border-border bg-background px-3 text-xs outline-none focus:border-teal-500/50">
-                  {DOCUMENT_TYPES.map(type => <option key={type} value={type}>{financeDocumentTypeLabel(type)}</option>)}
-                </select>
+                <Select value={documentType} onValueChange={value => setDocumentType(value as FinanceDocumentType)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DOCUMENT_TYPES.map(type => <SelectItem key={type} value={type}>{financeDocumentTypeLabel(type)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </label>
             )}
             <div className={newVersionFor ? 'sm:col-span-2' : ''}>

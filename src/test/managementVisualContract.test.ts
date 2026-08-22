@@ -47,4 +47,21 @@ describe('contrato visual transversal de Gestión', () => {
     expect(css).toContain('.light .workspace-route-surface [class~="bg-card"]');
     expect(css).toContain('.light .workspace-route-surface table tbody tr:hover');
   });
+
+  it('las excepciones heredadas usan el mismo encabezado sin quitar el foco del POS', () => {
+    const alignedPages = [
+      'src/pages/FinanceOverviewPage.tsx',
+      'src/pages/FinanceDocumentsPage.tsx',
+      'src/pages/PlatformAnnouncementsPage.tsx',
+      'src/pages/ProfilePage.tsx',
+      'src/pages/SettingsPage.tsx',
+    ];
+
+    for (const path of alignedPages) {
+      expect(source(path), `${path} conserva un encabezado aislado`).toContain('<PageHeader');
+    }
+
+    expect(source('src/pages/POSPage.tsx')).toContain('h-[calc(100vh-4rem)]');
+    expect(source('src/pages/POSPage.tsx')).not.toContain('<PageHeader');
+  });
 });
