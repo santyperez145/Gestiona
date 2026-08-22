@@ -27,6 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { SupportAccessAuditSection } from "@/components/settings/SupportAccessAuditSection";
+import PageHeader from "@/components/shared/PageHeader";
 import {
   backupTrustLabel,
   createOrganizationBackup,
@@ -553,13 +554,17 @@ export default function SettingsPage() {
 
   return (
     <div className="pb-12">
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-2xl md:text-3xl font-display font-bold">Ajustes</h1>
-        <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-          <Keyboard className="w-3 h-3" />Ctrl+K búsqueda rápida
-        </div>
-      </div>
-      <p className="text-muted-foreground mb-6 md:mb-8">Configuración general de {businessName}</p>
+      <PageHeader
+        icon={Building2}
+        eyebrow="Gestiona / Configuración"
+        title="Ajustes"
+        description={`Configuración general de ${businessName}`}
+        actions={(
+          <div className="workspace-shortcut-hint hidden md:flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+            <Keyboard className="w-3 h-3" />Ctrl+K búsqueda rápida
+          </div>
+        )}
+      />
 
       <div className="workspace-settings-layout">
         <div className="workspace-settings-content" data-settings-view={settingsSection}>

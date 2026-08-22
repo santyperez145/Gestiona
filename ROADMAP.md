@@ -208,7 +208,8 @@ usarse en una presentación, valuación o decisión de inversión.
 | Control Plane | Superficie operativa profesional en construcción. | Menor MTTR y menor intervención manual medidos. |
 | Finance OCR | Extracción/prellenado parcial. | Documento auditable que termina en compra/deuda correcta. |
 | Finance product surface | Ruta, chrome, sesión compartida, entitlement, permiso y snapshot del Core. | Primer comercio habilitado y primer documento procesado; 0 adopción real al corte. |
-| Sistema visual v2 | Workspace Business, dashboard y Finance comparten rail, toolbar, jerarquía, estados y responsive base; documentado en `docs/INTERFAZ.md` (2026-08-22). | Completar Platform/Storefront, revisar capturas en desktop/mobile y medir abandono o tiempo a tarea antes de declarar la renovación visual validada. |
+| Sistema visual v2 | Workspace Business, dashboard, Finance, Platform y Settings comparten rail, toolbar, jerarquía, estados y responsive base; Platform conserva acento violeta y Settings conserva tabs por sección. Documentado en `docs/INTERFAZ.md` (2026-08-22). | Completar Storefront, revisar capturas en desktop/mobile y medir abandono o tiempo a tarea antes de declarar la renovación visual validada. |
+| Rediseño público v3 | Landing pública y Auth fueron reconstruidos el 2026-08-22 con propuesta omnicanal, preview del producto, registro directo desde CTA, responsive desktop/mobile y metadatos SEO alineados. | Validar conversión del CTA y continuar la auditoría visual de Storefront y rutas públicas de compra. |
 
 ### Bloqueos externos vigentes
 
@@ -716,9 +717,17 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
 19. Inspector server-side del Document Inbox: recalcular hash, validar MIME y
     tamaño reales, antivirus/cuarentena, deduplicación y transición auditable a
     `ready_for_extraction` antes de invocar OCR.
-20. Continuar el sistema visual v2 sobre Platform, Settings y Storefront sin
-    crear un segundo design system; cada pantalla nueva debe cumplir
-    `docs/INTERFAZ.md` y pasar revisión responsive.
+20. ~~Continuar el sistema visual v2 sobre Platform y Settings~~ — cerrado
+    técnicamente el 2026-08-22: Platform tiene topbar/rail propio con contraste
+    en tema claro y oscuro; Settings usa la cabecera compartida y mantiene sus
+    seis secciones persistidas. Queda Storefront, capturas desktop/mobile y la
+    medición de abandono o tiempo a tarea antes de declarar la renovación visual
+    validada. Cada pantalla nueva debe cumplir `docs/INTERFAZ.md`.
+21. ~~Landing y Auth con dirección visual propia~~ — cerrado técnicamente el
+    2026-08-22: landing product-led con preview del Business Core, navegación
+    responsive, CTA de registro directo y Auth con panel de producto, login,
+    registro y recuperación bajo el mismo contrato visual. Falta medir
+    conversión real; la implementación no se declara validada por una captura.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

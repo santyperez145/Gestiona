@@ -27,8 +27,14 @@ interfaz debe ayudar a escanear, comparar y ejecutar, no competir con los datos.
 |---|---|---|---|
 | Business | Rail + vistas internas | Dorado | Operar productos, stock, ventas y clientes. |
 | Finance | Rail propio + documentos | Teal | Revisar evidencia y aprobar decisiones. |
-| Platform | Rail de control plane | Violeta | Operar merchants, salud, riesgo y soporte. |
+| Platform | Topbar de identidad + rail de control plane | Violeta | Operar merchants, salud, riesgo y soporte sin confundirse con un tenant. |
 | Storefront | Navegación de tienda | Configurable | Comprar sin ver el backoffice. |
+
+La landing y Auth son superficies públicas de adquisición y acceso: tienen una
+dirección editorial propia, pero comparten tipografía, escala de radios,
+contraste y acento con el producto. La landing debe mostrar el producto real en
+la primera pantalla; Auth debe hacer evidente si la persona va a iniciar sesión
+o crear un workspace.
 
 El color de acento no reemplaza al estado. Error, advertencia, éxito y dato
 pendiente deben conservar una etiqueta legible y no depender sólo del color.
@@ -38,7 +44,10 @@ pendiente deben conservar una etiqueta legible y no depender sólo del color.
 1. Contexto: superficie, organización y estado de conectividad.
 2. Título: una frase corta que nombre el trabajo de la vista.
 3. Toolbar: búsqueda, filtros persistentes y una acción primaria.
-4. Navegación interna: tabs o sidebar si hay más de un trabajo relacionado.
+4. Navegación interna: tabs o sidebar si hay más de un trabajo relacionado. En
+   Settings, las seis secciones permanecen en la misma vista y recuerdan la
+   última sección por organización; en Platform, el rail separa el control plane
+   del workspace de cada comercio.
 5. Contenido: primero la decisión o el dato operativo; después el detalle.
 6. Estado: carga, vacío, permiso, error y datos desactualizados explícitos.
 
@@ -65,4 +74,3 @@ pendiente deben conservar una etiqueta legible y no depender sólo del color.
 - Los estados de loading, vacío, error y permiso tienen tratamiento propio.
 - El contraste y el foco visible funcionan en tema claro y oscuro.
 - La captura desktop y mobile se revisa antes de cerrar un slice.
-

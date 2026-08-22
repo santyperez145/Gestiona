@@ -47,23 +47,31 @@ export default function StoreHome() {
         style={{ background: "hsl(var(--st-surface))", borderBottom: "1px solid hsl(var(--st-border))" }}
       >
         {store?.banner_url && (
-          <img src={store.banner_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-25" />
+          <img src={store.banner_url} alt="" className="storefront-hero__image absolute inset-0 w-full h-full object-cover" />
         )}
-        <div className="storefront-hero__content relative max-w-6xl mx-auto px-4 py-16 sm:py-24 text-center">
-          <span className="storefront-eyebrow">Catálogo oficial</span>
-          <h1 className="storefront-hero__title text-3xl sm:text-5xl font-bold tracking-tight">{store?.name}</h1>
-          {store?.description && (
-            <p className="mt-3 text-base sm:text-lg max-w-2xl mx-auto" style={{ color: "hsl(var(--st-muted))" }}>
-              {store.description}
-            </p>
-          )}
-          <Link
-            to={`${base}/productos`}
-            className="inline-flex items-center gap-2 mt-7 px-6 py-3 font-medium transition-opacity hover:opacity-90"
-            style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
-          >
-            Ver todos los productos <ArrowRight className="w-4 h-4" />
-          </Link>
+        <div className="storefront-hero__content relative max-w-6xl mx-auto px-4 py-16 sm:py-24">
+          <div className="storefront-hero__copy">
+            <span className="storefront-eyebrow">Catálogo oficial</span>
+            <h1 className="storefront-hero__title text-3xl sm:text-5xl font-bold tracking-tight">{store?.name}</h1>
+            {store?.description && (
+              <p className="mt-3 text-base sm:text-lg max-w-2xl" style={{ color: "hsl(var(--st-muted))" }}>
+                {store.description}
+              </p>
+            )}
+            <Link
+              to={`${base}/productos`}
+              className="storefront-hero__cta inline-flex items-center gap-2 mt-7 px-6 py-3 font-medium transition-opacity hover:opacity-90"
+              style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+            >
+              Explorar catálogo <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="storefront-hero__aside">
+            <div className="storefront-hero__aside-head"><span>Compra con confianza</span><ShieldCheck /></div>
+            <div className="storefront-hero__aside-stat"><strong>{disponibles.length}</strong><span>productos disponibles</span></div>
+            <div className="storefront-hero__aside-row"><span><Truck /> Envíos coordinados</span><ArrowRight /></div>
+            <div className="storefront-hero__aside-row"><span><Wallet /> Medios de pago seguros</span><ArrowRight /></div>
+          </div>
         </div>
       </section>
       )}
