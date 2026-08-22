@@ -10,6 +10,8 @@ interface Prediction {
   confidencePercent: number;
   trend: 'up' | 'down' | 'stable';
   insights: string[];
+  source?: 'ai' | 'statistical';
+  notice?: string;
 }
 
 export default function AIPrediction({ sales }: { sales: any[] }) {
@@ -69,6 +71,9 @@ export default function AIPrediction({ sales }: { sales: any[] }) {
             <p className="text-2xl md:text-3xl font-black font-display text-primary">{formatARS(pred.projectedRevenue)}</p>
             <p className="text-[10px] text-muted-foreground">±{(100 - pred.confidencePercent).toFixed(0)}% margen de error · Tendencia: {pred.trend === 'up' ? '📈' : pred.trend === 'down' ? '📉' : '➡️'}</p>
           </div>
+          {pred.source === 'statistical' && pred.notice && (
+            <p className="border-t border-border pt-2 text-[10px] leading-relaxed text-muted-foreground">{pred.notice}</p>
+          )}
           {pred.insights?.length > 0 && (
             <div className="space-y-1.5 border-t border-border pt-3">
               {pred.insights.slice(0, 3).map((ins, i) => (

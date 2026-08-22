@@ -11,7 +11,7 @@ Estado al 2026-08-21. Lo que **no** esté acá, ya funciona sin tocar nada.
 | Tienda online `/tienda/:slug` | ✅ Funciona |
 | Catálogo público `/catalogo/:userId` | ✅ Funciona |
 | Notificaciones push | ✅ VAPID cargado |
-| **IA** (chat, descripciones, insights, OCR) | ❌ Falta `ANTHROPIC_API_KEY` |
+| **IA** (chat, descripciones, insights, OCR) | ⚠️ Falta `ANTHROPIC_API_KEY` para IA generativa; `predict-sales` conserva un respaldo estadístico |
 | **Emails** (campañas, secuencias, facturas) | ❌ Falta `RESEND_API_KEY` |
 | **WhatsApp automático** | ⚠️ Requiere una conexión Evolution por comercio o una configuración global de plataforma |
 | **Cobros con tarjeta** | ❌ Falta Stripe |
@@ -57,7 +57,8 @@ Hoy solo están los `SUPABASE_*` (automáticos) y los `VAPID_*`.
 | `FROM_EMAIL` | Remitente de esos emails (dominio verificado en Resend) | — |
 | `PUBLIC_BASE_URL` | Links dentro de los emails (desuscripción, ver factura) | tu dominio |
 
-Sin `ANTHROPIC_API_KEY`, cada función de IA responde con error. Sin
+Sin `ANTHROPIC_API_KEY`, las funciones de IA generativa responden con error;
+`predict-sales` sigue disponible con una estimación estadística explícita. Sin
 `RESEND_API_KEY`, los crons de email corren pero no envían nada.
 
 > Alternativa a Resend: cargar un SMTP propio en Configuración → Email. Las
