@@ -31,6 +31,15 @@ export default function MetricCard({
   return (
     <div
       onClick={onClick}
+      onKeyDown={onClick ? (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      } : undefined}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      data-tone={tone}
       className={cn(
         "workspace-metric-card group relative overflow-hidden rounded-[8px] border border-border/80 bg-card px-4 py-3.5",
         "shadow-kpi transition-all duration-200 hover:-translate-y-px hover:border-primary/35 hover:shadow-card",
@@ -39,10 +48,10 @@ export default function MetricCard({
       )}
     >
       <div className={cn("absolute inset-x-0 bottom-0 h-[2px] opacity-70 transition-opacity group-hover:opacity-100", colors.bar)} />
-      <div className="flex items-start justify-between gap-3">
+      <div className="workspace-metric-card__content flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.11em] text-muted-foreground">
+            <p className="workspace-metric-card__label truncate text-[10px] font-semibold uppercase tracking-[0.11em] text-muted-foreground">
               {label}
             </p>
             {live && (
@@ -52,12 +61,12 @@ export default function MetricCard({
               </span>
             )}
           </div>
-          <p className={cn("mt-2 truncate text-[1.45rem] font-bold leading-none tracking-[-0.02em]", colors.value)}>
+          <p className={cn("workspace-metric-card__value mt-2 truncate text-[1.45rem] font-bold leading-none tracking-[-0.02em]", colors.value)}>
             {value}
           </p>
           {sub && <p className="mt-2 truncate text-[11px] leading-snug text-muted-foreground/75">{sub}</p>}
         </div>
-        <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] transition-transform duration-200 group-hover:scale-105", colors.icon)}>
+        <span className={cn("workspace-metric-card__icon flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] transition-transform duration-200 group-hover:scale-105", colors.icon)}>
           <Icon className="h-4 w-4" />
         </span>
       </div>

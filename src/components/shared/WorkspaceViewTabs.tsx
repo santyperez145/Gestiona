@@ -18,7 +18,7 @@ type WorkspaceViewTabsProps = {
 
 export default function WorkspaceViewTabs({ tabs, activeTab, onChange, ariaLabel, meta }: WorkspaceViewTabsProps) {
   return (
-    <div className="workspace-view-tabs">
+    <div className="workspace-view-tabs" data-active-tab={activeTab}>
       <div className="workspace-view-tabs__list" role="tablist" aria-label={ariaLabel}>
         {tabs.map(({ id, label, icon: Icon, count }) => (
           <button
@@ -26,6 +26,7 @@ export default function WorkspaceViewTabs({ tabs, activeTab, onChange, ariaLabel
             type="button"
             role="tab"
             aria-selected={activeTab === id}
+            data-state={activeTab === id ? "active" : "inactive"}
             className={`workspace-view-tabs__tab ${activeTab === id ? "is-active" : ""}`}
             onClick={() => onChange(id)}
           >

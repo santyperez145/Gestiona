@@ -136,6 +136,15 @@ deben volver a mostrar como una sola columna larga: cada sección se monta bajo
 su propia vista activa y conserva las acciones/modales existentes. Platform
 mantiene un rail propio agrupado por `Workspace`, `Operaciones`, `Ingresos` y
 `Gobierno`; los grupos sólo muestran los módulos permitidos por el rol real.
+
+El shell compartido ya es parte del contrato, no sólo una capa estética:
+`AppLayout` debe conservar la identidad del workspace en el topbar, breadcrumb,
+búsqueda global, estado operativo y CTA; `PageHeader`, `MetricCard` y
+`WorkspaceViewTabs` son los primitives de jerarquía para las rutas de negocio.
+Platform usa `PlatformLayout` con contexto de consola central, rail violeta y
+acciones de salida separadas. Si una pantalla nueva necesita inventar otro
+header o tarjeta, primero hay que justificar por qué no puede extender estos
+primitives.
 Los enlaces públicos o favoritos que todavía usan `#dashboard-*` deben seguir
 resolviendo la vista correspondiente, incluso si la organización tenía una
 sección inválida persistida en el navegador.

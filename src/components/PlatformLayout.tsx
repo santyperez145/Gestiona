@@ -70,10 +70,10 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
     <div className="platform-surface workspace-platform min-h-screen bg-background">
       {/* ── Barra de identidad de plataforma ──────────────────────────── */}
       <header
-        className="workspace-platform-topbar sticky top-0 z-40 border-b border-violet-500/25 topbar-surface"
+        className="workspace-platform-topbar workspace-platform__topbar sticky top-0 z-40 border-b border-violet-500/25 topbar-surface"
       >
         <div className="platform-topbar-inner px-4 sm:px-6 h-14 flex items-center gap-3">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="platform-topbar__identity flex items-center gap-2 min-w-0">
             <div className="platform-brand-mark w-7 h-7 rounded-[8px] flex items-center justify-center shrink-0">
               <Crown className="w-3.5 h-3.5" />
             </div>
@@ -90,31 +90,39 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
             )}
           </div>
 
+          <div className="platform-topbar__context hidden lg:flex items-center gap-2 min-w-0">
+            <span className="platform-topbar__context-dot" aria-hidden="true" />
+            <span className="platform-topbar__context-label">Consola central</span>
+            <span className="platform-topbar__context-detail truncate">Organizaciones, ingresos y gobierno</span>
+          </div>
+
           <div className="flex-1" />
 
           {/* Volver al tenant — solo si el staff tiene una org propia */}
-          {memberships.length > 0 && (
+          <div className="platform-topbar__actions flex items-center gap-2">
+            {memberships.length > 0 && (
             <Link
               to="/"
               className="platform-topbar-action flex items-center gap-1.5 px-2.5 py-1 rounded-[7px] text-[11px] font-medium transition-all"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Volver a mi negocio
             </Link>
-          )}
-          <button
-            onClick={() => supabase.auth.signOut()}
-            className="platform-topbar-action flex items-center gap-1.5 px-2.5 py-1 rounded-[7px] text-[11px] transition-all"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Salir</span>
-          </button>
+            )}
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className="platform-topbar-action flex items-center gap-1.5 px-2.5 py-1 rounded-[7px] text-[11px] transition-all"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
+          </div>
         </div>
 
         {/* ── Nav de secciones ────────────────────────────────────────── */}
       </header>
 
-      <div className="platform-workspace-shell">
-        <nav className="platform-sidebar" aria-label="Secciones de plataforma">
+      <div className="platform-workspace-shell workspace-platform__body">
+        <nav className="platform-sidebar workspace-platform__rail" aria-label="Secciones de plataforma">
           <p className="platform-sidebar__label">Control de plataforma</p>
           {grouped.map(group => (
             <div key={group.id} className="platform-sidebar__group">
@@ -137,10 +145,10 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
           ))}
         </nav>
 
-        <main className="workspace-platform-main">{children}</main>
+        <main className="workspace-platform-main workspace-platform__main">{children}</main>
       </div>
 
-      <footer className="px-6 py-4 border-t border-border/30 mt-8">
+      <footer className="workspace-platform__footer px-6 py-4 border-t border-border/30 mt-8">
         <p className="text-[10px] text-muted-foreground/40 font-mono">
           {user?.email} · superficie de plataforma · las acciones quedan auditadas en admin_audit_logs
         </p>

@@ -32,7 +32,7 @@ export default function PageHeader({ icon: Icon, title, description, actions, ba
           <span className="page-header__icon flex h-7 w-7 items-center justify-center rounded-[7px] bg-primary/10 text-primary ring-1 ring-primary/15">
             <Icon className="w-3.5 h-3.5" />
           </span>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70 font-display">
+          <span className="page-header__eyebrow text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70 font-display">
             {eyebrow}
           </span>
         </div>
@@ -40,7 +40,7 @@ export default function PageHeader({ icon: Icon, title, description, actions, ba
         {/* Title */}
         <div className="workspace-page-header__title-row flex items-end gap-3 flex-wrap">
           <h1 className={cn(
-            "page-header__title text-[1.65rem] md:text-[1.95rem] font-display font-bold tracking-[-0.03em] leading-none",
+            "page-header__title text-[1.6rem] md:text-[2rem] font-display font-bold tracking-[-0.03em] leading-none",
             "text-foreground",
           )}>
             {title}

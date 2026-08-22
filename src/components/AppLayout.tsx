@@ -220,14 +220,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
-      <aside className={`workspace-sidebar
+      <aside className={`workspace-sidebar workspace-sidebar__rail
         fixed inset-y-0 left-0 z-50 gradient-sidebar border-r border-sidebar-border flex flex-col shrink-0
         transform transition-all duration-300 ease-out h-screen
         w-[270px] md:w-[248px] ${effectiveCollapsed ? 'md:w-[78px]' : 'md:w-[248px]'} ${collapsed ? 'lg:w-[78px]' : 'lg:w-[248px]'}
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
       `}>
         {/* ── Logo / Brand Header ──────────────────────────────────── */}
-        <div className={`${effectiveCollapsed ? 'px-3 py-4' : 'px-4 py-4'} border-b border-sidebar-border/60 flex items-center justify-between`}>
+        <div className={`workspace-sidebar__brand ${effectiveCollapsed ? 'px-3 py-4' : 'px-4 py-4'} border-b border-sidebar-border/60 flex items-center justify-between`}>
           <div className="flex items-center gap-3 min-w-0">
             {config.logoUrl ? (
               <div className="relative shrink-0">
@@ -256,7 +256,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* ── Navigation ───────────────────────────────────────────── */}
-        <nav className="flex-1 px-2 py-2.5 overflow-y-auto scrollbar-hide">
+        <nav className="workspace-sidebar__nav flex-1 px-2 py-2.5 overflow-y-auto scrollbar-hide">
           {groupedNav.map((group, gi) => {
             const isExpanded = group.section === 'diario' || effectiveCollapsed || expandedSections.has(group.section);
             return (
@@ -341,7 +341,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* ── Footer ───────────────────────────────────────────────── */}
-        <div className={`${effectiveCollapsed ? 'px-2 py-3' : 'px-3 py-3'} border-t border-sidebar-border/60 space-y-1.5`}>
+        <div className={`workspace-sidebar__footer ${effectiveCollapsed ? 'px-2 py-3' : 'px-3 py-3'} border-t border-sidebar-border/60 space-y-1.5`}>
           <OrgSwitcher collapsed={effectiveCollapsed} />
           <NotificationBell collapsed={effectiveCollapsed} />
           <ThemeToggle collapsed={effectiveCollapsed} />
@@ -389,8 +389,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className={`workspace-main flex-1 overflow-auto w-full min-h-screen bg-background transition-all duration-300 ${effectiveCollapsed ? 'md:ml-[78px]' : 'md:ml-[248px]'} ${collapsed ? 'lg:ml-[78px]' : 'lg:ml-[248px]'}`}>
         {/* Desktop command bar: a stable orientation point across every module. */}
         <header className="workspace-topbar hidden md:flex sticky top-0 z-30 h-14 items-center gap-4 border-b border-border/70 px-6 topbar-surface">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/65">
+          <div className="workspace-topbar__context min-w-0 flex-1">
+            <div className="workspace-topbar__workspace flex items-center gap-2">
+              <span className="workspace-topbar__workspace-dot" aria-hidden="true" />
+              <span className="workspace-topbar__workspace-label">Workspace operativo</span>
+              <span className="workspace-topbar__workspace-name truncate">{config.businessName}</span>
+            </div>
+            <div className="workspace-topbar__breadcrumb flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/65">
               <span>{currentSectionLabel}</span>
               <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
               <span className="truncate text-foreground/80">{currentPageLabel}</span>
@@ -408,13 +413,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <kbd className="rounded-[4px] border border-border bg-muted px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">Ctrl K</kbd>
           </button>
 
-          <div className={`hidden xl:flex items-center gap-2 text-[11px] ${online ? 'text-muted-foreground/75' : 'text-destructive'}`}>
+          <div className={`workspace-topbar__status hidden xl:flex items-center gap-2 text-[11px] ${online ? 'text-muted-foreground/75' : 'text-destructive'}`}>
             <span className={`status-dot ${online ? 'bg-emerald-500' : 'bg-destructive'}`} />
             {online ? 'Operativo' : 'Sin conexion'}
           </div>
           <Link
             to="/ventas"
-            className="workspace-primary-action inline-flex h-8 items-center gap-1.5 rounded-[7px] bg-primary px-3 text-[11px] font-semibold text-primary-foreground shadow-gold transition-all hover:brightness-105"
+            className="workspace-primary-action workspace-topbar__cta inline-flex h-8 items-center gap-1.5 rounded-[7px] bg-primary px-3 text-[11px] font-semibold text-primary-foreground shadow-gold transition-all hover:brightness-105"
           >
             <DollarSign className="h-3.5 w-3.5" />
             Nueva venta
@@ -422,7 +427,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <PresenceAvatars maxVisible={3} size={24} className="hidden lg:flex" />
         </header>
         {/* Mobile-only header — hidden from md upward, where the icon rail is always visible */}
-        <div className="workspace-mobile-bar md:hidden sticky top-0 z-30 border-b border-border/30 px-4 h-12 flex items-center gap-3"
+        <div className="workspace-mobile-bar workspace-mobile-bar__inner md:hidden sticky top-0 z-30 border-b border-border/30 px-4 h-12 flex items-center gap-3"
           style={{ background: 'hsl(var(--sidebar-background) / 0.92)', backdropFilter: 'blur(16px) saturate(160%)' }}>
           <button
             onClick={() => setMobileOpen(true)}

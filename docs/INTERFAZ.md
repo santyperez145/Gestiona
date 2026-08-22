@@ -37,7 +37,10 @@ operación, salud e inteligencia.
 - Profundidad: sombras cortas y suaves, radios de 8–12 px, sin tarjetas
   anidadas para construir el layout.
 - Navegación: rail de organización y rail violeta de plataforma; topbar con
-  breadcrumb, búsqueda global, estado de conexión y acción primaria.
+  identidad del workspace, breadcrumb, búsqueda global, estado de conexión y
+  acción primaria. Los encabezados llevan una guía de acento, las métricas
+  declaran su tono con icono/estado y los tabs usan una superficie segmentada
+  con una activa inequívoca.
 
 El modo oscuro sigue disponible mediante el toggle, pero el modo claro es la
 experiencia por defecto y la referencia que debe validarse visualmente en cada
