@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       activation_interventions: {
@@ -10892,6 +10917,345 @@ export type Database = {
           },
           {
             foreignKeyName: "feature_flag_overrides_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      finance_document_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          document_id: string
+          event_type: string
+          id: string
+          org_id: string
+          version_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          document_id: string
+          event_type: string
+          id?: string
+          org_id: string
+          version_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          document_id?: string
+          event_type?: string
+          id?: string
+          org_id?: string
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_document_events_document_org_fk"
+            columns: ["document_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "finance_documents"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_document_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_events_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "finance_document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_document_versions: {
+        Row: {
+          created_at: string
+          created_by: string
+          document_id: string
+          failure_reason: string | null
+          hash_status: string
+          id: string
+          inspected_at: string | null
+          inspection_status: string
+          mime_type: string
+          org_id: string
+          original_filename: string
+          sha256: string
+          size_bytes: number
+          storage_path: string
+          upload_status: string
+          uploaded_at: string | null
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          document_id: string
+          failure_reason?: string | null
+          hash_status?: string
+          id?: string
+          inspected_at?: string | null
+          inspection_status?: string
+          mime_type: string
+          org_id: string
+          original_filename: string
+          sha256: string
+          size_bytes: number
+          storage_path: string
+          upload_status?: string
+          uploaded_at?: string | null
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          document_id?: string
+          failure_reason?: string | null
+          hash_status?: string
+          id?: string
+          inspected_at?: string | null
+          inspection_status?: string
+          mime_type?: string
+          org_id?: string
+          original_filename?: string
+          sha256?: string
+          size_bytes?: number
+          storage_path?: string
+          upload_status?: string
+          uploaded_at?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_document_versions_document_org_fk"
+            columns: ["document_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "finance_documents"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      finance_documents: {
+        Row: {
+          created_at: string
+          created_by: string
+          document_type: string
+          id: string
+          org_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          document_type: string
+          id?: string
+          org_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          document_type?: string
+          id?: string
+          org_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_documents_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
@@ -39994,6 +40358,61 @@ export type Database = {
           suppliers_count: number
         }[]
       }
+      finance_document_can: {
+        Args: { p_action: string; p_org_id: string }
+        Returns: boolean
+      }
+      finance_document_create_upload: {
+        Args: {
+          p_document_type: string
+          p_file_name: string
+          p_mime_type: string
+          p_org_id: string
+          p_sha256: string
+          p_size_bytes: number
+        }
+        Returns: {
+          document_id: string
+          storage_path: string
+          version_id: string
+        }[]
+      }
+      finance_document_create_version: {
+        Args: {
+          p_document_id: string
+          p_file_name: string
+          p_mime_type: string
+          p_sha256: string
+          p_size_bytes: number
+        }
+        Returns: {
+          document_id: string
+          storage_path: string
+          version_id: string
+          version_number: number
+        }[]
+      }
+      finance_document_finalize_upload: {
+        Args: { p_document_id: string; p_version_id: string }
+        Returns: {
+          document_id: string
+          document_status: string
+          upload_status: string
+          version_id: string
+        }[]
+      }
+      finance_document_mark_upload_failed: {
+        Args: { p_document_id: string; p_reason: string; p_version_id: string }
+        Returns: undefined
+      }
+      finance_document_storage_read_allowed: {
+        Args: { p_path: string }
+        Returns: boolean
+      }
+      finance_document_storage_upload_allowed: {
+        Args: { p_path: string }
+        Returns: boolean
+      }
       generate_claim_number: { Args: { p_org_id: string }; Returns: string }
       generate_download_token: { Args: never; Returns: string }
       generate_dropship_number: { Args: { p_org_id: string }; Returns: string }
@@ -41546,6 +41965,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "viewer"],

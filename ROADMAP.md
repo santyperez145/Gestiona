@@ -474,8 +474,13 @@ protegido/creado verificable y tiempo entre hallazgo y acción.
   2026-08-22:** `/finance` tiene resumen y contrato de Document Inbox; consume un
   RPC agregado sobre proveedores, órdenes, obligaciones y ledger del Business
   Core, sin tablas paralelas ni joins del navegador.
-- Document Inbox con storage privado, original inmutable y versiones.
-- MIME, tamaño, malware/cuarentena y hash SHA-256.
+- ~~Document Inbox con storage privado, original inmutable y versiones.~~
+  **Gate técnico cerrado 2026-08-22:** bucket privado, intención de carga
+  server-side, paths por tenant, versiones y eventos append-only; la bandeja
+  `/finance/documentos` abre sólo URLs firmadas de corta duración.
+- MIME, tamaño, malware/cuarentena y hash SHA-256. **Storage cerrado; falta
+  inspector server-side:** el hash hoy queda `declared` hasta ser recalculado y
+  no se marca un documento como listo antes de esa inspección.
 - Extracción estructurada mediante proveedor intercambiable.
 - Confianza por campo, validación matemática, fiscal y de esquema.
 - Detección de duplicados.
@@ -643,7 +648,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 12 | Margen SKU/orden/canal/pago/promoción | F2 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** producto × canal y operación usan hechos canónicos. Venta v3 conserva total descontado + baseline y crea partes de cobro; split parcial bloquea, conciliación real calcula neto/asiento/auditoría. Fixture: ARS 2.700, mix 1.200/1.500, fee 121, asiento balanceado, cobertura 100%, outsider/restos 0 | Registrar y conciliar una venta POS real nueva; validar que el merchant usa la explicación sin doble conteo. |
 | 13 | Pricing proposal e impact outcome | F2 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** aprobación server-side, baseline canónica, costo revalidado, medición no causal, reversión con guard, auditoría y RLS. Fixture 3.000→2.700 con cobertura 100%, conflicto protegido y restos 0. Producción: 0/25 aplicadas | Merchant aplica una propuesta real; ventana madura con 100% de cobertura y decide mantener/revertir usando el resultado. |
 | 14 | Finance ADR, shell y acceso por producto | F3 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** `/finance`, chrome propio, sesión/org compartidas, entitlement ≠ permiso ≠ flag, solicitud y aprobación auditada. Snapshot prueba que no duplica el Core. Fixture owner/platform/outsider/anon y restos 0; producción 0/4 habilitadas | Un comercio solicita/recibe acceso y navega Finance con su rol real; medir solicitud → habilitación. |
-| 15 | Document storage seguro y versiones | F3 | Pendiente | Original privado, hash, cuarentena y auditoría. |
+| 15 | Document storage seguro y versiones | F3 | **Gate técnico cerrado 2026-08-22; inspección pendiente** | Original privado, intención server-side, hash declarado, MIME/tamaño, versiones y auditoría. Falta recalcular hash, antivirus y deduplicación. |
 | 16 | Extracción estructurada y confidence | F3 | Precursor parcial | Campos versionados, validadores y revisión por umbral. |
 | 17 | Supplier/product matching y alias memory | F3 | Pendiente | Confirmación aprendida resuelve la siguiente factura. |
 | 18 | Invoice-to-purchase/payable draft | F3 | Pendiente | Factura real crea borradores sin tocar stock/deuda antes. |
@@ -703,8 +708,13 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     entitlement y `finance.view` independientes, decisión Platform auditada y
     snapshot agregado del mismo proveedor/compra/obligación/ledger. Producción:
     4 disponibles, 0 solicitadas, 0 habilitadas.
-18. Document Inbox seguro: bucket privado, original inmutable, hash SHA-256,
-    MIME/tamaño reales, cuarentena, versiones y auditoría antes de invocar OCR.
+18. ~~Document Inbox seguro: bucket privado, original inmutable, hash
+    SHA-256, MIME/tamaño, versiones y auditoría~~ — gate técnico cerrado el
+    2026-08-22 con `/finance/documentos`, bucket privado, RPCs, URLs firmadas y
+    cero mutación de originales.
+19. Inspector server-side del Document Inbox: recalcular hash, validar MIME y
+    tamaño reales, antivirus/cuarentena, deduplicación y transición auditable a
+    `ready_for_extraction` antes de invocar OCR.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

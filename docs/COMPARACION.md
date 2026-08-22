@@ -349,6 +349,51 @@ de las primeras razones por las que se abandona un carrito. Shopify y Tiendanube
 sirven storefronts mucho más livianos ❓ (no medido). Vale la pena separar el
 bundle del **panel** del bundle de la **tienda**: hoy comparten build.
 
+### 5.4 Benchmark operativo actualizado — 2026-08-22
+
+Este corte agrega patrones que sí cambian decisiones de arquitectura. No se
+copian pantallas: se copian controles que reducen errores de operación.
+
+- ✅ **Shopify:** `stagedUploadsCreate` usa una carga segura en dos pasos: crea
+  un destino temporal y después sube el archivo directamente. La documentación
+  lo recomienda para archivos grandes, medios e importaciones masivas
+  ([StagedUploadsCreatePayload](https://shopify.dev/docs/api/admin-graphql/latest/payloads/StagedUploadsCreatePayload),
+  consultado 2026-08-22). Gestiona adopta el mismo límite conceptual en Finance:
+  intención server-side, objeto privado y finalización separada; la diferencia
+  es que nuestro objeto queda unido a una versión documental y a la
+  organización.
+- ✅ **Supabase Storage:** los buckets privados fuerzan RLS también al descargar
+  y permiten URL firmada temporal; los buckets aceptan límite de tamaño y tipos
+  MIME ([Storage Buckets](https://supabase.com/docs/guides/storage/buckets/fundamentals),
+  consultado 2026-08-22). Por eso los originales de Finance no usan `getPublicUrl`.
+- ✅ **MercadoLibre:** sus notificaciones deben responder rápido, encolar el
+  evento y consultar el recurso canónico por API en vez de confiar ciegamente en
+  el payload ([notificaciones](https://developers.mercadolibre.com.ar/es_ar/notificaciones),
+  consultado 2026-08-22). El mismo criterio se mantiene para futuros webhooks de
+  órdenes, pagos y envíos: ACK, outbox, retry, deduplicación y lectura de la
+  autoridad.
+- ✅ **Tiendanube:** su documentación de migración separa productos, clientes,
+  dominios, pagos y envíos; la importación masiva es un proceso explícito y
+  recomienda respaldar antes ([migración](https://ayuda.tiendanube.com/es_AR/migrar-mi-tienda),
+  consultado 2026-08-22). Esto respalda el pipeline del roadmap
+  `extract → staging → normalize → validate → preview → import → reconcile`, no
+  una importación que pisa datos en silencio.
+- ✅ **Empretienda:** comunica importación masiva, alertas de stock, medios de
+  pago, envíos y administración móvil como capacidades de comercio
+  ([producto](https://empretienda.com/), consultado 2026-08-22). Se considera
+  paridad de superficie; no se atribuyen detalles internos sin documentación
+  técnica pública.
+- ✅ **Mendel:** su producto muestra políticas de gasto, presupuestos/tarjetas,
+  aprobaciones, auditoría y detalle por categoría
+  ([Spend Management](https://mendel.com/en-ar/product/), consultado
+  2026-08-22). Finance toma ese estándar de control: quién solicita, quién
+  aprueba, qué evidencia queda y qué efecto está prohibido antes de aprobar.
+
+📌 **Regla derivada:** cada integración nueva debe tener una autoridad canónica,
+un evento idempotente, una cola/reintento cuando sea asíncrona y una pantalla de
+excepción. Cada carga de archivo debe tener intención, límite, privacidad,
+versión y auditoría antes de conectarse a IA o a un efecto financiero.
+
 ---
 
 ## 6. Lo que falta para operar "como las grandes", en orden

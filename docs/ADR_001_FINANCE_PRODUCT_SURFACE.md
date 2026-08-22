@@ -129,9 +129,37 @@ Producción al 2026-08-22: 4/4 organizaciones con Business habilitado, 4/4 con
 Finance disponible, 0 solicitudes, 0 habilitaciones y 0 eventos. Es una puerta
 técnica cerrada, no adopción.
 
+## Implementación del Document Inbox
+
+El slice F3.15 quedó implementado el 2026-08-22 sobre la misma arquitectura:
+
+- `finance_documents`, `finance_document_versions` y
+  `finance_document_events` son las autoridades de documento, versión y
+  auditoría; no hay una tabla Finance paralela para proveedores, compras,
+  obligaciones o asientos.
+- `finance-documents` es un bucket privado, con MIME permitido y límite de 10
+  MB. La intención de carga nace en un RPC que comprueba entitlement, membresía
+  y `finance.edit`; la policy de Storage sólo permite subir el path que esa
+  intención creó para ese usuario.
+- Finalizar una carga exige que el objeto exista. La transición queda en
+  `awaiting_inspection`, no en `ready`: el hash SHA-256 queda marcado como
+  `declared` hasta que un inspector server-side lo recalcule. No se promete
+  antivirus ni OCR todavía.
+- Las columnas originales de una versión tienen un trigger de inmutabilidad y
+  no hay policies de `UPDATE`/`DELETE` para el navegador. Una corrección crea
+  otra versión; un documento aprobado no se reemplaza.
+- La UI usa URL firmada de 60 segundos para abrir el original. Nunca llama
+  `getPublicUrl` ni expone una credencial o un path libremente elegido.
+
+La decisión sigue el patrón de almacenamiento privado de Supabase y el flujo de
+carga en dos pasos que Shopify usa para archivos grandes o importaciones. La
+similitud es de control operativo, no de producto: Gestiona conserva además la
+cadena de custodia y el Core omnicanal como fuente de verdad.
+
 ## Consecuencias y siguiente gate
 
-El siguiente slice autorizado es Document Inbox: bucket privado, original
-inmutable, hash SHA-256, MIME/tamaño reales, cuarentena, versiones y auditoría.
-Recién después se conecta extracción estructurada. Ningún documento moverá stock,
-creará deuda ni asentará contabilidad antes de aprobación humana.
+El gate técnico de almacenamiento y versionado está cerrado. El siguiente
+slice autorizado es un inspector server-side idempotente: MIME real, tamaño
+real, hash recalculado, antivirus/cuarentena y deduplicación antes de habilitar
+extracción estructurada. Ningún documento moverá stock, creará deuda ni
+asentará contabilidad antes de aprobación humana.
