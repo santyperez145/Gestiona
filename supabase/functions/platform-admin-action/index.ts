@@ -47,6 +47,9 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "No autenticado" }, 401);
 
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const mailAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
     const { data: pa } = await admin
       .from("platform_admins")
@@ -87,6 +90,7 @@ Deno.serve(async (req) => {
       checkSecrets: ["support", "finance"],
       getFeatureFlags: ["support", "finance"],
       resetUserPassword: ["support"],
+      sendOnboardingAccess: ["support"],
       // Facturación / planes
       extendTrial: ["finance"],
       changePlan: ["finance"],
@@ -496,10 +500,56 @@ Deno.serve(async (req) => {
       return json({ ok: true, email: u.user.email });
     }
 
+    // ── SEND ONBOARDING ACCESS ─────────────────────────────────
+    // El correo sale por Supabase Auth; el staff nunca recibe el token ni una
+    // URL capaz de abrir una sesión del owner.
+    if (action === "sendOnboardingAccess") {
+      const { userId, orgId } = body;
+      if (typeof userId !== "string" || !UUID_RE.test(userId)) {
+        return json({ error: "Usuario inválido" }, 400);
+      }
+      if (orgId != null && (typeof orgId !== "string" || !UUID_RE.test(orgId))) {
+        return json({ error: "Organización inválida" }, 400);
+      }
+      const { data: target, error: targetError } = await admin.auth.admin.getUserById(userId);
+      if (targetError || !target?.user?.email) {
+        return json({ error: "No se encontró el email del owner" }, 404);
+      }
+      if (orgId) {
+        const { data: ownerMembership, error: membershipError } = await admin
+          .from("memberships")
+          .select("id")
+          .eq("org_id", orgId)
+          .eq("user_id", userId)
+          .eq("role", "owner")
+          .maybeSingle();
+        if (membershipError) return json({ error: "No se pudo validar el owner" }, 502);
+        if (!ownerMembership) return json({ error: "El usuario no es owner de esa organización" }, 409);
+      }
+      const { error: deliveryError } = await mailAuth.auth.signInWithOtp({
+        email: target.user.email,
+        options: { shouldCreateUser: false },
+      });
+      if (deliveryError) {
+        await logAction("sendOnboardingAccessFailed", {
+          orgId,
+          userId,
+          details: { reason: "provider_rejected" },
+        });
+        return json({ error: "No se pudo enviar el acceso. La organización no fue modificada." }, 502);
+      }
+      await logAction("sendOnboardingAccess", {
+        orgId,
+        userId,
+        details: { delivery: "email", token_exposed_to_staff: false },
+      });
+      return json({ ok: true, emailSent: true });
+    }
+
     // ── CREATE ORG MANUALLY ────────────────────────────────────
-    // Used by platform admins to create an org on behalf of a customer.
-    // Creates the org, optionally creates/invites the owner user, and
-    // assigns the requested plan with optional custom trial extension.
+    // Auth crea la identidad; un RPC autenticado crea atómicamente org,
+    // membresía, suscripción, ajustes, idempotencia y auditoría. Si el RPC
+    // falla, una identidad recién creada se compensa antes de responder.
     if (action === "createOrg") {
       const {
         name,
@@ -508,106 +558,117 @@ Deno.serve(async (req) => {
         planId,
         trialDays = 14,
         sendInvite = true,
+        idempotencyKey,
       } = body;
 
-      if (!name?.trim() || !ownerEmail?.trim()) {
+      const normalizedName = typeof name === "string" ? name.trim() : "";
+      const normalizedEmail = typeof ownerEmail === "string" ? ownerEmail.trim().toLowerCase() : "";
+      const normalizedTrialDays = Number(trialDays);
+      const normalizedPlanId = planId == null || planId === "" ? null : planId;
+      if (!normalizedName || !normalizedEmail) {
         return json({ error: "Nombre de org y email del owner son requeridos" }, 400);
       }
+      if (normalizedName.length < 2 || normalizedName.length > 120) {
+        return json({ error: "El nombre debe tener entre 2 y 120 caracteres" }, 400);
+      }
+      if (normalizedEmail.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+        return json({ error: "Email del owner inválido" }, 400);
+      }
+      if (!Number.isInteger(normalizedTrialDays) || normalizedTrialDays < 0 || normalizedTrialDays > 365) {
+        return json({ error: "Los días de trial deben estar entre 0 y 365" }, 400);
+      }
+      if (normalizedPlanId != null && (typeof normalizedPlanId !== "string" || !UUID_RE.test(normalizedPlanId))) {
+        return json({ error: "Plan inicial inválido" }, 400);
+      }
+      if (typeof idempotencyKey !== "string" || !UUID_RE.test(idempotencyKey)) {
+        return json({ error: "La clave idempotente del alta es inválida" }, 400);
+      }
 
-      // Find or create the owner user
-      let ownerUserId: string | null = null;
-      const { data: existingUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });
-      const existing = existingUsers?.users.find((u) => u.email?.toLowerCase() === ownerEmail.toLowerCase());
+      // listUsers pagina: el primer millar no es una garantía de unicidad cuando
+      // la plataforma crece. Nunca se crea un duplicado por dejar de paginar.
+      let existingUser: { id: string; email?: string } | null = null;
+      for (let page = 1; page <= 100; page += 1) {
+        const { data: pageData, error: pageError } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+        if (pageError) return json({ error: "No se pudo verificar la identidad del owner" }, 502);
+        existingUser = pageData.users.find((candidate) => candidate.email?.toLowerCase() === normalizedEmail) || null;
+        if (existingUser || pageData.users.length < 1000) break;
+      }
 
-      if (existing) {
-        ownerUserId = existing.id;
-      } else {
-        // Create user with auto-generated password — they'll set it via magic link
-        const tempPassword = crypto.randomUUID();
-        const { data: created, error: createErr } = await admin.auth.admin.createUser({
-          email: ownerEmail,
-          password: tempPassword,
+      let ownerUserId = existingUser?.id || null;
+      let createdAuthUser = false;
+      if (!ownerUserId) {
+        const { data: created, error: createError } = await admin.auth.admin.createUser({
+          email: normalizedEmail,
+          password: crypto.randomUUID() + crypto.randomUUID(),
           email_confirm: true,
-          user_metadata: { full_name: ownerName || ownerEmail.split("@")[0] },
+          user_metadata: {
+            full_name: typeof ownerName === "string" && ownerName.trim()
+              ? ownerName.trim().slice(0, 120)
+              : normalizedEmail.split("@")[0],
+            account_type: "platform_invited_owner",
+          },
         });
-        if (createErr) return json({ error: `Error creando usuario: ${createErr.message}` }, 500);
-        ownerUserId = created.user?.id || null;
+        if (createError || !created.user?.id) {
+          return json({ error: "No se pudo crear la identidad del owner" }, 502);
+        }
+        ownerUserId = created.user.id;
+        createdAuthUser = true;
       }
 
-      if (!ownerUserId) return json({ error: "No se pudo determinar el owner" }, 500);
-
-      // The trigger handle_new_user_create_org() only fires on signup, so if the
-      // user already existed we need to create the org manually. If they didn't,
-      // the trigger already created one — we update it instead.
-      let orgId: string | null = null;
-      const { data: ownedOrg } = await admin
-        .from("organizations")
-        .select("id")
-        .eq("owner_user_id", ownerUserId)
-        .maybeSingle();
-
-      if (ownedOrg) {
-        orgId = ownedOrg.id;
-        await admin
-          .from("organizations")
-          .update({ name, trial_ends_at: new Date(Date.now() + trialDays * 86400000).toISOString() })
-          .eq("id", orgId);
-      } else {
-        // Generate a slug (strip diacritics, normalize to a-z 0-9 - )
-        const slug = name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
-          .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40)
-          + "-" + Math.random().toString(36).slice(2, 8);
-
-        const { data: newOrg, error: orgErr } = await admin
-          .from("organizations")
-          .insert({
-            name,
-            slug,
-            owner_user_id: ownerUserId,
-            plan_id: planId || null,
-            trial_ends_at: new Date(Date.now() + trialDays * 86400000).toISOString(),
-          })
-          .select("id")
-          .single();
-        if (orgErr) return json({ error: `Error creando org: ${orgErr.message}` }, 500);
-        orgId = newOrg.id;
-
-        await admin.from("memberships").insert({
-          org_id: orgId, user_id: ownerUserId, role: "owner",
-        });
-
-        await admin.from("subscriptions").insert({
-          org_id: orgId,
-          plan_id: planId || null,
-          status: "trialing",
-          current_period_end: new Date(Date.now() + trialDays * 86400000).toISOString(),
-        });
-
-        await admin.from("settings").upsert({
-          org_id: orgId, user_id: ownerUserId, business_name: name,
-        }, { onConflict: "org_id" });
+      const { data: provisioning, error: provisioningError } = await anon.rpc(
+        "provision_platform_organization",
+        {
+          p_idempotency_key: idempotencyKey,
+          p_owner_user_id: ownerUserId,
+          p_name: normalizedName,
+          p_plan_id: normalizedPlanId,
+          p_trial_days: normalizedTrialDays,
+        },
+      );
+      if (provisioningError) {
+        if (createdAuthUser) await admin.auth.admin.deleteUser(ownerUserId).catch(() => undefined);
+        const alreadyLinked = provisioningError.message.includes("already belongs");
+        return json({
+          error: alreadyLinked
+            ? "Ese email ya pertenece a una organización. Usá un email de owner nuevo para no modificar otro negocio."
+            : "No se pudo crear la organización de forma completa; no se guardaron datos parciales.",
+        }, alreadyLinked ? 409 : 500);
       }
 
-      // Optionally change the plan if requested (for existing orgs)
-      if (planId && ownedOrg) {
-        await admin.from("subscriptions")
-          .update({ plan_id: planId, status: "trialing" })
-          .eq("org_id", orgId);
+      const result = provisioning as {
+        org_id?: string;
+        owner_user_id?: string;
+        created?: boolean;
+      } | null;
+      const orgId = result?.org_id;
+      if (!orgId || !UUID_RE.test(orgId)) {
+        return json({ error: "El servidor no confirmó la organización creada" }, 500);
       }
 
-      // Send magic link to onboard the owner
-      let inviteLink: string | undefined;
+      let emailSent = false;
       if (sendInvite) {
-        const { data: linkData } = await admin.auth.admin.generateLink({
-          type: existing ? "magiclink" : "invite",
-          email: ownerEmail,
+        const { error: deliveryError } = await mailAuth.auth.signInWithOtp({
+          email: normalizedEmail,
+          options: { shouldCreateUser: false },
         });
-        inviteLink = linkData?.properties?.action_link;
+        emailSent = !deliveryError;
+        await logAction(emailSent ? "sendOnboardingAccess" : "sendOnboardingAccessFailed", {
+          orgId,
+          userId: ownerUserId,
+          details: emailSent
+            ? { delivery: "email", token_exposed_to_staff: false }
+            : { reason: "provider_rejected" },
+        });
       }
 
-      if (!orgId) return json({ error: "No se pudo determinar la organización creada" }, 500);
-      await logAction("createOrg", { orgId, userId: ownerUserId, details: { name, ownerEmail, planId, trialDays } });
-      return json({ ok: true, orgId, ownerUserId, inviteLink, existing: !!existing });
+      return json({
+        ok: true,
+        orgId,
+        ownerUserId,
+        created: result?.created === true,
+        emailSent,
+        emailRequested: sendInvite === true,
+      });
     }
 
     // ── CHECK SECRETS ──────────────────────────────────────────

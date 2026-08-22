@@ -8,7 +8,7 @@ import {
   Edit2, AlertTriangle, Crown, UserX, UserCheck, ChevronRight,
   MoreHorizontal, CalendarDays, Activity, Headphones, Pause, Play,
   History, ShoppingCart, Package, Server, TrendingDown,
-  KeyRound, Copy, UserPlus, Mail, FileDown, Loader2,
+  KeyRound, UserPlus, Mail, FileDown, Loader2,
   CircleAlert, Store, Webhook,
 } from 'lucide-react';
 import SystemHealthTab from '@/components/platform/SystemHealthTab';
@@ -40,6 +40,14 @@ interface OrgRow {
   plan_price: number;
   member_count: number;
   status: string;
+}
+
+interface CreatedOrganizationResult {
+  orgId: string;
+  ownerUserId: string;
+  ownerEmail: string;
+  emailSent: boolean;
+  emailRequested: boolean;
 }
 
 interface UserRow {
@@ -221,7 +229,8 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
   const [newOrgForm, setNewOrgForm] = useState({
     name: '', ownerEmail: '', ownerName: '', planId: '', trialDays: '14', sendInvite: true,
   });
-  const [createdInviteLink, setCreatedInviteLink] = useState<string | null>(null);
+  const [provisioningKey, setProvisioningKey] = useState(() => crypto.randomUUID());
+  const [createdOrganization, setCreatedOrganization] = useState<CreatedOrganizationResult | null>(null);
 
   // Support tab state
   const [adminLogs, setAdminLogs] = useState<any[]>([]);
@@ -547,19 +556,39 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
         ownerEmail: newOrgForm.ownerEmail.trim().toLowerCase(),
         ownerName: newOrgForm.ownerName.trim() || undefined,
         planId: newOrgForm.planId || undefined,
-        trialDays: parseInt(newOrgForm.trialDays) || 14,
+        trialDays: Number(newOrgForm.trialDays),
         sendInvite: newOrgForm.sendInvite,
+        idempotencyKey: provisioningKey,
       });
-      toast.success(res.existing ? 'Org creada para usuario existente' : 'Org y usuario creados');
-      if (res.inviteLink) setCreatedInviteLink(res.inviteLink);
-      else {
-        setCreateOrgDialog(false);
-        setNewOrgForm({ name: '', ownerEmail: '', ownerName: '', planId: '', trialDays: '14', sendInvite: true });
-      }
+      setCreatedOrganization({
+        orgId: res.orgId,
+        ownerUserId: res.ownerUserId,
+        ownerEmail: newOrgForm.ownerEmail.trim().toLowerCase(),
+        emailSent: res.emailSent === true,
+        emailRequested: res.emailRequested === true,
+      });
+      toast.success(res.created === false ? 'Alta ya confirmada; no se duplicó' : 'Organización creada de forma completa');
       loadOrgs();
       if (users.length > 0) loadUsers();
     } catch (e: any) { toast.error(e.message); }
     setSaving(false);
+  };
+
+  const handleResendOnboardingAccess = async () => {
+    if (!createdOrganization) return;
+    setSaving(true);
+    try {
+      await adminCall('sendOnboardingAccess', {
+        userId: createdOrganization.ownerUserId,
+        orgId: createdOrganization.orgId,
+      });
+      setCreatedOrganization(current => current ? { ...current, emailSent: true, emailRequested: true } : current);
+      toast.success(`Acceso enviado a ${createdOrganization.ownerEmail}`);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ── User actions ───────────────────────────────────────────────────────────
@@ -1580,7 +1609,8 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
         onOpenChange={(open) => {
           setCreateOrgDialog(open);
           if (!open) {
-            setCreatedInviteLink(null);
+            setCreatedOrganization(null);
+            setProvisioningKey(crypto.randomUUID());
             setNewOrgForm({ name: '', ownerEmail: '', ownerName: '', planId: '', trialDays: '14', sendInvite: true });
           }
         }}
@@ -1592,35 +1622,39 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
             </DialogTitle>
           </DialogHeader>
 
-          {createdInviteLink ? (
+          {createdOrganization ? (
             <div className="space-y-4 py-2">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
                 <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-green-400">Organización creada</p>
+                  <p className="text-sm font-semibold text-green-400">Organización lista, sin estados parciales</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Enviale este link al cliente para que entre y configure su cuenta. Es de un solo uso.
+                    Organización, owner, trial y ajustes se confirmaron juntos. Reintentar esta alta no crea duplicados.
                   </p>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Link de invitación / acceso</Label>
-                <div className="flex gap-2">
-                  <Input value={createdInviteLink} readOnly className="font-mono text-[10px] h-9" />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(createdInviteLink);
-                      toast.success('Copiado');
-                    }}
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                  </Button>
+              <div className={`rounded-lg border p-3 ${createdOrganization.emailSent ? 'border-blue-500/20 bg-blue-500/10' : 'border-amber-500/20 bg-amber-500/10'}`}>
+                <div className="flex items-start gap-2">
+                  <Mail className={`mt-0.5 h-4 w-4 ${createdOrganization.emailSent ? 'text-blue-400' : 'text-amber-400'}`} />
+                  <div>
+                    <p className="text-xs font-semibold">
+                      {createdOrganization.emailSent ? 'Acceso enviado por email' : createdOrganization.emailRequested ? 'El acceso todavía no se pudo enviar' : 'Acceso no enviado'}
+                    </p>
+                    <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                      {createdOrganization.ownerEmail}. El token nunca se muestra en Platform, por lo que el staff no puede abrir la sesión del owner.
+                    </p>
+                  </div>
                 </div>
               </div>
-              <DialogFooter>
-                <Button onClick={() => setCreateOrgDialog(false)}>Cerrar</Button>
+              <DialogFooter className="gap-2 sm:gap-0">
+                {!createdOrganization.emailSent && (
+                  <Button variant="outline" onClick={handleResendOnboardingAccess} disabled={saving}>
+                    <Mail className="mr-1.5 h-3.5 w-3.5" />{saving ? 'Enviando...' : 'Enviar acceso'}
+                  </Button>
+                )}
+                <Button asChild>
+                  <Link to={`/platform/orgs/${createdOrganization.orgId}`}>Abrir Merchant 360</Link>
+                </Button>
               </DialogFooter>
             </div>
           ) : (
@@ -1644,7 +1678,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                   className="h-9"
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Si ya existe, se le crea solo la org. Si no, se crea el usuario también.
+                  Debe ser el email único del owner. Si ya pertenece a otro negocio, el alta se bloquea sin modificarlo.
                 </p>
               </div>
               <div className="space-y-1.5">
@@ -1688,8 +1722,8 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
               </div>
               <div className="flex items-center justify-between pt-2">
                 <div>
-                  <Label className="font-normal">Generar magic link al crear</Label>
-                  <p className="text-[10px] text-muted-foreground">Recibís un link para enviarle al cliente</p>
+                  <Label className="font-normal">Enviar acceso seguro por email</Label>
+                  <p className="text-[10px] text-muted-foreground">Gestiona lo envía; Platform nunca ve el token</p>
                 </div>
                 <Switch
                   checked={newOrgForm.sendInvite}

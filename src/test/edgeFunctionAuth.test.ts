@@ -136,13 +136,14 @@ describe('autenticación de Edge Functions', () => {
     expect(weeklyBackup?.source).not.toContain('user_roles');
   });
 
-  it('retira magic links de impersonación y conserva sólo la invitación de onboarding', () => {
+  it('retira todo enlace de sesión visible y envía onboarding directo por email', () => {
     const platformAction = functions.find(f => f.name === 'platform-admin-action');
     expect(platformAction).toBeDefined();
     expect(platformAction?.source).toContain('action === "generateMagicLink"');
     expect(platformAction?.source).toContain('impersonation_retired');
-    expect(platformAction?.source.match(/auth\.admin\.generateLink/g)).toHaveLength(1);
-    expect(platformAction?.source).toContain('// Send magic link to onboard the owner');
+    expect(platformAction?.source.match(/auth\.admin\.generateLink/g) || []).toHaveLength(0);
+    expect(platformAction?.source).toContain('mailAuth.auth.signInWithOtp');
+    expect(platformAction?.source).toContain('token_exposed_to_staff: false');
   });
 
   it('el export portable exige dueño y nunca devuelve credenciales de acceso', () => {

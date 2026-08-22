@@ -49,10 +49,11 @@ describe('autoridad de diagnóstico de soporte', () => {
     expect(snapshotRpc).not.toMatch(/customer|product\.name|sale_price|cost_usd|total_ars|access_token|private_key|certificate|last_error/i);
   });
 
-  it('retira la impersonación aun para superadmin y conserva sólo invitación de onboarding', () => {
+  it('retira la impersonación y tampoco expone enlaces durante onboarding', () => {
     expect(edgeAction).toContain('if (action === "generateMagicLink")');
     expect(edgeAction).toContain('impersonation_retired');
-    expect(edgeAction.match(/auth\.admin\.generateLink/g)).toHaveLength(1);
+    expect(edgeAction.match(/auth\.admin\.generateLink/g) || []).toHaveLength(0);
+    expect(edgeAction).toContain('mailAuth.auth.signInWithOtp');
     expect(platformPage).not.toContain("adminCall('generateMagicLink'");
     expect(platformPage).not.toContain('handleGenerateMagicLink');
   });

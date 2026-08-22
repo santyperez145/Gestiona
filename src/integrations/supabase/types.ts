@@ -18122,6 +18122,110 @@ export type Database = {
           },
         ]
       }
+      platform_organization_provisionings: {
+        Row: {
+          created_at: string
+          idempotency_key: string
+          org_id: string
+          org_name: string
+          owner_user_id: string
+          plan_id: string
+          requested_by: string
+          trial_days: number
+        }
+        Insert: {
+          created_at?: string
+          idempotency_key: string
+          org_id: string
+          org_name: string
+          owner_user_id: string
+          plan_id: string
+          requested_by: string
+          trial_days: number
+        }
+        Update: {
+          created_at?: string
+          idempotency_key?: string
+          org_id?: string
+          org_name?: string
+          owner_user_id?: string
+          plan_id?: string
+          requested_by?: string
+          trial_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_organization_provisionings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_organization_provisionings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_organization_provisionings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_organization_provisionings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_organization_provisionings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_organization_provisionings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_organization_provisionings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_organization_provisionings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "platform_organization_provisionings_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "planes_contratables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_organization_provisionings_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plm_products: {
         Row: {
           certifications: string[]
@@ -37272,6 +37376,16 @@ export type Database = {
       prorratear: {
         Args: { p_moneda?: string; p_pesos: number[]; p_total: number }
         Returns: number[]
+      }
+      provision_platform_organization: {
+        Args: {
+          p_idempotency_key: string
+          p_name: string
+          p_owner_user_id: string
+          p_plan_id?: string
+          p_trial_days?: number
+        }
+        Returns: Json
       }
       purge_expired_oauth_states: { Args: never; Returns: number }
       quote_store_shipping: {

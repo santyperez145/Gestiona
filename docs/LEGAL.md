@@ -86,7 +86,7 @@ con el estado medido contra la base cuando se pudo.
 | Requisito | Estado |
 |---|---|
 | **Contrato de tratamiento de datos con el comercio** (art. 25) | 🔴 No existe. La plataforma trata datos personales *por cuenta* del comercio: hace falta el contrato que diga qué puede y qué no. |
-| **Auditoría de accesos del staff** | ✅ Desde 2026-08-22 no existe impersonación por magic link. Support solicita un diagnóstico agregado; sólo owner autoriza por 15/30/60 minutos y ve solicitante, motivo, vencimiento, revocación y contador de lecturas. Cada lectura revalida el permiso y no incluye clientes, órdenes, montos, credenciales ni errores crudos. El historial anterior de enlaces permanece visible como mecanismo retirado. |
+| **Auditoría de accesos del staff** | ✅ Desde 2026-08-22 no existe impersonación por magic link. Support solicita un diagnóstico agregado; sólo owner autoriza por 15/30/60 minutos y ve solicitante, motivo, vencimiento, revocación y contador de lecturas. Cada lectura revalida el permiso y no incluye clientes, órdenes, montos, credenciales ni errores crudos. En altas nuevas, el acceso llega al email del owner y Platform nunca recibe el token. El historial anterior de enlaces permanece visible como mecanismo retirado. |
 | **MFA para el staff** | ✅ `MfaGate` sin excepción. |
 | **Separación de superficies** | ✅ Ser staff de plataforma no da permisos dentro de una organización. |
 | **Facturación de la suscripción** | 🟠 Stripe cobra y **no se emite comprobante fiscal argentino** al comercio. Si la plataforma factura desde Argentina, es una obligación de ARCA, no una opción. |

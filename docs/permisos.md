@@ -75,7 +75,7 @@ El `owner` no pasa por la matriz: siempre tiene todo.
 |---|---|
 | `superadmin` | Todo, incluido borrar orgs, banear usuarios, alta/baja de staff y cambio de roles de miembros. |
 | `finance` | Planes y precios, cambio de plan, extender trial, suspender/reactivar orgs, comisiones y facturación. Además todo lo de lectura. |
-| `support` | Ver señales agregadas, solicitar diagnóstico temporal y enviar resets de contraseña. **No** impersona, no toca planes, no borra, no banea. |
+| `support` | Ver señales agregadas, solicitar diagnóstico temporal y enviar accesos/resets por email sin ver el token. **No** impersona, no toca planes, no borra, no banea. |
 
 `superadmin` satisface cualquier requerimiento de nivel.
 
@@ -104,3 +104,6 @@ nivel ni quitarse el acceso.
 - Diagnóstico de soporte usa una tabla sin acceso cliente, vistas separadas y
   RPCs con consentimiento owner. Detalle y prueba en
   [SOPORTE_DIAGNOSTICO.md](SOPORTE_DIAGNOSTICO.md).
+- El alta de una organización queda reservada a `superadmin`: un RPC crea el
+  grafo completo, bloquea emails ya vinculados y el acceso llega directo al
+  owner. Detalle en [ALTA_COMERCIOS.md](ALTA_COMERCIOS.md).
