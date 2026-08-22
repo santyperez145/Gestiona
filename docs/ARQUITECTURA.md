@@ -11,7 +11,7 @@ es barato hoy y carísimo dentro de dos años.
 Última revisión: 2026-08-22 (H1–H3 y límite inicial de Finance cerrados).
 
 ⚠️ **Este documento no autoriza una reescritura.** El sistema funciona, cobra de
-verdad y tiene 1.403 tests (`npm test`, 2026-08-22). Todo se aplica de forma incremental, y cada slice deja
+verdad y tiene 1.412 tests (`npm test`, 2026-08-22). Todo se aplica de forma incremental, y cada slice deja
 el sistema usable.
 
 ---
