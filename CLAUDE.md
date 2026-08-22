@@ -130,6 +130,14 @@ y Ventas (`Ventas` / `Rendimiento`). Dashboard, Settings, Admin,
 Integraciones, Reportes y Tienda deben conservar el mismo lenguaje de tokens,
 densidad, foco y persistencia al evolucionar.
 
+**Paleta obligatoria del frontend claro:** usar el token `primary` violeta
+`252 83% 62%` sobre canvas casi blanco, tarjetas blancas, turquesa para salud y
+coral para atención. No reintroducir el azul apagado ni el dorado como color
+global de la aplicación. El dorado sólo puede aparecer como branding específico
+de un comercio o dentro de una preview histórica, nunca como token del
+workspace. `App.tsx` inicia en tema claro; toda nueva pantalla se verifica con
+ese tema en desktop y mobile.
+
 Y lo que ese documento dice que **no** hay que construir todavía —multi-store,
 dominios propios, theme engine, headless, marketplace— importa tanto como lo que
 sí: espera un segundo comercio, no una decisión de arquitectura.

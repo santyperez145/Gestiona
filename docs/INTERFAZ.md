@@ -21,6 +21,28 @@ interfaz debe ayudar a escanear, comparar y ejecutar, no competir con los datos.
 - Mobile conserva las acciones críticas, filtros y estado; no reduce todo a
   una versión ilegible de la tabla desktop.
 
+### Sistema visual obligatorio v3
+
+La implementación actual toma como dirección obligatoria los patrones de
+CRM, eMarketplace, Gestão de Marketplace, SaaS marketplace y Neomart
+compartidos por el dueño: canvas claro, superficies blancas, rail persistente,
+jerarquía compacta, active states muy visibles y acentos de color para separar
+operación, salud e inteligencia.
+
+- Primary del workspace claro: violeta `252 83% 62%`.
+- Superficie: fondo casi blanco `228 28% 97%`, tarjetas blancas y bordes fríos
+  de bajo contraste.
+- Secundarios: turquesa para salud/finanzas y coral para acciones de atención;
+  el color siempre acompaña texto y estado.
+- Profundidad: sombras cortas y suaves, radios de 8–12 px, sin tarjetas
+  anidadas para construir el layout.
+- Navegación: rail de organización y rail violeta de plataforma; topbar con
+  breadcrumb, búsqueda global, estado de conexión y acción primaria.
+
+El modo oscuro sigue disponible mediante el toggle, pero el modo claro es la
+experiencia por defecto y la referencia que debe validarse visualmente en cada
+slice nuevo.
+
 ## Superficies
 
 | Superficie | Navegación | Acento | Objetivo |

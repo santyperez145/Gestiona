@@ -1544,42 +1544,49 @@
   }
 
   .light {
-    --background: 220 20% 97%;
-    --foreground: 222 24% 12%;
+    /* Figma marketplace direction: airy canvas, violet action color and
+       secondary mint/coral signals instead of a monochrome admin blue. */
+    --background: 228 28% 97%;
+    --foreground: 230 26% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 222 24% 12%;
+    --card-foreground: 230 26% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 24% 12%;
-    --primary: 38 82% 44%;
+    --popover-foreground: 230 26% 15%;
+    --primary: 252 83% 62%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 16% 94%;
-    --secondary-foreground: 222 20% 20%;
-    --muted: 220 16% 94%;
-    --muted-foreground: 222 12% 42%;
-    --accent: 38 65% 93%;
-    --accent-foreground: 30 65% 26%;
-    --border: 220 16% 87%;
-    --input: 220 16% 87%;
-    --ring: 38 82% 44%;
+    --secondary: 230 22% 95%;
+    --secondary-foreground: 230 22% 22%;
+    --muted: 230 24% 95%;
+    --muted-foreground: 228 12% 43%;
+    --accent: 174 67% 91%;
+    --accent-foreground: 177 65% 24%;
+    --border: 229 18% 87%;
+    --input: 229 18% 87%;
+    --ring: 252 83% 62%;
+    --success: 155 65% 34%;
+    --warning: 35 90% 40%;
+    --destructive: 0 72% 44%;
+    --brand-coral: 12 86% 62%;
+    --brand-teal: 174 67% 42%;
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 15% 35%;
-    --sidebar-primary: 38 82% 44%;
+    --sidebar-foreground: 230 15% 35%;
+    --sidebar-primary: 252 83% 62%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 38 55% 95%;
-    --sidebar-accent-foreground: 222 24% 15%;
-    --sidebar-border: 220 16% 87%;
-    --sidebar-ring: 38 82% 44%;
-    --gradient-gold: linear-gradient(135deg, hsl(45 92% 52%), hsl(38 82% 44%), hsl(28 78% 40%));
-    --gradient-gold-subtle: linear-gradient(135deg, hsl(38 82% 44% / 0.12), hsl(38 82% 44% / 0.03));
-    --gradient-card: linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(220 20% 98.5%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 20% 98%) 100%);
+    --sidebar-accent: 252 75% 97%;
+    --sidebar-accent-foreground: 230 26% 15%;
+    --sidebar-border: 229 18% 87%;
+    --sidebar-ring: 252 83% 62%;
+    --gradient-gold: linear-gradient(135deg, hsl(268 82% 68%), hsl(252 83% 62%), hsl(225 88% 58%));
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(252 83% 62% / 0.14), hsl(174 67% 42% / 0.04));
+    --gradient-card: linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(228 30% 98.5%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(250 60% 99%) 100%);
     --gradient-page: none;
-    --shadow-gold: 0 4px 20px -8px hsl(38 82% 44% / 0.28);
-    --shadow-card: 0 1px 2px hsl(222 20% 10% / 0.04), 0 8px 18px -12px hsl(222 20% 10% / 0.14);
-    --shadow-elevated: 0 4px 12px hsl(222 20% 10% / 0.08), 0 20px 36px -16px hsl(222 20% 10% / 0.16);
-    --shadow-kpi: 0 1px 2px hsl(222 20% 10% / 0.04), 0 5px 12px -10px hsl(222 20% 10% / 0.14);
+    --shadow-gold: 0 8px 24px -12px hsl(252 83% 62% / 0.45);
+    --shadow-card: 0 1px 2px hsl(230 25% 12% / 0.035), 0 10px 22px -16px hsl(230 25% 12% / 0.16);
+    --shadow-elevated: 0 5px 14px hsl(230 25% 12% / 0.08), 0 24px 42px -18px hsl(230 25% 12% / 0.18);
+    --shadow-kpi: 0 1px 2px hsl(230 25% 12% / 0.035), 0 8px 16px -12px hsl(252 83% 62% / 0.24);
     --glass-bg: hsl(0 0% 100% / 0.86);
-    --glass-border: hsl(220 16% 80% / 0.6);
+    --glass-border: hsl(229 18% 80% / 0.6);
   }
 }
 
@@ -3839,36 +3846,46 @@
   }
 
   .light {
-    --background: 222 25% 97%;
-    --foreground: 226 34% 16%;
+    /* Final light tokens: this is the default product experience. */
+    --background: 228 28% 97%;
+    --foreground: 230 26% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 226 34% 16%;
+    --card-foreground: 230 26% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 226 34% 16%;
-    --primary: 43 82% 43%;
+    --popover-foreground: 230 26% 15%;
+    --primary: 252 83% 62%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 225 24% 94%;
-    --secondary-foreground: 226 28% 23%;
-    --muted: 220 22% 94%;
-    --muted-foreground: 225 13% 45%;
-    --accent: 247 64% 57%;
-    --accent-foreground: 247 70% 25%;
-    --border: 222 19% 87%;
-    --input: 222 19% 87%;
-    --ring: 43 82% 43%;
-    --sidebar-background: 230 31% 15%;
-    --sidebar-foreground: 220 16% 75%;
-    --sidebar-primary: 43 92% 61%;
-    --sidebar-primary-foreground: 30 35% 10%;
-    --sidebar-accent: 230 25% 22%;
-    --sidebar-accent-foreground: 220 28% 96%;
-    --sidebar-border: 230 22% 25%;
-    --sidebar-ring: 43 92% 61%;
-    --gradient-sidebar: none;
+    --secondary: 230 22% 95%;
+    --secondary-foreground: 230 22% 22%;
+    --muted: 230 24% 95%;
+    --muted-foreground: 228 12% 43%;
+    --accent: 174 67% 91%;
+    --accent-foreground: 177 65% 24%;
+    --border: 229 18% 87%;
+    --input: 229 18% 87%;
+    --ring: 252 83% 62%;
+    --success: 155 65% 34%;
+    --warning: 35 90% 40%;
+    --destructive: 0 72% 44%;
+    --brand-coral: 12 86% 62%;
+    --brand-teal: 174 67% 42%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 230 15% 35%;
+    --sidebar-primary: 252 83% 62%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 252 75% 97%;
+    --sidebar-accent-foreground: 230 26% 15%;
+    --sidebar-border: 229 18% 87%;
+    --sidebar-ring: 252 83% 62%;
+    --gradient-sidebar: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(250 60% 99%) 100%);
     --gradient-page: none;
-    --shadow-card: 0 1px 2px hsl(226 35% 16% / 0.05), 0 12px 28px -22px hsl(226 35% 16% / 0.22);
-    --shadow-elevated: 0 22px 44px -28px hsl(226 35% 16% / 0.28);
-    --shadow-kpi: 0 1px 2px hsl(226 35% 16% / 0.05), 0 8px 22px -18px hsl(226 35% 16% / 0.2);
+    --gradient-gold: linear-gradient(135deg, hsl(268 82% 68%), hsl(252 83% 62%), hsl(225 88% 58%));
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(252 83% 62% / 0.14), hsl(174 67% 42% / 0.04));
+    --gradient-card: linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(228 30% 98.5%) 100%);
+    --shadow-gold: 0 8px 24px -12px hsl(252 83% 62% / 0.45);
+    --shadow-card: 0 1px 2px hsl(230 25% 12% / 0.035), 0 10px 22px -16px hsl(230 25% 12% / 0.16);
+    --shadow-elevated: 0 5px 14px hsl(230 25% 12% / 0.08), 0 24px 42px -18px hsl(230 25% 12% / 0.18);
+    --shadow-kpi: 0 1px 2px hsl(230 25% 12% / 0.035), 0 8px 16px -12px hsl(252 83% 62% / 0.24);
   }
 }
 
@@ -4144,5 +4161,240 @@
     .workspace-dashboard-nav {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+  }
+}
+
+/* Figma marketplace visual contract: bright surfaces, high-signal active
+   states and restrained depth across every authenticated workspace. */
+@layer utilities {
+  .light .workspace-shell,
+  .light .workspace-main {
+    background: hsl(var(--background));
+  }
+
+  .light .workspace-sidebar {
+    background: var(--gradient-sidebar);
+    border-right-color: hsl(var(--sidebar-border) / 0.9);
+    box-shadow: 14px 0 32px -28px hsl(252 45% 28% / 0.35);
+  }
+
+  .light .workspace-sidebar .nav-section-label {
+    color: hsl(230 14% 52%);
+  }
+
+  .light .workspace-nav-link {
+    color: hsl(230 15% 40% / 0.9);
+  }
+
+  .light .workspace-nav-link:hover {
+    color: hsl(230 26% 15%);
+    background: hsl(252 75% 97%);
+  }
+
+  .light .workspace-nav-link-active {
+    background: linear-gradient(90deg, hsl(252 83% 62% / 0.14), hsl(252 83% 62% / 0.035)) !important;
+    border-color: hsl(252 83% 62% / 0.18);
+    color: hsl(252 72% 48%) !important;
+    box-shadow: 0 8px 16px -14px hsl(252 83% 62% / 0.8);
+  }
+
+  .light .workspace-topbar {
+    background: hsl(0 0% 100% / 0.88);
+    border-bottom-color: hsl(229 18% 87% / 0.85);
+    box-shadow: 0 1px 0 hsl(252 83% 62% / 0.04), 0 8px 22px -24px hsl(230 25% 12% / 0.35);
+  }
+
+  .light .workspace-command-search {
+    background: hsl(228 30% 98.5%);
+    border-color: hsl(229 18% 84%);
+  }
+
+  .light .workspace-command-search:hover {
+    background: hsl(252 75% 98%);
+    border-color: hsl(252 83% 62% / 0.38);
+  }
+
+  .light .workspace-page-header {
+    border-bottom-color: hsl(229 18% 87% / 0.72);
+  }
+
+  .light .workspace-page .bg-card,
+  .light .workspace-page .design-surface,
+  .light .workspace-dashboard-nav,
+  .light .workspace-view-tabs {
+    border-color: hsl(229 18% 87% / 0.92);
+    box-shadow: var(--shadow-card);
+  }
+
+  .light .workspace-page .bg-card {
+    background: hsl(0 0% 100% / 0.96);
+  }
+
+  .light .workspace-view-tabs {
+    background: hsl(0 0% 100% / 0.9);
+  }
+
+  .light .workspace-view-tabs__tab.is-active {
+    border-color: hsl(252 83% 62% / 0.2);
+    background: hsl(252 75% 98%);
+    color: hsl(252 72% 48%);
+    box-shadow: 0 7px 16px -14px hsl(252 83% 62% / 0.85);
+  }
+
+  .light .workspace-dashboard-nav a[aria-current="page"] {
+    background: hsl(252 75% 97%);
+    color: hsl(252 72% 48%);
+    box-shadow: inset 3px 0 0 hsl(252 83% 62% / 0.75);
+  }
+
+  .light .workspace-metric-card,
+  .light .workspace-kpi-card {
+    border-color: hsl(229 18% 87% / 0.92);
+    background: hsl(0 0% 100% / 0.98);
+  }
+
+  .light .workspace-page thead th {
+    background: hsl(252 75% 98%);
+    color: hsl(230 14% 46%);
+  }
+
+  .light .workspace-page tbody tr:hover {
+    background: hsl(252 83% 62% / 0.045);
+  }
+
+  .light .workspace-primary-action {
+    box-shadow: 0 8px 18px -12px hsl(252 83% 62% / 0.75);
+  }
+
+  .light .page-header__icon {
+    background: hsl(252 83% 62% / 0.1);
+    color: hsl(252 72% 48%);
+    box-shadow: 0 5px 12px -9px hsl(252 83% 62% / 0.8);
+  }
+
+  .light .workspace-mobile-bar {
+    background: hsl(0 0% 100% / 0.92) !important;
+    border-bottom-color: hsl(229 18% 87%);
+  }
+
+  .light .platform-surface {
+    background: hsl(var(--background));
+  }
+
+  .light .workspace-platform-topbar {
+    border-bottom-color: hsl(263 72% 58% / 0.16);
+    background: hsl(0 0% 100% / 0.9);
+    box-shadow: 0 1px 0 hsl(263 72% 58% / 0.04), 0 8px 22px -24px hsl(230 25% 12% / 0.3);
+  }
+
+  .light .platform-brand-mark {
+    border: 1px solid hsl(263 72% 58% / 0.18);
+    background: hsl(263 72% 58% / 0.1);
+    color: hsl(263 72% 48%);
+  }
+
+  .light .platform-brand-title {
+    color: hsl(230 26% 15%);
+  }
+
+  .light .platform-brand-subtitle,
+  .light .platform-sidebar__label {
+    color: hsl(263 56% 48% / 0.72);
+  }
+
+  .light .platform-role-badge {
+    border-color: hsl(263 72% 58% / 0.22);
+    background: hsl(263 72% 58% / 0.09);
+    color: hsl(263 64% 46%);
+  }
+
+  .light .platform-sidebar {
+    border-color: hsl(263 72% 58% / 0.16);
+    background: hsl(0 0% 100% / 0.92);
+    box-shadow: var(--shadow-card);
+  }
+
+  .light .platform-sidebar__link {
+    color: hsl(230 15% 42% / 0.9);
+  }
+
+  .light .platform-sidebar__link:hover,
+  .light .platform-sidebar__link:focus-visible {
+    background: hsl(263 72% 58% / 0.08);
+    color: hsl(263 64% 46%);
+  }
+
+  .light .platform-sidebar__link.is-active {
+    background: hsl(263 72% 58% / 0.12);
+    color: hsl(263 64% 46%);
+    box-shadow: inset 3px 0 0 hsl(263 72% 58% / 0.75);
+  }
+
+  .light .platform-sidebar__link.is-active::after {
+    background: hsl(263 72% 58%);
+  }
+
+  /* Public surfaces use the same Figma palette while keeping their editorial
+     composition separate from the authenticated workspace chrome. */
+  .landing-shell {
+    --landing-gold: 252 83% 62%;
+    --landing-gold-soft: 252 92% 95%;
+    --landing-teal: 174 67% 42%;
+    --landing-violet: 12 86% 62%;
+  }
+
+  .landing-shell .landing-brand-mark {
+    border-color: hsl(252 83% 62%);
+    background: linear-gradient(135deg, hsl(268 82% 68%), hsl(252 83% 62%));
+    color: hsl(0 0% 100%);
+  }
+
+  .landing-shell .landing-button--primary,
+  .landing-shell .landing-button--dark {
+    background: linear-gradient(135deg, hsl(268 82% 68%), hsl(252 83% 62%));
+    box-shadow: 0 12px 24px -15px hsl(252 83% 62% / 0.85);
+    color: hsl(0 0% 100%);
+  }
+
+  .landing-shell .landing-button--primary:hover,
+  .landing-shell .landing-button--dark:hover {
+    background: linear-gradient(135deg, hsl(268 82% 64%), hsl(252 83% 56%));
+  }
+
+  .landing-shell .landing-capability--gold .landing-capability__icon {
+    background: hsl(252 92% 95%);
+    color: hsl(252 72% 48%);
+  }
+
+  .landing-shell .landing-capability--violet .landing-capability__icon {
+    background: hsl(12 92% 95%);
+    color: hsl(12 76% 48%);
+  }
+
+  .auth-shell {
+    --auth-gold: 252 83% 62%;
+    --auth-teal: 174 67% 42%;
+  }
+
+  .auth-shell .auth-brand__mark {
+    border-color: hsl(252 83% 62%);
+    background: linear-gradient(135deg, hsl(268 82% 68%), hsl(252 83% 62%));
+    color: hsl(0 0% 100%);
+  }
+
+  .auth-shell .auth-showcase h1 span,
+  .auth-shell .auth-eyebrow,
+  .auth-shell .auth-form-heading .auth-eyebrow,
+  .auth-shell .auth-legal a {
+    color: hsl(var(--auth-gold));
+  }
+
+  .auth-shell .auth-tabs button::after {
+    background: hsl(var(--auth-gold));
+  }
+
+  .auth-shell .auth-form-icon {
+    background: hsl(252 92% 95%);
+    color: hsl(252 72% 48%);
   }
 }
