@@ -10,13 +10,21 @@ import {
   FileText,
   Loader2,
   LockKeyhole,
+  PencilLine,
+  Plus,
   RefreshCw,
+  Sparkles,
+  Trash2,
   UploadCloud,
   XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import PageHeader from '@/components/shared/PageHeader';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useOrg } from '@/lib/orgContext';
@@ -24,15 +32,19 @@ import {
   createFinanceDocumentSignedUrl,
   createFinanceDocumentUpload,
   createFinanceDocumentVersion,
+  extractFinanceDocument,
   financeDocumentStatusLabel,
   financeDocumentTypeLabel,
   getFinanceDocuments,
   inspectFinanceDocument,
   markFinanceDocumentUploadFailed,
+  reviewFinanceDocumentExtraction,
   sha256File,
   uploadFinanceDocument,
   validateFinanceDocumentFile,
   type FinanceDocument,
+  type FinanceDocumentExtraction,
+  type FinanceDocumentExtractionPayload,
   type FinanceDocumentStatus,
   type FinanceDocumentType,
   type FinanceUploadIntent,
@@ -52,6 +64,11 @@ export default function FinanceDocumentsPage() {
   const [uploading, setUploading] = useState(false);
   const [openingPath, setOpeningPath] = useState<string | null>(null);
   const [inspectingVersionId, setInspectingVersionId] = useState<string | null>(null);
+  const [extractingVersionId, setExtractingVersionId] = useState<string | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<FinanceDocumentExtraction | null>(null);
+  const [reviewPayload, setReviewPayload] = useState<FinanceDocumentExtractionPayload | null>(null);
+  const [reviewNote, setReviewNote] = useState('');
+  const [reviewing, setReviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -166,6 +183,55 @@ export default function FinanceDocumentsPage() {
     }
   };
 
+  const extractDocument = async (documentId: string, versionId: string) => {
+    setExtractingVersionId(versionId);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await extractFinanceDocument(documentId, versionId);
+      if (!result) {
+        setNotice('La última extracción ya está disponible para revisión.');
+      } else if (result.extraction_status === 'ready_for_review') {
+        setNotice(`Borrador estructurado listo · ${Math.round(Number(result.overall_confidence || 0) * 100)}% de confianza.`);
+      } else if (result.extraction_status === 'needs_review') {
+        setNotice('La extracción terminó con campos que requieren revisión humana.');
+      } else {
+        setError('La extracción no produjo un borrador revisable.');
+      }
+      await loadDocuments();
+    } catch (cause) {
+      setError(errorMessage(cause, 'No se pudo extraer el documento.'));
+      await loadDocuments();
+    } finally {
+      setExtractingVersionId(null);
+    }
+  };
+
+  const openReview = (extraction: FinanceDocumentExtraction) => {
+    if (!extraction.payload) return;
+    setReviewTarget(extraction);
+    setReviewPayload(clonePayload(extraction.payload));
+    setReviewNote('');
+  };
+
+  const submitReview = async () => {
+    if (!reviewTarget || !reviewPayload) return;
+    setReviewing(true);
+    setError(null);
+    try {
+      await reviewFinanceDocumentExtraction(reviewTarget.id, reviewPayload, reviewNote);
+      setNotice('Revisión humana registrada como una nueva versión. Todavía no creó compras, deuda, stock ni asientos.');
+      setReviewTarget(null);
+      setReviewPayload(null);
+      setReviewNote('');
+      await loadDocuments();
+    } catch (cause) {
+      setError(errorMessage(cause, 'No se pudo guardar la revisión.'));
+    } finally {
+      setReviewing(false);
+    }
+  };
+
   const pending = documents.filter(document => document.status === 'awaiting_inspection' || document.status === 'pending_upload').length;
   const approved = documents.filter(document => document.status === 'approved').length;
 
@@ -244,7 +310,7 @@ export default function FinanceDocumentsPage() {
           <div><h2 className="text-sm font-semibold">Bandeja de documentos</h2><p className="mt-1 text-xs text-muted-foreground">Los originales se abren con una URL firmada de corta duración.</p></div>
           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{documents.length} registrados</span>
         </div>
-        {loading ? <div className="flex items-center justify-center py-14 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Leyendo documentos...</div> : documents.length === 0 ? <EmptyState /> : <div className="divide-y divide-border/60">{documents.map(document => <DocumentRow key={document.id} document={document} openingPath={openingPath} inspectingVersionId={inspectingVersionId} onOpen={openDocument} onInspect={inspectDocument} onNewVersion={id => { clearFile(); setNewVersionFor(id); }} />)}</div>}
+        {loading ? <div className="flex items-center justify-center py-14 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Leyendo documentos...</div> : documents.length === 0 ? <EmptyState /> : <div className="divide-y divide-border/60">{documents.map(document => <DocumentRow key={document.id} document={document} openingPath={openingPath} inspectingVersionId={inspectingVersionId} extractingVersionId={extractingVersionId} onOpen={openDocument} onInspect={inspectDocument} onExtract={extractDocument} onReview={openReview} onNewVersion={id => { clearFile(); setNewVersionFor(id); }} />)}</div>}
       </section>
 
       <div className="grid gap-3 text-xs text-muted-foreground sm:grid-cols-3">
@@ -252,14 +318,28 @@ export default function FinanceDocumentsPage() {
         <Contract icon={FileSearch2} title="Revisable" detail="La inspección ocurre antes de extracción." />
         <Contract icon={FileCheck2} title="Sin efectos prematuros" detail="Aprobar será una acción explícita y auditable." />
       </div>
+
+      <ExtractionReviewDialog
+        extraction={reviewTarget}
+        payload={reviewPayload}
+        note={reviewNote}
+        saving={reviewing}
+        onPayloadChange={setReviewPayload}
+        onNoteChange={setReviewNote}
+        onClose={() => { if (!reviewing) { setReviewTarget(null); setReviewPayload(null); } }}
+        onSubmit={() => void submitReview()}
+      />
     </div>
   );
 }
 
-function DocumentRow({ document, openingPath, inspectingVersionId, onOpen, onInspect, onNewVersion }: { document: FinanceDocument; openingPath: string | null; inspectingVersionId: string | null; onOpen: (path: string) => void; onInspect: (documentId: string, versionId: string) => void; onNewVersion: (id: string) => void }) {
+function DocumentRow({ document, openingPath, inspectingVersionId, extractingVersionId, onOpen, onInspect, onExtract, onReview, onNewVersion }: { document: FinanceDocument; openingPath: string | null; inspectingVersionId: string | null; extractingVersionId: string | null; onOpen: (path: string) => void; onInspect: (documentId: string, versionId: string) => void; onExtract: (documentId: string, versionId: string) => void; onReview: (extraction: FinanceDocumentExtraction) => void; onNewVersion: (id: string) => void }) {
   const latest = document.versions[0];
+  const extraction = latest?.extraction;
   const canVersion = document.status !== 'approved';
   const canInspect = latest?.uploadStatus === 'uploaded' && ['pending', 'scanner_unavailable'].includes(latest.inspectionStatus);
+  const canExtract = latest?.inspectionStatus === 'ready_for_extraction' && (!extraction || extraction.status === 'failed');
+  const canReview = extraction?.payload && ['needs_review', 'ready_for_review'].includes(extraction.status);
   return (
     <article className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex min-w-0 items-start gap-3">
@@ -269,15 +349,122 @@ function DocumentRow({ document, openingPath, inspectingVersionId, onOpen, onIns
           <p className="mt-1 text-xs text-muted-foreground">{financeDocumentTypeLabel(document.documentType)} · {latest ? `v${latest.versionNumber} · ${formatBytes(latest.sizeBytes)}` : 'sin versión'}</p>
           {latest && <div className="mt-1 flex flex-wrap items-center gap-2"><p className="truncate font-mono text-[10px] text-muted-foreground/70">SHA-256 {latest.sha256.slice(0, 16)}... · {latest.hashStatus === 'declared' ? 'declarado' : latest.hashStatus}</p><InspectionBadge status={latest.inspectionStatus} /></div>}
           {latest?.failureReason && <p className="mt-1 max-w-2xl text-[11px] text-amber-700 dark:text-amber-300">{latest.failureReason}</p>}
+          {extraction && <ExtractionSummary extraction={extraction} />}
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 lg:justify-end">
         {latest && latest.uploadStatus === 'uploaded' && <Button variant="outline" size="xs" disabled={openingPath === latest.storagePath} onClick={() => onOpen(latest.storagePath)}><FileCheck2 /> {openingPath === latest.storagePath ? 'Abriendo...' : 'Ver original'}</Button>}
         {latest && canInspect && <Button size="xs" disabled={inspectingVersionId === latest.id} onClick={() => onInspect(document.id, latest.id)}>{inspectingVersionId === latest.id ? <Loader2 className="animate-spin" /> : <FileSearch2 />} {inspectingVersionId === latest.id ? 'Inspeccionando...' : 'Inspeccionar'}</Button>}
+        {latest && canExtract && <Button size="xs" disabled={extractingVersionId === latest.id} onClick={() => onExtract(document.id, latest.id)}>{extractingVersionId === latest.id ? <Loader2 className="animate-spin" /> : <Sparkles />} {extractingVersionId === latest.id ? 'Extrayendo...' : extraction?.status === 'failed' ? 'Reintentar extracción' : 'Extraer datos'}</Button>}
+        {extraction && canReview && <Button variant="outline" size="xs" onClick={() => onReview(extraction)}><PencilLine /> Revisar datos</Button>}
         {canVersion && <Button variant="ghost" size="xs" onClick={() => onNewVersion(document.id)}><FilePlus2 /> Nueva versión</Button>}
       </div>
     </article>
   );
+}
+
+function ExtractionSummary({ extraction }: { extraction: FinanceDocumentExtraction }) {
+  const payload = extraction.payload;
+  const confidence = extraction.overallConfidence === null ? null : Math.round(extraction.overallConfidence * 100);
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+      <ExtractionBadge status={extraction.status} />
+      {confidence !== null && <span className="tabular-nums">Confianza {confidence}%</span>}
+      {payload && <span>{payload.supplier_name || 'Proveedor no detectado'} · {payload.items.length} líneas · {formatMoney(payload.total, payload.currency)}</span>}
+      {extraction.validationErrors.length > 0 && <span className="text-amber-700 dark:text-amber-300">{extraction.validationErrors.length} observaciones</span>}
+      {extraction.failureReason && <span className="text-destructive">{extraction.failureReason}</span>}
+    </div>
+  );
+}
+
+function ExtractionBadge({ status }: { status: FinanceDocumentExtraction['status'] }) {
+  const config = {
+    extracting: { label: 'Extrayendo', variant: 'blue' as const },
+    needs_review: { label: 'Revisión prioritaria', variant: 'warning' as const },
+    ready_for_review: { label: 'Listo para revisar', variant: 'success' as const },
+    reviewed: { label: 'Revisado', variant: 'success' as const },
+    failed: { label: 'Extracción fallida', variant: 'destructive' as const },
+  }[status];
+  return <Badge variant={config.variant}>{config.label}</Badge>;
+}
+
+function ExtractionReviewDialog({ extraction, payload, note, saving, onPayloadChange, onNoteChange, onClose, onSubmit }: { extraction: FinanceDocumentExtraction | null; payload: FinanceDocumentExtractionPayload | null; note: string; saving: boolean; onPayloadChange: (payload: FinanceDocumentExtractionPayload) => void; onNoteChange: (note: string) => void; onClose: () => void; onSubmit: () => void }) {
+  if (!payload) return null;
+  const setHeader = <K extends keyof Omit<FinanceDocumentExtractionPayload, 'items'>>(key: K, value: FinanceDocumentExtractionPayload[K]) => {
+    onPayloadChange({ ...payload, [key]: value });
+  };
+  const setItem = (index: number, patch: Partial<FinanceDocumentExtractionPayload['items'][number]>) => {
+    onPayloadChange({ ...payload, items: payload.items.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) });
+  };
+  const addItem = () => onPayloadChange({
+    ...payload,
+    items: [...payload.items, { description: '', sku: null, quantity: 1, unit_price: 0, line_total: 0, tax_rate: null }],
+  });
+  const removeItem = (index: number) => onPayloadChange({ ...payload, items: payload.items.filter((_, itemIndex) => itemIndex !== index) });
+
+  return (
+    <Dialog open={Boolean(extraction)} onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Revisar extracción estructurada</DialogTitle>
+          <p className="text-xs leading-relaxed text-muted-foreground">Cada guardado crea una revisión append-only. Confirmar estos datos no crea compras, obligaciones, stock ni asientos.</p>
+        </DialogHeader>
+
+        {extraction && extraction.validationErrors.length > 0 && (
+          <div className="rounded-[9px] border border-amber-500/25 bg-amber-500/[0.05] p-3">
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Observaciones del borrador del modelo</p>
+            <ul className="mt-1.5 space-y-1 text-[11px] text-muted-foreground">
+              {extraction.validationErrors.map(error => <li key={error}>· {error}</li>)}
+            </ul>
+          </div>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <ReviewField label="Proveedor"><Input value={payload.supplier_name || ''} onChange={event => setHeader('supplier_name', event.target.value || null)} /></ReviewField>
+          <ReviewField label="CUIT"><Input value={payload.supplier_tax_id || ''} onChange={event => setHeader('supplier_tax_id', event.target.value || null)} /></ReviewField>
+          <ReviewField label="Número"><Input value={payload.document_number || ''} onChange={event => setHeader('document_number', event.target.value || null)} /></ReviewField>
+          <ReviewField label="Fecha"><Input type="date" value={payload.issue_date || ''} onChange={event => setHeader('issue_date', event.target.value || null)} /></ReviewField>
+          <ReviewField label="Moneda">
+            <Select value={payload.currency || '__none'} onValueChange={value => setHeader('currency', value === '__none' ? null : value as 'ARS' | 'USD')}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="__none">Sin detectar</SelectItem><SelectItem value="ARS">ARS</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent>
+            </Select>
+          </ReviewField>
+          <ReviewField label="Subtotal"><Input type="number" min="0" step="0.01" value={numberInput(payload.subtotal)} onChange={event => setHeader('subtotal', nullableNumber(event.target.value))} /></ReviewField>
+          <ReviewField label="IVA / impuestos"><Input type="number" min="0" step="0.01" value={numberInput(payload.tax_total)} onChange={event => setHeader('tax_total', nullableNumber(event.target.value))} /></ReviewField>
+          <ReviewField label="Total"><Input type="number" min="0" step="0.01" value={numberInput(payload.total)} onChange={event => setHeader('total', nullableNumber(event.target.value))} /></ReviewField>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">Líneas</p><p className="text-[11px] text-muted-foreground">Reconciliá cantidad × precio con el total de cada línea.</p></div><Button type="button" variant="outline" size="xs" onClick={addItem}><Plus />Agregar línea</Button></div>
+          {payload.items.length === 0 ? (
+            <div className="rounded-[9px] border border-dashed border-amber-500/30 p-5 text-center text-xs text-muted-foreground">Agregá al menos una línea para poder confirmar la revisión.</div>
+          ) : payload.items.map((item, index) => (
+            <div key={index} className="grid gap-2 rounded-[9px] border border-border/70 bg-muted/[0.08] p-3 lg:grid-cols-[minmax(180px,2fr)_120px_90px_120px_120px_90px_32px]">
+              <ReviewField label={`Descripción ${index + 1}`}><Input value={item.description} onChange={event => setItem(index, { description: event.target.value })} /></ReviewField>
+              <ReviewField label="SKU"><Input value={item.sku || ''} onChange={event => setItem(index, { sku: event.target.value || null })} /></ReviewField>
+              <ReviewField label="Cantidad"><Input type="number" min="0.0001" step="0.0001" value={numberInput(item.quantity)} onChange={event => setItem(index, { quantity: nullableNumber(event.target.value) })} /></ReviewField>
+              <ReviewField label="Precio unitario"><Input type="number" min="0" step="0.01" value={numberInput(item.unit_price)} onChange={event => setItem(index, { unit_price: nullableNumber(event.target.value) })} /></ReviewField>
+              <ReviewField label="Total línea"><Input type="number" min="0" step="0.01" value={numberInput(item.line_total)} onChange={event => setItem(index, { line_total: nullableNumber(event.target.value) })} /></ReviewField>
+              <ReviewField label="IVA %"><Input type="number" min="0" step="0.01" value={numberInput(item.tax_rate)} onChange={event => setItem(index, { tax_rate: nullableNumber(event.target.value) })} /></ReviewField>
+              <Button type="button" variant="ghost" size="icon" className="mt-[18px] h-8 w-8 text-muted-foreground hover:text-destructive" aria-label={`Quitar línea ${index + 1}`} onClick={() => removeItem(index)}><Trash2 className="h-3.5 w-3.5" /></Button>
+            </div>
+          ))}
+        </div>
+
+        <ReviewField label="Nota de revisión"><Textarea value={note} maxLength={500} placeholder="Qué verificaste o corregiste (opcional)" onChange={event => onNoteChange(event.target.value)} /></ReviewField>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button onClick={onSubmit} disabled={saving || payload.items.length === 0}>{saving ? <Loader2 className="animate-spin" /> : <FileCheck2 />}{saving ? 'Guardando...' : 'Confirmar revisión'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ReviewField({ label, children }: { label: string; children: React.ReactNode }) {
+  return <Label className="space-y-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground"><span>{label}</span>{children}</Label>;
 }
 
 function StatusBadge({ status }: { status: FinanceDocumentStatus }) {
@@ -319,6 +506,25 @@ function formatBytes(value: number) {
   if (value < 1024) return `${value} B`;
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(0)} KB`;
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatMoney(value: number | null, currency: FinanceDocumentExtractionPayload['currency']) {
+  if (value === null || !currency) return 'total pendiente';
+  return new Intl.NumberFormat('es-AR', { style: 'currency', currency }).format(value);
+}
+
+function clonePayload(payload: FinanceDocumentExtractionPayload): FinanceDocumentExtractionPayload {
+  return { ...payload, items: payload.items.map(item => ({ ...item })) };
+}
+
+function nullableNumber(value: string): number | null {
+  if (!value.trim()) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function numberInput(value: number | null) {
+  return value === null ? '' : String(value);
 }
 
 function errorMessage(cause: unknown, fallback: string) {

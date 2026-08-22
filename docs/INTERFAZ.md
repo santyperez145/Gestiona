@@ -224,6 +224,14 @@ Document Inbox expresa la cadena de confianza en la misma fila del original:
 progresar; un scanner ausente se muestra como bloqueo recuperable y nunca como
 éxito verde. Esto traduce un estado de seguridad real, no una decoración.
 
+Cuando la inspección permite avanzar, la misma superficie muestra extracción,
+confianza y errores sin convertirlos en una caja negra. El resumen separa dato
+del modelo, advertencia y siguiente acción; una confianza alta no oculta una
+cuenta inválida. La revisión abre un editor ordenado por cabecera, importes y
+líneas, permite agregar o quitar ítems y confirma de forma visible que guardar
+una revisión no crea compras, deudas, stock ni asientos. El original y las
+revisiones previas permanecen inmutables.
+
 Una personalización puntual puede cambiar composición o tono semántico, pero no
 volver a definir estos fundamentos. El test `managementVisualContract` protege
 la cobertura de las tres superficies y los tokens esenciales.

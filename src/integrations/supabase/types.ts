@@ -11035,6 +11035,266 @@ export type Database = {
           },
         ]
       }
+      finance_document_extraction_revisions: {
+        Row: {
+          confidence: Json
+          created_at: string
+          created_by: string | null
+          extraction_id: string
+          id: string
+          org_id: string
+          payload: Json
+          revision_number: number
+          source: string
+          validation_errors: string[]
+        }
+        Insert: {
+          confidence?: Json
+          created_at?: string
+          created_by?: string | null
+          extraction_id: string
+          id?: string
+          org_id: string
+          payload: Json
+          revision_number: number
+          source: string
+          validation_errors?: string[]
+        }
+        Update: {
+          confidence?: Json
+          created_at?: string
+          created_by?: string | null
+          extraction_id?: string
+          id?: string
+          org_id?: string
+          payload?: Json
+          revision_number?: number
+          source?: string
+          validation_errors?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_document_extraction_revisions_extraction_org_fk"
+            columns: ["extraction_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "finance_document_extractions"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extraction_revisions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extraction_revisions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_document_extraction_revisions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extraction_revisions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extraction_revisions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extraction_revisions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extraction_revisions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extraction_revisions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extraction_revisions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      finance_document_extractions: {
+        Row: {
+          attempt: number
+          completed_at: string | null
+          document_id: string
+          extraction_token: string | null
+          failure_reason: string | null
+          id: string
+          model: string | null
+          org_id: string
+          overall_confidence: number | null
+          prompt_version: string | null
+          provider: string | null
+          requested_by: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_sha256: string
+          started_at: string
+          status: string
+          updated_at: string
+          validation_errors: string[]
+          version_id: string
+        }
+        Insert: {
+          attempt: number
+          completed_at?: string | null
+          document_id: string
+          extraction_token?: string | null
+          failure_reason?: string | null
+          id?: string
+          model?: string | null
+          org_id: string
+          overall_confidence?: number | null
+          prompt_version?: string | null
+          provider?: string | null
+          requested_by: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_sha256: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          validation_errors?: string[]
+          version_id: string
+        }
+        Update: {
+          attempt?: number
+          completed_at?: string | null
+          document_id?: string
+          extraction_token?: string | null
+          failure_reason?: string | null
+          id?: string
+          model?: string | null
+          org_id?: string
+          overall_confidence?: number | null
+          prompt_version?: string | null
+          provider?: string | null
+          requested_by?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_sha256?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          validation_errors?: string[]
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_document_extractions_document_org_fk"
+            columns: ["document_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "finance_documents"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extractions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extractions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_document_extractions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extractions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extractions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extractions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extractions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extractions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extractions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_extractions_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "finance_document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_document_versions: {
         Row: {
           actual_mime_type: string | null
@@ -40395,6 +40655,19 @@ export type Database = {
           suppliers_count: number
         }[]
       }
+      finance_document_begin_extraction: {
+        Args: { p_document_id: string; p_version_id: string }
+        Returns: {
+          document_id: string
+          extraction_id: string
+          extraction_token: string
+          mime_type: string
+          should_extract: boolean
+          source_sha256: string
+          storage_path: string
+          version_id: string
+        }[]
+      }
       finance_document_begin_inspection: {
         Args: { p_document_id: string; p_version_id: string }
         Returns: {
@@ -40411,6 +40684,26 @@ export type Database = {
       finance_document_can: {
         Args: { p_action: string; p_org_id: string }
         Returns: boolean
+      }
+      finance_document_complete_extraction: {
+        Args: {
+          p_actor_id: string
+          p_confidence: Json
+          p_extraction_id: string
+          p_extraction_token: string
+          p_failure_reason: string
+          p_model: string
+          p_overall_confidence: number
+          p_payload: Json
+          p_prompt_version: string
+          p_provider: string
+        }
+        Returns: {
+          extraction_id: string
+          extraction_status: string
+          overall_confidence: number
+          validation_errors: string[]
+        }[]
       }
       finance_document_complete_inspection: {
         Args: {
@@ -40464,6 +40757,10 @@ export type Database = {
           version_number: number
         }[]
       }
+      finance_document_extraction_errors: {
+        Args: { p_payload: Json }
+        Returns: string[]
+      }
       finance_document_finalize_upload: {
         Args: { p_document_id: string; p_version_id: string }
         Returns: {
@@ -40473,6 +40770,7 @@ export type Database = {
           version_id: string
         }[]
       }
+      finance_document_json_number: { Args: { p_value: Json }; Returns: number }
       finance_document_mark_upload_failed: {
         Args: { p_document_id: string; p_reason: string; p_version_id: string }
         Returns: undefined
@@ -40484,6 +40782,15 @@ export type Database = {
       finance_document_storage_upload_allowed: {
         Args: { p_path: string }
         Returns: boolean
+      }
+      finance_document_submit_extraction_review: {
+        Args: { p_extraction_id: string; p_note?: string; p_payload: Json }
+        Returns: {
+          extraction_id: string
+          extraction_status: string
+          revision_number: number
+          validation_errors: string[]
+        }[]
       }
       generate_claim_number: { Args: { p_org_id: string }; Returns: string }
       generate_download_token: { Args: never; Returns: string }

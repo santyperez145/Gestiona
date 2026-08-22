@@ -11,7 +11,7 @@ es barato hoy y carísimo dentro de dos años.
 Última revisión: 2026-08-22 (H1–H3 y límite inicial de Finance cerrados).
 
 ⚠️ **Este documento no autoriza una reescritura.** El sistema funciona, cobra de
-verdad y tiene 1.432 tests (`npm test`, 2026-08-22). Todo se aplica de forma incremental, y cada slice deja
+verdad y tiene 1.442 tests (`npm test`, 2026-08-22). Todo se aplica de forma incremental, y cada slice deja
 el sistema usable.
 
 ---
@@ -255,6 +255,25 @@ ejecutable por `service_role` deriva `ready_for_extraction`, duplicado,
 diferido o cuarentena, y el token evita que un timeout viejo pise un retry. Sin
 scanner configurado la salida es siempre diferida. Contrato operativo en
 [FINANCE_DOCUMENT_INSPECTION.md](FINANCE_DOCUMENT_INSPECTION.md).
+
+La extracción repite esa frontera: el navegador envía sólo ids, la Edge descarga
+el original privado y vuelve a comprobar el SHA-256 antes de llamar a un modelo
+fijado. La salida llega como tool call bajo JSON Schema, se normaliza sin
+defaults inventados y Postgres vuelve a validar estructura y matemática. Una
+confianza declarada por el proveedor no puede tapar errores: con cualquier
+inconsistencia queda limitada a 0,69 y exige revisión.
+
+Modelo y correcciones viven en revisiones append-only. Confirmar una revisión
+no crea compras, obligaciones, stock ni asientos; matching y borradores son
+slices posteriores. La función está activa con JWT, pero el flag y el modelo
+permanecen ausentes hasta aprobar privacidad y benchmark. Contrato en
+[FINANCE_DOCUMENT_EXTRACTION.md](FINANCE_DOCUMENT_EXTRACTION.md).
+
+El fixture real descubrió además que la inmutabilidad de versiones bloqueaba el
+borrado en cascada de una organización. La app sigue sin poder borrar
+originales: sólo roles privilegiados pueden hacerlo al activar explícitamente
+`app.finance_document_retention_cleanup`, dejando la retención como operación
+separada y auditable.
 
 ---
 

@@ -2,7 +2,8 @@
 
 **Corte:** 2026-08-22
 **Estado:** autoridad, migración, Edge Function y UI desplegadas; scanner privado
-externo no configurado.
+externo no configurado. La etapa posterior de extracción/revisión también está
+desplegada, pero permanece deshabilitada para proveedores externos.
 
 Este flujo existe para que un archivo elegido en el navegador nunca se convierta
 en autoridad por su nombre, extensión, `Content-Type` o hash declarado. El
@@ -25,6 +26,12 @@ usuario con finance.edit
 
 La Edge Function no llama OCR. Ese límite es deliberado: inspeccionar y extraer
 son etapas distintas, reintentables y auditables.
+
+Una versión sólo puede entrar a la etapa posterior si queda exactamente
+`ready_for_extraction` y `scanner_status = clean`. No hay un botón ni un RPC de
+usuario que saltee ese gate. El contrato de extracción, confianza y revisión
+append-only está en
+[FINANCE_DOCUMENT_EXTRACTION.md](FINANCE_DOCUMENT_EXTRACTION.md).
 
 ## Estados
 
@@ -91,6 +98,11 @@ Por eso no se usa VirusTotal ni otro corpus público. El scanner debe:
 - devolver sólo un estado y referencia opaca; nunca el contenido en logs.
 
 Hasta cerrar esas condiciones, mantener los secrets ausentes es el estado seguro.
+
+La aprobación del scanner no aprueba automáticamente un proveedor de extracción:
+ambos procesan documentos con datos personales y fiscales y requieren su propio
+contrato, retención, región, subencargados y evaluación. Los flags de extracción
+se mantienen ausentes aunque la Edge Function ya esté desplegada.
 
 ## Verificación y operación
 

@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 export const FINANCE_DOCUMENT_BUCKET = 'finance-documents';
 export const FINANCE_DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
@@ -22,6 +23,49 @@ export type FinanceDocumentInspectionStatus =
   | 'duplicate'
   | 'quarantined'
   | 'rejected';
+export type FinanceDocumentExtractionStatus =
+  | 'extracting'
+  | 'needs_review'
+  | 'ready_for_review'
+  | 'reviewed'
+  | 'failed';
+
+export interface FinanceDocumentExtractionItem {
+  description: string;
+  sku: string | null;
+  quantity: number | null;
+  unit_price: number | null;
+  line_total: number | null;
+  tax_rate: number | null;
+}
+
+export interface FinanceDocumentExtractionPayload {
+  supplier_name: string | null;
+  supplier_tax_id: string | null;
+  document_number: string | null;
+  issue_date: string | null;
+  currency: 'ARS' | 'USD' | null;
+  subtotal: number | null;
+  tax_total: number | null;
+  total: number | null;
+  items: FinanceDocumentExtractionItem[];
+}
+
+export interface FinanceDocumentExtraction {
+  id: string;
+  versionId: string;
+  attempt: number;
+  status: FinanceDocumentExtractionStatus;
+  overallConfidence: number | null;
+  validationErrors: string[];
+  failureReason: string | null;
+  provider: string | null;
+  model: string | null;
+  revisionNumber: number | null;
+  revisionSource: 'model' | 'human' | null;
+  payload: FinanceDocumentExtractionPayload | null;
+  updatedAt: string;
+}
 
 export interface FinanceDocumentVersion {
   id: string;
@@ -38,6 +82,7 @@ export interface FinanceDocumentVersion {
   storagePath: string;
   createdAt: string;
   uploadedAt: string | null;
+  extraction: FinanceDocumentExtraction | null;
 }
 
 export interface FinanceDocument {
@@ -65,6 +110,13 @@ export interface FinanceDocumentInspectionResult {
   inspection_status: FinanceDocumentInspectionStatus;
   hash_status: FinanceDocumentVersion['hashStatus'];
   duplicate_of_version_id: string | null;
+}
+
+export interface FinanceDocumentExtractionResult {
+  extraction_id: string;
+  extraction_status: FinanceDocumentExtractionStatus;
+  overall_confidence: number | null;
+  validation_errors: string[];
 }
 
 export function validateFinanceDocumentFile(file: Pick<File, 'name' | 'type' | 'size'>): string | null {
@@ -126,10 +178,67 @@ export async function getFinanceDocuments(orgId: string): Promise<FinanceDocumen
       storagePath: String(row.storage_path),
       createdAt: String(row.created_at),
       uploadedAt: (row.uploaded_at as string | null) || null,
+      extraction: null,
     };
     const current = versionsByDocument.get(version.documentId) || [];
     current.push(version);
     versionsByDocument.set(version.documentId, current);
+  }
+
+  const versionIds = [...versionsByDocument.values()].flat().map(version => version.id);
+  if (versionIds.length) {
+    const { data: extractionRows, error: extractionError } = await supabase
+      .from('finance_document_extractions')
+      .select('id, version_id, attempt, status, overall_confidence, validation_errors, failure_reason, provider, model, updated_at')
+      .in('version_id', versionIds)
+      .order('attempt', { ascending: false });
+    if (extractionError && !isMissingFinanceExtractionRelation(extractionError)) throw extractionError;
+
+    const latestByVersion = new Map<string, FinanceDocumentExtraction>();
+    for (const row of (extractionRows || []) as unknown as Array<Record<string, unknown>>) {
+      const versionId = String(row.version_id);
+      if (latestByVersion.has(versionId)) continue;
+      latestByVersion.set(versionId, {
+        id: String(row.id),
+        versionId,
+        attempt: Number(row.attempt),
+        status: row.status as FinanceDocumentExtractionStatus,
+        overallConfidence: row.overall_confidence === null ? null : Number(row.overall_confidence),
+        validationErrors: Array.isArray(row.validation_errors) ? row.validation_errors.map(String) : [],
+        failureReason: (row.failure_reason as string | null) || null,
+        provider: (row.provider as string | null) || null,
+        model: (row.model as string | null) || null,
+        revisionNumber: null,
+        revisionSource: null,
+        payload: null,
+        updatedAt: String(row.updated_at),
+      });
+    }
+
+    const extractionIds = [...latestByVersion.values()].map(extraction => extraction.id);
+    if (extractionIds.length) {
+      const { data: revisionRows, error: revisionError } = await supabase
+        .from('finance_document_extraction_revisions')
+        .select('extraction_id, revision_number, source, payload')
+        .in('extraction_id', extractionIds)
+        .order('revision_number', { ascending: false });
+      if (revisionError && !isMissingFinanceExtractionRelation(revisionError)) throw revisionError;
+      const seen = new Set<string>();
+      for (const row of (revisionRows || []) as unknown as Array<Record<string, unknown>>) {
+        const extractionId = String(row.extraction_id);
+        if (seen.has(extractionId)) continue;
+        seen.add(extractionId);
+        const extraction = [...latestByVersion.values()].find(candidate => candidate.id === extractionId);
+        if (!extraction) continue;
+        extraction.revisionNumber = Number(row.revision_number);
+        extraction.revisionSource = row.source as 'model' | 'human';
+        extraction.payload = row.payload as unknown as FinanceDocumentExtractionPayload;
+      }
+    }
+
+    for (const versions of versionsByDocument.values()) {
+      for (const version of versions) version.extraction = latestByVersion.get(version.id) || null;
+    }
   }
 
   return documents.map(document => ({
@@ -228,6 +337,32 @@ export async function inspectFinanceDocument(
   return (data?.result || null) as FinanceDocumentInspectionResult | null;
 }
 
+export async function extractFinanceDocument(
+  documentId: string,
+  versionId: string,
+): Promise<FinanceDocumentExtractionResult | null> {
+  const { data, error } = await supabase.functions.invoke('extract-finance-document', {
+    body: { documentId, versionId },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(String(data.error));
+  if (data?.skipped) return null;
+  return (data?.result || null) as FinanceDocumentExtractionResult | null;
+}
+
+export async function reviewFinanceDocumentExtraction(
+  extractionId: string,
+  payload: FinanceDocumentExtractionPayload,
+  note?: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('finance_document_submit_extraction_review', {
+    p_extraction_id: extractionId,
+    p_payload: payload as unknown as Json,
+    p_note: note || null,
+  });
+  if (error) throw error;
+}
+
 export async function createFinanceDocumentSignedUrl(storagePath: string): Promise<string> {
   const { data, error } = await supabase.storage
     .from(FINANCE_DOCUMENT_BUCKET)
@@ -255,4 +390,10 @@ export function financeDocumentStatusLabel(status: FinanceDocumentStatus): strin
     rejected: 'Rechazado',
     quarantined: 'En cuarentena',
   }[status];
+}
+
+function isMissingFinanceExtractionRelation(error: { code?: string; message?: string }): boolean {
+  return ['42P01', 'PGRST205'].includes(error.code || '')
+    || /finance_document_extractions|finance_document_extraction_revisions/i.test(error.message || '')
+      && /does not exist|schema cache/i.test(error.message || '');
 }

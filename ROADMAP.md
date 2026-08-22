@@ -179,7 +179,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.432 tests pasan al 2026-08-22; typecheck, lint y build verdes; 64 Edge Functions verificadas; 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) pasan contra la base real. |
+| Calidad técnica | 1.442 tests pasan al 2026-08-22; typecheck, lint y build verdes; 65 Edge Functions verificadas; 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) pasan contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -494,14 +494,24 @@ protegido/creado verificable y tiempo entre hallazgo y acción.
   recalcula SHA-256/tamaño/magic bytes, bloquea acciones activas de PDF y un RPC
   service-only deriva listo/diferido/cuarentena. El scanner privado externo aún
   no está configurado; sin resultado `clean` no existe bypass a extracción.
-- Extracción estructurada mediante proveedor intercambiable.
-- Confianza por campo, validación matemática, fiscal y de esquema.
+- ~~Extracción estructurada mediante proveedor intercambiable.~~ **Gate técnico
+  cerrado 2026-08-22:** ids desde el navegador, original privado descargado en
+  servidor, hash revalidado y tool call bajo JSON Schema; flag y modelo ausentes
+  mantienen deshabilitada toda transferencia externa hasta aprobar privacidad y
+  benchmark.
+- ~~Confianza por campo, validación matemática, fiscal y de esquema.~~
+  **Autoridad técnica cerrada 2026-08-22:** normalización sin ceros inventados,
+  validadores espejados en base y confianza limitada a 0,69 ante cualquier
+  error; desde 0,85 sin errores queda lista para revisión.
 - ~~Detección de duplicados.~~ **Cerrada técnicamente:** compara hash real sólo
   dentro del tenant y deriva `duplicate` antes de OCR.
 - Matching determinístico de proveedor y producto.
 - Supplier product aliases aprendidos mediante confirmación.
 - Purchase Draft, Supplier Invoice Draft y Payable Draft.
-- Revisión/aprobación humana y audit log.
+- ~~Revisión humana versionada y audit log.~~ **Cerrada técnicamente:** el
+  editor crea una revisión append-only con actor/nota/evento y declara cero
+  efectos sobre compra, deuda, stock o ledger. La aprobación de borradores del
+  Core sigue pendiente junto con matching.
 - AI Gateway mínimo para costo, versión, trazas y apagado.
 
 **No incluye:** pagos autónomos, contabilidad completa, conciliación masiva ni
@@ -663,7 +673,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 13 | Pricing proposal e impact outcome | F2 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** aprobación server-side, baseline canónica, costo revalidado, medición no causal, reversión con guard, auditoría y RLS. Fixture 3.000→2.700 con cobertura 100%, conflicto protegido y restos 0. Producción: 0/25 aplicadas | Merchant aplica una propuesta real; ventana madura con 100% de cobertura y decide mantener/revertir usando el resultado. |
 | 14 | Finance ADR, shell y acceso por producto | F3 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** `/finance`, chrome propio, sesión/org compartidas, entitlement ≠ permiso ≠ flag, solicitud y aprobación auditada. Snapshot prueba que no duplica el Core. Fixture owner/platform/outsider/anon y restos 0; producción 0/4 habilitadas | Un comercio solicita/recibe acceso y navega Finance con su rol real; medir solicitud → habilitación. |
 | 15 | Document storage seguro, versiones e inspección | F3 | **Gate técnico cerrado 2026-08-22; scanner externo bloqueado** | Original privado, intención server-side, hash recalculado, magic bytes/tamaño, leases, cuarentena, deduplicación y auditoría. `ready_for_extraction` exige scanner privado limpio; secrets ausentes al corte. |
-| 16 | Extracción estructurada y confidence | F3 | Precursor parcial | Campos versionados, validadores y revisión por umbral. |
+| 16 | Extracción estructurada y confidence | F3 | **Gate técnico cerrado 2026-08-22; proveedor/modelo bloqueados por privacidad y benchmark** | Original limpio → ids → descarga/hash privado → esquema forzado → validación/confianza → revisión append-only. Fixture con roles reales, dos revisiones, cero efectos y cero restos. |
 | 17 | Supplier/product matching y alias memory | F3 | Pendiente | Confirmación aprendida resuelve la siguiente factura. |
 | 18 | Invoice-to-purchase/payable draft | F3 | Pendiente | Factura real crea borradores sin tocar stock/deuda antes. |
 | 19 | Split Storefront | F4 | Pendiente | Despliegue, SLO y fallas aislados del panel. |
@@ -735,18 +745,27 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     faltar `FINANCE_DOCUMENT_SCANNER_URL/TOKEN`, la única salida es
     `scanner_unavailable`, nunca `ready_for_extraction`. Contrato y runbook en
     `docs/FINANCE_DOCUMENT_INSPECTION.md`.
-20. ~~Continuar el sistema visual v2 sobre Platform y Settings~~ — cerrado
+20. ~~Extracción estructurada, confianza y revisión humana versionada~~ — gate
+    técnico cerrado el 2026-08-22: la Edge acepta sólo ids después de inspección
+    limpia, descarga el original privado, revalida el hash y exige tool call con
+    esquema; la base recalcula errores/confianza y el editor crea una revisión
+    append-only sin tocar compras, deudas, stock ni ledger. Fixture owner/
+    service/outsider, 2 revisiones, 0 efectos y 0 restos; función activa con JWT.
+    El flag y el modelo permanecen ausentes a propósito hasta aprobar DPA,
+    región, retención, no-entrenamiento y benchmark de exactitud/costo. Contrato
+    en `docs/FINANCE_DOCUMENT_EXTRACTION.md`.
+21. ~~Continuar el sistema visual v2 sobre Platform y Settings~~ — cerrado
     técnicamente el 2026-08-22: Platform tiene topbar/rail propio con contraste
     en tema claro y oscuro; Settings usa la cabecera compartida y mantiene sus
     seis secciones persistidas. Queda Storefront, capturas desktop/mobile y la
     medición de abandono o tiempo a tarea antes de declarar la renovación visual
     validada. Cada pantalla nueva debe cumplir `docs/INTERFAZ.md`.
-21. ~~Landing y Auth con dirección visual propia~~ — cerrado técnicamente el
+22. ~~Landing y Auth con dirección visual propia~~ — cerrado técnicamente el
      2026-08-22: landing product-led con preview del Business Core, navegación
      responsive, CTA de registro directo y Auth con panel de producto, login,
      registro y recuperación bajo el mismo contrato visual. Falta medir
      conversión real; la implementación no se declara validada por una captura.
-22. CRM command center con patrón de tabla, señales y detalle contextual —
+23. CRM command center con patrón de tabla, señales y detalle contextual —
      cerrado técnicamente el 2026-08-22: `CustomersPage` conserva el Business
      Core y todas sus acciones, separa operación e insights con estado
      persistido y suma una lectura ejecutiva de cartera, actividad, recurrencia
@@ -754,7 +773,7 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
      densidad/jerarquía y eMarketplace Admin para color/superficies; la
      comparativa verificada vive en `docs/INTERFAZ.md`. Falta capturar la vista
      autenticada y probar el tiempo a tarea con datos reales.
-23. Admin/marketplace workspace transversal — cerrado técnicamente el
+24. Admin/marketplace workspace transversal — cerrado técnicamente el
     2026-08-22 en Productos, Ventas y Dashboard: `WorkspaceViewTabs` aplica la misma
     navegación compacta, densidad, estados y persistencia por organización a
     Catálogo/Operación, Ventas/Rendimiento y seis vistas ejecutivas sin separar
@@ -766,7 +785,7 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     usaban. D2.3 sumó 10 migraciones en 6 componentes internos: páginas y
     componentes del SaaS quedan en cero; Storefront conserva sólo 3 excepciones
     mobile/autofill enumeradas y una guarda recursiva impide ampliar la deuda.
-24. Recuperación atómica entre deploys PWA — cerrado técnicamente el
+25. Recuperación atómica entre deploys PWA — cerrado técnicamente el
     2026-08-22 después del incidente de chunks obsoletos: la salida ahora es
     común a Vite, promesas rechazadas y React; desregistra el worker, limpia
     caches y limita sólo los loops de 15 segundos. Vercel deja de devolver el
@@ -952,8 +971,10 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-22: 1.432 tests, 64 funciones verificadas
+- Build y suites locales del 2026-08-22: 1.442 tests, 65 funciones verificadas
   y 42 E2E críticos contra la base real.
+- docs/FINANCE_DOCUMENT_EXTRACTION.md: custodia, esquema estructurado,
+  confianza, revisión append-only, gate de privacidad y operación.
 - docs/PRICE_IMPACT_LOOP.md: benchmark oficial, autoridad, reversión y regla de
   no causalidad para propuestas de precio.
 - docs/ADR_001_FINANCE_PRODUCT_SURFACE.md: acceso por producto, sesión,
