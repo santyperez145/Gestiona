@@ -17,6 +17,7 @@ type RpcAdmin = {
 
 export type PreparedPaymentAttempt = {
   intentId: string;
+  correlationId: string;
   attemptId: string;
   provider: string;
   amount: number;
@@ -59,8 +60,15 @@ export async function preparePaymentAttempt(
   if (!row) throw new Error("El orquestador no devolvió un intento de pago");
 
   const amount = Number(row.monto);
+  const intentId = requiredText(row.intent_id, "intent_id");
   return {
-    intentId: requiredText(row.intent_id, "intent_id"),
+    intentId,
+    // Compatibilidad durante el despliegue: si la Edge Function llega antes
+    // que la migración, el intent UUID sigue siendo un identificador opaco y
+    // el checkout no se cae. Con la migración aplicada siempre viene el campo.
+    correlationId: typeof row.correlation_id === "string" && row.correlation_id.trim()
+      ? row.correlation_id
+      : intentId,
     attemptId: requiredText(row.attempt_id, "attempt_id"),
     provider: requiredText(row.provider, "provider"),
     amount: Number.isFinite(amount) ? amount : 0,

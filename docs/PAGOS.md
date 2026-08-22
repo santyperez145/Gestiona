@@ -142,6 +142,7 @@ Cobertura aprobada el 2026-08-21:
 | Settlement → ledger | La comisión real y su IVA llegan al asiento. |
 | Timeout de refund | Conserva operación y clave idempotente en `processing`. |
 | Refund reconciliado duplicado | Orden devuelta, RMA resuelto y stock sin reposición ficticia. |
+| Traza end-to-end | La misma correlación aparece en checkout, eventos, orden, liquidación y ledger. |
 
 La matriz encontró dos fallas que los tests estáticos no veían:
 
@@ -155,3 +156,23 @@ firmado, timeout/reconsulta y refund deben repetirse con una cuenta y medio de
 prueba reales. Eso mueve dinero y requiere una operación explícita del dueño;
 la matriz interna no se presenta como evidencia de disponibilidad de
 MercadoPago.
+
+## Trazabilidad de una operación
+
+Cada `payment_intent` tiene un `correlation_id` opaco generado por PostgreSQL.
+No contiene email, nombre, número de orden ni otra información personal. El
+checkout lo recibe del RPC y lo envía a MercadoPago como `metadata`; la base lo
+deriva de nuevo al registrar la liquidación y al emitir los eventos de la orden.
+La partida de cobro del ledger conserva el mismo valor.
+
+El comercio puede abrir **Finanzas → Costos de cobro → Ver traza completa**.
+La vista `payment_operation_trace` muestra sólo etapa, estado, proveedor,
+referencia y momento. Corre con `security_invoker`, respeta la RLS de cada tabla
+y no está concedida a `anon`: ser staff de plataforma no otorga acceso a una
+organización.
+
+La matriz `npm run drill:payments` exige cinco etapas distintas —operación,
+intento, evento, liquidación y asiento— con una sola correlación. Una metadata
+ausente en un pago histórico no bloquea la acreditación; una metadata del
+proveedor distinta deja un warning explícito y la relación server-side por
+organización + orden sigue siendo la autoridad.

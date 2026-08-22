@@ -43,6 +43,10 @@ DECLARE
   v_settlement uuid;
   v_settlement_duplicate uuid;
   v_ledger uuid;
+  v_correlation uuid;
+  v_transaction_correlation uuid;
+  v_ledger_correlation text;
+  v_trace_stages integer;
   v_stock_after_payment integer;
   v_stock_after_refund integer;
   v_provider_fee numeric;
@@ -102,9 +106,11 @@ BEGIN
     );
     v_intent := (v_first->>'intent_id')::uuid;
     v_attempt := (v_first->>'attempt_id')::uuid;
+    v_correlation := (v_first->>'correlation_id')::uuid;
 
     IF (v_duplicate->>'intent_id')::uuid <> v_intent
        OR (v_duplicate->>'attempt_id')::uuid <> v_attempt
+       OR (v_duplicate->>'correlation_id')::uuid <> v_correlation
        OR COALESCE((v_duplicate->>'reusado')::boolean, false) IS NOT TRUE THEN
       RAISE EXCEPTION 'El submit duplicado creó otra operación';
     END IF;
@@ -195,6 +201,45 @@ BEGIN
     v_results := v_results || jsonb_build_array(jsonb_build_object(
       'scenario', 'liquidacion_al_ledger', 'passed', true,
       'detail', 'source ecommerce conserva comisión e IVA en el asiento'
+    ));
+
+    -- Una sola correlación atraviesa la intención, el evento de pago, el
+    -- cambio de orden, la liquidación, el outbox/ledger y la vista operativa.
+    SELECT correlation_id INTO v_transaction_correlation
+      FROM public.payment_transactions WHERE id = v_settlement;
+    SELECT l.metadata->>'correlation_id' INTO v_ledger_correlation
+      FROM public.ledger_lines l
+     WHERE l.entry_id = v_ledger
+       AND l.metadata ? 'correlation_id'
+     LIMIT 1;
+    SELECT count(DISTINCT stage) INTO v_trace_stages
+      FROM public.payment_operation_trace
+     WHERE org_id = v_org
+       AND correlation_id = v_correlation
+       AND stage IN ('intent', 'attempt', 'event', 'settlement', 'ledger');
+
+    IF v_transaction_correlation <> v_correlation
+       OR v_ledger_correlation <> v_correlation::text
+       OR v_trace_stages <> 5
+       OR NOT EXISTS (
+         SELECT 1 FROM public.domain_events e
+          WHERE e.org_id = v_org
+            AND e.event_type = 'pago.iniciado'
+            AND e.metadata->>'correlation_id' = v_correlation::text
+       )
+       OR NOT EXISTS (
+         SELECT 1 FROM public.domain_events e
+          WHERE e.org_id = v_org
+            AND e.event_type = 'orden.pagada'
+            AND e.metadata->>'correlation_id' = v_correlation::text
+       ) THEN
+      RAISE EXCEPTION
+        'Traza cortada: tx %, ledger %, etapas % para correlación %',
+        v_transaction_correlation, v_ledger_correlation, v_trace_stages, v_correlation;
+    END IF;
+    v_results := v_results || jsonb_build_array(jsonb_build_object(
+      'scenario', 'traza_end_to_end', 'passed', true,
+      'detail', 'misma correlación en checkout, eventos, liquidación y ledger'
     ));
 
     -- Rechazo: no acredita y una acción explícita abre un intento nuevo.

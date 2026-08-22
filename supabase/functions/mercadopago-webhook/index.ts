@@ -75,7 +75,9 @@ async function settleOrchestratedPayment(
 
   const { data: intents, error: intentError } = await admin
     .from("payment_intents")
-    .select("id, estado, created_at")
+    // `*` mantiene el webhook compatible durante el breve orden de deploy:
+    // antes de la migración la columna no existe, pero el cobro debe continuar.
+    .select("*")
     .eq("org_id", orgId)
     .eq("order_id", orderId)
     .order("created_at", { ascending: false })
@@ -88,6 +90,21 @@ async function settleOrchestratedPayment(
   const intent = (intents ?? []).find((row: { estado?: string }) =>
     ["pendiente", "procesando", "acreditado"].includes(String(row.estado))) ?? intents?.[0];
   if (!intent?.id) return;
+
+  const providerMetadata = payment.metadata && typeof payment.metadata === "object"
+    ? payment.metadata as Record<string, unknown>
+    : null;
+  const providerCorrelation = typeof providerMetadata?.correlation_id === "string"
+    ? providerMetadata.correlation_id
+    : null;
+  // external_reference + tenant siguen siendo la autoridad. Una metadata
+  // ausente (preferencias antiguas) no bloquea el cobro; una distinta sí deja
+  // evidencia explícita para investigar una integración mal enroutada.
+  if (providerCorrelation && providerCorrelation !== intent.correlation_id) {
+    console.warn(
+      `MP correlation mismatch payment=${paymentId} expected=${intent.correlation_id} received=${providerCorrelation}`,
+    );
+  }
 
   const { data: attempts, error: attemptError } = await admin
     .from("payment_attempts")

@@ -1,8 +1,15 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrg } from '@/lib/orgContext';
-import { CreditCard, ChevronDown, ChevronRight, Info } from 'lucide-react';
+import { CreditCard, ChevronDown, ChevronRight, Info, Route, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { PROVIDER_LABEL, METHOD_LABEL, round2 } from '@/lib/paymentFees';
 
 /**
@@ -28,7 +35,19 @@ interface PaymentTx {
   status: string;
   expected_release_at: string | null;
   released_at: string | null;
+  correlation_id: string | null;
+  external_id: string | null;
   created_at: string;
+}
+
+interface PaymentTraceRow {
+  record_id: string;
+  stage: string;
+  stage_order: number;
+  status: string;
+  provider: string | null;
+  provider_reference: string | null;
+  occurred_at: string;
 }
 
 const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
@@ -49,27 +68,77 @@ const SOURCE_LABEL: Record<string, string> = {
   otro: 'Otro',
 };
 
+const TRACE_STAGE: Record<string, string> = {
+  intent: 'Operación creada',
+  attempt: 'Intento con proveedor',
+  event: 'Evento durable',
+  settlement: 'Liquidación registrada',
+  ledger: 'Asiento contable',
+};
+
 export default function PaymentSettlementsPanel() {
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? '';
   const [txs, setTxs] = useState<PaymentTx[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [traceOpen, setTraceOpen] = useState(false);
+  const [traceTx, setTraceTx] = useState<PaymentTx | null>(null);
+  const [traceRows, setTraceRows] = useState<PaymentTraceRow[]>([]);
+  const [traceLoading, setTraceLoading] = useState(false);
+  const [traceError, setTraceError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!orgId) return;
     setLoading(true);
-    const { data } = await supabase
+    setLoadError(null);
+    const { data, error } = await supabase
       .from('payment_transactions')
       .select('*')
       .eq('org_id', orgId)
       .order('created_at', { ascending: false })
       .limit(100);
-    setTxs((data || []) as unknown as PaymentTx[]);
+    if (error) {
+      console.error('payment_transactions:', error);
+      setLoadError('No se pudieron leer los costos de cobro. Revisá la conexión o contactá a soporte.');
+    } else {
+      setTxs((data ?? []) as unknown as PaymentTx[]);
+    }
     setLoading(false);
   }, [orgId]);
 
   useEffect(() => { load(); }, [load]);
+
+  const showTrace = useCallback(async (tx: PaymentTx) => {
+    if (!tx.correlation_id) return;
+    setTraceTx(tx);
+    setTraceRows([]);
+    setTraceError(null);
+    setTraceLoading(true);
+    setTraceOpen(true);
+
+    const { data, error } = await supabase
+      .from('payment_operation_trace')
+      .select('record_id, stage, stage_order, status, provider, provider_reference, occurred_at')
+      .eq('org_id', orgId)
+      .eq('correlation_id', tx.correlation_id)
+      .order('occurred_at', { ascending: true })
+      .order('stage_order', { ascending: true });
+
+    if (error) {
+      const code = String(error.code ?? '');
+      setTraceError(
+        ['42P01', 'PGRST205'].includes(code)
+          ? 'La traza todavía no está disponible en esta instalación.'
+          : 'No se pudo reconstruir la operación. El error quedó visible para soporte.',
+      );
+      console.error('payment_operation_trace:', error);
+    } else {
+      setTraceRows((data ?? []) as PaymentTraceRow[]);
+    }
+    setTraceLoading(false);
+  }, [orgId]);
 
   const totals = useMemo(() => {
     const approved = txs.filter(t => t.status === 'approved');
@@ -87,9 +156,18 @@ export default function PaymentSettlementsPanel() {
   }, [txs]);
 
   // Sin cobros digitales todavía: no vale la pena ocupar espacio en la página
-  if (loading || txs.length === 0) return null;
+  if (loading) return null;
+  if (loadError) {
+    return (
+      <div className="rounded-[10px] border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        {loadError}
+      </div>
+    );
+  }
+  if (txs.length === 0) return null;
 
   return (
+    <>
     <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
@@ -154,6 +232,7 @@ export default function PaymentSettlementsPanel() {
                   <th className="text-right py-1.5 pr-2 font-medium">Plataforma</th>
                   <th className="text-right py-1.5 pr-2 font-medium">Neto</th>
                   <th className="text-right py-1.5 font-medium">Estado</th>
+                  <th className="w-10 py-1.5 font-medium"><span className="sr-only">Traza</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">
@@ -187,6 +266,19 @@ export default function PaymentSettlementsPanel() {
                           </p>
                         )}
                       </td>
+                      <td className="py-1.5 pl-2 text-right">
+                        {t.correlation_id && (
+                        <button
+                          type="button"
+                          onClick={() => void showTrace(t)}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                          aria-label="Ver traza completa del cobro"
+                          title="Ver traza completa"
+                        >
+                          <Route className="h-3.5 w-3.5" />
+                        </button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -196,5 +288,59 @@ export default function PaymentSettlementsPanel() {
         </div>
       )}
     </div>
+
+    <Dialog open={traceOpen} onOpenChange={setTraceOpen}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Traza del cobro</DialogTitle>
+          <DialogDescription>
+            La misma operación desde el checkout hasta la contabilidad, sin datos del comprador.
+          </DialogDescription>
+        </DialogHeader>
+
+        {traceTx && (
+          <div className="rounded-md border border-border/50 bg-muted/20 px-3 py-2 text-xs">
+            <div className="flex items-center justify-between gap-3">
+              <span>{SOURCE_LABEL[traceTx.source] || traceTx.source} · {fmt(Number(traceTx.gross_amount))}</span>
+              <span className="font-mono text-[10px] text-muted-foreground" title={traceTx.correlation_id ?? undefined}>
+                {traceTx.correlation_id?.slice(0, 8)}…
+              </span>
+            </div>
+          </div>
+        )}
+
+        {traceLoading ? (
+          <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Reconstruyendo operación…
+          </div>
+        ) : traceError ? (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            {traceError}
+          </div>
+        ) : (
+          <ol className="relative ml-2 space-y-4 border-l border-border/60 py-1 pl-5">
+            {traceRows.map((row) => (
+              <li key={`${row.stage}-${row.record_id}`} className="relative">
+                <span className="absolute -left-[25px] top-1.5 h-2 w-2 rounded-full bg-primary ring-4 ring-background" />
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">{TRACE_STAGE[row.stage] || row.stage}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {row.status}
+                      {row.provider && ` · ${PROVIDER_LABEL[row.provider as keyof typeof PROVIDER_LABEL] || row.provider}`}
+                      {row.provider_reference && ` · ref. ${row.provider_reference}`}
+                    </p>
+                  </div>
+                  <time className="shrink-0 text-[10px] text-muted-foreground">
+                    {new Date(row.occurred_at).toLocaleString('es-AR')}
+                  </time>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

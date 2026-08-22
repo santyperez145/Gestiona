@@ -15893,6 +15893,7 @@ export type Database = {
       payment_intents: {
         Row: {
           attempt_ok: string | null
+          correlation_id: string
           created_at: string
           cuotas: number
           estado: string
@@ -15907,6 +15908,7 @@ export type Database = {
         }
         Insert: {
           attempt_ok?: string | null
+          correlation_id?: string
           created_at?: string
           cuotas?: number
           estado?: string
@@ -15921,6 +15923,7 @@ export type Database = {
         }
         Update: {
           attempt_ok?: string | null
+          correlation_id?: string
           created_at?: string
           cuotas?: number
           estado?: string
@@ -16366,6 +16369,7 @@ export type Database = {
       }
       payment_transactions: {
         Row: {
+          correlation_id: string
           created_at: string
           currency: string
           expected_release_at: string | null
@@ -16388,6 +16392,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          correlation_id?: string
           created_at?: string
           currency?: string
           expected_release_at?: string | null
@@ -16410,6 +16415,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          correlation_id?: string
           created_at?: string
           currency?: string
           expected_release_at?: string | null
@@ -31326,6 +31332,21 @@ export type Database = {
             referencedColumns: ["org_id"]
           },
         ]
+      }
+      payment_operation_trace: {
+        Row: {
+          correlation_id: string | null
+          occurred_at: string | null
+          order_id: string | null
+          org_id: string | null
+          provider: string | null
+          provider_reference: string | null
+          record_id: string | null
+          stage: string | null
+          stage_order: number | null
+          status: string | null
+        }
+        Relationships: []
       }
       planes_contratables: {
         Row: {

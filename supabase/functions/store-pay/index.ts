@@ -194,6 +194,9 @@ async function createRedirectPreference(
       ...(marketplaceFee > 0 ? { marketplace_fee: marketplaceFee } : {}),
       payer: { name: order.customer_name, email: order.customer_email },
       external_reference: `ecom:${order.id}`,
+      // Identificador opaco: permite seguir la operación en Gestiona y en el
+      // proveedor sin enviar nombre, email ni datos internos del negocio.
+      metadata: { correlation_id: attempt.correlationId },
       ...(backUrl ? {
         back_urls: { success: backUrl, pending: backUrl, failure: backUrl },
         auto_return: "approved",
@@ -343,6 +346,7 @@ async function processBrickPayment(
       payer: { email: order.customer_email },
       description: `Pedido ${order.order_number} — ${String(store.name).slice(0, 120)}`,
       external_reference: externalReference,
+      metadata: { correlation_id: attempt.correlationId },
       notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook?org_id=${store.org_id}`,
       // A diferencia de `marketplace_fee` (preferencias), pagos directos usan
       // `application_fee`: MP separa la comisión en la misma acreditación.

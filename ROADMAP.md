@@ -165,9 +165,9 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.231 tests pasan; typecheck, lint y build verdes; 63 Edge Functions verificadas. |
+| Calidad técnica | 1.233 tests pasan; typecheck, lint y build verdes; 63 Edge Functions verificadas. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
-| Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 7 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. Falta certificación live para probar proveedor/economics. |
+| Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
 | Ledger | 10 eventos de ledger de dominio; 0 asientos contables operativos reales. |
 | Plataforma | Overview, Integration Registry, Merchant 360, evidencia de integración, cola operativa, reintentos auditados y control de Checkout Brick. |
@@ -175,7 +175,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Finance precursor | OCR prellena una orden de compra; todavía no cumple cadena de custodia, validación, matching, duplicados, aprobación ni payable draft. |
 | Storefront | Funcional, pero aún comparte aplicación/ciclo de despliegue con el panel; falta aislamiento, dominios y carrito persistente completo. |
 | Recuperación | Backups programados y restore drill de datos aprobado el 2026-08-21: snapshot v3, 147 tablas / 63 filas, 937,22 ms y cero restos. Falta reconstrucción completa para RTO/RPO contractual. |
-| Observabilidad | Hay señales operativas y colas; faltan trazas correlacionadas de punta a punta y health checks activos de todos los proveedores. |
+| Observabilidad | Pagos ya conserva una correlación de checkout a ledger y ofrece timeline sin PII; faltan métricas/SLO, health checks activos y extender el contrato a los demás flujos críticos. |
 | Activación comercial | No existe cohorte suficiente para estimar retención, conversión o costo de soporte. |
 
 ### Construido no significa validado
@@ -531,8 +531,8 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 2 | Legal publish | F0 | Bloqueado externamente | Identidad, privacidad y términos revisados/publicados. |
 | 3 | Conteo físico | F0 | Bloqueado externamente | Ajustes trazables; stock y Kardex reconciliados. |
 | 4 | Restore drill | F0 | **Cerrado 2026-08-21:** v3, 147 tablas / 63 filas, RTO técnico 937,22 ms, cero restos | Repetición trimestral; reconstrucción completa queda como nivel siguiente. |
-| 5 | Payment test matrix | F0 | **Interna cerrada 2026-08-21:** 7 escenarios, 2 bugs corregidos, cero restos. Certificación live bloqueada externamente | Pago/rechazo/webhook/timeout/refund reales reconciliados sin intervención de base. |
-| 6 | Correlation IDs y trazas críticas | F0 | Parcial: hay evidencia operativa, no traza end-to-end | Una operación se sigue de cliente a proveedor y regreso. |
+| 5 | Payment test matrix | F0 | **Interna cerrada 2026-08-21:** 8 escenarios, 2 bugs corregidos, traza completa y cero restos. Certificación live bloqueada externamente | Pago/rechazo/webhook/timeout/refund reales reconciliados sin intervención de base. |
+| 6 | Correlation IDs y trazas críticas | F0 | **Cerrado para pagos 2026-08-21:** una correlación server-side une intent, attempt, metadata del proveedor, eventos, orden, settlement y ledger; timeline RLS sin PII | Matriz exige las 5 etapas y la UI reconstruye la operación desde Costos de cobro. Extender por riesgo, no como plataforma genérica. |
 | 7 | E2E bloqueante | F0 | Parcial: suite existe; faltan configuración y cobertura crítica | CI bloquea regresión con fixtures seguros. |
 | 8 | Comisión, billing y unit economics | F0 | Pendiente; el 5% no es decisión final | Contratos, costos, margen y pricing aprobados. |
 | 9 | Segundo comercio | F1 | Pendiente / comercial | Primera venta sin cambios manuales de base. |
@@ -559,7 +559,7 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
 
 1. ~~restore drill de datos~~ — cerrado el 2026-08-21;
 2. ~~payment test matrix interna~~ — cerrada; certificación live espera una operación controlada;
-3. correlation IDs y trazas;
+3. ~~correlation IDs y trazas de pagos~~ — cerrado el 2026-08-21;
 4. E2E bloqueante;
 5. economics de comisión;
 6. onboarding del segundo comercio.
@@ -737,7 +737,7 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-21: 1.231 tests y 63 funciones verificadas.
+- Build y suites locales del 2026-08-21: 1.233 tests y 63 funciones verificadas.
 - Commit 13e48bd: primera venta y tiempo a vender por comercio.
 
 Se revisa:

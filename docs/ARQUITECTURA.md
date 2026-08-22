@@ -161,6 +161,14 @@ Garantía: **al menos una vez**, con orden por agregado. Exactamente una vez no
 existe sobre HTTP; por eso cada entrega lleva `event_id` para que quien recibe
 descarte repetidos, igual que Stripe y MercadoPago.
 
+**Correlación crítica (2026-08-21).** En pagos, el `correlation_id` nace en
+`payment_intents` y no en el navegador. `emitir_evento` lo hereda para el
+agregado pago; el trigger de la orden y el de la liquidación lo derivan por
+`order_id`; el ledger lo conserva en la partida de cobro. MercadoPago recibe el
+mismo UUID en `metadata`, nunca PII. `payment_operation_trace` reúne esas etapas
+con `security_invoker`, de modo que observabilidad no crea un atajo alrededor
+de la separación entre plataforma y organización.
+
 Hoy emiten `ecommerce_orders` (creada, pagada, reembolsada, fallida, despachada,
 entregada) y `stock_movements`. Desde triggers y no desde las funciones de
 negocio a propósito: un trigger no se puede olvidar, y las órdenes entran por

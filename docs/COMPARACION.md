@@ -84,18 +84,18 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 
 | | Valor | Comentario |
 |---|---:|---|
-| Tablas base | **282** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Tablas con `org_id` | **298** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Vistas | **58** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Funciones y procedimientos | **366** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Triggers | **130** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Índices | **855** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Políticas RLS | **366** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
-| Migraciones registradas | **368** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate` |
-| Cron jobs | **20** | ✅ 9.227 corridas exitosas y **0 fallidas** en 7 días |
+| Tablas base | **285** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
+| Tablas con `org_id` | **304** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
+| Vistas | **62** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
+| Funciones y procedimientos | **374** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
+| Triggers | **134** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
+| Índices | **865** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
+| Políticas RLS | **367** | ✅ `docs/consultas/escala.sql`, 2026-08-21 |
+| Migraciones registradas | **377** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate` |
+| Cron jobs | **20** | ✅ 9.859 corridas exitosas y **0 fallidas** en 7 días |
 | Edge Functions | **63** | ✅ `npm run check:functions`, 2026-08-21 |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **1.231** | ✅ `npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21 |
+| Tests unitarios | **1.233** | ✅ `npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -133,7 +133,7 @@ antes de conectarse— pero el invariante documentado quedó desactualizado.
 | Suscripciones cobradas | **0** | ✅ 3 registros, las 3 en `past_due` |
 
 ⚠️ **Este es el dato que ordena todo el documento.** Tenemos una plataforma de
-282 tablas y 1.231 tests sirviendo a **un solo comercio real**. Tiendanube tiene
+285 tablas y 1.233 tests sirviendo a **un solo comercio real**. Tiendanube tiene
 ❓ más de 130.000 tiendas activas (fuente secundaria: blog de un competidor,
 [tiendli.com](https://tiendli.com/blog/tiendanube-vs-empretienda-vs-shopify-vs-tiendli/),
 2026 — **verificar antes de citarlo**). Shopify tiene ✅ 2.898.351 tiendas vivas
@@ -294,16 +294,16 @@ necesita un SaaS de 4 organizaciones. No es el cuello de botella.
 |---|---|---|---|
 | **Entorno de staging** | ✅ **No existe.** Se prueba contra producción con datos `ZZ` que se borran | Al menos un entorno idéntico, con datos sintéticos | 🔴 Alto |
 | **Backups con restore probado** | 🟡 `weekly-backup` + restore de datos aprobado el 2026-08-21: 147 tablas / 63 filas, 937,22 ms y cero restos. Falta reconstrucción integral y RTO/RPO contractual | Restore drill periódico y cronometrado, incluida infraestructura completa | 🟠 Medio |
-| **Observabilidad** | ✅ Sentry en el front y Merchant 360 distingue evidencia registrada reciente, vencida o sólo configuración. 🔴 Sin trazas, sin métricas, sin OpenTelemetry ni health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
+| **Observabilidad** | 🟡 Sentry en front, Merchant 360 y traza correlacionada del pago desde checkout hasta ledger, visible con RLS y sin PII. Faltan métricas/SLO, OpenTelemetry, alertas y health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ 3 jobs: `build` (Deno para 63 Edge Functions + lint+typecheck+build), `test` (1.231 tests) y `security` (`npm audit`). ❓ sin E2E bloqueante | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟠 Medio |
+| **CI** | ✅ 3 jobs: `build` (Deno para 63 Edge Functions + lint+typecheck+build), `test` (1.233 tests) y `security` (`npm audit`). ❓ sin E2E bloqueante | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟠 Medio |
 | **API pública / webhooks salientes** | 🔴 No hay | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
 | **SOC 2 / ISO 27001** | 🔴 | Requisito para vender a empresas | 🟢 Bajo hoy |
 
-✅ **El agujero de Edge Functions quedó cerrado el 2026-08-21.** Los 1.231 tests
+✅ **El agujero de Edge Functions quedó cerrado el 2026-08-21.** Los 1.233 tests
 corren en un job separado y `security` mantiene `npm audit` bloqueante para
 vulnerabilidades críticas. El job `build` instala Deno y ejecuta
 `npm run check:functions`: descubre los 63 `index.ts` del filesystem, por lo que
@@ -349,10 +349,11 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
 
 6. **Segundo comercio real**, con su tiempo de alta medido. Es la condición de
    salida de la fase 1 y el único dato que le importa a un inversor.
-7. **Observabilidad de verdad**: trazas en las Edge Functions, alertas cuando
-   un webhook de pago falla, panel de salud de crons y outbox. Hoy si el
-   webhook de MercadoPago dejara de validar firmas otra vez, nos enteraríamos
-   igual que la última vez: por casualidad.
+7. **Observabilidad de verdad**: ✅ el pago ya conserva una correlación desde
+   intent/attempt hasta proveedor, eventos, liquidación y ledger, con timeline
+   RLS sin PII. Faltan métricas/SLO y alertas cuando un webhook falla, además de
+   health activo de crons, outbox y proveedores; una traza consultable no avisa
+   sola que ocurrió un incidente.
 8. ~~**Feature flags para el checkout integrado.**~~ 🟡 Parcial, 2026-08-21:
    `checkout_brick` se puede pausar por comercio o globalmente desde Operaciones,
    con auditoría y redirect externo como fallback. Sigue pendiente el rollout por
@@ -395,14 +396,14 @@ bundle del **panel** del bundle de la **tienda**: hoy comparten build.
   temas es un compromiso de compatibilidad para siempre.
 - **Multi-idioma y multi-moneda.** No hay demanda medida.
 - **Más features de ERP.** El modo de falla de este proyecto no es quedarse
-  corto: es agregar. Ya hay 282 tablas para 34 ventas.
+  corto: es agregar. Ya hay 285 tablas para 34 ventas.
 
 ---
 
 ## 8. El resumen en cinco líneas
 
 1. ✅ **Técnicamente estamos mejor de lo que corresponde a nuestro tamaño**: RLS
-   real, ledger, outbox, idempotencia, 1.231 tests y typecheck de 63 funciones.
+   real, ledger, outbox, idempotencia, 1.233 tests y typecheck de 63 funciones.
 2. ✅ **Comercialmente no existimos todavía**: 1 comercio, 0 facturas, 0
    asientos, 0 suscripciones cobradas.
 3. ⚠️ **Perdimos el diferencial del POS** — Tiendanube ya lo tiene.
