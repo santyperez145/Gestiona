@@ -22,15 +22,15 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
 
   return (
     <div className="finance-shell min-h-screen bg-background text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <aside className="finance-sidebar border-b border-teal-500/15 bg-slate-950 text-slate-100 lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
-        <div className="flex h-16 items-center justify-between border-b border-white/10 px-4 lg:px-5">
+      <aside className="finance-sidebar border-b border-border/70 bg-card text-foreground shadow-[0_12px_30px_-26px_hsl(var(--foreground)/0.35)] lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
+        <div className="flex h-16 items-center justify-between border-b border-border/70 px-4 lg:px-5">
           <Link to="/finance" className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-teal-400/25 bg-teal-400/10 text-teal-300">
+            <span className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-teal-500/25 bg-teal-500/10 text-teal-700 dark:text-teal-300">
               <ReceiptText className="h-4 w-4" />
             </span>
             <span>
               <span className="block text-sm font-semibold tracking-tight">Gestiona Finance</span>
-              <span className="block text-[9px] uppercase tracking-[0.18em] text-teal-300/70">Control documental</span>
+              <span className="block text-[9px] uppercase tracking-[0.18em] text-teal-700/70 dark:text-teal-300/70">Control documental</span>
             </span>
           </Link>
           <div className="lg:hidden"><ThemeToggle /></div>
@@ -44,8 +44,8 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
               end={item.end}
               className={({ isActive }) => `flex shrink-0 items-center gap-2 rounded-[7px] border px-3 py-2 text-xs font-medium transition-colors ${
                 isActive
-                  ? 'border-teal-400/25 bg-teal-400/10 text-teal-200'
-                  : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-100'
+                  ? 'border-teal-500/25 bg-teal-500/10 text-teal-800 dark:text-teal-200'
+                  : 'border-transparent text-muted-foreground hover:bg-muted/70 hover:text-foreground'
               }`}
             >
               <item.icon className="h-3.5 w-3.5" /> {item.label}
@@ -53,17 +53,17 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
           ))}
         </div>
 
-        <div className="hidden lg:absolute lg:inset-x-0 lg:bottom-0 lg:block lg:border-t lg:border-white/10 lg:p-4">
-          <div className="mb-3 rounded-[8px] border border-white/10 bg-white/[0.03] p-2">
+        <div className="hidden lg:absolute lg:inset-x-0 lg:bottom-0 lg:block lg:border-t lg:border-border/70 lg:p-4">
+          <div className="mb-3 rounded-[8px] border border-border/70 bg-muted/35 p-2">
             <OrgSwitcher />
           </div>
-          <Link to="/" className="mb-1 flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-xs text-slate-400 hover:bg-white/5 hover:text-slate-100">
+          <Link to="/" className="mb-1 flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-xs text-muted-foreground hover:bg-muted/70 hover:text-foreground">
             <ArrowLeftRight className="h-3.5 w-3.5" /> Gestiona Business
           </Link>
-          <button type="button" onClick={logout} className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-xs text-slate-500 hover:bg-red-500/10 hover:text-red-300">
+          <button type="button" onClick={logout} className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-xs text-muted-foreground hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300">
             <LogOut className="h-3.5 w-3.5" /> Cerrar sesión
           </button>
-          <p className="mt-2 truncate px-2.5 font-mono text-[9px] text-slate-600">{user?.email}</p>
+          <p className="mt-2 truncate px-2.5 font-mono text-[9px] text-muted-foreground/65">{user?.email}</p>
         </div>
       </aside>
 

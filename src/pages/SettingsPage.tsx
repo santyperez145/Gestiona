@@ -17,9 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X, Smartphone, BookMarked, Save, Mail, Lock, Server, Eye, EyeOff, TrendingUp, Package, Tag } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X, Smartphone, BookMarked, Save, Mail, Lock, Server, Eye, EyeOff, TrendingUp, Package, Tag } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
-import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
 import { FormSkeleton } from "@/components/shared/PageSkeleton";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -86,13 +85,24 @@ function SystemInfoSection({ businessName, productCount, userEmail }: { business
 }
 
 const SETTINGS_SECTIONS = [
-  { id: "brand", label: "Marca", title: "Marca y apariencia", description: "Identidad, catálogo público y datos visibles del negocio.", icon: Building2 },
+  { id: "brand", label: "Tienda", title: "Identidad de tienda", description: "Marca, catálogo público y datos visibles para tus compradores.", icon: Building2 },
   { id: "finance", label: "Finanzas", title: "Finanzas y costos", description: "Tipo de cambio, márgenes, gastos y reglas de precio.", icon: DollarSign },
   { id: "messaging", label: "Mensajería", title: "Mensajería y alertas", description: "Plantillas, avisos, email y notificaciones del equipo.", icon: MessageCircle },
   { id: "pricing", label: "Precios", title: "Precios y descuentos", description: "Descuentos por cobro, volumen y presentaciones.", icon: Tags },
   { id: "billing", label: "Suscripción", title: "Suscripción e impuestos", description: "Plan, facturación e impuestos aplicables al negocio.", icon: CreditCard },
   { id: "system", label: "Sistema", title: "Sistema y herramientas", description: "Seguridad, respaldos, AFIP, sucursales y utilidades.", icon: Database },
 ] as const;
+
+type StorefrontPalette = {
+  id: string;
+  name: string;
+  bg: string;
+  card: string;
+  accent: string;
+  /** Campos heredados: se aceptan para leer paletas anteriores, pero ya no tematizan Gestión. */
+  primary?: string;
+  secondary?: string;
+};
 
 export default function SettingsPage() {
   usePageTitle("Ajustes");
@@ -133,8 +143,6 @@ export default function SettingsPage() {
   const [businessName, setBusinessName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [receiptFooter, setReceiptFooter] = useState('¡Gracias por su compra!');
-  const [primaryColor, setPrimaryColor] = useState('#D4A843');
-  const [secondaryColor, setSecondaryColor] = useState('#1A1A2E');
   // Catalog-specific colors
   const [catalogBg, setCatalogBg] = useState('#0E0E1C');
   const [catalogCard, setCatalogCard] = useState('#16163A');
@@ -142,7 +150,7 @@ export default function SettingsPage() {
   const [uploading, setUploading] = useState(false);
 
   // Brand palettes (stored in settings DB)
-  const [brandPalettes, setBrandPalettes] = useState<Array<{ id: string; name: string; primary: string; secondary: string; bg: string; card: string; accent: string }>>([]);
+  const [brandPalettes, setBrandPalettes] = useState<StorefrontPalette[]>([]);
   const [newPaletteName, setNewPaletteName] = useState('');
   const [savingPalette, setSavingPalette] = useState(false);
 
@@ -287,25 +295,22 @@ export default function SettingsPage() {
   };
 
   // Brand palettes helpers (defined after state, before useEffect)
-  // ── Predefined brand palettes ────────────────────────────────────────────
-  const PREDEFINED_PALETTES = [
-    { id: 'gold',    name: 'Exentry Gold',   primary: '#D4A843', secondary: '#1A1A2E', bg: '#0E0E1C', card: '#16163A', accent: '#C89A35' },
-    { id: 'blue',    name: 'Night Blue',      primary: '#3B82F6', secondary: '#0F172A', bg: '#06080F', card: '#0F1629', accent: '#60A5FA' },
-    { id: 'purple',  name: 'Violeta Premium', primary: '#A855F7', secondary: '#1E1B4B', bg: '#0D0B22', card: '#1A1538', accent: '#C084FC' },
-    { id: 'emerald', name: 'Esmeralda',       primary: '#10B981', secondary: '#0F2818', bg: '#071510', card: '#0D2218', accent: '#34D399' },
-    { id: 'crimson', name: 'Carmesí',         primary: '#EF4444', secondary: '#1C0A0A', bg: '#0F0505', card: '#200B0B', accent: '#F87171' },
-    { id: 'amber',   name: 'Ámbar Dark',      primary: '#F59E0B', secondary: '#1C1200', bg: '#100A00', card: '#1C1200', accent: '#FCD34D' },
-    { id: 'rose',    name: 'Rose Gold',       primary: '#EC4899', secondary: '#1F0D18', bg: '#130810', card: '#1F0D18', accent: '#F472B6' },
-    { id: 'slate',   name: 'Pizarra',         primary: '#94A3B8', secondary: '#0F172A', bg: '#080D14', card: '#111827', accent: '#CBD5E1' },
+  // ── Predefined storefront palettes ───────────────────────────────────────
+  const PREDEFINED_PALETTES: StorefrontPalette[] = [
+    { id: 'gold',    name: 'Exentry Gold',    bg: '#0E0E1C', card: '#16163A', accent: '#C89A35' },
+    { id: 'blue',    name: 'Night Blue',       bg: '#06080F', card: '#0F1629', accent: '#60A5FA' },
+    { id: 'purple',  name: 'Violeta Premium',  bg: '#0D0B22', card: '#1A1538', accent: '#C084FC' },
+    { id: 'emerald', name: 'Esmeralda',        bg: '#071510', card: '#0D2218', accent: '#34D399' },
+    { id: 'crimson', name: 'Carmesí',          bg: '#0F0505', card: '#200B0B', accent: '#F87171' },
+    { id: 'amber',   name: 'Ámbar Dark',       bg: '#100A00', card: '#1C1200', accent: '#FCD34D' },
+    { id: 'rose',    name: 'Rose Gold',        bg: '#130810', card: '#1F0D18', accent: '#F472B6' },
+    { id: 'slate',   name: 'Pizarra',          bg: '#080D14', card: '#111827', accent: '#CBD5E1' },
   ];
 
-  const applyPalette = (p: typeof PREDEFINED_PALETTES[0]) => {
-    setPrimaryColor(p.primary);
-    setSecondaryColor(p.secondary);
+  const applyPalette = (p: StorefrontPalette) => {
     setCatalogBg(p.bg);
     setCatalogCard(p.card);
     setCatalogAccent(p.accent);
-    applyColors(p.primary, p.secondary);
   };
 
   const saveCurrentAsPalette = async () => {
@@ -315,8 +320,6 @@ export default function SettingsPage() {
     const newPal = {
       id: Date.now().toString(),
       name,
-      primary: primaryColor,
-      secondary: secondaryColor,
       bg: catalogBg,
       card: catalogCard,
       accent: catalogAccent,
@@ -359,8 +362,6 @@ export default function SettingsPage() {
       setBusinessName(s.business_name || '');
       setLogoUrl(s.logo_url || '');
       setReceiptFooter(s.receipt_footer || '¡Gracias por su compra!');
-      setPrimaryColor(s.primary_color || '#D4A843');
-      setSecondaryColor(s.secondary_color || '#1A1A2E');
       setCatalogBg(s.catalog_bg_color || '#0E0E1C');
       setCatalogCard(s.catalog_card_color || '#16163A');
       setCatalogAccent(s.catalog_accent_color || s.primary_color || '#D4A843');
@@ -442,8 +443,6 @@ export default function SettingsPage() {
         business_name: businessName,
         logo_url: logoUrl || null,
         receipt_footer: receiptFooter || null,
-        primary_color: primaryColor,
-        secondary_color: secondaryColor,
         catalog_bg_color: catalogBg,
         catalog_card_color: catalogCard,
         catalog_accent_color: catalogAccent,
@@ -613,7 +612,7 @@ export default function SettingsPage() {
             {/* Brand */}
           <div id="settings-brand" className="settings-panel settings-panel--brand bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-primary" />Marca del Negocio
+              <Building2 className="w-4 h-4 text-primary" />Identidad del negocio y la tienda
             </h2>
             <div>
               <label className="text-sm text-muted-foreground">Nombre del Negocio</label>
@@ -635,19 +634,11 @@ export default function SettingsPage() {
               <Input value={receiptFooter} onChange={e => setReceiptFooter(e.target.value)} placeholder="¡Gracias por su compra!" className="bg-muted border-border mt-1" />
               <p className="text-[10px] text-muted-foreground mt-1">Aparece al final de cada recibo impreso desde Ventas y POS.</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <ColorPicker label="Color Principal" value={primaryColor} onChange={(c) => { setPrimaryColor(c); applyColors(c, secondaryColor); }} />
-              <ColorPicker label="Color Secundario" value={secondaryColor} onChange={(c) => { setSecondaryColor(c); applyColors(primaryColor, c); }} />
-            </div>
-            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => { setPrimaryColor('#D4A843'); setSecondaryColor('#1A1A2E'); applyColors('#D4A843', '#1A1A2E'); }}>
-              <RotateCcw className="w-3 h-3 mr-1" />Restaurar colores originales
-            </Button>
-
             {/* Catalog colors */}
             <div className="border-t border-border pt-4 space-y-3">
               <h3 className="text-sm font-medium flex items-center gap-1.5">
                 <BookMarked className="w-3.5 h-3.5 text-primary" />
-                Colores del Catálogo (PDF y web)
+                Apariencia de la tienda y el catálogo
               </h3>
               <div className="grid grid-cols-3 gap-2">
                 <ColorPicker
@@ -667,7 +658,7 @@ export default function SettingsPage() {
                 />
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Fondo: portada y páginas PDF. Cards: fondo de cada producto. Acento: precio destacado, pills y separadores.
+                Estos colores se aplican sólo a la tienda pública y al catálogo PDF. El panel de Gestión mantiene el sistema visual oficial de Gestiona.
               </p>
             </div>
 
@@ -675,7 +666,7 @@ export default function SettingsPage() {
             <div className="border-t border-border pt-4 space-y-3">
               <h3 className="text-sm font-medium flex items-center gap-1.5">
                 <Palette className="w-3.5 h-3.5 text-primary" />
-                Paletas de Marca
+                Paletas de tienda
               </h3>
 
               {/* Predefined palettes */}
@@ -688,7 +679,7 @@ export default function SettingsPage() {
                     className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-muted border border-border hover:border-primary/50 transition-colors text-left group"
                   >
                     <div className="flex gap-0.5 flex-shrink-0">
-                      {[p.primary, p.secondary, p.bg, p.accent].map((c, i) => (
+                      {[p.bg, p.card, p.accent].map((c, i) => (
                         <div key={i} className="w-4 h-4 rounded-sm border border-border/30" style={{ backgroundColor: c }} />
                       ))}
                     </div>
@@ -709,7 +700,7 @@ export default function SettingsPage() {
                           className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-muted border border-border hover:border-primary/50 transition-colors text-left flex-1 group"
                         >
                           <div className="flex gap-0.5 flex-shrink-0">
-                            {[p.primary, p.secondary, p.bg, p.accent].map((c, i) => (
+                            {[p.bg, p.card, p.accent].map((c, i) => (
                               <div key={i} className="w-4 h-4 rounded-sm border border-border/30" style={{ backgroundColor: c }} />
                             ))}
                           </div>
@@ -750,7 +741,7 @@ export default function SettingsPage() {
                 </Button>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Guarda los 5 colores actuales (principal, secundario, fondo, cards, acento) como paleta reutilizable.
+                Guarda los tres colores de la experiencia de compra como una paleta reutilizable.
               </p>
             </div>
 

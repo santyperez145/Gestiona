@@ -47,12 +47,29 @@ El modo oscuro sigue disponible mediante el toggle, pero el modo claro es la
 experiencia por defecto y la referencia que debe validarse visualmente en cada
 slice nuevo.
 
+### Límite de personalización
+
+El workspace de Gestión tiene una identidad única y predecible. Los colores
+elegidos por cada comercio no pueden reescribir `--background`, `--primary`, el
+rail ni ningún otro token global de Business, Finance o Platform: además de
+romper el modo claro, eso vuelve irreconocible el producto y hace imposible
+garantizar contraste entre tenants.
+
+- Nombre y logo identifican a la organización dentro del chrome compartido.
+- Fondo, cards y acento configurables pertenecen únicamente a la tienda pública
+  y al catálogo PDF.
+- Business usa el violeta oficial, Finance conserva su acento teal y Platform
+  su chrome diferenciado; el toggle claro/oscuro es la única variante cromática
+  del backoffice.
+- Las paletas históricas con `primary`/`secondary` se pueden leer por
+  compatibilidad, pero Gestión no las aplica ni vuelve a escribirlas.
+
 ## Superficies
 
 | Superficie | Navegación | Acento | Objetivo |
 |---|---|---|---|
 | Business | Rail + vistas internas | Violeta | Operar productos, stock, ventas y clientes. |
-| Finance | Rail propio + documentos | Teal | Revisar evidencia y aprobar decisiones. |
+| Finance | Rail propio claro/oscuro + documentos | Teal | Revisar evidencia y aprobar decisiones. |
 | Platform | Topbar de identidad + rail de control plane | Violeta | Operar merchants, salud, riesgo y soporte sin confundirse con un tenant. |
 | Storefront | Navegación de tienda | Configurable | Comprar sin ver el backoffice. |
 
