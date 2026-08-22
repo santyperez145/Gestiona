@@ -22,6 +22,7 @@ export interface Organization {
   plan_id: string | null;
   trial_ends_at: string | null;
   onboarding_completed: boolean;
+  onboarding_goal: 'pos' | 'online' | 'explore';
 }
 
 export interface Membership {

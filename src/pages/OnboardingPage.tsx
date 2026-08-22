@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { ArrowRight, Check, LayoutDashboard, Package, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, Globe2, LayoutDashboard, MonitorSmartphone, Sparkles } from 'lucide-react';
 import { listIndustries } from '@/lib/marketingExtraDB';
+import type { ActivationGoal } from '@/lib/activationReadiness';
 
-type FinishDestination = 'products' | 'dashboard' | 'demo';
+type FinishDestination = 'pos' | 'online' | 'dashboard' | 'demo';
 
 function errorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message) return error.message;
@@ -65,9 +66,19 @@ export default function OnboardingPage() {
         ? defaultSettings
         : {};
       const aiTone = ind?.ai_tone || 'profesional rioplatense argentino';
+      const onboardingGoal: ActivationGoal = destination === 'pos'
+        ? 'pos'
+        : destination === 'online'
+          ? 'online'
+          : 'explore';
       const { error: organizationError } = await supabase
         .from('organizations')
-        .update({ name: businessName, primary_color: color })
+        .update({
+          name: businessName,
+          primary_color: color,
+          onboarding_completed: true,
+          onboarding_goal: onboardingGoal,
+        })
         .eq('id', activeOrg.id);
       if (organizationError) throw organizationError;
 
@@ -77,12 +88,6 @@ export default function OnboardingPage() {
         .eq('org_id', activeOrg.id);
       if (settingsError) throw settingsError;
 
-      const { error: onboardingError } = await supabase
-        .from('organizations')
-        .update({ onboarding_completed: true })
-        .eq('id', activeOrg.id);
-      if (onboardingError) throw onboardingError;
-
       localStorage.setItem(`gestiona.onboarded.${activeOrg.id}`, '1');
 
       if (destination === 'demo') {
@@ -91,9 +96,12 @@ export default function OnboardingPage() {
       }
 
       await refresh();
-      if (destination === 'products') {
-        toast.success('Listo. Ahora cargá tu primer producto para poder vender.');
-        navigate('/productos?onboarding=1');
+      if (destination === 'pos') {
+        toast.success('Ruta POS elegida. Ahora cargá tu primer producto y su stock real.');
+        navigate('/productos?onboarding=1&goal=pos');
+      } else if (destination === 'online') {
+        toast.success('Ruta online elegida. Empezá por el catálogo; el panel va a medir cobro, envío y legales.');
+        navigate('/productos?onboarding=1&goal=online');
       } else if (destination === 'demo') {
         toast.success(`¡Listo, ${businessName}! Cargamos datos de ejemplo para explorar.`);
         navigate('/');
@@ -166,7 +174,7 @@ export default function OnboardingPage() {
           {step === 1 && (
             <div className="space-y-5">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-1.5">Paso 1 de 3</p>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-1.5">Paso 1 de 4</p>
                 <h1 className="font-display text-[1.5rem] font-bold tracking-tight leading-tight">
                   ¿Cómo se llama tu negocio?
                 </h1>
@@ -195,7 +203,7 @@ export default function OnboardingPage() {
           {step === 2 && (
             <div className="space-y-5">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-1.5">Paso 2 de 3</p>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-1.5">Paso 2 de 4</p>
                 <h1 className="font-display text-[1.5rem] font-bold tracking-tight leading-tight">
                   ¿Qué vendés?
                 </h1>
@@ -232,7 +240,7 @@ export default function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-5">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-1.5">Paso 3 de 3</p>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-1.5">Paso 3 de 4</p>
                 <h1 className="font-display text-[1.5rem] font-bold tracking-tight leading-tight">
                   Color de marca
                 </h1>
@@ -292,14 +300,27 @@ export default function OnboardingPage() {
 
               <button
                 type="button"
-                onClick={() => finish('products')}
+                onClick={() => finish('pos')}
                 disabled={saving}
                 className="w-full rounded-[9px] border border-primary/35 bg-primary/[0.07] p-4 text-left transition-colors hover:bg-primary/[0.11] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"><Package className="h-4 w-4" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Tengo productos para cargar</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Vamos a Productos. Después registrás la compra o el stock inicial y podés hacer la primera venta.</span></span>
-                  {savingDestination === 'products' ? <span className="mt-2 text-[11px] text-primary">Guardando...</span> : <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-primary" />}
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"><MonitorSmartphone className="h-4 w-4" /></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Vender en mi local con POS</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Catálogo, stock, cobro en mostrador, ARCA y primera venta. Sin pedirte envío ni pasarela online.</span></span>
+                  {savingDestination === 'pos' ? <span className="mt-2 text-[11px] text-primary">Guardando...</span> : <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-primary" />}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => finish('online')}
+                disabled={saving}
+                className="w-full rounded-[9px] border border-blue-500/25 bg-blue-500/[0.04] p-4 text-left transition-colors hover:bg-blue-500/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300"><Globe2 className="h-4 w-4" /></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Vender con mi tienda online</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Además del stock, vamos a medir publicación, cobro, entrega y páginas legales antes de llamarla lista.</span></span>
+                  {savingDestination === 'online' ? <span className="mt-2 text-[11px] text-blue-300">Guardando...</span> : <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-blue-300" />}
                 </span>
               </button>
 
@@ -311,7 +332,7 @@ export default function OnboardingPage() {
               >
                 <span className="flex items-start gap-3">
                   <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-300"><Sparkles className="h-4 w-4" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Quiero explorar con datos de ejemplo</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Cargamos datos de prueba en esta organización para que puedas recorrer el flujo completo.</span></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Todavía quiero explorar</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Cargamos datos de ejemplo, pero no contaremos la organización como activada hasta que elijas un canal y vendas.</span></span>
                   {savingDestination === 'demo' ? <span className="mt-2 text-[11px] text-muted-foreground">Cargando...</span> : <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground" />}
                 </span>
               </button>

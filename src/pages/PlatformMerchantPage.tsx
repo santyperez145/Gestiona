@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import {
   Activity, AlertTriangle, ArrowLeft, Building2, CalendarClock, CheckCircle2,
-  CircleAlert, Clock3, ExternalLink, Loader2, Package, RefreshCw, Store,
+  CircleAlert, Clock3, ExternalLink, Loader2, Package, RefreshCw, Rocket, Store,
   TrendingDown, Users, Wallet, Webhook, Zap,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +11,7 @@ import { usePersistedState } from '@/hooks/usePersistedState';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { usePlatformAccess } from '@/lib/usePermissions';
 import { calculateChannelMetrics, type ChannelActivationRow, type PlatformActivationRow } from '@/lib/platformMetrics';
+import { activationGoalLabel, evaluateActivationReadiness } from '@/lib/activationReadiness';
 import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
 import { Button } from '@/components/ui/button';
@@ -22,12 +23,14 @@ type Organization = Pick<
 >;
 type HealthRow = Database['public']['Views']['platform_org_health']['Row'];
 type ActivationRow = ChannelActivationRow;
+type ReadinessRow = Database['public']['Views']['organization_activation_readiness']['Row'];
 type IntegrationHealthRow = Database['public']['Views']['platform_org_integration_health']['Row'];
 
 interface MerchantSnapshot {
   organization: Organization;
   health: HealthRow | null;
   activation: ActivationRow | null;
+  readiness: ReadinessRow;
   integrations: IntegrationHealthRow[];
   loadedAt: string;
 }
@@ -98,7 +101,7 @@ export default function PlatformMerchantPage() {
 
     setLoading(true);
     setError(null);
-    const [organizationResponse, healthResponse, activationResponse, integrationsResponse] = await Promise.all([
+    const [organizationResponse, healthResponse, activationResponse, readinessResponse, integrationsResponse] = await Promise.all([
       supabase
         .from('organizations')
         .select('id,name,slug,created_at,trial_ends_at,plan_id,onboarding_completed,logo_url')
@@ -114,6 +117,11 @@ export default function PlatformMerchantPage() {
         .select('*')
         .eq('org_id', orgId),
       supabase
+        .from('organization_activation_readiness')
+        .select('*')
+        .eq('org_id', orgId)
+        .maybeSingle(),
+      supabase
         .from('platform_org_integration_health')
         .select('*')
         .eq('org_id', orgId)
@@ -124,6 +132,7 @@ export default function PlatformMerchantPage() {
       queryError('organización', organizationResponse.error),
       queryError('salud del comercio', healthResponse.error),
       queryError('adopción por canal', activationResponse.error),
+      queryError('ruta a la primera venta', readinessResponse.error),
       queryError('evidencia de integraciones', integrationsResponse.error),
     ].filter(Boolean) as string[];
 
@@ -134,9 +143,11 @@ export default function PlatformMerchantPage() {
       return;
     }
 
-    if (!organizationResponse.data) {
+    if (!organizationResponse.data || !readinessResponse.data) {
       setSnapshot(null);
-      setError('La organización no existe o no está disponible para este staff.');
+      setError(organizationResponse.data
+        ? 'La organización existe, pero no tiene una lectura de activación disponible.'
+        : 'La organización no existe o no está disponible para este staff.');
       setLoading(false);
       return;
     }
@@ -145,6 +156,7 @@ export default function PlatformMerchantPage() {
       organization: organizationResponse.data as Organization,
       health: (healthResponse.data || null) as HealthRow | null,
       activation: calculateChannelMetrics((activationResponse.data || []) as PlatformActivationRow[]).rows[0] || null,
+      readiness: readinessResponse.data as ReadinessRow,
       integrations: (integrationsResponse.data || []) as IntegrationHealthRow[],
       loadedAt: new Date().toISOString(),
     });
@@ -158,27 +170,29 @@ export default function PlatformMerchantPage() {
   const selectedTab = ['overview', 'channels', 'integrations', 'context'].includes(tab) ? tab : 'overview';
   const health = snapshot?.health;
   const activation = snapshot?.activation;
+  const readiness = useMemo(
+    () => snapshot ? evaluateActivationReadiness(snapshot.readiness) : null,
+    [snapshot],
+  );
   const signal = health?.senal || 'sin_datos';
   const signalMeta = SIGNAL_META[signal];
 
   const nextSteps = useMemo(() => {
     if (!snapshot) return [];
     const steps: { title: string; detail: string; tone: 'warning' | 'info' | 'success' }[] = [];
-    if (!snapshot.organization.onboarding_completed) {
-      steps.push({ title: 'Completar onboarding', detail: 'La organización todavía no terminó su configuración inicial.', tone: 'warning' });
+    if (readiness?.needsGoalChoice) {
+      steps.push({ title: 'Definir canal de salida', detail: 'El comercio exploró el producto, pero todavía no eligió POS o tienda online como objetivo medible.', tone: 'warning' });
     }
-    if (!health || health.cobros_total === 0) {
-      steps.push({ title: 'Conseguir el primer cobro', detail: 'No hay evidencia de una transacción aprobada para este comercio.', tone: 'info' });
-    }
+    readiness?.milestones
+      .filter(milestone => !milestone.done)
+      .slice(0, readiness.needsGoalChoice ? 1 : 2)
+      .forEach(milestone => steps.push({
+        title: milestone.label,
+        detail: `${milestone.detail} Responsable: ${milestone.owner === 'platform' ? 'Gestiona' : milestone.owner === 'shared' ? 'comercio + Gestiona' : 'comercio'}.`,
+        tone: milestone.owner === 'platform' || milestone.id === 'fiscal' ? 'warning' : 'info',
+      }));
     if (health && ['en_riesgo', 'cayendo', 'dormido'].includes(health.senal || '')) {
       steps.push({ title: 'Contactar al comercio', detail: `La señal de negocio es ${SIGNAL_META[health.senal || '']?.label.toLowerCase() || health.senal}. Revisar cobros y canal activo.`, tone: 'warning' });
-    }
-    if (!activation?.uses_online && !activation?.uses_pos) {
-      steps.push({ title: 'Activar un canal de venta', detail: 'Todavía no hay una venta POS ni una orden online atribuida.', tone: 'info' });
-    }
-    const hasStore = Boolean(activation?.store_id || activation?.store_slug);
-    if (activation && hasStore && (!activation.store_is_active || !activation.store_published_at)) {
-      steps.push({ title: 'Publicar la tienda', detail: activation.store_is_active ? 'La tienda está activa pero no hay fecha de publicación registrada.' : 'La tienda existe, pero está inactiva.', tone: 'info' });
     }
     const integrationsAtRisk = snapshot.integrations.filter(integration => integration.operational_status === 'attention');
     if (integrationsAtRisk.length > 0) {
@@ -202,7 +216,7 @@ export default function PlatformMerchantPage() {
       steps.push({ title: 'Sin bloqueo crítico detectado', detail: 'Las señales disponibles no muestran una acción urgente.', tone: 'success' });
     }
     return steps.slice(0, 4);
-  }, [activation, health, snapshot]);
+  }, [health, readiness, snapshot]);
 
   if (accessLoading) return <div className="p-8 text-sm text-muted-foreground">Verificando permisos...</div>;
   if (!isPlatformStaff) return <Navigate to="/" replace />;
@@ -317,7 +331,9 @@ export default function PlatformMerchantPage() {
                 <Metric label="Último cobro" value={formatDateTime(health?.ultimo_cobro)} />
                 <Metric label="Días sin cobrar" value={health?.dias_sin_cobrar == null ? 'Sin dato' : `${health.dias_sin_cobrar} días`} />
                 <Metric label="Variación 30d" value={health?.variacion_pct == null ? 'Sin dato' : `${health.variacion_pct > 0 ? '+' : ''}${health.variacion_pct}%`} />
-                <Metric label="Onboarding" value={snapshot.organization.onboarding_completed ? 'Completado' : 'Pendiente'} />
+                <Metric label="Formulario inicial" value={snapshot.organization.onboarding_completed ? 'Completado' : 'Pendiente'} />
+                <Metric label="Canal objetivo" value={readiness ? activationGoalLabel(readiness.selectedGoal) : 'Sin dato'} />
+                <Metric label="Activación" value={readiness ? `${readiness.doneCount}/${readiness.total} hitos` : 'Sin dato'} />
                 <Metric label="Primera venta" value={formatDateTime(activation?.firstSaleAt)} />
                 <Metric label="Tiempo a primera venta" value={activation?.daysToFirstSale == null ? 'Sin dato' : `${activation.daysToFirstSale} días`} />
               </div>
@@ -349,6 +365,50 @@ export default function PlatformMerchantPage() {
               </div>
             </section>
           </div>
+
+          <section className="space-y-4 rounded-[10px] border border-violet-500/20 bg-card p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <Rocket className="h-4 w-4 text-violet-300" />
+                <div>
+                  <h2 className="text-sm font-semibold">Ruta a la primera venta</h2>
+                  <p className="text-[11px] text-muted-foreground">La misma definición que ve el comercio; soporte no inventa una segunda lectura.</p>
+                </div>
+              </div>
+              <div className="min-w-[180px]">
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <span>{readiness ? activationGoalLabel(readiness.selectedGoal) : 'Sin canal'}</span>
+                  <span>{readiness?.progress || 0}%</span>
+                </div>
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-violet-400" style={{ width: `${readiness?.progress || 0}%` }} />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {(readiness?.milestones || []).map(milestone => (
+                <article key={milestone.id} className={`rounded-[8px] border p-3 ${milestone.done ? 'border-emerald-500/20 bg-emerald-500/[0.04]' : milestone.owner === 'platform' ? 'border-amber-500/25 bg-amber-500/[0.05]' : 'border-border/60 bg-muted/15'}`}>
+                  <div className="flex items-start gap-2">
+                    {milestone.done
+                      ? <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                      : milestone.owner === 'platform'
+                        ? <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+                        : <CircleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium">{milestone.label}</p>
+                      <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">{milestone.detail}</p>
+                      {!milestone.done && (
+                        <p className="mt-2 text-[9px] font-semibold uppercase tracking-wide text-violet-300">
+                          {milestone.owner === 'platform' ? 'Gestiona' : milestone.owner === 'shared' ? 'Responsabilidad compartida' : 'Comercio'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
         </TabsContent>
 
         <TabsContent value="channels" className="space-y-4">

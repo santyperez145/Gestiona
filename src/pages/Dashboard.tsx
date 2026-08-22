@@ -12,6 +12,7 @@ import { safeChannel } from "@/lib/realtimeChannel";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories, saveSettingsDB } from "@/lib/supabaseStore";
 import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard, Sparkles } from "lucide-react";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
@@ -37,8 +38,12 @@ import SetupChecklist from "@/components/dashboard/SetupChecklist";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
 import { toast } from "sonner";
+import { evaluateActivationReadiness, type ActivationGoal } from "@/lib/activationReadiness";
+import { isMissingRelation } from "@/lib/publicDataSource";
 
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
+
+type ActivationRow = Database['public']['Views']['organization_activation_readiness']['Row'];
 
 const DASHBOARD_SECTIONS = [
   { id: "dashboard-overview", label: "Resumen", icon: LayoutDashboard },
@@ -368,10 +373,13 @@ export default function Dashboard() {
   usePageTitle("Dashboard");
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { activeOrg } = useOrg();
+  const { activeOrg, activeRole } = useOrg();
   const { permission, notify } = useNotifications();
   const { online, offlineSince, connection } = useNetworkStatus();
   const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any; expenses: any[] } | null>(null);
+  const [activationSignals, setActivationSignals] = useState<ActivationRow | null>(null);
+  const [activationError, setActivationError] = useState<string | null>(null);
+  const [changingActivationGoal, setChangingActivationGoal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeDashboardSection, setActiveDashboardSection] = usePersistedState(
     orgViewKey("dashboard.section", activeOrg?.id),
@@ -476,23 +484,61 @@ export default function Dashboard() {
   // Urgent/overdue tasks widget + tasks due today
   const { activeOrg: orgForTasks } = useOrg();
 
-  // ── Flags para el checklist de configuración inicial (negocios nuevos) ────
-  const [setupFlags, setSetupFlags] = useState({ hasCustomers: true, hasExchanges: true, hasTeam: true });
+  // Ruta universal a la primera venta. La vista devuelve sólo señales seguras
+  // y aplica el mismo criterio que Merchant 360; un error queda visible y no se
+  // convierte en un falso "todo listo".
   useEffect(() => {
-    if (!activeOrg?.id) return;
-    (async () => {
-      const [cust, exch, team] = await Promise.all([
-        supabase.from("customers").select("id", { count: "exact", head: true }).eq("org_id", activeOrg.id),
-        supabase.from("influencer_exchanges").select("id", { count: "exact", head: true }).eq("org_id", activeOrg.id),
-        supabase.from("memberships").select("id", { count: "exact", head: true }).eq("org_id", activeOrg.id),
-      ]);
-      setSetupFlags({
-        hasCustomers: (cust.count ?? 0) > 0,
-        hasExchanges: (exch.count ?? 0) > 0,
-        hasTeam: (team.count ?? 0) > 1, // más de 1 miembro = ya invitó a alguien
+    if (!activeOrg?.id) {
+      setActivationSignals(null);
+      setActivationError(null);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from('organization_activation_readiness')
+      .select('*')
+      .eq('org_id', activeOrg.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setActivationSignals(null);
+          setActivationError(isMissingRelation(error)
+            ? 'La instrumentación de activación todavía no está aplicada en la base.'
+            : `No se pudo leer la activación: ${error.message}`);
+          return;
+        }
+        if (!data) {
+          setActivationSignals(null);
+          setActivationError('La base no devolvió señales para esta organización.');
+          return;
+        }
+        setActivationSignals(data as ActivationRow);
+        setActivationError(null);
       });
-    })();
+    return () => { cancelled = true; };
   }, [activeOrg?.id, reloadKey]);
+
+  const activationReadiness = useMemo(
+    () => activationSignals ? evaluateActivationReadiness(activationSignals) : null,
+    [activationSignals],
+  );
+
+  const changeActivationGoal = async (goal: Exclude<ActivationGoal, 'explore'>) => {
+    if (!activeOrg?.id || !['owner', 'admin'].includes(activeRole || '')) return;
+    setChangingActivationGoal(true);
+    const { error } = await supabase
+      .from('organizations')
+      .update({ onboarding_goal: goal })
+      .eq('id', activeOrg.id);
+    setChangingActivationGoal(false);
+    if (error) {
+      toast.error(`No se pudo cambiar la ruta: ${error.message}`);
+      return;
+    }
+    setActivationSignals(current => current ? { ...current, onboarding_goal: goal } : current);
+    toast.success(goal === 'online' ? 'Ruta cambiada a tienda online.' : 'Ruta cambiada a POS.');
+  };
 
   useEffect(() => {
     if (!orgForTasks) return;
@@ -1286,19 +1332,14 @@ export default function Dashboard() {
         </nav>
 
         <div className="workspace-dashboard-content">
-      {/* Configuración inicial — guía para negocios nuevos (se auto-oculta al completar) */}
+      {/* Activación medible: formulario completo no equivale a negocio listo. */}
       <SetupChecklist
         organizationId={activeOrg?.id}
-        businessName={rawData?.settings?.business_name || ""}
-        hasLogo={!!rawData?.settings?.logo_url}
-        hasExchangeRate={Number(rawData?.settings?.exchange_rate || 0) > 0}
-        hasProducts={(rawData?.products?.length || 0) > 0}
-        hasSales={(rawData?.sales?.length || 0) > 0}
-        hasPurchases={(rawData?.purchases?.length || 0) > 0}
-        hasCustomers={setupFlags.hasCustomers}
-        hasExchanges={setupFlags.hasExchanges}
-        hasTeam={setupFlags.hasTeam}
-        industryCode={rawData?.settings?.industry_code}
+        readiness={activationReadiness}
+        measurementError={activationError}
+        canChangeGoal={activeRole === 'owner' || activeRole === 'admin'}
+        changingGoal={changingActivationGoal}
+        onGoalChange={changeActivationGoal}
       />
 
       {/* Open Cash Session Banner */}
