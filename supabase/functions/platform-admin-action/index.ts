@@ -7,34 +7,58 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const ALLOWED_ORIGINS = [
+  "https://exentryimports.vercel.app",
   "https://gestiona.app",
   "https://www.gestiona.app",
   "https://app.gestiona.app",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
 ];
 
 const FEATURE_FLAG_KEYS = ["checkout_brick"] as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function getAllowedOrigins() {
+  const configured = (Deno.env.get("PLATFORM_ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return new Set([...ALLOWED_ORIGINS, ...configured]);
+}
+
+function isAllowedOrigin(origin: string) {
+  return getAllowedOrigins().has(origin);
+}
+
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get("Origin") || "";
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
+  const headers: Record<string, string> = {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Credentials": "true",
     "Vary": "Origin",
   };
+  if (origin && isAllowedOrigin(origin)) headers["Access-Control-Allow-Origin"] = origin;
+  return headers;
 }
 
-function json(data: unknown, status = 200, req?: Request) {
+function jsonResponse(data: unknown, status: number, req: Request) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...(req ? getCorsHeaders(req) : {}), "Content-Type": "application/json" },
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
+  const origin = req.headers.get("Origin") || "";
+  if (origin && !isAllowedOrigin(origin)) {
+    return jsonResponse({ error: "Origen no permitido" }, 403, req);
+  }
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: getCorsHeaders(req) });
+  }
+
+  const json = (data: unknown, status = 200) => jsonResponse(data, status, req);
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

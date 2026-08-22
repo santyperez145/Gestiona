@@ -179,7 +179,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.442 tests pasan al 2026-08-22; typecheck, lint y build verdes; 65 Edge Functions verificadas; 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) pasan contra la base real. |
+| Calidad técnica | 1.446 tests pasan al 2026-08-22; typecheck, lint y build verdes; 65 Edge Functions verificadas; 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) pasan contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -792,6 +792,14 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     HTML del SPA para `/assets/*` inexistentes. Falta el gate operativo de dos
     deploys seguidos con una pestaña autenticada abierta; un build aislado no
     reproduce la carrera entre dos versiones.
+26. ~~CORS de acciones Platform sobre el dominio productivo~~ — incidente
+    cerrado el 2026-08-22: `platform-admin-action` sólo admitía el dominio futuro
+    inexistente y respondía el POST sin headers CORS, por lo que Merchant 360 no
+    podía leer ni aprobar Finance desde Vercel. Preflight y respuesta real ahora
+    reflejan únicamente orígenes exactos permitidos, producción/localhost están
+    declarados, orígenes desconocidos reciben 403 y dominios futuros entran por
+    `PLATFORM_ALLOWED_ORIGINS`; guarda dedicada impide volver al wildcard o al
+    fallback incorrecto.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -971,7 +979,7 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-22: 1.442 tests, 65 funciones verificadas
+- Build y suites locales del 2026-08-22: 1.446 tests, 65 funciones verificadas
   y 42 E2E críticos contra la base real.
 - docs/FINANCE_DOCUMENT_EXTRACTION.md: custodia, esquema estructurado,
   confianza, revisión append-only, gate de privacidad y operación.

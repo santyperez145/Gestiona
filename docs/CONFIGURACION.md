@@ -94,6 +94,12 @@ al hosting y la tienda queda en `tudominio.com/tienda/<slug>` sin tocar código.
 `gestiona.app` **no existe** — estaba hardcodeado en el panel y por eso el
 botón "Ver tienda" daba `ERR_CONNECTION_REFUSED`. Ya se corrigió.
 
+`platform-admin-action` acepta CORS por coincidencia exacta. El dominio actual
+`https://exentryimports.vercel.app` y localhost están versionados; al sumar un
+dominio propio o un frontend adicional hay que declararlo, separado por comas,
+en el secret `PLATFORM_ALLOWED_ORIGINS` y volver a desplegar la función. No usar
+`*`: esta función administra organizaciones, planes, accesos y roles.
+
 ---
 
 ## Cómo verificar que algo quedó bien
