@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -17,13 +17,21 @@ function AuthBrand() {
 }
 
 export default function AuthPage() {
-  const { signIn, signUp } = useAuth();
+  const { user, signIn, signUp } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(() => searchParams.get('mode') === 'register' ? 'register' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // `/login` is a public route, so it remains mounted after Supabase creates
+  // the session unless we move away explicitly. This also covers opening the
+  // login URL again in a tab that already has an active session.
+  useEffect(() => {
+    if (user) navigate('/', { replace: true });
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +44,9 @@ export default function AuthPage() {
         setMode('login');
       } else if (mode === 'login') {
         await signIn(email, password);
+        // Move immediately to ProtectedRoutes so MfaGate can request the code
+        // in the same login flow instead of leaving the form visible.
+        navigate('/', { replace: true });
         toast.success('¡Bienvenido de vuelta!');
       } else {
         if (!name.trim()) { toast.error('Ingresá tu nombre'); setLoading(false); return; }
