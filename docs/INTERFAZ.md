@@ -106,7 +106,9 @@ organización. `WorkspaceViewTabs` es el primitive común para este contrato.
   con KPIs, métodos de pago ni tendencia diaria.
 - **Dashboard** separa `Resumen`, `Rendimiento`, `Clientes`, `Stock`, `Caja y
   finanzas` e `Inteligencia` en vistas activas persistidas por organización; no
-  se presenta como una columna de widgets sin fin.
+  se presenta como una columna de widgets sin fin. Los hashes históricos
+  (`#dashboard-*`) siguen abriendo la vista correspondiente y un estado viejo
+  de `localStorage` nunca puede ocultar todas las vistas.
 - **Settings, Admin, Integraciones, Reportes y Tienda** conservan
   sus primitives de tabs/sidebar porque necesitan contenido Radix o navegación
   profunda; deben adoptar los mismos tokens de borde, densidad, foco, scroll

@@ -136,6 +136,9 @@ deben volver a mostrar como una sola columna larga: cada sección se monta bajo
 su propia vista activa y conserva las acciones/modales existentes. Platform
 mantiene un rail propio agrupado por `Workspace`, `Operaciones`, `Ingresos` y
 `Gobierno`; los grupos sólo muestran los módulos permitidos por el rol real.
+Los enlaces públicos o favoritos que todavía usan `#dashboard-*` deben seguir
+resolviendo la vista correspondiente, incluso si la organización tenía una
+sección inválida persistida en el navegador.
 
 **Paleta obligatoria del frontend claro:** usar el token `primary` violeta
 `252 83% 62%` sobre canvas casi blanco, tarjetas blancas, turquesa para salud y

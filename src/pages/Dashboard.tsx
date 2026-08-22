@@ -54,6 +54,8 @@ const DASHBOARD_SECTIONS = [
   { id: "dashboard-intelligence", label: "Inteligencia", icon: Sparkles },
 ] as const;
 
+const DASHBOARD_SECTION_IDS = new Set<string>(DASHBOARD_SECTIONS.map(section => section.id));
+
 function SellerGoalsWidget({ sellers, orgId }: { sellers: [string, number][]; orgId: string }) {
   const goalsKey = `gestiona.seller_goals.${orgId}`;
   const [sellerGoals, setSellerGoals] = useState<Record<string, number>>(() => {
@@ -385,6 +387,21 @@ export default function Dashboard() {
     orgViewKey("dashboard.section", activeOrg?.id),
     "dashboard-overview",
   );
+  const visibleDashboardSection = DASHBOARD_SECTION_IDS.has(activeDashboardSection)
+    ? activeDashboardSection
+    : "dashboard-overview";
+
+  // Legacy dashboard links use hashes. Keep them working after the content
+  // became tabbed, and never let a stale localStorage value hide every view.
+  useEffect(() => {
+    const syncHashToView = () => {
+      const hash = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+      if (DASHBOARD_SECTION_IDS.has(hash)) setActiveDashboardSection(hash);
+    };
+    syncHashToView();
+    window.addEventListener("hashchange", syncHashToView);
+    return () => window.removeEventListener("hashchange", syncHashToView);
+  }, [setActiveDashboardSection]);
   const [filterCat, setFilterCat] = usePersistedState(
     orgViewKey("dashboard.category", activeOrg?.id),
     "all",
@@ -1265,6 +1282,8 @@ export default function Dashboard() {
     setGeneratingSummary(false);
   };
 
+  const activeDashboardMeta = DASHBOARD_SECTIONS.find(section => section.id === visibleDashboardSection) ?? DASHBOARD_SECTIONS[0];
+
   return (
     <div className="workspace-page workspace-dashboard pb-12">
       {/* Offline/slow network banner */}
@@ -1320,6 +1339,19 @@ export default function Dashboard() {
         />
       </div>
 
+      <div className="dashboard-context-bar" aria-live="polite">
+        <div className="dashboard-context-bar__identity">
+          <span className="dashboard-context-bar__kicker">Vista activa</span>
+          <strong>{activeDashboardMeta.label}</strong>
+        </div>
+        <div className="dashboard-context-bar__status">
+          <span className="dashboard-context-bar__dot" />
+          Business Core conectado
+          <span className="dashboard-context-bar__separator" />
+          Datos de la organización activa
+        </div>
+      </div>
+
       <div className="workspace-dashboard-layout">
         <nav className="workspace-dashboard-nav" aria-label="Secciones del dashboard">
           <div className="workspace-dashboard-nav__head">
@@ -1328,7 +1360,7 @@ export default function Dashboard() {
           </div>
           {DASHBOARD_SECTIONS.map(section => {
             const Icon = section.icon;
-            const isActive = activeDashboardSection === section.id;
+            const isActive = visibleDashboardSection === section.id;
             return (
               <a
                 key={section.id}
@@ -1343,7 +1375,7 @@ export default function Dashboard() {
           })}
         </nav>
 
-        <div className="workspace-dashboard-content" data-dashboard-view={activeDashboardSection}>
+        <div className="workspace-dashboard-content" data-dashboard-view={visibleDashboardSection}>
         <div className="dashboard-view-section" data-dashboard-section="overview">
       {/* Activación medible: formulario completo no equivale a negocio listo. */}
       <SetupChecklist
