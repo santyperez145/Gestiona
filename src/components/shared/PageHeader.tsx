@@ -10,6 +10,7 @@ interface PageHeaderProps {
   description?: string;
   actions?: ReactNode;
   badge?: { label: string; variant?: BadgeVariant };
+  eyebrow?: string;
 }
 
 const BADGE: Record<BadgeVariant, string> = {
@@ -19,7 +20,7 @@ const BADGE: Record<BadgeVariant, string> = {
   destructive: "bg-destructive/12 text-destructive border border-destructive/20",
 };
 
-export default function PageHeader({ icon: Icon, title, description, actions, badge }: PageHeaderProps) {
+export default function PageHeader({ icon: Icon, title, description, actions, badge, eyebrow = "Gestiona / Espacio de trabajo" }: PageHeaderProps) {
   return (
     <div className="page-header workspace-page-header flex flex-col sm:flex-row sm:items-start justify-between gap-5 mb-6 md:mb-8">
 
@@ -32,7 +33,7 @@ export default function PageHeader({ icon: Icon, title, description, actions, ba
             <Icon className="w-3.5 h-3.5" />
           </span>
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70 font-display">
-            Gestiona / Operacion
+            {eyebrow}
           </span>
         </div>
 

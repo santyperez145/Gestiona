@@ -153,6 +153,7 @@
   }
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
 /* CRM workspace: a dense customer list with an intentional 360 detail state. */
 @layer utilities {
   .workspace-customers {
@@ -2348,6 +2349,337 @@
 
     .storefront-filter-panel {
       position: static;
+    }
+  }
+}
+
+/* Final v2 token pass: this block intentionally comes last so legacy theme
+   declarations above cannot win over the current workspace contract. */
+@layer base {
+  :root {
+    --background: 228 27% 7%;
+    --foreground: 220 22% 94%;
+    --card: 228 24% 10%;
+    --card-foreground: 220 22% 94%;
+    --popover: 228 24% 12%;
+    --popover-foreground: 220 22% 94%;
+    --primary: 43 92% 58%;
+    --primary-foreground: 30 35% 10%;
+    --secondary: 228 20% 16%;
+    --secondary-foreground: 220 18% 86%;
+    --muted: 228 19% 14%;
+    --muted-foreground: 225 12% 62%;
+    --accent: 247 70% 68%;
+    --accent-foreground: 247 80% 96%;
+    --border: 228 17% 21%;
+    --input: 228 17% 21%;
+    --ring: 43 92% 58%;
+    --sidebar-background: 230 30% 10%;
+    --sidebar-foreground: 220 16% 74%;
+    --sidebar-primary: 43 92% 60%;
+    --sidebar-primary-foreground: 30 35% 10%;
+    --sidebar-accent: 230 25% 17%;
+    --sidebar-accent-foreground: 220 22% 96%;
+    --sidebar-border: 230 22% 18%;
+    --sidebar-ring: 43 92% 58%;
+    --gradient-sidebar: none;
+    --gradient-page: none;
+    --shadow-card: 0 1px 2px hsl(228 35% 4% / 0.28), 0 9px 24px -18px hsl(228 40% 2% / 0.75);
+    --shadow-elevated: 0 18px 42px -24px hsl(228 40% 2% / 0.85);
+    --shadow-kpi: 0 1px 2px hsl(228 35% 4% / 0.3), 0 8px 18px -16px hsl(228 40% 2% / 0.8);
+  }
+
+  .light {
+    --background: 222 25% 97%;
+    --foreground: 226 34% 16%;
+    --card: 0 0% 100%;
+    --card-foreground: 226 34% 16%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 226 34% 16%;
+    --primary: 43 82% 43%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 225 24% 94%;
+    --secondary-foreground: 226 28% 23%;
+    --muted: 220 22% 94%;
+    --muted-foreground: 225 13% 45%;
+    --accent: 247 64% 57%;
+    --accent-foreground: 247 70% 25%;
+    --border: 222 19% 87%;
+    --input: 222 19% 87%;
+    --ring: 43 82% 43%;
+    --sidebar-background: 230 31% 15%;
+    --sidebar-foreground: 220 16% 75%;
+    --sidebar-primary: 43 92% 61%;
+    --sidebar-primary-foreground: 30 35% 10%;
+    --sidebar-accent: 230 25% 22%;
+    --sidebar-accent-foreground: 220 28% 96%;
+    --sidebar-border: 230 22% 25%;
+    --sidebar-ring: 43 92% 61%;
+    --gradient-sidebar: none;
+    --gradient-page: none;
+    --shadow-card: 0 1px 2px hsl(226 35% 16% / 0.05), 0 12px 28px -22px hsl(226 35% 16% / 0.22);
+    --shadow-elevated: 0 22px 44px -28px hsl(226 35% 16% / 0.28);
+    --shadow-kpi: 0 1px 2px hsl(226 35% 16% / 0.05), 0 8px 22px -18px hsl(226 35% 16% / 0.2);
+  }
+}
+
+@layer utilities {
+  .workspace-shell,
+  html,
+  body {
+    background: hsl(var(--background));
+  }
+
+  .workspace-sidebar,
+  .finance-sidebar {
+    background: hsl(var(--sidebar-background));
+    border-color: hsl(var(--sidebar-border));
+    box-shadow: 14px 0 32px -28px hsl(226 35% 12% / 0.5);
+  }
+
+  .light .workspace-sidebar,
+  .light .finance-sidebar {
+    background: hsl(var(--sidebar-background));
+    color: hsl(var(--sidebar-accent-foreground));
+  }
+
+  .light .workspace-sidebar .text-foreground,
+  .light .finance-sidebar .text-foreground {
+    color: hsl(var(--sidebar-accent-foreground));
+  }
+
+  .light .workspace-sidebar .text-muted-foreground,
+  .light .finance-sidebar .text-muted-foreground {
+    color: hsl(var(--sidebar-foreground));
+  }
+
+  .light .workspace-sidebar .bg-card,
+  .light .finance-sidebar .bg-card {
+    background: hsl(var(--sidebar-accent));
+  }
+
+  .workspace-nav-link {
+    min-height: 38px;
+    border-radius: 9px;
+  }
+
+  .workspace-nav-link-active {
+    background: hsl(var(--sidebar-primary) / 0.14) !important;
+    border-color: hsl(var(--sidebar-primary) / 0.18);
+    color: hsl(var(--sidebar-primary)) !important;
+  }
+
+  .workspace-nav-link:hover {
+    background: hsl(var(--sidebar-accent));
+  }
+
+  .workspace-topbar,
+  .finance-topbar {
+    min-height: 64px;
+    background: hsl(var(--card) / 0.9);
+    border-bottom-color: hsl(var(--border) / 0.78);
+    box-shadow: 0 1px 0 hsl(var(--border) / 0.35);
+  }
+
+  .workspace-command-search {
+    height: 38px;
+    border-radius: 10px;
+    background: hsl(var(--muted) / 0.65);
+  }
+
+  .workspace-primary-action {
+    min-height: 38px;
+    border-radius: 9px;
+    box-shadow: 0 8px 18px -12px hsl(var(--primary) / 0.72);
+  }
+
+  .workspace-content {
+    min-height: calc(100vh - 64px);
+    padding-top: 1.75rem;
+  }
+
+  .workspace-page-header {
+    gap: 1.25rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 0;
+  }
+
+  .page-header__icon {
+    height: 2.25rem;
+    width: 2.25rem;
+    border-radius: 10px;
+    background: hsl(var(--primary) / 0.12);
+    box-shadow: none;
+  }
+
+  .page-header__title {
+    font-size: clamp(1.55rem, 2.4vw, 2.1rem);
+    letter-spacing: -0.035em;
+  }
+
+  .workspace-page .rounded-xl,
+  .workspace-page .rounded-2xl {
+    border-radius: 12px;
+  }
+
+  .workspace-metric-card,
+  .workspace-kpi-card {
+    min-height: 116px;
+    border-radius: 12px;
+    background: hsl(var(--card));
+    border-color: hsl(var(--border) / 0.82);
+    box-shadow: var(--shadow-kpi);
+  }
+
+  .dashboard-command-center {
+    padding: 1.25rem 1.25rem 0;
+    border: 1px solid hsl(var(--border) / 0.78);
+    border-radius: 16px;
+    background: hsl(var(--card) / 0.72);
+    box-shadow: var(--shadow-card);
+  }
+
+  .dashboard-command-center .workspace-page-header {
+    margin-bottom: 0;
+  }
+
+  .dashboard-command-center__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 1.25rem;
+    color: hsl(var(--muted-foreground));
+    font-family: var(--font-display);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+  }
+
+  .dashboard-command-center__divider {
+    width: 1px;
+    height: 0.75rem;
+    background: hsl(var(--border));
+  }
+
+  .workspace-dashboard-layout {
+    grid-template-columns: minmax(12.5rem, 15rem) minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  .workspace-dashboard-nav {
+    top: 5.5rem;
+    gap: 0.25rem;
+    padding: 0.55rem;
+    border-radius: 14px;
+    background: hsl(var(--card));
+    box-shadow: var(--shadow-card);
+  }
+
+  .workspace-dashboard-nav__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.2rem 0.65rem 0.45rem;
+  }
+
+  .workspace-dashboard-nav__head > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.3rem;
+    min-height: 1.3rem;
+    border-radius: 6px;
+    background: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+  }
+
+  .workspace-dashboard-nav__label {
+    padding: 0;
+    color: hsl(var(--foreground));
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+  }
+
+  .workspace-dashboard-nav a {
+    min-height: 2.5rem;
+    border-radius: 9px;
+    font-size: 0.75rem;
+  }
+
+  .workspace-dashboard-nav a[aria-current="page"] {
+    background: hsl(var(--primary) / 0.11);
+    color: hsl(var(--primary));
+  }
+
+  .workspace-dashboard-nav a[aria-current="page"]::after {
+    top: 0.55rem;
+    right: 0.35rem;
+    bottom: 0.55rem;
+    width: 3px;
+  }
+
+  .finance-nav a {
+    min-height: 2.5rem;
+    border-radius: 9px;
+  }
+
+  @media (max-width: 900px) {
+    .workspace-content {
+      padding-top: 1.25rem;
+    }
+
+    .dashboard-command-center {
+      padding: 1rem 1rem 0;
+    }
+
+    .workspace-dashboard-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .workspace-dashboard-nav {
+      position: sticky;
+      top: 3.5rem;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: stretch;
+      gap: 0.25rem;
+      overflow-x: auto;
+    }
+
+    .workspace-dashboard-nav__head {
+      grid-column: 1 / -1;
+      min-height: 1.25rem;
+    }
+
+    .workspace-dashboard-nav a {
+      justify-content: center;
+      min-width: 0;
+      padding-inline: 0.45rem;
+      text-align: center;
+    }
+
+    .workspace-dashboard-nav a[aria-current="page"]::after {
+      top: auto;
+      right: 20%;
+      bottom: 0.2rem;
+      left: 20%;
+      width: auto;
+      height: 2px;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .dashboard-command-center__divider,
+    .dashboard-command-center__eyebrow > span:last-child {
+      display: none;
+    }
+
+    .workspace-dashboard-nav {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 }

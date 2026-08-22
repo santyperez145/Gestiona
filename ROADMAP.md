@@ -208,6 +208,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Control Plane | Superficie operativa profesional en construcción. | Menor MTTR y menor intervención manual medidos. |
 | Finance OCR | Extracción/prellenado parcial. | Documento auditable que termina en compra/deuda correcta. |
 | Finance product surface | Ruta, chrome, sesión compartida, entitlement, permiso y snapshot del Core. | Primer comercio habilitado y primer documento procesado; 0 adopción real al corte. |
+| Sistema visual v2 | Workspace Business, dashboard y Finance comparten rail, toolbar, jerarquía, estados y responsive base; documentado en `docs/INTERFAZ.md` (2026-08-22). | Completar Platform/Storefront, revisar capturas en desktop/mobile y medir abandono o tiempo a tarea antes de declarar la renovación visual validada. |
 
 ### Bloqueos externos vigentes
 
@@ -715,6 +716,9 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
 19. Inspector server-side del Document Inbox: recalcular hash, validar MIME y
     tamaño reales, antivirus/cuarentena, deduplicación y transición auditable a
     `ready_for_extraction` antes de invocar OCR.
+20. Continuar el sistema visual v2 sobre Platform, Settings y Storefront sin
+    crear un segundo design system; cada pantalla nueva debe cumplir
+    `docs/INTERFAZ.md` y pasar revisión responsive.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

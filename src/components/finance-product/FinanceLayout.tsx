@@ -21,8 +21,8 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground lg:grid lg:grid-cols-[236px_minmax(0,1fr)]">
-      <aside className="border-b border-teal-500/15 bg-slate-950 text-slate-100 lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
+    <div className="finance-shell min-h-screen bg-background text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+      <aside className="finance-sidebar border-b border-teal-500/15 bg-slate-950 text-slate-100 lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
         <div className="flex h-16 items-center justify-between border-b border-white/10 px-4 lg:px-5">
           <Link to="/finance" className="flex items-center gap-2.5">
             <span className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-teal-400/25 bg-teal-400/10 text-teal-300">
@@ -36,7 +36,7 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
           <div className="lg:hidden"><ThemeToggle /></div>
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto p-3 lg:block lg:space-y-1 lg:p-4">
+        <div className="finance-nav flex items-center gap-2 overflow-x-auto p-3 lg:block lg:space-y-1 lg:p-4">
           {NAV.map(item => (
             <NavLink
               key={item.to}
@@ -68,7 +68,7 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
       </aside>
 
       <main className="min-w-0">
-        <header className="sticky top-0 z-20 hidden h-14 items-center justify-between border-b border-border/70 bg-background/90 px-6 backdrop-blur lg:flex">
+        <header className="finance-topbar sticky top-0 z-20 hidden h-16 items-center justify-between border-b border-border/70 bg-background/90 px-6 backdrop-blur lg:flex">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-teal-600 dark:text-teal-300">Finance</p>
             <p className="text-xs text-muted-foreground">{activeOrg?.name || 'Sin organización'}</p>

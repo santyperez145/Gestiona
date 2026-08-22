@@ -1,0 +1,68 @@
+# Gestiona — sistema de interfaz
+
+**Corte:** 2026-08-22
+
+Este documento fija la dirección visual de Gestiona. El producto se inspira en
+los patrones de CRM, marketplace y admin panel de las referencias compartidas,
+pero no copia componentes, textos ni assets de terceros.
+
+## Dirección
+
+Gestiona es una herramienta operativa que se usa muchas horas seguidas. La
+interfaz debe ayudar a escanear, comparar y ejecutar, no competir con los datos.
+
+- Rail lateral oscuro y estable para identidad y navegación.
+- Superficie de trabajo clara, con fondo neutro y contenido agrupado.
+- Una acción primaria por contexto; las secundarias viven en menú o toolbar.
+- Tablas densas, números alineados y estados expresados con color + texto.
+- Tarjetas de profundidad baja; el borde y el espaciado hacen la jerarquía.
+- Radio estándar de 8 a 12 px; no usar tarjetas anidadas como layout.
+- Tabs o subnavegación cuando una pantalla supera una lectura razonable.
+- Mobile conserva las acciones críticas, filtros y estado; no reduce todo a
+  una versión ilegible de la tabla desktop.
+
+## Superficies
+
+| Superficie | Navegación | Acento | Objetivo |
+|---|---|---|---|
+| Business | Rail + vistas internas | Dorado | Operar productos, stock, ventas y clientes. |
+| Finance | Rail propio + documentos | Teal | Revisar evidencia y aprobar decisiones. |
+| Platform | Rail de control plane | Violeta | Operar merchants, salud, riesgo y soporte. |
+| Storefront | Navegación de tienda | Configurable | Comprar sin ver el backoffice. |
+
+El color de acento no reemplaza al estado. Error, advertencia, éxito y dato
+pendiente deben conservar una etiqueta legible y no depender sólo del color.
+
+## Estructura de una vista
+
+1. Contexto: superficie, organización y estado de conectividad.
+2. Título: una frase corta que nombre el trabajo de la vista.
+3. Toolbar: búsqueda, filtros persistentes y una acción primaria.
+4. Navegación interna: tabs o sidebar si hay más de un trabajo relacionado.
+5. Contenido: primero la decisión o el dato operativo; después el detalle.
+6. Estado: carga, vacío, permiso, error y datos desactualizados explícitos.
+
+## Referencias de dirección
+
+- [CRM app con clientes, deals y tareas](https://www.figma.com/design/y3iW4vARslK39hLDzTj37D/CRM-app-with-customers--deals--nested-data--tasks-and-menu-filtering--Community-)
+- [Profile UI Kit marketplace](https://www.figma.com/design/Khvuwp0ptolMD8aHM4CHzh/Profile-UI-Kits--Free----Tbean-Marketplace-App--Community-)
+- [Brand Marketplace App](https://www.figma.com/design/57ORGgL3BkPkMTNgyVNx1p/Brand-Marketplace-App---Pickolab--Community-)
+- [eMarketplace Admin Dashboard](https://www.figma.com/design/ojLD3JQrTWpUzCRFnS4WXC/eMarketplace-%F0%9F%9B%8D%EF%B8%8F-%7C-Admin-Dashboard--Community-)
+- [Gestão de Marketplace](https://www.figma.com/design/jDuICk6QkPLZWMNdZlooUO/Gest%C3%A3o-de-Marketplace--Community-)
+- [SaaS marketplace admin dashboard](https://www.figma.com/community/file/1592463185051545674/saas-marketplace-admin-dashboard)
+- [Online marketplace with admin panel](https://www.figma.com/community/file/1603844072075947715/online-marketplace-with-admin-panel)
+- [Aerten web app](https://www.figma.com/community/file/1252610051102275471/aerten-web-app)
+- [Neomart multi-vendor marketplace](https://www.figma.com/community/file/1517000338815971780/neomart-multi-vendor-marketplace-ui-kit)
+
+## Definition of done visual
+
+- La vista se entiende sin leer instrucciones dentro de la app.
+- El usuario identifica ubicación, estado y siguiente acción en menos de unos
+  segundos.
+- Los filtros y tabs se conservan al cambiar de ruta cuando el contexto lo
+  requiere.
+- No hay overflow horizontal accidental en 360, 768, 1024 ni desktop.
+- Los estados de loading, vacío, error y permiso tienen tratamiento propio.
+- El contraste y el foco visible funcionan en tema claro y oscuro.
+- La captura desktop y mobile se revisa antes de cerrar un slice.
+

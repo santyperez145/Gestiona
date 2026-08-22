@@ -223,7 +223,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <aside className={`workspace-sidebar
         fixed inset-y-0 left-0 z-50 gradient-sidebar border-r border-sidebar-border flex flex-col shrink-0
         transform transition-all duration-300 ease-out h-screen
-        w-[240px] md:w-[68px] ${collapsed ? 'lg:w-[68px]' : 'lg:w-[240px]'}
+        w-[270px] md:w-[248px] ${effectiveCollapsed ? 'md:w-[78px]' : 'md:w-[248px]'} ${collapsed ? 'lg:w-[78px]' : 'lg:w-[248px]'}
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
       `}>
         {/* ── Logo / Brand Header ──────────────────────────────────── */}
@@ -386,7 +386,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className={`workspace-main flex-1 overflow-auto w-full min-h-screen bg-background transition-all duration-300 md:ml-[68px] ${collapsed ? 'lg:ml-[68px]' : 'lg:ml-[240px]'}`}>
+      <main className={`workspace-main flex-1 overflow-auto w-full min-h-screen bg-background transition-all duration-300 ${effectiveCollapsed ? 'md:ml-[78px]' : 'md:ml-[248px]'} ${collapsed ? 'lg:ml-[78px]' : 'lg:ml-[248px]'}`}>
         {/* Desktop command bar: a stable orientation point across every module. */}
         <header className="workspace-topbar hidden md:flex sticky top-0 z-30 h-14 items-center gap-4 border-b border-border/70 px-6 topbar-surface">
           <div className="min-w-0 flex-1">

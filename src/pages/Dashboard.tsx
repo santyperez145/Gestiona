@@ -47,10 +47,10 @@ type ActivationRow = Database['public']['Views']['organization_activation_readin
 
 const DASHBOARD_SECTIONS = [
   { id: "dashboard-overview", label: "Resumen", icon: LayoutDashboard },
-  { id: "dashboard-sales", label: "Ventas y metas", icon: BarChart3 },
+  { id: "dashboard-sales", label: "Rendimiento", icon: BarChart3 },
   { id: "dashboard-customers", label: "Clientes", icon: Users },
-  { id: "dashboard-inventory", label: "Inventario", icon: Package },
-  { id: "dashboard-finance", label: "Finanzas", icon: Wallet },
+  { id: "dashboard-inventory", label: "Stock", icon: Package },
+  { id: "dashboard-finance", label: "Caja y finanzas", icon: Wallet },
   { id: "dashboard-intelligence", label: "Inteligencia", icon: Sparkles },
 ] as const;
 
@@ -1284,36 +1284,48 @@ export default function Dashboard() {
       )}
 
       {/* Header */}
-      <PageHeader
-        icon={LayoutDashboard}
-        title={greeting}
-        description={filterCat === 'all' ? 'Resumen general de tu negocio' : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
-        actions={
-          <>
-            <DateRangeFilter label="Todo el período" />
-            <StoreFilter />
-            <Select value={filterCat} onValueChange={setFilterCat}>
-              <SelectTrigger className="bg-card border-border/50 w-full sm:w-[200px] h-9 text-sm rounded-lg">
-                <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map(c => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <button onClick={shareDailyResume} title="Compartir resumen del día por WhatsApp" className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground hover:text-emerald-400 transition-colors">
-              <Share2 className="w-3.5 h-3.5" />Compartir
-            </button>
-            <span className="text-[11px] text-muted-foreground/60 hidden sm:block">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-          </>
-        }
-      />
+      <div className="dashboard-command-center">
+        <div className="dashboard-command-center__eyebrow">
+          <span className="status-dot bg-emerald-500" />
+          <span>Centro de control</span>
+          <span className="dashboard-command-center__divider" />
+          <span>{activeOrg?.name || "Organización activa"}</span>
+        </div>
+        <PageHeader
+          icon={LayoutDashboard}
+          eyebrow="Inicio / Control operativo"
+          title={greeting}
+          description={filterCat === 'all' ? 'Una lectura clara de ventas, stock, clientes y caja para decidir qué hacer ahora.' : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
+          actions={
+            <>
+              <DateRangeFilter label="Todo el período" />
+              <StoreFilter />
+              <Select value={filterCat} onValueChange={setFilterCat}>
+                <SelectTrigger className="bg-card border-border/50 w-full sm:w-[200px] h-9 text-sm rounded-lg">
+                  <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <button onClick={shareDailyResume} title="Compartir resumen del día por WhatsApp" className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground hover:text-emerald-400 transition-colors">
+                <Share2 className="w-3.5 h-3.5" />Compartir
+              </button>
+              <span className="text-[11px] text-muted-foreground/60 hidden sm:block">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            </>
+          }
+        />
+      </div>
 
       <div className="workspace-dashboard-layout">
         <nav className="workspace-dashboard-nav" aria-label="Secciones del dashboard">
-          <p className="workspace-dashboard-nav__label">Vistas</p>
+          <div className="workspace-dashboard-nav__head">
+            <p className="workspace-dashboard-nav__label">Vistas</p>
+            <span>6</span>
+          </div>
           {DASHBOARD_SECTIONS.map(section => {
             const Icon = section.icon;
             const isActive = activeDashboardSection === section.id;
