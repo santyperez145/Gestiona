@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Activity, AlertTriangle, BarChart3, CheckCircle2, Clock3, Globe2, MonitorSmartphone, PackageCheck, RefreshCw, Search, ShoppingBag, Sparkles, Store, Users } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { isMissingRelation } from "@/lib/publicDataSource";
 import { calculateAiActionMetrics, calculateChannelMetrics, calculateCronHealthMetrics, calculatePlatformMetrics, calculateRiskSeriesMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformCronHealthRow, type PlatformHealthRow, type PlatformRiskSeriesRow, type PlatformStockAccuracyRow } from "@/lib/platformMetrics";
+import { summarizeActivationCohorts, type ActivationCohortMemberRow, type ActivationCohortRow } from "@/lib/activationCohorts";
 
 const SIGNALS: Record<string, { label: string; className: string }> = {
   sin_activar: { label: "Sin activar", className: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
@@ -49,6 +51,18 @@ function formatDateTime(value: string | null) {
 
 function formatSnapshotDate(value: string | null) {
   return value ? new Date(`${value}T12:00:00`).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "Sin fecha";
+}
+
+function formatCohortMonth(value: string | null) {
+  if (!value) return "Sin mes";
+  const date = new Date(`${value.slice(0, 10)}T12:00:00`);
+  return Number.isNaN(date.getTime())
+    ? "Sin mes"
+    : date.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+}
+
+function formatRate(value: number | null) {
+  return value == null ? "Sin base" : `${value.toLocaleString("es-AR", { maximumFractionDigits: 1 })}%`;
 }
 
 function formatDays(value: number | null, emptyLabel = "Sin cobro") {
@@ -89,11 +103,14 @@ export default function PlatformMetricsPage() {
   const [aiActionRows, setAiActionRows] = useState<PlatformAiActionRow[]>([]);
   const [riskSeriesRows, setRiskSeriesRows] = useState<PlatformRiskSeriesRow[]>([]);
   const [cronRows, setCronRows] = useState<PlatformCronHealthRow[]>([]);
+  const [cohortRows, setCohortRows] = useState<ActivationCohortRow[]>([]);
+  const [cohortMemberRows, setCohortMemberRows] = useState<ActivationCohortMemberRow[]>([]);
   const [channelViewUnavailable, setChannelViewUnavailable] = useState(false);
   const [stockViewUnavailable, setStockViewUnavailable] = useState(false);
   const [aiActionViewUnavailable, setAiActionViewUnavailable] = useState(false);
   const [riskSeriesUnavailable, setRiskSeriesUnavailable] = useState(false);
   const [cronViewUnavailable, setCronViewUnavailable] = useState(false);
+  const [cohortViewUnavailable, setCohortViewUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = usePersistedState<"funnel" | "health" | "activation" | "channels" | "stock" | "ai" | "risk" | "operations">("gestiona.view.platform.metrics-tab", "funnel");
@@ -103,13 +120,15 @@ export default function PlatformMetricsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [healthResult, channelResult, stockResult, aiActionResult, riskSeriesResult, cronResult] = await Promise.all([
+    const [healthResult, channelResult, stockResult, aiActionResult, riskSeriesResult, cronResult, cohortResult, cohortMembersResult] = await Promise.all([
       supabase.from("platform_org_health").select("*").order("gmv_30d", { ascending: false }),
       supabase.from("platform_org_activation").select("*").order("org_creada", { ascending: false }),
       supabase.from("platform_org_stock_accuracy").select("*").order("productos_descuadrados", { ascending: false }),
       supabase.from("platform_org_ai_actions").select("*").order("recommendations_total", { ascending: false }),
       supabase.from("platform_org_risk_series").select("*").order("snapshot_date", { ascending: true }),
       supabase.from("platform_cron_health").select("*").order("jobname", { ascending: true }),
+      supabase.from("platform_activation_cohorts").select("*").order("cohort_month", { ascending: false }),
+      supabase.from("platform_activation_cohort_members").select("*").order("org_created_at", { ascending: false }),
     ]);
     if (healthResult.error) {
       setError(healthResult.error.message);
@@ -182,6 +201,21 @@ export default function PlatformMetricsPage() {
       setCronRows((cronResult.data || []) as PlatformCronHealthRow[]);
       setCronViewUnavailable(false);
     }
+    if (cohortResult.error || cohortMembersResult.error) {
+      const cohortError = cohortResult.error || cohortMembersResult.error;
+      if (isMissingRelation(cohortError)) {
+        setCohortViewUnavailable(true);
+      } else {
+        setError(cohortError?.message || "No se pudieron cargar las cohortes de activación");
+        setCohortViewUnavailable(false);
+      }
+      setCohortRows([]);
+      setCohortMemberRows([]);
+    } else {
+      setCohortRows((cohortResult.data || []) as ActivationCohortRow[]);
+      setCohortMemberRows((cohortMembersResult.data || []) as ActivationCohortMemberRow[]);
+      setCohortViewUnavailable(false);
+    }
     setLoading(false);
   }, []);
 
@@ -193,6 +227,11 @@ export default function PlatformMetricsPage() {
   const aiActionMetrics = useMemo(() => calculateAiActionMetrics(aiActionRows), [aiActionRows]);
   const riskSeriesMetrics = useMemo(() => calculateRiskSeriesMetrics(riskSeriesRows), [riskSeriesRows]);
   const cronMetrics = useMemo(() => calculateCronHealthMetrics(cronRows), [cronRows]);
+  const cohortSummary = useMemo(() => summarizeActivationCohorts(cohortRows), [cohortRows]);
+  const prioritizedCohortMembers = useMemo(() => [...cohortMemberRows].sort((a, b) => {
+    if (Boolean(a.activated) !== Boolean(b.activated)) return a.activated ? 1 : -1;
+    return new Date(b.org_created_at || 0).getTime() - new Date(a.org_created_at || 0).getTime();
+  }), [cohortMemberRows]);
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
     return metrics.activationTimes.filter(row => {
@@ -236,7 +275,7 @@ export default function PlatformMetricsPage() {
         <TabsList className="w-full justify-start overflow-x-auto bg-transparent p-0 border-b border-border rounded-none">
           <TabsTrigger value="funnel" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Funnel de activación</TabsTrigger>
           <TabsTrigger value="health" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Salud por organización</TabsTrigger>
-          <TabsTrigger value="activation" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Tiempo a primer cobro</TabsTrigger>
+          <TabsTrigger value="activation" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Cohortes de activación</TabsTrigger>
           <TabsTrigger value="channels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Canales</TabsTrigger>
           <TabsTrigger value="stock" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Inventario</TabsTrigger>
           <TabsTrigger value="ai" className="rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400">Recomendaciones IA</TabsTrigger>
@@ -312,26 +351,62 @@ export default function PlatformMetricsPage() {
         </TabsContent>
 
         <TabsContent value="activation" className="mt-5 space-y-4">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KPICard label="Promedio" value={formatDays(metrics.averageDaysToFirstCharge)} icon={Clock3} color="blue" sub="alta → primer cobro" />
-            <KPICard label="Mediana" value={formatDays(metrics.medianDaysToFirstCharge)} icon={Clock3} color="primary" sub="alta → primer cobro" />
-            <KPICard label="Con primer cobro" value={metrics.activatedOrganizations} icon={CheckCircle2} color="success" sub="organizaciones activadas" />
-            <KPICard label="Sin primer cobro" value={metrics.totalOrganizations - metrics.activatedOrganizations} icon={AlertTriangle} color="warning" sub="requieren acompañamiento" />
-          </div>
-          <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">
-            <div className="border-b border-border/50 px-4 py-3"><h2 className="font-semibold text-sm">Cohorte de activación</h2><p className="mt-1 text-xs text-muted-foreground">Las organizaciones sin cobro aparecen al final para que soporte pueda actuar sobre onboarding roto.</p></div>
-            {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando cohorte...</div> : (
-              <div className="divide-y divide-border/50">
-                {metrics.activationTimes.slice(0, 30).map(row => (
-                  <div key={row.org_id || row.slug} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0"><p className="truncate text-sm font-medium">{row.org_name || "Sin nombre"}</p><p className="text-xs text-muted-foreground">Alta: {formatDate(row.org_creada)} · Primer cobro: {formatDate(row.primer_cobro)}</p></div>
-                    <div className="flex items-center gap-3"><SignalBadge signal={row.senal} /><span className="min-w-[82px] text-right text-xs font-semibold tabular-nums">{formatDays(row.daysToFirstCharge)}</span></div>
-                  </div>
-                ))}
-                {metrics.activationTimes.length === 0 && <div className="p-8 text-center text-sm text-muted-foreground">Todavía no hay datos de activación.</div>}
+          {cohortViewUnavailable ? (
+            <div className="flex items-start gap-3 border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div><p className="font-semibold">Cohortes todavía no instrumentadas</p><p className="mt-1 text-xs text-muted-foreground">La base no expone las vistas nuevas. No se reemplazan con primer cobro ni onboarding completado porque miden resultados distintos.</p></div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <KPICard label="Activación" value={formatRate(cohortSummary.activationRatePct)} icon={CheckCircle2} color="success" sub={`${cohortSummary.activated}/${cohortSummary.organizations} con venta en canal objetivo`} />
+                <KPICard label="Activación ≤ 7 días" value={formatRate(cohortSummary.activation7dRatePct)} icon={Clock3} color="blue" sub={`${cohortSummary.eligible7d} cohortes maduras`} />
+                <KPICard label="Autoservicio" value={formatRate(cohortSummary.selfServiceRatePct)} icon={Users} color="primary" sub={`${cohortSummary.supportMeasurementEligible} altas instrumentadas`} />
+                <KPICard label="Ayuda por alta" value={cohortSummary.averageSupportMinutesPerEligibleOrg == null ? "Sin base" : `${cohortSummary.averageSupportMinutesPerEligibleOrg} min`} icon={Clock3} color="warning" sub={`${cohortSummary.interventionMinutes} minutos medidos`} />
               </div>
-            )}
-          </div>
+
+              <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
+                <p className="font-semibold text-violet-200">Conversión y costo con denominadores honestos</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Activar significa vender en el canal elegido, no terminar el formulario. Las tasas de 7/14/30 días excluyen altas que todavía no cumplieron esa edad. Autoservicio y minutos empiezan en el watermark de instrumentación: la historia anterior queda como “sin base”, no como ayuda cero.</p>
+              </section>
+
+              <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">
+                <div className="border-b border-border/50 px-4 py-3"><h2 className="font-semibold text-sm">Conversión por cohorte mensual</h2><p className="mt-1 text-xs text-muted-foreground">Cada porcentaje conserva su denominador maduro; no se promedian porcentajes entre meses.</p></div>
+                {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando cohortes...</div> : cohortRows.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Todavía no hay organizaciones para agrupar.</div> : (
+                  <div className="divide-y divide-border/50">
+                    {cohortRows.map(row => (
+                      <div key={row.cohort_month} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.2fr)_repeat(5,minmax(90px,.65fr))] md:items-center">
+                        <div><p className="text-sm font-medium capitalize">{formatCohortMonth(row.cohort_month)}</p><p className="text-[10px] text-muted-foreground">{row.organizations_total || 0} altas · {row.pending_total || 0} pendientes</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Activación</p><p className="mt-0.5 text-xs font-semibold">{formatRate(row.activation_rate_pct)}</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">≤ 7 días</p><p className="mt-0.5 text-xs font-semibold">{formatRate(row.activation_7d_rate_pct)}</p><p className="text-[9px] text-muted-foreground">n={row.eligible_7d_total || 0}</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">≤ 14 días</p><p className="mt-0.5 text-xs font-semibold">{formatRate(row.activation_14d_rate_pct)}</p><p className="text-[9px] text-muted-foreground">n={row.eligible_14d_total || 0}</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">≤ 30 días</p><p className="mt-0.5 text-xs font-semibold">{formatRate(row.activation_30d_rate_pct)}</p><p className="text-[9px] text-muted-foreground">n={row.eligible_30d_total || 0}</p></div>
+                        <div className="md:text-right"><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Autoservicio / ayuda</p><p className="mt-0.5 text-xs font-semibold">{formatRate(row.self_service_rate_pct)}</p><p className="text-[9px] text-muted-foreground">{row.activation_intervention_minutes || 0} min · n={row.support_measurement_eligible_total || 0}</p></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">
+                <div className="border-b border-border/50 px-4 py-3"><h2 className="font-semibold text-sm">Organizaciones por destrabar</h2><p className="mt-1 text-xs text-muted-foreground">Pendientes primero; Merchant 360 muestra los ocho hitos y permite registrar ayuda estructurada.</p></div>
+                {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Cargando organizaciones...</div> : prioritizedCohortMembers.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">Todavía no hay organizaciones instrumentadas.</div> : (
+                  <div className="divide-y divide-border/50">
+                    {prioritizedCohortMembers.slice(0, 30).map(row => (
+                      <div key={row.org_id || row.slug} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.3fr)_repeat(4,minmax(90px,.6fr))_auto] md:items-center">
+                        <div className="min-w-0"><p className="truncate text-sm font-medium">{row.org_name || "Sin nombre"}</p><p className="truncate text-[10px] text-muted-foreground">/{row.slug || "sin-slug"} · alta {formatDate(row.org_created_at)}</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Canal</p><p className="mt-0.5 text-xs font-semibold">{row.onboarding_goal === "online" ? "Online" : row.onboarding_goal === "pos" ? "POS" : "Sin elegir"}</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Hitos</p><p className="mt-0.5 text-xs font-semibold">{row.readiness_done_count || 0}/{row.readiness_total || 8}</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Primera venta</p><p className="mt-0.5 text-xs font-semibold">{row.activated ? formatDays(row.days_to_first_sale, "Mismo día") : "Pendiente"}</p></div>
+                        <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Acompañamiento</p><p className="mt-0.5 text-xs font-semibold">{row.activation_intervention_minutes || 0} min</p><p className="text-[9px] text-muted-foreground">{row.support_measurement_eligible ? "medición válida" : "histórico sin base"}</p></div>
+                        {row.org_id ? <Button asChild variant="outline" size="sm" className="h-8 text-xs"><Link to={`/platform/comercios/${row.org_id}`}>Merchant 360</Link></Button> : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="stock" className="mt-5 space-y-5">

@@ -12,8 +12,10 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { usePlatformAccess } from '@/lib/usePermissions';
 import { calculateChannelMetrics, type ChannelActivationRow, type PlatformActivationRow } from '@/lib/platformMetrics';
 import { activationGoalLabel, evaluateActivationReadiness } from '@/lib/activationReadiness';
+import type { ActivationInterventionRow } from '@/lib/activationCohorts';
 import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
+import ActivationInterventionsPanel from '@/components/platform/ActivationInterventionsPanel';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -32,6 +34,7 @@ interface MerchantSnapshot {
   activation: ActivationRow | null;
   readiness: ReadinessRow;
   integrations: IntegrationHealthRow[];
+  interventions: ActivationInterventionRow[];
   loadedAt: string;
 }
 
@@ -86,7 +89,7 @@ function queryError(label: string, error: { message?: string } | null) {
 export default function PlatformMerchantPage() {
   usePageTitle('Merchant 360');
   const { orgId } = useParams<{ orgId: string }>();
-  const { isPlatformStaff, loading: accessLoading } = usePlatformAccess();
+  const { isPlatformStaff, canPlatform, loading: accessLoading } = usePlatformAccess();
   const [snapshot, setSnapshot] = useState<MerchantSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +104,7 @@ export default function PlatformMerchantPage() {
 
     setLoading(true);
     setError(null);
-    const [organizationResponse, healthResponse, activationResponse, readinessResponse, integrationsResponse] = await Promise.all([
+    const [organizationResponse, healthResponse, activationResponse, readinessResponse, integrationsResponse, interventionsResponse] = await Promise.all([
       supabase
         .from('organizations')
         .select('id,name,slug,created_at,trial_ends_at,plan_id,onboarding_completed,logo_url')
@@ -126,6 +129,11 @@ export default function PlatformMerchantPage() {
         .select('*')
         .eq('org_id', orgId)
         .order('display_name'),
+      supabase
+        .from('platform_activation_interventions')
+        .select('*')
+        .eq('org_id', orgId)
+        .order('occurred_at', { ascending: false }),
     ]);
 
     const errors = [
@@ -134,6 +142,7 @@ export default function PlatformMerchantPage() {
       queryError('adopción por canal', activationResponse.error),
       queryError('ruta a la primera venta', readinessResponse.error),
       queryError('evidencia de integraciones', integrationsResponse.error),
+      queryError('acompañamiento de activación', interventionsResponse.error),
     ].filter(Boolean) as string[];
 
     if (errors.length > 0) {
@@ -158,6 +167,7 @@ export default function PlatformMerchantPage() {
       activation: calculateChannelMetrics((activationResponse.data || []) as PlatformActivationRow[]).rows[0] || null,
       readiness: readinessResponse.data as ReadinessRow,
       integrations: (integrationsResponse.data || []) as IntegrationHealthRow[],
+      interventions: (interventionsResponse.data || []) as ActivationInterventionRow[],
       loadedAt: new Date().toISOString(),
     });
     setLoading(false);
@@ -167,7 +177,7 @@ export default function PlatformMerchantPage() {
     if (isPlatformStaff && !accessLoading) void load();
   }, [accessLoading, isPlatformStaff, load]);
 
-  const selectedTab = ['overview', 'channels', 'integrations', 'context'].includes(tab) ? tab : 'overview';
+  const selectedTab = ['overview', 'channels', 'integrations', 'support', 'context'].includes(tab) ? tab : 'overview';
   const health = snapshot?.health;
   const activation = snapshot?.activation;
   const readiness = useMemo(
@@ -307,6 +317,7 @@ export default function PlatformMerchantPage() {
           <TabsTrigger value="overview">Resumen</TabsTrigger>
           <TabsTrigger value="channels">Canales</TabsTrigger>
           <TabsTrigger value="integrations">Integraciones</TabsTrigger>
+          <TabsTrigger value="support">Acompañamiento</TabsTrigger>
           <TabsTrigger value="context">Contexto</TabsTrigger>
         </TabsList>
 
@@ -499,6 +510,15 @@ export default function PlatformMerchantPage() {
           </section>
 
           <p className="text-[11px] text-muted-foreground/70 px-1">“Conectada” significa que hay configuración registrada, no que el proveedor esté disponible en este instante. “Ejecución reciente” es la última evidencia registrada por un flujo real, no un ping activo. Los health checks activos y los detalles de webhooks siguen en el roadmap.</p>
+        </TabsContent>
+
+        <TabsContent value="support" className="space-y-4">
+          <ActivationInterventionsPanel
+            orgId={snapshot.organization.id}
+            interventions={snapshot.interventions}
+            canRecord={canPlatform('support')}
+            onChanged={load}
+          />
         </TabsContent>
 
         <TabsContent value="context" className="space-y-4">

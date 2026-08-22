@@ -39,6 +39,108 @@ export type Database = {
   }
   public: {
     Tables: {
+      activation_interventions: {
+        Row: {
+          actor_user_id: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          intervention_type: string
+          milestone: string
+          minutes_spent: number
+          occurred_at: string
+          org_id: string
+          outcome: string
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          intervention_type: string
+          milestone: string
+          minutes_spent: number
+          occurred_at: string
+          org_id: string
+          outcome: string
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          intervention_type?: string
+          milestone?: string
+          minutes_spent?: number
+          occurred_at?: string
+          org_id?: string
+          outcome?: string
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       admin_audit_logs: {
         Row: {
           action: string
@@ -17806,6 +17908,27 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_metric_watermarks: {
+        Row: {
+          created_at: string
+          definition: string
+          metric_key: string
+          reliable_from: string
+        }
+        Insert: {
+          created_at?: string
+          definition: string
+          metric_key: string
+          reliable_from: string
+        }
+        Update: {
+          created_at?: string
+          definition?: string
+          metric_key?: string
+          reliable_from?: string
+        }
+        Relationships: []
+      }
       platform_org_health_snapshots: {
         Row: {
           captured_at: string
@@ -33543,6 +33666,153 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_activation_cohort_members: {
+        Row: {
+          activated: boolean | null
+          activation_intervention_count: number | null
+          activation_intervention_minutes: number | null
+          cohort_month: string | null
+          days_to_first_sale: number | null
+          first_intervention_at: string | null
+          first_target_sale_at: string | null
+          last_intervention_at: string | null
+          onboarding_goal: string | null
+          org_created_at: string | null
+          org_id: string | null
+          org_name: string | null
+          readiness_done_count: number | null
+          readiness_total: number | null
+          self_service_activated: boolean | null
+          slug: string | null
+          support_measurement_eligible: boolean | null
+          support_measurement_started_at: string | null
+          supported_activated: boolean | null
+        }
+        Relationships: []
+      }
+      platform_activation_cohorts: {
+        Row: {
+          activated_14d_total: number | null
+          activated_30d_total: number | null
+          activated_7d_total: number | null
+          activated_total: number | null
+          activation_14d_rate_pct: number | null
+          activation_30d_rate_pct: number | null
+          activation_7d_rate_pct: number | null
+          activation_intervention_minutes: number | null
+          activation_interventions_total: number | null
+          activation_rate_pct: number | null
+          avg_support_minutes_per_org: number | null
+          cohort_month: string | null
+          eligible_14d_total: number | null
+          eligible_30d_total: number | null
+          eligible_7d_total: number | null
+          median_days_to_first_sale: number | null
+          organizations_total: number | null
+          pending_total: number | null
+          self_service_activated_total: number | null
+          self_service_rate_pct: number | null
+          support_measurement_eligible_total: number | null
+          supported_activated_total: number | null
+        }
+        Relationships: []
+      }
+      platform_activation_interventions: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          intervention_type: string | null
+          is_active: boolean | null
+          milestone: string | null
+          minutes_spent: number | null
+          occurred_at: string | null
+          org_id: string | null
+          outcome: string | null
+          voided_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          intervention_type?: string | null
+          is_active?: never
+          milestone?: string | null
+          minutes_spent?: number | null
+          occurred_at?: string | null
+          org_id?: string | null
+          outcome?: string | null
+          voided_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          intervention_type?: string | null
+          is_active?: never
+          milestone?: string | null
+          minutes_spent?: number | null
+          occurred_at?: string | null
+          org_id?: string | null
+          outcome?: string | null
+          voided_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "activation_interventions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       platform_cron_health: {
         Row: {
           active: boolean | null
@@ -36656,6 +36926,18 @@ export type Database = {
         Args: { p_return_request_id: string }
         Returns: Json
       }
+      record_activation_intervention: {
+        Args: {
+          p_idempotency_key: string
+          p_intervention_type: string
+          p_milestone: string
+          p_minutes_spent: number
+          p_occurred_at?: string
+          p_org_id: string
+          p_outcome: string
+        }
+        Returns: Json
+      }
       record_debt_payment_cash_entry: {
         Args: {
           p_amount_ars: number
@@ -37051,6 +37333,10 @@ export type Database = {
         Returns: number
       }
       vencer_reservas: { Args: never; Returns: number }
+      void_activation_intervention: {
+        Args: { p_intervention_id: string }
+        Returns: Json
+      }
       wallet_liberar: {
         Args: {
           p_detalle?: string
