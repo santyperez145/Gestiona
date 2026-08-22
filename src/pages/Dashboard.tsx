@@ -41,6 +41,7 @@ import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
 import { toast } from "sonner";
 import { evaluateActivationReadiness, type ActivationGoal } from "@/lib/activationReadiness";
 import { isMissingRelation } from "@/lib/publicDataSource";
+import { dashboardViewKey, isDashboardViewId } from "@/lib/dashboardViews";
 
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
@@ -54,8 +55,6 @@ const DASHBOARD_SECTIONS = [
   { id: "dashboard-finance", label: "Caja y finanzas", icon: Wallet },
   { id: "dashboard-intelligence", label: "Inteligencia", icon: Sparkles },
 ] as const;
-
-const DASHBOARD_SECTION_IDS = new Set<string>(DASHBOARD_SECTIONS.map(section => section.id));
 
 function DashboardDataError({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
@@ -419,16 +418,17 @@ export default function Dashboard() {
     orgViewKey("dashboard.section", activeOrg?.id),
     "dashboard-overview",
   );
-  const visibleDashboardSection = DASHBOARD_SECTION_IDS.has(activeDashboardSection)
+  const visibleDashboardSection = isDashboardViewId(activeDashboardSection)
     ? activeDashboardSection
     : "dashboard-overview";
+  const visibleDashboardViewKey = dashboardViewKey(visibleDashboardSection);
 
   // Legacy dashboard links use hashes. Keep them working after the content
   // became tabbed, and never let a stale localStorage value hide every view.
   useEffect(() => {
     const syncHashToView = () => {
       const hash = decodeURIComponent(window.location.hash.replace(/^#/, ""));
-      if (DASHBOARD_SECTION_IDS.has(hash)) setActiveDashboardSection(hash);
+      if (isDashboardViewId(hash)) setActiveDashboardSection(hash);
     };
     syncHashToView();
     window.addEventListener("hashchange", syncHashToView);
@@ -1420,7 +1420,7 @@ export default function Dashboard() {
           })}
         </nav>
 
-        <div className="workspace-dashboard-content" data-dashboard-view={visibleDashboardSection}>
+        <div className="workspace-dashboard-content" data-dashboard-view={visibleDashboardViewKey}>
         <div className="dashboard-view-section" data-dashboard-section="overview">
       {/* Activación medible: formulario completo no equivale a negocio listo. */}
       <SetupChecklist

@@ -111,7 +111,10 @@ organización. `WorkspaceViewTabs` es el primitive común para este contrato.
   finanzas` e `Inteligencia` en vistas activas persistidas por organización; no
   se presenta como una columna de widgets sin fin. Los hashes históricos
   (`#dashboard-*`) siguen abriendo la vista correspondiente y un estado viejo
-  de `localStorage` nunca puede ocultar todas las vistas.
+  de `localStorage` nunca puede ocultar todas las vistas. El contrato traduce
+  explícitamente el hash (`dashboard-sales`) a la clave visual (`sales`) y una
+  guarda recorre las seis parejas: el estado y el selector CSS no pueden volver
+  a divergir dejando todo el contenido con `display:none`.
 - **Settings, Admin, Integraciones, Reportes y Tienda** conservan
   sus primitives de tabs/sidebar porque necesitan contenido Radix o navegación
   profunda; deben adoptar los mismos tokens de borde, densidad, foco, scroll

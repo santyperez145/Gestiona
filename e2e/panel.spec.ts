@@ -26,6 +26,33 @@ if (faltanCredenciales && process.env.E2E_REQUIRE_AUTH === "true") {
 test.skip(faltanCredenciales,
   "Definí E2E_USER y E2E_PASSWORD para probar el panel");
 
+test.describe("dashboard", () => {
+  test("cada tab por hash muestra sus datos y oculta sólo las otras vistas", async ({ page }) => {
+    await page.goto("/#dashboard-sales");
+
+    const content = page.locator(".workspace-dashboard-content");
+    await expect(content).toHaveAttribute("data-dashboard-view", "sales");
+    await expect(page.locator('[data-dashboard-section="sales"]')).toBeVisible();
+    await expect(page.locator('[data-dashboard-section="overview"]')).toBeHidden();
+    const viewNav = page.getByRole("navigation", { name: "Secciones del dashboard" });
+
+    const views = [
+      ["Resumen", "overview"],
+      ["Rendimiento", "sales"],
+      ["Clientes", "customers"],
+      ["Stock", "inventory"],
+      ["Caja y finanzas", "finance"],
+      ["Inteligencia", "intelligence"],
+    ] as const;
+
+    for (const [label, key] of views) {
+      await viewNav.getByRole("link", { name: label, exact: true }).click();
+      await expect(content).toHaveAttribute("data-dashboard-view", key);
+      await expect(page.locator(`[data-dashboard-section="${key}"]`)).toBeVisible();
+    }
+  });
+});
+
 test.describe("tienda e-commerce", () => {
   test("las pestañas del panel abren", async ({ page }) => {
     await page.goto("/tienda-online");
