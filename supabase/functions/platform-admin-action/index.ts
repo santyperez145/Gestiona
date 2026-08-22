@@ -59,6 +59,19 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
+    // La impersonación por magic link fue retirada: una sesión emitida como
+    // otra persona conserva sus permisos más allá de cualquier ventana de
+    // soporte. El reemplazo es el snapshot diagnóstico consentido y temporal.
+    if (action === "generateMagicLink") {
+      await admin.from("admin_audit_logs" as any).insert({
+        admin_user_id: user.id,
+        admin_email: user.email,
+        action: "DENIED:generateMagicLink",
+        details: { reason: "impersonation_retired" },
+      }).then(() => {}, () => {});
+      return json({ error: "La impersonación fue retirada. Solicitá diagnóstico desde Merchant 360." }, 410);
+    }
+
     // ── Autorización por nivel de staff ────────────────────────
     // `superadmin` puede todo. `finance` toca planes y facturación.
     // `support` ve y asiste, pero no cambia plata ni destruye nada.
@@ -73,7 +86,6 @@ Deno.serve(async (req) => {
       getAdminLogs: ["support", "finance"],
       checkSecrets: ["support", "finance"],
       getFeatureFlags: ["support", "finance"],
-      generateMagicLink: ["support"],
       resetUserPassword: ["support"],
       // Facturación / planes
       extendTrial: ["finance"],
@@ -117,62 +129,6 @@ Deno.serve(async (req) => {
           details: opts.details ?? null,
         });
       } catch { /* silent */ }
-    };
-
-    /**
-     * Un magic link puede abrir todas las organizaciones a las que pertenece
-     * su destinatario. Guardamos ese alcance por organización ahora, no al leer
-     * el log: si el miembro se va después, el dueño conserva la evidencia.
-     *
-     * A diferencia del audit log histórico, no se silencian errores acá. Entregar
-     * un enlace sin poder dejar la trazabilidad comprometida sería peor que
-     * devolver un error al operador.
-     */
-    const logMagicLinkAccess = async (targetUserId: string | undefined, details: unknown) => {
-      if (!targetUserId) {
-        const { error } = await admin.from("admin_audit_logs" as any).insert({
-          admin_user_id: user.id,
-          admin_email: user.email,
-          action: "generateMagicLink",
-          details,
-        });
-        if (error) throw new Error(`No se pudo registrar el magic link: ${error.message}`);
-        return;
-      }
-
-      const { data: memberships, error: membershipsError } = await admin
-        .from("memberships")
-        .select("org_id")
-        .eq("user_id", targetUserId);
-      if (membershipsError) {
-        throw new Error(`No se pudo resolver el alcance del magic link: ${membershipsError.message}`);
-      }
-
-      const auditRows: Array<Record<string, unknown>> = (memberships ?? []).map((membership: { org_id: string }) => ({
-        admin_user_id: user.id,
-        admin_email: user.email,
-        action: "generateMagicLink",
-        target_org_id: membership.org_id,
-        target_user_id: targetUserId,
-        details,
-      }));
-
-      // Un comprador de tienda puede no pertenecer a una organización. Se
-      // conserva entonces la auditoría de plataforma, aunque no haya tenant al
-      // que mostrársela.
-      if (auditRows.length === 0) {
-        auditRows.push({
-          admin_user_id: user.id,
-          admin_email: user.email,
-          action: "generateMagicLink",
-          target_org_id: null,
-          target_user_id: targetUserId,
-          details,
-        });
-      }
-
-      const { error } = await admin.from("admin_audit_logs" as any).insert(auditRows);
-      if (error) throw new Error(`No se pudo registrar el magic link: ${error.message}`);
     };
 
     // ── CONTROLES DE LANZAMIENTO ──────────────────────────────
@@ -524,34 +480,6 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(limit);
       return json({ ok: true, logs: logs || [] });
-    }
-
-    // ── GENERATE MAGIC LINK (impersonate or assist) ────────────
-    // Issues a one-time magic link for a user. Useful for:
-    //   - Support: log in as the user to reproduce issues ("Ver como")
-    //   - Onboarding: send a passwordless invite to a new user
-    if (action === "generateMagicLink") {
-      const { userId, email: emailParam, type = "magiclink" } = body;
-      let targetEmail = emailParam;
-      if (!targetEmail && userId) {
-        const { data: u } = await admin.auth.admin.getUserById(userId);
-        targetEmail = u?.user?.email;
-      }
-      if (!targetEmail) return json({ error: "Email o userId requerido" }, 400);
-
-      const { data, error } = await admin.auth.admin.generateLink({
-        type,
-        email: targetEmail,
-      });
-      if (error) return json({ error: error.message }, 500);
-
-      await logMagicLinkAccess(userId, { email: targetEmail, type });
-      return json({
-        ok: true,
-        email: targetEmail,
-        action_link: data?.properties?.action_link,
-        hashed_token: data?.properties?.hashed_token,
-      });
     }
 
     // ── RESET USER PASSWORD ────────────────────────────────────

@@ -16,17 +16,16 @@ El sistema tiene **dos superficies separadas**. No se heredan permisos entre ell
 ```
 
 **Ser staff de plataforma no da ningún permiso dentro de una organización.** Para
-entrar a una org hay que tener una membresía real, o usar "Ver como" (magic link)
-desde el panel de plataforma — que queda auditado. Antes esto estaba mezclado:
-`useUserRole` devolvía `admin` a cualquier `platform_admin`, así que el staff
-operaba tenants sin dejar rastro. Ya no.
+entrar a una org hay que tener una membresía real. La impersonación mediante
+"Ver como"/magic link fue retirada el 2026-08-22: una sesión emitida como otra
+persona puede sobrevivir a la ventana de soporte. Para diagnosticar, Support
+solicita desde Merchant 360 un snapshot agregado y el owner lo autoriza por 15,
+30 o 60 minutos. Cada lectura revalida actor, rol, expiración y revocación.
 
-Los dueños de cada organización ven en **Ajustes → Sistema → Registro de
-soporte** cuándo el staff generó un magic link para una cuenta de ese negocio.
-Es una proyección mínima de `admin_audit_logs`: no muestra el enlace, la persona
-destinataria ni los detalles internos. El alcance de la organización se guarda
-al emitir el enlace, por lo que no desaparece si el miembro se va después, y se
-distingue correctamente entre generar un enlace y que alguien lo abra.
+Los dueños ven en **Ajustes → Sistema → Acceso de soporte** las solicitudes,
+quién las hizo, motivo, vencimiento, revocación y cantidad de lecturas. El
+historial previo de magic links permanece visible y marcado como mecanismo
+retirado; no se reescribe la historia.
 
 ---
 
@@ -76,7 +75,7 @@ El `owner` no pasa por la matriz: siempre tiene todo.
 |---|---|
 | `superadmin` | Todo, incluido borrar orgs, banear usuarios, alta/baja de staff y cambio de roles de miembros. |
 | `finance` | Planes y precios, cambio de plan, extender trial, suspender/reactivar orgs, comisiones y facturación. Además todo lo de lectura. |
-| `support` | Ver orgs y usuarios, actividad, logs, generar magic links y resets de contraseña. **No** toca planes, no borra, no banea. |
+| `support` | Ver señales agregadas, solicitar diagnóstico temporal y enviar resets de contraseña. **No** impersona, no toca planes, no borra, no banea. |
 
 `superadmin` satisface cualquier requerimiento de nivel.
 
@@ -102,3 +101,6 @@ nivel ni quitarse el acceso.
 - Las Edge Functions validan usuario + membresía (o nivel de plataforma).
 - Cambios críticos (finanzas, roles, facturación, acciones de staff) quedan
   auditados: `audit_logs` para el tenant, `admin_audit_logs` para la plataforma.
+- Diagnóstico de soporte usa una tabla sin acceso cliente, vistas separadas y
+  RPCs con consentimiento owner. Detalle y prueba en
+  [SOPORTE_DIAGNOSTICO.md](SOPORTE_DIAGNOSTICO.md).

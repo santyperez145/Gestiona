@@ -13,7 +13,8 @@ export type AppRole = 'admin' | 'vendedor' | 'viewer';
  * dentro de una organización. Son dos superficies separadas — el staff opera
  * sobre las orgs desde `/platform` y las Edge Functions con service_role, no
  * heredando el rol de admin del tenant. Para entrar a una org tiene que tener
- * una membresía real (o usar "Ver como" desde el panel de plataforma).
+ * una membresía real. Soporte usa snapshots diagnósticos temporales y
+ * consentidos desde Merchant 360; nunca inicia sesión como otra persona.
  */
 export function useUserRole() {
   const { user, loading: authLoading } = useAuth();

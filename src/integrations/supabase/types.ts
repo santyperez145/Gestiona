@@ -29477,6 +29477,111 @@ export type Database = {
           },
         ]
       }
+      support_diagnostic_access_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          expires_at: string | null
+          id: string
+          last_viewed_at: string | null
+          org_id: string
+          reason_code: string
+          requested_at: string
+          requested_by: string
+          requested_by_email: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          view_count: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          expires_at?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          org_id: string
+          reason_code: string
+          requested_at?: string
+          requested_by: string
+          requested_by_email?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          view_count?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          expires_at?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          org_id?: string
+          reason_code?: string
+          requested_at?: string
+          requested_by?: string
+          requested_by_email?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_to: string | null
@@ -33573,6 +33678,105 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_support_diagnostic_requests: {
+        Row: {
+          approved_at: string | null
+          expires_at: string | null
+          id: string | null
+          last_viewed_at: string | null
+          org_id: string | null
+          reason_code: string | null
+          requested_at: string | null
+          revoked_at: string | null
+          staff_email: string | null
+          status: string | null
+          view_count: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          last_viewed_at?: string | null
+          org_id?: string | null
+          reason_code?: string | null
+          requested_at?: string | null
+          revoked_at?: string | null
+          staff_email?: string | null
+          status?: never
+          view_count?: number | null
+        }
+        Update: {
+          approved_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          last_viewed_at?: string | null
+          org_id?: string | null
+          reason_code?: string | null
+          requested_at?: string | null
+          revoked_at?: string | null
+          staff_email?: string | null
+          status?: never
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       outbox_salud: {
         Row: {
           descartados: number | null
@@ -34121,6 +34325,81 @@ export type Database = {
           transactions: number | null
         }
         Relationships: []
+      }
+      platform_support_diagnostic_requests: {
+        Row: {
+          approved_at: string | null
+          expires_at: string | null
+          id: string | null
+          last_viewed_at: string | null
+          org_id: string | null
+          org_name: string | null
+          org_slug: string | null
+          reason_code: string | null
+          requested_at: string | null
+          requested_by: string | null
+          revoked_at: string | null
+          status: string | null
+          view_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "support_diagnostic_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
       }
       product_availability: {
         Row: {
@@ -35877,6 +36156,10 @@ export type Database = {
         }
         Returns: Json
       }
+      approve_support_diagnostic_access: {
+        Args: { p_duration_minutes: number; p_request_id: string }
+        Returns: Json
+      }
       archive_platform_announcement: {
         Args: { p_id: string }
         Returns: {
@@ -36560,6 +36843,10 @@ export type Database = {
           variant_type: string
         }[]
       }
+      get_support_diagnostic_snapshot: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
       get_top_recommendations: {
         Args: { p_limit?: number; p_org_id: string }
         Returns: {
@@ -37178,6 +37465,10 @@ export type Database = {
         }
         Returns: Json
       }
+      request_support_diagnostic_access: {
+        Args: { p_org_id: string; p_reason_code: string }
+        Returns: Json
+      }
       resolve_stock_reservation: {
         Args: { p_reservation_id: string; p_status: string }
         Returns: undefined
@@ -37207,6 +37498,10 @@ export type Database = {
           p_refund_method?: string
           p_variant_id?: string
         }
+        Returns: Json
+      }
+      revoke_support_diagnostic_access: {
+        Args: { p_request_id: string }
         Returns: Json
       }
       run_abc_analysis: {

@@ -136,13 +136,13 @@ describe('autenticación de Edge Functions', () => {
     expect(weeklyBackup?.source).not.toContain('user_roles');
   });
 
-  it('magic links conservan el alcance de sus organizaciones en la auditoría', () => {
+  it('retira magic links de impersonación y conserva sólo la invitación de onboarding', () => {
     const platformAction = functions.find(f => f.name === 'platform-admin-action');
     expect(platformAction).toBeDefined();
-    expect(platformAction?.source).toContain('logMagicLinkAccess');
-    expect(platformAction?.source).toContain('.from("memberships")');
-    expect(platformAction?.source).toContain('target_org_id: membership.org_id');
-    expect(platformAction?.source).toContain('No se pudo registrar el magic link');
+    expect(platformAction?.source).toContain('action === "generateMagicLink"');
+    expect(platformAction?.source).toContain('impersonation_retired');
+    expect(platformAction?.source.match(/auth\.admin\.generateLink/g)).toHaveLength(1);
+    expect(platformAction?.source).toContain('// Send magic link to onboard the owner');
   });
 
   it('el export portable exige dueño y nunca devuelve credenciales de acceso', () => {

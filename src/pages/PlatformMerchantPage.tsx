@@ -16,6 +16,7 @@ import type { ActivationInterventionRow } from '@/lib/activationCohorts';
 import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
 import ActivationInterventionsPanel from '@/components/platform/ActivationInterventionsPanel';
+import SupportDiagnosticAccessPanel from '@/components/platform/SupportDiagnosticAccessPanel';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -513,6 +514,10 @@ export default function PlatformMerchantPage() {
         </TabsContent>
 
         <TabsContent value="support" className="space-y-4">
+          <SupportDiagnosticAccessPanel
+            orgId={snapshot.organization.id}
+            canRequest={canPlatform('support')}
+          />
           <ActivationInterventionsPanel
             orgId={snapshot.organization.id}
             interventions={snapshot.interventions}

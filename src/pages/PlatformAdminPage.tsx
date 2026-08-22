@@ -8,7 +8,7 @@ import {
   Edit2, AlertTriangle, Crown, UserX, UserCheck, ChevronRight,
   MoreHorizontal, CalendarDays, Activity, Headphones, Pause, Play,
   History, ShoppingCart, Package, Server, TrendingDown,
-  KeyRound, Link2, Copy, UserPlus, Mail, FileDown, Loader2,
+  KeyRound, Copy, UserPlus, Mail, FileDown, Loader2,
   CircleAlert, Store, Webhook,
 } from 'lucide-react';
 import SystemHealthTab from '@/components/platform/SystemHealthTab';
@@ -578,16 +578,6 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
     try {
       await adminCall('resetUserPassword', { userId: u.id });
       toast.success(`Email enviado a ${u.email}`);
-    } catch (e: any) { toast.error(e.message); }
-  };
-
-  const handleGenerateMagicLink = async (u: UserRow) => {
-    try {
-      const res = await adminCall('generateMagicLink', { userId: u.id, type: 'magiclink' });
-      await navigator.clipboard.writeText(res.action_link || '');
-      toast.success('Magic link copiado al portapapeles', {
-        description: 'Compartilo por un canal seguro. Es de un solo uso.',
-      });
     } catch (e: any) { toast.error(e.message); }
   };
 
@@ -1206,9 +1196,6 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                       <Button variant="outline" size="sm" className="h-6 px-1.5 text-[10px]" onClick={() => handleResetPassword(u)}>
                         <KeyRound className="w-2.5 h-2.5 mr-1" /> Reset
                       </Button>
-                      <Button variant="outline" size="sm" className="h-6 px-1.5 text-[10px]" onClick={() => handleGenerateMagicLink(u)}>
-                        <Link2 className="w-2.5 h-2.5 mr-1" /> Link
-                      </Button>
                     </div>
                   </div>
                 ))}
@@ -1301,13 +1288,6 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                               onClick={() => handleResetPassword(u)}
                             >
                               <KeyRound className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost" size="sm" className="h-7 w-7 p-0"
-                              title="Generar magic link (copia al portapapeles)"
-                              onClick={() => handleGenerateMagicLink(u)}
-                            >
-                              <Link2 className="w-3.5 h-3.5" />
                             </Button>
                           </div>
                         </td>
