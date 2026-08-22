@@ -7,8 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { ArrowRight, Check, Globe2, LayoutDashboard, MonitorSmartphone, Sparkles } from 'lucide-react';
-import { listIndustries } from '@/lib/marketingExtraDB';
 import type { ActivationGoal } from '@/lib/activationReadiness';
+import {
+  completeBusinessOnboarding,
+  listBusinessProfilePresets,
+  parseProductTypeTemplates,
+  summarizeBusinessProfile,
+} from '@/lib/businessProfile';
 
 type FinishDestination = 'pos' | 'online' | 'dashboard' | 'demo';
 
@@ -26,7 +31,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState(activeOrg?.name?.replace(' Workspace', '') || '');
-  const [industries, setIndustries] = useState<Awaited<ReturnType<typeof listIndustries>>>([]);
+  const [industries, setIndustries] = useState<Awaited<ReturnType<typeof listBusinessProfilePresets>>>([]);
   const [rubroCode, setRubroCode] = useState('perfumes');
   const [color, setColor] = useState('#D4A843');
   const [savingDestination, setSavingDestination] = useState<FinishDestination | null>(null);
@@ -36,7 +41,7 @@ export default function OnboardingPage() {
   }, [activeOrg]);
 
   useEffect(() => {
-    void listIndustries()
+    void listBusinessProfilePresets()
       .then((rows) => {
         setIndustries(rows);
         const def = rows.find((row) => row.code === 'perfumes') || rows[0];
@@ -46,6 +51,9 @@ export default function OnboardingPage() {
   }, []);
 
   const colorPalette = Array.from(new Set(industries.map((industry) => industry.default_color).concat(['#D4A843','#3B82F6','#10B981','#EF4444','#8B5CF6','#EC4899','#F59E0B'])));
+  const selectedIndustry = industries.find((industry) => industry.code === rubroCode) || null;
+  const selectedTemplates = parseProductTypeTemplates(selectedIndustry?.product_type_templates);
+  const selectedProfileSummary = summarizeBusinessProfile(selectedTemplates);
 
   if (!activeOrg) {
     return (
@@ -60,39 +68,25 @@ export default function OnboardingPage() {
     setSavingDestination(destination);
     try {
       const businessName = name.trim();
-      const ind = industries.find((industry) => industry.code === rubroCode);
-      const defaultSettings = ind?.default_settings;
-      const settingsFromIndustry = defaultSettings && typeof defaultSettings === 'object' && !Array.isArray(defaultSettings)
-        ? defaultSettings
-        : {};
-      const aiTone = ind?.ai_tone || 'profesional rioplatense argentino';
       const onboardingGoal: ActivationGoal = destination === 'pos'
         ? 'pos'
         : destination === 'online'
           ? 'online'
           : 'explore';
-      const { error: organizationError } = await supabase
-        .from('organizations')
-        .update({
-          name: businessName,
-          primary_color: color,
-          onboarding_completed: true,
-          onboarding_goal: onboardingGoal,
-        })
-        .eq('id', activeOrg.id);
-      if (organizationError) throw organizationError;
-
-      const { error: settingsError } = await supabase
-        .from('settings')
-        .update({ business_name: businessName, primary_color: color, industry_code: rubroCode, ai_tone: aiTone, ...settingsFromIndustry })
-        .eq('org_id', activeOrg.id);
-      if (settingsError) throw settingsError;
+      await completeBusinessOnboarding({
+        orgId: activeOrg.id,
+        businessName,
+        primaryColor: color,
+        industryCode: rubroCode,
+        onboardingGoal,
+      });
 
       localStorage.setItem(`gestiona.onboarded.${activeOrg.id}`, '1');
 
+      let demoSeedFailed = false;
       if (destination === 'demo') {
         const { error: demoError } = await supabase.functions.invoke('seed-demo', { body: { orgId: activeOrg.id } });
-        if (demoError) throw demoError;
+        demoSeedFailed = Boolean(demoError);
       }
 
       await refresh();
@@ -103,7 +97,11 @@ export default function OnboardingPage() {
         toast.success('Ruta online elegida. Empezá por el catálogo; el panel va a medir cobro, envío y legales.');
         navigate('/productos?onboarding=1&goal=online');
       } else if (destination === 'demo') {
-        toast.success(`¡Listo, ${businessName}! Cargamos datos de ejemplo para explorar.`);
+        if (demoSeedFailed) {
+          toast.warning(`El negocio ${businessName} quedó configurado, pero no pudimos cargar la demo. Podés reintentar desde el panel.`);
+        } else {
+          toast.success(`¡Listo, ${businessName}! Cargamos datos de ejemplo para explorar.`);
+        }
         navigate('/');
       } else {
         toast.success(`¡Listo, ${businessName}! El panel te va a guiar con el siguiente paso.`);
@@ -227,6 +225,19 @@ export default function OnboardingPage() {
                   </button>
                 ))}
               </div>
+              {selectedIndustry && selectedProfileSummary.typeCount > 0 && (
+                <div className="rounded-[8px] border border-primary/20 bg-primary/[0.05] p-3">
+                  <p className="text-[11px] font-semibold text-foreground/85">
+                    Tu catálogo arranca preparado para {selectedIndustry.name.toLowerCase()}
+                  </p>
+                  <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                    Vamos a crear {selectedProfileSummary.typeCount === 1 ? 'el tipo' : `${selectedProfileSummary.typeCount} tipos`} {selectedProfileSummary.typeNames.join(' y ')} con {selectedProfileSummary.attributeCount} atributos útiles: {selectedProfileSummary.attributeNames.join(', ')}.
+                  </p>
+                  <p className="mt-1.5 text-[9px] leading-relaxed text-muted-foreground/70">
+                    Es una estructura editable: no cambia precios, stock ni productos existentes.
+                  </p>
+                </div>
+              )}
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep(1)} className="flex-1">Atrás</Button>
                 <Button onClick={() => setStep(3)} className="flex-1">

@@ -757,6 +757,7 @@ export default function ProductsPage() {
           orgId={activeOrg.id}
           open={productTypesOpen}
           onOpenChange={setProductTypesOpen}
+          canConfigureProfile={activeRole === 'owner' || activeRole === 'admin'}
         />
       )}
 

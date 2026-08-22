@@ -27,7 +27,8 @@ describe('instrumentación de activación', () => {
   });
 
   it('persiste el objetivo explícito desde el onboarding', () => {
-    expect(ONBOARDING).toContain('onboarding_goal: onboardingGoal');
+    expect(ONBOARDING).toContain('completeBusinessOnboarding({');
+    expect(ONBOARDING).toContain('onboardingGoal,');
     expect(ONBOARDING).toContain("finish('pos')");
     expect(ONBOARDING).toContain("finish('online')");
     expect(ONBOARDING).toContain("?onboarding=1&goal=online");

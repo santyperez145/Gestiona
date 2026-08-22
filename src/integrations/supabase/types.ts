@@ -11383,6 +11383,8 @@ export type Database = {
           default_settings: Json | null
           id: string
           name: string
+          product_type_templates: Json
+          profile_version: number
           sort_order: number | null
         }
         Insert: {
@@ -11394,6 +11396,8 @@ export type Database = {
           default_settings?: Json | null
           id?: string
           name: string
+          product_type_templates?: Json
+          profile_version?: number
           sort_order?: number | null
         }
         Update: {
@@ -11405,6 +11409,8 @@ export type Database = {
           default_settings?: Json | null
           id?: string
           name?: string
+          product_type_templates?: Json
+          profile_version?: number
           sort_order?: number | null
         }
         Relationships: []
@@ -16591,6 +16597,100 @@ export type Database = {
           },
         ]
       }
+      organization_business_profiles: {
+        Row: {
+          applied_templates: Json
+          configured_at: string
+          configured_by: string
+          industry_code: string
+          org_id: string
+          profile_version: number
+          updated_at: string
+        }
+        Insert: {
+          applied_templates?: Json
+          configured_at?: string
+          configured_by: string
+          industry_code: string
+          org_id: string
+          profile_version: number
+          updated_at?: string
+        }
+        Update: {
+          applied_templates?: Json
+          configured_at?: string
+          configured_by?: string
+          industry_code?: string
+          org_id?: string
+          profile_version?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_business_profiles_industry_code_fkey"
+            columns: ["industry_code"]
+            isOneToOne: false
+            referencedRelation: "industry_presets"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "organization_business_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_business_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_business_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_business_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_business_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_business_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_business_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_business_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -20906,6 +21006,9 @@ export type Database = {
           name: string
           org_id: string
           slug: string
+          source: string
+          template_code: string | null
+          template_version: number | null
           updated_at: string
         }
         Insert: {
@@ -20916,6 +21019,9 @@ export type Database = {
           name: string
           org_id: string
           slug: string
+          source?: string
+          template_code?: string | null
+          template_version?: number | null
           updated_at?: string
         }
         Update: {
@@ -20926,6 +21032,9 @@ export type Database = {
           name?: string
           org_id?: string
           slug?: string
+          source?: string
+          template_code?: string | null
+          template_version?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -35853,6 +35962,16 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_business_onboarding: {
+        Args: {
+          p_business_name: string
+          p_industry_code: string
+          p_onboarding_goal: string
+          p_org_id: string
+          p_primary_color: string
+        }
+        Returns: Json
+      }
       complete_inventory_transfer: {
         Args: { p_transfer_id: string }
         Returns: undefined
@@ -35906,6 +36025,10 @@ export type Database = {
         }[]
       }
       condicion_iva_codigo: { Args: { p_condicion: string }; Returns: number }
+      configure_business_profile: {
+        Args: { p_industry_code: string; p_org_id: string }
+        Returns: Json
+      }
       confirm_payment_link_transfer: {
         Args: { p_id: string }
         Returns: boolean

@@ -153,6 +153,7 @@ comparativas fechadas y con fuente oficial viven en docs/ESTRATEGIA.md.
 | Confiabilidad | Pruebas automáticas de los recorridos que venden y operan. | Tienda desktop/móvil y panel autenticado bloquean CI; restore y trazas prueban recuperación, no sólo compilación. |
 | Activación | Wizard, checklist, ayuda para publicar/cobrar y cohortes básicas. | Ocho hitos calculados por el Business Core separan formulario de resultado; la primera venta del canal elegido define activación. Cohortes mensuales usan ventanas maduras 7/14/30, distinguen autoservicio de acompañamiento y miden minutos sin PII. El diferencial no es el dashboard: es poder conectar costo de onboarding con el mismo Core que prueba la venta. |
 | Migración de catálogo | Excel/CSV, mapeo de columnas y altas masivas. | Un lote se prepara sin mutar datos, resuelve altas/actualizaciones/conflictos en servidor, exige aprobación y reconcilia cada fila con stock asentado sólo por Kardex. La importación es paridad; la reversibilidad, autoridad e idempotencia son confianza operativa. |
+| Configuración por rubro | Presets, campos personalizados y plantillas de catálogo. | Siete perfiles declarativos preparan tipos/atributos sin crear verticales, preservan lo propio y se aplican por RPC idempotente sobre el mismo Core. La plantilla es paridad; cambiar la forma del catálogo sin bifurcar stock, costo, orden, cliente ni margen es la tesis diferencial que aún debe probar un merchant externo. |
 
 No son diferenciales suficientes por sí solos:
 
@@ -169,7 +170,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.329 tests pasan al 2026-08-22; typecheck, lint y build verdes; 63 Edge Functions verificadas; 41 E2E críticos (32 públicos, 8 de panel y setup autenticado) pasan contra la base real. |
+| Calidad técnica | 1.336 tests pasan al 2026-08-22; typecheck, lint y build verdes; 63 Edge Functions verificadas; 41 E2E críticos (32 públicos, 8 de panel y setup autenticado) pasan contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -177,6 +178,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Plataforma | Overview, Integration Registry, Merchant 360, evidencia de integración, cola operativa, reintentos auditados y control de Checkout Brick. |
 | Activación | Primera venta y tiempo a vender medidos por comercio, deduplicando organizaciones multi-tienda. La migración `20260821000059` suma objetivo POS/online y ocho hitos server-side compartidos con Merchant 360. `20260821000061` agrega cohortes por mes y ventanas maduras: 4 organizaciones, 1 activada en su canal objetivo, 3 pendientes, conversión histórica 25%; a 7/14 días 0/4 y a 30 días 0/1. Son datos técnicos, no PMF. Soporte autoservicio/minutos tiene watermark desde 2026-08-22: 0 altas elegibles y 0 minutos, por lo que la UI dice “sin base” en vez de atribuir falsos ceros. |
 | Importación de catálogo | La migración `20260821000060` reemplaza dos importadores client-side por un lote server-side Excel/CSV de hasta 5.000 filas: staging, preview, create/update/conflict, aprobación, aplicación atómica, retry idempotente y reconciliación. Verificación con rol `authenticated`: 1 válida + 1 inválida, bloqueo previo, 1 producto, stock 3, 1 movimiento, retry sin duplicación, anon/escritura directa sin permisos y 0 restos (2026-08-21). |
+| Business Profiler | La migración `20260822000001` declara 7 perfiles, 8 tipos y 28 atributos sobre `product_types`; onboarding y reconfiguración pasan por RPC owner/admin, son atómicos e idempotentes y preservan colisiones `custom`. Verificación real: 1 tipo/4 atributos, retry 0/0, outsider bloqueado y 0 restos. Línea de base tras rollback: 0 organizaciones configuradas y 0 tipos, por lo que todavía no es adopción. |
 | Finance precursor | OCR prellena una orden de compra; todavía no cumple cadena de custodia, validación, matching, duplicados, aprobación ni payable draft. |
 | Storefront | Funcional, pero aún comparte aplicación/ciclo de despliegue con el panel; falta aislamiento, dominios y carrito persistente completo. |
 | Recuperación | Backups programados y restore drill de datos aprobado el 2026-08-21: snapshot v3, 147 tablas / 63 filas, 937,22 ms y cero restos. Falta reconstrucción completa para RTO/RPO contractual. |
@@ -336,8 +338,8 @@ merchant.
 **Objetivo:** incorporar comercios que no participaron en el desarrollo.
 
 **Estado:** en curso; primera venta/tiempo a vender, la ruta universal de ocho
-hitos, importación reconciliada y cohortes con costo de acompañamiento ya están
-instrumentados. Faltan Business Profiler y la prueba externa con segundo y
+hitos, Business Profiler, importación reconciliada y cohortes con costo de
+acompañamiento ya están instrumentados. Falta la prueba externa con segundo y
 tercer comercio.
 
 **Entregables**
@@ -346,8 +348,13 @@ tercer comercio.
   **Entregado 2026-08-21:** el comercio elige POS u online; explorar no cuenta
   como activación. Los hitos distinguen requisitos comunes y los específicos
   del canal sin duplicar productos, stock ni clientes.
-- Business Profiler que configura capacidades mediante atributos/product types,
-  sin forks por rubro.
+- ~~Business Profiler que configura capacidades mediante atributos/product
+  types, sin forks por rubro.~~ **Entregado 2026-08-22:** siete presets
+  declarativos crean ocho tipos y 28 atributos por RPC owner/admin; el retry es
+  idempotente, las colisiones propias se preservan y cambiar de rubro no borra
+  tipos ni productos. Onboarding guarda perfil, organización y ajustes en una
+  sola transacción. La base sigue en 0 organizaciones configuradas: falta uso
+  externo, no más infraestructura vertical.
 - ~~Importador CSV/Excel con staging, preview, validación y reconciliación.~~
   **Entregado 2026-08-21:** un solo flujo acepta `.xlsx`, `.xls` y `.csv`,
   normaliza formatos numéricos locales, conserva celdas vacías, detecta
@@ -554,7 +561,7 @@ Máximo tres epics activos; por defecto se toma un slice de producto a la vez.
 Los bloqueos externos no autorizan saltar a la fase más atractiva: se avanza en
 la siguiente tarea técnica que reduzca el mismo gate.
 
-| # | Slice | Fase | Estado 2026-08-21 | Evidencia de cierre |
+| # | Slice | Fase | Estado 2026-08-22 | Evidencia de cierre |
 |---:|---|---|---|---|
 | 1 | ARCA producción | F0 | Bloqueado externamente; homologación completa | Factura productiva autorizada y reconciliada. |
 | 2 | Legal publish | F0 | Bloqueado externamente | Identidad, privacidad y términos revisados/publicados. |
@@ -565,7 +572,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 7 | E2E bloqueante | F0 | **Cerrado 2026-08-21:** 41 pruebas reales; tienda desktop/móvil y panel autenticado bloquean CI. El primer run posterior detectó usuarios Presence duplicados durante reconexión y forzó su deduplicación; además corrigió reutilización de puerto y 6 fallas ocultas iniciales. | GitHub Actions exige las 5 variables, no permite skips de auth y conserva specs de sólo lectura. |
 | 8 | Comisión, billing y unit economics | F0 | **En curso:** aprobación segura + workbench de merchant/platform economics, impuesto, leakage, contribución y break-even entregados el 2026-08-21. Benchmark oficial: Tiendanube 0% con Pago Nube o 2%/1%/0,7% con proveedor externo, más su arancel. La muestra real sigue siendo 1 merchant y 2 pagos de ARS 1; faltan costos medidos, contrato y decisión | Contratos, costos, margen y pricing aprobados; ninguna comisión se activa por edición accidental y el escenario aprobado conserva contribución positiva bajo estrés. |
 | 9 | Segundo comercio | F1 | Pendiente / comercial | Primera venta sin cambios manuales de base. |
-| 10 | Onboarding universal, importación y cohortes | F1 | **Infraestructura cerrada 2026-08-22:** objetivo POS/online, ocho hitos server-side, importador reconciliado y cohortes mensuales con ventanas maduras, watermark, minutos de ayuda y Merchant 360. Business Profiler y merchants externos siguen pendientes | Segundo y tercer merchant completan hitos medidos; importan sin SQL y la cohorte produce conversión/costo sin imputación histórica falsa. |
+| 10 | Onboarding universal, Business Profiler, importación y cohortes | F1 | **Infraestructura cerrada 2026-08-22:** objetivo POS/online, ocho hitos server-side, 7 perfiles declarativos, onboarding atómico, importador reconciliado y cohortes mensuales con ventanas maduras, watermark, minutos de ayuda y Merchant 360. Sólo faltan merchants externos | Segundo y tercer merchant eligen perfil, completan hitos medidos, importan sin SQL y la cohorte produce conversión/costo sin imputación histórica falsa. |
 | 11 | Margin facts canónicos | F2 | Parcial: hay costos y margin facts en órdenes | Cobertura y fuentes reconciliadas por operación. |
 | 12 | Margen SKU/orden/canal/pago/promoción | F2 | Parcial | Una venta se explica completamente y sin doble conteo. |
 | 13 | Pricing proposal e impact outcome | F2 | Pendiente | Merchant aplica una propuesta y se mide resultado. |
@@ -596,7 +603,10 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
 8. ~~instrumentación de cohortes e intervención manual~~ — cerrada el
    2026-08-22; 4 organizaciones, 1 activada, 3 pendientes, 0 altas elegibles
    para soporte desde el watermark y verificación idempotente con cero restos;
-9. Business Profiler mínimo para adaptar capacidades sin crear forks por rubro;
+9. ~~Business Profiler mínimo para adaptar capacidades sin crear forks por
+   rubro~~ — cerrado el 2026-08-22 con 7 perfiles, 8 tipos y 28 atributos
+   declarativos; onboarding transaccional, retry idempotente, custom preservado
+   y verificación con cero restos;
 10. onboarding acompañado del segundo comercio y primera cohorte real.
 
 No se abre Finance MVP ni se separa Storefront antes de cerrar o demostrar que
@@ -774,7 +784,7 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-22: 1.329 tests, 63 funciones verificadas
+- Build y suites locales del 2026-08-22: 1.336 tests, 63 funciones verificadas
   y 41 E2E críticos contra la base real.
 - docs/E2E.md: contrato del gate, puerto estricto, variables obligatorias y
   política de sólo lectura.
@@ -782,6 +792,8 @@ Hasta abrir sus gates:
   reversión segura de los lotes Excel/CSV.
 - docs/ACTIVACION_COHORTES.md: definición, denominadores maduros, watermark,
   costo de soporte y verificación destructiva-cero.
+- docs/BUSINESS_PROFILER.md: perfiles declarativos, autoridad, idempotencia,
+  límites del Core, experiencia y línea de base de adopción.
 - Commit 13e48bd: primera venta y tiempo a vender por comercio.
 
 Se revisa:

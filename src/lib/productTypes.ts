@@ -9,6 +9,9 @@ export interface ProductType {
   slug: string;
   description: string | null;
   active: boolean;
+  source: "custom" | "business_profile";
+  template_code: string | null;
+  template_version: number | null;
   created_at: string;
   updated_at: string;
 }
