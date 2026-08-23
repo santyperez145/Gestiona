@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useOrg } from "@/lib/orgContext";
@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import FilePicker from "@/components/shared/FilePicker";
 import { toast } from "sonner";
 import {
   AlertCircle, ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Download,
@@ -65,7 +66,6 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   onImported: () => void;
 }) {
   const { activeOrg, activeRole } = useOrg();
-  const fileRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("upload");
   const [fileName, setFileName] = useState("");
   const [rows, setRows] = useState<ProductImportPayloadRow[]>([]);
@@ -141,7 +141,6 @@ export default function ProductsExcelImport({ onClose, onImported }: {
       toast.error(error instanceof Error ? error.message : "No pudimos leer el archivo");
     } finally {
       setBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   }
 
@@ -251,13 +250,15 @@ export default function ProductsExcelImport({ onClose, onImported }: {
       </div>
 
       {step === "upload" && <div className="space-y-3">
-        <button type="button" onClick={() => fileRef.current?.click()} onDragOver={event => event.preventDefault()}
-          onDrop={event => { event.preventDefault(); const file = event.dataTransfer.files[0]; if (file) void parseFile(file); }}
-          className="w-full rounded-xl border-2 border-dashed border-border p-10 text-center transition hover:border-primary/50 hover:bg-primary/5">
-          {busy ? <Loader2 className="mx-auto mb-3 h-9 w-9 animate-spin text-primary" /> : <Upload className="mx-auto mb-3 h-9 w-9 text-primary/70" />}
-          <p className="text-sm font-medium">Seleccioná o arrastrá tu Excel/CSV</p><p className="mt-1 text-xs text-muted-foreground">Hasta 5.000 productos por lote</p>
-        </button>
-        <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={event => { const file = event.target.files?.[0]; if (file) void parseFile(file); }} />
+        <FilePicker
+          accept=".xlsx,.xls,.csv"
+          title="Seleccioná o arrastrá tu Excel/CSV"
+          description="Hasta 5.000 productos por lote"
+          icon={FileSpreadsheet}
+          busy={busy}
+          busyLabel="Leyendo catálogo…"
+          onFile={parseFile}
+        />
         <div className="flex items-center justify-between gap-3"><p className="text-xs text-muted-foreground">Las columnas desconocidas se ignoran.</p>
           <Button variant="outline" size="sm" onClick={() => void downloadTemplate()}><Download className="mr-2 h-4 w-4" />Plantilla</Button></div>
         <Alert variant="info"><ShieldCheck className="h-4 w-4 shrink-0" /><div><AlertTitle>Nada cambia al subir</AlertTitle>

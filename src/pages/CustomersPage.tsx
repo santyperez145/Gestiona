@@ -29,6 +29,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import UnlinkedSalesPanel from "@/components/customers/UnlinkedSalesPanel";
 import IdentityHealthPanel from "@/components/shared/IdentityHealthPanel";
+import FilePicker from "@/components/shared/FilePicker";
 import { useModulePermissions } from "@/lib/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1959,9 +1960,7 @@ export default function CustomersPage() {
     return mapping;
   };
 
-  const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
+  const handleCsvImport = async (file: File) => {
     if (!file || !user) return;
     try {
       const text = await file.text();
@@ -2178,24 +2177,14 @@ export default function CustomersPage() {
               <Download className="w-4 h-4" />
               Exportar{segmentFilter !== "all" ? ` ${segmentFilter}` : ""} CSV
             </Button>
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                accept=".csv,text/csv"
-                className="hidden"
-                onChange={handleCsvImport}
-                disabled={importing}
-              />
-              <span
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-border bg-muted text-sm font-medium hover:bg-muted/80 transition-colors"
-                title="Importar desde CSV (columnas: nombre,email,telefono,direccion,cumpleaños)"
-              >
-                {importing
-                  ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  : <Upload className="w-4 h-4" />}
-                Importar CSV
-              </span>
-            </label>
+            <FilePicker
+              mode="button"
+              accept=".csv,text/csv"
+              title="Importar CSV"
+              busy={importing}
+              busyLabel="Importando…"
+              onFile={handleCsvImport}
+            />
             {canCreate && (
               <Button
                 onClick={() => setFormModal({ open: true })}

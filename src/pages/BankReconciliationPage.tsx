@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import KPICard from "@/components/shared/KPICard";
+import FilePicker from "@/components/shared/FilePicker";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -263,8 +264,7 @@ export default function BankReconciliationPage() {
 
   // ── CSV import ────────────────────────────────────────────────────────────────
 
-  const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleCSVImport = async (file: File) => {
     if (!file || !activeOrg) return;
     const text = await file.text();
     const rows = parseBankCSV(text);
@@ -277,7 +277,6 @@ export default function BankReconciliationPage() {
       toast.success(`${rows.length} movimientos importados`);
       load();
     } catch { toast.error("Error al importar"); }
-    e.target.value = "";
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────────
@@ -312,10 +311,14 @@ export default function BankReconciliationPage() {
             <Button variant="outline" size="sm" onClick={handleAutoMatch}>
               <RefreshCw className="w-4 h-4 mr-1" /> Auto-conciliar
             </Button>
-            <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
-              <Upload className="w-4 h-4 mr-1" /> Importar CSV
-            </Button>
-            <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleCSVImport} />
+            <FilePicker
+              mode="button"
+              accept=".csv,text/csv"
+              title="Importar CSV"
+              icon={Upload}
+              inputRef={fileRef}
+              onFile={handleCSVImport}
+            />
             <Button size="sm" onClick={() => setOpen(true)}>
               <Plus className="w-4 h-4 mr-1" /> Cargar movimiento
             </Button>

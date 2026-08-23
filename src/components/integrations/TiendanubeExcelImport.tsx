@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import FilePicker from "@/components/shared/FilePicker";
 import { toast } from "sonner";
 import {
   Upload, FileSpreadsheet, CheckCircle2, AlertCircle,
@@ -198,12 +199,6 @@ export default function TiendanubeExcelImport() {
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
-  };
-
   const handleImport = async () => {
     if (!parsed || !activeOrg || !user) return;
     setImporting(true);
@@ -388,25 +383,14 @@ export default function TiendanubeExcelImport() {
               </Button>
             </div>
           ) : (
-            <div
-              className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/40 hover:bg-primary/3 transition-all"
-              onDragOver={e => e.preventDefault()}
-              onDrop={handleDrop}
-              onClick={() => fileRef.current?.click()}
-            >
-              <FileSpreadsheet className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-sm font-medium text-muted-foreground mb-1">
-                Arrastrá el Excel aquí o hacé click para seleccionar
-              </p>
-              <p className="text-xs text-muted-foreground/60">Soporta .xlsx y .csv exportados de Tiendanube</p>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-              />
-            </div>
+            <FilePicker
+              accept=".xlsx,.xls,.csv"
+              title="Arrastrá el Excel o elegilo desde tu equipo"
+              description="Archivos .xlsx, .xls o .csv exportados de Tiendanube"
+              icon={FileSpreadsheet}
+              inputRef={fileRef}
+              onFile={handleFile}
+            />
           )}
         </div>
       )}

@@ -108,6 +108,20 @@ describe('contrato visual transversal de Gestión', () => {
       .toEqual([]);
     expect(source('src/components/ui/input.tsx')).toContain('[&[type=date]]:[color-scheme:light]');
     expect(source('src/components/ui/input.tsx')).toContain('dark:[&[type=date]]:[color-scheme:dark]');
+
+    for (const path of [
+      'src/components/integrations/TiendanubeExcelImport.tsx',
+      'src/components/products/ProductsExcelImport.tsx',
+      'src/components/products/ProductsPriceImport.tsx',
+      'src/pages/BankReconciliationPage.tsx',
+      'src/pages/CustomersPage.tsx',
+    ]) {
+      const contents = source(path);
+      expect(contents, `${path} dejó de usar el selector estructurado`).toContain('<FilePicker');
+      expect(contents, `${path} volvió a crear un transporte de archivo local`).not.toMatch(/<input\b[^>]*\btype=["']file["']/);
+    }
+    expect(source('src/components/shared/FilePicker.tsx')).toContain('onDrop=');
+    expect(source('src/components/shared/FilePicker.tsx')).toContain('role="alert"');
   });
 
   it('los componentes internos usan Select y Storefront conserva sólo excepciones mobile explícitas', () => {

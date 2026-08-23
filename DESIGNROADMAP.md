@@ -108,7 +108,8 @@ Medición del código al 2026-08-22:
   `aria-live` bajo guarda. También puso los 82 campos temporales de 46 archivos
   bajo `Input`, retiró 11 controles manuales y fijó tema claro/oscuro + guarda.
   Los 16 inputs de archivo quedan clasificados en importación, documento/cámara
-  e imagen/branding, no para reemplazarlos en masa;
+  e imagen/branding; los 5 estructurados ya comparten `FilePicker` con
+  dropzone/botón, validación, busy y error accesible;
 - la validación visual autenticada desktop/mobile sigue pendiente de una sesión
   de prueba disponible en esta PC.
 
@@ -196,8 +197,9 @@ y justifica tecnología; no copia un Figma ni instala por moda.
   a 3 excepciones mobile/autofill verificadas por test.
 - [ ] D2.4 — **parcial 2026-08-22:** paginación cerrada en los cinco listados que
   la duplicaban; fechas cerradas en 82 campos/46 archivos con cero inputs
-  temporales manuales; uploaders clasificados en tres familias. Faltan
-  convergencia visual por familia, combobox y menús.
+  temporales manuales; uploaders clasificados en tres familias y las 5
+  importaciones estructuradas convergidas. Faltan documento/cámara,
+  imagen/branding, combobox y menús.
 - [ ] D2.5 — **parcial 2026-08-22:** `WorkspaceState` cubre los 12 estados;
   Finance/Compras ya migraron carga, refresh, vacíos, error, offline, stale,
   parcial y éxito. Falta adopción por riesgo en el resto del SaaS.
@@ -322,7 +324,7 @@ prioritarios estables en los cuatro viewports.
 **Salida:** el rediseño demuestra menor tiempo/error y mayor confianza; no se
 declara validado porque “se ve mejor”.
 
-## 6. Próximos 24 slices de diseño
+## 6. Próximos 25 slices de diseño
 
 | # | Slice | Estado | Evidencia de cierre |
 |---:|---|---|---|
@@ -335,21 +337,22 @@ declara validado porque “se ve mejor”.
 | 7 | Modales, sheets y drawers | Hecho en Gestión 2026-08-22 | 16 overlays de 11 archivos migrados; tamaños canónicos, focus trap y cierre accesible. Sólo rail mobile + 3 scanners fullscreen quedan bajo allowlist CI; Storefront pertenece a D5. |
 | 8 | Paginación canónica | Hecho en Gestión 2026-08-22 | Cinco listados comparten rango, responsive, límites y aria-live; cálculo puro cubierto y guarda evita controles locales. |
 | 9 | Fechas canónicas | Hecho en Gestión 2026-08-22 | 82 campos/46 archivos conservan semántica nativa bajo Input; 11 variantes manuales retiradas y regresión bloqueada. Uploaders clasificados aparte. |
-| 10 | Productos end-to-end | Pendiente | Desktop/mobile + editor/importación. |
-| 11 | Ventas y devolución | Pendiente | Lista→detalle→acción sin perder filtros. |
-| 12 | POS teclado/touch/offline | Pendiente | Cobro y recuperación medidos. |
-| 13 | Compras, recepción y Kardex | Parcial 2026-08-22 | Finance llega a la OC exacta, muestra contexto y abre la recepción idempotente; faltan Kardex integrado y matriz responsive. |
-| 14 | Reportes orientados a decisión | Pendiente | Menos filtros duplicados; acción clara. |
-| 15 | Settings e Integraciones | Pendiente | Secretos, permisos y estados consistentes. |
-| 16 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos, aprobación y handoff a recepción usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
-| 17 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
-| 18 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
-| 19 | Storefront home/PLP/PDP | Pendiente | Marca, performance y mobile aprobados. |
-| 20 | Carrito/checkout/pago | Pendiente | Compra completa 360 px/red lenta. |
-| 21 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
-| 22 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
-| 23 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |
-| 24 | Investor demo mode con datos seguros | Pendiente tras validación | Narrativa reproducible, sin métricas falsas. |
+| 10 | Importadores estructurados canónicos | Hecho en Gestión 2026-08-22 | Catálogo, precios, Tiendanube, clientes y banco comparten FilePicker; extensión/MIME, drop, busy, error y misma selección cubiertos. |
+| 11 | Productos end-to-end | Pendiente | Desktop/mobile + editor/importación. |
+| 12 | Ventas y devolución | Pendiente | Lista→detalle→acción sin perder filtros. |
+| 13 | POS teclado/touch/offline | Pendiente | Cobro y recuperación medidos. |
+| 14 | Compras, recepción y Kardex | Parcial 2026-08-22 | Finance llega a la OC exacta, muestra contexto y abre la recepción idempotente; faltan Kardex integrado y matriz responsive. |
+| 15 | Reportes orientados a decisión | Pendiente | Menos filtros duplicados; acción clara. |
+| 16 | Settings e Integraciones | Pendiente | Secretos, permisos y estados consistentes. |
+| 17 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos, aprobación y handoff a recepción usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
+| 18 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
+| 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
+| 20 | Storefront home/PLP/PDP | Pendiente | Marca, performance y mobile aprobados. |
+| 21 | Carrito/checkout/pago | Pendiente | Compra completa 360 px/red lenta. |
+| 22 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
+| 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
+| 24 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |
+| 25 | Investor demo mode con datos seguros | Pendiente tras validación | Narrativa reproducible, sin métricas falsas. |
 
 Máximo dos slices visuales activos. Un problema de seguridad, datos, stock,
 pagos o legal interrumpe esta secuencia y vuelve a `ROADMAP.md`.

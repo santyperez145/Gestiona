@@ -301,16 +301,23 @@ Los 16 inputs de archivo no forman un único patrón funcional y quedan
 clasificados en tres familias antes de converger su presentación:
 
 - 5 importaciones estructuradas: catálogo Excel/CSV, precios, Tiendanube,
-  clientes y extracto bancario;
+  clientes y extracto bancario. **Convergidas 2026-08-22:** todas usan
+  `FilePicker` en modo dropzone o botón compacto;
 - 6 documentos/capturas: factura de producto, OCR de compras, Finance Inbox,
   scanner de comprobante y los dos accesos archivo/cámara de Gastos;
 - 5 imágenes de producto o marca: asistente, `ImageUpload`, galería de
   Productos, avatar y logo.
 
-El `<input type="file">` oculto es transporte, no la interfaz visible. No se
-reemplaza en masa: cada familia debe compartir dropzone, validación, preview,
-progreso, error y retry sin mezclar límites ni tipos aceptados. D2.4 sigue
-parcial por esa convergencia y por la auditoría pendiente de combobox/menús.
+`FilePicker` centraliza teclado/click, drag-and-drop, reset para volver a elegir
+el mismo archivo, busy/disabled, validación de extensión o MIME y error con
+`role="alert"`. No parsea ni aplica datos: cada importador conserva autoridad
+sobre límites, preview, aprobación, transacción y reconciliación.
+
+El `<input type="file">` oculto es transporte, no la interfaz visible. Las dos
+familias restantes no se reemplazan en masa: documentos/cámara necesitan
+captura, preview, progreso, error y retry; imagen/branding además compresión y
+recorte. D2.4 sigue parcial por esas convergencias y por la auditoría pendiente
+de combobox/menús.
 
 ## Referencias de dirección
 

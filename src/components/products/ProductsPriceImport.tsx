@@ -2,6 +2,7 @@
 import { useAuth } from "@/lib/auth";
 import { updateProductDB, formatARS } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
+import FilePicker from "@/components/shared/FilePicker";
 import { toast } from "sonner";
 import { Upload, FileSpreadsheet, Check, X, Loader2, Download } from "lucide-react";
 
@@ -146,19 +147,21 @@ export default function ProductsPriceImport({ products, onDone }: Props) {
         <p>• Separador: coma, punto y coma, o tabulación</p>
       </div>
       <div className="flex gap-2">
-        <button onClick={() => inputRef.current?.click()}
-          className="flex-1 flex flex-col items-center justify-center gap-2 h-24 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors text-muted-foreground hover:text-primary">
-          <Upload className="w-6 h-6" />
-          <span className="text-sm font-medium">Seleccionar CSV</span>
-        </button>
+        <FilePicker
+          accept=".csv,.txt"
+          title="Seleccioná o arrastrá el CSV"
+          description="Precios por nombre, SKU o código de barras"
+          icon={Upload}
+          inputRef={inputRef}
+          className="flex-1"
+          onFile={handleFile}
+        />
         <button onClick={downloadTemplate}
           className="flex flex-col items-center justify-center gap-2 px-4 rounded-xl border border-border hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground">
           <Download className="w-5 h-5" />
           <span className="text-xs">Plantilla</span>
         </button>
       </div>
-      <input ref={inputRef} type="file" accept=".csv,.txt" className="hidden"
-        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
     </div>
   );
 
