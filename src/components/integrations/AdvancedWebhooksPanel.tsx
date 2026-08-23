@@ -12,13 +12,14 @@ import { useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
 import { toast } from "sonner";
 import {
-  Webhook, Plus, X, Save, Trash2, Edit2, CheckCircle, XCircle,
+  Webhook, Plus, Save, Trash2, Edit2, CheckCircle, XCircle,
   RefreshCw, Play, ChevronDown, ChevronUp, Shield, BarChart3, Info, Loader2, Link, Clock,
 } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -351,14 +352,13 @@ export default function AdvancedWebhooksPanel() {
         </p>
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-card border border-border/60 rounded-xl w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <h2 className="font-display font-bold">{editing ? 'Editar webhook' : 'Nuevo webhook'}</h2>
-              <button onClick={() => setShowForm(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
-            </div>
-            <div className="px-5 py-4 space-y-4">
+      <Sheet open={showForm} onOpenChange={setShowForm}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{editing ? 'Editar webhook' : 'Nuevo webhook'}</SheetTitle>
+            <SheetDescription>Configurá destino, eventos, seguridad y política de reintentos.</SheetDescription>
+          </SheetHeader>
+            <div className="space-y-4">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Nombre *</label>
                 <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="bg-muted" placeholder="Ej: Zapier — Nuevas ventas" autoFocus />
@@ -429,16 +429,15 @@ export default function AdvancedWebhooksPanel() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 px-5 pb-5">
+            <SheetFooter>
               <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancelar</Button>
               <Button className="flex-1 gradient-gold text-primary-foreground gap-1.5" onClick={handleSave} disabled={saving}>
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {editing ? 'Guardar' : 'Crear webhook'}
               </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {loading ? (
         <div className="flex justify-center py-10">

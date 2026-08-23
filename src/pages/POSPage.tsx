@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
@@ -344,18 +345,15 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-card border border-border/60 rounded-[10px] w-full max-w-sm shadow-2xl animate-fade-in">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <div className="flex items-center gap-2">
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent size="sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-green-400" />
-            <h2 className="font-display font-bold">Venta registrada</h2>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+            Venta registrada
+          </DialogTitle>
+          <DialogDescription>El ticket quedó persistido. Podés compartirlo o iniciar una nueva venta.</DialogDescription>
+        </DialogHeader>
 
         {/* Receipt body */}
         <div className="px-5 py-4 print:block" id="receipt-print">
@@ -497,8 +495,8 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
             <RotateCcw className="w-4 h-4" />Nueva venta
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -587,17 +585,17 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-card border border-border/60 rounded-[10px] w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <div className="flex items-center gap-2">
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent size="md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
             <Undo2 className="w-5 h-5 text-orange-400" />
-            <h2 className="font-semibold">Devolución rápida</h2>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
-        </div>
+            Devolución rápida
+          </DialogTitle>
+          <DialogDescription>Seleccioná la venta, cantidad, motivo y método de reintegro.</DialogDescription>
+        </DialogHeader>
 
-        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="space-y-4">
           {!selected ? (
             <>
               <div className="relative">
@@ -699,8 +697,8 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -2405,18 +2403,13 @@ export default function POSPage() {
     <>
       {/* Variant Picker modal */}
       {variantPickerProduct && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setVariantPickerProduct(null)}>
-          <div className="bg-card border border-border/60 rounded-[10px] w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-              <div className="min-w-0 mr-3">
-                <p className="text-sm font-semibold truncate">{variantPickerProduct.name}</p>
-                <p className="text-xs text-muted-foreground">Seleccioná una variante</p>
-              </div>
-              <button onClick={() => setVariantPickerProduct(null)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground shrink-0">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-4 space-y-2 max-h-72 overflow-y-auto">
+        <Dialog open onOpenChange={open => { if (!open) setVariantPickerProduct(null); }}>
+          <DialogContent size="sm">
+            <DialogHeader>
+              <DialogTitle className="truncate pr-6">{variantPickerProduct.name}</DialogTitle>
+              <DialogDescription>Seleccioná una variante con stock disponible.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 max-h-72 overflow-y-auto">
               {(variantsByProduct[variantPickerProduct.id] || []).map(v => {
                 const outOfStock = v.stock <= 0;
                 const onlineReserved = Number(onlineReservations[reservationKey(variantPickerProduct.id, v.id)] ?? 0);
@@ -2447,7 +2440,7 @@ export default function POSPage() {
                 );
               })}
             </div>
-            <div className="px-4 pb-4">
+            <div>
               {Number(onlineReservations[variantPickerProduct.id] ?? 0) > 0 && (
                 <p className="pb-2 text-xs text-amber-500">
                   {onlineReservations[variantPickerProduct.id]} u. reservada{onlineReservations[variantPickerProduct.id] === 1 ? "" : "s"} sin variante específica
@@ -2460,8 +2453,8 @@ export default function POSPage() {
                 Sin variante específica (stock total: {variantPickerProduct.stock})
               </button>
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Quick Return modal */}
@@ -2474,14 +2467,13 @@ export default function POSPage() {
       )}
 
       {/* Turno summary modal */}
-      {showTurnoSummary && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card border border-border/60 rounded-[10px] w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <h2 className="font-display font-bold flex items-center gap-2"><BarChart2 className="w-4 h-4 text-primary" />Resumen del turno</h2>
-              <button onClick={() => setShowTurnoSummary(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="p-4 space-y-4">
+      <Dialog open={showTurnoSummary} onOpenChange={setShowTurnoSummary}>
+          <DialogContent size="md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><BarChart2 className="w-4 h-4 text-primary" />Resumen del turno</DialogTitle>
+              <DialogDescription>Ventas, medios de pago y responsable registrados en este dispositivo.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
               {/* KPIs */}
               <div className="grid grid-cols-3 gap-3">
                 {[
@@ -2530,17 +2522,16 @@ export default function POSPage() {
               </div>
               {sellerName && <p className="text-[11px] text-muted-foreground text-center">Vendedor: <span className="font-semibold">{sellerName}</span></p>}
             </div>
-            <div className="p-4 pt-0 flex gap-2">
+            <DialogFooter>
               <Button variant="outline" className="flex-1" onClick={() => { setTurnoSales([]); setShowTurnoSummary(false); toast.success("Turno reiniciado"); }}>
                 Reiniciar turno
               </Button>
               <Button className="flex-1 gradient-gold text-primary-foreground font-semibold" onClick={() => setShowTurnoSummary(false)}>
                 Continuar
               </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogFooter>
+          </DialogContent>
+      </Dialog>
 
       {/* Receipt modal */}
       {receipt && (
@@ -2580,11 +2571,12 @@ export default function POSPage() {
       )}
 
       {/* Seller prompt dialog */}
-      {showSellerPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-card border border-border/60 rounded-[10px] shadow-2xl p-6 w-full max-w-sm mx-4">
-            <h2 className="text-lg font-bold font-display mb-1">¿Quién atiende hoy?</h2>
-            <p className="text-xs text-muted-foreground mb-4">El nombre del vendedor se registrará en cada venta del turno.</p>
+      <Dialog open={showSellerPrompt} onOpenChange={setShowSellerPrompt}>
+          <DialogContent size="sm">
+            <DialogHeader>
+              <DialogTitle>¿Quién atiende hoy?</DialogTitle>
+              <DialogDescription>El nombre del vendedor se registrará en cada venta del turno.</DialogDescription>
+            </DialogHeader>
             <input
               type="text"
               value={sellerInput}
@@ -2601,7 +2593,7 @@ export default function POSPage() {
                 }
               }}
             />
-            <div className="flex gap-2">
+            <DialogFooter>
               <Button
                 className="flex-1 gradient-gold text-primary-foreground"
                 onClick={() => {
@@ -2616,10 +2608,9 @@ export default function POSPage() {
                 Confirmar
               </Button>
               <Button variant="ghost" onClick={() => setShowSellerPrompt(false)}>Omitir</Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogFooter>
+          </DialogContent>
+      </Dialog>
 
       <div className={`h-[calc(100vh-4rem)] lg:h-screen flex flex-col ${posTheme === 'light' ? 'bg-white text-gray-900 [&_.bg-card]:bg-gray-50 [&_.bg-muted]:bg-gray-100 [&_.border-border]:border-gray-200 [&_.text-muted-foreground]:text-gray-500 [&_.text-foreground]:text-gray-900' : ''}`}>
         {/* Offline / sync banner */}
@@ -2928,23 +2919,14 @@ export default function POSPage() {
       </div>
 
       {/* ── Keyboard shortcuts overlay ─────────────────────────── */}
-      {showShortcutHelp && (
-        <div
-          className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setShowShortcutHelp(false)}
-        >
-          <div
-            className="bg-card border border-border/60 rounded-2xl shadow-2xl p-6 w-full max-w-md"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display font-bold flex items-center gap-2">
+      <Dialog open={showShortcutHelp} onOpenChange={setShowShortcutHelp}>
+          <DialogContent size="md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
                 <Keyboard className="w-4 h-4 text-primary" />Atajos de teclado POS
-              </h2>
-              <button onClick={() => setShowShortcutHelp(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+              </DialogTitle>
+              <DialogDescription>Acciones rápidas disponibles cuando el foco no está en un campo de texto.</DialogDescription>
+            </DialogHeader>
             <div className="space-y-1.5">
               {([
                 ["F2", "Enfocar búsqueda de productos"],
@@ -2965,9 +2947,8 @@ export default function POSPage() {
             <p className="text-[10px] text-muted-foreground mt-4 border-t border-border/40 pt-3">
               Los atajos no funcionan cuando el foco está en un campo de texto. Presioná Escape para cerrar.
             </p>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
     </>
   );
 }

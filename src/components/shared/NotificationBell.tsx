@@ -3,6 +3,7 @@ import { Bell, Package, AlertTriangle, DollarSign, Info, Check, Trash2, Shopping
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const TYPE_CONFIG: Record<string, { icon: typeof Bell; color: string; bg: string }> = {
   stock_bajo: { icon: Package, color: 'text-orange-400', bg: 'bg-orange-500/10' },
@@ -97,27 +98,25 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
   };
 
   return (
-    <div className="relative">
-      <Button
-        variant="ghost"
-        size="sm"
-        className={`relative ${collapsed ? 'w-full justify-center' : 'w-full justify-start'} text-sidebar-foreground hover:bg-sidebar-accent`}
-        onClick={() => setOpen(!open)}
-        title={collapsed ? `Notificaciones (${unreadCount})` : undefined}
-      >
-        <Bell className="w-4 h-4 shrink-0" />
-        {!collapsed && <span className="ml-2 text-sm">Notificaciones</span>}
-        {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
-        )}
-      </Button>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`relative ${collapsed ? 'w-full justify-center' : 'w-full justify-start'} text-sidebar-foreground hover:bg-sidebar-accent`}
+          title={collapsed ? `Notificaciones (${unreadCount})` : undefined}
+        >
+          <Bell className="w-4 h-4 shrink-0" />
+          {!collapsed && <span className="ml-2 text-sm">Notificaciones</span>}
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
-          <div className="absolute bottom-full left-0 mb-2 w-80 max-h-[420px] bg-card border border-border/60 rounded-xl shadow-2xl z-[70] overflow-hidden flex flex-col animate-in slide-in-from-bottom-2 duration-200">
+          <PopoverContent side="right" align="end" sideOffset={8} className="w-80 max-h-[min(420px,calc(100vh-2rem))] p-0 overflow-hidden flex flex-col">
             {/* Header */}
             <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
               <h3 className="font-display font-semibold text-sm">Notificaciones</h3>
@@ -172,9 +171,7 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
                 })
               )}
             </div>
-          </div>
-        </>
-      )}
-    </div>
+          </PopoverContent>
+    </Popover>
   );
 }

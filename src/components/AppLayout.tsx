@@ -3,6 +3,7 @@ import { PAGE_GUIDES } from "@/data/pageGuides";
 import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Bell, Tag, Calendar, Layers, ArrowRightLeft, UserPlus, Trophy, Share2, ScanBarcode, Users2, Scale, Globe, Warehouse, LineChart, Shield, ChevronRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
 import { useUserRole } from "@/lib/useUserRole";
 import { useOrg } from "@/lib/orgContext";
@@ -199,22 +200,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="workspace-shell flex min-h-screen">
       {/* ── Idle session lock overlay ────────────────────────────── */}
-      {idleLocked && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md">
-          <div className="bg-card border border-border/60 rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl animate-fade-in">
+      <Dialog open={idleLocked}>
+        <DialogContent
+          size="sm"
+          hideClose
+          overlayClassName="z-[190]"
+          className="z-[200] text-center"
+          onEscapeKeyDown={event => event.preventDefault()}
+          onPointerDownOutside={event => event.preventDefault()}
+        >
             <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-7 h-7 text-primary" />
             </div>
-            <h2 className="text-lg font-display font-bold mb-2">Sesion bloqueada</h2>
-            <p className="text-sm text-muted-foreground mb-6">
+            <DialogTitle>Sesión bloqueada</DialogTitle>
+            <DialogDescription className="mt-2 mb-6">
               La sesion se bloqueo por inactividad. Hace clic para continuar.
-            </p>
+            </DialogDescription>
             <Button className="w-full gradient-gold text-primary-foreground font-semibold" onClick={() => setIdleLocked(false)}>
               Continuar
             </Button>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {mobileOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden" onClick={() => setMobileOpen(false)} />

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PageHeader from "@/components/shared/PageHeader";
 import {
   DollarSign, TrendingUp, TrendingDown, RefreshCw, Plus, ArrowRight,
@@ -463,14 +464,12 @@ export default function MultiCurrencyPage() {
       {tab === "history" && <CurrencyHistoryTab />}
 
       {/* ─── Add rate dialog ─── */}
-      {showAddRate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-card border border-border/60 rounded-2xl w-full max-w-sm shadow-2xl">
-            <div className="px-6 py-4 border-b border-border/40 flex items-center justify-between">
-              <h3 className="font-semibold">Agregar Tipo de Cambio</h3>
-              <button onClick={() => setShowAddRate(false)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
-            </div>
-            <div className="p-6 space-y-4">
+      <Dialog open={showAddRate} onOpenChange={setShowAddRate}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Agregar tipo de cambio</DialogTitle>
+          </DialogHeader>
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1.5 block">De</label>
@@ -502,13 +501,12 @@ export default function MultiCurrencyPage() {
                 <Input type="number" value={newRate.rate} onChange={e => setNewRate(p => ({ ...p, rate: e.target.value }))} placeholder="1285.00" className="h-9 font-mono" step="0.01" />
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-border/40 flex gap-3 justify-end">
+            <DialogFooter>
               <Button variant="outline" onClick={() => setShowAddRate(false)}>Cancelar</Button>
               <Button onClick={addRate} disabled={!newRate.rate} className="gradient-gold text-primary-foreground">Guardar Tasa</Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -24,6 +24,7 @@ import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderMod
 import { useContactPicker } from "@/hooks/useContactPicker";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import UnlinkedSalesPanel from "@/components/customers/UnlinkedSalesPanel";
@@ -303,11 +304,11 @@ function CustomerFormModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-card border border-border/60 rounded-[10px] w-full max-w-md shadow-2xl animate-fade-in">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <h2 className="font-display font-bold">{initial?.id ? "Editar cliente" : "Nuevo cliente"}</h2>
-          <div className="flex items-center gap-2">
+    <Sheet open onOpenChange={open => { if (!open) onClose(); }}>
+      <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+        <SheetHeader className="pr-8">
+          <div className="flex items-center justify-between gap-3">
+            <SheetTitle>{initial?.id ? "Editar cliente" : "Nuevo cliente"}</SheetTitle>
             {contactsSupported && !initial?.id && (
               <button
                 type="button"
@@ -320,13 +321,11 @@ function CustomerFormModal({
                 {picking ? "Abriendo…" : "Desde contactos"}
               </button>
             )}
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-              <X className="w-4 h-4" />
-            </button>
           </div>
-        </div>
+          <SheetDescription>Identidad, contacto, preferencias y campos propios en una sola ficha.</SheetDescription>
+        </SheetHeader>
 
-        <div className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
+        <div className="space-y-3">
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Nombre *</label>
             <Input
@@ -517,15 +516,15 @@ function CustomerFormModal({
           )}
         </div>
 
-        <div className="flex gap-2 px-5 pb-5">
+        <SheetFooter>
           <Button variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
           <Button className="flex-1 gradient-gold text-primary-foreground gap-1.5" onClick={handleSave} disabled={saving}>
             {saving ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
             {initial?.id ? "Guardar cambios" : "Crear cliente"}
           </Button>
-        </div>
-      </div>
-    </div>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 

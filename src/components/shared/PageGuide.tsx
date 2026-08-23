@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { HelpCircle, X, ChevronRight, Sparkles, Lightbulb } from "lucide-react";
+import { HelpCircle, ChevronRight, Sparkles, Lightbulb } from "lucide-react";
 import { PAGE_GUIDES } from "@/data/pageGuides";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 
 // ── Tag badge styles ──────────────────────────────────────────────────────────
 const TAG_STYLES: Record<string, string> = {
@@ -82,7 +83,7 @@ export default function PageGuide() {
   if (!guide) return null;
 
   return (
-    <>
+    <Sheet open={open} onOpenChange={setOpen}>
       {/* ── Floating trigger button ─────────────────────────────────────── */}
       <button
         onClick={handleOpen}
@@ -104,34 +105,19 @@ export default function PageGuide() {
       </button>
 
       {/* ── Sheet panel ─────────────────────────────────────────────────── */}
-      {open && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
-            onClick={() => setOpen(false)}
-          />
-
-          {/* Panel */}
-          <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-[360px] flex flex-col bg-card border-l border-border/60 shadow-2xl animate-in slide-in-from-right duration-200">
+          <SheetContent side="right" className="w-full sm:max-w-[360px] p-0 flex flex-col">
 
             {/* Header */}
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">
+            <div className="flex items-center gap-3 px-5 py-4 pr-12 border-b border-border bg-muted/30">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <Lightbulb className="w-4 h-4 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="font-semibold text-sm truncate">{guide.title}</h2>
+                <SheetTitle className="text-sm truncate">{guide.title}</SheetTitle>
                 {guide.subtitle && (
-                  <p className="text-[11px] text-muted-foreground truncate">{guide.subtitle}</p>
+                  <SheetDescription className="text-[11px] truncate">{guide.subtitle}</SheetDescription>
                 )}
               </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="shrink-0 p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
 
             {/* Body */}
@@ -187,9 +173,7 @@ export default function PageGuide() {
               </div>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
             </div>
-          </div>
-        </>
-      )}
-    </>
+          </SheetContent>
+    </Sheet>
   );
 }

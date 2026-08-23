@@ -255,6 +255,22 @@ red se puede leer lo ya cargado, pero las escrituras documentales y físicas se
 deshabilitan. Las rutas restantes se migran por riesgo, no con un reemplazo
 masivo sin revisar recuperación y permisos.
 
+### Overlays canónicos D2.6
+
+Dialog, Sheet y Popover son autoridad de foco, Escape, click exterior, retorno
+al disparador, overlay, animación y z-index. D2.6 retiró 16 implementaciones
+manuales de 11 archivos de Gestión: formularios largos conservan contexto en
+Sheet, decisiones/resultados breves usan Dialog y notificaciones contextuales
+usan Popover. `DialogContent` ofrece tamaños `sm/md/lg/xl/full` y `hideClose`
+para un gate como el bloqueo por inactividad, que además cancela Escape/click
+exterior explícitamente.
+
+La allowlist automática conserva sólo cuatro fullscreen que no son modales de
+formulario: backdrop del rail mobile y cámara activa en POS, Compras y conteo.
+Sumar otro `fixed inset-0` en Gestión rompe CI; primero debe clasificarse con el
+árbol de decisión del estándar competitivo. Storefront se audita en D5 porque
+su carrito y navegación mobile pertenecen a la superficie pública.
+
 ## Referencias de dirección
 
 - [CRM app con clientes, deals y tareas](https://www.figma.com/design/y3iW4vARslK39hLDzTj37D/CRM-app-with-customers--deals--nested-data--tasks-and-menu-filtering--Community-)

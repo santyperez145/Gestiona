@@ -99,6 +99,10 @@ Medición del código al 2026-08-22:
 - `WorkspaceState` declara los 12 estados del estándar y D2.5 ya migra
   Finance/Compras: skeleton inicial, refresh no bloqueante, primer uso, filtro
   vacío, error, offline, stale, parcial y éxito bajo 6 guardas accesibles;
+- D2.6 retiró 16 overlays manuales de 11 archivos del SaaS: altas/ediciones,
+  detalle, resultado, ayuda, notificaciones y sesión usan ahora Dialog, Sheet o
+  Popover con foco y cierre canónicos. Sólo quedan cuatro fullscreen técnicos
+  fijados por test: backdrop del rail mobile y cámaras de POS, Compras y conteo;
 - la validación visual autenticada desktop/mobile sigue pendiente de una sesión
   de prueba disponible en esta PC.
 
@@ -188,7 +192,9 @@ y justifica tecnología; no copia un Figma ni instala por moda.
 - [ ] D2.5 — **parcial 2026-08-22:** `WorkspaceState` cubre los 12 estados;
   Finance/Compras ya migraron carga, refresh, vacíos, error, offline, stale,
   parcial y éxito. Falta adopción por riesgo en el resto del SaaS.
-- [ ] D2.6: retirar modales manuales que duplican Dialog/Sheet/Drawer.
+- [x] D2.6 — **cerrado en Gestión 2026-08-22:** 16 overlays manuales migrados a
+  Dialog/Sheet/Popover; cuatro excepciones técnicas fullscreen enumeradas y una
+  guarda recursiva impide sumar otra. Storefront se audita dentro de D5.
 
 **Salida:** una interacción base se corrige una vez y mejora toda la plataforma.
 
@@ -317,7 +323,7 @@ declara validado porque “se ve mejor”.
 | 4 | Selects de componentes + decisión Storefront | Hecho 2026-08-22 | 10 migrados; SaaS en cero y 3 excepciones públicas bajo guarda. |
 | 5 | Estándar integral competitivo | Hecho 2026-08-22 | 17 referencias oficiales (7 globales, 4 Finance/spend y 6 argentinas), 4 Figma observados, arquetipos, overlays, segmentación, matriz de cobertura y puerta tecnológica bajo guarda CI. |
 | 6 | Estados unificados | Parcial 2026-08-22 | Contrato de 12 estados + 6 guardas; Finance/Compras migrados sin confundir vacío/error/parcial. Faltan rutas restantes y matriz visual. |
-| 7 | Modales, sheets y drawers | Pendiente | Inventario clasificado con árbol de decisión; sin overlays manuales en gestión. |
+| 7 | Modales, sheets y drawers | Hecho en Gestión 2026-08-22 | 16 overlays de 11 archivos migrados; tamaños canónicos, focus trap y cierre accesible. Sólo rail mobile + 3 scanners fullscreen quedan bajo allowlist CI; Storefront pertenece a D5. |
 | 8 | Productos end-to-end | Pendiente | Desktop/mobile + editor/importación. |
 | 9 | Ventas y devolución | Pendiente | Lista→detalle→acción sin perder filtros. |
 | 10 | POS teclado/touch/offline | Pendiente | Cobro y recuperación medidos. |

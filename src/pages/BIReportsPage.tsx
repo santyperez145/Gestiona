@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   BarChart3, TrendingUp, PieChart, LineChart, Plus, Download, Share2,
   Play, Search, Star, Clock, Filter, RefreshCw, Calendar,
@@ -574,14 +575,12 @@ export default function BIReportsPage() {
       )}
 
       {/* ─── New Report dialog ─── */}
-      {showNewDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-card border border-border/60 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="px-6 py-4 border-b border-border/40 flex items-center justify-between">
-              <h3 className="font-semibold flex items-center gap-2"><Plus className="w-4 h-4 text-primary" />Nuevo Reporte</h3>
-              <button onClick={() => setShowNewDialog(false)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
-            </div>
-            <div className="p-6 space-y-4">
+      <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Plus className="w-4 h-4 text-primary" />Nuevo reporte</DialogTitle>
+          </DialogHeader>
+            <div className="space-y-4">
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">Nombre del reporte</label>
                 <Input value={newReport.name} onChange={e => setNewReport(p => ({ ...p, name: e.target.value }))} placeholder="Ej: Revenue semanal por vendedor" className="h-9" />
@@ -608,7 +607,7 @@ export default function BIReportsPage() {
                 </div>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-border/40 flex gap-3 justify-end">
+            <DialogFooter>
               <Button variant="outline" onClick={() => setShowNewDialog(false)}>Cancelar</Button>
               <Button onClick={async () => {
                 if (!newReport.name || !orgId) return;
@@ -623,10 +622,9 @@ export default function BIReportsPage() {
                 disabled={!newReport.name} className="gradient-gold text-primary-foreground">
                 Crear Reporte
               </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

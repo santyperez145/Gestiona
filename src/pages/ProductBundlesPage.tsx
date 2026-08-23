@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast as toastFn } from "sonner";
 
 interface Bundle {
@@ -242,14 +243,12 @@ export default function ProductBundlesPage() {
       </div>
 
       {/* Form dialog */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-card border border-border/60 rounded-xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <h2 className="font-display font-bold">{editing ? 'Editar bundle' : 'Nuevo bundle'}</h2>
-              <button onClick={() => setShowForm(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
-            </div>
-            <div className="px-5 py-4 space-y-3">
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Editar bundle' : 'Nuevo bundle'}</DialogTitle>
+          </DialogHeader>
+            <div className="space-y-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Nombre *</label>
                 <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="bg-muted" placeholder="Ej: Kit de Bienvenida, Pack Premium..." autoFocus />
@@ -273,16 +272,15 @@ export default function ProductBundlesPage() {
                 </label>
               </div>
             </div>
-            <div className="flex gap-2 px-5 pb-5">
+            <DialogFooter>
               <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancelar</Button>
               <Button className="flex-1 gradient-gold text-primary-foreground gap-1.5" onClick={handleSave} disabled={saving}>
                 {saving ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
                 {editing ? 'Guardar' : 'Crear bundle'}
               </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Bundle list */}
       {loading ? (

@@ -32,12 +32,27 @@ const DialogOverlay = React.forwardRef<
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 // ── Content ───────────────────────────────────────────────────────────────────
+const dialogSizeClasses = {
+  sm: "max-w-sm",
+  md: "max-w-lg",
+  lg: "max-w-2xl",
+  xl: "max-w-4xl",
+  full: "max-w-[calc(100vw-1.5rem)]",
+} as const;
+
+interface DialogContentProps
+  extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+  size?: keyof typeof dialogSizeClasses;
+  hideClose?: boolean;
+  overlayClassName?: string;
+}
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  DialogContentProps
+>(({ className, children, size = "md", hideClose = false, overlayClassName, ...props }, ref) => (
   <DialogPortal>
-    <DialogOverlay />
+    <DialogOverlay className={overlayClassName} />
     <DialogPrimitive.Content
       ref={ref}
       aria-describedby={undefined}
@@ -45,7 +60,8 @@ const DialogContent = React.forwardRef<
       className={cn(
         // Layout
         "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
-        "w-[calc(100vw-1.5rem)] max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto",
+        "w-[calc(100vw-1.5rem)] max-h-[calc(100vh-2rem)] overflow-y-auto",
+        dialogSizeClasses[size],
         // Appearance — popover surface, elevated
         "rounded-[14px] border border-border/80",
         "bg-popover",
@@ -69,20 +85,22 @@ const DialogContent = React.forwardRef<
       {children}
 
       {/* Close button — small, unobtrusive */}
-      <DialogPrimitive.Close
-        className={cn(
-          "absolute right-4 top-4",
-          "flex h-6 w-6 items-center justify-center rounded-[5px]",
-          "text-muted-foreground/50 border border-border/40",
-          "hover:text-foreground hover:border-border/70 hover:bg-muted/50",
-          "transition-all duration-150",
-          "focus:outline-none focus:ring-1 focus:ring-ring",
-          "disabled:pointer-events-none",
-        )}
-      >
-        <X className="h-3.5 w-3.5" />
-        <span className="sr-only">Cerrar</span>
-      </DialogPrimitive.Close>
+      {!hideClose && (
+        <DialogPrimitive.Close
+          className={cn(
+            "absolute right-4 top-4",
+            "flex h-6 w-6 items-center justify-center rounded-[5px]",
+            "text-muted-foreground/50 border border-border/40",
+            "hover:text-foreground hover:border-border/70 hover:bg-muted/50",
+            "transition-all duration-150",
+            "focus:outline-none focus:ring-1 focus:ring-ring",
+            "disabled:pointer-events-none",
+          )}
+        >
+          <X className="h-3.5 w-3.5" />
+          <span className="sr-only">Cerrar</span>
+        </DialogPrimitive.Close>
+      )}
     </DialogPrimitive.Content>
   </DialogPortal>
 ));

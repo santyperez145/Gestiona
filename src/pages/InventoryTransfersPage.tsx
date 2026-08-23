@@ -4,7 +4,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
 import { toast } from "sonner";
 import {
-  ArrowRightLeft, Plus, X, Save, Search, Trash2, Edit2,
+  ArrowRightLeft, Plus, Save, Search, Trash2, Edit2,
   CheckCircle, Clock, Truck, XCircle, RefreshCw, Package,
   ChevronDown, ChevronUp, MapPin, FileText, AlertTriangle, Loader2
 } from "lucide-react";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -285,14 +286,12 @@ export default function InventoryTransfersPage() {
       </div>
 
       {/* Create form dialog */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-card border border-border/60 rounded-xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <h2 className="font-display font-bold">Nueva transferencia</h2>
-              <button onClick={() => setShowForm(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
-            </div>
-            <div className="px-5 py-4 space-y-3">
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle>Nueva transferencia</DialogTitle>
+          </DialogHeader>
+            <div className="space-y-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><MapPin className="w-3 h-3" />Origen *</label>
                 {locations.length > 0 ? (
@@ -331,16 +330,15 @@ export default function InventoryTransfersPage() {
                 <Input value={form.created_by} onChange={e => setForm(f => ({ ...f, created_by: e.target.value }))} className="bg-muted" placeholder="Nombre del responsable" />
               </div>
             </div>
-            <div className="flex gap-2 px-5 pb-5">
+            <DialogFooter>
               <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancelar</Button>
               <Button className="flex-1 gradient-gold text-primary-foreground gap-1.5" onClick={handleCreate} disabled={saving}>
                 {saving ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
                 Crear y agregar productos
               </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Transfer list */}
       {loading ? (

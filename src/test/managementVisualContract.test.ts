@@ -100,4 +100,25 @@ describe('contrato visual transversal de Gestión', () => {
         'StoreProducts.tsx': 1,
       });
   });
+
+  it('los overlays de Gestión usan primitives y sólo conserva fullscreen técnicos explícitos', () => {
+    const componentOverlays = tsxFiles('src/components')
+      .filter(path => !path.startsWith('ui/'))
+      .map(path => [`components/${path}`, source(`src/components/${path}`).match(/fixed\s+inset-0/g)?.length || 0] as const);
+    const pageOverlays = readdirSync(resolve(process.cwd(), 'src/pages'))
+      .filter(path => path.endsWith('.tsx') && !path.startsWith('Public'))
+      .map(path => [`pages/${path}`, source(`src/pages/${path}`).match(/fixed\s+inset-0/g)?.length || 0] as const);
+
+    const exceptions = Object.fromEntries(
+      [...componentOverlays, ...pageOverlays].filter(([, count]) => count > 0),
+    );
+
+    expect(exceptions, 'Un modal manual volvió a duplicar Dialog/Sheet/Popover')
+      .toEqual({
+        'components/AppLayout.tsx': 1, // backdrop del rail mobile, no modal
+        'components/inventory/StockCountTab.tsx': 1, // cámara fullscreen
+        'pages/POSPage.tsx': 1, // cámara fullscreen del POS
+        'pages/PurchasesPage.tsx': 1, // cámara fullscreen de compras
+      });
+  });
 });

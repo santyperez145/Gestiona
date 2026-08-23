@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import {
-  Zap, Plus, X, Save, Search, Trash2, Edit2, Clock, CheckCircle,
+  Zap, Plus, Save, Search, Trash2, Edit2, Clock, CheckCircle,
   PauseCircle, XCircle, RefreshCw, Tag, DollarSign, Users,
   ChevronDown, ChevronUp, Calendar, Copy, BarChart3, Percent,
   Gift, ShoppingBag, Timer, Play, ArrowRight
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { format, formatDistanceToNow, differenceInSeconds, isPast, isFuture } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -319,14 +320,13 @@ export default function PromotionsPage() {
       </div>
 
       {/* Form Dialog */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-card border border-border/60 rounded-xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <h2 className="font-display font-bold">{editing ? 'Editar promoción' : 'Nueva promoción'}</h2>
-              <button onClick={() => setShowForm(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
-            </div>
-            <div className="px-5 py-4 space-y-3">
+      <Sheet open={showForm} onOpenChange={setShowForm}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{editing ? 'Editar promoción' : 'Nueva promoción'}</SheetTitle>
+            <SheetDescription>Definí alcance, vigencia y comunicación sin perder la lista de campañas.</SheetDescription>
+          </SheetHeader>
+            <div className="space-y-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Nombre *</label>
                 <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="bg-muted" placeholder="Ej: Cyber Monday, 2x1 en Perfumes..." autoFocus />
@@ -415,16 +415,15 @@ export default function PromotionsPage() {
               </div>
             )}
 
-            <div className="flex gap-2 px-5 pb-5">
+            <SheetFooter>
               <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancelar</Button>
               <Button className="flex-1 gradient-gold text-primary-foreground gap-1.5" onClick={handleSave} disabled={saving}>
                 {saving ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
                 {editing ? 'Guardar' : 'Crear promoción'}
               </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* List */}
       {loading ? (
