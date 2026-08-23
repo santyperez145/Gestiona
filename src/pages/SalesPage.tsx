@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown, Share2, MessageCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronUp, ChevronDown, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown, Share2, MessageCircle, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
 import { useUserRole } from "@/lib/useUserRole";
 import PageHeader from "@/components/shared/PageHeader";
+import DataPagination from "@/components/shared/DataPagination";
 import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import KPICard from "@/components/shared/KPICard";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
@@ -1409,17 +1410,14 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             </div>
           )}
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-4">
-              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="text-sm text-muted-foreground">{page + 1} / {totalPages}</span>
-              <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
+          <DataPagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={filteredSorted.length}
+            pageSize={PAGE_SIZE}
+            itemLabel="ventas"
+            onPageChange={setPage}
+          />
         </>
       )}
       </>

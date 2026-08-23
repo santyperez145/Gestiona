@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale, Loader2, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale, Loader2, ExternalLink } from "lucide-react";
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { recommendSimilar } from "@/lib/perfumeMatch";
 import { normalizeText, literalFilter } from "@/lib/searchText";
@@ -23,6 +23,7 @@ import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDisc
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
 import PageHeader from "@/components/shared/PageHeader";
 import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
+import DataPagination from "@/components/shared/DataPagination";
 import CalidadPublicaciones, { BadgeCalidad } from "@/components/products/CalidadPublicaciones";
 import CompletarPesos from "@/components/products/CompletarPesos";
 import CategorySelect, { useOrgCategories } from "@/components/products/CategorySelect";
@@ -1537,17 +1538,14 @@ export default function ProductsPage() {
               </div>
             </div>
           ))}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-4">
-              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="text-sm text-muted-foreground">{page + 1} / {totalPages}</span>
-              <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
+          <DataPagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={brandKeys.length}
+            pageSize={PAGE_SIZE}
+            itemLabel="marcas"
+            onPageChange={setPage}
+          />
         </>
       )}
 

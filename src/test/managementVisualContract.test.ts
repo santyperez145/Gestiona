@@ -47,6 +47,17 @@ describe('contrato visual transversal de Gestión', () => {
     expect(source('src/components/ui/card.tsx')).toContain('rounded-[12px]');
     expect(source('src/components/ui/table.tsx')).toContain('bg-primary/[0.035]');
     expect(source('src/components/shared/EmptyState.tsx')).toContain('border-dashed border-primary/20');
+    expect(source('src/components/shared/DataPagination.tsx')).toContain('aria-live="polite"');
+    for (const path of [
+      'src/pages/AdminPage.tsx',
+      'src/pages/ProductsPage.tsx',
+      'src/pages/PurchasesPage.tsx',
+      'src/pages/ReportsPage.tsx',
+      'src/pages/SalesPage.tsx',
+    ]) {
+      expect(source(path), `${path} volvió a paginar con controles propios`)
+        .toContain('<DataPagination');
+    }
   });
 
   it('el wrapper universal alcanza también a páginas que aún no declaran workspace-page', () => {

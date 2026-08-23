@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import DataPagination from "@/components/shared/DataPagination";
 import ActivityFeedTab from "@/components/admin/ActivityFeedTab";
 import PermissionsTab from "@/components/admin/PermissionsTab";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
@@ -709,13 +710,14 @@ function SystemAuditLogTab() {
                 )}
               </div>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-3 pt-2">
-                  <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Anterior</Button>
-                  <span className="text-sm text-muted-foreground">Pág. {page + 1} / {totalPages}</span>
-                  <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Siguiente</Button>
-                </div>
-              )}
+              <DataPagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={total}
+                pageSize={PAGE_SIZE}
+                itemLabel="eventos"
+                onPageChange={setPage}
+              />
             </>
           )}
 

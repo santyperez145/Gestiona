@@ -271,6 +271,21 @@ Sumar otro `fixed inset-0` en Gestión rompe CI; primero debe clasificarse con e
 árbol de decisión del estándar competitivo. Storefront se audita en D5 porque
 su carrito y navegación mobile pertenecen a la superficie pública.
 
+### Paginación canónica D2.4
+
+`DataPagination` es la autoridad visual para listas paginadas. Recibe página
+base cero, total de páginas y callback; si conoce total y tamaño, explica el
+rango real (`41–53 de 53`) sin inventar registros en páginas vacías. Normaliza
+límites, no aparece cuando hay una sola página y expone anterior/siguiente con
+texto, icono, estado disabled, `nav` y actualización `aria-live`.
+
+Admin, Productos, Compras, Reportes y Ventas retiraron cinco paginadores
+locales. La página conserva autoridad sobre query, filtros y `setPage(0)`; el
+componente sólo normaliza navegación y presentación. La guarda visual exige el
+primitive en los cinco listados. D2.4 sigue parcial: al corte quedan 83 campos
+date/datetime/month en 46 archivos y 16 inputs de archivo por clasificar antes
+de decidir cuáles deben converger y cuáles son excepciones nativas deliberadas.
+
 ## Referencias de dirección
 
 - [CRM app con clientes, deals y tareas](https://www.figma.com/design/y3iW4vARslK39hLDzTj37D/CRM-app-with-customers--deals--nested-data--tasks-and-menu-filtering--Community-)
