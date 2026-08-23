@@ -19,6 +19,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
@@ -635,11 +636,11 @@ export default function AnalyticsPage() {
             <div className="flex flex-wrap items-center gap-3 mb-4">
               <h3 className="text-sm font-semibold flex-1">Detalle por día — rango personalizado</h3>
               <div className="flex items-center gap-2 text-xs">
-                <input type="date" value={trendFrom} max={trendTo} onChange={e => setTrendFrom(e.target.value)}
-                  className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground" />
+                <Input type="date" value={trendFrom} max={trendTo} onChange={e => setTrendFrom(e.target.value)}
+                  className="h-8 w-36 px-2 text-xs" aria-label="Inicio del rango de tendencia" />
                 <span className="text-muted-foreground">→</span>
-                <input type="date" value={trendTo} min={trendFrom} max={new Date().toISOString().slice(0,10)} onChange={e => setTrendTo(e.target.value)}
-                  className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground" />
+                <Input type="date" value={trendTo} min={trendFrom} max={new Date().toISOString().slice(0,10)} onChange={e => setTrendTo(e.target.value)}
+                  className="h-8 w-36 px-2 text-xs" aria-label="Fin del rango de tendencia" />
               </div>
             </div>
             <ResponsiveContainer width="100%" height={220}>

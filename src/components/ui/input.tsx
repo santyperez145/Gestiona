@@ -27,6 +27,10 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           "disabled:cursor-not-allowed disabled:opacity-40",
           // ── File input ────────────────────────────────────────────────
           "file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
+          // ── Native temporal controls — keep OS/mobile semantics, align theme ─
+          "[&[type=date]]:[color-scheme:light] [&[type=datetime-local]]:[color-scheme:light] [&[type=month]]:[color-scheme:light]",
+          "dark:[&[type=date]]:[color-scheme:dark] dark:[&[type=datetime-local]]:[color-scheme:dark] dark:[&[type=month]]:[color-scheme:dark]",
+          "[&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-65",
           // ── Number input — hide spinners ──────────────────────────────
           "[&[type=number]]:[-moz-appearance:textfield]",
           "[&[type=number]]::[&::-webkit-outer-spin-button]:appearance-none",

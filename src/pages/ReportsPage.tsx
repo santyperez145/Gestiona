@@ -2203,14 +2203,14 @@ function ProductProfitabilityTab({ sales, allSales }: { sales: any[]; allSales: 
           <ArrowUpDown className="w-4 h-4 text-primary shrink-0" />
           <div className="flex items-center gap-2">
             <label className="text-xs text-muted-foreground font-medium">Período A:</label>
-            <input type="month" value={periodA} onChange={e => setPeriodA(e.target.value)}
-              className="bg-card border border-border/60 rounded-[10px] px-2 py-1 text-xs" />
+            <Input type="month" value={periodA} onChange={e => setPeriodA(e.target.value)}
+              className="h-8 w-32 px-2 text-xs" aria-label="Período A" />
           </div>
           <span className="text-muted-foreground text-xs">vs</span>
           <div className="flex items-center gap-2">
             <label className="text-xs text-muted-foreground font-medium">Período B:</label>
-            <input type="month" value={periodB} onChange={e => setPeriodB(e.target.value)}
-              className="bg-card border border-border/60 rounded-[10px] px-2 py-1 text-xs" />
+            <Input type="month" value={periodB} onChange={e => setPeriodB(e.target.value)}
+              className="h-8 w-32 px-2 text-xs" aria-label="Período B" />
           </div>
           <span className="text-[10px] text-muted-foreground">{salesA.length} vs {salesB.length} ventas</span>
         </div>
@@ -2848,11 +2848,11 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
           <div className="flex gap-2 flex-wrap">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-muted-foreground">Desde</label>
-              <input type="date" value={aFrom} onChange={e => setAFrom(e.target.value)} className="h-8 text-xs px-2 rounded-md border border-border bg-muted/50 text-foreground" />
+              <Input type="date" value={aFrom} onChange={e => setAFrom(e.target.value)} className="h-8 px-2 text-xs" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-muted-foreground">Hasta</label>
-              <input type="date" value={aTo} onChange={e => setATo(e.target.value)} className="h-8 text-xs px-2 rounded-md border border-border bg-muted/50 text-foreground" />
+              <Input type="date" value={aTo} onChange={e => setATo(e.target.value)} className="h-8 px-2 text-xs" />
             </div>
           </div>
         </div>
@@ -2861,11 +2861,11 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
           <div className="flex gap-2 flex-wrap">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-muted-foreground">Desde</label>
-              <input type="date" value={bFrom} onChange={e => setBFrom(e.target.value)} className="h-8 text-xs px-2 rounded-md border border-border bg-muted/50 text-foreground" />
+              <Input type="date" value={bFrom} onChange={e => setBFrom(e.target.value)} className="h-8 px-2 text-xs" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-muted-foreground">Hasta</label>
-              <input type="date" value={bTo} onChange={e => setBTo(e.target.value)} className="h-8 text-xs px-2 rounded-md border border-border bg-muted/50 text-foreground" />
+              <Input type="date" value={bTo} onChange={e => setBTo(e.target.value)} className="h-8 px-2 text-xs" />
             </div>
           </div>
         </div>

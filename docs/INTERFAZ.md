@@ -282,9 +282,35 @@ texto, icono, estado disabled, `nav` y actualización `aria-live`.
 Admin, Productos, Compras, Reportes y Ventas retiraron cinco paginadores
 locales. La página conserva autoridad sobre query, filtros y `setPage(0)`; el
 componente sólo normaliza navegación y presentación. La guarda visual exige el
-primitive en los cinco listados. D2.4 sigue parcial: al corte quedan 83 campos
-date/datetime/month en 46 archivos y 16 inputs de archivo por clasificar antes
-de decidir cuáles deben converger y cuáles son excepciones nativas deliberadas.
+primitive en los cinco listados.
+
+### Fechas y archivos canónicos D2.4
+
+Los 82 campos `date`, `datetime-local` o `month` medidos en 46 archivos
+(2026-08-22) conservan el control temporal del navegador por decisión: ofrece
+teclado y selector mobile del sistema sin sumar una dependencia ni traducir
+fechas en el cliente. Todos pasan por `Input`, que fija superficie, foco,
+contraste, indicador y `color-scheme` claro/oscuro. Analytics, Deudas,
+Reportes, Clientes y el asistente retiraron las 11 variantes `<input>` que aún
+duplicaban esos estilos; una guarda recursiva mantiene el total manual en cero.
+Los filtros generales pueden componer `DateRangePicker`/`DateRangeFilter`; una
+fecha de negocio o comparación compacta conserva `Input` con label o
+`aria-label` contextual.
+
+Los 16 inputs de archivo no forman un único patrón funcional y quedan
+clasificados en tres familias antes de converger su presentación:
+
+- 5 importaciones estructuradas: catálogo Excel/CSV, precios, Tiendanube,
+  clientes y extracto bancario;
+- 6 documentos/capturas: factura de producto, OCR de compras, Finance Inbox,
+  scanner de comprobante y los dos accesos archivo/cámara de Gastos;
+- 5 imágenes de producto o marca: asistente, `ImageUpload`, galería de
+  Productos, avatar y logo.
+
+El `<input type="file">` oculto es transporte, no la interfaz visible. No se
+reemplaza en masa: cada familia debe compartir dropzone, validación, preview,
+progreso, error y retry sin mezclar límites ni tipos aceptados. D2.4 sigue
+parcial por esa convergencia y por la auditoría pendiente de combobox/menús.
 
 ## Referencias de dirección
 

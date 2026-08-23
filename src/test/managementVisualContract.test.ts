@@ -94,6 +94,22 @@ describe('contrato visual transversal de Gestión', () => {
       .toEqual([]);
   });
 
+  it('las fechas de Gestión conservan semántica nativa bajo el Input canónico', () => {
+    const withoutBlockComments = (contents: string) => contents.replace(/\/\*[\s\S]*?\*\//g, '');
+    const rawTemporalInput = /<input\b[^>]*\btype=["'](?:date|datetime-local|month)["'][^>]*>/;
+    const pageOffenders = readdirSync(resolve(process.cwd(), 'src/pages'))
+      .filter(path => path.endsWith('.tsx') && !path.startsWith('Public'))
+      .filter(path => rawTemporalInput.test(withoutBlockComments(source(`src/pages/${path}`))));
+    const componentOffenders = tsxFiles('src/components')
+      .filter(path => !path.startsWith('ui/'))
+      .filter(path => rawTemporalInput.test(withoutBlockComments(source(`src/components/${path}`))));
+
+    expect([...pageOffenders, ...componentOffenders], 'Una fecha volvió a duplicar estilo, foco o tema')
+      .toEqual([]);
+    expect(source('src/components/ui/input.tsx')).toContain('[&[type=date]]:[color-scheme:light]');
+    expect(source('src/components/ui/input.tsx')).toContain('dark:[&[type=date]]:[color-scheme:dark]');
+  });
+
   it('los componentes internos usan Select y Storefront conserva sólo excepciones mobile explícitas', () => {
     const components = tsxFiles('src/components');
     const componentOffenders = components.filter(path => /<select\b/.test(source(`src/components/${path}`)));

@@ -674,7 +674,7 @@ export default function DebtsPage() {
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Primera cuota</label>
-                    <input type="date" value={planStart} onChange={e => setPlanStart(e.target.value)} className="w-full h-9 px-3 rounded-md border border-border bg-muted text-sm text-foreground" />
+                    <Input type="date" value={planStart} onChange={e => setPlanStart(e.target.value)} className="h-9" />
                   </div>
                 </div>
 

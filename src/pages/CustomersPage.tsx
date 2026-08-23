@@ -978,12 +978,13 @@ function CommunicationsLog({ orgId, userId, customer }: { orgId: string; userId:
           {/* Follow-up date */}
           <div className="flex items-center gap-2">
             <Calendar className="w-3 h-3 text-muted-foreground shrink-0" />
-            <input
+            <Input
               type="date"
               value={followUpDate}
               min={new Date().toISOString().slice(0, 10)}
               onChange={e => setFollowUpDate(e.target.value)}
-              className="flex-1 h-7 text-xs bg-card border border-border rounded-md px-2 focus:outline-none focus:ring-1 focus:ring-primary/40"
+              className="h-7 flex-1 px-2 text-xs"
+              aria-label="Fecha del próximo seguimiento"
             />
             {followUpDate && (
               <button onClick={() => setFollowUpDate("")} className="text-muted-foreground hover:text-foreground text-[10px]">✕ Quitar</button>

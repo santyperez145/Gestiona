@@ -1541,11 +1541,12 @@ function CreateTaskCard({ userId, onDone }: { userId: string; onDone: () => void
         className="h-7 text-xs"
       />
       <div className="flex gap-2">
-        <input
+        <Input
           type="date"
           value={dueDate}
           onChange={e => setDueDate(e.target.value)}
-          className="flex-1 h-7 text-xs bg-muted border border-border rounded-md px-2 text-foreground"
+          className="h-7 flex-1 px-2 text-xs"
+          aria-label="Fecha límite de la tarea"
         />
         <Select value={priority} onValueChange={value => setPriority(value as "low" | "medium" | "high")}>
           <SelectTrigger className="h-7 w-[112px] text-xs" aria-label="Prioridad de la tarea">
