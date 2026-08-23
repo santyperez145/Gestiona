@@ -186,7 +186,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.475 tests en 132 archivos pasan al 2026-08-22; typecheck, lint y build/PWA verdes; 65 Edge Functions verificadas. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
+| Calidad técnica | 1.481 tests en 133 archivos pasan al 2026-08-22; typecheck, lint y build/PWA verdes; 65 Edge Functions verificadas. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Control Plane | Superficie operativa profesional en construcción. | Menor MTTR y menor intervención manual medidos. |
 | Finance documental | Custodia, extracción, revisión, matching, borradores y aprobación conectada al Core. | Primera factura autorizada procesada y recibida sin SQL; proveedor privado y métricas reales siguen pendientes. |
 | Finance product surface | Ruta, chrome, sesión compartida, entitlement, permiso y snapshot del Core. | Primer comercio habilitado y primer documento procesado; 0 adopción real al corte. |
-| Sistema visual v3 Figma | El workspace claro adopta obligatoriamente la dirección de los kits CRM/marketplace compartidos: canvas casi blanco, superficies blancas, primary violeta `252 83% 62%`, secundarios turquesa/coral, rail persistente, topbar y profundidad baja; se aplica a Business, Finance y Platform sin alterar el Business Core. El 2026-08-22 se eliminó la mutación global que convertía el color secundario de un comercio en fondo/rail del panel: Gestión mantiene tokens oficiales y las paletas quedan limitadas a tienda pública y catálogo PDF; Finance ya no fuerza un rail negro en modo claro. Las tres superficies ahora envuelven todas sus rutas en `workspace-route-surface`, por lo que más de cien páginas heredan el contrato aunque todavía no declaren la clase; Button, Card, Input, Select, Textarea, Tabs, Table, Badge, Dialog, Popover, Tooltip, EmptyState y skeletons fueron alineados a radios, foco, profundidad, estados y contraste del Figma. Ajustes, Perfil, resumen/Document Inbox de Finance y Anuncios de Platform adoptaron `PageHeader`; POS queda documentado como workspace de caja a viewport completo. `DESIGNROADMAP.md` separa desde ahora fases, cobertura, métricas y 21 slices visuales del plan de producto. D2.2–D2.3 retiraron 30 selects nativos: 20 de páginas y 10 de componentes; el SaaS queda en cero, mientras Storefront conserva sólo 3 excepciones mobile/autofill fijadas por test. Dashboard conserva seis vistas persistidas y los hashes `#dashboard-*`; Platform organiza su rail por trabajo/rol. El estándar competitivo agrega anatomía, 11 arquetipos, árbol de overlays, segmentación, cobertura por producto y adopción tecnológica con umbral verificable. | Consolidar estados comunes y auditar overlays con el nuevo estándar; captura autenticada desktop/mobile, revisión end-to-end de Storefront y medición de tiempo a tarea antes de declarar la renovación visual validada. |
+| Sistema visual v3 Figma | El workspace claro adopta obligatoriamente la dirección de los kits CRM/marketplace compartidos: canvas casi blanco, superficies blancas, primary violeta `252 83% 62%`, secundarios turquesa/coral, rail persistente, topbar y profundidad baja; se aplica a Business, Finance y Platform sin alterar el Business Core. El 2026-08-22 se eliminó la mutación global que convertía el color secundario de un comercio en fondo/rail del panel: Gestión mantiene tokens oficiales y las paletas quedan limitadas a tienda pública y catálogo PDF; Finance ya no fuerza un rail negro en modo claro. Las tres superficies ahora envuelven todas sus rutas en `workspace-route-surface`, por lo que más de cien páginas heredan el contrato aunque todavía no declaren la clase; Button, Card, Input, Select, Textarea, Tabs, Table, Badge, Dialog, Popover, Tooltip, EmptyState y skeletons fueron alineados a radios, foco, profundidad, estados y contraste del Figma. Ajustes, Perfil, resumen/Document Inbox de Finance y Anuncios de Platform adoptaron `PageHeader`; POS queda documentado como workspace de caja a viewport completo. `DESIGNROADMAP.md` separa desde ahora fases, cobertura, métricas y 21 slices visuales del plan de producto. D2.2–D2.3 retiraron 30 selects nativos: 20 de páginas y 10 de componentes; el SaaS queda en cero, mientras Storefront conserva sólo 3 excepciones mobile/autofill fijadas por test. D2.5 crea `WorkspaceState` con los 12 estados del estándar, skeleton estable, `alert/status` accesibles y recuperación; Finance/Compras ya distinguen carga/refresh, primer uso/filtro, error, offline, stale, parcial y éxito sin convertir fallas en `[]`. Dashboard conserva seis vistas persistidas y los hashes `#dashboard-*`; Platform organiza su rail por trabajo/rol. El estándar competitivo agrega anatomía, 11 arquetipos, árbol de overlays, segmentación, cobertura por producto y adopción tecnológica con umbral verificable. | Extender D2.5 al resto de rutas y auditar overlays con el nuevo estándar; captura autenticada desktop/mobile, revisión end-to-end de Storefront y medición de tiempo a tarea antes de declarar la renovación visual validada. |
 | Rediseño público v3 | Landing pública y Auth fueron reconstruidos el 2026-08-22 con propuesta omnicanal, preview del producto, registro directo desde CTA, responsive desktop/mobile y metadatos SEO alineados. | Validar conversión del CTA y continuar la auditoría visual de Storefront y rutas públicas de compra. |
 | CRM command center v2 | Clientes / CRM reemplaza la referencia minimalista anterior por la estructura de gestión densa de Aerten y el lenguaje violeta/tintado de eMarketplace Admin, ambos inspeccionados en preview público el 2026-08-22. Incorpora resumen ejecutivo de cartera/actividad/recurrencia/riesgo, tabs persistidos, rail de segmentos, filtros, tabla responsive con relación/compras/facturación/ticket/salud y ficha 360; conserva campañas, notas, comunicaciones, permisos y el mismo Business Core. La comparativa visual y su traducción están en `docs/INTERFAZ.md`. | Captura autenticada desktop/mobile, validación con un comercio real y medición de tiempo para encontrar/actuar sobre un cliente; el rediseño está implementado, no validado comercialmente. |
 | Admin/marketplace workspace v1 | `WorkspaceViewTabs` extiende el contrato Figma a Productos, Ventas y Dashboard: Catálogo/Operación, Ventas/Rendimiento y seis vistas ejecutivas con contadores, meta contextual, responsive móvil y persistencia por organización; Settings, Admin, Integraciones, Reportes y Tienda quedan bajo el mismo contrato de tokens. El shell compartido expone identidad de workspace en topbar, breadcrumb, CTA, headers con acento, métricas con estados y plataforma con consola/rail violeta. | Captura autenticada de las superficies operativas y medición de tiempo a tarea antes de declarar la renovación visual validada. |
@@ -850,10 +850,11 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     segmentos/cohortes/colas, tablas/bulk, 12 estados, responsive, WCAG,
     performance, cobertura mínima por producto y una puerta 80/100 antes de
     adoptar tecnología. Una guarda en CI exige que ROADMAP, DESIGNROADMAP,
-    INTERFAZ y AGENTS sigan apuntando al estándar. Próxima ejecución visual:
-    D2.5 estados unificados y D2.6 inventario/migración de overlays; el handoff
-    F3 a la recepción ya quedó conectado y la evidencia end-to-end restante es
-    externa, sin saltar a automatización F5.
+    INTERFAZ y AGENTS sigan apuntando al estándar. D2.5 ya tiene contrato y una
+    primera adopción en Finance/Compras; sigue su expansión por riesgo y D2.6
+    inventario/migración de overlays. El handoff F3 a la recepción ya quedó
+    conectado y la evidencia end-to-end restante es externa, sin saltar a
+    automatización F5.
 28. ~~Mapa competitivo regional para Finance y comercio argentino~~ — cerrado
     documentalmente el 2026-08-22 con fuentes oficiales de Mendel, Clara,
     Rindegastos, SAP Concur Argentina, Tiendanube, Empretienda, Contabilium,
@@ -891,6 +892,16 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     descartan y la operación física conserva `receive_purchase_order_idem`, sin
     un segundo camino de stock. Se agregaron 6 guardas; falta ejecutar la cadena
     con una factura autorizada y medir tarea/error en desktop y mobile.
+32. Estados honestos D2.5 — primera adopción cerrada el 2026-08-22:
+    `WorkspaceState` fija los 12 estados del estándar con layout panel/banner,
+    skeleton estructural, icono+texto+color, live regions y recuperación. Finance
+    y Compras retiraron spinners/banners/vacíos locales y distinguen carga
+    inicial, refresh no bloqueante, primer uso, filtro vacío, error recuperable,
+    offline, stale, parcial y éxito. Compras conserva órdenes si sólo fallan
+    proveedores/productos y lo declara parcial; Finance conserva documentos si
+    falla un refresh. Escrituras de documento/OC/recepción quedan deshabilitadas
+    offline. Se agregaron 6 pruebas; el slice sigue **parcial** hasta migrar las
+    demás rutas y validar responsive/claro/oscuro con sesión autenticada.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -1073,7 +1084,7 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-22: 1.475 tests en 132 archivos, typecheck,
+- Build y suites locales del 2026-08-22: 1.481 tests en 133 archivos, typecheck,
   lint sin errores, build/PWA y 65 funciones verificadas. Última evidencia: 42
   E2E críticos contra la base real.
 - docs/FINANCE_DOCUMENT_EXTRACTION.md: custodia, esquema estructurado,

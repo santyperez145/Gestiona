@@ -21,7 +21,6 @@ import {
   Sparkles,
   Trash2,
   UploadCloud,
-  XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +30,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import PageHeader from '@/components/shared/PageHeader';
+import WorkspaceState from '@/components/shared/WorkspaceState';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOrg } from '@/lib/orgContext';
 import { buildPurchaseOrderHandoffPath } from '@/lib/purchaseOrderHandoff';
 import {
@@ -70,8 +71,13 @@ const DOCUMENT_TYPES: FinanceDocumentType[] = ['supplier_invoice', 'receipt', 'p
 export default function FinanceDocumentsPage() {
   usePageTitle('Documentos · Finance');
   const { activeOrg } = useOrg();
+  const { online } = useNetworkStatus();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const loadRequest = useRef(0);
+  const activeOrgIdRef = useRef(activeOrg?.id);
+  activeOrgIdRef.current = activeOrg?.id;
   const [documents, setDocuments] = useState<FinanceDocument[]>([]);
+  const [loadedOrgId, setLoadedOrgId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentType, setDocumentType] = useState<FinanceDocumentType>('supplier_invoice');
   const [newVersionFor, setNewVersionFor] = useState<string | null>(null);
@@ -98,18 +104,26 @@ export default function FinanceDocumentsPage() {
   const [draftExchangeRate, setDraftExchangeRate] = useState('');
   const [approvingDraft, setApprovingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const loadDocuments = async () => {
     if (!activeOrg?.id) return;
+    const orgId = activeOrg.id;
+    if (activeOrgIdRef.current !== orgId) return;
+    const request = ++loadRequest.current;
     setLoading(true);
     try {
-      setDocuments(await getFinanceDocuments(activeOrg.id));
-      setError(null);
+      const nextDocuments = await getFinanceDocuments(orgId);
+      if (request !== loadRequest.current || activeOrgIdRef.current !== orgId) return;
+      setDocuments(nextDocuments);
+      setLoadedOrgId(orgId);
+      setLoadError(null);
     } catch (cause) {
-      setError(errorMessage(cause, 'No se pudo leer la bandeja documental.'));
+      if (request !== loadRequest.current || activeOrgIdRef.current !== orgId) return;
+      setLoadError(errorMessage(cause, 'No se pudo leer la bandeja documental.'));
     } finally {
-      setLoading(false);
+      if (request === loadRequest.current) setLoading(false);
     }
   };
 
@@ -138,6 +152,10 @@ export default function FinanceDocumentsPage() {
 
   const submitUpload = async () => {
     if (!activeOrg?.id || !selectedFile) return;
+    if (!online) {
+      setError('No se puede transferir un original sin conexión. El archivo sigue seleccionado para reintentar al volver.');
+      return;
+    }
     const validationError = validateFinanceDocumentFile(selectedFile);
     if (validationError) {
       setError(validationError);
@@ -368,8 +386,14 @@ export default function FinanceDocumentsPage() {
     }
   };
 
-  const pending = documents.filter(document => document.status === 'awaiting_inspection' || document.status === 'pending_upload').length;
-  const approved = documents.filter(document => document.status === 'approved').length;
+  const visibleDocuments = loadedOrgId === activeOrg?.id ? documents : [];
+  const orgReady = loadedOrgId === activeOrg?.id;
+  const initialLoadFailed = Boolean(loadError && !orgReady);
+  const pending = visibleDocuments.filter(document => document.status === 'awaiting_inspection' || document.status === 'pending_upload').length;
+  const approved = visibleDocuments.filter(document => document.status === 'approved').length;
+  const initialLoading = (!orgReady && !initialLoadFailed)
+    || (orgReady && loading && visibleDocuments.length === 0);
+  const refreshing = loading && orgReady && visibleDocuments.length > 0;
 
   return (
     <div className="space-y-6">
@@ -379,14 +403,24 @@ export default function FinanceDocumentsPage() {
         title="Documentos bajo custodia"
         description="Cada original entra privado, queda versionado y espera inspección antes de que cualquier dato pueda sugerir una compra, una obligación o un asiento."
         actions={(
-          <Button variant="outline" size="sm" onClick={() => void loadDocuments()} disabled={loading || uploading}>
+          <Button variant="outline" size="sm" onClick={() => void loadDocuments()} disabled={loading || uploading || !online}>
             <RefreshCw className={loading ? 'animate-spin' : ''} />Actualizar
           </Button>
         )}
       />
 
-      {error && <Feedback tone="error" icon={XCircle}>{error}</Feedback>}
-      {notice && <Feedback tone="success" icon={CheckCircle2}>{notice}</Feedback>}
+      {!online && (
+        <WorkspaceState
+          kind="offline"
+          layout="banner"
+          title="Finance está sin conexión"
+          description="Podés revisar lo que ya está visible, pero cargar, inspeccionar, extraer o aprobar requiere volver a conectar."
+        />
+      )}
+      {refreshing && <WorkspaceState kind="refreshing" layout="banner" title="Actualizando la bandeja" description="Los documentos actuales siguen visibles mientras llega la versión más reciente." />}
+      {loadError && visibleDocuments.length > 0 && <WorkspaceState kind="stale" layout="banner" title="No pudimos actualizar la bandeja" description={`${loadError} Los documentos visibles pueden estar desactualizados.`} actionLabel="Reintentar" onAction={() => void loadDocuments()} />}
+      {error && <WorkspaceState kind="error-recoverable" layout="banner" title="La acción no se completó" description={error} />}
+      {notice && <WorkspaceState kind="success" layout="banner" title="Acción completada" description={notice} />}
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_270px]">
         <div className="rounded-[12px] border border-teal-500/25 bg-card p-5 shadow-sm sm:p-6">
@@ -424,14 +458,14 @@ export default function FinanceDocumentsPage() {
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             {newVersionFor ? <button type="button" onClick={clearFile} className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Cancelar nueva versión</button> : <span className="text-[11px] text-muted-foreground">La carga no crea deuda ni mueve stock.</span>}
-            <Button size="sm" onClick={() => void submitUpload()} disabled={!selectedFile || uploading}>
+            <Button size="sm" onClick={() => void submitUpload()} disabled={!selectedFile || uploading || !online}>
               {uploading ? <Loader2 className="animate-spin" /> : <UploadCloud />} {uploading ? 'Guardando...' : newVersionFor ? 'Guardar versión' : 'Guardar documento'}
             </Button>
           </div>
         </div>
 
         <aside className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-          <Stat icon={FileText} label="Documentos" value={documents.length} />
+          <Stat icon={FileText} label="Documentos" value={visibleDocuments.length} />
           <Stat icon={Clock3} label="En inspección" value={pending} />
           <Stat icon={CheckCircle2} label="Aprobados" value={approved} />
           <div className="col-span-2 rounded-[10px] border border-amber-500/20 bg-amber-500/[0.04] p-4 lg:col-span-1">
@@ -444,9 +478,17 @@ export default function FinanceDocumentsPage() {
       <section className="rounded-[12px] border border-border/70 bg-card">
         <div className="flex flex-col gap-2 border-b border-border/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div><h2 className="text-sm font-semibold">Bandeja de documentos</h2><p className="mt-1 text-xs text-muted-foreground">Los originales se abren con una URL firmada de corta duración.</p></div>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{documents.length} registrados</span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{visibleDocuments.length} registrados</span>
         </div>
-        {loading ? <div className="flex items-center justify-center py-14 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Leyendo documentos...</div> : documents.length === 0 ? <EmptyState /> : <div className="divide-y divide-border/60">{documents.map(document => <DocumentRow key={document.id} document={document} openingPath={openingPath} inspectingVersionId={inspectingVersionId} extractingVersionId={extractingVersionId} matchingExtractionId={matchingExtractionId} draftingExtractionId={draftingExtractionId} onOpen={openDocument} onInspect={inspectDocument} onExtract={extractDocument} onReview={openReview} onMatch={openMatching} onDraft={openDrafts} onNewVersion={id => { clearFile(); setNewVersionFor(id); }} />)}</div>}
+        {initialLoading ? (
+          <WorkspaceState kind="initial-loading" layout="embedded" title="Leyendo documentos" loadingRows={4} />
+        ) : loadError && visibleDocuments.length === 0 ? (
+          <WorkspaceState kind="error-recoverable" layout="embedded" title="No pudimos abrir la bandeja" description={loadError} actionLabel="Reintentar" onAction={() => void loadDocuments()} />
+        ) : visibleDocuments.length === 0 ? (
+          <WorkspaceState kind="empty-first-use" layout="embedded" icon={FileText} title="Todavía no hay documentos" description="El primer archivo se guarda como original privado y queda esperando inspección. Todavía no produce asientos ni deudas." />
+        ) : (
+          <div className="divide-y divide-border/60">{visibleDocuments.map(document => <DocumentRow key={document.id} document={document} online={online} openingPath={openingPath} inspectingVersionId={inspectingVersionId} extractingVersionId={extractingVersionId} matchingExtractionId={matchingExtractionId} draftingExtractionId={draftingExtractionId} onOpen={openDocument} onInspect={inspectDocument} onExtract={extractDocument} onReview={openReview} onMatch={openMatching} onDraft={openDrafts} onNewVersion={id => { clearFile(); setNewVersionFor(id); }} />)}</div>
+        )}
       </section>
 
       <div className="grid gap-3 text-xs text-muted-foreground sm:grid-cols-3">
@@ -493,7 +535,7 @@ export default function FinanceDocumentsPage() {
   );
 }
 
-function DocumentRow({ document, openingPath, inspectingVersionId, extractingVersionId, matchingExtractionId, draftingExtractionId, onOpen, onInspect, onExtract, onReview, onMatch, onDraft, onNewVersion }: { document: FinanceDocument; openingPath: string | null; inspectingVersionId: string | null; extractingVersionId: string | null; matchingExtractionId: string | null; draftingExtractionId: string | null; onOpen: (path: string) => void; onInspect: (documentId: string, versionId: string) => void; onExtract: (documentId: string, versionId: string) => void; onReview: (extraction: FinanceDocumentExtraction) => void; onMatch: (extraction: FinanceDocumentExtraction) => void; onDraft: (extraction: FinanceDocumentExtraction) => void; onNewVersion: (id: string) => void }) {
+function DocumentRow({ document, online, openingPath, inspectingVersionId, extractingVersionId, matchingExtractionId, draftingExtractionId, onOpen, onInspect, onExtract, onReview, onMatch, onDraft, onNewVersion }: { document: FinanceDocument; online: boolean; openingPath: string | null; inspectingVersionId: string | null; extractingVersionId: string | null; matchingExtractionId: string | null; draftingExtractionId: string | null; onOpen: (path: string) => void; onInspect: (documentId: string, versionId: string) => void; onExtract: (documentId: string, versionId: string) => void; onReview: (extraction: FinanceDocumentExtraction) => void; onMatch: (extraction: FinanceDocumentExtraction) => void; onDraft: (extraction: FinanceDocumentExtraction) => void; onNewVersion: (id: string) => void }) {
   const latest = document.versions[0];
   const extraction = latest?.extraction;
   const canVersion = document.status !== 'approved';
@@ -518,13 +560,13 @@ function DocumentRow({ document, openingPath, inspectingVersionId, extractingVer
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-        {latest && latest.uploadStatus === 'uploaded' && <Button variant="outline" size="xs" disabled={openingPath === latest.storagePath} onClick={() => onOpen(latest.storagePath)}><FileCheck2 /> {openingPath === latest.storagePath ? 'Abriendo...' : 'Ver original'}</Button>}
-        {latest && canInspect && <Button size="xs" disabled={inspectingVersionId === latest.id} onClick={() => onInspect(document.id, latest.id)}>{inspectingVersionId === latest.id ? <Loader2 className="animate-spin" /> : <FileSearch2 />} {inspectingVersionId === latest.id ? 'Inspeccionando...' : 'Inspeccionar'}</Button>}
-        {latest && canExtract && <Button size="xs" disabled={extractingVersionId === latest.id} onClick={() => onExtract(document.id, latest.id)}>{extractingVersionId === latest.id ? <Loader2 className="animate-spin" /> : <Sparkles />} {extractingVersionId === latest.id ? 'Extrayendo...' : extraction?.status === 'failed' ? 'Reintentar extracción' : 'Extraer datos'}</Button>}
-        {extraction && canReview && <Button variant="outline" size="xs" onClick={() => onReview(extraction)}><PencilLine /> {extraction.status === 'reviewed' ? 'Corregir revisión' : 'Revisar datos'}</Button>}
-        {extraction && canMatch && <Button size="xs" disabled={matchingExtractionId === extraction.id} onClick={() => onMatch(extraction)}>{matchingExtractionId === extraction.id ? <Loader2 className="animate-spin" /> : <Link2 />} {matchingExtractionId === extraction.id ? 'Buscando...' : extraction.matching ? 'Confirmar matching' : 'Buscar coincidencias'}</Button>}
-        {extraction && canDraft && <Button size="xs" variant={extraction.draft?.status === 'approved' ? 'outline' : 'default'} disabled={draftingExtractionId === extraction.id} onClick={() => onDraft(extraction)}>{draftingExtractionId === extraction.id ? <Loader2 className="animate-spin" /> : <ClipboardCheck />} {draftingExtractionId === extraction.id ? 'Preparando...' : extraction.draft?.status === 'approved' ? 'Ver aprobación' : extraction.draft ? 'Revisar borradores' : 'Preparar borradores'}</Button>}
-        {canVersion && <Button variant="ghost" size="xs" onClick={() => onNewVersion(document.id)}><FilePlus2 /> Nueva versión</Button>}
+        {latest && latest.uploadStatus === 'uploaded' && <Button variant="outline" size="xs" disabled={!online || openingPath === latest.storagePath} onClick={() => onOpen(latest.storagePath)}><FileCheck2 /> {openingPath === latest.storagePath ? 'Abriendo...' : 'Ver original'}</Button>}
+        {latest && canInspect && <Button size="xs" disabled={!online || inspectingVersionId === latest.id} onClick={() => onInspect(document.id, latest.id)}>{inspectingVersionId === latest.id ? <Loader2 className="animate-spin" /> : <FileSearch2 />} {inspectingVersionId === latest.id ? 'Inspeccionando...' : 'Inspeccionar'}</Button>}
+        {latest && canExtract && <Button size="xs" disabled={!online || extractingVersionId === latest.id} onClick={() => onExtract(document.id, latest.id)}>{extractingVersionId === latest.id ? <Loader2 className="animate-spin" /> : <Sparkles />} {extractingVersionId === latest.id ? 'Extrayendo...' : extraction?.status === 'failed' ? 'Reintentar extracción' : 'Extraer datos'}</Button>}
+        {extraction && canReview && <Button variant="outline" size="xs" disabled={!online} onClick={() => onReview(extraction)}><PencilLine /> {extraction.status === 'reviewed' ? 'Corregir revisión' : 'Revisar datos'}</Button>}
+        {extraction && canMatch && <Button size="xs" disabled={!online || matchingExtractionId === extraction.id} onClick={() => onMatch(extraction)}>{matchingExtractionId === extraction.id ? <Loader2 className="animate-spin" /> : <Link2 />} {matchingExtractionId === extraction.id ? 'Buscando...' : extraction.matching ? 'Confirmar matching' : 'Buscar coincidencias'}</Button>}
+        {extraction && canDraft && <Button size="xs" variant={extraction.draft?.status === 'approved' ? 'outline' : 'default'} disabled={!online || draftingExtractionId === extraction.id} onClick={() => onDraft(extraction)}>{draftingExtractionId === extraction.id ? <Loader2 className="animate-spin" /> : <ClipboardCheck />} {draftingExtractionId === extraction.id ? 'Preparando...' : extraction.draft?.status === 'approved' ? 'Ver aprobación' : extraction.draft ? 'Revisar borradores' : 'Preparar borradores'}</Button>}
+        {canVersion && <Button variant="ghost" size="xs" disabled={!online} onClick={() => onNewVersion(document.id)}><FilePlus2 /> Nueva versión</Button>}
       </div>
     </article>
   );
@@ -891,14 +933,6 @@ function Stat({ icon: Icon, label, value }: { icon: typeof FileText; label: stri
 
 function Contract({ icon: Icon, title, detail }: { icon: typeof FileLock2; title: string; detail: string }) {
   return <div className="flex items-start gap-2.5 rounded-[9px] border border-border/60 bg-muted/10 p-3"><Icon className="mt-0.5 h-4 w-4 shrink-0 text-teal-500" /><div><p className="font-medium text-foreground/80">{title}</p><p className="mt-0.5 leading-relaxed">{detail}</p></div></div>;
-}
-
-function Feedback({ tone, icon: Icon, children }: { tone: 'error' | 'success'; icon: typeof XCircle; children: React.ReactNode }) {
-  return <div className={`flex items-start gap-2 rounded-[8px] border p-3 text-sm ${tone === 'error' ? 'border-destructive/30 bg-destructive/5 text-destructive' : 'border-emerald-500/25 bg-emerald-500/[0.05] text-emerald-700 dark:text-emerald-300'}`}><Icon className="mt-0.5 h-4 w-4 shrink-0" />{children}</div>;
-}
-
-function EmptyState() {
-  return <div className="flex flex-col items-center justify-center px-6 py-14 text-center"><span className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-teal-500/20 bg-teal-500/10 text-teal-600 dark:text-teal-300"><FileText className="h-5 w-5" /></span><h3 className="mt-3 text-sm font-semibold">Todavía no hay documentos</h3><p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">El primer archivo se guarda como original privado y queda esperando inspección. Todavía no produce asientos ni deudas.</p></div>;
 }
 
 function formatBytes(value: number) {

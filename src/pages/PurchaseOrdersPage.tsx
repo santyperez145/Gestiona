@@ -41,11 +41,12 @@ import {
   XCircle,
   Download,
   Eye,
-  Loader2,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import WorkspaceState from "@/components/shared/WorkspaceState";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import {
   isPurchaseOrderReceivable,
@@ -446,9 +447,10 @@ function pendienteDe(item: POItem): number {
  * calcula nada de eso — si la pantalla decidiera el estado o el stock, dos
  * recepciones simultáneas se pisarían.
  */
-function ReceiveDialog({ order, open, onOpenChange, onDone }: {
+function ReceiveDialog({ order, open, online, onOpenChange, onDone }: {
   order: PurchaseOrder;
   open: boolean;
+  online: boolean;
   onOpenChange: (v: boolean) => void;
   onDone: () => void;
 }) {
@@ -603,6 +605,15 @@ function ReceiveDialog({ order, open, onOpenChange, onDone }: {
           />
         </div>
 
+        {!online && (
+          <WorkspaceState
+            kind="offline"
+            layout="banner"
+            title="La recepción necesita conexión"
+            description="Las cantidades quedan visibles, pero no se enviarán hasta recuperar internet."
+          />
+        )}
+
         {excedido && (
           <p className="text-xs text-destructive">
             Hay renglones con más unidades de las que faltan. Recibir de más se rechaza:
@@ -612,7 +623,7 @@ function ReceiveDialog({ order, open, onOpenChange, onDone }: {
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={confirmar} disabled={guardando || excedido || aRecibir.length === 0}>
+          <Button onClick={confirmar} disabled={guardando || excedido || aRecibir.length === 0 || !online}>
             <Package className="w-3.5 h-3.5 mr-1" />
             {guardando ? "Registrando…" : `Recibir ${aRecibir.reduce((s, x) => s + x.quantity, 0)} unidades`}
           </Button>
@@ -627,13 +638,14 @@ function ReceiveDialog({ order, open, onOpenChange, onDone }: {
 interface PORowProps {
   order: PurchaseOrder;
   focusAction: PurchaseOrderHandoffAction | null;
+  online: boolean;
   onEdit: () => void;
   onAdvanceStatus: (status: string) => void;
   onReceived: () => void;
   onDelete: () => void;
 }
 
-function PORow({ order, focusAction, onEdit, onAdvanceStatus, onReceived, onDelete }: PORowProps) {
+function PORow({ order, focusAction, online, onEdit, onAdvanceStatus, onReceived, onDelete }: PORowProps) {
   const [recibiendo, setRecibiendo] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -717,12 +729,12 @@ function PORow({ order, focusAction, onEdit, onAdvanceStatus, onReceived, onDele
 
           <div className="flex flex-wrap gap-2 pt-1">
             {order.status === "draft" && (
-              <Button size="sm" variant="outline" onClick={() => onAdvanceStatus("sent")}>
+              <Button size="sm" variant="outline" onClick={() => onAdvanceStatus("sent")} disabled={!online}>
                 <Send className="w-3.5 h-3.5 mr-1" /> Enviar OC
               </Button>
             )}
             {order.status === "sent" && (
-              <Button size="sm" variant="outline" onClick={() => onAdvanceStatus("confirmed")}>
+              <Button size="sm" variant="outline" onClick={() => onAdvanceStatus("confirmed")} disabled={!online}>
                 <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-400" /> Confirmar
               </Button>
             )}
@@ -732,16 +744,16 @@ function PORow({ order, focusAction, onEdit, onAdvanceStatus, onReceived, onDele
               </Button>
             )}
             {order.status !== "cancelled" && order.status !== "received" && (
-              <Button size="sm" variant="outline" className="text-destructive border-destructive/30" onClick={() => onAdvanceStatus("cancelled")}>
+              <Button size="sm" variant="outline" className="text-destructive border-destructive/30" onClick={() => onAdvanceStatus("cancelled")} disabled={!online}>
                 <XCircle className="w-3.5 h-3.5 mr-1" /> Cancelar
               </Button>
             )}
             {["draft", "sent", "confirmed"].includes(order.status) && (
-              <Button size="sm" variant="ghost" onClick={onEdit}>
+              <Button size="sm" variant="ghost" onClick={onEdit} disabled={!online}>
                 <Edit className="w-3.5 h-3.5 mr-1" /> Editar
               </Button>
             )}
-            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={onDelete}>
+            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={onDelete} disabled={!online}>
               <Trash2 className="w-3.5 h-3.5 mr-1" /> Eliminar
             </Button>
           </div>
@@ -751,6 +763,7 @@ function PORow({ order, focusAction, onEdit, onAdvanceStatus, onReceived, onDele
       <ReceiveDialog
         order={order}
         open={recibiendo}
+        online={online}
         onOpenChange={setRecibiendo}
         onDone={onReceived}
       />
@@ -763,7 +776,10 @@ function PORow({ order, focusAction, onEdit, onAdvanceStatus, onReceived, onDele
 export default function PurchaseOrdersPage() {
   usePageTitle("Órdenes de Compra");
   const { activeOrg } = useOrg();
+  const { online } = useNetworkStatus();
   const orgId = activeOrg?.id ?? "";
+  const activeOrgIdRef = useRef(orgId);
+  activeOrgIdRef.current = orgId;
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
@@ -771,6 +787,7 @@ export default function PurchaseOrdersPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [partialDataWarning, setPartialDataWarning] = useState<string | null>(null);
   const [loadedOrgId, setLoadedOrgId] = useState<string | null>(null);
   const loadRequest = useRef(0);
   const [search, setSearch] = useState("");
@@ -785,14 +802,15 @@ export default function PurchaseOrdersPage() {
   const [ocrModalOpen, setOcrModalOpen] = useState(false);
   const [ocrPrefill, setOcrPrefill] = useState<OCRPrefillData | null>(null);
   const [focusedOrder, setFocusedOrder] = useState<{ id: string; action: PurchaseOrderHandoffAction } | null>(null);
-  const [handoffNotice, setHandoffNotice] = useState<{ title: string; detail: string } | null>(null);
+  const [handoffNotice, setHandoffNotice] = useState<{ kind: "success" | "stale"; title: string; detail: string } | null>(null);
 
   const loadAll = async () => {
-    if (!orgId) return;
+    if (!orgId || activeOrgIdRef.current !== orgId) return;
     const request = ++loadRequest.current;
     setLoading(true);
     setLoadError(null);
-    setLoadedOrgId(null);
+    setPartialDataWarning(null);
+    setLoadedOrgId(current => current === orgId ? current : null);
     const [ordRes, supRes, prodRes] = await Promise.all([
       supabase.from("purchase_orders").select("*, items:purchase_order_items(*)").eq("org_id", orgId).order("created_at", { ascending: false }),
       // La tabla real es `suppliers` (no `proveedores`), y en products el
@@ -800,15 +818,20 @@ export default function PurchaseOrdersPage() {
       supabase.from("suppliers").select("id,name,email").eq("org_id", orgId).order("name"),
       supabase.from("products").select("id,name,sku,cost_usd,sale_price_ars").eq("org_id", orgId).order("name"),
     ]);
-    if (request !== loadRequest.current) return;
+    if (request !== loadRequest.current || activeOrgIdRef.current !== orgId) return;
     if (ordRes.error) {
       setLoadError("No pudimos cargar las órdenes de compra. Reintentá antes de registrar una recepción.");
       toast.error("No se pudieron cargar las órdenes de compra");
       setLoading(false);
       return;
     }
-    if (supRes.error) toast.error("No se pudieron cargar los proveedores");
-    if (prodRes.error) toast.error("No se pudieron cargar los productos");
+    const unavailable = [
+      supRes.error ? "proveedores" : null,
+      prodRes.error ? "productos" : null,
+    ].filter(Boolean);
+    if (unavailable.length > 0) {
+      setPartialDataWarning(`Las órdenes están disponibles, pero faltan ${unavailable.join(" y ")}. Crear o editar una OC puede mostrar opciones incompletas.`);
+    }
     setOrders((ordRes.data ?? []) as PurchaseOrder[]);
     setSuppliers((supRes.data ?? []) as Supplier[]);
     setProducts(((prodRes.data ?? []) as any[]).map(p => ({
@@ -853,10 +876,12 @@ export default function PurchaseOrdersPage() {
     setFocusedOrder({ id: order.id, action: canReceive ? "receive" : "view" });
     setHandoffNotice(canReceive
       ? {
+          kind: "success",
           title: `${order.order_number} lista para recibir`,
           detail: "Revisá las cantidades y la sucursal de destino. El stock cambia recién cuando confirmás esta recepción.",
         }
       : {
+          kind: "stale",
           title: `${order.order_number} ya no admite recepción`,
           detail: order.status === "received"
             ? "La mercadería de esta orden ya fue recibida por completo."
@@ -864,6 +889,11 @@ export default function PurchaseOrdersPage() {
         });
     setSearchParams(nextParams, { replace: true });
   }, [loading, loadError, loadedOrgId, orgId, orders, searchParams, setSearchParams, setTab]);
+
+  const orgReady = loadedOrgId === orgId;
+  const initialLoadFailed = Boolean(loadError && !orgReady);
+  const initialLoading = !orgReady && !initialLoadFailed;
+  const refreshing = loading && orgReady;
 
   const kpis = useMemo(() => {
     const open = orders.filter(o => ["draft", "sent", "confirmed"].includes(o.status)).length;
@@ -913,13 +943,13 @@ export default function PurchaseOrdersPage() {
         description="Gestión formal de OC a proveedores con seguimiento de recepción"
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={loadAll} disabled={loading}>
+            <Button variant="outline" size="sm" onClick={loadAll} disabled={loading || !online}>
               <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setOcrModalOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setOcrModalOpen(true)} disabled={!online}>
               <ScanLine className="w-4 h-4 mr-1.5" /> Escanear factura
             </Button>
-            <Button size="sm" onClick={() => { setEditingOrder(null); setOcrPrefill(null); setFormOpen(true); }}>
+            <Button size="sm" onClick={() => { setEditingOrder(null); setOcrPrefill(null); setFormOpen(true); }} disabled={!online}>
               <Plus className="w-4 h-4 mr-1.5" /> Nueva OC
             </Button>
           </div>
@@ -933,66 +963,87 @@ export default function PurchaseOrdersPage() {
         </TabsList>
 
         <TabsContent value="ordenes" className="space-y-6 pb-12">
+          {!online && (
+            <WorkspaceState
+              kind="offline"
+              layout="banner"
+              title="Compras está sin conexión"
+              description="Podés revisar las órdenes cargadas, pero crear, cambiar estado o recibir mercadería requiere volver a conectar."
+            />
+          )}
+
+          {refreshing && (
+            <WorkspaceState
+              kind="refreshing"
+              layout="banner"
+              title="Actualizando órdenes"
+              description="La lista actual sigue disponible mientras verificamos cambios."
+            />
+          )}
+
           {handoffNotice && (
-            <div className="flex items-start gap-3 rounded-[10px] border border-teal-500/25 bg-teal-500/[0.045] p-4 text-teal-700 dark:text-teal-300">
-              <Package className="mt-0.5 h-4 w-4 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold">{handoffNotice.title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{handoffNotice.detail}</p>
-              </div>
-            </div>
+            <WorkspaceState kind={handoffNotice.kind} layout="banner" icon={Package} title={handoffNotice.title} description={handoffNotice.detail} />
           )}
 
-          {loadError && (
-            <div className="rounded-[10px] border border-destructive/25 bg-destructive/[0.04] p-4 text-sm text-destructive">
-              {loadError}
-            </div>
+          {loadError && !initialLoadFailed && (
+            <WorkspaceState kind="stale" layout="banner" title="No pudimos actualizar las órdenes" description={`${loadError} La lista visible puede estar desactualizada.`} actionLabel="Reintentar" onAction={() => void loadAll()} />
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <KPICard label="OC abiertas" value={kpis.open} sub="en proceso" icon={ClipboardList} color="blue" />
-            <KPICard label="Valor pendiente" value={fmtCurrency(kpis.pendingValue)} sub="por recibir" icon={DollarSign} color="warning" />
-            <KPICard label="Compras del mes" value={fmtCurrency(kpis.monthTotal)} sub="mes actual" icon={Truck} color="primary" />
-            <KPICard label="OC recibidas" value={kpis.received} sub="completadas" icon={CheckCircle} color="success" />
-          </div>
+          {partialDataWarning && (
+            <WorkspaceState kind="partial" layout="banner" title="Datos de apoyo incompletos" description={partialDataWarning} actionLabel="Reintentar" onAction={() => void loadAll()} />
+          )}
 
-          <div className="flex flex-wrap gap-2">
-            <div className="relative flex-1 min-w-48">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar OC o proveedor..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
-            </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                {Object.entries(STATUS_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Sin órdenes de compra</p>
-              <p className="text-sm">Creá tu primera OC para un proveedor</p>
-            </div>
+          {initialLoading ? (
+            <WorkspaceState kind="initial-loading" title="Leyendo órdenes de compra" loadingRows={6} />
+          ) : initialLoadFailed ? (
+            <WorkspaceState kind="error-recoverable" title="No pudimos abrir las órdenes" description={loadError || undefined} actionLabel="Reintentar" onAction={() => void loadAll()} />
           ) : (
-            <div className="space-y-2 pb-12">
-              {filtered.map(order => (
-                <PORow
-                  key={order.id}
-                  order={order}
-                  focusAction={focusedOrder?.id === order.id ? focusedOrder.action : null}
-                  onEdit={() => { setEditingOrder(order); setFormOpen(true); }}
-                  onAdvanceStatus={status => handleAdvanceStatus(order, status)}
-                  onReceived={loadAll}
-                  onDelete={() => handleDelete(order)}
-                />
-              ))}
-              <p className="text-xs text-muted-foreground text-right pt-1">{filtered.length} OC{filtered.length !== 1 ? "s" : ""}</p>
-            </div>
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <KPICard label="OC abiertas" value={kpis.open} sub="en proceso" icon={ClipboardList} color="blue" />
+                <KPICard label="Valor pendiente" value={fmtCurrency(kpis.pendingValue)} sub="por recibir" icon={DollarSign} color="warning" />
+                <KPICard label="Compras del mes" value={fmtCurrency(kpis.monthTotal)} sub="mes actual" icon={Truck} color="primary" />
+                <KPICard label="OC recibidas" value={kpis.received} sub="completadas" icon={CheckCircle} color="success" />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <div className="relative flex-1 min-w-48">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder="Buscar OC o proveedor..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+                </div>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los estados</SelectItem>
+                    {Object.entries(STATUS_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {filtered.length === 0 ? (
+                orders.length === 0 ? (
+                  <WorkspaceState kind="empty-first-use" icon={ClipboardList} title="Todavía no hay órdenes de compra" description="Creá una OC para acordar cantidades, costos y recepción con un proveedor." actionLabel={online ? "Nueva OC" : undefined} onAction={() => { setEditingOrder(null); setOcrPrefill(null); setFormOpen(true); }} />
+                ) : (
+                  <WorkspaceState kind="empty-filtered" title="Ninguna orden coincide" description="La búsqueda o el estado seleccionado dejaron la vista sin resultados; las órdenes siguen guardadas." actionLabel="Limpiar filtros" onAction={() => { setSearch(""); setFilterStatus("all"); }} />
+                )
+              ) : (
+                <div className="space-y-2 pb-12">
+                  {filtered.map(order => (
+                    <PORow
+                      key={order.id}
+                      order={order}
+                      focusAction={focusedOrder?.id === order.id ? focusedOrder.action : null}
+                      online={online}
+                      onEdit={() => { setEditingOrder(order); setFormOpen(true); }}
+                      onAdvanceStatus={status => handleAdvanceStatus(order, status)}
+                      onReceived={loadAll}
+                      onDelete={() => handleDelete(order)}
+                    />
+                  ))}
+                  <p className="text-xs text-muted-foreground text-right pt-1">{filtered.length} OC{filtered.length !== 1 ? "s" : ""}</p>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
 

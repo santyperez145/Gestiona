@@ -239,6 +239,22 @@ Una personalización puntual puede cambiar composición o tono semántico, pero 
 volver a definir estos fundamentos. El test `managementVisualContract` protege
 la cobertura de las tres superficies y los tokens esenciales.
 
+### Estados del workspace
+
+`WorkspaceState` es el primitive común para initial loading, refreshing,
+empty-first-use, empty-filtered, error recoverable, permission, offline, stale,
+partial, conflict, rate limited y success. Initial loading conserva una
+estructura con skeleton; refresh no tapa datos ya visibles. Error, offline y
+conflict usan `role=alert`; el resto usa `status`, siempre con texto e icono
+además de color.
+
+Finance y Compras son la primera adopción D2.5. Un fallo al cargar órdenes no
+se convierte en lista vacía; un refresh fallido conserva datos como stale; si
+sólo faltan proveedores o productos, la vista declara cobertura parcial. Sin
+red se puede leer lo ya cargado, pero las escrituras documentales y físicas se
+deshabilitan. Las rutas restantes se migran por riesgo, no con un reemplazo
+masivo sin revisar recuperación y permisos.
+
 ## Referencias de dirección
 
 - [CRM app con clientes, deals y tareas](https://www.figma.com/design/y3iW4vARslK39hLDzTj37D/CRM-app-with-customers--deals--nested-data--tasks-and-menu-filtering--Community-)

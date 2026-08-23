@@ -96,6 +96,9 @@ Medición del código al 2026-08-22:
   aprobada se enfoca dentro de la lista ya tenant-scoped y el modal de recepción
   se abre sólo si el estado admite ingreso; 6 guardas cubren enlace manipulado,
   estados finales y preservación del RPC de stock;
+- `WorkspaceState` declara los 12 estados del estándar y D2.5 ya migra
+  Finance/Compras: skeleton inicial, refresh no bloqueante, primer uso, filtro
+  vacío, error, offline, stale, parcial y éxito bajo 6 guardas accesibles;
 - la validación visual autenticada desktop/mobile sigue pendiente de una sesión
   de prueba disponible en esta PC.
 
@@ -113,10 +116,10 @@ usa en material de producto o inversión.
 | Productos | Catálogo/Operación, tabla y acciones existentes. | Parcial | Editor, importador y variantes responsive. |
 | Ventas/POS | Lista/Rendimiento; POS fullscreen deliberado. | Parcial | Cobro completo teclado/touch y error. |
 | CRM | Command center, segmentos, tabla y ficha 360. | Implementado | Tarea real y lectura mobile. |
-| Inventario/Compras | Lista/recepción heredada bajo tokens v3; handoff Finance direccionado y estado contextual entregados. | Parcial | Composición completa lista/detalle/Kardex y validación responsive. |
+| Inventario/Compras | Lista/recepción bajo tokens v3; handoff direccionado y estados comunes, incluido dato parcial/offline. | Parcial | Composición completa lista/detalle/Kardex, migrar subflujos y validar responsive. |
 | Reportes/Intelligence | Primitives compartidos, alta densidad histórica. | Parcial | Simplificar filtros y priorizar decisión. |
 | Settings/Integraciones | Cabecera y navegación común. | Parcial | Formularios, secretos y permisos. |
-| Finance | Shell teal, overview, Document Inbox, inspector, confidence, matching y aprobación de tres borradores. | Parcial | Proveedor aprobado + prueba responsive con documentos reales. |
+| Finance | Shell teal, Inbox, inspector, matching, tres borradores y estados comunes con refresh/stale/offline. | Parcial | Proveedor aprobado + prueba responsive con documentos reales. |
 | Platform | Rail/control plane violeta y Merchant 360. | Parcial | Cola, métricas y soporte mobile. |
 | Storefront | Marca configurable aislada del SaaS. | Parcial | Home, PDP, carrito y checkout completo. |
 | Estados públicos | Pago, tracking, legales, invitación. | Parcial | Sistema público y accesibilidad. |
@@ -182,7 +185,9 @@ y justifica tecnología; no copia un Figma ni instala por moda.
 - [x] D2.3: migrar 10 selects de componentes especializados y limitar Storefront
   a 3 excepciones mobile/autofill verificadas por test.
 - [ ] D2.4: unificar date pickers, uploader, combobox, pagination y menús.
-- [ ] D2.5: consolidar estados `loading/empty/error/permission/offline/partial`.
+- [ ] D2.5 — **parcial 2026-08-22:** `WorkspaceState` cubre los 12 estados;
+  Finance/Compras ya migraron carga, refresh, vacíos, error, offline, stale,
+  parcial y éxito. Falta adopción por riesgo en el resto del SaaS.
 - [ ] D2.6: retirar modales manuales que duplican Dialog/Sheet/Drawer.
 
 **Salida:** una interacción base se corrige una vez y mejora toda la plataforma.
@@ -282,7 +287,7 @@ declara validado porque “se ve mejor”.
 | 3 | Selects de páginas de gestión | Hecho 2026-08-22 | 20 migrados; guarda en tests. |
 | 4 | Selects de componentes + decisión Storefront | Hecho 2026-08-22 | 10 migrados; SaaS en cero y 3 excepciones públicas bajo guarda. |
 | 5 | Estándar integral competitivo | Hecho 2026-08-22 | 17 referencias oficiales (7 globales, 4 Finance/spend y 6 argentinas), 4 Figma observados, arquetipos, overlays, segmentación, matriz de cobertura y puerta tecnológica bajo guarda CI. |
-| 6 | Estados unificados | Pendiente | Doce estados del estándar demostrados según aplicación, sin confundir vacío/error/parcial. |
+| 6 | Estados unificados | Parcial 2026-08-22 | Contrato de 12 estados + 6 guardas; Finance/Compras migrados sin confundir vacío/error/parcial. Faltan rutas restantes y matriz visual. |
 | 7 | Modales, sheets y drawers | Pendiente | Inventario clasificado con árbol de decisión; sin overlays manuales en gestión. |
 | 8 | Productos end-to-end | Pendiente | Desktop/mobile + editor/importación. |
 | 9 | Ventas y devolución | Pendiente | Lista→detalle→acción sin perder filtros. |
