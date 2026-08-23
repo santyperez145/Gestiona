@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { ArrowLeft, ArrowRight, BarChart3, Boxes, Check, CircleDollarSign, Mail, ShieldCheck, Sparkles } from 'lucide-react';
+import BrandLogo from '@/components/shared/BrandLogo';
 
 const SHOWCASE_ITEMS = [
   { icon: BarChart3, title: 'Ventas y margen', description: 'La señal que importa, al alcance del equipo.' },
@@ -13,7 +14,7 @@ const SHOWCASE_ITEMS = [
 ];
 
 function AuthBrand() {
-  return <Link to="/" className="auth-brand"><span className="auth-brand__mark">G</span><span>Gestiona</span></Link>;
+  return <Link to="/" className="auth-brand"><BrandLogo eager markClassName="h-8 w-8" nameClassName="text-[1.05rem]" /></Link>;
 }
 
 export default function AuthPage() {

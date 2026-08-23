@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { ArrowRight, Check, Globe2, LayoutDashboard, MonitorSmartphone, Sparkles } from 'lucide-react';
 import type { ActivationGoal } from '@/lib/activationReadiness';
+import BrandLogo from '@/components/shared/BrandLogo';
 import {
   completeBusinessOnboarding,
   listBusinessProfilePresets,
@@ -125,13 +126,7 @@ export default function OnboardingPage() {
 
       <div className="w-full max-w-[480px] relative z-10">
         {/* Brand header */}
-        <div className="flex items-center gap-2.5 mb-10 justify-center">
-          <div className="w-7 h-7 rounded-[5px] flex items-center justify-center"
-            style={{ background: 'var(--gradient-gold)' }}>
-            <span className="font-display font-black text-[12px]" style={{ color: 'hsl(var(--primary-foreground))' }}>G</span>
-          </div>
-          <span className="font-display font-semibold text-[15px] tracking-tight text-foreground/80">Gestiona</span>
-        </div>
+        <BrandLogo eager className="mb-10 flex justify-center" markClassName="h-7 w-7" nameClassName="text-[15px] text-foreground/80" />
 
         {/* Step indicator */}
         <div className="flex items-center gap-2 mb-8">

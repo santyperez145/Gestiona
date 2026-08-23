@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { useState } from 'react';
+import BrandLogo from '@/components/shared/BrandLogo';
 
 const CAPABILITIES = [
   {
@@ -56,9 +57,13 @@ const CHECKS = ['14 días sin tarjeta', 'Importación asistida', 'Soporte en esp
 
 function BrandMark({ small = false }: { small?: boolean }) {
   return (
-    <span className={`landing-brand-mark ${small ? 'is-small' : ''}`} aria-hidden="true">
-      <span>G</span>
-    </span>
+    <BrandLogo
+      compact
+      decorative
+      eager
+      className={`landing-brand-mark ${small ? 'is-small' : ''}`}
+      markClassName={small ? 'h-[1.55rem] w-[1.55rem]' : 'h-8 w-8'}
+    />
   );
 }
 

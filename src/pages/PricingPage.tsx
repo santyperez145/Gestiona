@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Check, Sparkles, ArrowLeft, Loader2, Crown, AlertTriangle, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Plan } from '@/lib/useEntitlements';
+import BrandLogo from '@/components/shared/BrandLogo';
 
 const FALLBACK_FEATURES: Record<string, string[]> = {
   trial:    ['14 días gratis, sin tarjeta', 'Hasta 50 productos', '3 usuarios', 'Catálogo público', 'IA incluida'],
@@ -100,7 +101,7 @@ export default function PricingPage() {
         style={{ background: 'hsl(var(--background) / 0.85)' }}>
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-[13px] font-display font-semibold text-muted-foreground/70 hover:text-foreground transition-colors">
-            <ArrowLeft className="w-3.5 h-3.5" /> Gestiona
+            <ArrowLeft className="w-3.5 h-3.5" /> <BrandLogo markClassName="h-5 w-5" nameClassName="text-[13px]" />
           </Link>
           {user && (
             <Link to="/" className="text-[12px] text-muted-foreground/50 hover:text-foreground transition-colors">

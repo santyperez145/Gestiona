@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Mail, Check, AlertTriangle } from 'lucide-react';
+import BrandLogo from '@/components/shared/BrandLogo';
 
 export default function InvitationAcceptPage() {
   const { token } = useParams<{ token: string }>();
@@ -66,13 +67,7 @@ export default function InvitationAcceptPage() {
 
       <div className="w-full max-w-[420px] relative z-10">
         {/* Brand */}
-        <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-7 h-7 rounded-[5px] flex items-center justify-center"
-            style={{ background: 'var(--gradient-gold)' }}>
-            <span className="font-display font-black text-[12px]" style={{ color: 'hsl(var(--primary-foreground))' }}>G</span>
-          </div>
-          <span className="font-display font-semibold text-[15px] tracking-tight text-foreground/80">Gestiona</span>
-        </div>
+        <BrandLogo eager className="mb-8 flex justify-center" markClassName="h-7 w-7" nameClassName="text-[15px] text-foreground/80" />
 
         {/* Card */}
         <div className="rounded-[10px] border border-border/60 p-8 text-center relative overflow-hidden"

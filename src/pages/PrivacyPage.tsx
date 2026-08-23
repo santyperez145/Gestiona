@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Shield } from 'lucide-react';
+import BrandLogo from '@/components/shared/BrandLogo';
 
 const LAST_UPDATED = '6 de mayo de 2026';
 const COMPANY = 'Gestiona';
@@ -11,7 +12,7 @@ export default function PrivacyPage() {
       <header className="border-b border-border/50 sticky top-0 backdrop-blur-md bg-background/70 z-10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Volver
+            <ArrowLeft className="w-4 h-4" /> <BrandLogo markClassName="h-5 w-5" nameClassName="text-sm" />
           </Link>
         </div>
       </header>

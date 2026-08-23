@@ -1,9 +1,10 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { ArrowLeftRight, FileStack, LayoutDashboard, LogOut, ReceiptText } from 'lucide-react';
+import { ArrowLeftRight, FileStack, LayoutDashboard, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/lib/orgContext';
 import OrgSwitcher from '@/components/shared/OrgSwitcher';
 import ThemeToggle from '@/components/shared/ThemeToggle';
+import BrandLogo from '@/components/shared/BrandLogo';
 
 const NAV = [
   { to: '/finance', label: 'Resumen', icon: LayoutDashboard, end: true },
@@ -25,9 +26,7 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
       <aside className="finance-sidebar border-b border-border/70 bg-card text-foreground shadow-[0_12px_30px_-26px_hsl(var(--foreground)/0.35)] lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
         <div className="flex h-16 items-center justify-between border-b border-border/70 px-4 lg:px-5">
           <Link to="/finance" className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-teal-500/25 bg-teal-500/10 text-teal-700 dark:text-teal-300">
-              <ReceiptText className="h-4 w-4" />
-            </span>
+            <BrandLogo compact decorative eager markClassName="h-8 w-8" />
             <span>
               <span className="block text-sm font-semibold tracking-tight">Gestiona Finance</span>
               <span className="block text-[9px] uppercase tracking-[0.18em] text-teal-700/70 dark:text-teal-300/70">Control documental</span>

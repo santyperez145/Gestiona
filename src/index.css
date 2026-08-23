@@ -1158,7 +1158,6 @@
   .auth-showcase .auth-brand:hover { color: hsl(0 0% 100%); }
   .auth-brand { display: inline-flex; align-items: center; gap: 0.65rem; color: hsl(var(--auth-ink)); font-family: var(--font-display); font-size: 1.05rem; font-weight: 800; letter-spacing: -0.04em; }
   .auth-brand:hover { color: hsl(var(--auth-ink)); }
-  .auth-brand__mark { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border: 1px solid hsl(43 90% 65%); border-radius: 8px; background: hsl(43 90% 65%); color: hsl(222 38% 14%); font-family: var(--font-display); font-size: 0.8rem; font-weight: 900; }
   .auth-showcase__status { display: inline-flex; align-items: center; gap: 0.4rem; color: hsl(220 18% 70%); font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.06em; text-transform: uppercase; }
   .auth-showcase__status i { width: 0.38rem; height: 0.38rem; border-radius: 50%; background: hsl(164 51% 62%); }
   .auth-showcase__content { width: min(100%, 490px); margin: auto 0; padding: 4rem 0; }
@@ -1293,20 +1292,11 @@
     justify-content: center;
     width: 2rem;
     height: 2rem;
-    border: 1px solid hsl(var(--landing-ink));
-    border-radius: 8px;
-    background: hsl(var(--landing-ink));
-    color: hsl(43 90% 65%);
-    font-family: var(--font-display);
-    font-size: 0.82rem;
-    font-weight: 900;
   }
 
   .landing-brand-mark.is-small {
     width: 1.55rem;
     height: 1.55rem;
-    border-radius: 6px;
-    font-size: 0.66rem;
   }
 
   .landing-nav__links {
@@ -4822,12 +4812,6 @@
     --landing-violet: 12 86% 62%;
   }
 
-  .landing-shell .landing-brand-mark {
-    border-color: hsl(252 83% 62%);
-    background: linear-gradient(135deg, hsl(268 82% 68%), hsl(252 83% 62%));
-    color: hsl(0 0% 100%);
-  }
-
   .landing-shell .landing-button--primary,
   .landing-shell .landing-button--dark {
     background: linear-gradient(135deg, hsl(268 82% 68%), hsl(252 83% 62%));
@@ -4853,12 +4837,6 @@
   .auth-shell {
     --auth-gold: 252 83% 62%;
     --auth-teal: 174 67% 42%;
-  }
-
-  .auth-shell .auth-brand__mark {
-    border-color: hsl(252 83% 62%);
-    background: linear-gradient(135deg, hsl(268 82% 68%), hsl(252 83% 62%));
-    color: hsl(0 0% 100%);
   }
 
   .auth-shell .auth-showcase h1 span,

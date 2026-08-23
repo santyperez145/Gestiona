@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { KeyRound, CheckCircle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import BrandLogo from '@/components/shared/BrandLogo';
 
 function AuthShell({ children }: { children: React.ReactNode }) {
   return (
@@ -13,13 +14,7 @@ function AuthShell({ children }: { children: React.ReactNode }) {
       <div className="absolute inset-x-0 top-0 h-[300px] pointer-events-none"
         style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, hsl(38 82% 52% / 0.05) 0%, transparent 70%)' }} />
       <div className="w-full max-w-[380px] relative z-10">
-        <div className="flex items-center justify-center gap-2.5 mb-10">
-          <div className="w-7 h-7 rounded-[5px] flex items-center justify-center"
-            style={{ background: 'var(--gradient-gold)' }}>
-            <span className="font-display font-black text-[12px]" style={{ color: 'hsl(var(--primary-foreground))' }}>G</span>
-          </div>
-          <span className="font-display font-semibold text-[15px] tracking-tight text-foreground/80">Gestiona</span>
-        </div>
+        <BrandLogo eager className="mb-10 flex justify-center" markClassName="h-7 w-7" nameClassName="text-[15px] text-foreground/80" />
         {children}
       </div>
     </div>

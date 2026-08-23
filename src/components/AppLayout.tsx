@@ -24,6 +24,7 @@ import PageGuide from "@/components/shared/PageGuide";
 import PresenceAvatars from "@/components/shared/PresenceAvatars";
 import CommandPalette from "@/components/shared/CommandPalette";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import BrandLogo from "@/components/shared/BrandLogo";
 import { usePermissionsResolver } from "@/lib/permissionsContext";
 import { moduleForRoute } from "@/lib/moduleMap";
 import { NAV_ITEMS, NAV_GROUPS, grupoDeRuta } from "@/lib/navigation";
@@ -235,24 +236,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* ── Logo / Brand Header ──────────────────────────────────── */}
         <div className={`workspace-sidebar__brand ${effectiveCollapsed ? 'px-3 py-4' : 'px-4 py-4'} border-b border-sidebar-border/60 flex items-center justify-between`}>
           <div className="flex items-center gap-3 min-w-0">
-            {config.logoUrl ? (
-              <div className="relative shrink-0">
-                <img src={config.logoUrl} alt="Logo" className="w-8 h-8 rounded-[8px] object-cover ring-1 ring-primary/25" />
-                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-[1.5px] border-sidebar" />
-              </div>
-            ) : (
-              <div className="w-8 h-8 rounded-[8px] gradient-gold flex items-center justify-center shrink-0 shadow-[0_2px_12px_-2px_hsl(213_78%_56%/0.5)]">
-                <span className="text-primary-foreground font-bold text-[13px]">E</span>
-              </div>
-            )}
+            <BrandLogo compact decorative eager markClassName="h-8 w-8" />
             {!effectiveCollapsed && (
               <div className="min-w-0 animate-fade-in">
                 <p className="text-[13px] font-display font-bold text-foreground/90 truncate tracking-tight leading-none">
-                  {config.businessName}
+                  Gestiona
                 </p>
-                <span className={`inline-flex items-center px-1.5 py-[2px] rounded-[4px] text-[9px] font-semibold border mt-1 uppercase tracking-wide ${roleBadgeClass}`}>
-                  {roleLabel}
-                </span>
+                <div className="mt-1 flex min-w-0 items-center gap-1.5">
+                  <span className="truncate text-[9px] text-muted-foreground" title={config.businessName}>{config.businessName}</span>
+                  <span className={`inline-flex shrink-0 items-center rounded-[4px] border px-1.5 py-[2px] text-[8px] font-semibold uppercase tracking-wide ${roleBadgeClass}`}>{roleLabel}</span>
+                </div>
               </div>
             )}
           </div>
@@ -444,13 +437,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           {/* Brand */}
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            {config.logoUrl ? (
-              <img src={config.logoUrl} alt="Logo" className="w-5 h-5 rounded-[4px] object-cover ring-1 ring-primary/20" />
-            ) : (
-              <div className="w-5 h-5 rounded-[4px] gradient-gold flex items-center justify-center shrink-0">
-                <span className="text-primary-foreground font-black text-[9px]">E</span>
-              </div>
-            )}
+            <BrandLogo compact eager markClassName="h-5 w-5" />
             <span className="font-display font-semibold text-[13px] text-foreground/80 truncate tracking-tight">
               {config.businessName}
             </span>

@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/lib/orgContext';
 import { usePlatformAccess } from '@/lib/usePermissions';
+import BrandLogo from '@/components/shared/BrandLogo';
 
 /**
  * Chrome de la superficie de PLATAFORMA — deliberadamente distinta del panel
@@ -74,9 +75,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
       >
         <div className="platform-topbar-inner px-4 sm:px-6 h-14 flex items-center gap-3">
           <div className="platform-topbar__identity flex items-center gap-2 min-w-0">
-            <div className="platform-brand-mark w-7 h-7 rounded-[8px] flex items-center justify-center shrink-0">
-              <Crown className="w-3.5 h-3.5" />
-            </div>
+            <BrandLogo compact decorative eager markClassName="h-7 w-7" />
             <div className="min-w-0">
               <span className="platform-brand-title block font-display font-semibold text-[13px] tracking-tight truncate">
                 Plataforma Gestiona

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Activity, AlertTriangle, ArrowLeft, CheckCircle2, CircleHelp, RefreshCw, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import BrandLogo from "@/components/shared/BrandLogo";
 import {
   fetchPublicServiceStatus,
   overallServiceState,
@@ -50,7 +51,7 @@ export default function ServiceStatusPage() {
       <header className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
           <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />Volver a Gestiona
+            <ArrowLeft className="h-4 w-4" /><BrandLogo markClassName="h-5 w-5" nameClassName="text-sm" />
           </Link>
           <div className="flex items-center gap-2 font-display text-sm font-semibold"><Activity className="h-4 w-4 text-primary" />Estado del servicio</div>
         </div>

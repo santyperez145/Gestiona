@@ -69,7 +69,10 @@ El rediseño se considera completo cuando:
 
 ### Límite de marca
 
-- Business, Finance y Platform sólo aceptan logo/nombre del workspace.
+- Business, Finance y Platform usan el símbolo oficial de Gestiona; el nombre
+  del workspace aparece como contexto operativo, no reemplaza la marca del SaaS.
+- El logo del merchant sólo aparece en Storefront, catálogo/PDF y documentos
+  dirigidos a sus compradores.
 - `primary_color`, `secondary_color`, fondo, cards y acento configurables sólo
   se consumen en Storefront y catálogo PDF.
 - El tema claro es la referencia de aceptación; oscuro conserva paridad.
@@ -163,11 +166,13 @@ y justifica tecnología; no copia un Figma ni instala por moda.
 
 ### D0 — Identidad y aislamiento de temas
 
-**Estado:** hecho técnicamente el 2026-08-22.
+**Estado:** hecho técnicamente y reforzado el 2026-08-23.
 
 - tokens claro/oscuro oficiales;
 - personalización del merchant aislada a tienda/PDF;
 - Business, Finance y Platform con identidad consistente;
+- símbolo canónico transparente en shells, landing, acceso, onboarding,
+  invitaciones, recuperación, páginas institucionales, favicon y PWA;
 - prueba de regresión para impedir mutaciones globales desde settings.
 
 **Salida:** cambiar colores de una tienda no modifica ninguna ruta de Gestión.
@@ -324,7 +329,7 @@ prioritarios estables en los cuatro viewports.
 **Salida:** el rediseño demuestra menor tiempo/error y mayor confianza; no se
 declara validado porque “se ve mejor”.
 
-## 6. Próximos 25 slices de diseño
+## 6. Próximos 26 slices de diseño
 
 | # | Slice | Estado | Evidencia de cierre |
 |---:|---|---|---|
@@ -353,6 +358,7 @@ declara validado porque “se ve mejor”.
 | 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
 | 24 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |
 | 25 | Investor demo mode con datos seguros | Pendiente tras validación | Narrativa reproducible, sin métricas falsas. |
+| 26 | Identidad oficial de Gestiona | Hecho 2026-08-23 | Símbolo RGBA canónico en 13 superficies, favicon/Apple/PWA; merchant aislado a Storefront/documentos; desktop y acceso móvil verificados en localhost. |
 
 Máximo dos slices visuales activos. Un problema de seguridad, datos, stock,
 pagos o legal interrumpe esta secuencia y vuelve a `ROADMAP.md`.

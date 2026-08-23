@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { ShieldCheck, Loader2, LogOut, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { decideMfaState, type MfaDecision } from "@/lib/mfaGate";
+import BrandLogo from "@/components/shared/BrandLogo";
 
 type GateState = "checking" | MfaDecision;
 
@@ -92,6 +93,7 @@ export default function MfaGate({ isAdmin, orgRequiresMfa, children }: Props) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 space-y-4">
+        <BrandLogo eager className="border-b border-border/60 pb-4" markClassName="h-7 w-7" nameClassName="text-sm" />
         {state === "needs_code" ? (
           <>
             <div className="flex items-center gap-2">
