@@ -92,6 +92,10 @@ Medición del código al 2026-08-22:
 - Storefront conserva exactamente 3 selects nativos: dos en checkout
   (autofill/teclado de dirección y cuotas) y uno en listado mobile. La guarda
   fija archivo y cantidad para que la excepción no crezca por accidente;
+- Finance y Compras comparten ahora una siguiente acción direccionada: la OC
+  aprobada se enfoca dentro de la lista ya tenant-scoped y el modal de recepción
+  se abre sólo si el estado admite ingreso; 6 guardas cubren enlace manipulado,
+  estados finales y preservación del RPC de stock;
 - la validación visual autenticada desktop/mobile sigue pendiente de una sesión
   de prueba disponible en esta PC.
 
@@ -109,7 +113,7 @@ usa en material de producto o inversión.
 | Productos | Catálogo/Operación, tabla y acciones existentes. | Parcial | Editor, importador y variantes responsive. |
 | Ventas/POS | Lista/Rendimiento; POS fullscreen deliberado. | Parcial | Cobro completo teclado/touch y error. |
 | CRM | Command center, segmentos, tabla y ficha 360. | Implementado | Tarea real y lectura mobile. |
-| Inventario/Compras | Sistema heredado bajo tokens v3. | Parcial | Composición lista/detalle y estados. |
+| Inventario/Compras | Lista/recepción heredada bajo tokens v3; handoff Finance direccionado y estado contextual entregados. | Parcial | Composición completa lista/detalle/Kardex y validación responsive. |
 | Reportes/Intelligence | Primitives compartidos, alta densidad histórica. | Parcial | Simplificar filtros y priorizar decisión. |
 | Settings/Integraciones | Cabecera y navegación común. | Parcial | Formularios, secretos y permisos. |
 | Finance | Shell teal, overview, Document Inbox, inspector, confidence, matching y aprobación de tres borradores. | Parcial | Proveedor aprobado + prueba responsive con documentos reales. |
@@ -208,6 +212,8 @@ perder contexto ni encontrar un patrón visual nuevo.
   confirmación explícita de cero efectos operativos;
 - [x] Matching con proveedor/producto canónicos, método visible, empates sin
   autoselección y confirmación que aprende aliases por tenant;
+- [x] Aprobación documental con siguiente acción Finance → OC, foco contextual,
+  limpieza de filtros y recepción sólo en estados válidos, sin duplicar stock;
 - payables/aprobaciones con segregación visible entre solicitante, manager,
   contador y pago;
 - presupuesto, política, centro de costo/proyecto y fuera de política visibles
@@ -281,10 +287,10 @@ declara validado porque “se ve mejor”.
 | 8 | Productos end-to-end | Pendiente | Desktop/mobile + editor/importación. |
 | 9 | Ventas y devolución | Pendiente | Lista→detalle→acción sin perder filtros. |
 | 10 | POS teclado/touch/offline | Pendiente | Cobro y recuperación medidos. |
-| 11 | Compras, recepción y Kardex | Pendiente | Autoridad de stock visible. |
+| 11 | Compras, recepción y Kardex | Parcial 2026-08-22 | Finance llega a la OC exacta, muestra contexto y abre la recepción idempotente; faltan Kardex integrado y matriz responsive. |
 | 12 | Reportes orientados a decisión | Pendiente | Menos filtros duplicados; acción clara. |
 | 13 | Settings e Integraciones | Pendiente | Secretos, permisos y estados consistentes. |
-| 14 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos y aprobación/resultado usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
+| 14 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos, aprobación y handoff a recepción usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
 | 15 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
 | 16 | Storefront home/PLP/PDP | Pendiente | Marca, performance y mobile aprobados. |
 | 17 | Carrito/checkout/pago | Pendiente | Compra completa 360 px/red lenta. |

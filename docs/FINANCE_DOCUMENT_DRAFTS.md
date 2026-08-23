@@ -83,8 +83,12 @@ según el estado. El diálogo conserva las tres tarjetas separadas, permite
 resolver cada línea contra catálogo o como no inventariable, pide vencimiento y
 tipo de cambio y explica el efecto antes del CTA.
 
-Después de aprobar muestra los IDs de orden y deuda, y mantiene visible que la
-orden sigue sin recepción. No ofrece un atajo para escribir stock.
+Después de aprobar mantiene visible que la orden sigue sin recepción y ofrece
+`Ir a recibir mercadería`. El handoff valida el UUID, espera la carga del tenant
+activo, enfoca sólo una orden ya obtenida bajo RLS y abre el diálogo únicamente
+en `confirmed` o `partially_received`. Una orden recibida o cancelada se abre en
+consulta. No existe un atajo para escribir stock: la confirmación continúa en
+`receive_purchase_order_idem`.
 
 ## Verificación real
 
@@ -127,8 +131,9 @@ group by i.status;
 
 ## Próximo límite
 
-F3 ya tiene la cadena técnica completa. Para cumplir su condición de salida falta
-un proveedor privado de scanner/extracción aprobado y facturas autorizadas que
-midan accuracy, tiempo, match rate y excepciones. El siguiente trabajo puramente
-técnico no debe inventar amplitud: corresponde endurecer la recepción Finance
-end-to-end/E2E o retomar D2.5 estados visuales mientras llega esa evidencia.
+F3 ya tiene la cadena técnica completa hasta el handoff de recepción. Para
+cumplir su condición de salida falta un proveedor privado de scanner/extracción
+aprobado y facturas autorizadas que midan accuracy, tiempo, match rate,
+excepciones y recepción end-to-end. Sin esa evidencia, el siguiente trabajo
+puramente técnico no debe inventar amplitud: corresponde retomar D2.5 estados
+visuales o un riesgo operativo anterior mientras llega la prueba real.

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   BadgeDollarSign,
   CheckCircle2,
@@ -32,6 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import PageHeader from '@/components/shared/PageHeader';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useOrg } from '@/lib/orgContext';
+import { buildPurchaseOrderHandoffPath } from '@/lib/purchaseOrderHandoff';
 import {
   approveFinanceDocumentDrafts,
   createFinanceDocumentDrafts,
@@ -810,6 +812,13 @@ function DraftApprovalDialog({ drafts, products, lineChoices, dueDate, exchangeR
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>{approved ? 'Cerrar' : 'Cancelar'}</Button>
+          {approved && drafts.purchase.purchaseOrderId && (
+            <Button asChild>
+              <Link to={buildPurchaseOrderHandoffPath(drafts.purchase.purchaseOrderId, 'receive')}>
+                <PackageCheck /> Ir a recibir mercadería
+              </Link>
+            </Button>
+          )}
           {!approved && <Button onClick={onSubmit} disabled={saving || !canSubmit}>{saving ? <Loader2 className="animate-spin" /> : <ClipboardCheck />}{saving ? 'Aprobando...' : 'Aprobar orden y obligación'}</Button>}
         </DialogFooter>
       </DialogContent>

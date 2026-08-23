@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams } from "react-router-dom";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,11 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import {
+  isPurchaseOrderReceivable,
+  parsePurchaseOrderHandoff,
+  type PurchaseOrderHandoffAction,
+} from "@/lib/purchaseOrderHandoff";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import InvoiceOCRModal, { OCRPrefillData } from "@/components/purchases/InvoiceOCRModal";
@@ -620,20 +626,41 @@ function ReceiveDialog({ order, open, onOpenChange, onDone }: {
 
 interface PORowProps {
   order: PurchaseOrder;
+  focusAction: PurchaseOrderHandoffAction | null;
   onEdit: () => void;
   onAdvanceStatus: (status: string) => void;
   onReceived: () => void;
   onDelete: () => void;
 }
 
-function PORow({ order, onEdit, onAdvanceStatus, onReceived, onDelete }: PORowProps) {
+function PORow({ order, focusAction, onEdit, onAdvanceStatus, onReceived, onDelete }: PORowProps) {
   const [recibiendo, setRecibiendo] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const consumedFocus = useRef<string | null>(null);
   const sc = STATUS_CONFIG[order.status];
   const StatusIcon = sc.icon;
 
+  useEffect(() => {
+    if (!focusAction) {
+      consumedFocus.current = null;
+      return;
+    }
+    const signature = `${order.id}:${focusAction}`;
+    if (consumedFocus.current === signature) return;
+    consumedFocus.current = signature;
+    setExpanded(true);
+    rowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (focusAction === "receive" && isPurchaseOrderReceivable(order.status)) {
+      setRecibiendo(true);
+    }
+  }, [focusAction, order.id, order.status]);
+
   return (
-    <div className="rounded-lg border border-border bg-card/50 overflow-hidden">
+    <div
+      ref={rowRef}
+      className={`rounded-lg border bg-card/50 overflow-hidden transition-shadow ${focusAction ? "border-teal-500/55 ring-2 ring-teal-500/10 shadow-sm" : "border-border"}`}
+    >
       <div className="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/20 transition-colors" onClick={() => setExpanded(e => !e)}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -737,11 +764,15 @@ export default function PurchaseOrdersPage() {
   usePageTitle("Órdenes de Compra");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadedOrgId, setLoadedOrgId] = useState<string | null>(null);
+  const loadRequest = useRef(0);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [tab, setTab] = usePersistedState<"ordenes" | "cotizaciones" | "solicitudes">(
@@ -753,10 +784,15 @@ export default function PurchaseOrdersPage() {
   const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
   const [ocrModalOpen, setOcrModalOpen] = useState(false);
   const [ocrPrefill, setOcrPrefill] = useState<OCRPrefillData | null>(null);
+  const [focusedOrder, setFocusedOrder] = useState<{ id: string; action: PurchaseOrderHandoffAction } | null>(null);
+  const [handoffNotice, setHandoffNotice] = useState<{ title: string; detail: string } | null>(null);
 
   const loadAll = async () => {
     if (!orgId) return;
+    const request = ++loadRequest.current;
     setLoading(true);
+    setLoadError(null);
+    setLoadedOrgId(null);
     const [ordRes, supRes, prodRes] = await Promise.all([
       supabase.from("purchase_orders").select("*, items:purchase_order_items(*)").eq("org_id", orgId).order("created_at", { ascending: false }),
       // La tabla real es `suppliers` (no `proveedores`), y en products el
@@ -764,16 +800,70 @@ export default function PurchaseOrdersPage() {
       supabase.from("suppliers").select("id,name,email").eq("org_id", orgId).order("name"),
       supabase.from("products").select("id,name,sku,cost_usd,sale_price_ars").eq("org_id", orgId).order("name"),
     ]);
+    if (request !== loadRequest.current) return;
+    if (ordRes.error) {
+      setLoadError("No pudimos cargar las órdenes de compra. Reintentá antes de registrar una recepción.");
+      toast.error("No se pudieron cargar las órdenes de compra");
+      setLoading(false);
+      return;
+    }
+    if (supRes.error) toast.error("No se pudieron cargar los proveedores");
+    if (prodRes.error) toast.error("No se pudieron cargar los productos");
     setOrders((ordRes.data ?? []) as PurchaseOrder[]);
     setSuppliers((supRes.data ?? []) as Supplier[]);
     setProducts(((prodRes.data ?? []) as any[]).map(p => ({
       id: p.id, name: p.name, sku: p.sku,
       cost: p.cost_usd ?? null, price: p.sale_price_ars ?? 0,
     })) as Product[]);
+    setLoadedOrgId(orgId);
     setLoading(false);
   };
 
   useEffect(() => { loadAll(); }, [orgId]);
+
+  useEffect(() => {
+    const rawOrderId = searchParams.get("purchaseOrder");
+    if (!rawOrderId || loading || loadError || !orgId || loadedOrgId !== orgId) return;
+
+    const handoff = parsePurchaseOrderHandoff(searchParams);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("purchaseOrder");
+    nextParams.delete("action");
+    nextParams.delete("source");
+
+    if (!handoff) {
+      toast.error("El enlace a la orden no es válido");
+      setSearchParams(nextParams, { replace: true });
+      return;
+    }
+
+    // Nunca se busca la orden por id directamente desde el enlace. Sólo puede
+    // enfocarse una fila que ya pasó el filtro de organización y la RLS.
+    const order = orders.find(candidate => candidate.id === handoff.orderId && candidate.org_id === orgId);
+    if (!order) {
+      toast.error("No encontramos esa orden en la organización activa");
+      setSearchParams(nextParams, { replace: true });
+      return;
+    }
+
+    setTab("ordenes");
+    setSearch("");
+    setFilterStatus("all");
+    const canReceive = handoff.action === "receive" && isPurchaseOrderReceivable(order.status);
+    setFocusedOrder({ id: order.id, action: canReceive ? "receive" : "view" });
+    setHandoffNotice(canReceive
+      ? {
+          title: `${order.order_number} lista para recibir`,
+          detail: "Revisá las cantidades y la sucursal de destino. El stock cambia recién cuando confirmás esta recepción.",
+        }
+      : {
+          title: `${order.order_number} ya no admite recepción`,
+          detail: order.status === "received"
+            ? "La mercadería de esta orden ya fue recibida por completo."
+            : `La orden está ${STATUS_CONFIG[order.status]?.label.toLowerCase() || order.status} y se abrió sólo para consulta.`,
+        });
+    setSearchParams(nextParams, { replace: true });
+  }, [loading, loadError, loadedOrgId, orgId, orders, searchParams, setSearchParams, setTab]);
 
   const kpis = useMemo(() => {
     const open = orders.filter(o => ["draft", "sent", "confirmed"].includes(o.status)).length;
@@ -843,6 +933,22 @@ export default function PurchaseOrdersPage() {
         </TabsList>
 
         <TabsContent value="ordenes" className="space-y-6 pb-12">
+          {handoffNotice && (
+            <div className="flex items-start gap-3 rounded-[10px] border border-teal-500/25 bg-teal-500/[0.045] p-4 text-teal-700 dark:text-teal-300">
+              <Package className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold">{handoffNotice.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{handoffNotice.detail}</p>
+              </div>
+            </div>
+          )}
+
+          {loadError && (
+            <div className="rounded-[10px] border border-destructive/25 bg-destructive/[0.04] p-4 text-sm text-destructive">
+              {loadError}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <KPICard label="OC abiertas" value={kpis.open} sub="en proceso" icon={ClipboardList} color="blue" />
             <KPICard label="Valor pendiente" value={fmtCurrency(kpis.pendingValue)} sub="por recibir" icon={DollarSign} color="warning" />
@@ -878,6 +984,7 @@ export default function PurchaseOrdersPage() {
                 <PORow
                   key={order.id}
                   order={order}
+                  focusAction={focusedOrder?.id === order.id ? focusedOrder.action : null}
                   onEdit={() => { setEditingOrder(order); setFormOpen(true); }}
                   onAdvanceStatus={status => handleAdvanceStatus(order, status)}
                   onReceived={loadAll}
