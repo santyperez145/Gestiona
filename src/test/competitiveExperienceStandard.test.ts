@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
 const standard = read('docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md');
+const roadmap = read('ROADMAP.md');
+const designRoadmap = read('DESIGNROADMAP.md');
 
 describe('estándar integral de experiencia competitiva', () => {
   it('separa evidencia, observación, decisión e hipótesis y prohíbe copiar', () => {
@@ -61,6 +63,20 @@ describe('estándar integral de experiencia competitiva', () => {
     expect(standard).toContain('Emitir tarjetas o');
     expect(standard).toContain('mover dinero exige demanda');
     expect(standard).toContain('mismo Business Graph');
+    expect(roadmap).toContain('Mendel-class como benchmark principal');
+    expect(roadmap).toContain('Contrato de paridad Mendel-class');
+    expect(roadmap).toContain('tarjetas externas y una abstracción de emisor');
+    expect(designRoadmap).toContain('Arquitectura de información objetivo de Finance');
+    for (const surface of [
+      '**Inicio:**',
+      '**Gastos:**',
+      '**Solicitudes y aprobaciones:**',
+      '**Presupuestos y políticas:**',
+      '**Medios de pago:**',
+      '**Conciliación y Contabilidad:**',
+    ]) {
+      expect(designRoadmap, `falta la superficie Finance ${surface}`).toContain(surface);
+    }
   });
 
   it('queda enlazado desde los documentos rectores y las instrucciones del repo', () => {

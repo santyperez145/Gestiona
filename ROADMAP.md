@@ -171,6 +171,43 @@ patrones de producto/UX y la matriz de ejecución viven en
 | Soporte remoto | Panel de cuenta, auditoría e impersonación/diagnóstico. | Se retiró la impersonación: Support solicita un snapshot agregado, owner autoriza 15/30/60 minutos, cada lectura revalida expiración/revocación y queda contada. La herramienta es paridad; consentimiento, minimización y no heredar una sesión son confianza operativa a validar con menor tiempo de soporte. |
 | Alta de comercios | Cuenta, trial, invitación y panel de activación. | Platform aprovisiona org + owner + plan + settings + auditoría en una transacción idempotente, bloquea identidades ya vinculadas y envía el acceso sin mostrar el token. El alta es paridad; no corromper otro tenant ni duplicar al reintentar es confiabilidad a demostrar en el segundo merchant. |
 
+### Decisión Finance 2026-08-22 — Mendel-class como benchmark principal
+
+Mendel deja de ser una referencia regional más: es el **benchmark principal de
+producto y experiencia para Gestiona Finance**. La meta es alcanzar una
+experiencia comparable de control de gasto de punta a punta, no copiar su marca,
+assets o pantallas. Su propuesta oficial vigente combina control preventivo,
+presupuestos, reglas, aprobaciones multinivel, medios de pago, auditoría e
+integración contable/ERP ([plataforma](https://mendel.com/ar/producto/),
+[tarjetas](https://mendel.com/ar/producto/tarjetas-mendel/) e
+[integraciones](https://mendel.com/ar/producto/integraciones/), verificadas el
+2026-08-22).
+
+**Contrato de paridad Mendel-class:**
+
+| Capacidad objetivo | Comportamiento obligatorio en Gestiona Finance | Evidencia antes de declararla comparable |
+|---|---|---|
+| Control financiero | Inicio en tiempo real con gasto, disponible/comprometido/consumido, aprobaciones, comprobantes faltantes, anomalías y fuera de política. | Un responsable detecta y resuelve la excepción desde la misma superficie, sin planilla ni SQL. |
+| Presupuestos y políticas | Presupuestos únicos o recurrentes por persona/equipo/centro/proyecto/categoría; reglas versionadas por monto, categoría, comercio, ubicación, horario y frecuencia. | El servidor explica qué regla y versión permitió, escaló o bloqueó cada solicitud/transacción. |
+| Solicitudes y aprobaciones | Flujos de uno o más niveles, comentarios, rechazo, delegación, sustitución, SLA y segregación solicitante/aprobador/contabilidad/pago. | Casos felices, fuera de política, ausencia del aprobador y retry quedan auditados y tenant-safe. |
+| Gasto unificado | Tarjeta propia o externa, transferencia, efectivo, reembolso, anticipo/fondo y factura convergen en un registro con evidencia y estado común. | Ningún medio crea un ledger, proveedor, centro de costo o circuito de aprobación paralelo. |
+| Evidencia y conciliación | Ticket/factura, datos fiscales, categoría, centro de costo y cuenta contable se vinculan a una sola transacción; conciliación y exportación ERP son idempotentes. | No hay doble carga ni doble asiento; diferencia, retry y estado de sincronización son visibles. |
+| Mobile e inteligencia | Captura, solicitud, aprobación y alertas funcionan mobile; el Copilot clasifica, explica y propone acciones sólo con permisos y auditoría. | La IA nunca salta una política ni una aprobación humana y su acción/resultados se miden. |
+| Seguridad y operación | Roles mínimos, MFA para acciones sensibles, trazabilidad append-only, configuración por organización y observabilidad de integraciones. | Un usuario restringido no puede leer ni operar otra organización, credencial o etapa del flujo. |
+
+**Diferencial propio:** Mendel-class define la paridad de Spend Management;
+Gestiona debe superarla conectando ese gasto con el mismo proveedor, compra,
+producto, recepción, stock, costo importado, venta y margen real del Business
+Graph. Esa continuidad —documento → obligación → recepción → costo → margen— es
+la tesis defendible para comercios, no tener otra tarjeta o dashboard.
+
+**Alcance regulado:** la arquitectura y la experiencia contemplan tarjetas
+físicas/virtuales y controles en tiempo real, primero mediante importación de
+tarjetas externas y una abstracción de emisor. Emitir tarjetas, custodiar o
+mover fondos sólo se activa con demanda, socio regulado, economics positivos,
+riesgo, soporte y revisión legal. Es un gate de ejecución, no una renuncia a la
+visión de paridad.
+
 No son diferenciales suficientes por sí solos:
 
 - tener tienda, POS, pagos, envíos, chat o reportes;
@@ -586,17 +623,24 @@ operación.
 **Métricas:** tiempo a migrar, registros reconciliados, redirects correctos,
 rendimiento, conversión y errores de checkout.
 
-### F5 — Finance Automation
+### F5 — Gestiona Finance Mendel-class
 
-**Objetivo:** pasar de capturar documentos a operar Finanzas por excepción.
+**Objetivo:** pasar de capturar documentos a una plataforma comparable con
+Mendel para controlar gasto por excepción, conectada nativamente al Business
+Graph de Gestiona.
 
 **Entregables**
 
 - Three-way match: purchase order, recepción y factura.
-- Expense Management con gastos, reembolsos, anticipos/fondos y centros de
-  costo/proyectos.
+- Inicio Finance con gasto en tiempo real, presupuesto disponible/comprometido/
+  consumido, solicitudes, aprobaciones, comprobantes faltantes y excepciones
+  accionables.
+- Expense Management con tarjetas propias o externas, transferencias, efectivo,
+  gastos, reembolsos, anticipos/fondos y centros de costo/proyectos dentro de un
+  mismo modelo y ledger.
 - Políticas versionadas y presupuestos preventivos por monto, categoría,
-  frecuencia, centro de costo y periodo.
+  comercio, ubicación, horario, frecuencia, persona/equipo, centro de costo,
+  proyecto y periodo; evaluación server-side explicable antes del gasto.
 - Captura mobile/offline y WhatsApp/email con deduplicación, consentimiento y
   la misma cadena de custodia del Document Inbox.
 - Approval Engine reusable con niveles, delegación, SLA, sustitución y
@@ -611,14 +655,20 @@ rendimiento, conversión y errores de checkout.
 - Supplier Portal.
 - Finance Connect para un ERP externo mediante contrato estable, exportación
   idempotente, estado de sincronización y conciliación.
+- Medios de pago como abstracción de emisor: importar transacciones de tarjetas
+  corporativas externas primero; habilitar emisión física/virtual y controles
+  de autorización en tiempo real sólo mediante el gate regulado.
 
-**Límite competitivo:** Mendel y Clara usan tarjetas corporativas y Concur suma
-viajes. Gestiona no los incorpora por imitación. Emisión de tarjetas, custodia,
-movimiento de fondos o viajes requieren demanda real, socio regulado, economics,
-riesgo, soporte y revisión legal antes de entrar a una fase.
+**Límite competitivo:** la paridad con Mendel incluye el trabajo completo de
+controlar gasto, aunque la primera etapa sea software-first y opere medios
+externos. Emisión de tarjetas, custodia, movimiento de fondos o viajes requieren
+demanda real, socio regulado, economics, riesgo, soporte y revisión legal antes
+de entrar a una fase. No se simula una capacidad regulada con UI.
 
-**Salida:** la mayoría definida para el piloto sólo necesita intervención en
-excepciones y cada automatización puede auditarse, explicarse y revertirse.
+**Salida:** un piloto completa solicitud/presupuesto/política/aprobación/gasto/
+evidencia/conciliación/exportación; la mayoría definida sólo necesita
+intervención en excepciones y cada automatización puede auditarse, explicarse y
+revertirse.
 
 **Métricas:** straight-through processing, exception rate, aprobación,
 conciliación, AP aging, anomalías confirmadas y horas evitadas verificables.
@@ -722,7 +772,7 @@ la siguiente tarea técnica que reduzca el mismo gate.
 | 20 | Cart y order canónicos | F4 | Pendiente | Carrito server-side y estados independientes. |
 | 21 | Store first-class | F4 | Pendiente | Una organización opera dos stores sin duplicar Core. |
 | 22 | Domains + migración inicial | F4 | Pendiente | Tienda externa migra, conecta SSL y vende. |
-| 23 | Finance Automation piloto | F5 | Congelado hasta F3 | Documentos operan por excepción con trazabilidad. |
+| 23 | Finance Mendel-class piloto | F5 | Congelado hasta adopción F3 | Un piloto completa solicitud → presupuesto/política → aprobación → gasto/evidencia → conciliación/exportación; tarjetas externas primero y emisión sólo con gate regulado. |
 | 24 | Commerce diferencial | F6 | Congelado hasta F4 y demanda | Una capacidad diferencial adoptada por merchants. |
 | 25 | Pay/Ship + Developer gates | F7–F8 | Congelado por volumen/regulación | Margen transaccional y app externa reales. |
 
@@ -858,13 +908,16 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
 28. ~~Mapa competitivo regional para Finance y comercio argentino~~ — cerrado
     documentalmente el 2026-08-22 con fuentes oficiales de Mendel, Clara,
     Rindegastos, SAP Concur Argentina, Tiendanube, Empretienda, Contabilium,
-    Xubio, Colppy y Mercado Libre/Mercado Pago. La consecuencia no es agregar
-    diez módulos: F3 conserva borradores conectados al Core ya entregados;
-    F5 explicita políticas, presupuestos, centros de costo, reembolsos, captura mobile y cola
-    de excepciones; F4 prioriza migración compatible con Tiendanube/Empretienda.
-    Tarjetas, custodia y viajes quedan congelados sin demanda, partner regulado,
-    economics y revisión legal. La guarda CI impide borrar estas referencias o
-    volver a reducir Finance a OCR y Commerce a “tener tienda/POS”.
+    Xubio, Colppy y Mercado Libre/Mercado Pago. Mendel queda como benchmark
+    principal de Finance y el resto contrasta brechas específicas. La
+    consecuencia no es agregar diez módulos: F3 conserva borradores conectados
+    al Core ya entregados; F5 explicita control preventivo, políticas,
+    presupuestos, aprobaciones, centros de costo, gasto multimedio, reembolsos,
+    captura mobile, conciliación/ERP y cola de excepciones; F4 prioriza migración
+    compatible con Tiendanube/Empretienda. Tarjetas, custodia y viajes tienen
+    gates explícitos de demanda, partner regulado, economics y revisión legal.
+    La guarda CI impide borrar estas referencias o volver a reducir Finance a
+    OCR y Commerce a “tener tienda/POS”.
 29. ~~Matching determinístico y memoria de aliases Finance~~ — gate técnico
     cerrado el 2026-08-22: cuatro tablas con RLS/ACL, propuesta por revisión,
     confirmación humana y RPC idempotentes. El fixture real hizo que una primera
@@ -902,6 +955,15 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     falla un refresh. Escrituras de documento/OC/recepción quedan deshabilitadas
     offline. Se agregaron 6 pruebas; el slice sigue **parcial** hasta migrar las
     demás rutas y validar responsive/claro/oscuro con sesión autenticada.
+33. ~~Contrato de paridad Mendel-class para Finance~~ — decisión documental
+    cerrada el 2026-08-22 contra producto, tarjetas e integraciones oficiales de
+    Mendel. Finance ya no se define como OCR + payables: el objetivo verificable
+    cubre control preventivo, presupuestos, políticas, aprobaciones multinivel,
+    gasto multimedio, evidencia, conciliación, ERP, mobile, roles y auditoría. La
+    navegación y los estados se reflejan en D4; las tarjetas externas preceden a
+    cualquier emisión y la capa regulada conserva gates de partner/economics/
+    legal. La guarda documental evita degradar esta dirección a una referencia
+    vaga o presentar como construida la fase F5 todavía congelada.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

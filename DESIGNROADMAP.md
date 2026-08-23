@@ -208,9 +208,38 @@ Orden:
 **Salida:** las cinco tareas más frecuentes se completan en desktop y mobile sin
 perder contexto ni encontrar un patrón visual nuevo.
 
-### D4 — Finance y Platform
+### D4 — Finance Mendel-class y Platform
 
 **Estado:** parcial.
+
+Mendel es el benchmark principal de experiencia para Finance: control
+preventivo, presupuesto, aprobación, gasto, evidencia y conciliación deben
+sentirse como un solo recorrido. La traducción visual es propia y comparte los
+primitives de Gestiona; no copia marca, assets ni composiciones.
+
+**Arquitectura de información objetivo de Finance:**
+
+1. **Inicio:** gasto del periodo, presupuesto disponible/comprometido/consumido,
+   pendientes propios, comprobantes faltantes y excepciones con siguiente acción.
+2. **Gastos:** todos los medios en una tabla/cola; filtros y vistas por estado,
+   persona, categoría, centro/proyecto, política, evidencia y conciliación.
+3. **Solicitudes y aprobaciones:** bandejas separadas por tarea; detalle en
+   drawer con presupuesto, regla, evidencia, historial y decisión persistente.
+4. **Presupuestos y políticas:** lista → detalle/versiones → simulación de
+   impacto; jerarquía y regla efectiva visibles antes de publicar.
+5. **Medios de pago:** tarjetas externas/importadas y estado de integración;
+   tarjetas físicas/virtuales sólo aparecen como operables cuando exista emisor
+   regulado, nunca como mock de una capacidad inexistente.
+6. **Centros de costo y proyectos:** ownership, responsables, gasto, disponible
+   y excepciones sin crear otra contabilidad.
+7. **Conciliación y Contabilidad:** transacción → comprobante → imputación →
+   asiento/exportación, con diferencia, retry y estado ERP visibles.
+8. **Integraciones y configuración:** conexiones, salud, última sincronización,
+   roles, delegaciones y auditoría sin exponer credenciales.
+
+En mobile la navegación se reduce por trabajo —capturar, solicitar, aprobar y
+resolver— sin encoger la tabla desktop. En desktop, la lista conserva contexto y
+el drawer muestra política/presupuesto/historial antes de la acción.
 
 - [x] Document Inbox con cola, inspector, confianza, versión y siguiente acción;
 - [x] Revisión estructurada por cabecera/importes/líneas, errores matemáticos y
@@ -278,7 +307,7 @@ prioritarios estables en los cuatro viewports.
 **Salida:** el rediseño demuestra menor tiempo/error y mayor confianza; no se
 declara validado porque “se ve mejor”.
 
-## 6. Próximos 21 slices de diseño
+## 6. Próximos 22 slices de diseño
 
 | # | Slice | Estado | Evidencia de cierre |
 |---:|---|---|---|
@@ -296,13 +325,14 @@ declara validado porque “se ve mejor”.
 | 12 | Reportes orientados a decisión | Pendiente | Menos filtros duplicados; acción clara. |
 | 13 | Settings e Integraciones | Pendiente | Secretos, permisos y estados consistentes. |
 | 14 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos, aprobación y handoff a recepción usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
-| 15 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
-| 16 | Storefront home/PLP/PDP | Pendiente | Marca, performance y mobile aprobados. |
-| 17 | Carrito/checkout/pago | Pendiente | Compra completa 360 px/red lenta. |
-| 18 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
-| 19 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
-| 20 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |
-| 21 | Investor demo mode con datos seguros | Pendiente tras validación | Narrativa reproducible, sin métricas falsas. |
+| 15 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
+| 16 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
+| 17 | Storefront home/PLP/PDP | Pendiente | Marca, performance y mobile aprobados. |
+| 18 | Carrito/checkout/pago | Pendiente | Compra completa 360 px/red lenta. |
+| 19 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
+| 20 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
+| 21 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |
+| 22 | Investor demo mode con datos seguros | Pendiente tras validación | Narrativa reproducible, sin métricas falsas. |
 
 Máximo dos slices visuales activos. Un problema de seguridad, datos, stock,
 pagos o legal interrumpe esta secuencia y vuelve a `ROADMAP.md`.
