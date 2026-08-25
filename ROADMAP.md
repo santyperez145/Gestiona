@@ -1181,6 +1181,18 @@ Hasta abrir sus gates:
 ## 14. Fuentes, evidencia y revisión
 
 - AGENTS.md: invariantes operativas, seguridad, migraciones y verificación.
+- **docs/auditorias/2026-08-24_auditoria_integral.md** y su backlog ejecutable:
+  auditoría externa sobre el commit `96b0bb4`. Sus afirmaciones concretas se
+  verificaron contra el repo el 2026-08-24 y **las cinco dieron ciertas**: 65
+  funciones (README decía 29 — corregido), tres lockfiles conviviendo
+  (eliminados `bun.lock`/`bun.lockb`), `xlsx` 0.18.5 con auditoría conocida,
+  onboarding con `useState('perfumes')` como default, y la API pública con la
+  key **en texto plano y sin scopes**. Sus fases coinciden con las de este
+  documento; su backlog mapea a los 25 slices salvo tres brechas que los slices
+  no cubren: **endurecer la API pública** (hash + scopes + idempotencia, antes
+  de promocionarla), **reemplazar o aislar `xlsx`**, y **quitar el default
+  `perfumes`** que el slice 10 da por cerrado en infraestructura pero persiste
+  en `OnboardingPage.tsx:36`.
 - docs/ESTRATEGIA.md: tesis de margen y comparativas con fuente/fecha.
 - docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md: investigación funcional/visual,
   arquetipos de pantalla, overlays, segmentación, estados, cobertura por

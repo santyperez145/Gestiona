@@ -37,8 +37,8 @@ npm install
 cp .env.example .env
 # Editar .env con tus credenciales (ver sección Variables de entorno)
 
-# 4. Aplicar migraciones
-supabase db push
+# 4. Aplicar migraciones (ver "Aplicar migraciones" mas abajo)
+npx supabase db query --linked --file supabase/migrations/<archivo>.sql
 
 # 5. Iniciar servidor de desarrollo
 npm run dev
@@ -110,11 +110,15 @@ Estos secretos se configuran en Supabase, **nunca** en el `.env` del frontend:
 
 El proyecto usa Supabase. Las migraciones están en `supabase/migrations/`.
 
-### Aplicar migraciones — a mano, no con `db push`
+### Aplicar migraciones — un solo procedimiento
 
-> **`supabase db push` no sirve en este repo.** Cuatro grupos de migraciones
-> comparten prefijo de versión y el CLI usa ese prefijo como clave, así que
-> intentaría reaplicar migraciones ya corridas — una de ellas destructiva.
+> El camino por default es `db query --file`: aplica la migración y corre sus
+> bloques de verificación en el mismo paso. `db push` está reconciliado y sirve
+> como chequeo de salud del libro (`--dry-run` tiene que responder
+> `upToDate:true`), pero no es el camino de aplicación. **Después de aplicar a
+> mano, anotar la versión en `supabase_migrations.schema_migrations`** — es lo
+> único que evita que el libro se desfase de nuevo. Detalle completo en
+> `CLAUDE.md` § Migraciones.
 
 ```bash
 # Conectar al proyecto (una sola vez)
@@ -220,7 +224,10 @@ igual que Tiendanube. El dinero va directo al comercio.
 
 ## Edge Functions
 
-Listado de las 29 funciones serverless en `supabase/functions/`:
+**65 funciones serverless** en `supabase/functions/` (`ls supabase/functions | wc -l`,
+2026-08-24). La lista canónica es el filesystem: `npm run deploy:functions` la
+deriva de ahí, así que una función nueva no puede quedar sin deployar. La tabla
+siguiente describe las principales, no es exhaustiva:
 
 | Función | Descripción |
 |---|---|
@@ -310,7 +317,7 @@ Los roles de miembro son: `admin`, `seller`, `viewer`. El acceso a módulos sens
 ## Checklist de puesta en producción
 
 - [ ] Configurar todas las Edge Function secrets en Supabase Dashboard
-- [ ] Aplicar migraciones con `supabase db push`
+- [ ] Aplicar migraciones pendientes (`npx supabase db push --linked --dry-run` tiene que responder `upToDate:true`)
 - [ ] Verificar dominio en Resend para envío de emails
 - [ ] Configurar webhook URL de Stripe en dashboard Stripe
 - [ ] Registrar webhooks Tiendanube llamando a `tiendanube-register-webhooks`
