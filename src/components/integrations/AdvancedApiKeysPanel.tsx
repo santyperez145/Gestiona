@@ -1,10 +1,14 @@
 /**
- * AdvancedApiKeysPanel — scoped, environment-aware API key management.
+ * AdvancedApiKeysPanel — la ÚNICA superficie de emisión de API keys.
  *
- * Ported from the former standalone APIKeysPage (`/api-keys`, now redirected
- * to `/integraciones?tab=apikeys`). Uses the `api_keys` table (scopes,
- * environments, rate limits, expiry) — a separate, more advanced system than
- * the simple single-key / `org_api_keys` tools also available on this page.
+ * Desde el 2026-08-24 no convive con nada: los otros dos sistemas se
+ * eliminaron. `settings.api_key` guardaba la key en texto plano en una tabla
+ * que todo miembro lee por RLS, y `org_api_keys` no autenticaba a nadie.
+ *
+ * La key la emite el servidor (`api_key_emitir`): acá sólo llega una vez, para
+ * mostrarla, y en la base queda su SHA-256. Los scopes son los que la Edge
+ * Function `public-api` chequea de verdad — si se agrega un endpoint, su scope
+ * se agrega en los tres lugares juntos.
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,22 +47,31 @@ const ENVIRONMENTS: Record<string, { label: string; color: string }> = {
   development: { label: "Desarrollo",   color: "bg-blue-500/15 text-blue-400 border-blue-500/20" },
 };
 
+/**
+ * Sólo los scopes que la API implementa DE VERDAD (public-api/index.ts).
+ *
+ * La lista anterior ofrecía invoices:write, users:read y otros diez que ningún
+ * endpoint chequeaba: permisos fantasma — el usuario creía acotar una key y no
+ * acotaba nada. Si se agrega un endpoint nuevo, su scope se agrega acá, en la
+ * lista blanca de `api_key_emitir` y en la función, juntos.
+ */
 const ALL_SCOPES = [
-  "products:read", "products:write",
+  "products:read",
+  "stock:read", "stock:write",
   "sales:read", "sales:write",
-  "clients:read", "clients:write",
-  "expenses:read", "expenses:write",
-  "invoices:read", "invoices:write",
-  "reports:read",
-  "inventory:read", "inventory:write",
-  "users:read",
+  "customers:read",
+  "costs:read",
 ];
 
-function generateMockKey(env: string): string {
-  const prefix = env === "production" ? "sk_live" : env === "sandbox" ? "sk_test" : "sk_dev";
-  const rand = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, "0")).join("");
-  return `${prefix}_${rand}`;
-}
+const SCOPE_DESC: Record<string, string> = {
+  "products:read": "leer el catálogo",
+  "stock:read": "consultar stock",
+  "stock:write": "ajustar stock (con asiento de Kardex)",
+  "sales:read": "leer ventas",
+  "sales:write": "crear ventas",
+  "customers:read": "leer clientes",
+  "costs:read": "ver costos — el dato más sensible",
+};
 
 export default function AdvancedApiKeysPanel() {
   const { orgId } = useOrganization();
@@ -81,24 +94,37 @@ export default function AdvancedApiKeysPanel() {
 
   async function createKey() {
     if (!orgId || !keyForm.name.trim()) return;
-    const fullKey = generateMockKey(keyForm.environment);
-    const prefix = fullKey.slice(0, 16) + "…";
-    const { error } = await supabase.from("api_keys").insert({
-      org_id: orgId, name: keyForm.name, description: keyForm.description || null,
-      key_prefix: prefix, key_hash: btoa(fullKey),
-      environment: keyForm.environment, scopes: keyForm.scopes,
-      rate_limit_rpm: parseInt(keyForm.rate_limit_rpm) || 1000,
-      expires_at: keyForm.expires_at || null,
+    if (keyForm.scopes.length === 0) {
+      toast.error("Elegí al menos un permiso: una key sin scopes no puede hacer nada");
+      return;
+    }
+    // La key nace EN EL SERVIDOR. La versión anterior la generaba acá y
+    // guardaba btoa(key) como "hash" — base64 es reversible: cualquiera que
+    // leyera la tabla recuperaba la key completa con atob().
+    const { data, error } = await supabase.rpc("api_key_emitir", {
+      p_org: orgId,
+      p_name: keyForm.name.trim(),
+      p_scopes: keyForm.scopes,
+      p_expires: keyForm.expires_at || null,
     });
     if (error) { toast.error(error.message); return; }
-    setNewKeyValue(fullKey);
+    const r = data as unknown as { key?: string } | null;
+    if (!r?.key) { toast.error("El servidor no devolvió la key"); return; }
+    setNewKeyValue(r.key);
     setShowKeyDialog(false);
     setShowSecretDialog(true);
     load();
   }
 
   async function revokeKey(id: string) {
-    await supabase.from("api_keys").update({ is_active: false, revoked_at: new Date().toISOString() }).eq("id", id);
+    if (!orgId) return;
+    // Por RPC y no por update directo: la función valida owner/admin en el
+    // servidor. El update anterior además escribía `is_active`, una columna
+    // que la tabla no tiene — habría fallado siempre.
+    const { error } = await supabase.rpc("api_key_revocar", {
+      p_org: orgId, p_key_id: id,
+    });
+    if (error) { toast.error(error.message); return; }
     toast.success("API Key revocada");
     load();
   }
@@ -107,8 +133,8 @@ export default function AdvancedApiKeysPanel() {
     setKeyForm(p => ({ ...p, scopes: p.scopes.includes(scope) ? p.scopes.filter(s => s !== scope) : [...p.scopes, scope] }));
   }
 
-  const activeKeys = apiKeys.filter(k => k.is_active).length;
-  const totalRequests = apiKeys.reduce((s, k) => s + k.request_count, 0);
+  const activeKeys = apiKeys.filter(k => !k.revoked_at).length;
+  const totalRequests = apiKeys.reduce((s, k) => s + (k.request_count ?? 0), 0);
 
   return (
     <div className="space-y-4">
@@ -134,13 +160,13 @@ export default function AdvancedApiKeysPanel() {
           {apiKeys.map(k => {
             const env = ENVIRONMENTS[k.environment] ?? ENVIRONMENTS.production;
             return (
-              <div key={k.id} className={`bg-card rounded-xl border p-4 flex items-center gap-4 ${!k.is_active ? "opacity-60" : ""}`}>
+              <div key={k.id} className={`bg-card rounded-xl border p-4 flex items-center gap-4 ${k.revoked_at ? "opacity-60" : ""}`}>
                 <div className="p-2 bg-muted rounded-lg"><Key className="w-5 h-5 text-muted-foreground" /></div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-foreground">{k.name}</p>
                     <Badge className={`${env.color} text-xs`}>{env.label}</Badge>
-                    {!k.is_active && <Badge className="bg-destructive/15 text-destructive text-xs">Revocada</Badge>}
+                    {k.revoked_at && <Badge className="bg-destructive/15 text-destructive text-xs">Revocada</Badge>}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono text-muted-foreground">{k.key_prefix}</code>
@@ -152,12 +178,12 @@ export default function AdvancedApiKeysPanel() {
                   </div>
                 </div>
                 <div className="text-right text-xs text-muted-foreground shrink-0">
-                  <p>{k.request_count.toLocaleString("es-AR")} requests</p>
+                  <p>{(k.request_count ?? 0).toLocaleString("es-AR")} requests</p>
                   <p>Límite: {k.rate_limit_rpm} rpm</p>
                   {k.last_used_at && <p>Último: {new Date(k.last_used_at).toLocaleDateString("es-AR")}</p>}
                   {k.expires_at && <p className={new Date(k.expires_at) < new Date() ? "text-red-500" : ""}>Expira: {k.expires_at}</p>}
                 </div>
-                {k.is_active && (
+                {!k.revoked_at && (
                   <Button variant="outline" size="sm" className="text-red-400 border-red-500/30 hover:bg-red-500/10 shrink-0" onClick={() => revokeKey(k.id)}>
                     <XCircle className="w-4 h-4 mr-1" /> Revocar
                   </Button>
@@ -181,17 +207,9 @@ export default function AdvancedApiKeysPanel() {
           <DialogHeader><DialogTitle>Crear API Key</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>Nombre *</Label><Input value={keyForm.name} onChange={e => setKeyForm(p => ({ ...p, name: e.target.value }))} placeholder="ej. Integración Shopify" /></div>
-            <div><Label>Descripción</Label><Input value={keyForm.description} onChange={e => setKeyForm(p => ({ ...p, description: e.target.value }))} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Entorno</Label>
-                <Select value={keyForm.environment} onValueChange={v => setKeyForm(p => ({ ...p, environment: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.entries(ENVIRONMENTS).map(([k,v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div><Label>Rate limit (req/min)</Label><Input type="number" value={keyForm.rate_limit_rpm} onChange={e => setKeyForm(p => ({ ...p, rate_limit_rpm: e.target.value }))} /></div>
-            </div>
+            {/* Sin selector de entorno ni rate limit editable: la API no tiene
+                sandbox y el límite real es fijo. Ofrecer opciones que no hacen
+                nada es prometer permisos fantasma. */}
             <div><Label>Expira el (vacío = no expira)</Label><Input type="date" value={keyForm.expires_at} onChange={e => setKeyForm(p => ({ ...p, expires_at: e.target.value }))} /></div>
             <div>
               <Label>Permisos (scopes)</Label>
@@ -200,6 +218,7 @@ export default function AdvancedApiKeysPanel() {
                   <label key={s} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 rounded px-2 py-1">
                     <input type="checkbox" checked={keyForm.scopes.includes(s)} onChange={() => toggleScope(s)} className="rounded" />
                     <span className="font-mono">{s}</span>
+                    <span className="text-muted-foreground truncate">{SCOPE_DESC[s]}</span>
                   </label>
                 ))}
               </div>

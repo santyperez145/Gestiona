@@ -41576,6 +41576,20 @@ export type Database = {
         Args: { p_customer_id: string; p_org_id: string }
         Returns: Json
       }
+      api_key_emitir: {
+        Args: {
+          p_expires?: string
+          p_name: string
+          p_org: string
+          p_scopes?: string[]
+        }
+        Returns: Json
+      }
+      api_key_revocar: {
+        Args: { p_key_id: string; p_org: string }
+        Returns: undefined
+      }
+      api_key_tocar: { Args: { p_key_id: string }; Returns: undefined }
       apply_ai_offer_recommendation: {
         Args: { p_recommendation_id: string }
         Returns: Json

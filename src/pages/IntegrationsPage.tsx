@@ -7,7 +7,6 @@ import PaymentConnectionsPanel from "@/components/integrations/PaymentConnection
 import { useAuth } from "@/lib/auth";
 import TiendanubeExcelImport from "@/components/integrations/TiendanubeExcelImport";
 import PlatformServicesPanel from "@/components/integrations/PlatformServicesPanel";
-import ApiKeysManager from "@/components/shared/ApiKeysManager";
 import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
@@ -76,9 +75,6 @@ export default function IntegrationsPage() {
 
 
   // API key
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [apiKeyVisible, setApiKeyVisible] = useState(false);
-  const [generatingKey, setGeneratingKey] = useState(false);
 
   // Outbound webhooks
   const [webhookUrl, setWebhookUrl] = useState("");
@@ -111,12 +107,16 @@ export default function IntegrationsPage() {
         .order("created_at", { ascending: false })
         .limit(50);
 
-      // Get org settings to know what's configured
-      const { data: settings } = await supabase
-        .from("settings")
-        .select("api_key")
+      // Señal de "API pública configurada": keys vivas en la tabla canónica.
+      // Antes miraba settings.api_key, columna deprecada el 2026-08-24 que
+      // quedó siempre NULL — el panel habría dicho "sin configurar" con keys
+      // funcionando, el mismo bug que ya tuvieron las vistas *_status.
+      const { count: keysVivas } = await supabase
+        .from("api_keys")
+        .select("id", { count: "exact", head: true })
         .eq("org_id", activeOrg.id)
-        .maybeSingle();
+        .is("revoked_at", null);
+      const tieneApiKey = (keysVivas ?? 0) > 0;
 
       const logsArr: any[] = logs || [];
       // Deduplicate: keep only the most recent per integration
@@ -179,10 +179,10 @@ export default function IntegrationsPage() {
         public_api: {
           integration: "public_api", label: "API Pública",
           icon: <KeyRound className="w-4 h-4 text-emerald-400" />,
-          status: settings?.api_key ? buildStatus("public_api") : "unknown",
+          status: tieneApiKey ? buildStatus("public_api") : "unknown",
           lastSeen: fmtAge(latest.public_api?.created_at || null),
           message: latest.public_api?.message || null,
-          configured: !!settings?.api_key,
+          configured: tieneApiKey,
         },
       });
     } catch { /* silent — table may not exist yet */ }
@@ -214,11 +214,10 @@ export default function IntegrationsPage() {
     if (!activeOrg) return;
     const { data } = await supabase
       .from("settings")
-      .select("api_key, webhook_url, webhook_enabled, webhook_events, webhook_secret, ml_user_id")
+      .select("webhook_url, webhook_enabled, webhook_events, webhook_secret, ml_user_id")
       .eq("org_id", activeOrg.id)
       .maybeSingle();
     if (data) {
-      setApiKey(data.api_key || null);
       setWebhookUrl(data.webhook_url || "");
       setWebhookEnabled(!!data.webhook_enabled);
       setWebhookSecret(data.webhook_secret || "");
@@ -228,29 +227,10 @@ export default function IntegrationsPage() {
     setMpLoaded(true);
   };
 
-  const handleGenerateApiKey = async () => {
-    if (!activeOrg) return;
-    setGeneratingKey(true);
-    try {
-      const newKey = "gst_" + Array.from(crypto.getRandomValues(new Uint8Array(24)))
-        .map(b => b.toString(16).padStart(2, "0")).join("");
-      const { error } = await supabase
-        .from("settings")
-        .upsert({ org_id: activeOrg.id, user_id: user!.id, api_key: newKey }, { onConflict: "org_id" });
-      if (error) throw error;
-      setApiKey(newKey);
-      setApiKeyVisible(true);
-      toast.success("API key generada");
-    } catch { toast.error("Error al generar API key"); }
-    finally { setGeneratingKey(false); }
-  };
-
-  const handleRevokeApiKey = async () => {
-    if (!activeOrg || !confirm("¿Revocar la API key? Las integraciones dejarán de funcionar.")) return;
-    await supabase.from("settings").update({ api_key: null }).eq("org_id", activeOrg.id);
-    setApiKey(null);
-    toast.success("API key revocada");
-  };
+  // La generación de la key EN EL NAVEGADOR se eliminó el 2026-08-24: escribía
+  // settings.api_key en texto plano — una tabla que todo miembro lee por RLS —
+  // y era uno de tres sistemas de keys desconectados. La emisión vive en el
+  // servidor (api_key_emitir) y la maneja el panel de API keys de abajo.
 
   const handleSaveWebhook = async () => {
     if (!activeOrg) return;
@@ -494,47 +474,45 @@ export default function IntegrationsPage() {
         </div>
 
         <div className="space-y-2 text-sm text-muted-foreground rounded-lg bg-muted/20 p-3">
-          <p className="font-medium text-foreground">Endpoints disponibles:</p>
-          <code className="block text-xs">GET  /functions/v1/public-api/products</code>
-          <code className="block text-xs">GET  /functions/v1/public-api/sales?limit=50</code>
-          <code className="block text-xs">POST /functions/v1/public-api/sales</code>
-          <code className="block text-xs">PATCH /functions/v1/public-api/stock/:productId</code>
-          <code className="block text-xs">GET  /functions/v1/public-api/customers</code>
+          <p className="font-medium text-foreground">Endpoints y permiso que exige cada uno:</p>
+          {[
+            ["GET", "/v1/products", "products:read"],
+            ["GET", "/v1/products/:id", "products:read"],
+            ["GET", "/v1/stock/:productId", "stock:read"],
+            ["PATCH", "/v1/stock/:productId", "stock:write"],
+            ["GET", "/v1/sales?limit=50", "sales:read"],
+            ["POST", "/v1/sales", "sales:write"],
+            ["GET", "/v1/customers", "customers:read"],
+          ].map(([metodo, ruta, scope]) => (
+            <div key={metodo + ruta} className="flex items-baseline justify-between gap-3">
+              <code className="text-xs">{metodo} /functions/v1/public-api{ruta}</code>
+              <code className="text-[11px] shrink-0 text-emerald-500">{scope}</code>
+            </div>
+          ))}
           <p className="text-xs mt-2">Header: <code>Authorization: Bearer &lt;tu_api_key&gt;</code></p>
+          <p className="text-xs">
+            El costo de cada producto sólo viaja si la key tiene además{" "}
+            <code>costs:read</code>.
+          </p>
+          <p className="text-xs">
+            En <code>POST /v1/sales</code>, mandá <code>Idempotency-Key</code>: si
+            se corta la red y reintentás, devuelve la misma venta en vez de
+            duplicarla.
+          </p>
+          <p className="text-xs">
+            Es una API servidor a servidor: no la llames desde el navegador, ahí
+            la key queda a la vista de cualquiera.
+          </p>
         </div>
 
-        {apiKey ? (
-          <div className="space-y-2 pb-12">
-            <label className="text-xs font-medium text-muted-foreground">Tu API Key</label>
-            <div className="flex gap-2">
-              <div className="flex-1 font-mono text-xs bg-muted/30 rounded-lg border border-border px-3 py-2 overflow-hidden">
-                {apiKeyVisible ? apiKey : "gst_" + "•".repeat(40)}
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setApiKeyVisible(v => !v)}>
-                {apiKeyVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(apiKey); toast.success("Copiado"); }}>
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
-            <Button variant="outline" size="sm" className="w-full text-destructive hover:text-destructive" onClick={handleRevokeApiKey}>
-              <RotateCcw className="w-4 h-4 mr-2" /> Revocar y generar nueva
-            </Button>
-          </div>
-        ) : (
-          <Button className="w-full" onClick={handleGenerateApiKey} disabled={generatingKey}>
-            {generatingKey ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
-            Generar API Key
-          </Button>
-        )}
+        <p className="text-xs text-muted-foreground">
+          Las keys se emiten abajo, con permisos acotados. Se muestran una sola
+          vez y acá sólo se guarda su huella: ni un empleado con acceso a la
+          base puede recuperarlas.
+        </p>
       </div>
 
-      {/* Multi-Key API Manager */}
-      <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-        <ApiKeysManager />
-      </div>
-
-      {/* Advanced scoped API keys */}
+      {/* API keys con scopes — la única superficie de emisión */}
       <div className="rounded-xl border border-border bg-card p-5">
         <AdvancedApiKeysPanel />
       </div>

@@ -455,6 +455,20 @@ mano. Dos caminos para lo mismo, y el peor de los dos: un token pegado queda en
 cero policies. Además MercadoPago **rechaza el `marketplace_fee`** con un token
 pegado a mano, así que esa vía ni siquiera podía cobrar comisión.
 
+**La API pública tampoco.** Hasta el 2026-08-24 la key vivía en texto plano en
+`settings.api_key` —tabla que **todo miembro lee por RLS**— y se generaba en el
+navegador. Convivía con otros dos sistemas que no autenticaban nada, uno de
+ellos guardando `btoa(key)` como "hash": base64 es **reversible con `atob()`**.
+Ahora la key la emite `api_key_emitir` en el servidor, se muestra **una sola
+vez**, en la base queda sólo su SHA-256, y cada key lleva **scopes** — siete
+reales, no catorce fantasma que ningún endpoint chequeaba. `cost_usd` sólo sale
+con `costs:read`. La guarda es `apiPublicaEndurecida.test.ts`.
+
+⚠️ **Un fallo de validación no puede trabar una clave de idempotencia.** Se
+encontró verificando en vivo: el 404 de "producto inexistente" corría después de
+reservar, y dejaba la clave `en_curso` 24 h para una request que nunca escribió.
+Toda validación va **antes** de reservar.
+
 **Lo que no tiene OAuth, no es que falte hacerlo.** Correo Argentino y Andreani
 usan usuario y clave de contrato; AFIP usa un certificado X.509; Evolution API
 una clave de instancia propia. Para AFIP lo más parecido al modelo marketplace

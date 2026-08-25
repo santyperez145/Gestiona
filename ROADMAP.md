@@ -1189,10 +1189,55 @@ Hasta abrir sus gates:
   onboarding con `useState('perfumes')` como default, y la API pública con la
   key **en texto plano y sin scopes**. Sus fases coinciden con las de este
   documento; su backlog mapea a los 25 slices salvo tres brechas que los slices
-  no cubren: **endurecer la API pública** (hash + scopes + idempotencia, antes
-  de promocionarla), **reemplazar o aislar `xlsx`**, y **quitar el default
-  `perfumes`** que el slice 10 da por cerrado en infraestructura pero persiste
-  en `OnboardingPage.tsx:36`.
+  no cubren. De esas tres, la de seguridad ya está cerrada:
+  - ~~**endurecer la API pública**~~ **hecho el 2026-08-25** (ver abajo).
+  - **reemplazar o aislar `xlsx`** — 0.18.5 arrastra una auditoría conocida.
+  - **quitar el default `perfumes`** que el slice 10 da por cerrado en
+    infraestructura pero persiste en `OnboardingPage.tsx:36` y `:48`.
+
+### API pública endurecida — 2026-08-25
+
+Había **tres sistemas de API keys desconectados**, y el único que autenticaba
+era el peor: `settings.api_key`, **en texto plano**, en una tabla que todo
+miembro de la organización lee por RLS. Cualquier empleado la copiaba y con ella
+creaba ventas, ajustaba stock y rotaba la key. Los otros dos no autenticaban
+nada: `org_api_keys` (hash correcto, sin backend) y `api_keys` con
+`key_hash = btoa(key)` — **base64, reversible con `atob()`**. Y la key se
+generaba **en el navegador**.
+
+Se midió antes de tocar: **0 keys activas y 0 filas en las dos tablas**, así que
+no había nada que migrar ni integración que romper.
+
+Qué quedó (`20260824000001_api_keys_endurecidas.sql`, 5 aserciones en la
+migración + 16 contra la función deployada):
+
+- la key nace en el servidor (`api_key_emitir`, owner/admin), se muestra **una
+  vez** y en la base sólo queda su SHA-256;
+- **scopes por endpoint** — siete reales, no los catorce fantasma que la UI
+  ofrecía y ningún endpoint chequeaba: el usuario creía acotar una key y no
+  acotaba nada;
+- `cost_usd` sólo sale con `costs:read`: el costo es el dato con el que se
+  deduce el margen;
+- `POST /sales` acepta `Idempotency-Key` (primitiva H1);
+- sin CORS `*`: es server-to-server, como Stripe. Allow-Origin abierto invita a
+  poner la key en el frontend de un tercero;
+- los errores de Postgres no se filtran, y un fallo de DB en el lookup de auth
+  responde error interno, **no "key inválida"** — son problemas opuestos.
+
+⚠️ **Lo que encontró la verificación en vivo, y no lo habría encontrado leer el
+código:** la búsqueda del producto corría **después** de reservar la clave de
+idempotencia, así que un `product_id` inexistente devolvía 404 y dejaba la clave
+`en_curso`; el reintento —aun corregido— chocaba 24 h contra un 409 por una
+request que nunca escribió nada. Stripe lo dice explícito: un fallo de
+validación no guarda resultado idempotente. Se movió la validación antes de la
+reserva y hay un test de orden que lo fija.
+
+Verificado contra producción con dos keys `ZZ` de sólo lectura, borradas al
+terminar (restos 0, y `settings.api_key` en 0 filas): el costo no viaja sin su
+scope y sí con él, un scope faltante da 403 sin escribir, key inexistente 401,
+key revocada 401, `/v2/` da 404 en vez de mapear a v1, `OPTIONS` no devuelve
+Allow-Origin, el contador de uso se mueve, y el hash guardado no es la key ni su
+base64.
 - docs/ESTRATEGIA.md: tesis de margen y comparativas con fuente/fecha.
 - docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md: investigación funcional/visual,
   arquetipos de pantalla, overlays, segmentación, estados, cobertura por
@@ -1200,8 +1245,9 @@ Hasta abrir sus gates:
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-23: 1.498 tests en 136 archivos, typecheck,
-  lint sin errores, build/PWA y 65 funciones verificadas. Última evidencia: 42
+- Build y suites locales del 2026-08-25: **1.522 tests en 137 archivos**,
+  typecheck, lint sin errores (142 warnings de deuda conocida), build/PWA y 65
+  funciones verificadas. Última evidencia: 42
   E2E críticos contra la base real.
 - docs/FINANCE_DOCUMENT_EXTRACTION.md: custodia, esquema estructurado,
   confianza, revisión append-only, gate de privacidad y operación.
