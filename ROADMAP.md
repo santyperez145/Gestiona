@@ -1189,11 +1189,61 @@ Hasta abrir sus gates:
   onboarding con `useState('perfumes')` como default, y la API pública con la
   key **en texto plano y sin scopes**. Sus fases coinciden con las de este
   documento; su backlog mapea a los 25 slices salvo tres brechas que los slices
-  no cubren. De esas tres, la de seguridad ya está cerrada:
-  - ~~**endurecer la API pública**~~ **hecho el 2026-08-25** (ver abajo).
-  - **reemplazar o aislar `xlsx`** — 0.18.5 arrastra una auditoría conocida.
-  - **quitar el default `perfumes`** que el slice 10 da por cerrado en
-    infraestructura pero persiste en `OnboardingPage.tsx:36` y `:48`.
+  no cubren. **Las tres se cerraron el 2026-08-25:**
+  - ~~**endurecer la API pública**~~ hecho (ver abajo).
+  - ~~**reemplazar o aislar `xlsx`**~~ hecho (ver abajo).
+  - ~~**quitar el default `perfumes`**~~ hecho (ver abajo).
+
+### El rubro deja de venir puesto — 2026-08-25
+
+La auditoría lo vio en `OnboardingPage.tsx:36`, y era la mitad del problema: el
+`useState('perfumes')` y una **reselección** después de cargar los presets
+(`rows.find(code === 'perfumes')`) que reponía el default aunque el estado
+arrancara vacío. La otra mitad estaba en la base: `settings.industry_code` se
+creó con `DEFAULT 'perfumes'` en 20260428021128, cuando esto era la app de un
+solo negocio.
+
+No es una etiqueta: el rubro siembra tipos de producto y atributos en el
+catálogo. Adivinar mal se descubre cuando el comercio ya cargó productos.
+
+Medido (2026-08-25): 2 organizaciones con fila en `settings`, **las dos** en
+`perfumes`, 0 en NULL, y sólo **1** pasó de verdad por el perfilador — una
+eligió y la otra lo heredó sin enterarse. Hay 7 rubros disponibles.
+
+Ahora no hay preselección, el paso no avanza sin elegir (`disabled={!rubroCode}`)
+y la columna no tiene default: NULL significa "todavía no eligió", un estado
+real y distinto de cualquier rubro, con el mismo criterio que `products.tax_rate`.
+**No se backfilleó nada**: una de las dos filas es la perfumería de verdad, y
+reescribir datos reales para que un reporte dé limpio está prohibido acá.
+
+### `xlsx` sale de la versión abandonada — 2026-08-25
+
+El paquete `xlsx` del registro de npm está **congelado en 0.18.5 a propósito**:
+SheetJS movió la distribución a su propio CDN y los arreglos siguieron ahí. Esa
+0.18.5 arrastra dos avisos altos —contaminación de prototipo y ReDoS— y los dos
+están en el **parser**, que es exactamente lo que corre sobre un archivo que
+sube el comercio.
+
+Medida la exposición real: seis usos, pero sólo dos **parsean** —
+`ProductsExcelImport` y `TiendanubeExcelImport`, ambos sobre un archivo subido.
+Los otros cuatro escriben, y escribir no es la superficie vulnerable.
+
+Se pasó a `0.20.3` desde `cdn.sheetjs.com`, que es la vía que publica el propio
+autor: misma API, cero cambios de código. El lock fija el tarball **con hash de
+integridad**, así que si el CDN sirviera otros bytes `npm ci` falla en vez de
+instalar otra cosa. Verificado con round trip real de escritura y lectura, y
+comprobando que una hoja con cabecera `__proto__` **no** contamina
+`Object.prototype` — la prueba del aviso, no la ausencia de una línea en
+`npm audit`, donde `xlsx` ya no aparece.
+
+⚠️ **Riesgo asumido, dicho de frente:** la dependencia deja de venir del
+registro. Si `cdn.sheetjs.com` no responde durante un build, el deploy falla.
+Es el precio de usar la única distribución con los arreglos; la alternativa era
+quedarse en 0.18.5 parseando archivos ajenos.
+
+**Lo que sigue siendo cierto:** parsear un archivo que sube un tercero en el
+mismo realm que la sesión de Supabase es una superficie que un CVE futuro vuelve
+a abrir. Moverlo a un Web Worker es defensa en profundidad todavía pendiente.
 
 ### API pública endurecida — 2026-08-25
 
@@ -1245,7 +1295,7 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-25: **1.522 tests en 137 archivos**,
+- Build y suites locales del 2026-08-25: **1.534 tests en 139 archivos**,
   typecheck, lint sin errores (142 warnings de deuda conocida), build/PWA y 65
   funciones verificadas. Última evidencia: 42
   E2E críticos contra la base real.

@@ -126,6 +126,22 @@ se perdió — `stock_movements` no lo tenía. Si hace falta un producto agotado
 se crea uno `ZZ` y se borra; si no hay más remedio que tocar uno real, se
 **guarda el valor antes** en la tabla temporal del test.
 
+⚠️ **`xlsx` no se instala desde npm.** El paquete del registro está congelado en
+0.18.5 a propósito —SheetJS movió la distribución a su CDN— y esa versión
+arrastra contaminación de prototipo y ReDoS **en el parser**, que es lo que
+corre sobre el archivo que sube el comercio. `package.json` apunta a
+`cdn.sheetjs.com/xlsx-0.20.3`, el lock lo fija con hash de integridad, y
+`xlsxSinVulnerabilidad.test.ts` falla si alguien lo devuelve al registro con un
+`npm install xlsx` distraído. El costo es que un CDN caído rompe el build.
+
+⚠️ **El rubro del comercio no se adivina.** `settings.industry_code` tenía
+`DEFAULT 'perfumes'` desde que esto era la app de un solo negocio, y el
+onboarding lo repetía en dos lugares. El rubro siembra tipos de producto y
+atributos: elegir mal se descubre cuando ya hay productos cargados. Desde el
+2026-08-25 no hay default en la columna ni preselección en la UI, y NULL
+significa "todavía no eligió" — un estado real, como el NULL de
+`products.tax_rate`.
+
 **El stock lo mueve la base, y sólo la base. El cliente nunca escribe
 `products.stock`.** No es una preferencia de estilo: se rompió dos veces por lo
 mismo. La segunda fue peor — `addSaleDB`, `addSaleWithVariantDB` y

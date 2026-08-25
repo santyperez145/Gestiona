@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrg } from '@/lib/orgContext';
@@ -33,25 +33,40 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState(activeOrg?.name?.replace(' Workspace', '') || '');
   const [industries, setIndustries] = useState<Awaited<ReturnType<typeof listBusinessProfilePresets>>>([]);
-  const [rubroCode, setRubroCode] = useState('perfumes');
-  const [color, setColor] = useState('#D4A843');
+  const [rubrosError, setRubrosError] = useState('');
+  const [cargandoRubros, setCargandoRubros] = useState(true);
+  const [rubroCode, setRubroCode] = useState('');
+  // Violeta del workspace, no el dorado de la perfumería: el dorado es branding
+  // de un comercio puntual, nunca el color con el que arranca otro.
+  const [color, setColor] = useState('#6E4DEE');
   const [savingDestination, setSavingDestination] = useState<FinishDestination | null>(null);
 
   useEffect(() => {
     if (activeOrg) setName((current) => current || activeOrg.name.replace(' Workspace', ''));
   }, [activeOrg]);
 
-  useEffect(() => {
+  const cargarRubros = useCallback(() => {
+    setCargandoRubros(true);
+    setRubrosError('');
     void listBusinessProfilePresets()
       .then((rows) => {
         setIndustries(rows);
-        const def = rows.find((row) => row.code === 'perfumes') || rows[0];
-        if (def) { setRubroCode(def.code); setColor(def.default_color); }
+        // A propósito NO se preselecciona ninguno: el rubro siembra tipos de
+        // producto y atributos, y sembrar los equivocados es peor que pedir un
+        // clic más.
       })
-      .catch((error: unknown) => toast.error(errorMessage(error, 'No se pudieron cargar los rubros. Podés continuar y corregirlo en Ajustes.')));
+      .catch((error: unknown) => {
+        // Sin rubros no se puede seguir de verdad: el servidor rechaza un
+        // código vacío. Decir "continuá y corregilo en Ajustes" haría fallar
+        // el último paso después de tres pantallas.
+        setRubrosError(errorMessage(error, 'No se pudieron cargar los rubros.'));
+      })
+      .finally(() => setCargandoRubros(false));
   }, []);
 
-  const colorPalette = Array.from(new Set(industries.map((industry) => industry.default_color).concat(['#D4A843','#3B82F6','#10B981','#EF4444','#8B5CF6','#EC4899','#F59E0B'])));
+  useEffect(() => { cargarRubros(); }, [cargarRubros]);
+
+  const colorPalette = Array.from(new Set(industries.map((industry) => industry.default_color).concat(['#6E4DEE','#3B82F6','#10B981','#EF4444','#8B5CF6','#EC4899','#F59E0B','#D4A843'])));
   const selectedIndustry = industries.find((industry) => industry.code === rubroCode) || null;
   const selectedTemplates = parseProductTypeTemplates(selectedIndustry?.product_type_templates);
   const selectedProfileSummary = summarizeBusinessProfile(selectedTemplates);
@@ -201,9 +216,19 @@ export default function OnboardingPage() {
                   ¿Qué vendés?
                 </h1>
                 <p className="text-[12px] text-muted-foreground/55 mt-1.5">
-                  Esto personaliza el sistema para tu rubro.
+                  Esto personaliza el sistema para tu rubro. Elegí uno para seguir:
+                  no venimos con ninguno puesto porque define cómo se estructura
+                  tu catálogo.
                 </p>
               </div>
+              {rubrosError && (
+                <div className="rounded-[8px] border border-destructive/30 bg-destructive/[0.06] p-3 space-y-2">
+                  <p className="text-[11px] text-foreground/85">{rubrosError}</p>
+                  <Button variant="outline" size="sm" onClick={cargarRubros} disabled={cargandoRubros}>
+                    {cargandoRubros ? 'Reintentando…' : 'Reintentar'}
+                  </Button>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 {industries.map(r => (
                   <button
@@ -235,7 +260,7 @@ export default function OnboardingPage() {
               )}
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep(1)} className="flex-1">Atrás</Button>
-                <Button onClick={() => setStep(3)} className="flex-1">
+                <Button onClick={() => setStep(3)} className="flex-1" disabled={!rubroCode}>
                   Siguiente <ArrowRight className="w-4 h-4 ml-1.5" />
                 </Button>
               </div>
