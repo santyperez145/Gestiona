@@ -142,6 +142,25 @@ atributos: elegir mal se descubre cuando ya hay productos cargados. Desde el
 significa "todavía no eligió" — un estado real, como el NULL de
 `products.tax_rate`.
 
+⚠️ **Y la categoría del producto tampoco.** `products.category` era
+`NOT NULL DEFAULT 'perfume_arabe'`, así que un comercio de cualquier rubro que
+cargara un producto sin elegir categoría quedaba con perfumería escrita en su
+base sin verlo. Desde `20260825000002_categoria_sin_rubro` la columna no tiene
+default ni NOT NULL —NULL es "sin categoría"— y `ecommerce_categories.store_id`
+es opcional, porque la categoría es del Business Core y la tienda sólo la
+muestra: `get_store_categories` une por `org_id`, no por `store_id`. Sin eso,
+"Crear una categoría…" **fallaba siempre** con un not-null, y 3 de las 4
+organizaciones ni siquiera tienen tienda de la que sacar el id.
+
+Para elegir o rotular una categoría se usan `CategorySelect` /
+`useOrgCategories` (opciones + crear) y `useOrgCategoryNames` (sólo el nombre,
+sin consultar `products`). `NOMBRES_HEREDADOS` en `storeCategories.ts` es
+**rótulo de un slug ya cargado**, nunca una opción a ofrecer: sembrarlo hacía
+que un comercio nuevo eligiera entre "Perfume Árabe" y "Vaper".
+`categoriaSinRubroPorDefault.test.ts` es el guardia, con la allowlist de lo que
+todavía hardcodea el rubro —`types.ts`, POS, Ventas, Ajustes, catálogo público
+y un puñado más— para que no crezca sin que nadie lo note.
+
 **El stock lo mueve la base, y sólo la base. El cliente nunca escribe
 `products.stock`.** No es una preferencia de estilo: se rompió dos veces por lo
 mismo. La segunda fue peor — `addSaleDB`, `addSaleWithVariantDB` y

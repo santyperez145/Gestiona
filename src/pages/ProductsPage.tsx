@@ -360,7 +360,7 @@ export default function ProductsPage() {
   const [recoTargetId, setRecoTargetId] = useState<string | null>(null);
   // Oferta masiva por categoría
   const [catOfferOpen, setCatOfferOpen] = useState(false);
-  const [catOfferCategory, setCatOfferCategory] = useState('perfume_arabe');
+  const [catOfferCategory, setCatOfferCategory] = useState('');  // sin rubro por defecto: ver 20260825000002_categoria_sin_rubro
   const [catOfferPct, setCatOfferPct] = useState('20');
   const [catOfferExpiry, setCatOfferExpiry] = useState('');
   const [catOfferSaving, setCatOfferSaving] = useState(false);
@@ -657,6 +657,7 @@ export default function ProductsPage() {
   const catOfferProducts = products.filter(p => p.category === catOfferCategory && Number(p.sale_price_ars) > 0);
   const applyCategoryOffer = async () => {
     const pct = Number(catOfferPct);
+    if (!catOfferCategory) { toast.error("Elegí una categoría"); return; }
     if (isNaN(pct) || pct <= 0 || pct >= 100) { toast.error("Descuento inválido"); return; }
     setCatOfferSaving(true);
     try {
@@ -672,6 +673,7 @@ export default function ProductsPage() {
     finally { setCatOfferSaving(false); }
   };
   const clearCategoryOffer = async () => {
+    if (!catOfferCategory) { toast.error("Elegí una categoría"); return; }
     const withOffer = catOfferProducts.filter(p => p.discount_price_ars);
     if (withOffer.length === 0) { toast.info("No hay ofertas activas en esa categoría"); return; }
     setCatOfferSaving(true);
@@ -928,7 +930,7 @@ export default function ProductsPage() {
             <div>
               <label className="text-sm text-muted-foreground mb-1 block">Categoría</label>
               <Select value={catOfferCategory} onValueChange={setCatOfferCategory}>
-                <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Elegí una categoría" /></SelectTrigger>
                 <SelectContent>
                   {opcionesCategoria.map(o => (
                     <SelectItem key={o.slug} value={o.slug}>
@@ -1683,7 +1685,7 @@ function ChipSelect({ items, selected, onToggle }: { items: TaxItem[]; selected:
 function ProductForm({ product, settings, userId, orgId, onSave }: { product: any; settings: any; userId: string; orgId?: string; onSave: () => void }) {
   const [name, setName] = useState(product?.name || '');
   const [brand, setBrand] = useState(product?.brand || '');
-  const [category, setCategory] = useState(product?.category || 'perfume_arabe');
+  const [category, setCategory] = useState(product?.category || '');
   const [gender, setGender] = useState(product?.gender || 'masculino');
   const [costUSD, setCostUSD] = useState(product?.cost_usd?.toString() || '');
   /**
@@ -2050,7 +2052,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         ? variants.reduce((s, v) => s + (v.stock || 0), 0)
         : parseInt(stock) || 0;
       const data = {
-        name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
+        name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category: category || null, gender, description: description.trim() || null,
         // ⚠️ La moneda va explícita: sin ella el resolver tiene que deducirla, y
         // deducir la moneda de un costo es deducir el margen.
         cost_usd: enPesos ? 0 : cost,

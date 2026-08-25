@@ -14,11 +14,18 @@
  * ir a otra pantalla, crearla y volver es la clase de fricción que hace que
  * nadie las use y todo termine en "otros".
  *
- * ── El respaldo ──────────────────────────────────────────────────────────
+ * ── El respaldo, y por qué se achicó (2026-08-25) ─────────────────────────
  *
  * Si la organización todavía no creó ninguna, se ofrecen los slugs que ya usan
- * sus productos con el nombre heredado. Así una tienda que nunca tocó esta
- * pantalla sigue viendo exactamente lo de antes.
+ * sus productos. Hasta esta fecha se sembraban **además** los cuatro nombres
+ * heredados de perfumería, y eso hacía justo lo contrario de lo que el
+ * respaldo busca: un comercio nuevo, de cualquier rubro, sin productos ni
+ * categorías, abría la ficha y elegía entre "Perfume Árabe" y "Vaper".
+ * Medido ese día: 3 de las 4 organizaciones estaban exactamente en ese estado.
+ *
+ * `NOMBRES_HEREDADOS` sigue vivo en `storeCategories.ts`, pero como **rótulo**
+ * de un slug que ya está en los datos —ahí sí evita mostrar `perfume_arabe`
+ * crudo a quien lo tiene cargado—, nunca como oferta.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,9 +37,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  NOMBRES_HEREDADOS, nombreDeCategoria, slugDeNombre, validarNombre,
-  arbolDeCategorias, type CategoriaTienda,
+  nombreDeCategoria, slugDeNombre, validarNombre, arbolDeCategorias,
 } from "@/lib/storeCategories";
+import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 
 const CREAR = "__crear__";
 
@@ -48,29 +55,31 @@ export interface OpcionCategoria {
  *
  * Se exporta el hook además del componente porque hay pantallas —los filtros
  * del listado, la oferta masiva— que necesitan las opciones sin el control.
+ * Las que sólo necesitan traducir un slug a un nombre usan
+ * `useOrgCategoryNames`, que no consulta `products`.
  */
 export function useOrgCategories(orgId: string | null | undefined) {
-  const [filas, setFilas] = useState<CategoriaTienda[]>([]);
+  const {
+    categorias: filas, cargando: cargandoCategorias, recargar: recargarCategorias,
+  } = useOrgCategoryNames(orgId);
   const [slugsEnUso, setSlugsEnUso] = useState<string[]>([]);
-  const [cargando, setCargando] = useState(true);
+  const [cargandoSlugs, setCargandoSlugs] = useState(true);
 
-  const cargar = useCallback(async () => {
-    if (!orgId) { setCargando(false); return; }
-    const [{ data: cats }, { data: prods }] = await Promise.all([
-      supabase.from("ecommerce_categories")
-        .select("id, name, slug, parent_id, sort_order, is_active")
-        .eq("org_id", orgId).eq("is_active", true).order("sort_order"),
-      supabase.from("products").select("category").eq("org_id", orgId),
-    ]);
-    setFilas((cats ?? []) as unknown as CategoriaTienda[]);
+  const cargarSlugs = useCallback(async () => {
+    if (!orgId) { setSlugsEnUso([]); setCargandoSlugs(false); return; }
+    const { data } = await supabase.from("products").select("category").eq("org_id", orgId);
     setSlugsEnUso(
-      [...new Set(((prods ?? []) as { category: string | null }[])
+      [...new Set(((data ?? []) as { category: string | null }[])
         .map(p => p.category).filter(Boolean) as string[])],
     );
-    setCargando(false);
+    setCargandoSlugs(false);
   }, [orgId]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => { cargarSlugs(); }, [cargarSlugs]);
+
+  const cargar = useCallback(async () => {
+    await Promise.all([recargarCategorias(), cargarSlugs()]);
+  }, [recargarCategorias, cargarSlugs]);
 
   const opciones = useMemo<OpcionCategoria[]>(() => {
     if (filas.length > 0) {
@@ -93,20 +102,35 @@ export function useOrgCategories(orgId: string | null | undefined) {
       return salida;
     }
 
-    // Sin categorías propias: los slugs de los productos más los heredados,
-    // que es exactamente lo que se veía antes de todo esto.
-    const base = [...new Set([...slugsEnUso, ...Object.keys(NOMBRES_HEREDADOS)])];
-    return base.map(s => ({ slug: s, label: nombreDeCategoria(s), nivel: 0 }));
+    // Sin categorías propias: **sólo** los slugs que la organización ya usa.
+    // Nada de rubros ajenos sembrados por el código.
+    return [...new Set(slugsEnUso)]
+      .map(s => ({ slug: s, label: nombreDeCategoria(s), nivel: 0 }));
   }, [filas, slugsEnUso]);
 
   /** Crea una categoría y devuelve su slug, o `null` si falló. */
   const crear = useCallback(async (nombre: string): Promise<string | null> => {
     const error = validarNombre(nombre, filas);
     if (error) { toast.error(error); return null; }
+    if (!orgId) { toast.error("Elegí una organización antes de crear una categoría"); return null; }
 
     const slug = slugDeNombre(nombre);
+
+    // `store_id` se completa con la tienda de la organización si la tiene, para
+    // dejar registro de qué canal la originó. Si todavía no tiene, va NULL:
+    // desde `20260825000002_categoria_sin_rubro` la columna lo admite, y el
+    // menú público no depende de ella —`get_store_categories` une por `org_id`
+    // desde 20260805000002—.
+    //
+    // ⚠️ Hasta esa migración este insert **fallaba siempre**, con
+    // `null value in column "store_id" ... violates not-null constraint`, así
+    // que "Crear una categoría…" no funcionaba para ninguna organización.
+    const { data: tienda } = await supabase
+      .from("ecommerce_stores").select("id").eq("org_id", orgId)
+      .order("created_at").limit(1).maybeSingle();
+
     const { error: err } = await supabase.from("ecommerce_categories").insert({
-      org_id: orgId, name: nombre.trim(), slug,
+      org_id: orgId, store_id: tienda?.id ?? null, name: nombre.trim(), slug,
       sort_order: filas.length, is_active: true,
     } as never);
     if (err) { toast.error(err.message); return null; }
@@ -116,7 +140,11 @@ export function useOrgCategories(orgId: string | null | undefined) {
     return slug;
   }, [orgId, filas, cargar]);
 
-  return { opciones, categorias: filas, cargando, crear, recargar: cargar };
+  return {
+    opciones, categorias: filas,
+    cargando: cargandoCategorias || cargandoSlugs,
+    crear, recargar: cargar,
+  };
 }
 
 interface Props {
@@ -166,13 +194,19 @@ export default function CategorySelect({
     );
   }
 
+  // Una organización nueva no tiene ninguna. El desplegable no puede quedar
+  // mudo: si no hay nada que elegir, lo dice y ofrece crear la primera.
+  const vacio = !cargando && opciones.length === 0;
+
   return (
     <Select
       value={value}
       onValueChange={v => { if (v === CREAR) setCreando(true); else onChange(v); }}
     >
       <SelectTrigger className={className}>
-        <SelectValue placeholder={cargando ? "Cargando…" : "Elegí una categoría"} />
+        <SelectValue placeholder={
+          cargando ? "Cargando…" : vacio ? "Todavía no hay categorías" : "Elegí una categoría"
+        } />
       </SelectTrigger>
       <SelectContent>
         {opciones.map(o => (
@@ -188,7 +222,8 @@ export default function CategorySelect({
         {permitirCrear && (
           <SelectItem value={CREAR}>
             <span className="flex items-center gap-1.5 text-primary">
-              <Plus className="w-3.5 h-3.5" /> Crear una categoría…
+              <Plus className="w-3.5 h-3.5" />
+              {vacio ? "Crear la primera categoría…" : "Crear una categoría…"}
             </span>
           </SelectItem>
         )}

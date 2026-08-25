@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
+import { useOrg } from "@/lib/orgContext";
 import { listBrandKnowledge, createBrandKnowledge, updateBrandKnowledge, deleteBrandKnowledge } from "@/lib/marketingExtraDB";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,19 +11,19 @@ import { Brain, Plus, Edit, Trash2, BookOpen, Tag, Globe } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import KPICard from "@/components/shared/KPICard";
+import CategorySelect, { useOrgCategories } from "@/components/products/CategorySelect";
+import { nombreDeCategoria } from "@/lib/storeCategories";
 
-const CATEGORIES = [
-  { code: 'perfume_arabe', label: 'Perfume árabe' },
-  { code: 'perfume_occidental', label: 'Perfume occidental' },
-  { code: 'perfume_premium', label: 'Premium / Nicho' },
-  { code: 'vaper', label: 'Vapers / Pods' },
-  { code: 'liquido', label: 'Líquidos / E-juice' },
-  { code: 'accesorio', label: 'Accesorio' },
-  { code: 'otro', label: 'Otro' },
-];
+// Las categorías salen de `ecommerce_categories`, la misma fuente que usa la
+// ficha de producto. Hasta 2026-08-25 vivían acá escritas a mano —perfume
+// árabe, occidental, premium, vapers, líquidos— así que un comercio de otro
+// rubro clasificaba sus marcas con el vocabulario de una perfumería, y el
+// formulario arrancaba además preseleccionado en `perfume_arabe`.
 
 export default function BrandKnowledgeTab() {
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
+  const { opciones, categorias } = useOrgCategories(activeOrg?.id);
   const [items, setItems] = useState<any[]>([]);
   const [filter, setFilter] = useState('all');
   const [editItem, setEditItem] = useState<any>(null);
@@ -36,7 +37,21 @@ export default function BrandKnowledgeTab() {
   useEffect(() => { if (user) reload(); }, [user]);
 
   const filtered = filter === 'all' ? items : items.filter(i => i.category === filter);
-  const grouped = CATEGORIES.map(c => ({ ...c, items: filtered.filter(i => i.category === c.code) })).filter(g => g.items.length > 0);
+
+  // Los códigos son las categorías de la organización **más** las que ya traen
+  // las marcas cargadas. Ese segundo conjunto no es opcional: la base global de
+  // marcas (`org_id IS NULL`) llega con categorías que el comercio nunca creó,
+  // y agrupar sólo por las propias las haría desaparecer de la pantalla.
+  const codigos = [
+    ...opciones.map(o => o.slug),
+    ...([...new Set(items.map(i => i.category))]
+      .filter(c => c && !opciones.some(o => o.slug === c)) as string[]),
+  ];
+  const etiqueta = (code: string) =>
+    opciones.find(o => o.slug === code)?.label ?? nombreDeCategoria(code, categorias);
+  const grouped = codigos
+    .map(code => ({ code, label: etiqueta(code), items: filtered.filter(i => i.category === code) }))
+    .filter(g => g.items.length > 0);
   const categoriesUsed = new Set(items.map(i => i.category)).size;
   const publicItems = items.filter(i => i.is_public).length;
 
@@ -72,7 +87,7 @@ export default function BrandKnowledgeTab() {
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Marcas registradas" value={items.length} icon={Brain} color="primary" sub="en base de conocimiento" />
-        <KPICard label="Categorías" value={categoriesUsed} icon={Tag} color="blue" sub={`de ${CATEGORIES.length} disponibles`} />
+        <KPICard label="Categorías" value={categoriesUsed} icon={Tag} color="blue" sub={`de ${codigos.length} disponibles`} />
         <KPICard label="Mostrando" value={filtered.length} icon={BookOpen} color={filtered.length < items.length ? "warning" : "success"} sub={filter === 'all' ? "todas las marcas" : "filtradas"} />
         <KPICard label="Públicas" value={publicItems} icon={Globe} color={publicItems > 0 ? "success" : "primary"} sub="visibles en catálogo" />
       </div>
@@ -82,7 +97,7 @@ export default function BrandKnowledgeTab() {
           <SelectTrigger className="bg-muted border-border w-full sm:w-64"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las categorías</SelectItem>
-            {CATEGORIES.map(c => <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>)}
+            {codigos.map(c => <SelectItem key={c} value={c}>{etiqueta(c)}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -134,8 +149,12 @@ export default function BrandKnowledgeTab() {
 }
 
 function BrandForm({ editItem, onSave }: { editItem?: any; onSave: () => void }) {
+  const { activeOrg } = useOrg();
   const [brand, setBrand] = useState(editItem?.brand || '');
-  const [category, setCategory] = useState(editItem?.category || 'perfume_arabe');
+  // Sin categoría por defecto. Preseleccionar una deja la marca clasificada sin
+  // que nadie lo haya decidido, y el que la carga no se entera. Mismo criterio
+  // que el rubro del onboarding en `20260825000001_rubro_sin_default`.
+  const [category, setCategory] = useState(editItem?.category || '');
   const [cloneOf, setCloneOf] = useState(editItem?.clone_of || '');
   const [notes, setNotes] = useState(editItem?.notes_typical || '');
   const [description, setDescription] = useState(editItem?.description || '');
@@ -144,6 +163,7 @@ function BrandForm({ editItem, onSave }: { editItem?: any; onSave: () => void })
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!brand.trim()) return toast.error("Ingresá la marca");
+    if (!category) return toast.error("Elegí una categoría");
     setSaving(true);
     try {
       const payload = {
@@ -169,12 +189,15 @@ function BrandForm({ editItem, onSave }: { editItem?: any; onSave: () => void })
         </div>
         <div>
           <label className="text-xs text-muted-foreground">Categoría</label>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {CATEGORIES.map(c => <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          {/* El mismo control que la ficha de producto, así la marca y el
+              producto quedan clasificados con el mismo vocabulario y se puede
+              crear una categoría sin salir del formulario. */}
+          <CategorySelect
+            value={category}
+            onChange={setCategory}
+            orgId={activeOrg?.id}
+            className="bg-muted border-border"
+          />
         </div>
       </div>
       <div>

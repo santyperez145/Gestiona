@@ -219,7 +219,7 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
               <Input
                 value={b.link_url ?? ""}
                 onChange={e => editar(b.id, { link_url: e.target.value })}
-                placeholder="/productos?cat=perfume_arabe"
+                placeholder="/productos?cat=slug-de-la-categoria"
                 className="mt-1 text-xs font-mono"
               />
             </div>

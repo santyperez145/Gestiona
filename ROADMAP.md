@@ -1192,7 +1192,9 @@ Hasta abrir sus gates:
   no cubren. **Las tres se cerraron el 2026-08-25:**
   - ~~**endurecer la API pública**~~ hecho (ver abajo).
   - ~~**reemplazar o aislar `xlsx`**~~ hecho (ver abajo).
-  - ~~**quitar el default `perfumes`**~~ hecho (ver abajo).
+  - ~~**quitar el default `perfumes`**~~ hecho (ver abajo), y el 2026-08-25 se
+    cerró también el hermano que la auditoría no vio: el `DEFAULT 'perfume_arabe'`
+    de `products.category`.
 
 ### El rubro deja de venir puesto — 2026-08-25
 
@@ -1215,6 +1217,63 @@ y la columna no tiene default: NULL significa "todavía no eligió", un estado
 real y distinto de cualquier rubro, con el mismo criterio que `products.tax_rate`.
 **No se backfilleó nada**: una de las dos filas es la perfumería de verdad, y
 reescribir datos reales para que un reporte dé limpio está prohibido acá.
+
+### La categoría del producto tampoco viene puesta — 2026-08-25
+
+La misma deuda, un nivel más abajo. `products.category` era
+`NOT NULL DEFAULT 'perfume_arabe'`: un comercio de cualquier rubro que cargara
+un producto sin elegir categoría quedaba con perfumería escrita en su base, sin
+enterarse —la pantalla muestra el nombre lindo y el slug recién aparece cuando
+exporta, publica en la tienda o arma un precio por categoría—.
+
+Medido antes de tocar (2026-08-25, contra producción): 60 productos en 3 slugs
+(`perfume_arabe` 54, `vaper` 5, `perfume_diseñador` 1), **todos de una sola
+organización de 4**; `ecommerce_categories` poblada y coincidiendo exacto con
+esos 3 slugs; las otras 3 organizaciones con 0 productos, 0 categorías y **0
+tiendas**. Es decir: las tres que verían el vocabulario ajeno.
+
+Al medir aparecieron dos bloqueantes que no estaban en el pedido:
+
+1. **"Crear una categoría…" fallaba siempre.** `CategorySelect` insertaba en
+   `ecommerce_categories` sin `store_id`, que era `NOT NULL` sin default ni
+   trigger. Verificado en vivo: `null value in column "store_id" ... violates
+   not-null constraint`. Y aunque lo pasara, 3 de 4 organizaciones no tienen
+   tienda de la que sacarlo.
+2. **`useOrgCategories` sembraba los cuatro nombres heredados** cuando la
+   organización no tenía categorías propias — justo el caso del comercio nuevo.
+   El "respaldo" hacía lo contrario de lo que buscaba.
+
+`20260825000002_categoria_sin_rubro` le saca a `products.category` el default
+**y** el `NOT NULL` (sin el segundo, quitar el default rompe al re-correrse los
+~15 bloques de verificación de migraciones que insertan sin `category`), y hace
+`store_id` opcional: la categoría es del Business Core y la tienda es un canal
+que la muestra — `get_store_categories` ya unía por `org_id` desde
+20260805000002 y el índice único ya era `(org_id, slug)`. **No se backfilleó
+nada**: las 60 filas son de la perfumería de verdad.
+
+Del lado del código quedaron sin vocabulario hardcodeado la base de
+conocimiento de marcas, la Toma Física, la sugerencia de la IA —que ahora
+propone sobre las categorías reales del comercio en vez de una lista fija de
+doce, y sólo devuelve algo si existe: sugerir un slug que no está deja el
+selector en blanco—, el placeholder del banner, la ficha de producto y la
+oferta masiva. Los importadores conservan sus heurísticas, pero el fallback
+dejó de ser un rubro: el de Tiendanube usa la categoría del propio archivo y el
+de facturas cae en `otro`.
+
+⚠️ **Lo que NO se tocó, medido y listado en la allowlist de
+`categoriaSinRubroPorDefault.test.ts`:** `types.ts` (`ProductCategory` es una
+unión cerrada de los 4 slugs), `POSPage`, `SalesPage` y `SettingsPage` (listas
+escritas a mano; la de Settings gobierna el markup por categoría),
+`PublicCatalogPage` (hero y agrupación con copy de perfumería),
+`supabaseStore.getCategoryLabel`, `BulkPriceAdjust` dentro de `ProductsPage`,
+`CatalogPage`, `weightEstimate` y las plantillas de marketing. El test falla si
+aparece un archivo nuevo con un slug de rubro, y también si la allowlist
+conserva una entrada que ya se limpió.
+
+Verificado contra producción como el rol real: una organización **sin tienda**
+crea una categoría y la ve por RLS (0 restos); y después de la migración la
+tienda pública sigue respondiendo como `anon` con las 3 categorías y sus
+conteos exactos (54/1/5), 60 productos en el catálogo y `stock_negativo` en 0.
 
 ### `xlsx` sale de la versión abandonada — 2026-08-25
 
@@ -1295,7 +1354,7 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-25: **1.534 tests en 139 archivos**,
+- Build y suites locales del 2026-08-25: **1.551 tests en 140 archivos**,
   typecheck, lint sin errores (142 warnings de deuda conocida), build/PWA y 65
   funciones verificadas. Última evidencia: 42
   E2E críticos contra la base real.

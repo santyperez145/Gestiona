@@ -54,7 +54,11 @@ const CATEGORY_HINTS: Array<[RegExp, string]> = [
 ];
 function guessCategory(name: string): string {
   for (const [re, cat] of CATEGORY_HINTS) if (re.test(name)) return cat;
-  return "perfume_diseñador";
+  // Generico a proposito: la factura solo trae el nombre del producto, y si
+  // ninguna pista pega, adivinar un rubro concreto es peor que no adivinar.
+  // Hasta 2026-08-25 caia en "perfume_disenador" y le estampaba perfumeria a
+  // cualquier comercio que importara una factura.
+  return "otro";
 }
 
 function fileToBase64(file: File): Promise<string> {

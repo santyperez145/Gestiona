@@ -16,8 +16,10 @@
  *   // call suggest(name) when the input changes
  *   // result contains the parsed suggestions
  */
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrgCategories } from "@/components/products/CategorySelect";
+import { slugDeNombre } from "@/lib/storeCategories";
 
 export interface ProductSuggestion {
   category?: string;
@@ -31,45 +33,46 @@ export interface ProductSuggestion {
 
 const cache = new Map<string, ProductSuggestion>();
 
-const CATEGORY_MAP: Record<string, string> = {
-  perfume: "perfume_diseñador",
-  "perfume árabe": "perfume_arabe",
-  vaper: "vaper",
-  electrónico: "electronico",
-  electronic: "electronico",
-  ropa: "ropa",
-  accesorio: "accesorios",
-  calzado: "calzado",
-  cosmético: "cosmeticos",
-  cosmetic: "cosmeticos",
-  alimento: "alimentos",
-  food: "alimentos",
-  bebida: "bebidas",
-  tecnología: "tecnologia",
-  technology: "tecnologia",
-};
-
-function mapCategory(raw: string | undefined): string | undefined {
+/**
+ * La categoría que propuso la IA, resuelta contra las de la organización.
+ *
+ * Hasta 2026-08-25 acá había un `CATEGORY_MAP` escrito a mano que traducía
+ * "perfume" a `perfume_diseñador` y "perfume árabe" a `perfume_arabe`, y el
+ * prompt le fijaba a la IA una lista de doce categorías del negocio original.
+ * Una tienda de ropa recibía sugerencias de perfumería, y peor: `mapCategory`
+ * devolvía el texto crudo cuando no encontraba nada, así que la sugerencia
+ * podía ser una categoría que el comercio no tiene.
+ *
+ * Ahora sólo se devuelve algo si coincide con una categoría real de la
+ * organización. Un slug que no está en su lista no se puede elegir en el
+ * formulario: sugerirlo dejaría el selector en blanco.
+ */
+function resolverCategoria(raw: string | undefined, slugs: string[]): string | undefined {
   if (!raw) return undefined;
-  const lower = raw.toLowerCase();
-  for (const [key, val] of Object.entries(CATEGORY_MAP)) {
-    if (lower.includes(key)) return val;
-  }
-  return raw;
+  const exacto = slugs.find(s => s === raw.trim());
+  if (exacto) return exacto;
+  // Por slug, que tolera acentos, mayúsculas y guión bajo contra guión medio.
+  const propuesto = slugDeNombre(raw);
+  return propuesto ? slugs.find(s => slugDeNombre(s) === propuesto) : undefined;
 }
 
 export function useAIProductSuggest(orgId: string | undefined) {
+  const { opciones } = useOrgCategories(orgId);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ProductSuggestion | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const slugs = useMemo(() => opciones.map(o => o.slug), [opciones]);
 
   const suggest = useCallback((name: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const trimmed = name.trim();
     if (!trimmed || trimmed.length < 3) { setResult(null); return; }
 
-    // Cache hit
-    const cacheKey = trimmed.toLowerCase();
+    // La caché es de módulo y sobrevive al cambio de organización, así que la
+    // clave lleva el `orgId`: la categoría sugerida sale de las categorías de
+    // un comercio y no vale para otro.
+    const cacheKey = `${orgId ?? "sin-org"}|${trimmed.toLowerCase()}`;
     if (cache.has(cacheKey)) {
       setResult(cache.get(cacheKey)!);
       return;
@@ -85,7 +88,9 @@ export function useAIProductSuggest(orgId: string | undefined) {
 
         const prompt = `Sos un asistente de un ERP/POS para negocios en Argentina. El usuario está cargando un producto llamado: "${trimmed}". Respondé SOLO con un JSON válido (sin markdown, sin texto extra) con este esquema exacto:
 {"category":"string","priceMin":number,"priceMax":number,"description":"string","tags":["string"],"unit":"string","brand":"string"}
-- category: una de estas: perfume_diseñador, perfume_arabe, vaper, electronico, ropa, accesorios, calzado, cosmeticos, alimentos, bebidas, tecnologia, otros
+- category: ${slugs.length > 0
+  ? `elegí exactamente uno de estos códigos del comercio y devolvelo tal cual: ${slugs.join(", ")}`
+  : `devolvé "" — este comercio todavía no tiene categorías cargadas y no hay que inventarle una`}
 - priceMin/priceMax: precio estimado en pesos argentinos (ARS) para un negocio minorista. Usá valores realistas para Argentina 2024-2025.
 - description: descripción breve de marketing en español (máx 100 caracteres)
 - tags: array de 2-4 keywords útiles
@@ -140,7 +145,7 @@ Solo JSON, sin texto adicional.`;
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
           const suggestion: ProductSuggestion = {
-            category: mapCategory(parsed.category),
+            category: resolverCategoria(parsed.category, slugs),
             priceMin: typeof parsed.priceMin === "number" ? parsed.priceMin : undefined,
             priceMax: typeof parsed.priceMax === "number" ? parsed.priceMax : undefined,
             description: typeof parsed.description === "string" ? parsed.description : undefined,
@@ -155,7 +160,7 @@ Solo JSON, sin texto adicional.`;
         setLoading(false);
       }
     }, 800);
-  }, [orgId]);
+  }, [orgId, slugs]);
 
   const clear = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);

@@ -6,6 +6,8 @@
  */
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
+import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
+import { csvCell } from "@/lib/csv";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,17 +72,14 @@ interface CountRow {
 
 type SortKey = "name" | "diff" | "system";
 
-const CAT_LABELS: Record<string, string> = {
-  perfume_arabe: "Árabe",
-  perfume_diseñador: "Diseñador",
-  vaper: "Vaper",
-  electronico: "Electrónico",
-};
-
 // ─── Tab ──────────────────────────────────────────────────────────────────────
 
 export default function StockCountTab() {
   const { activeOrg } = useOrg();
+  // El rotulo de cada categoria sale de las categorias de la organizacion.
+  // Hasta 2026-08-25 salia de un Record con cuatro entradas de perfumeria, asi
+  // que un comercio de otro rubro leia el slug crudo o el rubro equivocado.
+  const { nombre: nombreCategoria } = useOrgCategoryNames(activeOrg?.id);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -264,15 +263,17 @@ export default function StockCountTab() {
     const rowsData = rows.map(r => {
       const counted = r.counted !== "" ? Number(r.counted) : r.product.stock;
       const diff = counted - r.product.stock;
+      // Cada celda va escapada: desde que el nombre de la categoria lo escribe
+      // el comercio, uno con coma partia la fila y corria el resto del renglon.
       return [
         r.product.name,
-        CAT_LABELS[r.product.category] || r.product.category,
+        nombreCategoria(r.product.category),
         r.product.stock,
         r.counted !== "" ? r.counted : "(no contado)",
         diff,
         r.product.cost_usd || 0,
         (diff * (r.product.cost_usd || 0)).toFixed(2),
-      ].join(",");
+      ].map(csvCell).join(",");
     });
     const blob = new Blob([[header, ...rowsData].join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -321,7 +322,7 @@ export default function StockCountTab() {
               onClick={() => setCatFilter(c)}
               className="h-8 text-xs"
             >
-              {c === "all" ? "Todo" : (CAT_LABELS[c] || c)}
+              {c === "all" ? "Todo" : nombreCategoria(c)}
             </Button>
           ))}
         </div>
@@ -450,7 +451,7 @@ export default function StockCountTab() {
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-muted-foreground hidden md:table-cell">
-                      {CAT_LABELS[row.product.category] || row.product.category}
+                      {nombreCategoria(row.product.category)}
                     </td>
                     <td className="px-3 py-2.5 text-right font-mono">{row.product.stock}</td>
                     <td className="px-3 py-2.5 text-right">

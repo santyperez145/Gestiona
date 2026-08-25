@@ -67,7 +67,11 @@ function mapCategory(raw: string): string {
   if (s.includes("vaper") || s.includes("vaporizador")) return "vaper";
   if (s.includes("accesorio")) return "accesorio";
   if (s.includes("ropa") || s.includes("talle") || s.includes("indumentaria")) return "ropa";
-  return "otro";
+  // Sin coincidencia gana la categoria que trae el archivo, no un rubro que
+  // elige el codigo: quien exporta de Tiendanube ya tiene su propia taxonomia
+  // y aplastarla contra "otro" le borra el trabajo. Espejo de
+  // detectImportCategory en productImport.ts, que resuelve lo mismo asi.
+  return raw.trim().toLowerCase() || "otro";
 }
 
 function stripHtml(s: string): string {

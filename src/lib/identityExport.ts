@@ -1,14 +1,7 @@
 import type { CustomerIdentityReviewRow, ProductIdentityReviewRow } from "@/lib/recordIdentity";
+import { csvCell } from "@/lib/csv";
 
 export type IdentityReviewEntity = "products" | "customers";
-
-function csvCell(value: unknown): string {
-  const text = String(value ?? "").replace(/\r?\n/g, " ");
-  // Excel and Sheets interpret values beginning with these characters as
-  // formulas. An internal export must remain data when someone opens it.
-  const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
-  return `"${safe.replace(/"/g, '""')}"`;
-}
 
 export function buildIdentityReviewCsv(
   entity: IdentityReviewEntity,
