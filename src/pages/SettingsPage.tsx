@@ -2224,7 +2224,16 @@ function AfipSection() {
   const [domicilio, setDomicilio] = useState("");
   const [puntoVenta, setPuntoVenta] = useState("1");
   const [environment, setEnvironment] = useState("homologacion");
-  const [tipoEmisor, setTipoEmisor] = useState("monotributo");
+  /**
+   * ⚠️ Arranca VACÍO, no en "monotributo".
+   *
+   * La columna tenía `DEFAULT 'monotributo'` y se sacó el 2026-08-26: un
+   * responsable inscripto quedaba marcado como monotributista y emitía Factura
+   * C sin IVA discriminado, sin que nada se lo dijera. Preseleccionarlo acá
+   * reintroduciría la misma adivinanza desde el otro lado — el comercio
+   * apretaría "Guardar" sin mirar y el campo quedaría mal igual.
+   */
+  const [tipoEmisor, setTipoEmisor] = useState("");
   const [certificate, setCertificate] = useState("");
   const [privateKey, setPrivateKey] = useState("");
   const [taStatus, setTaStatus] = useState<"none" | "valid" | "expired">("none");
@@ -2277,7 +2286,7 @@ function AfipSection() {
     setRazonSocial(data.razon_social || "");
     setPuntoVenta(String(data.punto_venta || 1));
     setEnvironment(data.environment || "homologacion");
-    setTipoEmisor(data.tipo_emisor || "monotributo");
+    setTipoEmisor(data.tipo_emisor || "");
     // El certificado PROPIO sólo existe en modo propio; en delegado
     // `configured` habla del de la plataforma.
     setCertConfigurado(data.modo === "propio" && !!data.configured);
@@ -2309,7 +2318,7 @@ function AfipSection() {
       p_cuit: cuit,
       p_punto_venta: parseInt(puntoVenta) || 1,
       p_environment: environment,
-      p_tipo_emisor: tipoEmisor,
+      p_tipo_emisor: tipoEmisor || null,
       p_razon_social: razonSocial || null,
       p_domicilio: domicilio || null,
     });
@@ -2439,7 +2448,9 @@ function AfipSection() {
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Tipo de emisor</label>
           <Select value={tipoEmisor} onValueChange={setTipoEmisor}>
-            <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="bg-muted border-border">
+              <SelectValue placeholder="Elegí tu condición" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="monotributo">Monotributista → Factura C</SelectItem>
               <SelectItem value="responsable_inscripto">Responsable Inscripto → Factura A / B</SelectItem>

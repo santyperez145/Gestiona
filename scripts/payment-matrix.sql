@@ -133,6 +133,15 @@ BEGIN
     INSERT INTO public.exchange_rates (org_id, date, base_currency, usd_ars, eur_ars, brl_ars, source)
     VALUES (v_org, CURRENT_DATE, 'USD', 1600, 1700, 300, 'manual');
 
+    -- ⚠️ Y la condicion frente al IVA. Desde 20260826000030 la columna no tiene
+    -- default: sin declararla, `facturar_orden_pagada` se niega a emitir —que es
+    -- lo correcto, no se factura bajo una identidad fiscal adivinada— y la
+    -- etapa `invoice` de la traza no aparece.
+    --
+    -- El trigger de `organizations` ya creo la fila de settings de esta
+    -- organizacion ZZ; solo hay que completarla.
+    UPDATE public.settings SET afip_tipo_emisor = 'monotributo' WHERE org_id = v_org;
+
     INSERT INTO public.products (
       org_id, user_id, name, sale_price_ars, total_cost_usd, stock, is_active
     ) VALUES (

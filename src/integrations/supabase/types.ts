@@ -31664,7 +31664,7 @@ export type Database = {
           evolution_api_key: string | null
           evolution_api_url: string | null
           evolution_instance: string | null
-          exchange_rate: number
+          exchange_rate: number | null
           expense_categories: Json
           expense_ratio_alert_percent: number
           fiscal_id_required_above: number | null
@@ -31767,7 +31767,7 @@ export type Database = {
           evolution_api_key?: string | null
           evolution_api_url?: string | null
           evolution_instance?: string | null
-          exchange_rate?: number
+          exchange_rate?: number | null
           expense_categories?: Json
           expense_ratio_alert_percent?: number
           fiscal_id_required_above?: number | null
@@ -31870,7 +31870,7 @@ export type Database = {
           evolution_api_key?: string | null
           evolution_api_url?: string | null
           evolution_instance?: string | null
-          exchange_rate?: number
+          exchange_rate?: number | null
           expense_categories?: Json
           expense_ratio_alert_percent?: number
           fiscal_id_required_above?: number | null
@@ -39025,6 +39025,101 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_settings_adivinados: {
+        Row: {
+          org_id: string | null
+          organizacion: string | null
+          sin_condicion_iva: boolean | null
+          sin_cotizacion: boolean | null
+          sin_rubro: boolean | null
+        }
+        Insert: {
+          org_id?: string | null
+          organizacion?: never
+          sin_condicion_iva?: never
+          sin_cotizacion?: never
+          sin_rubro?: never
+        }
+        Update: {
+          org_id?: string | null
+          organizacion?: never
+          sin_condicion_iva?: never
+          sin_cotizacion?: never
+          sin_rubro?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       audit_summary: {
         Row: {
           action: string | null
@@ -40836,6 +40931,7 @@ export type Database = {
           created_at: string | null
           customer_name: string | null
           dias: number | null
+          motivo: string | null
           order_id: string | null
           order_number: string | null
           org_id: string | null
@@ -40845,6 +40941,7 @@ export type Database = {
           created_at?: string | null
           customer_name?: string | null
           dias?: never
+          motivo?: never
           order_id?: string | null
           order_number?: string | null
           org_id?: string | null
@@ -40854,6 +40951,7 @@ export type Database = {
           created_at?: string | null
           customer_name?: string | null
           dias?: never
+          motivo?: never
           order_id?: string | null
           order_number?: string | null
           org_id?: string | null
