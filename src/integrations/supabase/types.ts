@@ -767,6 +767,13 @@ export type Database = {
             foreignKeyName: "afip_alicuotas_producto_id_fkey"
             columns: ["producto_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "afip_alicuotas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -3448,6 +3455,13 @@ export type Database = {
             foreignKeyName: "bin_stock_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "bin_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -3994,6 +4008,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bundle_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "bundle_items_product_id_fkey"
@@ -8299,6 +8320,13 @@ export type Database = {
             foreignKeyName: "demand_forecasts_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "demand_forecasts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -8453,6 +8481,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demand_signals_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "demand_signals_product_id_fkey"
@@ -11361,6 +11396,13 @@ export type Database = {
             foreignKeyName: "finance_document_line_matches_confirmed_product_org_fk"
             columns: ["confirmed_product_id", "org_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_confirmed_product_org_fk"
+            columns: ["confirmed_product_id", "org_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id", "org_id"]
           },
@@ -11475,6 +11517,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_document_line_matches_proposed_product_org_fk"
+            columns: ["proposed_product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id", "org_id"]
           },
           {
             foreignKeyName: "finance_document_line_matches_proposed_product_org_fk"
@@ -12189,6 +12238,13 @@ export type Database = {
             foreignKeyName: "finance_product_aliases_product_org_fk"
             columns: ["product_id", "org_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_product_aliases_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id", "org_id"]
           },
@@ -12370,6 +12426,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "finance_purchase_draft_lines_product_org_fk"
+            columns: ["product_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id", "org_id"]
           },
           {
             foreignKeyName: "finance_purchase_draft_lines_product_org_fk"
@@ -13571,6 +13634,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forecast_configs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "forecast_configs_product_id_fkey"
@@ -14793,6 +14863,13 @@ export type Database = {
             foreignKeyName: "inventory_abc_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -14941,6 +15018,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_snapshots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "inventory_snapshots_product_id_fkey"
@@ -15100,6 +15184,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transfer_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "inventory_transfer_items_product_id_fkey"
@@ -16502,6 +16593,13 @@ export type Database = {
             foreignKeyName: "location_stock_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "location_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -16654,6 +16752,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_variant_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "location_variant_stock_product_id_fkey"
@@ -17980,6 +18085,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meli_listings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "meli_listings_product_id_fkey"
@@ -21687,6 +21799,13 @@ export type Database = {
             foreignKeyName: "plm_products_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "plm_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -22510,6 +22629,13 @@ export type Database = {
             foreignKeyName: "price_change_impact_events_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_change_impact_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -22683,6 +22809,13 @@ export type Database = {
             foreignKeyName: "price_history_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -22772,6 +22905,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_list_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "price_list_items_product_id_fkey"
@@ -23064,6 +23204,13 @@ export type Database = {
             foreignKeyName: "product_attribute_values_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_attribute_values_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -23229,6 +23376,13 @@ export type Database = {
             foreignKeyName: "product_batches_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_batches_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -23378,6 +23532,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_bundle_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "product_bundle_items_product_id_fkey"
@@ -23687,6 +23848,13 @@ export type Database = {
             foreignKeyName: "product_cooccurrences_product_a_id_fkey"
             columns: ["product_a_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_cooccurrences_product_a_id_fkey"
+            columns: ["product_a_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -23738,6 +23906,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_cooccurrences_product_b_id_fkey"
+            columns: ["product_b_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "product_cooccurrences_product_b_id_fkey"
@@ -24073,6 +24248,13 @@ export type Database = {
             foreignKeyName: "product_import_rows_result_product_id_fkey"
             columns: ["result_product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_result_product_id_fkey"
+            columns: ["result_product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -24124,6 +24306,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_rows_target_product_id_fkey"
+            columns: ["target_product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "product_import_rows_target_product_id_fkey"
@@ -24306,6 +24495,13 @@ export type Database = {
             foreignKeyName: "product_perfume_details_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: true
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_perfume_details_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -24463,6 +24659,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_questions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "product_questions_product_id_fkey"
@@ -24683,6 +24886,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "product_reviews_product_id_fkey"
@@ -24985,6 +25195,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "product_variants_product_id_fkey"
@@ -25678,6 +25895,13 @@ export type Database = {
             foreignKeyName: "purchase_order_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -26034,6 +26258,13 @@ export type Database = {
             foreignKeyName: "purchase_request_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "purchase_request_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -26353,6 +26584,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "purchases_product_id_fkey"
@@ -26896,6 +27134,13 @@ export type Database = {
             foreignKeyName: "recipe_ingredients_ingredient_product_id_fkey"
             columns: ["ingredient_product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_ingredient_product_id_fkey"
+            columns: ["ingredient_product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -27184,6 +27429,13 @@ export type Database = {
             foreignKeyName: "recipes_output_product_id_fkey"
             columns: ["output_product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "recipes_output_product_id_fkey"
+            columns: ["output_product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -27351,6 +27603,13 @@ export type Database = {
             foreignKeyName: "recommendation_events_recommended_product_id_fkey"
             columns: ["recommended_product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "recommendation_events_recommended_product_id_fkey"
+            columns: ["recommended_product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -27402,6 +27661,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendation_events_trigger_product_id_fkey"
+            columns: ["trigger_product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "recommendation_events_trigger_product_id_fkey"
@@ -27563,6 +27829,13 @@ export type Database = {
             foreignKeyName: "recommendation_rules_recommended_product_id_fkey"
             columns: ["recommended_product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "recommendation_rules_recommended_product_id_fkey"
+            columns: ["recommended_product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -27614,6 +27887,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendation_rules_trigger_product_id_fkey"
+            columns: ["trigger_product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "recommendation_rules_trigger_product_id_fkey"
@@ -27967,6 +28247,13 @@ export type Database = {
             foreignKeyName: "return_requests_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "return_requests_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -28178,6 +28465,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "returns_product_id_fkey"
@@ -28817,6 +29111,13 @@ export type Database = {
             foreignKeyName: "sales_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -29031,6 +29332,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_forecasts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "sales_forecasts_product_id_fkey"
@@ -29649,6 +29957,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "service_order_items_product_id_fkey"
@@ -31105,6 +31420,13 @@ export type Database = {
             foreignKeyName: "stock_count_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -31368,6 +31690,13 @@ export type Database = {
             foreignKeyName: "stock_history_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -31568,6 +31897,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "stock_movements_product_id_fkey"
@@ -31806,6 +32142,13 @@ export type Database = {
             foreignKeyName: "stock_reservations_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -31987,6 +32330,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "stock_transfers_product_id_fkey"
@@ -32641,6 +32991,13 @@ export type Database = {
             foreignKeyName: "store_stock_alerts_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "store_stock_alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -32811,6 +33168,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_wishlists_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "store_wishlists_product_id_fkey"
@@ -36118,6 +36482,13 @@ export type Database = {
             foreignKeyName: "sales_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -36267,6 +36638,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "sales_product_id_fkey"
@@ -36965,6 +37343,13 @@ export type Database = {
             foreignKeyName: "product_variants_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -37220,6 +37605,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "stock_count_items_product_id_fkey"
@@ -38188,6 +38580,85 @@ export type Database = {
           },
         ]
       }
+      kardex_contra_stock: {
+        Row: {
+          diferencia: number | null
+          impacto_ars: number | null
+          kardex: number | null
+          kardex_negativo: boolean | null
+          org_id: string | null
+          product_id: string | null
+          producto: string | null
+          sku: string | null
+          stock_actual: number | null
+          ultimo_movimiento: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       kardex_summary: {
         Row: {
           current_stock: number | null
@@ -38269,6 +38740,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "stock_movements_product_id_fkey"
@@ -40007,6 +40485,13 @@ export type Database = {
             foreignKeyName: "sales_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -40157,6 +40642,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "sales_product_id_fkey"
@@ -40577,6 +41069,13 @@ export type Database = {
             foreignKeyName: "inventory_abc_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -40711,6 +41210,13 @@ export type Database = {
             foreignKeyName: "stock_reservations_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -40840,6 +41346,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "inventory_abc_product_id_fkey"
@@ -41001,6 +41514,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "location_stock_product_id_fkey"
@@ -41338,6 +41858,13 @@ export type Database = {
             foreignKeyName: "sales_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_availability"
             referencedColumns: ["product_id"]
           },
@@ -41402,6 +41929,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bin_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "bin_stock_product_id_fkey"
