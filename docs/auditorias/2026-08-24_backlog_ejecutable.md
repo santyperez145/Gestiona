@@ -67,7 +67,16 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-02 — ARCA producción
+## P0-02 — ARCA producción — 🟡 el código listo, falta el trámite (2026-08-25)
+
+> **Hecho hoy:** nota de crédito con la clase correcta (A→3, B→8, C→13),
+> prorrateo de IVA, tope por saldo acumulado, motivo obligatorio, y la factura
+> autorizada pasó a ser **inmutable** —  no tenía un solo trigger, se
+> le podía cambiar el total con CAE puesto.
+>
+> **Falta y depende del dueño:** certificado X.509 de producción, alta del
+> punto de venta como *Web Services* y validación con contador. Pedir el CAE de
+> una nota de crédito exige lo mismo que una factura.
 
 **Owner:** Backend/Fiscal  
 **Objetivo:** emitir el primer comprobante real autorizado.
@@ -265,7 +274,12 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-09 — Economics gate
+## P0-09 — Economics gate — 🟢 en pie (verificado 2026-08-25)
+
+> Comisión **inactiva por defecto** (, ),
+> regla versionada con proponente/aprobador/términos/tratamiento fiscal,
+> simulador en Plataforma → Comisiones, y  separa medido,
+> modelado y aprobado. Falta gross profit **por pago** (hoy es mensual).
 
 **Owner:** Finance/Product  
 **Objetivo:** impedir pricing sin economía verificada.

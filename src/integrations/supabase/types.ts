@@ -844,6 +844,13 @@ export type Database = {
             foreignKeyName: "afip_authorization_locks_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "facturas_con_nota_credito"
+            referencedColumns: ["factura_id"]
+          },
+          {
+            foreignKeyName: "afip_authorization_locks_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
@@ -1001,6 +1008,13 @@ export type Database = {
           tipo_doc?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "afip_comprobantes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "facturas_con_nota_credito"
+            referencedColumns: ["factura_id"]
+          },
           {
             foreignKeyName: "afip_comprobantes_invoice_id_fkey"
             columns: ["invoice_id"]
@@ -15293,6 +15307,13 @@ export type Database = {
             foreignKeyName: "invoice_items_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "facturas_con_nota_credito"
+            referencedColumns: ["factura_id"]
+          },
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
@@ -15398,6 +15419,8 @@ export type Database = {
           ecommerce_order_id: string | null
           id: string
           issue_date: string
+          motivo_nota_credito: string | null
+          nota_credito_de: string | null
           notes: string | null
           number: string
           numero_afip: number | null
@@ -15432,6 +15455,8 @@ export type Database = {
           ecommerce_order_id?: string | null
           id?: string
           issue_date?: string
+          motivo_nota_credito?: string | null
+          nota_credito_de?: string | null
           notes?: string | null
           number: string
           numero_afip?: number | null
@@ -15466,6 +15491,8 @@ export type Database = {
           ecommerce_order_id?: string | null
           id?: string
           issue_date?: string
+          motivo_nota_credito?: string | null
+          nota_credito_de?: string | null
           notes?: string | null
           number?: string
           numero_afip?: number | null
@@ -15500,6 +15527,20 @@ export type Database = {
             columns: ["ecommerce_order_id"]
             isOneToOne: false
             referencedRelation: "ordenes_sin_iva"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_nota_credito_de_fkey"
+            columns: ["nota_credito_de"]
+            isOneToOne: false
+            referencedRelation: "facturas_con_nota_credito"
+            referencedColumns: ["factura_id"]
+          },
+          {
+            foreignKeyName: "invoices_nota_credito_de_fkey"
+            columns: ["nota_credito_de"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
           {
@@ -28685,6 +28726,13 @@ export type Database = {
             foreignKeyName: "sales_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "facturas_con_nota_credito"
+            referencedColumns: ["factura_id"]
+          },
+          {
+            foreignKeyName: "sales_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
@@ -38064,6 +38112,82 @@ export type Database = {
           },
         ]
       }
+      facturas_con_nota_credito: {
+        Row: {
+          factura: string | null
+          factura_id: string | null
+          notas: number | null
+          org_id: string | null
+          saldo: number | null
+          total_acreditado: number | null
+          total_facturado: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       kardex_summary: {
         Row: {
           current_stock: number | null
@@ -41906,6 +42030,10 @@ export type Database = {
         }
         Returns: string
       }
+      emitir_nota_credito: {
+        Args: { p_importe?: number; p_invoice_id: string; p_motivo: string }
+        Returns: string
+      }
       end_expired_promotions: { Args: never; Returns: number }
       enqueue_meli_webhook_event: {
         Args: {
@@ -43456,6 +43584,7 @@ export type Database = {
         Args: { p_emisor: string; p_receptor: string }
         Returns: Json
       }
+      tipo_nota_credito: { Args: { p_tipo_factura: number }; Returns: number }
       toggle_wishlist: {
         Args: { p_product_id: string; p_slug: string }
         Returns: Json
