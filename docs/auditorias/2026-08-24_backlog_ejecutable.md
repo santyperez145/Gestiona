@@ -140,7 +140,7 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-04 — Matriz externa de pagos — 🟡 12/14 escenarios (2026-08-25)
+## P0-04 — Matriz externa de pagos — 🟢 16 escenarios (2026-08-26)
 
 > **Hecho:** `npm run drill:payments` cubre aprobado, rechazado, timeout, retry,
 > webhook duplicado, webhook fuera de orden, refund, refund timeout, refund
@@ -156,8 +156,27 @@ Toda entrega debe contemplar, cuando corresponda:
 > firma **se saltea entera**. El test lo deja escrito; cambiarlo a rechazar
 > siempre exige confirmar antes que el secreto esté cargado en produccion.
 >
-> **Falta:** *reintegro por monto mayor al cobrado*, que exige una segunda
-> orden en la matriz.
+> ~~*reintegro por monto mayor al cobrado*~~ **cerrado el 2026-08-26** con una
+> segunda orden en la matriz. Y construirlo destapó un agujero de plata que
+> ninguna lectura del código había encontrado:
+>
+> ⚠️ **Un NULL saltaba el guard que autoriza sacar plata.** El chequeo era
+> `resolution <> 'refund' OR refund_method <> 'original_payment'`. Con NULL,
+> `x <> 'literal'` da **NULL**, y `FALSE OR NULL` es NULL: el `IF` no ejecuta.
+> Una devolución resuelta como *cambio de producto* o sin medio definido
+> preparaba igual un reintegro real a la tarjeta. Ninguna de las dos columnas
+> tiene DEFAULT ni CHECK, y `return_requests` se escribe directo desde el
+> cliente. Corregido con `IS DISTINCT FROM` en `20260826000130`.
+>
+> El tope por monto **sí** funcionaba, así que el daño máximo era reintegrar
+> hasta el total de la orden. 0 filas en `return_requests` al encontrarlo.
+>
+> ⚠️ **Y tres escenarios pasaban por la razón equivocada.** El de "monto
+> excesivo" rechazaba por el estado de la orden; después del fix pasó a
+> rechazar por el NULL. Ahora cada escenario **exige su propio motivo** en el
+> mensaje de error, no sólo que rechace: un guard que rechaza todo también
+> aprueba un test que sólo prueba rechazos. Y se agregó el caso contrario —
+> el reintegro del total exacto tiene que seguir aceptándose.
 
 **Owner:** Payments  
 **Objetivo:** certificar Mercado Pago fuera de la matriz interna.
@@ -173,7 +192,9 @@ Toda entrega debe contemplar, cuando corresponda:
 - webhook fuera de orden;
 - retry explícito;
 - refund;
-- refund sin saldo;
+- refund sin saldo (monto mayor al cobrado, sobre una orden intacta);
+- refund sin medio de reintegro definido;
+- refund del total exacto (el caso que sí debe pasar);
 - desconexión OAuth;
 - refresh token;
 - reversión;

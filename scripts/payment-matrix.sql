@@ -47,6 +47,13 @@ DECLARE
   v_factura uuid;
   v_rma_grande uuid;
   v_refund_grande jsonb;
+  v_order2 uuid;
+  v_rma_exceso uuid;
+  v_rma_nulo uuid;
+  v_rma_justo uuid;
+  v_refund_exceso jsonb;
+  v_refund_nulo jsonb;
+  v_refund_justo jsonb;
   v_proveedores jsonb;
   v_orden_pend uuid;
   v_intent_pend jsonb;
@@ -497,14 +504,14 @@ BEGIN
     -- devolver dos veces es devolver plata que no entró— pero NO es la del
     -- monto. Se renombró a lo que verifica de verdad.
     --
-    -- El caso del monto excesivo sobre una orden pagada y sin devolver sigue
-    -- sin cubrir: exige una segunda orden en la matriz. Queda anotado.
+    -- El caso del monto excesivo sobre una orden pagada y sin devolver está
+    -- cubierto más abajo, con una segunda orden (`reintegro_mayor_a_lo_cobrado`).
     INSERT INTO public.return_requests (
       org_id, rma_number, ecommerce_order_id, customer_name, customer_email,
-      product_name, quantity, status, resolution, refund_amount, reason_text
+      product_name, quantity, status, resolution, refund_amount, refund_method, reason_text
     ) VALUES (
       v_org, 'ZZ-RMA-' || v_suffix, v_order, 'ZZ Comprador', 'zz-matrix@zz.com',
-      'ZZ Producto', 1, 'approved', 'refund', 999999999, 'ZZ monto imposible'
+      'ZZ Producto', 1, 'approved', 'refund', 999999999, 'original_payment', 'ZZ monto imposible'
     ) RETURNING id INTO v_rma_grande;
 
     v_fallo := NULL;
@@ -513,13 +520,111 @@ BEGIN
     EXCEPTION WHEN others THEN
       v_fallo := SQLERRM;
     END;
-    IF v_fallo IS NULL
-       AND COALESCE((v_refund_grande->>'ok')::boolean, true) IS NOT FALSE THEN
-      RAISE EXCEPTION 'Se preparó un reintegro de 999.999.999 sobre una orden de 1000';
+    -- ⚠️ Se exige el motivo, no sólo que rechace. Este escenario ya pasó dos
+    --    veces por la razón equivocada: primero por el estado de la orden y
+    --    después por `refund_method` en NULL. Un rechazo genérico no prueba
+    --    nada sobre la guarda que se quiere verificar.
+    IF v_fallo IS NULL OR v_fallo NOT LIKE '%no tiene un pago reintegrable%' THEN
+      RAISE EXCEPTION 'La orden ya reintegrada no se rechazó por su estado: %',
+        COALESCE(v_fallo, 'se preparó ' || COALESCE(v_refund_grande->>'amount','?'));
     END IF;
     v_results := v_results || jsonb_build_array(jsonb_build_object(
       'scenario', 'reintegro_sobre_orden_ya_reintegrada', 'passed', true,
       'detail', COALESCE('rechazado: ' || left(v_fallo, 60), 'rechazado por contrato')
+    ));
+
+    -- ── Reintegro por más de lo cobrado, sobre una orden intacta ─────────
+    --
+    -- El escenario de arriba pasaba por la razón equivocada: la orden ya
+    -- estaba reintegrada. Éste usa una **segunda orden**, pagada y sin
+    -- devolver, que es la única forma de ejercitar el tope por monto.
+    INSERT INTO public.ecommerce_orders (
+      org_id, store_id, order_number, customer_name, customer_email,
+      items, subtotal, total, payment_method
+    ) VALUES (
+      v_org, v_store, 'ZZPAY2-' || v_suffix, 'ZZ comprador',
+      'zz-payment2-' || v_suffix || '@invalid.test',
+      jsonb_build_array(jsonb_build_object(
+        'product_id', v_product, 'name', 'ZZ producto matriz de pagos',
+        'quantity', 1, 'unit_price', 1000, 'total', 1000
+      )),
+      1000, 1000, 'mercadopago'
+    ) RETURNING id INTO v_order2;
+    PERFORM public.mark_store_order_paid(v_order2, 'zz-payment2-' || v_suffix, 'mercado_pago');
+
+    -- a) $1.500 sobre una orden de $1.000: rechazado, y **por el monto**.
+    INSERT INTO public.return_requests (
+      org_id, rma_number, ecommerce_order_id, customer_name, customer_email,
+      product_name, quantity, status, resolution, refund_amount, refund_method, reason_text
+    ) VALUES (
+      v_org, 'ZZ-EXC-' || v_suffix, v_order2, 'ZZ comprador', 'zz-matrix@zz.com',
+      'ZZ Producto', 1, 'approved', 'refund', 1500, 'original_payment', 'ZZ monto mayor'
+    ) RETURNING id INTO v_rma_exceso;
+
+    v_fallo := NULL;
+    BEGIN
+      v_refund_exceso := public.pago_reintegro_preparar(v_rma_exceso, v_user);
+    EXCEPTION WHEN others THEN
+      v_fallo := SQLERRM;
+    END;
+    IF v_fallo IS NULL OR v_fallo NOT LIKE '%supera el saldo disponible%' THEN
+      RAISE EXCEPTION 'Un reintegro de 1500 sobre una orden de 1000 no se rechazó por monto: %',
+        COALESCE(v_fallo, 'se preparó ' || COALESCE(v_refund_exceso->>'amount','?'));
+    END IF;
+    v_results := v_results || jsonb_build_array(jsonb_build_object(
+      'scenario', 'reintegro_mayor_a_lo_cobrado', 'passed', true,
+      'detail', 'rechazado: ' || left(v_fallo, 58)
+    ));
+
+    -- b) ⚠️ Y un NULL no autoriza. `x <> 'literal'` con x NULL da NULL, no
+    --    TRUE, así que el guard de `refund_method` se salteaba entero. Se
+    --    encontró acá, no leyendo el código. Ver 20260826000130.
+    INSERT INTO public.return_requests (
+      org_id, rma_number, ecommerce_order_id, customer_name, customer_email,
+      product_name, quantity, status, resolution, refund_amount, reason_text
+    ) VALUES (
+      v_org, 'ZZ-NUL-' || v_suffix, v_order2, 'ZZ comprador', 'zz-matrix@zz.com',
+      'ZZ Producto', 1, 'approved', 'refund', 500, 'ZZ sin medio de reintegro'
+    ) RETURNING id INTO v_rma_nulo;
+
+    v_fallo := NULL;
+    BEGIN
+      v_refund_nulo := public.pago_reintegro_preparar(v_rma_nulo, v_user);
+    EXCEPTION WHEN others THEN
+      v_fallo := SQLERRM;
+    END;
+    IF v_fallo IS NULL OR v_fallo NOT LIKE '%medio original%' THEN
+      RAISE EXCEPTION 'Una solicitud sin refund_method preparó un reintegro: %',
+        COALESCE(v_fallo, 'se preparó ' || COALESCE(v_refund_nulo->>'amount','?'));
+    END IF;
+    v_results := v_results || jsonb_build_array(jsonb_build_object(
+      'scenario', 'reintegro_sin_medio_definido', 'passed', true,
+      'detail', 'un NULL no autoriza sacar plata'
+    ));
+
+    -- c) ⚠️ En el otro sentido: lo que SÍ corresponde se sigue aceptando. Un
+    --    guard que rechaza todo también pasaría a) y b).
+    INSERT INTO public.return_requests (
+      org_id, rma_number, ecommerce_order_id, customer_name, customer_email,
+      product_name, quantity, status, resolution, refund_amount, refund_method, reason_text
+    ) VALUES (
+      v_org, 'ZZ-OK-' || v_suffix, v_order2, 'ZZ comprador', 'zz-matrix@zz.com',
+      'ZZ Producto', 1, 'approved', 'refund', 1000, 'original_payment', 'ZZ monto exacto'
+    ) RETURNING id INTO v_rma_justo;
+
+    v_fallo := NULL;
+    BEGIN
+      v_refund_justo := public.pago_reintegro_preparar(v_rma_justo, v_user);
+    EXCEPTION WHEN others THEN
+      v_fallo := SQLERRM;
+    END;
+    IF v_fallo IS NOT NULL OR COALESCE((v_refund_justo->>'is_total')::boolean, false) IS NOT TRUE THEN
+      RAISE EXCEPTION 'El reintegro del total exacto dejó de aceptarse: %',
+        COALESCE(v_fallo, v_refund_justo::text);
+    END IF;
+    v_results := v_results || jsonb_build_array(jsonb_build_object(
+      'scenario', 'reintegro_del_total_exacto', 'passed', true,
+      'detail', 'aceptado y marcado is_total'
     ));
 
     -- Ejecuta ahora los constraints diferidos. Si alguno falla, no se informa
