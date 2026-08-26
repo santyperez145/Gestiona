@@ -699,6 +699,27 @@ MercadoPago y las contraseñas SMTP de **todas** las organizaciones. Está cerra
 - **`edgeFunctionAuth.test.ts`** — falla si una función que usa una API paga no
   exige usuario real. `verify_jwt` **no es una barrera**: la anon key es un JWT
   válido y público. Usar `_shared/requireUser.ts`.
+- **`audit_policies_sin_tenant`** (vista SQL) — políticas de **lectura** sobre
+  tablas con `org_id` que no acotan a nadie: ni al comercio (`org_id`,
+  `is_org_member`, `has_org_role`), ni al staff, ni a la persona (`user_id`,
+  `store_customer_id`, `auth.uid()`). Tiene que estar **vacía** (medido 0 el
+  2026-08-26).
+
+  ⚠️ Existe porque `rls_audit_open_policies` **no alcanzaba**: sólo detecta un
+  `USING` literalmente `true`. Había cinco policies escritas como
+  `active = true` sobre tablas con `org_id` —`brand_knowledge`,
+  `exchange_configs`, `marketing_post_types`, `marketing_themes`,
+  `story_templates`— que pasaban ese filtro y dejaban que cualquier usuario
+  logueado leyera las filas de cualquier comercio. En `brand_knowledge` ya
+  estaba conectado a la app: `marketingExtraDB.ts` inserta con `org_id`.
+
+  Se cerró en `20260826000150` con
+  `active = true AND (org_id IS NULL OR is_org_member(org_id, auth.uid()))`:
+  el catálogo global se sigue leyendo entre todos, lo del comercio no.
+
+  📌 **Una tabla con `org_id` cuya policy de lectura no nombra al tenant es un
+  bug aunque hoy no tenga filas por comercio.** Se activa con el primer uso.
+
 - **`rls_audit_open_policies`** (vista SQL) — lista políticas sin filtro de
   tenant. Debería tener **exactamente 3** (medido 2026-08-21), y las tres son
   catálogos públicos a propósito: `plans` (pricing), `payment_providers` y

@@ -99,6 +99,7 @@ la misma: emitir una de nuevo.
 | Backups | ⚙️ operated | 10 snapshots |
 | Crons | ⚙️ operated | 20 activos |
 | Restore drill | 🔬 verified | `npm run drill:restore`, con RTO y RPO medidos |
+| Aislamiento entre comercios | 🔬 verified | 260 tablas con `org_id` y RLS recorridas como usuario real no-staff: **0 fugas** en las 38 donde la otra organización tiene filas. Las 222 restantes no se pueden probar con datos —ninguna org tiene filas ahí— y por eso la garantía es estática: `audit_policies_sin_tenant` = 0 |
 | Envíos | 🔨 built | 6 zonas y **tarifa en 1 sola**. 0 envíos preparados |
 | API pública | 🔨 built | **0 API keys emitidas** |
 
@@ -118,19 +119,34 @@ la misma: emitir una de nuevo.
 
 ---
 
-## Lo que este cuadro dice, leído de una
+## Cómo leer este cuadro antes de lanzar
 
-**Hay una sola organización operando de verdad**, con 60 productos, 34 clientes y
-34 ventas. Todo lo demás está construido y esperando a alguien que lo use.
+📌 **Hay una sola organización a propósito.** El producto todavía no se lanzó:
+el dueño está probándolo de punta a punta con su propio comercio y abre a otros
+cuando esté todo bien. Eso cambia cómo se lee la tabla.
 
-Las tres cosas que más cambiarían este cuadro no son código:
+⚠️ **`adopted` no es una meta hoy, y `built` no es una falla.** Que
+MercadoLibre tenga 0 conexiones o que la API pública tenga 0 keys no es deuda:
+es que todavía no se abrió. Perseguir esos ceros sería trabajar contra el plan.
 
-1. **Un segundo comercio** (P0-10). Convierte media docena de 🔨 en 📈 sin
-   escribir una línea.
-2. **Emitir una factura y dejarla en la base.** ARCA es lo único que bloquea
-   vender en Argentina, y hoy no hay comprobante que mostrar.
-3. **Contar el inventario** (P0-03). El Kardex no es confiable desde el descuento
-   doble, y ningún código lo arregla.
+**Lo que sí importa antes de lanzar es que nada esté roto.** Y para eso la
+columna que manda es la distancia entre 🔨 y 🔬: una capacidad `built` que nunca
+se ejercitó contra el sistema real es una que puede fallar el primer día con un
+comercio de verdad mirando. Ahí es donde aparecieron, esta semana, el guard de
+reintegros que un NULL salteaba y las cinco policies que dejaban leer el
+catálogo propio de otro comercio.
+
+Las dos cosas que hoy bloquean el lanzamiento y **no** se resuelven con código:
+
+1. **ARCA en producción.** Es lo único que impide facturar en Argentina. Falta
+   el certificado de producción y el alta del punto de venta como *Web
+   Services*. Y conviene **emitir una en homologación y dejarla**: hoy no queda
+   ningún comprobante en la base con el que demostrar que el circuito cierra.
+2. **Contar el inventario** (P0-03). El Kardex no es confiable desde el
+   descuento doble, y ningún código lo arregla: se corrige contando.
+
+Y una tercera que sí es código, pero depende de un secreto: la suscripción no
+cobra hasta que exista `MP_PLATFORM_ACCESS_TOKEN`.
 
 ⚠️ Y lo que este cuadro **no** mide: latencia, error rate, P95. Eso es P0-07 y
 necesita un exporter que hoy no existe. Un estado `operated` acá significa "pasó
