@@ -699,12 +699,17 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
     const onlineOrders30d = activationByOrg.reduce((sum, row) => sum + (row.online_orders_30d || 0), 0);
     const posSales30d = activationByOrg.reduce((sum, row) => sum + (row.pos_sales_30d || 0), 0);
     const failedCronRuns = cron.reduce((sum, row) => sum + (row.failed_runs_7d || 0), 0);
+    // `sin_respuesta` = el cron despachó y la Edge Function no contestó
+    // (timeout o sin status). No es 'fallando' —no contestó mal, no contestó—
+    // pero tampoco puede pintar verde: era exactamente el caso que dejaba el
+    // panel en 21/22 y en color de "todo bien".
     const failingCronJobs = cron.filter(row => row.estado === 'fallando').length;
+    const noResponseCronJobs = cron.filter(row => row.estado === 'sin_respuesta').length;
     const healthyCronJobs = cron.filter(row => row.estado === 'saludable').length;
     return {
       hasEvidence, gmv30d, cobros30d, risks, publishedStores, activeStores,
       onlineMerchants, posMerchants, omnichannelMerchants, failedCronRuns,
-      failingCronJobs, healthyCronJobs, cronTotal: cron.length,
+      failingCronJobs, noResponseCronJobs, healthyCronJobs, cronTotal: cron.length,
       activationOrgs: activationByOrg.length, onlineOrders30d, posSales30d,
     };
   }, [controlPlane]);
@@ -784,8 +789,10 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                     sub={`${controlPlaneSummary.omnichannelMerchants} omnicanal · ${controlPlaneSummary.publishedStores} publicadas`} />
                   <KPICard label="Merchants en riesgo" value={controlPlaneSummary.hasEvidence ? controlPlaneSummary.risks.length : '—'} icon={CircleAlert} color={controlPlaneSummary.risks.length > 0 ? 'warning' : 'success'}
                     sub="sin cobrar, cayendo o dormidos" />
-                  <KPICard label="Cron 7d" value={controlPlaneSummary.cronTotal > 0 ? `${controlPlaneSummary.healthyCronJobs}/${controlPlaneSummary.cronTotal}` : '—'} icon={Webhook} color={controlPlaneSummary.failingCronJobs > 0 ? 'warning' : 'success'}
-                    sub={controlPlaneSummary.cronTotal > 0 ? `${controlPlaneSummary.failedCronRuns} ejecuciones fallidas` : 'sin evidencia'} />
+                  <KPICard label="Cron 7d" value={controlPlaneSummary.cronTotal > 0 ? `${controlPlaneSummary.healthyCronJobs}/${controlPlaneSummary.cronTotal}` : '—'} icon={Webhook} color={controlPlaneSummary.failingCronJobs > 0 || controlPlaneSummary.noResponseCronJobs > 0 ? 'warning' : 'success'}
+                    sub={controlPlaneSummary.cronTotal > 0
+                      ? `${controlPlaneSummary.failedCronRuns} ejecuciones fallidas${controlPlaneSummary.noResponseCronJobs > 0 ? ` · ${controlPlaneSummary.noResponseCronJobs} sin respuesta` : ''}`
+                      : 'sin evidencia'} />
                 </div>
 
                 <div className="grid gap-4 lg:grid-cols-5">

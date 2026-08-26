@@ -301,17 +301,47 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-07 — OpenTelemetry y correlación — 🟡 la traza cierra la cadena (2026-08-25)
+## P0-07 — OpenTelemetry y correlación — 🟡 P95 y error rate visibles; falta exporter externo (2026-08-26)
 
 > **Hecho:** payment_operation_trace pasa de 5 a 8 etapas: intent, attempt,
 > order, settlement, inventory, invoice, event, ledger. La matriz de pagos lo
 > exige con el escenario traza_hasta_la_factura.
 >
-> **Falta:** exporter OTel real, dashboards, P95 y error rate.
+> **Falta:** exporter OTel real y dashboards externos.
 >
 > ~~Una venta de mostrador no aparece en la traza~~ **cerrado el 2026-08-26**:
 > `sale_transactions.correlation_id` le da correlacion propia al ticket, y la
 > traza cubre sale, inventory, invoice y ledger para el mostrador.
+>
+> ~~P95 y error rate~~ **cerrados el 2026-08-26**, y lo que se encontro al
+> medir vale mas que la metrica: **el exito de un cron no probaba nada**.
+> `invoke_edge_function` termina en `net.http_post`, que es asincrono, asi que
+> el job terminaba en 0,2 s sin esperar respuesta. Los 20 jobs figuraban en
+> verde con 0 fallas en 7 dias mientras, en la ventana de retencion de pg_net,
+> **4 respuestas daban error y 1 timeout sobre 42** — ~10% fallando, 0%
+> visible.
+>
+> Ahora `edge_invocation_log` guarda el id de pg_net junto al nombre de la
+> funcion —el puente que faltaba, porque `net._http_response` no guarda el
+> nombre y la cola se vacia al procesar—, `reconciliar_invocaciones()` copia el
+> resultado cada 5 minutos antes de que pg_net lo pode a las ~6 h, y
+> `platform_edge_invocation_health` expone error rate, timeouts, sin-despachar
+> y P95 por funcion en `/platform/metricas`. `platform_cron_health` gano el
+> estado `sin_respuesta`: despacho salio, funcion no contesto.
+>
+> Tres correcciones que salieron de la misma medicion:
+> - El despacho usaba el default de pg_net, **5 s**, y cortaba antes de que la
+>   funcion pudiera contestar: `recover-abandoned-carts` cortaba con 0
+>   carritos para procesar**. Ahora declara 30 s. pg_net no cancela la funcion,
+>   asi que el timeout no rompia el trabajo — rompia poder saber si se hizo.
+> - Un vault sin secretos hacia `RAISE WARNING` + `RETURN NULL` y el cron
+>   terminaba `succeeded` sin despachar. Ahora lanza excepcion.
+> - `String(err)` sobre un `PostgrestError` —un objeto plano— daba
+>   `"[object Object]"`, y una de las respuestas 500 reales tenia exactamente
+>   ese cuerpo. `_shared/errorMessage.ts` desarma el error de verdad.
+>
+> ⚠️ El P95 mide encolado -> respuesta registrada por pg_net. Incluye la cola y
+> **no** es tiempo de ejecucion de la funcion; ese dato no existe de este lado.
 
 **Owner:** Platform/SRE  
 **Objetivo:** reconstruir una operación end-to-end.

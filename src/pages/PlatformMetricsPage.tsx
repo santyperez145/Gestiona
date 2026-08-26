@@ -13,7 +13,7 @@ import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { isMissingRelation } from "@/lib/publicDataSource";
-import { calculateAiActionMetrics, calculateChannelMetrics, calculateCronHealthMetrics, calculatePlatformMetrics, calculateRiskSeriesMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformCronHealthRow, type PlatformHealthRow, type PlatformRiskSeriesRow, type PlatformStockAccuracyRow } from "@/lib/platformMetrics";
+import { calculateAiActionMetrics, calculateChannelMetrics, calculateCronHealthMetrics, calculateEdgeInvocationMetrics, calculatePlatformMetrics, calculateRiskSeriesMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformCronHealthRow, type PlatformEdgeInvocationRow, type PlatformHealthRow, type PlatformRiskSeriesRow, type PlatformStockAccuracyRow } from "@/lib/platformMetrics";
 import { summarizeActivationCohorts, type ActivationCohortMemberRow, type ActivationCohortRow } from "@/lib/activationCohorts";
 
 const SIGNALS: Record<string, { label: string; className: string }> = {
@@ -30,6 +30,7 @@ const CRON_STATES: Record<string, { label: string; className: string }> = {
   saludable: { label: "Saludable", className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
   fallando: { label: "Última falló", className: "bg-red-500/15 text-red-400 border-red-500/25" },
   ejecutando: { label: "Ejecutando", className: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
+  sin_respuesta: { label: "Sin respuesta", className: "bg-orange-500/15 text-orange-300 border-orange-500/25" },
   sin_ejecuciones: { label: "Sin ejecuciones", className: "bg-amber-500/15 text-amber-300 border-amber-500/25" },
   pausado: { label: "Pausado", className: "bg-muted text-muted-foreground border-border" },
 };
@@ -104,6 +105,7 @@ export default function PlatformMetricsPage() {
   const [aiActionRows, setAiActionRows] = useState<PlatformAiActionRow[]>([]);
   const [riskSeriesRows, setRiskSeriesRows] = useState<PlatformRiskSeriesRow[]>([]);
   const [cronRows, setCronRows] = useState<PlatformCronHealthRow[]>([]);
+  const [invocacionRows, setInvocacionRows] = useState<PlatformEdgeInvocationRow[]>([]);
   const [cohortRows, setCohortRows] = useState<ActivationCohortRow[]>([]);
   const [cohortMemberRows, setCohortMemberRows] = useState<ActivationCohortMemberRow[]>([]);
   const [channelViewUnavailable, setChannelViewUnavailable] = useState(false);
@@ -121,13 +123,14 @@ export default function PlatformMetricsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [healthResult, channelResult, stockResult, aiActionResult, riskSeriesResult, cronResult, cohortResult, cohortMembersResult] = await Promise.all([
+    const [healthResult, channelResult, stockResult, aiActionResult, riskSeriesResult, cronResult, invocacionResult, cohortResult, cohortMembersResult] = await Promise.all([
       supabase.from("platform_org_health").select("*").order("gmv_30d", { ascending: false }),
       supabase.from("platform_org_activation").select("*").order("org_creada", { ascending: false }),
       supabase.from("platform_org_stock_accuracy").select("*").order("productos_descuadrados", { ascending: false }),
       supabase.from("platform_org_ai_actions").select("*").order("recommendations_total", { ascending: false }),
       supabase.from("platform_org_risk_series").select("*").order("snapshot_date", { ascending: true }),
       supabase.from("platform_cron_health").select("*").order("jobname", { ascending: true }),
+      supabase.from("platform_edge_invocation_health").select("*"),
       supabase.from("platform_activation_cohorts").select("*").order("cohort_month", { ascending: false }),
       supabase.from("platform_activation_cohort_members").select("*").order("org_created_at", { ascending: false }),
     ]);
@@ -202,6 +205,18 @@ export default function PlatformMetricsPage() {
       setCronRows((cronResult.data || []) as PlatformCronHealthRow[]);
       setCronViewUnavailable(false);
     }
+    if (invocacionResult.error) {
+      // Se distingue "la vista todavía no existe" de cualquier otro error: un
+      // `?? []` los volvería iguales, y son problemas opuestos.
+      if (isMissingRelation(invocacionResult.error)) {
+        setInvocacionRows([]);
+      } else {
+        setError(invocacionResult.error.message);
+        setInvocacionRows([]);
+      }
+    } else {
+      setInvocacionRows((invocacionResult.data || []) as PlatformEdgeInvocationRow[]);
+    }
     if (cohortResult.error || cohortMembersResult.error) {
       const cohortError = cohortResult.error || cohortMembersResult.error;
       if (isMissingRelation(cohortError)) {
@@ -228,6 +243,7 @@ export default function PlatformMetricsPage() {
   const aiActionMetrics = useMemo(() => calculateAiActionMetrics(aiActionRows), [aiActionRows]);
   const riskSeriesMetrics = useMemo(() => calculateRiskSeriesMetrics(riskSeriesRows), [riskSeriesRows]);
   const cronMetrics = useMemo(() => calculateCronHealthMetrics(cronRows), [cronRows]);
+  const invocacionMetrics = useMemo(() => calculateEdgeInvocationMetrics(invocacionRows), [invocacionRows]);
   const cohortSummary = useMemo(() => summarizeActivationCohorts(cohortRows), [cohortRows]);
   const prioritizedCohortMembers = useMemo(() => [...cohortMemberRows].sort((a, b) => {
     if (Boolean(a.activated) !== Boolean(b.activated)) return a.activated ? 1 : -1;
@@ -601,7 +617,79 @@ export default function PlatformMetricsPage() {
                 <KPICard label="Jobs activos" value={cronMetrics.activeJobs} icon={Activity} color="blue" sub={`${cronMetrics.totalJobs} configurados`} />
                 <KPICard label="Última corrida falló" value={cronMetrics.failingJobs} icon={AlertTriangle} color={cronMetrics.failingJobs > 0 ? "destructive" : "success"} sub="requieren revisar ahora" />
                 <KPICard label="Fallos últimos 7 días" value={cronMetrics.failedRuns7d} icon={AlertTriangle} color={cronMetrics.failedRuns7d > 0 ? "warning" : "success"} sub={`${cronMetrics.runs7d} ejecuciones registradas`} />
-                <KPICard label="Sin historial" value={cronMetrics.jobsWithoutRuns} icon={Clock3} color={cronMetrics.jobsWithoutRuns > 0 ? "warning" : "success"} sub="pueden ser jobs recién creados" />
+                <KPICard label="Despachó, no contestó" value={cronMetrics.noResponseJobs} icon={Clock3} color={cronMetrics.noResponseJobs > 0 ? "warning" : "success"} sub="el cron dice éxito y la función no respondió" />
+              </div>
+
+              {/* El éxito de un cron que llama una Edge Function sólo prueba que
+                  pg_net encoló el request: net.http_post es asíncrono. Este
+                  bloque muestra el resultado real de esa invocación. */}
+              <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">
+                <div className="border-b border-border/50 px-4 py-3">
+                  <h2 className="text-sm font-semibold">Resultado real de las Edge Functions</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Un cron termina apenas encola el pedido, así que su éxito no dice
+                    si la función respondió. Esto es lo que contestó de verdad.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 p-4 lg:grid-cols-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Error rate 24 h</p>
+                    <p className={`mt-0.5 text-lg font-semibold tabular-nums ${invocacionMetrics.errorRate24h && invocacionMetrics.errorRate24h > 0 ? "text-red-300" : ""}`}>
+                      {invocacionMetrics.errorRate24h === null ? "sin datos" : `${invocacionMetrics.errorRate24h}%`}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {invocacionMetrics.errorRate24h === null
+                        ? "todavía no hay invocaciones reconciliadas"
+                        : `${invocacionMetrics.errores24h} de ${invocacionMetrics.invocaciones24h}`}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sin respuesta</p>
+                    <p className={`mt-0.5 text-lg font-semibold tabular-nums ${invocacionMetrics.timeouts24h > 0 ? "text-orange-300" : ""}`}>{invocacionMetrics.timeouts24h}</p>
+                    <p className="text-[10px] text-muted-foreground">no cancela la función: no llega su resultado</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sin despachar</p>
+                    <p className={`mt-0.5 text-lg font-semibold tabular-nums ${invocacionMetrics.sinDespachar24h > 0 ? "text-red-300" : ""}`}>{invocacionMetrics.sinDespachar24h}</p>
+                    <p className="text-[10px] text-muted-foreground">ni salió el pedido</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Peor P95 24 h</p>
+                    <p className="mt-0.5 text-lg font-semibold tabular-nums">
+                      {invocacionMetrics.peorP95 ? `${invocacionMetrics.peorP95.segundos.toFixed(2)} s` : "sin datos"}
+                    </p>
+                    <p className="truncate text-[10px] text-muted-foreground">
+                      {invocacionMetrics.peorP95 ? invocacionMetrics.peorP95.funcion : "ninguna respondió todavía"}
+                    </p>
+                  </div>
+                </div>
+                {invocacionMetrics.rows.length > 0 && (
+                  <div className="divide-y divide-border/50 border-t border-border/50">
+                    {invocacionMetrics.rows.map(row => (
+                      <div key={row.function_name} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_minmax(120px,.7fr)_minmax(120px,.7fr)_minmax(0,1.2fr)] md:items-center">
+                        <p className="truncate text-sm font-medium">{row.function_name}</p>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">24 h</p>
+                          <p className={`mt-0.5 text-xs font-semibold ${row.errores_24h ? "text-red-300" : ""}`}>
+                            {row.invocaciones_24h || 0} · {row.errores_24h || 0} con error
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">P95</p>
+                          <p className="mt-0.5 text-xs font-semibold">{row.p95_seg_24h === null ? "—" : `${Number(row.p95_seg_24h).toFixed(2)} s`}</p>
+                        </div>
+                        <p className="truncate text-xs text-muted-foreground" title={row.ultimo_error || ""}>
+                          {row.ultimo_error || (row.ultimo_status ? `último status ${row.ultimo_status}` : "sin respuestas registradas")}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {invocacionMetrics.rows.length === 0 && (
+                  <p className="px-4 py-6 text-center text-xs text-muted-foreground">
+                    Todavía no hay invocaciones registradas. Se llenan solas a medida que corren los crons.
+                  </p>
+                )}
               </div>
 
               <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">

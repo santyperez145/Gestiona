@@ -10688,6 +10688,42 @@ export type Database = {
           },
         ]
       }
+      edge_invocation_log: {
+        Row: {
+          error_msg: string | null
+          function_name: string
+          id: number
+          invoked_at: string
+          reconciled_at: string | null
+          request_id: number | null
+          responded_at: string | null
+          status_code: number | null
+          timed_out: boolean | null
+        }
+        Insert: {
+          error_msg?: string | null
+          function_name: string
+          id?: number
+          invoked_at?: string
+          reconciled_at?: string | null
+          request_id?: number | null
+          responded_at?: string | null
+          status_code?: number | null
+          timed_out?: boolean | null
+        }
+        Update: {
+          error_msg?: string | null
+          function_name?: string
+          id?: number
+          invoked_at?: string
+          reconciled_at?: string | null
+          request_id?: number | null
+          responded_at?: string | null
+          status_code?: number | null
+          timed_out?: boolean | null
+        }
+        Relationships: []
+      }
       email_campaigns: {
         Row: {
           body_html: string
@@ -39574,6 +39610,17 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_policies_sin_tenant: {
+        Row: {
+          comando: string | null
+          expresion: string | null
+          filas_aprox: number | null
+          policy: unknown
+          roles: string | null
+          tabla: unknown
+        }
+        Relationships: []
+      }
       audit_settings_adivinados: {
         Row: {
           org_id: string | null
@@ -42633,8 +42680,10 @@ export type Database = {
       platform_cron_health: {
         Row: {
           active: boolean | null
+          edge_function: string | null
           estado: string | null
           failed_runs_7d: number | null
+          invocaciones_fallidas_7d: number | null
           jobid: number | null
           jobname: string | null
           last_finished_at: string | null
@@ -42643,6 +42692,24 @@ export type Database = {
           last_success_at: string | null
           runs_7d: number | null
           schedule: string | null
+          ultimo_error_invocacion: string | null
+          ultimo_status_invocacion: number | null
+        }
+        Relationships: []
+      }
+      platform_edge_invocation_health: {
+        Row: {
+          errores_24h: number | null
+          errores_7d: number | null
+          function_name: string | null
+          invocaciones_24h: number | null
+          invocaciones_7d: number | null
+          p95_seg_24h: number | null
+          sin_despachar_24h: number | null
+          timeouts_24h: number | null
+          ultima_invocacion: string | null
+          ultimo_error: string | null
+          ultimo_status: number | null
         }
         Relationships: []
       }
@@ -46959,6 +47026,7 @@ export type Database = {
         Returns: boolean
       }
       platform_role: { Args: { _user_id?: string }; Returns: string }
+      podar_invocaciones: { Args: { p_dias?: number }; Returns: number }
       pos_payment_method_codes: {
         Args: { p_sale_method: string }
         Returns: {
@@ -47088,6 +47156,7 @@ export type Database = {
         Args: { p_return_request_id: string }
         Returns: Json
       }
+      reconciliar_invocaciones: { Args: never; Returns: number }
       record_activation_intervention: {
         Args: {
           p_idempotency_key: string
@@ -47190,6 +47259,10 @@ export type Database = {
       registrar_conteo: {
         Args: { p_cantidad: number; p_count_id: string; p_product_id: string }
         Returns: Json
+      }
+      registrar_invocacion: {
+        Args: { p_name: string; p_request_id: number }
+        Returns: undefined
       }
       renew_subscription: {
         Args: { p_subscription_id: string }

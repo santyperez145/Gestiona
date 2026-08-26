@@ -168,6 +168,49 @@ export interface PlatformCronHealthRow {
   runs_7d: number | null;
   failed_runs_7d: number | null;
   estado: string | null;
+  /**
+   * Columnas agregadas el 2026-08-26. El exito de un cron que llama una Edge
+   * Function solo prueba que pg_net encolo el request: `net.http_post` es
+   * asincrono y el job termina sin esperar respuesta. Estas columnas traen el
+   * resultado real de esa invocacion.
+   */
+  edge_function?: string | null;
+  invocaciones_fallidas_7d?: number | null;
+  ultimo_status_invocacion?: number | null;
+  ultimo_error_invocacion?: string | null;
+}
+
+/** Una fila de `platform_edge_invocation_health`. */
+export interface PlatformEdgeInvocationRow {
+  function_name: string | null;
+  invocaciones_24h: number | null;
+  errores_24h: number | null;
+  timeouts_24h: number | null;
+  sin_despachar_24h: number | null;
+  invocaciones_7d: number | null;
+  errores_7d: number | null;
+  /**
+   * Encolado -> respuesta registrada por pg_net. Incluye la cola y NO es el
+   * tiempo de ejecucion de la funcion; presentarlo como tal seria inventar.
+   */
+  p95_seg_24h: number | null;
+  ultima_invocacion: string | null;
+  ultimo_status: number | null;
+  ultimo_error: string | null;
+}
+
+export interface PlatformEdgeInvocationMetrics {
+  /** Invocaciones reconciliadas en 24 h. Sin ellas no hay tasa que mostrar. */
+  invocaciones24h: number;
+  errores24h: number;
+  timeouts24h: number;
+  sinDespachar24h: number;
+  /** null cuando no hubo invocaciones: 0% seria mentira, no ausencia de error. */
+  errorRate24h: number | null;
+  /** El peor P95 entre las funciones, con su nombre. null si nadie respondio. */
+  peorP95: { funcion: string; segundos: number } | null;
+  funcionesConError: PlatformEdgeInvocationRow[];
+  rows: PlatformEdgeInvocationRow[];
 }
 
 export interface PlatformCronHealthMetrics {
@@ -177,6 +220,7 @@ export interface PlatformCronHealthMetrics {
   failingJobs: number;
   runningJobs: number;
   jobsWithoutRuns: number;
+  noResponseJobs: number;
   runs7d: number;
   failedRuns7d: number;
   rows: PlatformCronHealthRow[];
@@ -467,6 +511,11 @@ export function calculateCronHealthMetrics(rows: PlatformCronHealthRow[]): Platf
     failingJobs: activeRows.filter(row => row.estado === "fallando").length,
     runningJobs: activeRows.filter(row => row.estado === "ejecutando").length,
     jobsWithoutRuns: activeRows.filter(row => row.last_run_at === null).length,
+    // `sin_respuesta` es un estado propio: el despacho salio y la funcion no
+    // contesto. No es lo mismo que `fallando` —que contesto mal— ni que estar
+    // sano, y meterlo en cualquiera de los dos borra la unica pista del
+    // problema.
+    noResponseJobs: activeRows.filter(row => row.estado === "sin_respuesta").length,
     runs7d: rows.reduce((sum, row) => sum + numberOrZero(row.runs_7d), 0),
     failedRuns7d: rows.reduce((sum, row) => sum + numberOrZero(row.failed_runs_7d), 0),
     rows: [...rows].sort((a, b) => {
@@ -519,5 +568,57 @@ export function calculatePlatformMetrics(rows: PlatformHealthRow[]): PlatformMet
       return b.daysToFirstCharge - a.daysToFirstCharge;
     }),
     signalCounts,
+  };
+}
+
+/**
+ * Salud real de las Edge Functions que dispara el cron.
+ *
+ * ── Por qué el error rate puede ser null ──────────────────────────────────
+ *
+ * Sin invocaciones reconciliadas no hay tasa. Devolver 0% ahí diría "no falló
+ * nada" cuando lo cierto es "no se sabe", y ésa es la confusión que este
+ * módulo existe para evitar: `platform_cron_health` mostraba los 20 jobs en
+ * verde mientras el 10% de las invocaciones fallaba, porque el éxito del cron
+ * sólo probaba que pg_net encoló el request.
+ *
+ * Una invocación pendiente de reconciliar no cuenta ni como éxito ni como
+ * falla: la vista sólo clasifica lo que ya tiene respuesta.
+ */
+export function calculateEdgeInvocationMetrics(
+  rows: PlatformEdgeInvocationRow[],
+): PlatformEdgeInvocationMetrics {
+  const invocaciones24h = rows.reduce((sum, row) => sum + numberOrZero(row.invocaciones_24h), 0);
+  const errores24h = rows.reduce((sum, row) => sum + numberOrZero(row.errores_24h), 0);
+
+  // El peor P95 se busca sobre las que respondieron. Promediar P95 entre
+  // funciones no significa nada: un percentil no se promedia.
+  let peorP95: { funcion: string; segundos: number } | null = null;
+  for (const row of rows) {
+    const p95 = row.p95_seg_24h;
+    if (p95 === null || p95 === undefined || !Number.isFinite(Number(p95))) continue;
+    const segundos = Number(p95);
+    if (!peorP95 || segundos > peorP95.segundos) {
+      peorP95 = { funcion: row.function_name || "(sin nombre)", segundos };
+    }
+  }
+
+  return {
+    invocaciones24h,
+    errores24h,
+    timeouts24h: rows.reduce((sum, row) => sum + numberOrZero(row.timeouts_24h), 0),
+    sinDespachar24h: rows.reduce((sum, row) => sum + numberOrZero(row.sin_despachar_24h), 0),
+    errorRate24h: invocaciones24h > 0
+      ? Math.round(errores24h / invocaciones24h * 1000) / 10
+      : null,
+    peorP95,
+    funcionesConError: rows
+      .filter(row => numberOrZero(row.errores_24h) > 0 || numberOrZero(row.sin_despachar_24h) > 0)
+      .sort((a, b) => numberOrZero(b.errores_24h) - numberOrZero(a.errores_24h)),
+    rows: [...rows].sort((a, b) => {
+      const errorDiff = numberOrZero(b.errores_24h) - numberOrZero(a.errores_24h);
+      if (errorDiff !== 0) return errorDiff;
+      return (a.function_name || "").localeCompare(b.function_name || "");
+    }),
   };
 }

@@ -812,6 +812,14 @@ ORDER BY d.end_time DESC LIMIT 20;
 ```
 
 Detalle en [docs/CRON.md](docs/CRON.md).
+⚠️ **Y que un cron diga `succeeded` no significa que la función corrió.**
+`invoke_edge_function` termina en `net.http_post`, que es **asíncrono**: el job
+termina en 0,2 s sin esperar la respuesta. El 2026-08-26 los 20 jobs estaban en
+verde con 0 fallas en 7 días mientras **4 respuestas daban error y 1 timeout
+sobre 42** en la ventana de pg_net. El resultado real vive en
+`platform_edge_invocation_health` y `edge_invocation_log`; el P95 de ahí mide
+encolado → respuesta, **no** ejecución de la función. Detalle en
+[docs/CRON.md](docs/CRON.md).
 
 ---
 
