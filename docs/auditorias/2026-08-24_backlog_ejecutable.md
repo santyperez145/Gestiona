@@ -105,7 +105,17 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-03 — Inventario físico reconciliado
+## P0-03 — Inventario físico reconciliado — 🟡 el código listo, falta contar (2026-08-25)
+
+> **Hecho:** el circuito ya estaba completo (`abrir_conteo`,
+> `registrar_conteo`, `cerrar_conteo`, `conteo_varianzas`, pestaña en
+> Inventario). Se agregó `kardex_contra_stock`, que dice **qué contar
+> primero**: 15 productos desalineados, **$2.855.019** de impacto, 9 con Kardex
+> negativo.
+>
+> **Falta y depende del dueño:** el conteo físico. `stock_counts` tiene 0 filas.
+> Nada de esto se corrige por código: reconstruirlo exigiría saber qué ventas
+> pasaron por el camino duplicado.
 
 **Owner:** Operations/Inventory  
 **Objetivo:** demostrar que el Kardex representa el stock real.
@@ -171,7 +181,21 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-05 — Staging reproducible
+## P0-05 — Staging reproducible — 🔴 bloqueado por infraestructura del dueño
+
+> **Por qué no avanzó:** crear el proyecto Supabase de staging, el proyecto de
+> Vercel y las cuentas de prueba de Mercado Pago exige credenciales y decisiones
+> de costo que no están de este lado. No es trabajo de código pendiente.
+>
+> **Lo que sí está listo para cuando exista:** las migraciones aplican desde
+> cero (libro reconciliado, `db push --dry-run` en `upToDate`), el drill de
+> restore reconstruye datos en un esquema aislado, y la matriz de pagos corre
+> entera sin dejar restos.
+>
+> ⚠️ **Bloquea a P0-08**: los flujos E2E que faltan —signup, refund, ARCA,
+> Finance— escriben datos. Hoy los E2E son de **sólo lectura contra
+> producción** a propósito; agregarlos sin staging significaría crear órdenes y
+> facturas reales en cada corrida de CI.
 
 **Owner:** DevOps/SRE  
 **Objetivo:** dejar de probar cambios peligrosos contra producción.
@@ -257,7 +281,17 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-08 — E2E bloqueante
+## P0-08 — E2E bloqueante — 🟡 ya bloquea, faltan flujos (2026-08-25)
+
+> **Hecho, y ya estaba:** el job `e2e` de `ci.yml` corre tienda y panel en
+> chromium + mobile, **falla el PR** si algo se rompe, y valida las variables de
+> entorno antes de arrancar el browser — así una variable ausente no se
+> convierte en tests salteados con el workflow en verde.
+>
+> **Falta:** signup/onboarding, refund, ARCA, Finance upload/review/apply y
+> Platform operations. **Todos escriben datos** y los E2E actuales son de sólo
+> lectura contra producción. ⚠️ Depende de P0-05: sin staging, agregarlos
+> significa crear órdenes y facturas reales en cada corrida de CI.
 
 **Owner:** QA  
 **Objetivo:** impedir regresiones de flujos críticos.
@@ -313,7 +347,13 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-10 — Segundo comercio externo
+## P0-10 — Segundo comercio externo — 🔴 depende del dueño
+
+> Es la condición de salida de la fase y el único dato que le importa a un
+> inversor: que Gestiona funcione con alguien que no lo escribió. No hay trabajo
+> de código que lo destrabe.
+>
+> Medido 2026-08-25: 4 organizaciones, **1 vende de verdad**.
 
 **Owner:** Founder/Product  
 **Objetivo:** probar que Gestiona no depende de su creador.
