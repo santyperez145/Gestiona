@@ -326,12 +326,23 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-09 — Economics gate — 🟢 en pie (verificado 2026-08-25)
+## P0-09 — Economics gate — 🟢 completo (verificado 2026-08-26)
 
-> Comisión **inactiva por defecto** (, ),
-> regla versionada con proponente/aprobador/términos/tratamiento fiscal,
-> simulador en Plataforma → Comisiones, y  separa medido,
-> modelado y aprobado. Falta gross profit **por pago** (hoy es mensual).
+> Comisión **inactiva por defecto**, regla versionada con
+> proponente/aprobador/términos/tratamiento fiscal, simulador en Plataforma →
+> Comisiones, `docs/ECONOMICS.md` separando medido, modelado y aprobado, y desde
+> el 2026-08-26 **gross profit por pago** en `platform_gross_profit_por_pago`,
+> visible en Comisiones → Revenue mensual.
+>
+> El número es comisión cobrada menos el IVA de esa comisión, con la regla
+> vigente **al momento del cobro**. ⚠️ No resta la comisión de MercadoPago: ésa
+> la paga el comercio, no la plataforma. 📌 Tampoco resta infraestructura por
+> transacción, que **no está medida** — la vista dice "contribución antes de
+> infraestructura" en vez de aparentar ser gross profit completo.
+>
+> Verificado 9/9 con el JWT de un admin real: 2 pagos, $0,10 de comisión, take
+> rate 5% (la regla de la sesión 90, no la de hoy). `solo_montos_chicos` marca
+> que con cobros de $1 el porcentaje no significa nada.
 
 **Owner:** Finance/Product  
 **Objetivo:** impedir pricing sin economía verificada.
@@ -353,7 +364,7 @@ Toda entrega debe contemplar, cuando corresponda:
 - Comisión inactiva por defecto.
 - Regla versionada y aprobada.
 - Simulación con escenarios.
-- Gross profit por pago visible.
+- ✅ Gross profit por pago visible (2026-08-26).
 
 ---
 

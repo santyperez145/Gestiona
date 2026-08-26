@@ -372,8 +372,8 @@ el `NODE_OPTIONS` no es opcional, sin él se queda sin memoria a los 6 minutos
 `lint` tolera ~140 warnings de `exhaustive-deps`: son deuda conocida y **no se
 tocan en masa** (provoca loops de refetch). Errores: cero.
 
-**Los flujos se cubren con Playwright, los cálculos con vitest.** Los **1.201**
-tests (`npm test`, 2026-08-21) verifican cuentas y contratos; los bugs que costaron plata fueron todos de
+**Los flujos se cubren con Playwright, los cálculos con vitest.** Los **1.548**
+tests (`npm test`, 2026-08-26) verifican cuentas y contratos; los bugs que costaron plata fueron todos de
 integración y ninguno los habría agarrado. Los E2E viven en `e2e/` y leen la
 base de producción, así que son **de sólo lectura**: ninguno crea una orden.
 
@@ -476,8 +476,28 @@ npx supabase db push --linked --dry-run
 # {"upToDate":true,"migrations":[],"message":"Remote database is up to date."}
 ```
 
-⚠️ **Al 2026-08-05 volvió a romperse, y por el camino inverso.** Hay **cinco
-migraciones anotadas en el libro sin archivo en el repo**:
+⚠️ **Al 2026-08-26 el desfase es de una sola, y es distinta de las de abajo.**
+Medido con el libro contra el filesystem ese día: **418 registradas, 417
+archivos, 1 sin archivo**.
+
+    20260825000002  categoria_sin_rubro
+
+📌 **Y esta vez no hay trabajo perdido, hasta donde se puede comprobar.** Se
+compararon los 838 objetos de `public` (2026-08-26) contra el texto de las
+417 migraciones de ese día:
+los únicos dos sin mención son `unaccent_init` y `unaccent_lexize`, que son de
+la extensión. La fila del libro además tiene `statements` vacío, el archivo no
+está en ninguna rama ni en la historia de git, y la función hermana que el
+nombre sugiere (`seed_store_categories`) es **byte por byte** la del archivo
+committeado. O sea: el número se anotó, pero no dejó rastro.
+
+Eso no autoriza a borrarlo. La salida sigue siendo la misma de siempre —que la
+PC que lo anotó diga qué era— y hasta entonces `db push --dry-run` queda
+inservible como chequeo de salud. **Es un costo real y conviene resolverlo.**
+
+⚠️ **Al 2026-08-05 se rompió por el mismo camino, con cinco.** Quedan acá porque
+el diagnóstico de aquella vez fue el opuesto y sirve de contraste: ahí los
+objetos **sí** estaban en la base y el trabajo **sí** estaba sin versionar.
 
     20260802000009  preguntas_producto
     20260802000010  salud_por_organizacion
