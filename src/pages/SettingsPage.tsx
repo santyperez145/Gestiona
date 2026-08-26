@@ -27,6 +27,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { SupportAccessAuditSection } from "@/components/settings/SupportAccessAuditSection";
 import PageHeader from "@/components/shared/PageHeader";
+import CostoDeCobrar from "@/components/settings/CostoDeCobrar";
 import {
   backupTrustLabel,
   createOrganizationBackup,
@@ -798,6 +799,14 @@ export default function SettingsPage() {
               </div>
               <p className="text-[10px] text-muted-foreground mt-1.5">Aparecerá en los links de pago que generés para tus presupuestos.</p>
             </div>
+          </div>
+
+          {/* ⚠️ Acá y no en Gestiona Finance: esa superficie es gestión de
+              gastos corporativos (ADR 001) y no lleva nada más. Lo que cuesta
+              cobrar es configuración del comercio, y afecta el margen — por eso
+              va en "Finanzas y costos", junto al tipo de cambio. */}
+          <div id="settings-costo-cobrar" className="settings-panel settings-panel--finance">
+            <CostoDeCobrar orgId={orgForTemplates?.id} />
           </div>
 
           {/* Financial params */}
