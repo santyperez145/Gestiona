@@ -494,7 +494,9 @@ const App = () => (
               <Routes>
                 <Route path="/landing" element={<Navigate to="/" replace />} />
                 <Route path="/login" element={<AuthPage />} />
-                <Route path="/pricing" element={<PricingPage />} />
+                {/* Canonica: /precios. Las dos renderizaban PricingPage en paralelo, y dos
+                    URLs vivas para la misma pantalla parten SEO, telemetria y enlaces. */}
+                <Route path="/pricing" element={<Navigate to="/precios" replace />} />
                 <Route path="/precios" element={<PricingPage />} />
                 <Route path="/privacidad" element={<PrivacyPage />} />
                 <Route path="/terminos" element={<TermsPage />} />

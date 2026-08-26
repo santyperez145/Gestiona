@@ -23,12 +23,18 @@ describe("smoke: todas las páginas se importan sin romper", () => {
     expect(entries.length).toBeGreaterThanOrEqual(75);
   });
 
-  // Timeout generoso (30s): importar en frío una página grande (Analytics tiene
-  // 18+ tabs) transforma todo su grafo de módulos y puede pasar los 5s default,
-  // sobre todo en paralelo en CI. No es un fallo real, así que no debe ser flaky.
+  // Timeout de 120s, y no es aflojar la guarda: lo que se verifica —que el
+  // módulo importe y exporte un componente— no cambia. Lo que cambia es cuánto
+  // se espera a que Vite transforme el grafo.
+  //
+  // Los 30s anteriores decían "no debe ser flaky" y lo era: medido el
+  // 2026-08-26, `AnalyticsPage` (18+ tabs) supera los 30s importando en frío
+  // dentro de la suite completa, mientras aislado tarda menos de un segundo.
+  // Un test que se pone rojo en la mitad de las corridas por presión de CPU
+  // enseña a ignorar los tests rojos, que es peor que no tenerlo.
   it.each(entries)("importa $name y expone un componente por default", async ({ importer }) => {
     const mod = (await importer()) as { default: unknown };
     expect(mod).toBeDefined();
     expect(mod.default).toBeTypeOf("function");
-  }, 30000);
+  }, 120000);
 });
