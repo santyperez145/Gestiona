@@ -20598,6 +20598,120 @@ export type Database = {
           },
         ]
       }
+      org_installment_plans: {
+        Row: {
+          activo: boolean
+          created_at: string
+          id: string
+          installments: number
+          monto_minimo: number
+          org_id: string
+          provider: string
+          sin_interes: boolean
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          installments: number
+          monto_minimo?: number
+          org_id: string
+          provider: string
+          sin_interes?: boolean
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          installments?: number
+          monto_minimo?: number
+          org_id?: string
+          provider?: string
+          sin_interes?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_installment_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_installment_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_installment_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_installment_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_installment_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_installment_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_installment_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_installment_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_installment_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_installment_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "org_installment_plans_provider_fkey"
+            columns: ["provider"]
+            isOneToOne: false
+            referencedRelation: "payment_providers"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       org_invitations: {
         Row: {
           accepted_at: string | null
@@ -22232,6 +22346,7 @@ export type Database = {
           mp_plan_yearly: string | null
           name: string
           price_ars_monthly: number | null
+          price_ars_updated_at: string | null
           price_ars_yearly: number | null
           price_usd_monthly: number
           price_usd_yearly: number
@@ -22256,6 +22371,7 @@ export type Database = {
           mp_plan_yearly?: string | null
           name: string
           price_ars_monthly?: number | null
+          price_ars_updated_at?: string | null
           price_ars_yearly?: number | null
           price_usd_monthly?: number
           price_usd_yearly?: number
@@ -22280,6 +22396,7 @@ export type Database = {
           mp_plan_yearly?: string | null
           name?: string
           price_ars_monthly?: number | null
+          price_ars_updated_at?: string | null
           price_ars_yearly?: number | null
           price_usd_monthly?: number
           price_usd_yearly?: number
@@ -39424,6 +39541,39 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_planes_cobrables: {
+        Row: {
+          code: string | null
+          descuento_anual_pct: number | null
+          dias_sin_actualizar: number | null
+          name: string | null
+          price_ars_monthly: number | null
+          price_ars_updated_at: string | null
+          price_ars_yearly: number | null
+          sin_precio_en_pesos: boolean | null
+        }
+        Insert: {
+          code?: string | null
+          descuento_anual_pct?: never
+          dias_sin_actualizar?: never
+          name?: string | null
+          price_ars_monthly?: number | null
+          price_ars_updated_at?: string | null
+          price_ars_yearly?: number | null
+          sin_precio_en_pesos?: never
+        }
+        Update: {
+          code?: string | null
+          descuento_anual_pct?: never
+          dias_sin_actualizar?: never
+          name?: string | null
+          price_ars_monthly?: number | null
+          price_ars_updated_at?: string | null
+          price_ars_yearly?: number | null
+          sin_precio_en_pesos?: never
+        }
+        Relationships: []
+      }
       audit_settings_adivinados: {
         Row: {
           org_id: string | null
@@ -42309,6 +42459,16 @@ export type Database = {
         }
         Relationships: []
       }
+      planes_de_cuotas_posibles: {
+        Row: {
+          costo_con_interes_pct: number | null
+          costo_sin_interes_pct: number | null
+          installments: number | null
+          provider: string | null
+          tarifa_sin_verificar: boolean | null
+        }
+        Relationships: []
+      }
       platform_activation_cohort_members: {
         Row: {
           activated: boolean | null
@@ -42483,6 +42643,150 @@ export type Database = {
           last_success_at: string | null
           runs_7d: number | null
           schedule: string | null
+        }
+        Relationships: []
+      }
+      platform_gross_profit_por_pago: {
+        Row: {
+          bruto_procesado: number | null
+          comercio: string | null
+          comision_plataforma: number | null
+          costo_del_comercio: number | null
+          cuotas: number | null
+          estado: string | null
+          fecha: string | null
+          gross_profit: number | null
+          iva_de_la_comision: number | null
+          medio: string | null
+          moneda: string | null
+          monto_muy_chico_para_comparar: boolean | null
+          org_id: string | null
+          proveedor: string | null
+          take_rate_pct: number | null
+          transaccion_id: string | null
+        }
+        Insert: {
+          bruto_procesado?: number | null
+          comercio?: never
+          comision_plataforma?: never
+          costo_del_comercio?: never
+          cuotas?: number | null
+          estado?: string | null
+          fecha?: string | null
+          gross_profit?: never
+          iva_de_la_comision?: never
+          medio?: string | null
+          moneda?: string | null
+          monto_muy_chico_para_comparar?: never
+          org_id?: string | null
+          proveedor?: string | null
+          take_rate_pct?: never
+          transaccion_id?: string | null
+        }
+        Update: {
+          bruto_procesado?: number | null
+          comercio?: never
+          comision_plataforma?: never
+          costo_del_comercio?: never
+          cuotas?: number | null
+          estado?: string | null
+          fecha?: string | null
+          gross_profit?: never
+          iva_de_la_comision?: never
+          medio?: string | null
+          moneda?: string | null
+          monto_muy_chico_para_comparar?: never
+          org_id?: string | null
+          proveedor?: string | null
+          take_rate_pct?: never
+          transaccion_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      platform_gross_profit_resumen: {
+        Row: {
+          bruto_procesado: number | null
+          comercios: number | null
+          comision_cobrada: number | null
+          costo_de_los_comercios: number | null
+          gross_profit: number | null
+          iva: number | null
+          mes: string | null
+          moneda: string | null
+          pagos: number | null
+          solo_montos_chicos: boolean | null
+          take_rate_pct: number | null
         }
         Relationships: []
       }
@@ -45561,6 +45865,28 @@ export type Database = {
       }
       cuenta_de_cobro: { Args: { p_metodo: string }; Returns: string }
       cuit_valido: { Args: { p_cuit: string }; Returns: boolean }
+      cuotas_disponibles: {
+        Args: { p_monto: number; p_org: string; p_provider?: string }
+        Returns: {
+          costo_ars: number
+          costo_pct: number
+          cuota_ars: number
+          installments: number
+          monto_minimo: number
+          neto_ars: number
+          provider: string
+          sin_interes: boolean
+        }[]
+      }
+      cuotas_permitidas: {
+        Args: {
+          p_cuotas: number
+          p_monto: number
+          p_org: string
+          p_provider?: string
+        }
+        Returns: Json
+      }
       decimales_de_moneda: { Args: { p_moneda: string }; Returns: number }
       desglosar_iva: {
         Args: { p_importe: number; p_incluido: boolean; p_tasa: number }
