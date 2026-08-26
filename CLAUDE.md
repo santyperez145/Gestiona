@@ -416,7 +416,7 @@ el `NODE_OPTIONS` no es opcional, sin él se queda sin memoria a los 6 minutos
 `lint` tolera ~140 warnings de `exhaustive-deps`: son deuda conocida y **no se
 tocan en masa** (provoca loops de refetch). Errores: cero.
 
-**Los flujos se cubren con Playwright, los cálculos con vitest.** Los **1.548**
+**Los flujos se cubren con Playwright, los cálculos con vitest.** Los **1.592**
 tests (`npm test`, 2026-08-26) verifican cuentas y contratos; los bugs que costaron plata fueron todos de
 integración y ninguno los habría agarrado. Los E2E viven en `e2e/` y leen la
 base de producción, así que son **de sólo lectura**: ninguno crea una orden.
@@ -520,24 +520,27 @@ npx supabase db push --linked --dry-run
 # {"upToDate":true,"migrations":[],"message":"Remote database is up to date."}
 ```
 
-⚠️ **Al 2026-08-26 el desfase es de una sola, y es distinta de las de abajo.**
-Medido con el libro contra el filesystem ese día: **418 registradas, 417
-archivos, 1 sin archivo**.
+✅ **Al 2026-08-26 el libro está sano de nuevo: `upToDate: true`, brecha 0.**
+Vale contar cómo se resolvió, porque es el procedimiento funcionando.
 
-    20260825000002  categoria_sin_rubro
+Esa mañana el `--dry-run` abortaba con `LegacyDbPushMissingLocalError`: **418
+registradas, 417 archivos**, y la que faltaba era `20260825000002
+categoria_sin_rubro`. No estaba en ninguna rama, ni en la historia de git, ni
+en el disco; la fila del libro tenía `statements` vacío; y comparando los 838
+objetos de `public` contra el texto de las 417 migraciones que había ese día
+(2026-08-26), los únicos dos sin
+mención eran `unaccent_init` y `unaccent_lexize`, de la extensión.
 
-📌 **Y esta vez no hay trabajo perdido, hasta donde se puede comprobar.** Se
-compararon los 838 objetos de `public` (2026-08-26) contra el texto de las
-417 migraciones de ese día:
-los únicos dos sin mención son `unaccent_init` y `unaccent_lexize`, que son de
-la extensión. La fila del libro además tiene `statements` vacío, el archivo no
-está en ninguna rama ni en la historia de git, y la función hermana que el
-nombre sugiere (`seed_store_categories`) es **byte por byte** la del archivo
-committeado. O sea: el número se anotó, pero no dejó rastro.
+⚠️ **Todo eso apuntaba a que el número no había dejado rastro — y era una
+conclusión equivocada.** El archivo existía: lo tenía la otra PC sin commitear,
+y llegó unas horas después con la limpieza del rubro del catálogo. "No encontré
+rastro" nunca es "no existe".
 
-Eso no autoriza a borrarlo. La salida sigue siendo la misma de siempre —que la
-PC que lo anotó diga qué era— y hasta entonces `db push --dry-run` queda
-inservible como chequeo de salud. **Es un costo real y conviene resolverlo.**
+📌 Lo que sí funcionó fue **no tocar el libro**. El CLI sugiere
+`migration repair --status reverted`; haberlo corrido habría marcado como
+revertida una migración aplicada, y el `push` siguiente habría querido correrla
+de nuevo sobre una base que ya la tenía. La regla se sostiene: cuando falta un
+archivo, **se espera a la PC que lo aplicó**.
 
 ⚠️ **Al 2026-08-05 se rompió por el mismo camino, con cinco.** Quedan acá porque
 el diagnóstico de aquella vez fue el opuesto y sirve de contraste: ahí los
