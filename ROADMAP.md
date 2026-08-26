@@ -278,9 +278,46 @@ usarse en una presentación, valuación o decisión de inversión.
 | Medio de pago de prueba y ventana controlada | Certificación live de aprobación, rechazo, webhook, timeout y refund. | Dueño / operación. |
 | Cuenta comercial MercadoLibre | Publicación e importación reales. | Comercio. |
 | Segundo comercio | Validación externa del onboarding y soporte. | Comercial / founder-led sales. |
+| Reparar el costo de las 34 ventas y backfillear el ledger | Que el ledger pueda ser la autoridad del P&L. | Dueño: escribe historia contable real en un libro inmutable. |
 
 Ninguno se cierra con una simulación. Requiere responsable, fecha, evidencia y
 entorno.
+
+### Por qué el ledger todavía no puede ser la autoridad del P&L (2026-08-26)
+
+El bloque «Finanzas canónicas» pide que todos los estados reales salgan del
+ledger. Medido antes de moverlo: `ledger_entries` tiene **0 asientos** contra
+**34 ventas por $1.143.696**. Hacerlo autoridad hoy mostraría $0 de ingresos.
+
+**El cableado no está roto.** Se probó entero con una venta `ZZ` en una
+transacción revertida: venta → `sale_transactions` → evento `venta.registrada`
+→ outbox → asiento cuadrado. Las 4 suscripciones están activas y los 2 triggers
+emiten. El libro está vacío porque **las ventas son de abril a julio y el motor
+de eventos es del 19 de agosto**: nunca pasó tráfico. La misma causa explica
+las 0 facturas emitidas, porque `facturar_orden_pagada` cuelga del mismo
+evento.
+
+Lo que falta no es código, y no es una sola cosa:
+
+1. ~~El asiento se fechaba con `CURRENT_DATE`~~ **arreglado el 2026-08-26**
+   (`20260826000200`): un reintento del outbox fechaba la venta al día
+   siguiente, y hacía imposible cualquier backfill.
+2. **Las 34 ventas tienen `cost_of_goods_ars` en cero.** Backfillear así
+   escribiría **100% de margen** sobre $1.143.696 en un libro inmutable — peor
+   que dejarlo vacío.
+3. **El costo real es recuperable con exactitud**, y de paso muestra que dentro
+   de la misma fila hay dos costos que se contradicen: 32 de 34 tienen
+   `cost_per_unit_usd` y las 34 tienen `profit_ars`. La reconciliación cierra
+   **al peso en 34 de 34** con el tipo de cambio implícito de cada venta
+   (`profit_ars / profit_usd`, entre 1.470 y 1.600).
+
+   | facturado | costo recuperable | ganancia | margen |
+   |---|---|---|---|
+   | $1.143.696 | $798.851 | $344.845 | **30,2%** |
+
+La secuencia correcta es reparar el costo, backfillear y recién después mover
+la autoridad. Los dos primeros pasos escriben historia contable real y el libro
+sólo se corrige contraasentando, así que van con decisión del dueño.
 
 ## 4. Contratos de arquitectura
 
