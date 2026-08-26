@@ -284,6 +284,29 @@ usarse en una presentación, valuación o decisión de inversión.
 Ninguno se cierra con una simulación. Requiere responsable, fecha, evidencia y
 entorno.
 
+### El contenido social tenía dos autoridades (2026-08-26)
+
+`MarketingPage` escribía en `marketing_posts` —vía `supabaseStore.ts`— y
+`SocialPlannerPage` en `social_posts`. Cerrado en `20260826000220`:
+`social_posts` es la única autoridad y la otra queda deprecada, no borrada.
+
+⚠️ **El análisis que originó este trabajo acertó el diagnóstico y erró la
+premisa.** Dice que `social_posts` es más completo «y por eso» debe ser la
+autoridad; es cierto en casi todo pero **no estrictamente**. Hubo que mirar las
+tres columnas que sólo tenía la otra:
+
+| columna | veredicto |
+|---|---|
+| `product_ids` | no lo usa nadie — los que se usan son de combos y promociones |
+| `user_id` | sobra: la publicación es del comercio, no de la persona |
+| `ai_generated` | **sí se usa** — KPI «Con IA» y badge de cada publicación |
+
+Migrar sin mirar habría perdido la marca de contenido generado con IA.
+
+La traducción entre las dos formas —`image_url` ↔ `media_urls[]`,
+`scheduled_at` ↔ `scheduled_for`— vive en el store, no en las pantallas: si
+cada una la conociera, volvería a haber dos verdades sobre la misma fila.
+
 ### 15 selects pedían columnas que no existen (2026-08-26)
 
 Encontrado abriendo la ficha del cliente **en producción con una sesión real**.
