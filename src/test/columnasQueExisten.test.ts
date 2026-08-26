@@ -49,7 +49,7 @@ function archivosFuente(dir = "src"): string[] {
 interface Pedido { archivo: string; rel: string; columna: string }
 
 /**
- * Cada `.from("tabla")…​.select("a,b,c")` con lista simple de columnas.
+ * Cada `.from("tabla")….select("a,b,c")` con lista simple de columnas.
  *
  * Se saltean los que traen paréntesis (joins embebidos) o `*`: ahí la sintaxis
  * de PostgREST se vuelve un lenguaje propio y verificarla a medias daría

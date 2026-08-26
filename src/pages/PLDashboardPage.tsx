@@ -9,7 +9,7 @@ import {
 } from "recharts";
 import {
   TrendingUp, TrendingDown, Minus, DollarSign, ShoppingCart, Wallet,
-  ArrowDownRight, ArrowUpRight, Download, BarChart2,
+  ArrowDownRight, ArrowUpRight, Download, BarChart2, AlertTriangle,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -58,6 +58,8 @@ interface MonthlyPL {
   expenses: number;
   netProfit: number;
   netMargin: number;
+  /** Ventas del mes sin costo conocido: su margen no se puede afirmar. */
+  ventasSinCosto: number;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -124,11 +126,27 @@ export default function PLDashboardPage() {
       const revenue = filteredSales.filter(s => yyyymm(new Date(s.created_at)) === ym)
         .reduce((sum, s) => sum + (s.total_ars || 0), 0);
 
-      const cogsDirect = filteredSales.filter(s => yyyymm(new Date(s.created_at)) === ym)
-        .reduce((sum, s) => sum + (s.cost_of_goods_ars || 0), 0);
-      const purchasesCogs = filteredPurchases.filter(p => yyyymm(new Date(p.created_at)) === ym)
-        .reduce((sum, p) => sum + (p.total_ars || 0), 0);
-      const cogs = cogsDirect > 0 ? cogsDirect : purchasesCogs;
+      const ventasDelMes = filteredSales.filter(s => yyyymm(new Date(s.created_at)) === ym);
+
+      // ⚠️ El costo sale de las ventas, y **sólo** de las ventas. Acá había un
+      //    fallback a las compras del período:
+      //
+      //        const cogs = cogsDirect > 0 ? cogsDirect : purchasesCogs;
+      //
+      //    Sustituir el costo de lo vendido por lo que se compró ese mes es un
+      //    error contable: son cosas distintas —una compra entra al stock, no al
+      //    resultado— y en un mes sin compras da cero, que fue justamente lo que
+      //    pasó. Con 34 ventas sin `cost_of_goods_ars` y 0 compras, el P&L
+      //    informaba **margen bruto 100%**: $616.784 de ganancia en abril donde
+      //    hubo $179.519. Ver 20260826000250.
+      const cogs = ventasDelMes.reduce((sum, s) => sum + (s.cost_of_goods_ars || 0), 0);
+
+      // ⚠️ Una venta sin costo no tiene margen 100%: tiene margen desconocido.
+      //    Se cuenta para poder decirlo en pantalla en vez de esconderlo dentro
+      //    de un número que se ve bien.
+      const ventasSinCosto = ventasDelMes.filter(
+        s => !s.cost_of_goods_ars && (s.total_ars || 0) > 0,
+      ).length;
 
       const grossProfit = revenue - cogs;
       const grossMargin = pct(grossProfit, revenue);
@@ -141,10 +159,17 @@ export default function PLDashboardPage() {
       const netProfit = grossProfit - expensesTotal;
       const netMargin = pct(netProfit, revenue);
 
-      result.push({ ym, label, revenue, cogs, grossProfit, grossMargin, expenses: expensesTotal, netProfit, netMargin });
+      result.push({ ym, label, revenue, cogs, grossProfit, grossMargin, expenses: expensesTotal, netProfit, netMargin, ventasSinCosto });
     }
     return result;
-  }, [filteredSales, filteredExpenses, filteredPurchases, months]);
+  }, [filteredSales, filteredExpenses, months]);
+
+  // Cuántas ventas del período no tienen costo conocido. Ver el aviso de
+  // arriba: sin esto, el margen se muestra mejor de lo que es y nadie lo sabe.
+  const sinCostoTotal = useMemo(
+    () => monthlyPL.reduce((n, m) => n + (m.ventasSinCosto || 0), 0),
+    [monthlyPL],
+  );
 
   // ── Current month detail ───────────────────────────────────────────────────
   const currentYm = selectedYm || yyyymm(new Date());
@@ -246,6 +271,25 @@ export default function PLDashboardPage() {
           </div>
         }
       />
+
+      {sinCostoTotal > 0 && (
+        <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/10 p-3">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+            <div className="flex-1 min-w-0 text-sm">
+              <p className="font-semibold text-amber-400">
+                {sinCostoTotal} venta{sinCostoTotal !== 1 ? "s" : ""} sin costo conocido
+              </p>
+              <p className="text-xs text-amber-300/80 mt-0.5">
+                El margen bruto de {sinCostoTotal !== 1 ? "esas ventas" : "esa venta"} no se
+                puede calcular, así que el que ves acá está <strong>mejor de lo que es</strong>.
+                No se rellena con las compras del período: una compra entra al stock, no al
+                resultado.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── KPI Cards ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
