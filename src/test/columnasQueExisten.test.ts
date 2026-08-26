@@ -56,7 +56,9 @@ interface Pedido { archivo: string; rel: string; columna: string }
  * falsos positivos, que es peor que no verificar.
  */
 function columnasPedidas(): Pedido[] {
-  const re = /\.from\(\s*"([a-z_0-9]+)"[^)]*\)\s*(?:as never\s*)?\.select\(\s*"([^"]+)"/gs;
+  // Las dos comillas: `supabaseStore.ts` y varios helpers usan simples, y
+  // mirar solo las dobles dejaba 66 selects sin revisar — ahi vivia un bug.
+  const re = /\.from\(\s*['"]([a-z_0-9]+)['"][^)]*\)\s*(?:as never\s*)?\.select\(\s*['"]([^'"]+)['"]/gs;
   const salida: Pedido[] = [];
   for (const archivo of archivosFuente()) {
     const src = leer(archivo);
@@ -86,10 +88,17 @@ function columnasPedidas(): Pedido[] {
  * Nada lo detectaba: compilaba, pasaba el lint y los 1.655 tests. Se encontró
  * abriendo la pantalla en producción con una sesión real el 2026-08-26.
  *
- * Al buscar el resto aparecieron **15 en 8 archivos**, todas confirmadas contra
+ * Al buscar el resto aparecieron **16 en 9 archivos**, todas confirmadas contra
  * la base, entre ellas `wallet_movimientos.saldo` en la página del libro mayor
  * y `profiles.email` en comisiones — que dejaba a **todos** los vendedores sin
  * nombre.
+ *
+ * ⚠️ La número 16 la escondía este mismo test: su regex miraba sólo comillas
+ * dobles, y `supabaseStore.ts` y varios helpers usan simples. Eran **66 selects
+ * sin revisar**, y ahí estaba `payment_connection_status.connected` en
+ * `paymentStatus.ts` — el estado de cobro decía siempre «sin conectar» con la
+ * cuenta vinculada. Una guarda que mira de menos es peor que ninguna, porque
+ * da tranquilidad.
  *
  * `types.ts` tiene el esquema de verdad, así que una columna inventada se
  * atrapa sin base de datos y sin navegador.
@@ -97,7 +106,7 @@ function columnasPedidas(): Pedido[] {
 describe("ningún select pide una columna que no existe", () => {
   it("el escaneo encuentra selects de verdad", () => {
     // Si el regex deja de matchear, el test pasaría vacío sin probar nada.
-    expect(columnasPedidas().length).toBeGreaterThan(100);
+    expect(columnasPedidas().length).toBeGreaterThan(250);
   });
 
   it("todas las columnas pedidas existen en su relación", () => {

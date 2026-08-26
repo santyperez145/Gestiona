@@ -34,7 +34,10 @@ export async function fetchPaymentStatus(orgId: string): Promise<EstadoDeCobro> 
 
   const { data, error } = await supabase
     .from('payment_connection_status')
-    .select('provider, connected, nickname')
+    // ⚠️ La columna de la vista se llama `conectado`, no `connected`. Pedirla
+    // mal devolvia 400 y el estado de cobro salia SIEMPRE "sin conectar",
+    // con la cuenta vinculada. El alias conserva el nombre en JS.
+    .select('provider, connected:conectado, nickname')
     .eq('org_id', orgId)
     .eq('provider', 'mercadopago')
     .maybeSingle();

@@ -158,7 +158,7 @@ export default function MercadoLibrePanel() {
             <p className="text-xs text-muted-foreground">
               {status?.conectado
                 ? `Conectado como ${status.nickname ?? "—"} · ${status.site_id}`
-                : "Publicá tus perfumes y bajá las órdenes automáticamente"}
+                : "Publicá tu catálogo y bajá las órdenes automáticamente"}
             </p>
           </div>
         </div>
@@ -177,8 +177,8 @@ export default function MercadoLibrePanel() {
         <p className="text-xs text-muted-foreground">
           MercadoLibre Argentina <strong>no permite vender vapers</strong> — ANMAT
           los tiene prohibidos y publicarlos puede costarte una sanción en la
-          cuenta. La integración bloquea esa categoría: sirve para los perfumes
-          y el resto del catálogo.
+          cuenta. La integración bloquea esa categoría; el resto del catálogo
+          se publica normalmente.
         </p>
       </div>
 
