@@ -28,6 +28,7 @@ import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { SupportAccessAuditSection } from "@/components/settings/SupportAccessAuditSection";
 import PageHeader from "@/components/shared/PageHeader";
 import CostoDeCobrar from "@/components/settings/CostoDeCobrar";
+import PlanesDeCuotas from "@/components/settings/PlanesDeCuotas";
 import {
   backupTrustLabel,
   createOrganizationBackup,
@@ -807,6 +808,10 @@ export default function SettingsPage() {
               va en "Finanzas y costos", junto al tipo de cambio. */}
           <div id="settings-costo-cobrar" className="settings-panel settings-panel--finance">
             <CostoDeCobrar orgId={orgForTemplates?.id} />
+          </div>
+
+          <div id="settings-cuotas" className="settings-panel settings-panel--finance">
+            <PlanesDeCuotas orgId={orgForTemplates?.id} />
           </div>
 
           {/* Financial params */}

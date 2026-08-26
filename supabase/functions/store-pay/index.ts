@@ -311,6 +311,38 @@ async function processBrickPayment(
     return json({ error: "La conexión de MercadoPago ya no está disponible." }, 422);
   }
 
+  // ── Las cuotas que el comercio ofrece, no las que pida el formulario ──
+  //
+  // ⚠️ Hasta el 2026-08-26 `installments` venía del cliente y sólo se validaba
+  // que estuviera entre 1 y 24. Un comprador que armara la request a mano podía
+  // pedir 24 cuotas y el comercio se comía una financiación que nunca aceptó
+  // ofrecer: doce cuotas sin interés son 22,51% del total.
+  //
+  // Y no hace falta armar nada a mano: el Brick ofrece los planes que
+  // MercadoPago tenga habilitados, no los que el comercio quiso.
+  //
+  // El monto se toma de `order.total`, que calculó la base — no del formulario.
+  // Es la misma regla que el precio: el importe autoritativo nunca viene del
+  // cliente.
+  const permiso = await admin.rpc("cuotas_permitidas", {
+    p_org: store.org_id,
+    p_monto: order.total,
+    p_cuotas: input.installments,
+    p_provider: "mercadopago",
+  });
+
+  if (permiso.error) {
+    // No se traga: si no se puede validar, no se cobra. Aceptar por las dudas
+    // sería exactamente el agujero que esto viene a cerrar.
+    console.error("store-pay: no se pudo validar el plan de cuotas", permiso.error.message);
+    return json({ error: "No se pudo validar el plan de cuotas." }, 500);
+  }
+
+  const plan = permiso.data as { permitido?: boolean; motivo?: string } | null;
+  if (plan?.permitido !== true) {
+    return json({ error: plan?.motivo ?? "Este comercio no ofrece ese plan de cuotas." }, 422);
+  }
+
   const attempt = await preparePaymentAttempt(admin, {
     orderId: order.id,
     method: "tarjeta",
