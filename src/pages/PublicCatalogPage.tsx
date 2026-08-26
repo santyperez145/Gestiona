@@ -202,7 +202,12 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
       // Vistas públicas saneadas: sin costos, sin márgenes, sin credenciales.
       // Los precios de decant vienen ya calculados desde la base.
       fetchCatalogProducts(userId),
-      supabase.from("settings_public").select("*").eq("user_id", userId).maybeSingle(),
+      // ⚠️ `.order().limit(1)` porque `settings.user_id` dejó de ser único el
+      // 2026-08-26: un dueño con dos comercios tiene dos filas, y sin esto
+      // `.maybeSingle()` fallaría con "multiple rows" y el catálogo diría
+      // "no encontrado". Se toma la del comercio original.
+      supabase.from("settings_public").select("*").eq("user_id", userId)
+        .order("org_id", { ascending: true }).limit(1).maybeSingle(),
       fetchCatalogSettings(userId),
     ]);
     if (!sRes.data) { setValid(false); return; }

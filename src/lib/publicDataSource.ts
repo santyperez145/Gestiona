@@ -186,19 +186,35 @@ export interface CatalogSettings {
   volume_discount_percent: number | null;
 }
 
-/** Parámetros de precio que el catálogo muestra al comprador. */
+/**
+ * Parámetros de precio que el catálogo muestra al comprador.
+ *
+ * ⚠️ Busca por **usuario**, no por comercio: este catálogo es la superficie
+ * heredada (`/catalogo/:userId`) y precede a las organizaciones.
+ *
+ * Hasta el 2026-08-26 `settings.user_id` era ÚNICO, así que `.maybeSingle()`
+ * no podía traer más de una fila. Ese índice se quitó —obligaba a una sola
+ * configuración por usuario y dejaba sin ninguna al segundo comercio del mismo
+ * dueño—, así que ahora un usuario puede tener varias.
+ *
+ * Se ordena por `created_at` y se toma la primera: la del comercio original,
+ * que es el que corresponde a este link. Sin el `order`, `.maybeSingle()`
+ * fallaría con "multiple rows" y el catálogo entero mostraría "no encontrado".
+ */
 export async function fetchCatalogSettings(userId: string): Promise<CatalogSettings | null> {
   const cols = 'exchange_rate,volume_discount_threshold,volume_discount_percent';
 
   const view = await supabase
-    .from('catalog_settings').select(cols).eq('user_id', userId).maybeSingle();
+    .from('catalog_settings').select(cols).eq('user_id', userId)
+    .order('org_id', { ascending: true }).limit(1).maybeSingle();
 
   if (!view.error) return (view.data ?? null) as CatalogSettings | null;
   if (!isMissingRelation(view.error)) return null;
 
   warnFallback('catalog_settings');
   const raw = await supabase
-    .from('settings').select(cols).eq('user_id', userId).maybeSingle();
+    .from('settings').select(cols).eq('user_id', userId)
+    .order('created_at', { ascending: true }).limit(1).maybeSingle();
   return (raw.data ?? null) as CatalogSettings | null;
 }
 
