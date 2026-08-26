@@ -120,7 +120,7 @@ antes de conectarse— pero el invariante documentado quedó desactualizado.
 
 | | Valor | Qué significa |
 |---|---:|---|
-| Organizaciones | **4** | ✅ …de las cuales **1 vende de verdad** |
+| Organizaciones | **2** | ✅ 2026-08-26, …de las cuales **1 vende de verdad**. Eran 4: dos eran workspaces de prueba con el dueño borrado y 0 ventas, dados de baja ese día |
 | Usuarios | **2** | ✅ |
 | Productos | **60** | ✅ |
 | Tiendas publicadas | **1** | ✅ |
@@ -310,7 +310,7 @@ cargos no inventariables, USD exige tipo de cambio y la recepción sigue siendo
 la única puerta a `purchases` y stock. Fixture real: producto 7→7,
 outsider/retry/RLS/restos 0.
 
-⚠️ **No es todavía un producto validado:** producción tiene 4 organizaciones con
+⚠️ **No es todavía un producto validado:** producción tiene 2 organizaciones (2026-08-26) con
 Finance disponible, 0 solicitudes, 0 habilitaciones, 0 match runs, 0 aliases y
 0 borradores. Faltan scanner y extractor aprobados, benchmark y facturas reales
 que atraviesen aprobación y recepción.
@@ -390,7 +390,7 @@ chicos no tiene.
   función nueva que mandaba emails antes de que llegara a producción.
 
 📌 En términos de **arquitectura de datos**, esto está por encima de lo que
-necesita un SaaS de 4 organizaciones. No es el cuello de botella.
+necesita un SaaS de 2 organizaciones (2026-08-26). No es el cuello de botella.
 
 ### 5.2 Dónde estamos claramente atrás
 
@@ -563,7 +563,7 @@ versión y auditoría antes de conectarse a IA o a un efecto financiero.
 
 - **Marketplace de apps.** Con 1 comercio, un ecosistema de apps no tiene a
   quién servirle. Es la infraestructura del comercio 500.
-- **Theme engine.** 7 temas cubren de sobra a 4 organizaciones. Un motor de
+- **Theme engine.** 7 temas cubren de sobra a 2 organizaciones (2026-08-26). Un motor de
   temas es un compromiso de compatibilidad para siempre.
 - **Multi-idioma y multi-moneda.** No hay demanda medida.
 - **Más features de ERP.** El modo de falla de este proyecto no es quedarse

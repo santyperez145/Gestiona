@@ -30116,6 +30116,7 @@ export type Database = {
       }
       sale_transactions: {
         Row: {
+          correlation_id: string
           created_at: string
           created_by: string | null
           id: string
@@ -30124,6 +30125,7 @@ export type Database = {
           source: string
         }
         Insert: {
+          correlation_id?: string
           created_at?: string
           created_by?: string | null
           id?: string
@@ -30132,6 +30134,7 @@ export type Database = {
           source?: string
         }
         Update: {
+          correlation_id?: string
           created_at?: string
           created_by?: string | null
           id?: string

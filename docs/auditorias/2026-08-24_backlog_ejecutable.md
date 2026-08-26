@@ -257,9 +257,11 @@ Toda entrega debe contemplar, cuando corresponda:
 > order, settlement, inventory, invoice, event, ledger. La matriz de pagos lo
 > exige con el escenario traza_hasta_la_factura.
 >
-> **Falta:** exporter OTel real, dashboards, P95 y error rate. Y una venta de
-> mostrador NO aparece en la traza: la correlacion nace en el orquestador de
-> pagos y el POS no pasa por ahi.
+> **Falta:** exporter OTel real, dashboards, P95 y error rate.
+>
+> ~~Una venta de mostrador no aparece en la traza~~ **cerrado el 2026-08-26**:
+> `sale_transactions.correlation_id` le da correlacion propia al ticket, y la
+> traza cubre sale, inventory, invoice y ledger para el mostrador.
 
 **Owner:** Platform/SRE  
 **Objetivo:** reconstruir una operación end-to-end.
