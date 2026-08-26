@@ -46813,6 +46813,14 @@ export type Database = {
         Args: { p_method?: string; p_order_id: string; p_payment_id?: string }
         Returns: Json
       }
+      marketing_template_sumar_like: {
+        Args: { p_template_id: string }
+        Returns: number
+      }
+      marketing_template_sumar_uso: {
+        Args: { p_template_id: string }
+        Returns: number
+      }
       measure_price_change_outcome: {
         Args: { p_recommendation_id: string }
         Returns: Json

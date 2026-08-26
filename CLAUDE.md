@@ -727,7 +727,8 @@ MercadoPago y las contraseñas SMTP de **todas** las organizaciones. Está cerra
 - **`edgeFunctionAuth.test.ts`** — falla si una función que usa una API paga no
   exige usuario real. `verify_jwt` **no es una barrera**: la anon key es un JWT
   válido y público. Usar `_shared/requireUser.ts`.
-- **`audit_policies_sin_tenant`** (vista SQL) — políticas de **lectura** sobre
+- **`audit_policies_sin_tenant`** (vista SQL) — políticas de lectura **y de
+  escritura** sobre
   tablas con `org_id` que no acotan a nadie: ni al comercio (`org_id`,
   `is_org_member`, `has_org_role`), ni al staff, ni a la persona (`user_id`,
   `store_customer_id`, `auth.uid()`). Tiene que estar **vacía** (medido 0 el
@@ -747,6 +748,17 @@ MercadoPago y las contraseñas SMTP de **todas** las organizaciones. Está cerra
 
   📌 **Una tabla con `org_id` cuya policy de lectura no nombra al tenant es un
   bug aunque hoy no tenga filas por comercio.** Se activa con el primer uso.
+
+  ⚠️ Al principio la vista sólo miraba lecturas, y por eso no vio
+  `marketing_templates_public_update`: un `UPDATE` con `USING (is_public =
+  true)` que dejaba a cualquier usuario **reescribir la plantilla de otro
+  comercio**, contenido incluido. Existía para que se pudieran sumar `likes` y
+  `uses_count` desde el navegador. Se cerró en `20260826000230` con dos RPC que
+  suman el contador en la base —atómico, y sin tocar nada más— y la vista pasó
+  a mirar los cuatro comandos en `20260826000240`.
+
+  📌 **Escribir lo ajeno es peor que leerlo**: una fuga se mira, un destrozo no
+  se deshace.
 
 - **`rls_audit_open_policies`** (vista SQL) — lista políticas sin filtro de
   tenant. Debería tener **exactamente 3** (medido 2026-08-21), y las tres son

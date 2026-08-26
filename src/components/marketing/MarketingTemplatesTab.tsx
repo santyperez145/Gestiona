@@ -157,13 +157,31 @@ export default function MarketingTemplatesTab() {
   const handleUse = async (tpl: Template) => {
     if (!user) return;
     await addMarketingPostDB({ user_id: user.id, title: tpl.title, content: tpl.content, post_type: tpl.post_type, status: "draft", ai_generated: false });
-    await supabase.from("marketing_templates").update({ uses_count: tpl.uses_count + 1 }).eq("id", tpl.id);
+    // ⚠️ El contador lo suma la base, no el navegador. `uses_count + 1` leído
+    //    del estado local es leer-modificar-escribir: dos personas que usan la
+    //    misma plantilla a la vez leen N y escriben N+1 las dos, y se pierde
+    //    uno. Y `null + 1` es NULL, no 1.
+    //
+    //    Además, para que esto funcionara sobre la plantilla de otro comercio
+    //    había una policy de UPDATE con `USING (is_public = true)` que dejaba
+    //    reescribir **toda la fila** ajena, contenido incluido. Se fue en
+    //    20260826000230.
+    const { error: errUso } = await supabase.rpc("marketing_template_sumar_uso", {
+      p_template_id: tpl.id,
+    });
+    if (errUso) console.error("no se pudo contar el uso de la plantilla", errUso.message);
     toast.success("Template copiado a tus publicaciones como borrador");
     await load();
   };
 
   const handleLike = async (tpl: Template) => {
-    await supabase.from("marketing_templates").update({ likes: tpl.likes + 1 }).eq("id", tpl.id);
+    const { error } = await supabase.rpc("marketing_template_sumar_like", {
+      p_template_id: tpl.id,
+    });
+    if (error) {
+      toast.error("No se pudo marcar la plantilla");
+      return;
+    }
     await load();
   };
 
