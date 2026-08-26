@@ -2,6 +2,7 @@
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe } from "@/lib/exchangeRate";
 import { useOrg } from "@/lib/orgContext";
+import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
 import { getProductsDB, getSettingsDB, addSalesDB, deleteSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale, getVariantsByUserDB, recordMemberStockMovementDB } from "@/lib/supabaseStore";
@@ -73,13 +74,6 @@ const PAY_METHODS: { value: PayMethod; label: string; icon: typeof Banknote; use
   { value: "fiado",         label: "Fiado / Deuda", icon: UserX,           usesDiscount: false, color: "text-red-400" },
 ];
 
-const CATS = [
-  { value: "all", label: "Todo" },
-  { value: "perfume_arabe", label: "Árabe" },
-  { value: "perfume_diseñador", label: "Diseñador" },
-  { value: "vaper", label: "Vaper" },
-  { value: "electronico", label: "Electrónico" },
-];
 
 // ─────────────────────────────────────────────────────────────
 // Barcode scanner hook
@@ -712,6 +706,7 @@ export default function POSPage() {
   useWakeLock({ active: true });
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const { nombre: nombreCategoria } = useOrgCategoryNames(activeOrg?.id);
   const config = useBusinessConfig();
   const { checkSalesLimit } = usePlanLimits();
 
@@ -773,6 +768,26 @@ export default function POSPage() {
   }, [activeOrg?.id]);
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("all");
+  /**
+   * Las pastillas de categoría del mostrador.
+   *
+   * Salen de los productos que el POS tiene a la vista, con el nombre que les
+   * puso el comercio. Hasta 2026-08-26 eran cuatro slugs de perfumería escritos
+   * a mano: un comercio de otro rubro veía cuatro botones que no filtraban nada
+   * y ninguno de los suyos.
+   *
+   * Derivarlas de los productos y no de `ecommerce_categories` es a propósito:
+   * en un mostrador, una pastilla que devuelve cero resultados es peor que no
+   * estar.
+   */
+  const cats = useMemo(() => {
+    const slugs = [...new Set(products.map(p => p.category).filter(Boolean))] as string[];
+    slugs.sort((a, b) => nombreCategoria(a).localeCompare(nombreCategoria(b), "es"));
+    return [
+      { value: "all", label: "Todo" },
+      ...slugs.map(s => ({ value: s, label: nombreCategoria(s) })),
+    ];
+  }, [products, nombreCategoria]);
   const [showBundles, setShowBundles] = useState(false);
   const [bundles, setBundles] = useState<Array<{ id: string; name: string; description: string | null; price_ars: number; bundle_items: { product_id: string; quantity: number }[] }>>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -2713,7 +2728,7 @@ export default function POSPage() {
 
         {/* Category pills */}
         <div className="shrink-0 flex gap-2 px-4 py-2 overflow-x-auto scrollbar-hide border-b border-border/50 bg-card/40">
-          {CATS.map((c) => (
+          {cats.map((c) => (
             <button
               key={c.value}
               onClick={() => { setCat(c.value); setShowBundles(false); }}

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   NOMBRES_HEREDADOS, slugALegible, nombreDeCategoria, menuDeCategorias,
-  slugDeNombre, validarNombre, type CategoriaTienda,
+  slugDeNombre, validarNombre, colorDeCategoria, type CategoriaTienda,
 } from "@/lib/storeCategories";
 
 const cat = (over: Partial<CategoriaTienda>): CategoriaTienda => ({
@@ -260,5 +260,36 @@ describe("menuDeCategorias con subcategorías", () => {
       cat({ id: "ok", slug: "ok", name: "OK", productos: 3 }),
     ];
     expect(menuDeCategorias(vacias, []).map(m => m.slug)).toEqual(["ok"]);
+  });
+});
+
+describe("colorDeCategoria", () => {
+  it("le da el mismo color al mismo slug, siempre", () => {
+    // Si variara entre renders, la tabla de Productos parpadearía de color.
+    const a = colorDeCategoria("ropa-de-verano");
+    expect(colorDeCategoria("ropa-de-verano")).toBe(a);
+    expect(a).not.toBe("");
+  });
+
+  it("le da color a cualquier categoría, no a cuatro", () => {
+    // El Record que reemplaza sólo tenía perfumería: el resto salía sin badge.
+    for (const slug of ["ropa", "alfajores", "tornillos", "vinilos", "cafe"]) {
+      expect(colorDeCategoria(slug)).toMatch(/^bg-/);
+    }
+  });
+
+  it("distingue un producto sin categoría", () => {
+    // Desde que products.category admite NULL, "sin categoría" es un estado
+    // real y no puede pintarse como si fuera una categoría más.
+    const neutro = "bg-muted text-muted-foreground";
+    expect(colorDeCategoria(null)).toBe(neutro);
+    expect(colorDeCategoria(undefined)).toBe(neutro);
+    expect(colorDeCategoria("")).toBe(neutro);
+  });
+
+  it("reparte entre varias clases y no colapsa en una", () => {
+    const slugs = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"];
+    const distintos = new Set(slugs.map(colorDeCategoria));
+    expect(distintos.size).toBeGreaterThan(2);
   });
 });

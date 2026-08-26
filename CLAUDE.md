@@ -47,7 +47,7 @@ nombre.
 [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).** Fija los quince principios y los
 límites de dominio que no hay que cruzar. El estado medido del 2026-08-21 vive
 en [docs/COMPARACION.md](docs/COMPARACION.md): 282 tablas, 298 con `org_id`,
-62 Edge Functions y 1.201 tests (`npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-21). Idempotencia,
+62 Edge Functions y 1.592 tests (`npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-26). Idempotencia,
 eventos con outbox y ledger financiero ya están construidos y verificados en
 los commits H1–H3; no deben volver a tratarse como pendientes ni duplicarse.
 El checkout público ya consume el orquestador P0.3.1: toda llamada a
@@ -271,9 +271,34 @@ Para elegir o rotular una categoría se usan `CategorySelect` /
 sin consultar `products`). `NOMBRES_HEREDADOS` en `storeCategories.ts` es
 **rótulo de un slug ya cargado**, nunca una opción a ofrecer: sembrarlo hacía
 que un comercio nuevo eligiera entre "Perfume Árabe" y "Vaper".
-`categoriaSinRubroPorDefault.test.ts` es el guardia, con la allowlist de lo que
-todavía hardcodea el rubro —`types.ts`, POS, Ventas, Ajustes, catálogo público
-y un puñado más— para que no crezca sin que nadie lo note.
+`categoriaSinRubroPorDefault.test.ts` es el guardia, con una allowlist que
+enumera lo que todavía nombra un rubro, para que no crezca sin que nadie lo
+note.
+
+**Ninguna pantalla enumera categorías a mano (2026-08-26).** Había seis copias
+de los mismos cuatro slugs; se fueron todas. La regla ahora:
+
+- **Un filtro** (POS, Ventas, Toma Física) arma su lista con **los productos que
+  ya tiene cargados** y rotula con `useOrgCategoryNames`. Una opción que
+  devuelve cero resultados es peor que no estar, y no cuesta una consulta extra.
+- **Una configuración** (el markup por categoría de Ajustes) lista las
+  categorías de la organización **más las que ya tengan valor guardado**:
+  `settings.category_pricing` sigue aplicándose desde `getCategoryMarkup`, así
+  que esconder una entrada la deja cobrando sin que nadie pueda verla.
+- `getCategoryLabel` en `supabaseStore.ts` ya no tiene mapa propio: delega en
+  `nombreDeCategoria`. Es el **fallback sin organización** —helpers de módulo,
+  PDFs, el catálogo público de `/catalogo/:userId`—; donde haya `orgId` va
+  `useOrgCategoryNames`, que sí refleja un renombre.
+- El color del badge sale de `colorDeCategoria(slug)`, un hash estable sobre una
+  paleta. Antes sólo cuatro slugs tenían color y el resto salía sin badge.
+- `ProductCategory` en `src/lib/types.ts` dejó de ser una unión cerrada. Ese
+  archivo lo importa **sólo `seedData.ts`**: no era la raíz de nada.
+
+⚠️ **Lo que queda en la allowlist no son listas: son features atadas a un
+rubro** —ficha de perfume (`product_perfume_details`), subtipos de vaper,
+campos de electrónica, venta por decant, estimación de peso por ml, plantillas
+de marketing—. Sacarlas es el catálogo polimórfico (P0.1, `product_types` y sus
+atributos), no reemplazar un slug por otro.
 
 **El stock lo mueve la base, y sólo la base. El cliente nunca escribe
 `products.stock`.** No es una preferencia de estilo: se rompió dos veces por lo

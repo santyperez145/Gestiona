@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getActiveOrgId, requireActiveOrgId } from './orgContext';
 import type { Database } from '@/integrations/supabase/types';
 import { resolveSaleAttribution } from './businessCalc';
+import { nombreDeCategoria } from './storeCategories';
 type SettingsInsert = Database['public']['Tables']['settings']['Insert'];
 
 /** Get the active org id, falling back to looking it up by user (for legacy callers). */
@@ -831,9 +832,23 @@ export function dateToNoon(dateStr: string) {
   return dateStr + 'T12:00:00';
 }
 
+/**
+ * Rótulo de un slug de categoría, sin conocer la organización.
+ *
+ * Tenía su propio `Record` con los cuatro nombres de la perfumería original,
+ * duplicando letra por letra el `NOMBRES_HEREDADOS` de `storeCategories.ts`.
+ * Ahora delega: idéntico resultado para esos cuatro, y para cualquier otro slug
+ * devuelve algo legible —`ropa_interior` → "Ropa interior"— en vez del slug
+ * crudo, que era lo que veía un comercio de otro rubro en Reportes, el catálogo
+ * y la ficha pública.
+ *
+ * ⚠️ Es un **fallback**, no la fuente: no conoce las categorías del comercio,
+ * así que no refleja un renombre. Donde haya `orgId` a mano —y en casi todas
+ * las pantallas lo hay— va `useOrgCategoryNames`, que sí lee
+ * `ecommerce_categories`.
+ */
 export function getCategoryLabel(cat: string) {
-  const map: Record<string, string> = { perfume_arabe: 'Perfume Árabe', 'perfume_diseñador': 'Perfume Diseñador', vaper: 'Vaper', electronico: 'Electrónico' };
-  return map[cat] || cat;
+  return nombreDeCategoria(cat);
 }
 
 export function getGenderLabel(g: string) {

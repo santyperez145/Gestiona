@@ -44,6 +44,44 @@ export function slugALegible(slug: string): string {
 }
 
 /**
+ * La paleta de las etiquetas de categoría.
+ *
+ * Las clases van escritas enteras a propósito: Tailwind escanea el código
+ * buscando literales, así que armarlas concatenando —`bg-${color}-500/15`— las
+ * deja fuera del CSS generado y el badge sale sin color.
+ */
+const COLORES_CATEGORIA = [
+  "bg-primary/15 text-primary",
+  "bg-accent/20 text-accent",
+  "bg-emerald-500/15 text-emerald-400",
+  "bg-yellow-500/15 text-yellow-400",
+  "bg-blue-500/15 text-blue-400",
+  "bg-purple-500/15 text-purple-400",
+  "bg-pink-500/15 text-pink-400",
+  "bg-cyan-500/15 text-cyan-400",
+];
+
+/**
+ * Un color estable para una categoría, derivado de su slug.
+ *
+ * Vivía como un `Record` de cuatro entradas en `ProductsPage`: sólo los slugs
+ * de la perfumería original tenían color y cualquier otra categoría salía sin
+ * badge. Un hash del slug le da color propio a todas —el mismo slug devuelve
+ * siempre la misma clase, en cada render y en cada pantalla— sin que el código
+ * tenga que conocer ningún rubro.
+ *
+ * Es decoración: no codifica estado ni jerarquía, y por eso puede repetirse
+ * entre dos categorías sin que eso signifique nada.
+ */
+export function colorDeCategoria(slug: string | null | undefined): string {
+  const s = String(slug ?? "");
+  if (!s) return "bg-muted text-muted-foreground";
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return COLORES_CATEGORIA[h % COLORES_CATEGORIA.length];
+}
+
+/**
  * Nombre a mostrar para un slug, en orden: la categoría cargada por el
  * comercio, el nombre heredado, y por último el slug hecho legible. Nunca
  * devuelve vacío: una categoría sin nombre en el menú es un botón sin texto.

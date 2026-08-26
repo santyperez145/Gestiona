@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.498 tests en 136 archivos pasan al 2026-08-23; typecheck, lint y build/PWA verdes; 65 Edge Functions verificadas. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
+| Calidad técnica | 1.592 tests en 142 archivos pasan al 2026-08-26; typecheck, lint y build/PWA verdes; 65 Edge Functions verificadas. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -1275,6 +1275,60 @@ crea una categoría y la ve por RLS (0 restos); y después de la migración la
 tienda pública sigue respondiendo como `anon` con las 3 categorías y sus
 conteos exactos (54/1/5), 60 productos en el catálogo y `stock_negativo` en 0.
 
+### Ninguna pantalla enumera categorías a mano — 2026-08-26
+
+La segunda mitad. El slice anterior sacó el rubro de la base y de los
+componentes que **eligen** una categoría; éste sacó las listas que la
+**enumeraban**: seis pantallas con la misma lista de cuatro slugs escrita a
+mano, cada una con su propia copia.
+
+Lo caro no era el rótulo feo. Era **Ajustes → Precios por categoría**: el markup
+es el número con el que se calcula el precio de venta, y sólo se podía
+configurar para `perfume_arabe`, `perfume_diseñador`, `vaper` y `electronico`.
+Un comercio de otro rubro no tenía forma de tocar el suyo. Medido antes de
+tocar: `category_pricing` está en `{"perfume_arabe": {}}` —una entrada vacía— y
+`{}`, así que **nadie llegó a configurar ninguno**; el riesgo del cambio era
+cero y la funcionalidad estaba muerta desde que hay más de un comercio.
+
+Qué quedó, como criterio reusable:
+
+- **Un filtro** (POS, Ventas) arma su lista con **los productos que la pantalla
+  ya tiene cargados** y rotula con `useOrgCategoryNames`. En un mostrador, una
+  pastilla que devuelve cero resultados es peor que no estar — y así no cuesta
+  una consulta extra.
+- **Una configuración** (el markup) lista las categorías de la organización
+  **más las que ya tengan valor guardado**. Eso último no es cosmético:
+  `getCategoryMarkup` sigue aplicando una entrada de una categoría borrada, así
+  que no mostrarla la deja cobrando sin que nadie pueda verla ni sacarla.
+- `getCategoryLabel` perdió su mapa —copia letra por letra de
+  `NOMBRES_HEREDADOS`— y delega en `nombreDeCategoria`. Sigue siendo el fallback
+  **sin organización**: helpers de módulo, PDFs y el catálogo de
+  `/catalogo/:userId`, que es anónimo y no puede leer `ecommerce_categories`.
+- El badge usa `colorDeCategoria(slug)`, un hash estable sobre una paleta de
+  ocho. Antes sólo cuatro slugs tenían color y cualquier otra categoría salía
+  sin badge.
+- `BulkPriceAdjust` recibe las categorías por prop en vez de listarlas: la
+  página ya las tiene y pedirlas de nuevo sería la misma consulta dos veces.
+
+⚠️ **`ProductCategory` no era la raíz.** Figuraba primero en el plan como "el
+tipo cerrado que impide abrir el resto". Medido: `src/lib/types.ts` lo importa
+**un solo archivo**, `seedData.ts`, y sus interfaces `Product`, `Purchase`,
+`Sale`, `Debt` y `Settings` no las consume nadie —las pantallas usan los tipos
+generados de Supabase o interfaces locales—. Se abrió igual, porque cuesta una
+línea, pero no destrabó nada: la raíz real eran las seis listas.
+
+⚠️ **Lo que queda en la allowlist ya no son listas: son features atadas a un
+rubro.** Ficha de perfume (`product_perfume_details`), subtipos de vaper,
+campos de electrónica, venta por decant, `weightEstimate` y las plantillas de
+marketing. Eso se saca con el catálogo polimórfico (P0.1, `product_types` y sus
+atributos), no reemplazando un slug por otro, y es una decisión de producto —
+no una limpieza.
+
+Verificado en navegador contra el catálogo público real: los chips muestran
+"Perfume Árabe 36", "Perfume Diseñador 1" y "Vaper 5", ningún slug crudo llega
+al comprador y no hay errores de consola. Las pantallas del panel siguen sin
+inspección en navegador: piden sesión y no hay credenciales de prueba.
+
 ### `xlsx` sale de la versión abandonada — 2026-08-25
 
 El paquete `xlsx` del registro de npm está **congelado en 0.18.5 a propósito**:
@@ -1354,7 +1408,7 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-25: **1.551 tests en 140 archivos**,
+- Build y suites locales del 2026-08-26: **1.592 tests en 142 archivos**,
   typecheck, lint sin errores (142 warnings de deuda conocida), build/PWA y 65
   funciones verificadas. Última evidencia: 42
   E2E críticos contra la base real.

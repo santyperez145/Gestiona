@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useMemo } from "react";
 import { broadcastSync } from "@/lib/broadcastSync";
+import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { cotizacionDe } from "@/lib/exchangeRate";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/lib/auth";
@@ -39,14 +40,6 @@ const PAYMENT_METHODS = [
   { value: 'fiado', label: 'Fiado', usesDiscount: false },
 ];
 
-const CATEGORIES = [
-  { value: 'all', label: 'Todas' },
-  { value: 'perfume_arabe', label: 'Perfume Árabe' },
-  { value: 'perfume_diseñador', label: 'Perfume Diseñador' },
-  { value: 'vaper', label: 'Vaper' },
-  { value: 'electronico', label: 'Electrónico' },
-];
-
 const PAYMENT_BADGE: Record<string, string> = {
   efectivo: 'bg-emerald-500/15 text-emerald-400',
   transferencia: 'bg-blue-500/15 text-blue-400',
@@ -74,6 +67,7 @@ export default function SalesPage() {
   usePageTitle("Ventas");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const { nombre: nombreCategoria } = useOrgCategoryNames(activeOrg?.id);
   const { isAdmin } = useUserRole();
   // If vendedor, only show their own sales
   const sellerFilter = !isAdmin ? (localStorage.getItem('gestiona.pos.seller') || null) : null;
@@ -135,6 +129,23 @@ export default function SalesPage() {
     products.forEach(p => { map[p.id] = p.category; });
     return map;
   }, [products]);
+
+  /**
+   * El filtro por categoría, armado con las categorías que de verdad aparecen
+   * en los productos del comercio y con el nombre que él les puso.
+   *
+   * Hasta 2026-08-26 era una lista de cuatro slugs de perfumería escrita a
+   * mano, así que un comercio de otro rubro tenía un filtro que sólo podía
+   * devolver cero ventas.
+   */
+  const categoriasFiltro = useMemo(() => {
+    const slugs = [...new Set(products.map(p => p.category).filter(Boolean))] as string[];
+    slugs.sort((a, b) => nombreCategoria(a).localeCompare(nombreCategoria(b), 'es'));
+    return [
+      { value: 'all', label: 'Todas' },
+      ...slugs.map(s => ({ value: s, label: nombreCategoria(s) })),
+    ];
+  }, [products, nombreCategoria]);
 
   const [search, setSearch] = usePersistedState(orgViewKey("sales.search", activeOrg?.id), '');
   const [viewMode, setViewMode] = usePersistedState<"list" | "by_customer" | "by_session" | "by_product" | "by_date">(orgViewKey("sales.view", activeOrg?.id), "list");
@@ -856,7 +867,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+            {categoriasFiltro.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterMethod} onValueChange={v => { setFilterMethod(v); setPage(0); }}>

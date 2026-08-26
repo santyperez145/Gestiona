@@ -15,6 +15,12 @@ const tiendanube = leer("src/components/integrations/TiendanubeExcelImport.tsx")
 const invoiceImport = leer("src/components/products/InvoiceImportDialog.tsx");
 const storeCategories = leer("src/lib/storeCategories.ts");
 const banners = leer("src/components/ecommerce/StoreBannersEditor.tsx");
+const types = leer("src/lib/types.ts");
+const supaStore = leer("src/lib/supabaseStore.ts");
+const settingsPage = leer("src/pages/SettingsPage.tsx");
+const posPage = leer("src/pages/POSPage.tsx");
+const salesPage = leer("src/pages/SalesPage.tsx");
+const publicCatalog = leer("src/pages/PublicCatalogPage.tsx");
 
 /**
  * El archivo sin sus comentarios.
@@ -130,6 +136,69 @@ describe("la categoría no viene puesta en perfumería", () => {
   });
 });
 
+/**
+ * La segunda mitad, 2026-08-26.
+ *
+ * El primer slice sacó el rubro de la base y de los componentes que **eligen**
+ * una categoría. Éste saca las listas que la **enumeraban**: seis pantallas que
+ * tenían escritos a mano los mismos cuatro slugs, cada una con su propia copia.
+ *
+ * Lo caro no era el rótulo feo: era que el markup por categoría —el número con
+ * el que se calcula el precio de venta— sólo se podía configurar para esos
+ * cuatro. Un comercio de otro rubro no podía tocar el suyo.
+ */
+describe("las listas de categorías salen del comercio, no del código", () => {
+  it("ProductCategory deja de ser una unión cerrada de cuatro slugs", () => {
+    expect(soloCodigo(types)).toContain("export type ProductCategory = string");
+    expect(soloCodigo(types)).not.toContain("'perfume_arabe' |");
+  });
+
+  it("getCategoryLabel deja de tener su propio mapa duplicado", () => {
+    // Era copia letra por letra de NOMBRES_HEREDADOS. Ahora delega, así que un
+    // slug desconocido sale legible en vez de crudo.
+    expect(soloCodigo(supaStore)).not.toContain("Perfume Árabe");
+    expect(supaStore).toContain("return nombreDeCategoria(cat);");
+  });
+
+  it("el markup por categoría se configura sobre las categorías del comercio", () => {
+    // El de mayor impacto: sin esto, un comercio de otro rubro no podía poner
+    // markup a ninguna de sus categorías.
+    expect(settingsPage).toContain("categoriasDePrecio");
+    expect(soloCodigo(settingsPage)).not.toContain("['perfume_arabe', 'perfume_diseñador', 'vaper', 'electronico']");
+  });
+
+  it("y no esconde un markup guardado de una categoría que ya no existe", () => {
+    // `settings.category_pricing` lo sigue aplicando `getCategoryMarkup`; si la
+    // fila no se muestra, cobra sin que nadie pueda verla ni sacarla.
+    expect(settingsPage).toContain("Object.keys(categoryPricing)");
+  });
+
+  it("el POS arma sus pastillas con los productos que tiene a la vista", () => {
+    expect(soloCodigo(posPage)).not.toContain("const CATS");
+    expect(posPage).toContain("useOrgCategoryNames");
+  });
+
+  it("y el filtro de Ventas hace lo mismo", () => {
+    expect(salesPage).toContain("categoriasFiltro");
+    expect(soloCodigo(salesPage)).not.toContain("const CATEGORIES");
+  });
+
+  it("el ajuste masivo recibe las categorías en vez de listarlas", () => {
+    // Por prop y no con otro hook: la página ya las tiene cargadas.
+    expect(productsPage).toContain("categorias: OpcionCategoria[]");
+  });
+
+  it("el badge de categoría tiene color para todas, no para cuatro", () => {
+    expect(soloCodigo(productsPage)).not.toContain("CATEGORY_COLORS");
+    expect(productsPage).toContain("colorDeCategoria(p.category)");
+  });
+
+  it("el catálogo por WhatsApp deja de publicar slugs crudos", () => {
+    expect(soloCodigo(publicCatalog)).not.toContain("CATEGORY_LABELS");
+    expect(publicCatalog).toContain("nombreDeCategoria(p.category)");
+  });
+});
+
 // ── El guardia que impide que vuelva ────────────────────────────────────────
 //
 // Los slugs del negocio original como literal de string. La allowlist no es
@@ -146,15 +215,14 @@ const CONOCIDOS: Record<string, string> = {
   "src/components/integrations/TiendanubeExcelImport.tsx": "heurística de import",
   "src/components/products/InvoiceImportDialog.tsx": "heurística de import",
 
-  // Deuda medida el 2026-08-25, fuera del alcance de este slice.
-  "src/pages/ProductsPage.tsx": "colores de badge y el bloque de notas olfativas; BulkPriceAdjust lista 4 categorías a mano",
-  "src/pages/PublicCatalogPage.tsx": "hero y agrupación con copy de perfumería",
-  "src/pages/SalesPage.tsx": "lista de categorías escrita a mano",
-  "src/pages/POSPage.tsx": "lista de categorías escrita a mano",
-  "src/pages/SettingsPage.tsx": "markup por categoría sobre los 4 slugs heredados",
-  "src/pages/CatalogPage.tsx": "modo vaper del catálogo interno",
-  "src/lib/supabaseStore.ts": "getCategoryLabel, el mapa de rótulos anterior a ecommerce_categories",
-  "src/lib/types.ts": "ProductCategory, unión cerrada de los 4 slugs",
+  // Lo que queda al 2026-08-26 **no son listas de categorías**: son features
+  // atadas a un rubro, que es un problema distinto y de otro slice. La forma
+  // correcta de sacarlas es el catálogo polimórfico (P0.1, `product_types` y
+  // sus atributos), no reemplazar el slug por otro slug.
+  "src/pages/ProductsPage.tsx": "ficha de perfume (product_perfume_details), subtipos de vaper y campos de electrónica en el formulario",
+  "src/pages/PublicCatalogPage.tsx": "decants, badges de género y cross-sell vaper→perfume; el hero por categoría es opcional y cae a uno genérico",
+  "src/pages/SalesPage.tsx": "la venta por decant se habilita según la categoría del producto",
+  "src/pages/CatalogPage.tsx": "modo vaper del PDF del catálogo interno",
   "src/lib/weightEstimate.ts": "modelo de peso por ml, específico de perfumería",
   "src/components/marketing/InstagramStoryGenerator.tsx": "plantillas de copy de perfumería",
   "src/components/marketing/MarketingTemplatesTab.tsx": "plantillas de copy de perfumería",

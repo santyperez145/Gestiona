@@ -27,7 +27,8 @@ import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import DataPagination from "@/components/shared/DataPagination";
 import CalidadPublicaciones, { BadgeCalidad } from "@/components/products/CalidadPublicaciones";
 import CompletarPesos from "@/components/products/CompletarPesos";
-import CategorySelect, { useOrgCategories } from "@/components/products/CategorySelect";
+import CategorySelect, { useOrgCategories, type OpcionCategoria } from "@/components/products/CategorySelect";
+import { colorDeCategoria, nombreDeCategoria } from "@/lib/storeCategories";
 import ProductTypesManager from "@/components/products/ProductTypesManager";
 import { REGLAS, type ImpactoId } from "@/lib/productQuality";
 import {
@@ -58,12 +59,6 @@ import { useProductExpiry } from "@/hooks/useProductExpiry";
 import { BarcodePrintSheet } from "@/components/shared/BarcodeLabel";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
-const CATEGORY_COLORS: Record<string, string> = {
-  perfume_arabe: 'bg-primary/15 text-primary',
-  'perfume_diseñador': 'bg-accent/20 text-accent',
-  vaper: 'bg-emerald-500/15 text-emerald-400',
-  electronico: 'bg-yellow-500/15 text-yellow-400',
-};
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
 
@@ -333,7 +328,12 @@ export default function ProductsPage() {
   const [filterCalidad, setFilterCalidad] = useState<ImpactoId | null>(null);
   // Las categorías de la organización, para los filtros y la oferta masiva. El
   // formulario usa `<CategorySelect>`, que además deja crear.
-  const { opciones: opcionesCategoria } = useOrgCategories(activeOrg?.id);
+  const { opciones: opcionesCategoria, categorias: categoriasOrg } = useOrgCategories(activeOrg?.id);
+  // El nombre que le puso el comercio. `getCategoryLabel` sigue sirviendo en los
+  // helpers de módulo, que no tienen organización a mano, pero adentro de la
+  // página hay que usar el de verdad: si renombró "Vaper" a "Pods", el badge
+  // tiene que decir Pods.
+  const nombreCategoria = (slug: string) => nombreDeCategoria(slug, categoriasOrg);
   const [pesosOpen, setPesosOpen] = useState(false);
   const facetCount = filterFamilia.length + filterNotas.length + filterEstacion.length + filterOcasion.length + filterGenderFacet.length + (filterMaxPrice ? 1 : 0);
   const [page, setPage] = useState(0);
@@ -666,7 +666,7 @@ export default function ProductsPage() {
         discount_price_ars: Math.round(Number(p.sale_price_ars) * (1 - pct / 100)),
         offer_expires_at: expiry,
       } as any)));
-      toast.success(`Oferta de ${pct}% aplicada a ${catOfferProducts.length} productos de ${getCategoryLabel(catOfferCategory)}`);
+      toast.success(`Oferta de ${pct}% aplicada a ${catOfferProducts.length} productos de ${nombreCategoria(catOfferCategory)}`);
       setCatOfferOpen(false);
       reload();
     } catch (e: any) { toast.error(e.message || "Error aplicando la oferta"); }
@@ -679,7 +679,7 @@ export default function ProductsPage() {
     setCatOfferSaving(true);
     try {
       await Promise.all(withOffer.map(p => updateProductDB(p.id, { discount_price_ars: null, offer_expires_at: null } as any)));
-      toast.success(`Ofertas quitadas de ${withOffer.length} productos de ${getCategoryLabel(catOfferCategory)}`);
+      toast.success(`Ofertas quitadas de ${withOffer.length} productos de ${nombreCategoria(catOfferCategory)}`);
       setCatOfferOpen(false);
       reload();
     } catch (e: any) { toast.error(e.message || "Error quitando la oferta"); }
@@ -892,7 +892,9 @@ export default function ProductsPage() {
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
         <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Ajuste Masivo de Precios</DialogTitle></DialogHeader>
-          <BulkPriceAdjust userId={user!.id} settings={settings} onDone={() => { setBulkOpen(false); reload(); }} />
+          {/* Las categorías bajan por prop: la página ya las tiene cargadas y
+              volver a pedirlas acá sería la misma consulta dos veces. */}
+          <BulkPriceAdjust userId={user!.id} settings={settings} categorias={opcionesCategoria} onDone={() => { setBulkOpen(false); reload(); }} />
         </DialogContent>
       </Dialog>
 
@@ -1369,7 +1371,7 @@ export default function ProductsPage() {
                             </div>
                           </td>
                          <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
-                         <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
+                         <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${colorDeCategoria(p.category)}`}>{nombreCategoria(p.category)}</span></td>
                          <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
                          <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
                          <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-yellow-400">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
@@ -1536,7 +1538,7 @@ export default function ProductsPage() {
                         <div className="min-w-0">
                           <p className="font-medium text-sm truncate">{p.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] ${colorDeCategoria(p.category)}`}>{nombreCategoria(p.category)}</span>
                             <span className="text-xs text-muted-foreground">{GENDER_ICONS[p.gender]}</span>
                           </div>
                         </div>
@@ -3364,7 +3366,7 @@ function MercadoLibrePublishCard({ productId, orgId, productCategory }: {
   );
 }
 
-function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; settings: any; onDone: () => void }) {
+function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: string; settings: any; categorias: OpcionCategoria[]; onDone: () => void }) {
   const [category, setCategory] = useState('all');
   const [percent, setPercent] = useState('');
   const [field, setField] = useState('both');
@@ -3484,11 +3486,14 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
           <SelectContent>
+            {/* Las del comercio. Hasta 2026-08-26 eran los cuatro slugs de
+                perfumería escritos a mano, así que el ajuste masivo por
+                categoría era inservible para cualquier otro rubro: sólo
+                quedaba "Todas". */}
             <SelectItem value="all">Todas las categorías</SelectItem>
-            <SelectItem value="perfume_arabe">Perfume Árabe</SelectItem>
-            <SelectItem value="perfume_diseñador">Perfume Diseñador</SelectItem>
-            <SelectItem value="vaper">Vaper</SelectItem>
-            <SelectItem value="electronico">Electrónico</SelectItem>
+            {categorias.map(o => (
+              <SelectItem key={o.slug} value={o.slug}>{o.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

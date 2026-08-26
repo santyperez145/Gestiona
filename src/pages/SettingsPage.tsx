@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback, useMemo } from "react";
 import { useStorageEstimate } from "@/hooks/useStorageEstimate";
 import { usePermissionStatus } from "@/hooks/usePermissionStatus";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
@@ -8,9 +8,11 @@ import { useOrg } from "@/lib/orgContext";
 import { hardReload } from "@/lib/hardReload";
 import { subscribeToPush, unsubscribeFromPush, getCurrentSubscription, isPushSupported } from "@/lib/pushNotifications";
 import { useEntitlements } from "@/lib/useEntitlements";
-import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB, buildExpenseCategories, getCategoryLabel } from "@/lib/supabaseStore";
+import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB, buildExpenseCategories } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
 import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice } from "@/lib/pricing";
+import { useOrgCategories } from "@/components/products/CategorySelect";
+import { nombreDeCategoria } from "@/lib/storeCategories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -147,6 +149,25 @@ export default function SettingsPage() {
   const [customsPercent, setCustomsPercent] = useState('');
   const [defaultDiscountPercent, setDefaultDiscountPercent] = useState('');
   const [categoryPricing, setCategoryPricing] = useState<Record<string, { markup?: number; discount?: number }>>({});
+  const { opciones: opcionesCategoria, categorias: categoriasOrg } = useOrgCategories(orgForTemplates?.id);
+  /**
+   * Las filas de "Precios por categoría": las categorías de la organización más
+   * las que ya tienen precio guardado.
+   *
+   * Lo segundo importa: si el comercio borró o renombró una categoría que tenía
+   * markup configurado, esa entrada sigue viva en `settings.category_pricing` y
+   * se sigue aplicando desde `getCategoryMarkup`. Mostrar sólo las vigentes la
+   * dejaría cobrando sin que nadie pueda verla ni sacarla.
+   */
+  const categoriasDePrecio = useMemo(() => {
+    const filas = opcionesCategoria.map(o => ({ slug: o.slug, label: o.label }));
+    for (const slug of Object.keys(categoryPricing)) {
+      if (!filas.some(f => f.slug === slug)) {
+        filas.push({ slug, label: nombreDeCategoria(slug, categoriasOrg) });
+      }
+    }
+    return filas;
+  }, [opcionesCategoria, categoriasOrg, categoryPricing]);
   const [taxEnabled, setTaxEnabled] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [taxIva, setTaxIva] = useState('21');
@@ -895,12 +916,23 @@ export default function SettingsPage() {
             <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Precios por categoría</p>
               <p className="text-[10px] text-muted-foreground mb-3">Markup y descuento propios de cada categoría. Si quedan vacíos, se usa el markup ×2 y el descuento por defecto de arriba.</p>
+              {/* Las categorías del comercio, no cuatro slugs de perfumería.
+                  Hasta 2026-08-26 esta lista estaba escrita a mano, así que un
+                  comercio de otro rubro **no podía configurar el markup de
+                  ninguna de sus categorías** — y este es el número con el que
+                  se calcula el precio de venta. */}
+              {categoriasDePrecio.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">
+                  Todavía no hay categorías. Creá la primera desde la ficha de un producto
+                  y volvé acá para ponerle markup.
+                </p>
+              ) : (
               <div className="space-y-2">
-                {['perfume_arabe', 'perfume_diseñador', 'vaper', 'electronico'].map(cat => {
+                {categoriasDePrecio.map(({ slug: cat, label }) => {
                   const cp = categoryPricing[cat] || {};
                   return (
                     <div key={cat} className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
-                      <span className="text-xs font-medium truncate">{getCategoryLabel(cat)}</span>
+                      <span className="text-xs font-medium truncate">{label}</span>
                       <div className="flex items-center gap-1">
                         <span className="text-[10px] text-muted-foreground">markup ×</span>
                         <Input type="number" step="0.1" min="0" value={cp.markup ?? ''} placeholder="2.0"
@@ -917,6 +949,7 @@ export default function SettingsPage() {
                   );
                 })}
               </div>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">

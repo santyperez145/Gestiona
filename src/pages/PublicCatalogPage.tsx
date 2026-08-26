@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { loadPublicPromotions, bestPromoPrice } from "@/lib/promotions";
+import { nombreDeCategoria } from "@/lib/storeCategories";
 import {
   fetchCatalogProducts, fetchCatalogSettings, fetchCatalogVariants,
 } from "@/lib/publicDataSource";
@@ -34,12 +35,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CATEGORY_LABELS: Record<string, string> = {
-  perfume_arabe: "Perfume Árabe",
-  perfume_diseñador: "Perfume Diseñador",
-  vaper: "Vaper",
-  electronico: "Electrónico",
-};
+// El rótulo de una categoría sale de `nombreDeCategoria`, no de un mapa propio.
+// Acá vivía la cuarta copia de los mismos cuatro nombres de perfumería, y era
+// la peor de las cuatro: un comercio de otro rubro publicaba su catálogo por
+// WhatsApp con los slugs crudos —"ropa_interior"— a la vista del comprador.
+//
+// ⚠️ Esta página es pública y anónima, así que no puede leer
+// `ecommerce_categories` con el contexto del comercio: `nombreDeCategoria` sin
+// categorías es el fallback legible, no el nombre que el comercio editó. Para
+// eso está la tienda de `/tienda/:slug`, que sí lo resuelve por RPC.
 
 const GENDER_LABELS: Record<string, { icon: string; label: string }> = {
   masculino: { icon: "♂", label: "Masculino" },
@@ -255,7 +259,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
   // Derived data
   const categories = useMemo(() => {
     const cats = [...new Set(products.map((p) => p.category))];
-    return cats.map((c) => ({ value: c, label: CATEGORY_LABELS[c] || c, count: products.filter((p) => p.category === c).length }));
+    return cats.map((c) => ({ value: c, label: nombreDeCategoria(c), count: products.filter((p) => p.category === c).length }));
   }, [products]);
 
   const isPerfumeCategory = filterCat === "perfume_arabe" || filterCat === "perfume_diseñador";
@@ -1267,7 +1271,7 @@ function ProductDetailModal({
         <div>
           <p className="text-[10px] font-bold tracking-widest uppercase mb-1" style={{ color: `${primaryColor}70` }}>{p.brand}</p>
           <h2 className="text-lg sm:text-xl font-black leading-tight">{p.name}</h2>
-          <p className="text-[11px] text-white/30 mt-0.5">{CATEGORY_LABELS[p.category] || p.category}</p>
+          <p className="text-[11px] text-white/30 mt-0.5">{nombreDeCategoria(p.category)}</p>
         </div>
 
         {p.description && (
