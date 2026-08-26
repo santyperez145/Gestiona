@@ -77,7 +77,7 @@ Sin `ANTHROPIC_API_KEY`, las funciones de IA generativa responden con error;
 
 ## 3. Vault de Supabase (los crons)
 
-Ya están cargados. **No los borres**: sin ellos los 13 cron jobs fallan en
+Ya están cargados. **No los borres**: sin ellos los 20 cron jobs (2026-08-25) fallan en
 silencio. Detalle en `docs/CRON.md`.
 
 | Secreto | Valor |

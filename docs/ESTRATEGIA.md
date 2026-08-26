@@ -23,7 +23,7 @@ Hay tres clases de afirmación acá adentro y **no valen lo mismo**:
 | ❓ **Sin verificar** | Viene de un análisis externo y **no se pudo comprobar**. Se registra para chequear, no para citar. |
 
 Esa separación no es burocracia. La sesión 111 arrancó con un análisis externo
-que decía "418 tests unitarios y 16 E2E" — el número real era **811**, y el
+que decía "418 tests unitarios y 16 E2E" (2026-08-11) — el número real era **811**, y el
 error venía de una línea desactualizada de este mismo repo. Un número sin fecha
 en un documento público se convierte en el dato que otros repiten.
 
@@ -324,7 +324,7 @@ de este proyecto no es quedarse corto: es agregar.
 - ❌ **Manufactura, B2B, multi-moneda real.** No los pidió nadie.
 - ❌ **Más módulos.** Hay 84 páginas. La pregunta ya no es qué falta.
 
-✅ **Medido:** el proyecto ya hizo bien esto una vez — se dropearon 57 tablas de
+✅ **Medido (2026-08-02):** el proyecto ya hizo bien esto una vez — se dropearon 57 tablas de
 módulos retirados que entre todas tenían 0 filas. Conviene recordarlo cuando
 vuelvan las ganas de agregar.
 

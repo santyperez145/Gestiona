@@ -21,7 +21,8 @@
     "test:e2e:ci": "playwright test --project=chromium --project=mobile --project=panel",
     "test:e2e:ui": "playwright test --ui",
     "drill:restore": "node scripts/restore-drill.mjs",
-    "drill:payments": "node scripts/payment-matrix.mjs"
+    "drill:payments": "node scripts/payment-matrix.mjs",
+    "check:conteos": "node scripts/verificar-conteos.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -118,5 +119,9 @@
     "vite": "^5.4.19",
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^3.2.4"
+  },
+  "packageManager": "npm@10.8.1",
+  "engines": {
+    "node": ">=20"
   }
 }

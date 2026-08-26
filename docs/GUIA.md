@@ -353,4 +353,4 @@ completo y verificarlo, que es lo que este proyecto entiende por "hecho".
 
 Y lo más útil de todo: **este repositorio**. Tiene años de decisiones explicadas
 en los comentarios y en los mensajes de commit. Muy pocos proyectos reales
-documentan el *por qué*; éste sí.
+documentan el *por qué*; éste sí.

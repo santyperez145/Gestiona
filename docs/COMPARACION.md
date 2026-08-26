@@ -6,7 +6,7 @@ de producción o de un comando reproducible y lleva la fecha al lado. Todo dato
 de un competidor lleva fuente y fecha, o va marcado como no verificado.
 
 Esa disciplina no es formalismo. Este repo es público y su documentación se lee
-de afuera: ya pasó que un análisis externo citó "418 tests unitarios" tomándolo
+de afuera: ya pasó que un análisis externo citó "418 tests unitarios" (2026-08-11) tomándolo
 de una línea vieja del ROADMAP cuando la suite ya era mucho mayor. Un número sin fecha se
 convierte en el dato que otros repiten.
 
@@ -134,7 +134,7 @@ antes de conectarse— pero el invariante documentado quedó desactualizado.
 | Suscripciones cobradas | **0** | ✅ 3 registros, las 3 en `past_due` |
 
 ⚠️ **Este es el dato que ordena todo el documento.** Tenemos una plataforma de
-308 tablas y 1.469 tests sirviendo a **un solo comercio real**. Tiendanube tiene
+308 tablas y 1.534 tests (2026-08-25) sirviendo a **un solo comercio real**. Tiendanube tiene
 ❓ más de 130.000 tiendas activas (fuente secundaria: blog de un competidor,
 [tiendli.com](https://tiendli.com/blog/tiendanube-vs-empretienda-vs-shopify-vs-tiendli/),
 2026 — **verificar antes de citarlo**). Shopify tiene ✅ 2.898.351 tiendas vivas
@@ -551,14 +551,14 @@ versión y auditoría antes de conectarse a IA o a un efecto financiero.
   temas es un compromiso de compatibilidad para siempre.
 - **Multi-idioma y multi-moneda.** No hay demanda medida.
 - **Más features de ERP.** El modo de falla de este proyecto no es quedarse
-  corto: es agregar. Ya hay 308 tablas para 34 ventas.
+  corto: es agregar. Al 2026-08-25 hay 308 tablas para 34 ventas.
 
 ---
 
 ## 8. El resumen en cinco líneas
 
 1. ✅ **Técnicamente estamos mejor de lo que corresponde a nuestro tamaño**: RLS
-   real, ledger, outbox, idempotencia, 1.469 tests y typecheck de 65 funciones.
+   real, ledger, outbox, idempotencia, 1.534 tests y typecheck de 65 funciones (2026-08-25).
 2. ✅ **Comercialmente no existimos todavía**: 1 comercio, 0 facturas, 0
    asientos, 0 suscripciones cobradas.
 3. ⚠️ **Perdimos el diferencial del POS** — Tiendanube ya lo tiene.

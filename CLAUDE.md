@@ -328,7 +328,7 @@ no se puede verificar todavía, se dice — no se tapa con un número plausible.
 y guardaba `Math.random()` como uso de tokens.
 
 **Los números medidos van con la fecha o con el comando al lado.** Este repo es
-público y su documentación se lee de afuera: un análisis externo citó "418 tests
+público y su documentación se lee de afuera: un análisis externo citó "418 tests" (dato de 2026-08-11, hoy son otros)
 unitarios" tomándolo de una línea vieja de `ROADMAP.md` cuando la suite ya era
 mucho mayor. Un número sin fecha se convierte en el dato que otros repiten.
 
@@ -412,7 +412,7 @@ comentario de cada lado dice que son espejos.
 **Las imágenes se suben por archivo, nunca por URL pegada.** `ImageUpload` es
 el componente único: elegir, arrastrar o pegar, y comprime en el navegador
 antes de subir — una foto de teléfono pesa 3 a 8 MB y un banner así arruina la
-carga de la home. Las reglas puras viven en `imageUpload.ts` con 19 tests.
+carga de la home. Las reglas puras viven en `imageUpload.ts` (`npm test -- imageUpload`).
 Pedir una URL obliga a subir el archivo a otro lado primero y termina en
 banners que apuntan a un Drive que alguien despublica.
 
@@ -428,7 +428,44 @@ cantidades; precios, stock, cupones, envío y comisiones se recalculan en la bas
 
 ## Migraciones
 
-### ✅ `db push` volvió a servir — y hay que mantenerlo así
+### El procedimiento, en cuatro pasos y sin excepciones
+
+Esto es lo único que hay que seguir. Lo que viene después es el historial que
+explica **por qué** es así, y sirve para no repetir los errores — pero el
+procedimiento es éste:
+
+```bash
+# 1. El número se elige DESPUÉS de traer el remoto, con 14 dígitos exactos.
+git fetch origin && ls supabase/migrations | tail -5
+
+# 2. Se aplica con db query --file. Nunca con db push.
+npx supabase db query --linked --file supabase/migrations/2026XXXXXXXXXX_lo_que_sea.sql
+
+# 3. Se anota en el libro en la misma sesión. Esto es lo que evita el pozo.
+#    INSERT INTO supabase_migrations.schema_migrations (version, name)
+#    VALUES ('2026XXXXXXXXXX', 'lo_que_sea') ON CONFLICT DO NOTHING;
+
+# 4. Se comprueba la salud del libro.
+npx supabase db push --linked --dry-run
+# {"upToDate":true,"migrations":[],"message":"Remote database is up to date."}
+```
+
+⚠️ **`db push` se usa SÓLO con `--dry-run`, como chequeo de salud.** Nunca para
+aplicar. No porque destruya —eso se arregló— sino porque `db query --file`
+aplica y verifica en el mismo paso: permite correr los bloques `DO` de
+verificación, que es donde este repo encontró los bugs que ningún test unitario
+iba a encontrar.
+
+Si el `--dry-run` del paso 4 devuelve migraciones en la lista o
+`LegacyDbPushMissingLocalError`, el libro se desfasó: **leer el historial de
+abajo antes de correr nada**, y en particular no usar
+`migration repair --status reverted`, que es la peor salida posible.
+
+---
+
+### Historial: cómo se llegó hasta acá
+
+#### `db push` volvió a servir — y hay que mantenerlo así
 
 Durante meses fue un comando prohibido: el libro estaba 168 atrás y un `push`
 habría corrido la migración que dropea tablas. Al 2026-08-02 está reconciliado:
@@ -492,7 +529,7 @@ está en el libro "no existe localmente" y aborta con
 `LegacyDbPushMissingLocalError`. Se renombraron 12 preservando el orden
 lexicográfico y actualizando el libro en la misma pasada.
 
-**3. Lo que no va a correr nunca, se borra del repo.** Había 13 migraciones que
+**3. Lo que no va a correr nunca, se borra del repo.** Al 2026-08-02 había 13 migraciones que
 creaban módulos sacados del producto (`sla_rules`, `elearning`,
 `carbon_footprint`, `franchise_management`, `hr_portal`…). No estaban aplicadas
 y sus 44 tablas no existen ni las usa ningún código, así que dejarlas sólo servía
@@ -693,7 +730,7 @@ haga.**
 ## Scripts
 
 ```bash
-npm run deploy:functions        # 56 edge functions (bypassa la ExecutionPolicy)
+npm run deploy:functions        # todas las edge functions (65 al 2026-08-25)
 npm run deploy:functions:sh     # lo mismo por Git Bash
 npm run db -- --file x.sql      # SQL contra la base (necesita SUPABASE_DB_URL)
 ```
@@ -805,7 +842,7 @@ Pendientes conocidos al 2026-07-31:
 
 **Lo que espera trabajo:**
 
-- ~~La migración destructiva~~ **aplicada**: 57 tablas huérfanas, 0 filas entre
+- ~~La migración destructiva~~ **aplicada** (2026-08-02): 57 tablas huérfanas, 0 filas entre
   todas. Verificado al traerla: 269 archivos, 270 registradas.
 - ~~El libro de migraciones desfasado~~ **resuelto**. Se mantiene así anotando
   cada migración al aplicarla — es lo único que frena que la brecha vuelva.
@@ -861,7 +898,7 @@ El despacho ya está: preparar el envío desde la orden, etiqueta imprimible, y
 seguimiento que el comprador ve con número de orden + email, sin cuenta.
 
 El CRM por `customer_id` tampoco es ya una brecha: `CustomersPage` lee por id
-desde el commit 2a7d5c7. El cruce vive en `customerMatch.ts` (puro, 10 tests) y
+desde el commit 2a7d5c7. El cruce vive en `customerMatch.ts` (puro, `npm test -- customerMatch`) y
 su `normalizeName` es espejo de `public.normalize_person_name` — si se toca una,
 se toca la otra. Una fila **enlazada** se cruza sólo por id; una sin enlazar,
 por nombre normalizado, porque no hay trigger que enlace lo viejo cuando se da

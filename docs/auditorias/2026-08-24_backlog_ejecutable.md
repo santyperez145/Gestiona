@@ -38,7 +38,14 @@ Toda entrega debe contemplar, cuando corresponda:
 
 # P0 — Verdad operacional
 
-## P0-01 — Fuente de verdad documental
+## P0-01 — Fuente de verdad documental — 🟡 parcial (2026-08-25)
+
+> **Hecho:** conteos unificados y con fecha, guarda `npm run check:conteos` en CI,
+> procedimiento único de migraciones al tope de la sección, npm declarado con
+> `packageManager` y `engines`. No había `bun.lock` ni `bun.lockb` que borrar.
+>
+> **Falta:** marcar capacidades como `built/verified/operated/adopted`, README
+> con las cuatro superficies, y validación de links en CI.
 
 **Owner:** Tech Lead  
 **Objetivo:** eliminar contradicciones entre README, Roadmap, Arquitectura y estado real.
