@@ -801,7 +801,10 @@ function CustomerDealsTab({ customer, orgId }: { customer: CustomerRef; orgId: s
       20,
     )
       .then(filas => setDeals(filas))
-      .catch(() => toast.error("No se pudieron cargar las oportunidades"))
+      .catch((e) => {
+        console.error("CustomerDealsTab:", e);
+        toast.error("No se pudieron cargar las oportunidades");
+      })
       .finally(() => setLoading(false));
   }, [customerId, customerName, orgId]);
 
@@ -868,13 +871,21 @@ function CustomerQuotesTab({ customer, orgId }: { customer: CustomerRef; orgId: 
     setLoading(true);
     crmRowsForCustomer<any>(
       "quotes",
-      "id,quote_number,valid_until,status,total_ars,created_at,notes,customer_id,customer_name",
+      // ⚠️ `total`, no `total_ars`: la columna de `quotes` se llama así.
+      // Pedirla mal devolvía 400 y la tab no cargaba nunca.
+      "id,quote_number,valid_until,status,total,created_at,notes,customer_id,customer_name",
       orgId,
       { id: customerId, name: customerName },
       20,
     )
       .then(filas => setQuotes(filas))
-      .catch(() => toast.error("No se pudieron cargar los presupuestos"))
+      .catch((e) => {
+        // Se loguea ademas del toast. Este mismo camino tapo durante meses un
+        // 400 por una columna mal nombrada: el usuario veia "no se pudieron
+        // cargar" y no quedaba rastro de por que.
+        console.error("CustomerQuotesTab:", e);
+        toast.error("No se pudieron cargar los presupuestos");
+      })
       .finally(() => setLoading(false));
   }, [customerId, customerName, orgId]);
 
@@ -886,8 +897,8 @@ function CustomerQuotesTab({ customer, orgId }: { customer: CustomerRef; orgId: 
     </div>
   );
 
-  const totalAccepted = quotes.filter(q => q.status === "accepted").reduce((s, q) => s + Number(q.total_ars || 0), 0);
-  const totalSent     = quotes.filter(q => q.status === "sent").reduce((s, q) => s + Number(q.total_ars || 0), 0);
+  const totalAccepted = quotes.filter(q => q.status === "accepted").reduce((s, q) => s + Number(q.total || 0), 0);
+  const totalSent     = quotes.filter(q => q.status === "sent").reduce((s, q) => s + Number(q.total || 0), 0);
 
   return (
     <div className="space-y-3 pb-12">
@@ -927,7 +938,7 @@ function CustomerQuotesTab({ customer, orgId }: { customer: CustomerRef; orgId: 
                 {q.notes && <p className="text-[10px] text-muted-foreground truncate max-w-[200px] mt-0.5">{q.notes}</p>}
               </div>
               <div className="text-right shrink-0">
-                <p className="text-xs font-mono font-semibold">{formatARS(Number(q.total_ars || 0))}</p>
+                <p className="text-xs font-mono font-semibold">{formatARS(Number(q.total || 0))}</p>
                 <a href="/presupuestos" className="text-[10px] text-primary hover:underline">Ver →</a>
               </div>
             </div>

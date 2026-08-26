@@ -1722,7 +1722,7 @@ function ExpenseSummaryCard({ userId, initialPeriod, onDone }: {
       }
 
       const { data } = await supabase.from("expenses")
-        .select("amount_ars, category, payment_method, description")
+        .select("amount_ars, category, description")
         .eq("org_id", activeOrg.id)
         .gte("date", dateFrom);
 
@@ -1944,7 +1944,7 @@ function SupplierAnalysisCard({ userId, initialName, onDone }: {
     try {
       const { data: purchases } = await supabase
         .from("purchases")
-        .select("id, created_at, total_usd, total_ars, quantity, product_name, notes")
+        .select("id, created_at, total_usd, total_ars, quantity, product_name")
         .eq("org_id", activeOrg.id)
         .eq("supplier", supplier.name)
         .order("created_at", { ascending: false });

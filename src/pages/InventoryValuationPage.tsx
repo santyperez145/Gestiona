@@ -66,7 +66,7 @@ export default function InventoryValuationPage() {
         .gt("stock", 0)
         .order("sale_price_ars", { ascending: false }),
       supabase.from("purchases")
-        .select("product_name, product_id, quantity, unit_cost_usd, date, exchange_rate_used")
+        .select("product_name, product_id, quantity, unit_cost_usd, date, exchange_rate_used:exchange_rate")
         .eq("org_id", activeOrg.id)
         .order("date", { ascending: false })
         .limit(200),

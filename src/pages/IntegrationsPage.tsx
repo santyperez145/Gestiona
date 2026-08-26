@@ -202,7 +202,7 @@ export default function IntegrationsPage() {
     if (!activeOrg) return;
     supabase
       .from("payment_connection_status")
-      .select("provider, connected")
+      .select("provider, connected:conectado")
       .eq("org_id", activeOrg.id)
       .eq("provider", "mercadopago")
       .maybeSingle()

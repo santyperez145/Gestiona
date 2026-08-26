@@ -97,14 +97,31 @@ export default function LibroPage() {
   useEffect(() => { cargar(); }, [cargar]);
 
   // La billetera es del comercio y no del período: se lee aparte y una vez.
+  //
+  // ⚠️ Antes leía `wallet_movimientos.saldo`, y esa columna **no existe** — la
+  // vista tiene `monto` y `delta`, no un saldo acumulado. PostgREST devolvía
+  // 400 y el saldo salía siempre "Sin movimientos", en la misma pantalla que
+  // se presenta como el libro mayor. El error no se veía porque no se miraba
+  // `.error`.
+  //
+  // El saldo lo deriva la base con `wallet_saldo`, que es lo que ya usa
+  // `WalletPage`: una sola autoridad para el mismo número.
   useEffect(() => {
     if (!orgId) return;
     (async () => {
-      const { data } = await supabase
-        .from("wallet_movimientos").select("saldo").eq("org_id", orgId)
-        .order("created_at", { ascending: false }).limit(1).maybeSingle();
-      const w = data as { saldo?: number } | null;
-      setSaldoBilletera(w?.saldo ?? null);
+      const { data, error } = await supabase.rpc("wallet_saldo", { p_org: orgId });
+      if (error) {
+        // No se traga: "no tengo permiso" y "no hay movimientos" son problemas
+        // opuestos, y confundirlos fue exactamente lo que tapó este bug.
+        console.error("LibroPage / wallet_saldo:", error);
+        setSaldoBilletera(null);
+        return;
+      }
+      const saldo = typeof data === "number"
+        ? data
+        : Number((data as { saldo_disponible?: number; saldo?: number } | null)?.saldo_disponible
+                 ?? (data as { saldo?: number } | null)?.saldo);
+      setSaldoBilletera(Number.isFinite(saldo) ? saldo : null);
     })();
   }, [orgId]);
 

@@ -64,7 +64,7 @@ export default function SellerCommissionsPage() {
     const [{ data: mems }, { data: pays }, { data: profiles }] = await Promise.all([
       supabase.from("memberships").select("user_id, role, commission_percent, commission_enabled").eq("org_id", activeOrg.id),
       supabase.from("seller_payouts").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }).limit(50),
-      supabase.from("profiles").select("user_id, full_name, email"),
+      supabase.from("profiles").select("user_id, full_name:display_name"),
     ]);
 
     const profileMap: Record<string, any> = {};

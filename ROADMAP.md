@@ -284,6 +284,41 @@ usarse en una presentación, valuación o decisión de inversión.
 Ninguno se cierra con una simulación. Requiere responsable, fecha, evidencia y
 entorno.
 
+### 15 selects pedían columnas que no existen (2026-08-26)
+
+Encontrado abriendo la ficha del cliente **en producción con una sesión real**.
+La tab de Presupuestos pedía `quotes.total_ars`; esa columna se llama `total`.
+PostgREST devolvía 400, el `catch` lo tapaba con un toast sin loguear, y la tab
+**nunca cargó, para ningún cliente**. Compilaba, pasaba el lint y pasaba los
+1.655 tests.
+
+Al buscar el resto aparecieron **15 en 8 archivos**, todas confirmadas contra la
+base (0 falsos positivos sobre 220 selects revisados):
+
+| archivo | columna | qué rompía |
+|---|---|---|
+| `LibroPage` | `wallet_movimientos.saldo` | el saldo del libro mayor decía siempre «Sin movimientos» |
+| `SellerCommissionsPage` | `profiles.email` | **todos** los vendedores sin nombre |
+| `AnalyticsPage` | `quotes.total_ars` | el mismo bug, segunda copia |
+| `PredictiveAnalyticsTab` | 6 columnas | la pestaña de IA predictiva entera |
+| `IntegrationsPage` | `payment_connection_status.connected` | el estado de MercadoPago |
+| `ProveedoresPage` | `purchases.supplier_name` | el nombre del proveedor |
+| `InventoryValuationPage` | `purchases.exchange_rate_used` | la valuación de inventario |
+| `AIChatAssistantTab` | `expenses.payment_method`, `purchases.notes` | contexto del chat |
+
+`LibroPage` pasó a usar el RPC `wallet_saldo` —la misma autoridad que
+`WalletPage`— en vez de una columna inventada: dos pantallas con el mismo número
+desde fuentes distintas es exactamente cómo se llega a dos verdades.
+
+La guarda es `columnasQueExisten.test.ts`, que compara cada `select` contra el
+esquema real de `types.ts`. Se verificó que atrapa el caso original:
+reintroducido, falla con `expected [ 'quotes.total_ars' ] to deeply equal []`.
+
+⚠️ **Lo que esto dice del método.** Ninguna de las 15 era detectable sin abrir
+la pantalla: el `catch` que hace sólo `toast.error` sin `console.error` las
+volvía invisibles. Verificar en navegador con sesión no es un lujo — es la única
+forma de encontrar esta clase.
+
 ### 9 clientes de prueba quedaron sin limpiar (2026-08-26)
 
 La verificación de `20260826000210` los encontró de casualidad: su aserción de

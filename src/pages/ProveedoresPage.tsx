@@ -101,7 +101,7 @@ export default function ProveedoresPage() {
     const [{ data: suppData }, { data: debtData }, { data: purchData }] = await Promise.all([
       supabase.from("suppliers").select("*").eq("org_id", activeOrg.id).order("name"),
       supabase.from("supplier_debts").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
-      supabase.from("purchases").select("id, supplier_name, supplier_id, total_ars, total_usd, date, product_name, quantity").eq("org_id", activeOrg.id).order("date", { ascending: false }),
+      supabase.from("purchases").select("id, supplier_name:supplier, supplier_id, total_ars, total_usd, date, product_name, quantity").eq("org_id", activeOrg.id).order("date", { ascending: false }),
     ]);
     setSuppliers((suppData as Supplier[]) || []);
     setDebts(debtData || []);

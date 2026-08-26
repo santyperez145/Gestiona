@@ -216,6 +216,17 @@ filtro por abajo a `catalog_products` habría afectado al catálogo por WhatsApp
 y a la página pública. La tienda lee `store_catalog_products`, hermana y sin el
 filtro de stock. Mismo criterio para los RPC.
 
+⚠️ **Un `select()` puede pedir una columna que no existe, y nada avisa.**
+PostgREST devuelve 400, el `catch` lo convierte en un toast y la pantalla queda
+vacía para siempre. Compila, pasa el lint y pasa los tests. El 2026-08-26 se
+midieron **15 en 8 archivos** —entre ellas `quotes.total_ars` (la tab de
+Presupuestos de la ficha nunca cargó), `wallet_movimientos.saldo` en la página
+del libro mayor, y `profiles.email` en comisiones, que dejaba a **todos** los
+vendedores sin nombre—. La guarda es `columnasQueExisten.test.ts`, que compara
+cada `select` contra el esquema real de `types.ts`. Y un `catch` que sólo hace
+`toast.error` sin loguear es lo que mantuvo esos bugs invisibles: va con
+`console.error` al lado.
+
 **No tragarse errores.** Un `?? []` convierte "no tengo permiso" en "no hay
 nada", y son problemas opuestos. Se distingue el error de relación inexistente
 (`42P01`/`42883`/`PGRST205`/`PGRST202`, que sí justifica el fallback) de

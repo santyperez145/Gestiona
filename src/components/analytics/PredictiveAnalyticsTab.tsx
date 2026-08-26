@@ -91,7 +91,7 @@ export default function PredictiveAnalyticsTab() {
     // Load anomaly detections (unresolved)
     supabase
       .from("anomaly_detections")
-      .select("id, anomaly_type, severity, entity_name, metric_name, expected_value, actual_value, deviation_pct, description, suggested_action, is_acknowledged")
+      .select("id, anomaly_type, severity, entity_type, metric_name, expected_value, actual_value, deviation_pct, description, suggested_action, is_acknowledged")
       .eq("org_id", orgId)
       .order("detected_at", { ascending: false })
       .limit(20)
@@ -100,7 +100,7 @@ export default function PredictiveAnalyticsTab() {
           id: a.id,
           type: a.anomaly_type,
           severity: a.severity,
-          entity: a.entity_name ?? "—",
+          entity: a.entity_type ?? "—",
           metric: a.metric_name ?? "—",
           expected: Number(a.expected_value),
           actual: Number(a.actual_value),
@@ -116,10 +116,10 @@ export default function PredictiveAnalyticsTab() {
     // Load AI recommendations (active)
     supabase
       .from("ai_recommendations")
-      .select("id, recommendation_type, title, description, estimated_impact, effort_level, confidence_score, entity_name")
+      .select("id, recommendation_type:rec_type, title, description, estimated_impact:impact_estimate, effort_level:effort, confidence_score:confidence, entity_type")
       .eq("org_id", orgId)
       .eq("status", "pending")
-      .order("confidence_score", { ascending: false })
+      .order("confidence", { ascending: false })
       .limit(10)
       .then(({ data }) => {
         setRecommendations((data ?? []).map((r: any) => ({
@@ -130,7 +130,7 @@ export default function PredictiveAnalyticsTab() {
           impact: Number(r.estimated_impact ?? 0),
           effort: r.effort_level ?? "medium",
           confidence: Number(r.confidence_score ?? 0),
-          entity: r.entity_name ?? "—",
+          entity: r.entity_type ?? "—",
         })));
       });
   }, [orgId]);
