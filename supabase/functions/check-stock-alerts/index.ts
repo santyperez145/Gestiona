@@ -7,27 +7,53 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
+// El umbral por producto vive en `products.low_stock_threshold`. Cuando esa
+// columna está vacía se usa 3, que es el mismo número que muestra el panel
+// ("Stock bajo · 1–3 unidades").
+const UMBRAL_POR_DEFECTO = 3;
+
+// Tope explícito para que una truncación se vea. Ver el comentario de abajo.
+const TOPE_PRODUCTOS = 5000;
+
 Deno.serve(async (req) => {
   try {
-    // Get all orgs that have products with low stock
-    const { data: products, error } = await supabase
+    // ⚠️ Acá había una primera consulta que llamaba a `supabase.rpc(
+    //    "low_stock_threshold")`. Ese nombre **no es un RPC: es una columna de
+    //    `products`**. La llamada devolvía un builder, se stringificaba dentro
+    //    del `.filter()` y armaba una consulta inválida; su `error` se
+    //    destructuraba y no se miraba nunca, y su resultado se descartaba dos
+    //    líneas más abajo. Corría todos los días a las 9 sin hacer nada.
+
+    // ⚠️ Y el error de la consulta que SÍ se usaba tampoco se miraba: con
+    //    `data` en null, `(allProducts || [])` daba cero productos y la
+    //    función respondía `{ok: true, alerts: 0}`. El cron quedaba en verde
+    //    informando que no hay stock bajo, que es exactamente lo contrario de
+    //    lo que había pasado. Un fallo tiene que fallar.
+    const { data: allProducts, error } = await supabase
       .from("products")
       .select("id, name, stock, org_id, low_stock_threshold")
-      .gt("low_stock_threshold", 0)
-      .filter("stock", "lte", supabase.rpc("low_stock_threshold")); // fallback handled below
+      .eq("is_active", true)
+      .order("id")
+      .limit(TOPE_PRODUCTOS);
 
-    // Simpler approach: get all products and filter in JS
-    const { data: allProducts } = await supabase
-      .from("products")
-      .select("id, name, stock, org_id, low_stock_threshold");
+    if (error) {
+      throw new Error(`no se pudieron leer los productos: ${error.message}`);
+    }
 
-    const lowStock = (allProducts || []).filter((p: any) => {
-      const threshold = p.low_stock_threshold ?? 3;
+    // ⚠️ PostgREST corta en 1.000 filas por defecto y no avisa. Con el tope
+    //    explícito, alcanzarlo se informa en la respuesta en vez de que la
+    //    alerta deje de cubrir productos en silencio a medida que crece el
+    //    catálogo. Cuando esto se toque, el arreglo es paginar, no subir el
+    //    número.
+    const truncado = (allProducts?.length ?? 0) >= TOPE_PRODUCTOS;
+
+    const lowStock = (allProducts ?? []).filter((p: any) => {
+      const threshold = p.low_stock_threshold ?? UMBRAL_POR_DEFECTO;
       return p.stock <= threshold && p.stock >= 0;
     });
 
     if (lowStock.length === 0) {
-      return new Response(JSON.stringify({ ok: true, alerts: 0 }), { headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: true, alerts: 0, truncado }), { headers: { "Content-Type": "application/json" } });
     }
 
     // Group by org
@@ -77,7 +103,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, alerts: total }), {
+    return new Response(JSON.stringify({ ok: true, alerts: total, truncado }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e: any) {

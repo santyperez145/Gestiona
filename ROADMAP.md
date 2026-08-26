@@ -313,7 +313,7 @@ Encontrado abriendo la ficha del cliente **en producción con una sesión real**
 La tab de Presupuestos pedía `quotes.total_ars`; esa columna se llama `total`.
 PostgREST devolvía 400, el `catch` lo tapaba con un toast sin loguear, y la tab
 **nunca cargó, para ningún cliente**. Compilaba, pasaba el lint y pasaba los
-1.655 tests.
+1.655 tests que había ese día (2026-08-26).
 
 Al buscar el resto aparecieron **15 en 8 archivos**, todas confirmadas contra la
 base (0 falsos positivos sobre 220 selects revisados):
