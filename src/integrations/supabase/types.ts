@@ -9470,7 +9470,7 @@ export type Database = {
           parent_id: string | null
           slug: string
           sort_order: number
-          store_id: string
+          store_id: string | null
         }
         Insert: {
           created_at?: string
@@ -9483,7 +9483,7 @@ export type Database = {
           parent_id?: string | null
           slug: string
           sort_order?: number
-          store_id: string
+          store_id?: string | null
         }
         Update: {
           created_at?: string
@@ -9496,7 +9496,7 @@ export type Database = {
           parent_id?: string | null
           slug?: string
           sort_order?: number
-          store_id?: string
+          store_id?: string | null
         }
         Relationships: [
           {
@@ -25000,7 +25000,7 @@ export type Database = {
         Row: {
           barcode: string | null
           brand: string
-          category: string
+          category: string | null
           content_ml: number | null
           cost_usd: number
           created_at: string
@@ -25047,7 +25047,7 @@ export type Database = {
         Insert: {
           barcode?: string | null
           brand?: string
-          category?: string
+          category?: string | null
           content_ml?: number | null
           cost_usd?: number
           created_at?: string
@@ -25094,7 +25094,7 @@ export type Database = {
         Update: {
           barcode?: string | null
           brand?: string
-          category?: string
+          category?: string | null
           content_ml?: number | null
           cost_usd?: number
           created_at?: string
@@ -36777,6 +36777,15 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_costo_expuesto: {
+        Row: {
+          argumentos: string | null
+          funcion: unknown
+          llama_anon: boolean | null
+          llama_authenticated: boolean | null
+        }
+        Relationships: []
+      }
       audit_funciones_expuestas: {
         Row: {
           argumentos: string | null
@@ -36784,6 +36793,15 @@ export type Database = {
           llama_anon: boolean | null
           llama_authenticated: boolean | null
           recibe_org: boolean | null
+        }
+        Relationships: []
+      }
+      audit_org_sin_indice: {
+        Row: {
+          filas_aprox: number | null
+          policies: number | null
+          rls: boolean | null
+          tabla: unknown
         }
         Relationships: []
       }
