@@ -931,9 +931,9 @@ la preferencia.
 
 ✅ **Ya cobró.** Dos compras reales de $1, `approved`/`accredited`, con la
 comisión de plataforma descontada — MercadoPago informa `application_fee: 0.05`
-en las dos. **La regla base está en 5%, no en 0%** como decía este archivo: si
-se hace una compra ahora, ese 5% se va a la cuenta de MercadoPago dueña de la
-aplicación (`MP_APP_ID`). Conviene confirmar cuál es antes de escalar.
+en las dos, con la regla que estaba vigente entonces. ⚠️ **Al 2026-08-25 la regla es de 0,5% y está INACTIVA** (`is_active = false`, `approval_status = 'draft'`), así que hoy no se cobra comisión: la nota anterior de este archivo —que decía 5%— quedó vieja el 22 de agosto. Si se reactiva:
+la comisión se va a la cuenta de MercadoPago dueña de la aplicación
+(`MP_APP_ID`). Conviene confirmar cuál es antes de escalar.
 
 Cómo se derivó la comisión, porque no es obvio: MercadoPago **no necesita que le
 digas la cuenta**. La deduce de quién emitió el token. El comercio autoriza la

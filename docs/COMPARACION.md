@@ -219,7 +219,7 @@ nunca emitió no es una ventaja, es una promesa.
 | | Gestiona | Tiendanube | Shopify |
 |---|---|---|---|
 | MercadoPago por OAuth | ✅ | ✅ | ❓ |
-| Comisión de plataforma sobre la venta | ✅ **cobró de verdad**: `application_fee` 5% | ✅ ❓0,7%–2% por transacción según plan | ✅ |
+| Comisión de plataforma sobre la venta | ✅ **cobró de verdad** (`application_fee` 5% en las compras de prueba de 2026-08-11). ⚠️ Hoy la regla está en **0,5% e inactiva** (medido 2026-08-25): no se cobra nada | ✅ ❓0,7%–2% por transacción según plan | ✅ |
 | Orquestador multi-proveedor con failover | 🟡 construido, **no enchufado al checkout** | ❓ | ✅ |
 | Medio de pago propio | 🔴 GestionaPay no existe | 🔴 | ✅ Shopify Payments |
 | Suscripción del SaaS | 🟡 por MercadoPago, **nunca cobró** | ✅ | ✅ |
@@ -227,8 +227,24 @@ nunca emitió no es una ventaja, es una promesa.
 ✅ El costo por transacción de Tiendanube en Argentina va de **0,7% a 2%** según
 el plan, **además** de lo que cobre la pasarela
 ([tiendanube.com/blog/precio-tiendanube](https://www.tiendanube.com/blog/precio-tiendanube/),
-consultado 2026-08-21). Nuestra regla base está en **5%**, que es entre 2,5× y
-7× más caro. 📌 Eso hay que revisarlo antes de vender: hoy no es competitivo.
+consultado 2026-08-21).
+
+⚠️ **Corrección de este documento (2026-08-25).** Una versión anterior decía que
+nuestra comisión base era del **5%** y que era entre 2,5× y 7× más cara que
+Tiendanube. Es falso. Medido contra `platform_commission_rules`: la única regla
+tiene `percent = 0.500` —y `platform_commission_amount` la divide por 100, así
+que son **0,5%**— y además está **inactiva** (`is_active = false`,
+`approval_status = 'draft'`). Hoy no se cobra comisión alguna.
+
+El 5% era real, pero de **agosto de 2026**, cuando se hicieron las dos compras
+de prueba; la regla se cambió el 22 de agosto. Cité un número medido sin mirar
+si seguía vigente — exactamente el error que este documento denuncia en su
+primera página.
+
+📌 Lo que sigue siendo una decisión pendiente: **cuánto cobrar**. 0,5% está por
+debajo del rango de Tiendanube y la regla está en borrador esperando aprobación
+comercial, fiscal y contractual. Que hoy no se cobre nada no es una ventaja: es
+una decisión sin tomar.
 
 ### 3.5 Estándar internacional: no confundir paridad con ventaja
 
@@ -334,7 +350,7 @@ económico y regulatorio.
 | Tiendanube AR | ✅ sí, sin límite de tiempo | ❓ desde ~USD 18/mes | ✅ 0,7%–2% por transacción + pasarela |
 | Empretienda | ❓ oferta AR no reverificada en este corte | ❓ precio AR no reverificado | ❓ no usar una comisión sin fuente local vigente |
 | Shopify | 🔴 sólo prueba | ❓ desde USD 29/mes | ✅ + comisión si no usás Shopify Payments |
-| **Gestiona** | 14 días de trial | ❓ planes definidos, **nunca cobrados** | ⚠️ **5%** |
+| **Gestiona** | 14 días de trial | ❓ planes definidos, **nunca cobrados** | ⚠️ **0% efectivo** — regla de 0,5% en borrador, inactiva (2026-08-25) |
 
 Todos los planes de Tiendanube tienen ✅ 25% de descuento pagando anual, y ✅ no
 limitan cantidad de productos, visitas ni ventas.
