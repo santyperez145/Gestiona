@@ -55,6 +55,9 @@ interface Props {
 
 export default function FocoDelDia(p: Props) {
   const [porDespachar, setPorDespachar] = useState(0);
+  const [ventas, setVentas] = useState<{ dias: number | null; huecos: number[] }>(
+    { dias: null, huecos: [] },
+  );
 
   useEffect(() => {
     if (!p.orgId) return;
@@ -74,6 +77,39 @@ export default function FocoDelDia(p: Props) {
     return () => { cancelado = true; };
   }, [p.orgId]);
 
+  // El ritmo de ventas del comercio: cuántos días hace que no registra una, y
+  // cuáles fueron sus huecos históricos. El umbral sale de su propia historia,
+  // no de un número fijo — un fijo molesta al que vende todos los días y calla
+  // al que vende una vez por mes.
+  useEffect(() => {
+    if (!p.orgId) return;
+    let cancelado = false;
+    const desde = new Date();
+    desde.setDate(desde.getDate() - 365);
+    supabase
+      .from("sales")
+      .select("date")
+      .eq("org_id", p.orgId)
+      .gte("date", desde.toISOString())
+      .order("date", { ascending: true })
+      .then(({ data, error }) => {
+        // Igual que el contador de despachos: si falla, el bloque muestra el
+        // resto. Pero se loguea — un panel que calla un error no se diagnostica.
+        if (error) { console.error("FocoDelDia / ritmo de ventas:", error); return; }
+        if (cancelado || !data) return;
+        const dias = [...new Set(
+          data.map(f => String(f.date).slice(0, 10)),
+        )].sort();
+        if (dias.length === 0) { setVentas({ dias: null, huecos: [] }); return; }
+        const aDia = (s: string) => Math.floor(Date.parse(s + "T00:00:00Z") / 86400000);
+        const huecos: number[] = [];
+        for (let i = 1; i < dias.length; i++) huecos.push(aDia(dias[i]) - aDia(dias[i - 1]));
+        const hoy = Math.floor(Date.now() / 86400000);
+        setVentas({ dias: hoy - aDia(dias[dias.length - 1]), huecos });
+      });
+    return () => { cancelado = true; };
+  }, [p.orgId]);
+
   const datos: DatosFoco = {
     sinStock: p.sinStock,
     stockBajo: p.stockBajo,
@@ -82,6 +118,8 @@ export default function FocoDelDia(p: Props) {
     deudasVencidas30: p.deudasVencidas30,
     seguimientosHoy: p.seguimientosHoy,
     pedidosPorDespachar: porDespachar,
+    diasSinRegistrarVenta: ventas.dias,
+    huecosEntreVentas: ventas.huecos,
   };
 
   const pendientes = construirPendientes(datos);

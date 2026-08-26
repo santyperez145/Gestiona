@@ -63,6 +63,59 @@ export interface DatosFoco {
   seguimientosHoy: number;
   /** Órdenes de la tienda pagadas y sin despachar. */
   pedidosPorDespachar: number;
+  /**
+   * Días desde la última venta registrada, o `null` si nunca vendió.
+   *
+   * Se dice "registrada" a propósito: el sistema no puede saber si el comercio
+   * vendió y no lo cargó. Las dos cosas son accionables, pero son distintas y
+   * afirmar la equivocada suena a reproche.
+   */
+  diasSinRegistrarVenta?: number | null;
+  /**
+   * Los huecos en días entre ventas consecutivas, de la historia del comercio.
+   * De acá sale el umbral: qué es raro depende de cada negocio.
+   */
+  huecosEntreVentas?: number[];
+}
+
+/**
+ * Cuántos días de silencio son raros **para este comercio**.
+ *
+ * Un umbral fijo no sirve para las dos puntas: quien vende todos los días y
+ * para dos merece saberlo; quien vende una vez por mes no tiene por qué
+ * enterarse a los quince. Se deriva del percentil 90 de sus propios huecos —
+ * el 90% de las veces vendió antes de eso.
+ *
+ * Medido en el comercio real (2026-08-26): mediana 2 días, p90 13,5, máximo 61.
+ * Un umbral fijo de 15 lo habría callado durante el bache de junio y un fijo de
+ * 7 lo habría molestado en operación normal.
+ *
+ * Devuelve `null` cuando no hay con qué decidir, que es distinto de "está
+ * todo bien".
+ */
+export function umbralDeSilencio(huecos: number[]): number | null {
+  const validos = huecos.filter(h => Number.isFinite(h) && h > 0).sort((a, b) => a - b);
+  if (validos.length === 0) return null;
+
+  // Piso de una semana. Por debajo, un fin de semana largo o un par de días
+  // flojos dispararían el aviso, y un aviso que salta seguido enseña a
+  // ignorar la lista entera.
+  const PISO = 7;
+
+  // Con pocos intervalos el p90 es ruido. Ahí se usa el hueco más largo que el
+  // comercio ya vivió: se avisa recién cuando supera todo lo conocido.
+  if (validos.length < 8) return Math.max(validos[validos.length - 1], PISO);
+
+  const i = Math.ceil(validos.length * 0.9) - 1;
+  return Math.max(validos[Math.min(i, validos.length - 1)], PISO);
+}
+
+/** La mediana de los huecos, para poder decir "vendés cada N días". */
+export function ritmoHabitual(huecos: number[]): number | null {
+  const validos = huecos.filter(h => Number.isFinite(h) && h > 0).sort((a, b) => a - b);
+  if (validos.length === 0) return null;
+  const m = Math.floor(validos.length / 2);
+  return validos.length % 2 ? validos[m] : Math.round((validos[m - 1] + validos[m]) / 2);
 }
 
 const ORDEN_URGENCIA: Record<Urgencia, number> = {
@@ -86,6 +139,26 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       texto: `${d.pedidosPorDespachar} ${d.pedidosPorDespachar === 1 ? "pedido pagado sin despachar" : "pedidos pagados sin despachar"}`,
       accion: "Despachar",
       destino: "/tienda-online",
+      urgencia: "critico",
+    });
+  }
+
+  // Un comercio que dejó de registrar ventas es el hecho más importante de la
+  // pantalla, y hasta ahora no aparecía en ninguna parte: `platform_org_health`
+  // lo sabía —la plataforma veía la organización dormida— pero el comercio no.
+  const silencio = d.diasSinRegistrarVenta;
+  const umbral = umbralDeSilencio(d.huecosEntreVentas ?? []);
+  if (silencio != null && umbral != null && silencio > umbral) {
+    const ritmo = ritmoHabitual(d.huecosEntreVentas ?? []);
+    lista.push({
+      id: "sin-ventas",
+      texto: ritmo != null
+        // La comparación es lo que lo hace creíble: sin ella son 26 días
+        // sueltos que el comercio no sabe si están bien o mal.
+        ? `${silencio} días sin registrar una venta (solés vender cada ${ritmo})`
+        : `${silencio} días sin registrar una venta`,
+      accion: "Registrar una venta",
+      destino: "/caja",
       urgencia: "critico",
     });
   }
