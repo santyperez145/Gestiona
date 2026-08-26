@@ -147,9 +147,17 @@ Toda entrega debe contemplar, cuando corresponda:
 > sobre orden ya reintegrada, reversión contable, habilitado-sin-token y
 > conciliación end-to-end. Todos en verde, RESTOS 0 por rollback.
 >
-> **Falta y por qué:** *webhook firmado* y *refresh token* viven en la Edge
-> Function y una matriz SQL no los puede ejercitar — necesitan test en TS.
-> *Reintegro por monto mayor al cobrado* exige una segunda orden en la matriz.
+> ~~*webhook firmado* y *refresh token*~~ **cerrados el 2026-08-26** con
+> `webhookMercadoPagoFirmado.test.ts`: 13 aserciones, el HMAC se calcula de
+> verdad con `node:crypto` y la guarda se probó **en rojo** reintroduciendo el
+> bug del punto y coma.
+>
+> ⚠️ **Hallazgo:** con `MP_WEBHOOK_SECRET` sin configurar, la verificación de
+> firma **se saltea entera**. El test lo deja escrito; cambiarlo a rechazar
+> siempre exige confirmar antes que el secreto esté cargado en produccion.
+>
+> **Falta:** *reintegro por monto mayor al cobrado*, que exige una segunda
+> orden en la matriz.
 
 **Owner:** Payments  
 **Objetivo:** certificar Mercado Pago fuera de la matriz interna.
