@@ -17,6 +17,21 @@ import { spawnSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 
 const BACKUP_BUCKET = "backups";
+
+/**
+ * RPO comprometido, en horas.
+ *
+ * ⚠️ Un backup que existe no dice cuánto se pierde si hoy se cae la base. Eso
+ * lo dice la **antigüedad del último snapshot**, y hasta el 2026-08-25 nadie lo
+ * medía: los backups eran semanales, así que el RPO real era de hasta **7 días**
+ * — un desastre el sábado costaba seis días de ventas. Nadie eligió ese número;
+ * era la consecuencia de la frecuencia del cron.
+ *
+ * Con el cron diario (`20260825000030`) el compromiso es 24 h más el margen de
+ * una corrida fallida. Si el drill encuentra un snapshot más viejo que esto,
+ * **falla**: es lo que convierte el RPO en una garantía y no en una aspiración.
+ */
+const RPO_HORAS = 36;
 const CURRENT_SNAPSHOT_VERSION = 3;
 const SECRET_SETTINGS_COLUMNS = new Set([
   "mp_access_token", "api_key", "mp_webhook_secret", "webhook_secret",
@@ -289,9 +304,25 @@ async function main() {
       fail("La evidencia del restore no coincide con el snapshot");
     }
 
+    // ⚠️ El RPO se mide contra el snapshot que se acaba de restaurar, no
+    // contra el más nuevo del bucket: lo que importa es la antigüedad de lo que
+    // efectivamente se probó que se puede recuperar.
+    const rpoHoras = (Date.now() - new Date(metadata.created_at).getTime()) / 3600000;
+    if (!Number.isFinite(rpoHoras) || rpoHoras < 0) {
+      fail("No se pudo calcular el RPO: el snapshot no tiene fecha usable");
+    }
+    if (rpoHoras > RPO_HORAS) {
+      fail(
+        `RPO incumplido: el snapshot verificado más reciente tiene ${rpoHoras.toFixed(1)} h ` +
+        `y el compromiso es ${RPO_HORAS} h. Con la base caída ahora se perderían ` +
+        `${rpoHoras.toFixed(1)} horas de operación.`,
+      );
+    }
+
     console.log("Restore drill aprobado");
     console.log(`Snapshot: v${row.schema_version} · ${row.tables_restored} tablas · ${row.rows_restored} filas`);
     console.log(`RTO técnico del restore: ${row.restore_ms} ms`);
+    console.log(`RPO medido: ${rpoHoras.toFixed(1)} h (compromiso ${RPO_HORAS} h)`);
     console.log(`Restos del sandbox: ${row.leftovers}`);
     console.log("Credenciales y datos de negocio: no impresos");
   } finally {

@@ -187,7 +187,15 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-06 — Restore drill
+## P0-06 — Restore drill — 🟡 RTO y RPO medidos y exigidos (2026-08-25)
+
+> **Hecho:** `npm run drill:restore` mide RTO (815 ms) y ahora tambien RPO, y
+> **falla** si el snapshot supera 36 h. El RPO real era de hasta 7 dias y nadie
+> lo habia medido; backups pasados a diarios y ventana de salteo de 6 dias a
+> 20 h — cambiar solo el cron no bajaba el RPO.
+>
+> **Falta:** verificar Storage y Auth (hoy solo tablas), drill periodico
+> automatico y que un fallo genere incidente.
 
 **Owner:** SRE  
 **Objetivo:** probar recuperación, no sólo backup.

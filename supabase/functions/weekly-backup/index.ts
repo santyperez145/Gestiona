@@ -314,7 +314,18 @@ Deno.serve(async (req) => {
     let completed = 0;
     let failed = 0;
     for (const organization of organizations ?? []) {
-      const recentThreshold = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString();
+      // ⚠️ Esta ventana —no el cron— es la que fija el RPO.
+      //
+      // Estaba en 6 días, para una corrida semanal. Al pasar el cron a diario
+      // (20260825000030) habría saltado 5 de cada 6 días y el RPO habría
+      // seguido siendo de casi una semana: **cambiar la frecuencia del cron
+      // sola no baja el RPO**. Se descubrió disparando el backup a mano y
+      // recibiendo {"processed":4,"completed":0,"failed":0} — un no-op que
+      // responde 200.
+      //
+      // 20 h deja margen para que la corrida diaria no se saltee a sí misma
+      // por unos minutos de diferencia de horario.
+      const recentThreshold = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
       const { data: recent, error: recentError } = await admin.from("organization_backup_snapshots")
         .select("id, org_id, status, snapshot_schema_version, storage_path, checksum_sha256, created_at")
         .eq("org_id", organization.id)
