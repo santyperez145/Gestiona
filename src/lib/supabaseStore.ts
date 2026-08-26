@@ -531,26 +531,65 @@ export async function saveSettingsDB(userId: string, settings: Record<string, an
 }
 
 // ========= MARKETING =========
+//
+// El contenido social vive en `social_posts` desde el 2026-08-26. Antes había
+// dos modelos para lo mismo: Marketing escribía en `marketing_posts` y el
+// planner de redes en `social_posts`, cada uno con su esquema y su pantalla.
+//
+// La que sobrevive es `social_posts` porque tiene programación, métricas y
+// multi-plataforma, que reconstruir del otro lado sería rehacer lo que ya está.
+// Se le agregó `ai_generated`, la única columna de la otra que sí se usaba.
+//
+// ⚠️ Las dos formas difieren en dos campos y la traducción vive acá, en un solo
+// lugar, para que las pantallas no tengan que conocerla:
+//
+//   image_url (una)  ←→  media_urls (arreglo)
+//   scheduled_at     ←→  scheduled_for
+//
+// `user_id` se deja ir a propósito: la publicación es del comercio, no de la
+// persona que la escribió, y `social_posts` es org-scoped.
+
+/** Lo que la UI de Marketing espera, desde una fila de `social_posts`. */
+function postDesdeSocial(fila: Record<string, unknown>) {
+  const medios = Array.isArray(fila.media_urls) ? fila.media_urls as string[] : [];
+  return {
+    ...fila,
+    image_url: medios[0] ?? null,
+    scheduled_at: fila.scheduled_for ?? null,
+  };
+}
+
+/** Lo que `social_posts` espera, desde lo que escribe la UI de Marketing. */
+function postHaciaSocial(post: Record<string, unknown>) {
+  const { image_url, scheduled_at, user_id: _user, product_ids: _prod, ...resto } = post as
+    Record<string, unknown> & { image_url?: string | null; scheduled_at?: string | null };
+  return {
+    ...resto,
+    ...(image_url ? { media_urls: [image_url] } : {}),
+    ...(scheduled_at ? { scheduled_for: scheduled_at } : {}),
+  };
+}
+
 export async function getMarketingPostsDB(userId: string) {
   const orgId = await orgIdFor(userId);
-  const { data, error } = await supabase.from('marketing_posts').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
+  const { data, error } = await supabase.from('social_posts').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
-  return data || [];
+  return (data || []).map(f => postDesdeSocial(f as Record<string, unknown>));
 }
 
 export async function addMarketingPostDB(post: any) {
   const orgId = post.org_id || requireActiveOrgId();
-  const { error } = await supabase.from('marketing_posts').insert({ ...post, org_id: orgId });
+  const { error } = await supabase.from('social_posts').insert({ ...postHaciaSocial(post), org_id: orgId } as never);
   if (error) throw error;
 }
 
 export async function updateMarketingPostDB(id: string, updates: any) {
-  const { error } = await supabase.from('marketing_posts').update(updates).eq('id', id);
+  const { error } = await supabase.from('social_posts').update(postHaciaSocial(updates) as never).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteMarketingPostDB(id: string) {
-  const { error } = await supabase.from('marketing_posts').delete().eq('id', id);
+  const { error } = await supabase.from('social_posts').delete().eq('id', id);
   if (error) throw error;
 }
 

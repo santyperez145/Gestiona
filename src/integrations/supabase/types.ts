@@ -33130,6 +33130,7 @@ export type Database = {
       }
       social_posts: {
         Row: {
+          ai_generated: boolean
           campaign_name: string | null
           clicks: number
           comments: number
@@ -33155,6 +33156,7 @@ export type Database = {
           views: number
         }
         Insert: {
+          ai_generated?: boolean
           campaign_name?: string | null
           clicks?: number
           comments?: number
@@ -33180,6 +33182,7 @@ export type Database = {
           views?: number
         }
         Update: {
+          ai_generated?: boolean
           campaign_name?: string | null
           clicks?: number
           comments?: number
