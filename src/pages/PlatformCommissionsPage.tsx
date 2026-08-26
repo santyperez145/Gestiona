@@ -5,7 +5,7 @@ import { usePlatformAccess } from '@/lib/usePermissions';
 import { toast } from 'sonner';
 import {
   Percent, DollarSign, TrendingUp, Save, Plus, Trash2, Loader2,
-  Calculator, CreditCard, Building2, Info, ShieldCheck, Clock3,
+  Calculator, CreditCard, Building2, Info, ShieldCheck, Clock3, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,15 @@ import {
 } from '@/lib/paymentFees';
 
 const fmt = (n: number) =>
-  `$${Math.round(n).toLocaleString('es-AR')}`;
+  `${Math.round(n).toLocaleString('es-AR')}`;
+
+// ⚠️ Los dos únicos cobros reales son de $1 con $0,05 de comisión. Con `fmt`
+// se ven como "$0", que es exactamente el número equivocado en la pantalla que
+// existe para mostrar cuánto se ganó. Debajo de $1.000 se muestran los centavos.
+const fmtFino = (n: number) =>
+  Math.abs(n) < 1000
+    ? `${n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : fmt(n);
 
 const monthLabel = (value: string) => {
   const [year, month] = value.slice(0, 7).split('-').map(Number);
@@ -69,6 +77,24 @@ interface RuleRow extends CommissionRule {
 
 interface PlanOption { id: string; name: string; code: string }
 
+interface GrossProfitRow {
+  transaccion_id: string;
+  comercio: string | null;
+  proveedor: string;
+  medio: string | null;
+  cuotas: number | null;
+  fecha: string;
+  moneda: string;
+  bruto_procesado: number;
+  comision_plataforma: number;
+  iva_de_la_comision: number;
+  gross_profit: number;
+  take_rate_pct: number | null;
+  costo_del_comercio: number;
+  estado: string;
+  monto_muy_chico_para_comparar: boolean;
+}
+
 const commissionDraftArgs = (r: RuleRow) => ({
   p_rule_id: r.id,
   p_plan_id: r.plan_id,
@@ -86,6 +112,7 @@ export default function PlatformCommissionsPage() {
   const { canBilling, loading: accessLoading } = usePlatformAccess();
 
   const [revenue, setRevenue] = useState<RevenueRow[]>([]);
+  const [grossProfit, setGrossProfit] = useState<GrossProfitRow[]>([]);
   const [fees, setFees] = useState<FeeRow[]>([]);
   const [rules, setRules] = useState<RuleRow[]>([]);
   const [plans, setPlans] = useState<PlanOption[]>([]);
@@ -107,13 +134,15 @@ export default function PlatformCommissionsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [revResult, feeResult, ruleResult, planResult] = await Promise.all([
+    const [revResult, feeResult, ruleResult, planResult, gpResult] = await Promise.all([
       supabase.from('platform_revenue_monthly').select('*').order('month', { ascending: false }).limit(12),
       supabase.from('payment_provider_fees').select('*').order('provider').order('method').order('installments'),
       supabase.from('platform_commission_rules').select('*').order('created_at'),
       supabase.from('plans').select('id, name, code').order('sort_order'),
+      supabase.from('platform_gross_profit_por_pago')
+        .select('*').order('fecha', { ascending: false }).limit(50),
     ]);
-    const error = revResult.error || feeResult.error || ruleResult.error || planResult.error;
+    const error = revResult.error || feeResult.error || ruleResult.error || planResult.error || gpResult.error;
     if (error) {
       toast.error(`No se pudieron cargar las comisiones: ${error.message}`);
       setLoading(false);
@@ -123,6 +152,7 @@ export default function PlatformCommissionsPage() {
     setFees((feeResult.data || []) as unknown as FeeRow[]);
     setRules((ruleResult.data || []) as unknown as RuleRow[]);
     setPlans((planResult.data || []) as unknown as PlanOption[]);
+    setGrossProfit((gpResult.data || []) as unknown as GrossProfitRow[]);
     setLoading(false);
   }, []);
 
@@ -586,6 +616,88 @@ export default function PlatformCommissionsPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* ── Gross profit por pago ────────────────────────────────────── */}
+          {grossProfit.length > 0 && (
+            <div className="mt-4 bg-card border border-border/60 rounded-[10px]">
+              <div className="px-4 py-3 border-b border-border/40">
+                <h3 className="text-sm font-semibold">Gross profit por pago</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Lo que cobramos menos el IVA de esa comisión, pago por pago. No resta la
+                  comisión de MercadoPago: <strong>esa la paga el comercio</strong>, no la
+                  plataforma. Es contribución <em>antes</em> de infraestructura, que todavía
+                  no está medida por transacción.
+                </p>
+              </div>
+
+              {grossProfit.every(g => g.monto_muy_chico_para_comparar) && (
+                <div className="mx-4 mt-3 flex items-start gap-2 rounded-[8px] border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Todos los cobros son de menos de $1.000. El take rate de una prueba de $1
+                    lo domina el redondeo a dos decimales: sirve para ver que el circuito
+                    corre, no para compararlo contra el de nadie.
+                  </p>
+                </div>
+              )}
+
+              <div className="overflow-x-auto mt-3">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/30 border-y border-border/40">
+                    <tr className="text-muted-foreground">
+                      <th className="text-left px-3 py-2 font-medium whitespace-nowrap">Fecha</th>
+                      <th className="text-left px-3 py-2 font-medium whitespace-nowrap">Comercio</th>
+                      <th className="text-left px-3 py-2 font-medium whitespace-nowrap">Medio</th>
+                      <th className="text-right px-3 py-2 font-medium whitespace-nowrap">Bruto</th>
+                      <th className="text-right px-3 py-2 font-medium whitespace-nowrap">Comisión</th>
+                      <th className="text-right px-3 py-2 font-medium whitespace-nowrap">IVA</th>
+                      <th className="text-right px-3 py-2 font-medium whitespace-nowrap">Gross profit</th>
+                      <th className="text-right px-3 py-2 font-medium whitespace-nowrap">Take rate</th>
+                      <th className="text-right px-3 py-2 font-medium whitespace-nowrap">Le costó al comercio</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    {grossProfit.map(g => (
+                      <tr key={g.transaccion_id} className="hover:bg-muted/20">
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {new Date(g.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
+                        </td>
+                        <td className="px-3 py-2 max-w-[180px] truncate" title={g.comercio || ''}>
+                          {g.comercio || <span className="text-muted-foreground">—</span>}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                          {METHOD_LABEL[g.medio || ''] || g.medio || '—'}
+                          {(g.cuotas ?? 1) > 1 && <span className="ml-1">×{g.cuotas}</span>}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">{fmtFino(Number(g.bruto_procesado))}</td>
+                        <td className="px-3 py-2 text-right font-mono">{fmtFino(Number(g.comision_plataforma))}</td>
+                        <td className="px-3 py-2 text-right font-mono text-muted-foreground">
+                          {fmtFino(Number(g.iva_de_la_comision))}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono text-emerald-400 font-semibold">
+                          {fmtFino(Number(g.gross_profit))}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {g.take_rate_pct === null
+                            ? <span className="text-muted-foreground">—</span>
+                            : `${Number(g.take_rate_pct)}%`}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono text-muted-foreground">
+                          {fmtFino(Number(g.costo_del_comercio))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <p className="px-4 py-2.5 text-[11px] text-muted-foreground border-t border-border/40">
+                Últimos {grossProfit.length} cobros. El IVA sale de la regla que estaba
+                vigente <strong>al momento del cobro</strong>: una regla nueva no reescribe
+                lo que se ganó el mes pasado.
+              </p>
             </div>
           )}
         </TabsContent>
