@@ -21651,6 +21651,7 @@ export type Database = {
           currency: string
           effective_from: string
           fixed_fee: number
+          fuente: string | null
           id: string
           installments: number
           iva_on_fee_pct: number
@@ -21659,12 +21660,14 @@ export type Database = {
           percent_fee: number
           provider: string
           release_days: number
+          verificada_el: string | null
         }
         Insert: {
           created_at?: string
           currency?: string
           effective_from?: string
           fixed_fee?: number
+          fuente?: string | null
           id?: string
           installments?: number
           iva_on_fee_pct?: number
@@ -21673,12 +21676,14 @@ export type Database = {
           percent_fee?: number
           provider: string
           release_days?: number
+          verificada_el?: string | null
         }
         Update: {
           created_at?: string
           currency?: string
           effective_from?: string
           fixed_fee?: number
+          fuente?: string | null
           id?: string
           installments?: number
           iva_on_fee_pct?: number
@@ -21687,6 +21692,7 @@ export type Database = {
           percent_fee?: number
           provider?: string
           release_days?: number
+          verificada_el?: string | null
         }
         Relationships: []
       }
@@ -39486,6 +39492,125 @@ export type Database = {
           },
         ]
       }
+      comisiones_cobradas: {
+        Row: {
+          bruto: number | null
+          comision_plataforma: number | null
+          comision_proveedor: number | null
+          costo_proveedor_real_pct: number | null
+          costo_total_real_pct: number | null
+          fecha: string | null
+          iva_comision: number | null
+          medio: string | null
+          monto_muy_chico_para_comparar: boolean | null
+          neto: number | null
+          org_id: string | null
+          proveedor: string | null
+          transaccion_id: string | null
+        }
+        Insert: {
+          bruto?: number | null
+          comision_plataforma?: number | null
+          comision_proveedor?: number | null
+          costo_proveedor_real_pct?: never
+          costo_total_real_pct?: never
+          fecha?: string | null
+          iva_comision?: number | null
+          medio?: string | null
+          monto_muy_chico_para_comparar?: never
+          neto?: number | null
+          org_id?: string | null
+          proveedor?: string | null
+          transaccion_id?: string | null
+        }
+        Update: {
+          bruto?: number | null
+          comision_plataforma?: number | null
+          comision_proveedor?: number | null
+          costo_proveedor_real_pct?: never
+          costo_total_real_pct?: never
+          fecha?: string | null
+          iva_comision?: number | null
+          medio?: string | null
+          monto_muy_chico_para_comparar?: never
+          neto?: number | null
+          org_id?: string | null
+          proveedor?: string | null
+          transaccion_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       conteo_varianzas: {
         Row: {
           ajuste: number | null
@@ -39818,6 +39943,29 @@ export type Database = {
             referencedColumns: ["org_id"]
           },
         ]
+      }
+      costos_por_medio_de_pago: {
+        Row: {
+          comision_fija: number | null
+          comision_pct: number | null
+          comision_plataforma_pct: number | null
+          costo_proveedor_pct: number | null
+          costo_total_pct: number | null
+          cuotas: number | null
+          detalle: string | null
+          dias_para_cobrar: number | null
+          fuente: string | null
+          iva_sobre_comision_pct: number | null
+          medio: string | null
+          moneda: string | null
+          neto_cada_100: number | null
+          org_id: string | null
+          proveedor: string | null
+          provider: string | null
+          sin_verificar: boolean | null
+          verificada_el: string | null
+        }
+        Relationships: []
       }
       crm_pending_followups: {
         Row: {
@@ -40294,6 +40442,90 @@ export type Database = {
           },
           {
             foreignKeyName: "deal_outcomes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      desvio_de_comisiones: {
+        Row: {
+          cobros: number | null
+          desvio_pct: number | null
+          estimado_pct: number | null
+          medio: string | null
+          org_id: string | null
+          proveedor: string | null
+          real_promedio_pct: number | null
+          solo_montos_chicos: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"

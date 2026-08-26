@@ -6,6 +6,7 @@ import { getFinanceCoreSnapshot, type FinanceCoreSnapshot } from '@/lib/financeP
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/shared/PageHeader';
+import CostoDeCobrar from '@/components/finance/CostoDeCobrar';
 
 function formatArs(value: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(value);
@@ -40,6 +41,10 @@ export default function FinanceOverviewPage() {
           </Button>
         )}
       />
+
+      {/* Cuanto le cuesta cobrar: va arriba porque decide precios, y hasta
+          hoy el comercio no tenia donde verlo. */}
+      <CostoDeCobrar orgId={activeOrg?.id} />
 
       <section className="rounded-[14px] border border-teal-500/20 bg-gradient-to-br from-teal-500/[0.08] via-card to-card p-5 sm:p-7">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-600 dark:text-teal-300">Finance MVP · Business Core compartido</p>
