@@ -151,6 +151,31 @@ describe("el saldo de la billetera tiene una sola autoridad", () => {
     expect(leer("src/pages/LibroPage.tsx")).toContain('rpc("wallet_saldo"');
     expect(leer("src/pages/WalletPage.tsx")).toContain('rpc("wallet_saldo"');
   });
+
+  it("y lo interpreta con el mismo parser, no con uno propio", () => {
+    // ⚠️ El primer arreglo cambió la columna inexistente por un parser a mano
+    // que buscaba `saldo_disponible` o `saldo`. El RPC devuelve
+    // `{total, moneda, en_retiro, pendiente, retirable, disponible}`: ninguna
+    // de las dos. El síntoma seguía siendo "Sin movimientos" siempre, ahora
+    // por otra causa. `leerSaldo` ya existía y estaba testeado.
+    // Sólo el código: el comentario que explica el error lo nombra, y buscarlo
+    // en todo el archivo hace fallar al test contra su propia documentación.
+    // Ya pasó cuatro veces en esta sesión.
+    const libro = leer("src/pages/LibroPage.tsx");
+    // Se busca el ACCESO a la propiedad, no la palabra: el comentario que
+    // explica el error la nombra, y buscarla suelta hace fallar al test
+    // contra su propia documentacion. Ya paso cuatro veces en esta sesion.
+    expect(libro).toContain("leerSaldo(data)");
+    expect(libro).not.toMatch(/\.saldo_disponible/);
+  });
+
+  it("las claves que el parser lee son las que el RPC devuelve", () => {
+    // Medido contra la base el 2026-08-26.
+    const wallet = leer("src/lib/wallet.ts");
+    for (const clave of ["pendiente", "disponible", "en_retiro", "retirable", "total"]) {
+      expect(wallet).toContain(`n("${clave}")`);
+    }
+  });
 });
 
 describe("un error de carga deja rastro", () => {

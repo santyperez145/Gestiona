@@ -24,6 +24,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { leerSaldo } from "@/lib/wallet";
 import { useOrganization } from "@/hooks/useOrganization";
 import PageHeader from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -117,11 +118,14 @@ export default function LibroPage() {
         setSaldoBilletera(null);
         return;
       }
-      const saldo = typeof data === "number"
-        ? data
-        : Number((data as { saldo_disponible?: number; saldo?: number } | null)?.saldo_disponible
-                 ?? (data as { saldo?: number } | null)?.saldo);
-      setSaldoBilletera(Number.isFinite(saldo) ? saldo : null);
+      // Se usa `leerSaldo`, el mismo parser que `WalletPage`, y no uno propio.
+      //
+      // ⚠️ El primer intento parseaba a mano buscando `saldo_disponible` o
+      // `saldo`, y el RPC devuelve `{total, moneda, en_retiro, pendiente,
+      // retirable, disponible}` — ninguna de las dos existe. O sea que arreglar
+      // la columna inexistente había dejado el mismo síntoma por otra causa:
+      // "Sin movimientos" siempre. Se encontró consultando el RPC de verdad.
+      setSaldoBilletera(leerSaldo(data).disponible);
     })();
   }, [orgId]);
 
