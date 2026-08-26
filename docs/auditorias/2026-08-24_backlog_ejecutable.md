@@ -38,14 +38,30 @@ Toda entrega debe contemplar, cuando corresponda:
 
 # P0 — Verdad operacional
 
-## P0-01 — Fuente de verdad documental — 🟡 parcial (2026-08-25)
+## P0-01 — Fuente de verdad documental — 🟡 falta el ledger de capacidades (2026-08-26)
 
-> **Hecho:** conteos unificados y con fecha, guarda `npm run check:conteos` en CI,
+> **Hecho:** conteos unificados y con fecha con guarda `check:conteos` en CI,
 > procedimiento único de migraciones al tope de la sección, npm declarado con
 > `packageManager` y `engines`. No había `bun.lock` ni `bun.lockb` que borrar.
 >
-> **Falta:** marcar capacidades como `built/verified/operated/adopted`, README
-> con las cuatro superficies, y validación de links en CI.
+> ~~README con las cuatro superficies~~ **hecho el 2026-08-26.** README y
+> CLAUDE.md decían "tres superficies" y omitían **Finance**, que tiene shell
+> propio (`FinanceLayout`), gate propio (`FinanceProductGate`) y exige
+> entitlement de organización más permiso `finance.view`. Omitirla de la tabla
+> de permisos era el peor lugar para omitirla.
+>
+> ~~Validación de links en CI~~ **hecho el 2026-08-26** con
+> `npm run check:enlaces`. Valida rutas y anclas de los `.md`: **54 enlaces
+> internos en 37 documentos**, 0 rotos. Los 147 externos **no** se verifican, a
+> propósito: un sitio caído no es un error de este repo y un CI que falla por
+> algo ajeno enseña a ignorar el CI.
+>
+> Probado en rojo antes de confiar en él: detectó archivo inexistente, ancla
+> inexistente en otro archivo y ancla local rota, y dejó pasar la válida.
+>
+> **Falta:** marcar capacidades como `built/verified/operated/adopted`. Es lo
+> más caro de los tres y lo que más sirve: hoy "está construido" y "se probó
+> contra el organismo" se leen igual en la documentación.
 
 **Owner:** Tech Lead  
 **Objetivo:** eliminar contradicciones entre README, Roadmap, Arquitectura y estado real.
@@ -62,8 +78,8 @@ Toda entrega debe contemplar, cuando corresponda:
 
 - Un developer nuevo levanta local sin instrucción oral.
 - No existe recomendación simultánea de usar y no usar `supabase db push`.
-- README refleja Business, Finance, Platform y Storefront.
-- CI valida links y comandos principales.
+- ✅ README refleja Business, Finance, Platform y Storefront (2026-08-26).
+- ✅ CI valida links (2026-08-26) y comandos principales.
 
 ---
 

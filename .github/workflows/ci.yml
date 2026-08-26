@@ -48,6 +48,17 @@ jobs:
       - name: Conteos de la documentación
         run: npm run check:conteos
 
+      # P0-01: un enlace roto en un repo público manda a alguien a una página
+      # que no existe. Y adentro es peor: CLAUDE.md le dice a cada sesión que
+      # lea docs/ARQUITECTURA.md antes de escribir código — si ese archivo se
+      # renombra, la instrucción sigue ahí apuntando a la nada.
+      #
+      # Valida rutas y anclas de los .md del repo. NO sale a la red: un sitio
+      # externo caído no es un error de este repo, y un CI que falla por algo
+      # ajeno enseña a ignorar el CI.
+      - name: Enlaces de la documentación
+        run: npm run check:enlaces
+
       # Bloqueante: falla el CI ante cualquier ERROR de eslint.
       # Los warnings (deuda de exhaustive-deps) todavía no bloquean.
       - name: Lint

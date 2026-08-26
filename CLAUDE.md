@@ -23,16 +23,23 @@ MercadoLibre, WhatsApp y futuras integraciones son canales alrededor de ese
 núcleo. Si un módulo intenta inventar su propio stock, precio, margen, cobro o
 cliente, va contra la arquitectura.
 
-Tres superficies separadas, y esa separación es deliberada:
+Cuatro superficies separadas, y esa separación es deliberada:
 
 | Superficie | Ruta | Quién | Chrome |
 |---|---|---|---|
-| Organización | `/` | `memberships` | `AppLayout`, acento dorado |
+| Organización | `/` | `memberships` | `AppLayout`, `--primary` violeta en claro / ámbar en oscuro |
+| Finance | `/finance` | `memberships` **+ entitlement `finance` + permiso `finance.view`** | `FinanceLayout`, detrás de `FinanceProductGate` |
 | Plataforma | `/platform` | `platform_admins` | `PlatformLayout`, acento violeta |
 | Tienda pública | `/tienda/:slug` | comprador anónimo | `StoreLayout` |
 
 Ser staff de plataforma **no** otorga permisos dentro de una organización. Ver
 [docs/permisos.md](docs/permisos.md).
+
+⚠️ **Finance no es un módulo de Gestión: es una superficie propia.** Comparte
+deploy y base, pero tiene shell propio, gate propio y criterio de producto
+propio — gestión de gastos corporativos, al estilo Mendel. Entrar a Gestión no
+habilita Finance. El porqué, y cuándo justificaría otra aplicación física, en
+[docs/ADR_001_FINANCE_PRODUCT_SURFACE.md](docs/ADR_001_FINANCE_PRODUCT_SURFACE.md).
 
 ⚠️ **Antes de tocar precios, datos de clientes o el panel de plataforma, leer
 [docs/LEGAL.md](docs/LEGAL.md).** Es el relevamiento contra la normativa
@@ -106,7 +113,9 @@ están en `ROADMAP.md` §0.0.
 patrones de CRM, eMarketplace y marketplace/admin kits compartidos por el
 dueño, sin copiar assets ni convertir Gestiona en una tienda genérica. La
 dirección canónica está en [docs/INTERFAZ.md](docs/INTERFAZ.md) y se aplica a
-tres superficies separadas: Business, Platform y Storefront.
+tres de las cuatro superficies: Business, Platform y Storefront. Finance queda
+afuera a propósito — tiene su propio shell y su propio lenguaje, y mezclarlo con
+el del workspace borraría la separación que el ADR 001 defiende.
 
 - Usar `PageHeader`, el shell de la superficie y los primitives compartidos
   antes de crear CSS o navegación local.

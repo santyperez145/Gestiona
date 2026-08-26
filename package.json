@@ -22,7 +22,8 @@
     "test:e2e:ui": "playwright test --ui",
     "drill:restore": "node scripts/restore-drill.mjs",
     "drill:payments": "node scripts/payment-matrix.mjs",
-    "check:conteos": "node scripts/verificar-conteos.mjs"
+    "check:conteos": "node scripts/verificar-conteos.mjs",
+    "check:enlaces": "node scripts/verificar-enlaces.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
