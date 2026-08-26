@@ -78,7 +78,11 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   const [stockMode, setStockMode] = useState<"replace" | "ignore">("replace");
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationId, setLocationId] = useState("");
-  const [exchangeRate, setExchangeRate] = useState(1695);
+  // ⚠️ Arranca en 0 = "sin cargar", no en un dólar inventado. El importador
+  // convierte costos en dólares a pesos: si arranca con un número puesto, el
+  // comercio importa cientos de productos con el costo de otro dólar sin haber
+  // mirado el campo.
+  const [exchangeRate, setExchangeRate] = useState(0);
   const [customsPercent, setCustomsPercent] = useState(15);
   const [marginPercent, setMarginPercent] = useState(80);
   const [autoPrice, setAutoPrice] = useState(true);

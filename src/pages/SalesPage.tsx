@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useMemo } from "react";
 import { broadcastSync } from "@/lib/broadcastSync";
+import { cotizacionDe } from "@/lib/exchangeRate";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -1443,7 +1444,7 @@ function calcLineItem(
   const isMayorista = paymentMethod === 'mayorista';
   const isPerfume = product.category === 'perfume_arabe' || product.category === 'perfume_diseñador';
   const contentMl = Number(product.content_ml || 100);
-  const exchangeRate = Number(settings?.exchange_rate || 1695);
+  const exchangeRate = (cotizacionDe(settings) ?? 0);
   const volumeThreshold = Number(settings?.volume_discount_threshold || 3);
   const volumeDiscountPct = Number(settings?.volume_discount_percent || 10);
 

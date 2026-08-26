@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
+import { cotizacionDe } from "@/lib/exchangeRate";
 import { calcPnLMargins } from "@/lib/businessCalc";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, saveSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes, getOrgMembersWithProfilesDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
@@ -755,7 +756,9 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
   const [sortKey, setSortKey] = useState<"cost_value" | "retail_value" | "stock" | "margin" | "days_remaining">("cost_value");
   const [sortAsc, setSortAsc] = useState(false);
   const [catFilter, setCatFilter] = useState("all");
-  const rate = Number(settings?.exchange_rate) || 1695;
+  // `0` cuando no hay cotización: los productos en dólares quedan con costo 0 y
+  // se ven en el reporte como lo que son, sin costo conocido. Ver `cotizacionDe`.
+  const rate = cotizacionDe(settings) ?? 0;
 
   // Compute units sold per product in last 30 days
   const velocityMap = useMemo(() => {
@@ -2481,7 +2484,9 @@ function BrandStatsTab({ sales, products, settings, period }: { sales: any[]; pr
   const [sortKey, setSortKey] = useState<"revenue" | "profit" | "margin" | "units" | "capital">("revenue");
   const [sortAsc, setSortAsc] = useState(false);
   const [familiaByProduct, setFamiliaByProduct] = useState<Record<string, string>>({});
-  const rate = Number(settings?.exchange_rate) || 1695;
+  // `0` cuando no hay cotización: los productos en dólares quedan con costo 0 y
+  // se ven en el reporte como lo que son, sin costo conocido. Ver `cotizacionDe`.
+  const rate = cotizacionDe(settings) ?? 0;
 
   useEffect(() => {
     if (!activeOrg) return;

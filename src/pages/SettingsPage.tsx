@@ -3,6 +3,7 @@ import { useStorageEstimate } from "@/hooks/useStorageEstimate";
 import { usePermissionStatus } from "@/hooks/usePermissionStatus";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { useAuth } from "@/lib/auth";
+import { cotizacionDe } from "@/lib/exchangeRate";
 import { useOrg } from "@/lib/orgContext";
 import { hardReload } from "@/lib/hardReload";
 import { subscribeToPush, unsubscribeFromPush, getCurrentSubscription, isPushSupported } from "@/lib/pushNotifications";
@@ -114,6 +115,20 @@ export default function SettingsPage() {
     orgViewKey("settings.section", orgForTemplates?.id),
     "brand",
   );
+
+  // Un enlace como `/settings#finance` abre esa sección. La preferencia
+  // persistida sigue mandando cuando se entra sin hash — la URL sólo gana
+  // cuando alguien pidió explícitamente una sección.
+  //
+  // ⚠️ Se valida contra `SETTINGS_SECTIONS`: un hash inventado no puede dejar
+  // la pantalla sin ninguna sección activa, que es como se rompieron en su
+  // momento los enlaces `#dashboard-*` con una sección inválida guardada.
+  useEffect(() => {
+    const pedida = window.location.hash.replace('#', '');
+    if (pedida && SETTINGS_SECTIONS.some(s => s.id === pedida)) {
+      setSettingsSection(pedida);
+    }
+  }, [setSettingsSection]);
   const [exchangeRate, setExchangeRate] = useState('');
   const { rates: liveRatesData, loading: fetchingRate, refresh: fetchBlueRateRaw } = useExchangeRates(false);
   const liveRates = liveRatesData ? {
@@ -432,7 +447,11 @@ export default function SettingsPage() {
       const num = (val: string, fallback: number) => { const n = parseFloat(val); return isNaN(n) ? fallback : n; };
       const int = (val: string, fallback: number) => { const n = parseInt(val); return isNaN(n) ? fallback : n; };
       await saveSettingsDB(user.id, {
-        exchange_rate: num(exchangeRate, 1695),
+        // ⚠️ Vacío guarda NULL, no 1695. Desde 20260826000030 la columna no
+        // tiene DEFAULT y NULL significa "el comercio todavía no cargó la
+        // cotización" — un estado real, como el NULL de `products.tax_rate`.
+        // Meter un número acá le fijaría al comercio un dólar que nunca eligió.
+        exchange_rate: cotizacionDe({ exchange_rate: exchangeRate }),
         customs_percent: num(customsPercent, 15),
         default_discount_percent: num(defaultDiscountPercent, 20),
         category_pricing: categoryPricing,
@@ -494,7 +513,14 @@ export default function SettingsPage() {
   const handleRecalculate = async () => {
     if (!user) return;
     const products = await getProductsDB(user.id);
-    const rate = parseFloat(exchangeRate) || 1695;
+    // ⚠️ Esto reescribe el precio de **todos** los productos. Hacerlo con una
+    // cotización inventada sería cambiar los precios del comercio contra un
+    // dólar que no es el suyo, y sin que se entere. Se frena.
+    const rate = cotizacionDe({ exchange_rate: exchangeRate });
+    if (rate === null) {
+      toast.error('Cargá el tipo de cambio antes de recalcular: los precios en pesos salen de ahí.');
+      return;
+    }
     const customs = parseFloat(customsPercent) || 15;
     // Se usa el markup/descuento de CADA categoría (settings.category_pricing),
     // no un ×2 fijo — así cambiar el markup de una categoría se refleja acá.

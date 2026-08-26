@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
+import { cotizacionDe } from "@/lib/exchangeRate";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
@@ -1437,7 +1438,7 @@ export default function POSPage() {
         price,
         discountPrice: prod.discount_price_ars ? Number(prod.discount_price_ars) : null,
         costUSD: Number(prod.total_cost_usd) || 0,
-        exchangeRate: Number(settings?.exchange_rate) || 1695,
+        exchangeRate: cotizacionDe(settings) ?? 0,
         quantity: 1,
         stock: stockLimit,
         imageUrl: prod.image_url || null,
@@ -1451,7 +1452,7 @@ export default function POSPage() {
 
   // ── Bundle: explode into individual cart items ──
   const addBundleToCart = (bundle: typeof bundles[0]) => {
-    const exchangeRate = Number(settings?.exchange_rate) || 1695;
+    const exchangeRate = (cotizacionDe(settings) ?? 0);
     let addedCount = 0;
     bundle.bundle_items.forEach(item => {
       const prod = products.find(p => p.id === item.product_id);

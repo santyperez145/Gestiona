@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { cotizacionDe } from "@/lib/exchangeRate";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -682,7 +683,10 @@ function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { user
     (async () => {
       const [p, s] = await Promise.all([getProductsDB(userId), getSettingsDB(userId)]);
       setProducts(p); setSettings(s);
-      setExchangeRate(String(s?.exchange_rate || 1695));
+      // ⚠️ Vacío si el comercio no cargó cotización: una compra en dólares
+      // registrada con un dólar inventado congela un costo equivocado en el
+      // Kardex, y eso ya no se corrige solo.
+      setExchangeRate(cotizacionDe(s) === null ? '' : String(cotizacionDe(s)));
       if (prefilledProductName && !editItem) {
         const match = p.find((prod: any) => prod.name.toLowerCase().includes(prefilledProductName.toLowerCase()));
         if (match) setProductId(match.id);

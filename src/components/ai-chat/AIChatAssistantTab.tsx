@@ -1,5 +1,6 @@
 ﻿import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
+import { cotizacionDe } from "@/lib/exchangeRate";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -671,7 +672,7 @@ function CreatePurchaseCard({ userId, initialSupplier, initialQty, initialCostUS
     );
   }
 
-  const rate = Number(settings?.exchange_rate) || 1695;
+  const rate = (cotizacionDe(settings) ?? 0);
   const qty = parseInt(quantity || "1", 10);
   const unitCostUSD = parseFloat(costUSD || "0");
   const totalUSD = unitCostUSD * qty;

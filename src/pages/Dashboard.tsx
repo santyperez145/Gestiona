@@ -355,8 +355,12 @@ function GaugeChart({ value, max, label, color }: { value: number; max: number; 
 }
 
 function FinancialSection({ stats }: { stats: any }) {
-  const [simRate, setSimRate] = useState<number[]>([stats.currentRate || 1695]);
-  const currentRate = stats.currentRate || 1695;
+  // ⚠️ El simulador compara "qué pasa si el dólar sube" contra la cotización
+  // del comercio. Sin cotización cargada no hay contra qué comparar, y arrancar
+  // en un número inventado mostraría una variación falsa. `0` hace que el
+  // bloque muestre su estado vacío en vez de un porcentaje sin sentido.
+  const currentRate = Number(stats.currentRate) > 0 ? Number(stats.currentRate) : 0;
+  const [simRate, setSimRate] = useState<number[]>([currentRate]);
   const rateChange = simRate[0] - currentRate;
   const ratePct = currentRate > 0 ? ((rateChange / currentRate) * 100).toFixed(1) : '0';
   const simProducts = (stats.products || []).filter((p: any) => Number(p.sale_price_ars) > 0).map((p: any) => {

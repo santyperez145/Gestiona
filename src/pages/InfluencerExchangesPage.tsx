@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
+import { cotizacionDe } from "@/lib/exchangeRate";
 import { getProductsDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import { getExchangesDB, addExchangeDB, updateExchangeDB, deleteExchangeDB, generateInfluencerCode, formatARS as _fmt } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
@@ -106,7 +107,7 @@ export default function InfluencerExchangesPage() {
       ]);
       const productMap: Record<string, any> = {};
       for (const p of allProducts) productMap[p.id] = p;
-      const rate = Number(settings?.exchange_rate || 1695);
+      const rate = (cotizacionDe(settings) ?? 0);
 
       let updated = 0;
       await Promise.all(exchangesWithProduct.map(async (ex) => {
@@ -530,7 +531,7 @@ function ExchangeForm({ userId, editItem, existingExchanges = [], onSave }: { us
 
   const product = products.find(p => p.id === productId);
   const qty = parseInt(quantity) || 1;
-  const exchangeRate = settings?.exchange_rate || 1695;
+  const exchangeRate = cotizacionDe(settings) ?? 0;
   // Investment = cost (what we paid), not sale price
   const costUSD = product ? Number(product.total_cost_usd || 0) : 0;
   const investmentARS = costUSD > 0 ? costUSD * exchangeRate * qty : (product ? Number(product.sale_price_ars) * 0.4 * qty : 0);

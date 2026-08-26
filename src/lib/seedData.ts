@@ -1,4 +1,5 @@
 import { ProductCategory, ProductGender } from './types';
+import { COTIZACION_CATALOGO_SEMILLA } from './exchangeRate';
 import { calculateProductProfits } from './supabaseStore';
 
 interface RawProduct {
@@ -126,7 +127,7 @@ const rawProducts: RawProduct[] = [
 
 // Export for Supabase seeding
 export const seedProductsList = rawProducts.map(raw => {
-  const exchangeRate = 1695;
+  const exchangeRate = COTIZACION_CATALOGO_SEMILLA;
   const customsPercent = 15;
   const { customsFee, totalCostUSD, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(
     raw.costUSD, customsPercent, raw.salePriceARS, exchangeRate

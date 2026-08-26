@@ -2,6 +2,7 @@
 import Fuse from "fuse.js";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
+import { cotizacionDe, costoArsONull, faltaCotizacion } from "@/lib/exchangeRate";
 import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
@@ -488,6 +489,17 @@ export default function ProductsPage() {
   const calidadPorProducto = useMemo(
     () => new Map(paraCalidad.map((p: any) => [p.id, p])), [paraCalidad]);
 
+  // La cotización del comercio, una sola vez para todo el filtrado y el orden.
+  // `null` = no cargó ninguna, y eso NO es cero: ver `cotizacionDe`.
+  const cotizacion = cotizacionDe(settings);
+
+  // ⚠️ Productos cuyo costo NO se puede saber: están en dólares y el comercio
+  // no cargó cotización. Antes se multiplicaban por 1695 y el margen salía
+  // igual — mal, pero sin avisar. Ahora se cuentan y se dicen.
+  const sinCostoUtilizable = cotizacion === null
+    ? products.filter((p: any) => Number(p.cost_ars) <= 0 && Number(p.total_cost_usd || p.cost_usd) > 0).length
+    : 0;
+
   const filtered = products.filter(p => {
     if (filterCalidad) {
       const regla = REGLAS.find(r => r.id === filterCalidad);
@@ -515,7 +527,14 @@ export default function ProductsPage() {
     }
     if (filterMargin !== 'all') {
       const saleP = Number(p.sale_price_ars) || 0;
-      const costP = (Number(p.total_cost_usd) || 0) * (Number(settings?.exchange_rate) || 1695);
+      // ⚠️ Sin cotización, el costo de un producto en dólares es DESCONOCIDO.
+      // Antes se multiplicaba por 1695 y el producto entraba o salía del filtro
+      // según un dólar inventado. Un margen que no se puede calcular no
+      // clasifica: el producto no matchea ni "bajo" ni "alto".
+      const costP = costoArsONull(
+        { costUsd: p.total_cost_usd, costArs: p.cost_ars, costCurrency: p.cost_currency },
+        cotizacion);
+      if (costP === null) return false;
       const margin = saleP > 0 ? ((saleP - costP) / saleP) * 100 : 0;
       if (filterMargin === 'low' && margin >= 20) return false;
       if (filterMargin === 'mid' && (margin < 20 || margin >= 40)) return false;
@@ -555,8 +574,13 @@ export default function ProductsPage() {
     else if (col === "sale_price_ars") { va = Number(a.sale_price_ars) || 0; vb = Number(b.sale_price_ars) || 0; }
     else if (col === "stock") { va = Number(a.stock) || 0; vb = Number(b.stock) || 0; }
     else if (col === "margin") {
-      const saleA = Number(a.sale_price_ars) || 0; const costA = (Number(a.total_cost_usd) || 0) * (Number(settings?.exchange_rate) || 1695);
-      const saleB = Number(b.sale_price_ars) || 0; const costB = (Number(b.total_cost_usd) || 0) * (Number(settings?.exchange_rate) || 1695);
+      // ⚠️ Un costo desconocido se ordena AL FINAL, no como si fuera cero: con
+      // costo 0 el margen da 100% y el producto sin dato encabezaba "lo más
+      // rentable".
+      const saleA = Number(a.sale_price_ars) || 0;
+      const costA = costoArsONull({ costUsd: a.total_cost_usd, costArs: a.cost_ars, costCurrency: a.cost_currency }, cotizacion) ?? Infinity;
+      const saleB = Number(b.sale_price_ars) || 0;
+      const costB = costoArsONull({ costUsd: b.total_cost_usd, costArs: b.cost_ars, costCurrency: b.cost_currency }, cotizacion) ?? Infinity;
       va = saleA > 0 ? (saleA - costA) / saleA : 0;
       vb = saleB > 0 ? (saleB - costB) / saleB : 0;
     }
@@ -799,6 +823,30 @@ export default function ProductsPage() {
 
       {productsWorkspaceTab === "overview" && (
       <>
+      {sinCostoUtilizable > 0 && (
+        <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/10 p-3">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+            <div className="flex-1 min-w-0 text-sm">
+              <p className="font-semibold text-amber-400">
+                {sinCostoUtilizable} producto{sinCostoUtilizable !== 1 ? 's' : ''} sin costo calculable
+              </p>
+              <p className="text-xs text-amber-300/80 mt-0.5">
+                Su costo está en dólares y todavía no hay tipo de cambio cargado, así que
+                el margen y la ganancia de {sinCostoUtilizable !== 1 ? 'esos productos' : 'ese producto'} no
+                se pueden calcular. No se muestran en cero: no se sabe.
+              </p>
+              <button
+                onClick={() => navigate('/settings#finance')}
+                className="text-xs text-amber-400 underline underline-offset-2 mt-1.5"
+              >
+                Cargar el tipo de cambio en Ajustes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* KPI row */}
       <div className="workspace-products-kpis grid grid-cols-2 md:grid-cols-5 gap-3">
         <KPICard label="Total productos" value={products.length} icon={Package} color="primary"
@@ -1874,7 +1922,10 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const enPesos = costCurrency === 'ARS';
   const salePrice = parseFloat(salePriceARS) || 0;
   const customsPercent = Number(settings?.customs_percent || 15);
-  const exchangeRate = Number(settings?.exchange_rate || 1695);
+  // `null` = el comercio no cargó cotización. Los cálculos de abajo lo tienen
+  // que contemplar en vez de recibir un número inventado.
+  const exchangeRate = cotizacionDe(settings) ?? 0;
+  const sinCotizacion = faltaCotizacion(settings);
   // Precios por categoría — fuente de verdad compartida en @/lib/pricing
   const categoryMarkup = getCategoryMarkup(settings, category);
   const defaultDiscount = getCategoryDiscount(settings, category);
@@ -3379,7 +3430,12 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
         }
         // Recalculate profits
         if (updates.sale_price_ars !== undefined) {
-          const exchangeRate = Number(settings?.exchange_rate || 1695);
+          // ⚠️ Sin cotización no se recalcula la ganancia de un producto en
+          // dólares: escribir un número derivado de un dólar inventado deja el
+          // dato mal en la base, que es peor que dejarlo como estaba.
+          const cotizacionInline = cotizacionDe(settings);
+          if (cotizacionInline === null && Number(p.cost_usd) > 0) return;
+          const exchangeRate = cotizacionInline ?? 0;
           const { profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(
             Number(p.cost_usd), Number(settings?.customs_percent || 15), updates.sale_price_ars, exchangeRate
           );

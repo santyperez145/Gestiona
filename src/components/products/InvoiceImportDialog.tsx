@@ -1,5 +1,6 @@
 ﻿import { useState, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth";
+import { cotizacionDe } from "@/lib/exchangeRate";
 import { supabase } from "@/integrations/supabase/client";
 import { addProductDB, addPurchaseDB, getSettingsDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
@@ -184,7 +185,16 @@ export default function InvoiceImportDialog({ mode, onClose, onImported }: Invoi
       settings = await getSettingsDB(user.id);
     } catch { /* ignore — use defaults */ }
 
-    const exchangeRate = Number(settings?.exchange_rate) || 1695;
+    // ⚠️ Esto crea productos con su costo. Con una cotización inventada, cada
+    // producto importado nace con un costo en pesos que no es el que se pagó, y
+    // después ese número alimenta márgenes y precios sugeridos. Se frena.
+    const cotizacion = cotizacionDe(settings);
+    if (cotizacion === null) {
+      toast.error('Cargá el tipo de cambio en Ajustes antes de importar: los costos de la factura vienen en dólares.');
+      setSaving(false);
+      return;
+    }
+    const exchangeRate = cotizacion;
     const customsPct = Number(settings?.customs_percent) || 15;
 
     let saved = 0;

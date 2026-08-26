@@ -501,16 +501,24 @@ export async function addDebtPaymentDB(
 }
 
 // ========= SETTINGS =========
+// ⚠️ Esta función **leía y de paso escribía**. Si no encontraba fila, insertaba
+// una con `exchange_rate: 1695, customs_percent: 15, default_discount_percent:
+// 20` — los valores del importador de perfumes de cuando esto era la app de un
+// solo negocio. Un `getSettings` que crea configuración es una sorpresa, y
+// además le fijaba a cada comercio nuevo una cotización que nunca eligió.
+//
+// Desde `20260826000010` el trigger `trg_organizacion_tiene_settings` le crea la
+// fila a toda organización, y `audit_org_sin_settings` devuelve **0** (medido
+// 2026-08-26). O sea que esa rama no se ejecutaba nunca — pero seguía siendo una
+// mina: bastaba una carrera para plantar los defaults de otro rubro.
+//
+// Ahora sólo lee. Si de verdad no hay fila, es un problema que hay que ver, no
+// uno que se tapa inventando la configuración.
 export async function getSettingsDB(userId: string) {
   const orgId = await orgIdFor(userId);
-  const { data } = await supabase.from('settings').select('*').eq('org_id', orgId).maybeSingle();
-  if (data) return data;
-  const defaults: any = {
-    org_id: orgId, user_id: userId, exchange_rate: 1695, customs_percent: 15, default_discount_percent: 20,
-    tax_enabled: false, tax_iva_percent: 21, tax_iibb_percent: 3.5, tax_monotributo_monthly: 0,
-  };
-  await supabase.from('settings').insert(defaults);
-  return defaults;
+  const { data, error } = await supabase.from('settings').select('*').eq('org_id', orgId).maybeSingle();
+  if (error) throw error;
+  return data ?? null;
 }
 
 export async function saveSettingsDB(userId: string, settings: Record<string, any>) {
