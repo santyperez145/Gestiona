@@ -43,6 +43,8 @@ DECLARE
   v_settlement uuid;
   v_settlement_duplicate uuid;
   v_contra uuid;
+  v_etapas text;
+  v_factura uuid;
   v_rma_grande uuid;
   v_refund_grande jsonb;
   v_proveedores jsonb;
@@ -83,7 +85,7 @@ BEGIN
     -- Habilita el ruteo sin crear ni leer una credencial: la matriz corta antes
     -- de la red y ensaya únicamente la autoridad de estados de Gestiona.
     INSERT INTO public.org_payment_providers (org_id, provider, habilitado, cuenta)
-    VALUES (v_org, 'mercadopago', true, 'ZZ matriz');
+    VALUES (v_org, 'mercadopago', true, 'manual');
 
     -- ── Habilitado pero SIN token: no se ofrece ───────────────────────────
     --
@@ -119,6 +121,17 @@ BEGIN
     INSERT INTO public.ecommerce_stores (org_id, name, slug, is_active)
     VALUES (v_org, 'ZZ tienda matriz', 'zz-payment-matrix-' || v_suffix, true)
     RETURNING id INTO v_store;
+
+    -- ⚠️ Sin tipo de cambio, el costo en pesos da CERO y el asiento sale sin
+    -- costo de mercaderia sin que nada falle: `COALESCE(v_tc, 0)` convierte "no
+    -- se la cotizacion" en "el costo es cero". El fixture lo carga para que la
+    -- matriz pruebe el camino real y no el degradado.
+    -- La cotizacion va en `exchange_rates`, que es la fuente primaria que
+    -- consulta el ledger. No sirve `settings`: su `user_id` es UNICO, asi que
+    -- la organizacion ZZ no puede tener su propia fila si reusa un usuario que
+    -- ya tiene una.
+    INSERT INTO public.exchange_rates (org_id, date, base_currency, usd_ars, eur_ars, brl_ars, source)
+    VALUES (v_org, CURRENT_DATE, 'USD', 1600, 1700, 300, 'manual');
 
     INSERT INTO public.products (
       org_id, user_id, name, sale_price_ars, total_cost_usd, stock, is_active
@@ -240,6 +253,22 @@ BEGIN
       RAISE EXCEPTION 'El ledger perdió la comisión: transacción % + %, asiento %',
         v_provider_fee, v_provider_fee_iva, v_ledger_fee;
     END IF;
+    -- ⚠️ Y el costo de la mercaderia. Sin esto el resultado del periodo es
+    -- ingresos menos gastos SIN el costo, que es el numero mas importante del
+    -- negocio: el margen sale mejor de lo que es, para el lado optimista.
+    SELECT COALESCE(sum(l.debe), 0) INTO v_ledger_fee
+      FROM public.ledger_lines l
+      JOIN public.ledger_accounts a ON a.id = l.account_id
+     WHERE l.entry_id = v_ledger AND a.codigo = '5.1.01';
+    IF v_ledger_fee <= 0 THEN
+      RAISE EXCEPTION 'Sin costo de mercaderia (5.1.01=%). Movimientos por orden=%, por venta=%, unit_cost_usd sumado=%, tipo de cambio de la org=%',
+        v_ledger_fee,
+        (SELECT count(*) FROM public.stock_movements m WHERE m.reference_id = v_order),
+        (SELECT count(*) FROM public.stock_movements m WHERE m.reference_id IN (SELECT s2.id FROM public.sales s2 WHERE s2.ecommerce_order_id = v_order)),
+        (SELECT COALESCE(sum(COALESCE(m.unit_cost_usd,0)),0) FROM public.stock_movements m WHERE m.reference_id IN (SELECT s2.id FROM public.sales s2 WHERE s2.ecommerce_order_id = v_order)),
+        (SELECT COALESCE(st.exchange_rate::text,'(sin settings)') FROM public.settings st WHERE st.org_id = v_org);
+    END IF;
+
     v_results := v_results || jsonb_build_array(jsonb_build_object(
       'scenario', 'liquidacion_al_ledger', 'passed', true,
       'detail', 'source ecommerce conserva comisión e IVA en el asiento'
@@ -282,6 +311,34 @@ BEGIN
     v_results := v_results || jsonb_build_array(jsonb_build_object(
       'scenario', 'traza_end_to_end', 'passed', true,
       'detail', 'misma correlación en checkout, eventos, liquidación y ledger'
+    ));
+
+    -- ── La traza llega hasta la factura y el stock ────────────────────────
+    --
+    -- P0-07 pide poder seguir una venta checkout→payment→order→inventory→
+    -- invoice→ledger. Hasta el 2026-08-25 `payment_operation_trace` cubría
+    -- cinco etapas y le faltaban orden, inventario y factura: contestaba "se
+    -- cobró" pero no "se descontó el stock" ni "se emitió el comprobante", que
+    -- son justo las dos preguntas que aparecen cuando algo salió mal.
+    v_factura := public.facturar_orden_pagada(jsonb_build_object(
+      'org_id', v_org, 'data', jsonb_build_object('order_id', v_order)));
+
+    SELECT string_agg(DISTINCT t.stage, ',' ORDER BY t.stage) INTO v_etapas
+      FROM public.payment_operation_trace t
+     WHERE t.order_id = v_order;
+
+    IF v_etapas IS NULL
+       OR v_etapas NOT LIKE '%order%'
+       OR v_etapas NOT LIKE '%inventory%'
+       OR v_etapas NOT LIKE '%invoice%'
+       OR v_etapas NOT LIKE '%settlement%'
+       OR v_etapas NOT LIKE '%ledger%' THEN
+      RAISE EXCEPTION 'La traza no cubre la cadena completa; etapas presentes: %',
+        COALESCE(v_etapas, '(ninguna)');
+    END IF;
+    v_results := v_results || jsonb_build_array(jsonb_build_object(
+      'scenario', 'traza_hasta_la_factura', 'passed', true,
+      'detail', 'etapas: ' || v_etapas
     ));
 
     -- Rechazo: no acredita y una acción explícita abre un intento nuevo.
@@ -477,6 +534,8 @@ BEGIN
     + (SELECT count(*) FROM public.payment_refunds WHERE org_id = v_org)
     + (SELECT count(*) FROM public.ledger_entries WHERE org_id = v_org)
     + (SELECT count(*) FROM public.return_requests WHERE org_id = v_org)
+    + (SELECT count(*) FROM public.invoices WHERE org_id = v_org)
+    + (SELECT count(*) FROM public.exchange_rates WHERE org_id = v_org)
     + (SELECT count(*) FROM public.payment_connections WHERE org_id = v_org)
   INTO v_leftovers;
   IF v_leftovers <> 0 THEN

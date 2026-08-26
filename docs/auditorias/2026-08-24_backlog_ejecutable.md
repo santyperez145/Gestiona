@@ -227,7 +227,15 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-07 — OpenTelemetry y correlación
+## P0-07 — OpenTelemetry y correlación — 🟡 la traza cierra la cadena (2026-08-25)
+
+> **Hecho:** payment_operation_trace pasa de 5 a 8 etapas: intent, attempt,
+> order, settlement, inventory, invoice, event, ledger. La matriz de pagos lo
+> exige con el escenario traza_hasta_la_factura.
+>
+> **Falta:** exporter OTel real, dashboards, P95 y error rate. Y una venta de
+> mostrador NO aparece en la traza: la correlacion nace en el orquestador de
+> pagos y el POS no pasa por ahi.
 
 **Owner:** Platform/SRE  
 **Objetivo:** reconstruir una operación end-to-end.
