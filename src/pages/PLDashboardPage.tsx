@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -23,9 +24,7 @@ import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 // Purchases carry no location_id, so they are not scoped by store.
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface Sale { total_ars: number; created_at: string; cost_of_goods_ars?: number; location_id?: string | null }
 interface Expense { amount_ars?: number; amount?: number; date: string; category?: string; location_id?: string | null }
-interface Purchase { total_ars: number; created_at: string }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const MONTHS_SHORT = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -48,6 +47,18 @@ const fmtK = (n: number) => {
 function pct(a: number, b: number) { return b === 0 ? 0 : Math.round((a / b) * 100); }
 function changePct(curr: number, prev: number) { return prev === 0 ? null : ((curr - prev) / prev) * 100; }
 
+/** Lo que devuelve `ledger_resultado_mensual`. Los importes vienen como
+ *  `numeric`, que PostgREST serializa a string: se convierten con Number. */
+interface LedgerMonth {
+  mes: string;
+  ingresos: number | string;
+  costo_mercaderia: number | string;
+  margen_bruto: number | string;
+  gastos_operativos: number | string;
+  resultado: number | string;
+  ventas_sin_costo: number | string;
+}
+
 interface MonthlyPL {
   ym: string;
   label: string;
@@ -67,9 +78,7 @@ export default function PLDashboardPage() {
   usePageTitle("Dashboard P&L");
   const { activeOrg } = useOrg();
   const config = useBusinessConfig();
-  const [sales, setSales] = useState<Sale[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [months, setMonths] = useState(12);
   const [selectedYm, setSelectedYm] = useState<string | null>(null);
@@ -86,83 +95,84 @@ export default function PLDashboardPage() {
     const since = new Date();
     since.setMonth(since.getMonth() - 24);
     const sinceStr = since.toISOString();
-    Promise.all([
-      supabase.from("sales").select("total_ars, created_at, cost_of_goods_ars, location_id").eq("org_id", activeOrg.id).gte("created_at", sinceStr),
-      supabase.from("expenses").select("amount_ars, date, category, location_id").eq("org_id", activeOrg.id).gte("date", sinceStr.slice(0, 10)),
-      supabase.from("purchases").select("total_ars, created_at").eq("org_id", activeOrg.id).gte("created_at", sinceStr),
-    ]).then(([{ data: s }, { data: e }, { data: p }]) => {
-      setSales((s as Sale[]) || []);
-      setExpenses((e as Expense[]) || []);
-      setPurchases((p as Purchase[]) || []);
-      setLoading(false);
-    });
+    // Sólo los gastos: el desglose por categoría necesita el detalle de cada
+    // fila. Las ventas y las compras ya no se cargan — el resultado lo da el
+    // ledger, y traer 24 meses de ventas para no usarlas era puro peso.
+    supabase
+      .from("expenses")
+      .select("amount_ars, date, category, location_id")
+      .eq("org_id", activeOrg.id)
+      .gte("date", sinceStr.slice(0, 10))
+      .then(({ data, error }) => {
+        if (error) console.error("no se pudieron leer los gastos", error.message);
+        setExpenses((data as Expense[]) || []);
+        setLoading(false);
+      });
   }, [activeOrg]);
 
   // ── Monthly P&L data ───────────────────────────────────────────────────────
   // Shared date-range filter (URL-persisted) — scopes which raw rows feed the P&L
   const hasDateFilter = !!dateFrom;
-  // Shared store filter (URL-persisted) — scopes sales/expenses to the selected sucursal.
-  const filteredSales = useMemo(() => {
-    let out = hasDateFilter ? sales.filter(s => inRange(s.created_at)) : sales;
-    if (storeId) out = out.filter(s => s.location_id === storeId);
-    return out;
-  }, [sales, hasDateFilter, dateFrom, dateTo, storeId]);
+  // ⚠️ El filtro de fecha y sucursal aplica SOLO al desglose de gastos por
+  //    categoría. La serie mensual del P&L viene del ledger, que no lleva
+  //    `location_id`: filtrarla acá sería mentir — mostraría el mismo número
+  //    con cualquier sucursal elegida.
   const filteredExpenses = useMemo(() => {
     let out = hasDateFilter ? expenses.filter(e => inRange(e.date)) : expenses;
     if (storeId) out = out.filter(e => e.location_id === storeId);
     return out;
   }, [expenses, hasDateFilter, dateFrom, dateTo, storeId]);
-  const filteredPurchases = useMemo(() => hasDateFilter ? purchases.filter(p => inRange(p.created_at)) : purchases, [purchases, hasDateFilter, dateFrom, dateTo]);
 
-  const monthlyPL = useMemo<MonthlyPL[]>(() => {
-    const today = new Date();
-    const result: MonthlyPL[] = [];
+  // ── El resultado sale del ledger, no del navegador ──────────────────────
+  //
+  // ⚠️ Acá se calculaba el P&L sumando filas de `sales`, `expenses` y
+  //    `purchases` en el cliente. `ReportsPage` y `AnalyticsPage` hacían lo
+  //    suyo por separado, así que el mismo mes podía dar números distintos
+  //    según qué pantalla se abriera — y éste estaba mal: informaba margen
+  //    bruto 100% porque el costo le daba cero.
+  //
+  //    `ledger_resultado_mensual` suma **cuentas contables**, no filas de
+  //    ventas. Si mañana entra un ingreso que no es una venta, aparece sin
+  //    tocar esta pantalla. Ver 20260826000280.
+  const [monthlyPL, setMonthlyPL] = useState<MonthlyPL[]>([]);
 
-    for (let i = months - 1; i >= 0; i--) {
-      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const ym = yyyymm(d);
-      const label = `${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
-
-      const revenue = filteredSales.filter(s => yyyymm(new Date(s.created_at)) === ym)
-        .reduce((sum, s) => sum + (s.total_ars || 0), 0);
-
-      const ventasDelMes = filteredSales.filter(s => yyyymm(new Date(s.created_at)) === ym);
-
-      // ⚠️ El costo sale de las ventas, y **sólo** de las ventas. Acá había un
-      //    fallback a las compras del período:
-      //
-      //        const cogs = cogsDirect > 0 ? cogsDirect : purchasesCogs;
-      //
-      //    Sustituir el costo de lo vendido por lo que se compró ese mes es un
-      //    error contable: son cosas distintas —una compra entra al stock, no al
-      //    resultado— y en un mes sin compras da cero, que fue justamente lo que
-      //    pasó. Con 34 ventas sin `cost_of_goods_ars` y 0 compras, el P&L
-      //    informaba **margen bruto 100%**: $616.784 de ganancia en abril donde
-      //    hubo $179.519. Ver 20260826000250.
-      const cogs = ventasDelMes.reduce((sum, s) => sum + (s.cost_of_goods_ars || 0), 0);
-
-      // ⚠️ Una venta sin costo no tiene margen 100%: tiene margen desconocido.
-      //    Se cuenta para poder decirlo en pantalla en vez de esconderlo dentro
-      //    de un número que se ve bien.
-      const ventasSinCosto = ventasDelMes.filter(
-        s => !s.cost_of_goods_ars && (s.total_ars || 0) > 0,
-      ).length;
-
-      const grossProfit = revenue - cogs;
-      const grossMargin = pct(grossProfit, revenue);
-
-      const expensesTotal = filteredExpenses.filter(e => {
-        const ed = new Date(e.date);
-        return yyyymm(ed) === ym;
-      }).reduce((sum, e) => sum + (e.amount_ars || e.amount || 0), 0);
-
-      const netProfit = grossProfit - expensesTotal;
-      const netMargin = pct(netProfit, revenue);
-
-      result.push({ ym, label, revenue, cogs, grossProfit, grossMargin, expenses: expensesTotal, netProfit, netMargin, ventasSinCosto });
-    }
-    return result;
-  }, [filteredSales, filteredExpenses, months]);
+  useEffect(() => {
+    if (!activeOrg) return;
+    let vigente = true;
+    supabase
+      .rpc("ledger_resultado_mensual", { p_org: activeOrg.id, p_meses: months })
+      .then(({ data, error }) => {
+        if (!vigente) return;
+        if (error) {
+          // No se traga: un resultado que no se pudo leer no es un resultado
+          // en cero. Ver la regla de `?? []` en CLAUDE.md.
+          console.error("no se pudo leer el resultado del ledger", error.message);
+          toast.error("No se pudo leer el resultado contable");
+          setMonthlyPL([]);
+          return;
+        }
+        const filas = (data ?? []) as LedgerMonth[];
+        setMonthlyPL(filas.map(f => {
+          const revenue = Number(f.ingresos) || 0;
+          const cogs = Number(f.costo_mercaderia) || 0;
+          const grossProfit = Number(f.margen_bruto) || 0;
+          const expensesTotal = Number(f.gastos_operativos) || 0;
+          const netProfit = Number(f.resultado) || 0;
+          const d = new Date(`${f.mes}T12:00:00`);
+          return {
+            ym: f.mes.slice(0, 7),
+            label: `${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`,
+            revenue, cogs, grossProfit,
+            grossMargin: pct(grossProfit, revenue),
+            expenses: expensesTotal,
+            netProfit,
+            netMargin: pct(netProfit, revenue),
+            ventasSinCosto: Number(f.ventas_sin_costo) || 0,
+          };
+        }));
+      });
+    return () => { vigente = false; };
+  }, [activeOrg, months]);
 
   // Cuántas ventas del período no tienen costo conocido. Ver el aviso de
   // arriba: sin esto, el margen se muestra mejor de lo que es y nadie lo sabe.

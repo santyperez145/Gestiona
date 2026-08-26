@@ -48,7 +48,7 @@ mostrar.
 | Inventario / Kardex | ⚙️ operated | 40 movimientos de stock |
 | Eventos de dominio (H2) | ⚙️ operated | 21 en `domain_events` |
 | Toma física auditada | 🔨 built | **0 conteos cerrados**. El circuito `abrir/registrar/cerrar` está y se probó, pero nadie contó todavía — y contar es justamente lo que P0-03 necesita |
-| Ledger financiero (H3) | 🔨 built | **0 asientos en `ledger_entries`**. Se ejercita en `drill:payments` con datos `ZZ` y contraasienta correctamente; en producción no hay ninguno |
+| Ledger financiero (H3) | ⚙️ operated | **39 asientos** (2026-08-26): las 34 ventas y el gasto históricos asentados y conciliados **exacto** contra la fuente operativa (ventas $1.143.696 = $1.143.696, costo $798.851, gastos $21.560, 0 descuadrados). `trg_sale_ledger` y `trg_expense_ledger` asientan lo nuevo solos; `operaciones_sin_asentar` = 0. El P&L lee de acá |
 
 ### Canales
 
