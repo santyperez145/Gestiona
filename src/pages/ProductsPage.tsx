@@ -1638,6 +1638,23 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [category, setCategory] = useState(product?.category || 'perfume_arabe');
   const [gender, setGender] = useState(product?.gender || 'masculino');
   const [costUSD, setCostUSD] = useState(product?.cost_usd?.toString() || '');
+  /**
+   * ⚠️ En qué moneda se compra este producto.
+   *
+   * Hasta el 2026-08-26 el costo era **siempre** en dólares y el campo era
+   * obligatorio: un comercio que compra en pesos no podía guardar un producto
+   * sin inventar una cifra en dólares. Y si la inventaba dividiendo por la
+   * cotización, su costo **crecía solo** cada vez que se movía el dólar, sin
+   * haber comprado nada.
+   *
+   * Se deduce de lo que el producto ya tiene, sin adivinar: si hay costo en
+   * pesos cargado, es en pesos.
+   */
+  const [costCurrency, setCostCurrency] = useState<'ARS' | 'USD'>(
+    (product?.cost_currency as 'ARS' | 'USD' | null)
+      ?? ((product?.cost_ars ?? 0) > 0 ? 'ARS' : 'USD'),
+  );
+  const [costARS, setCostARS] = useState(product?.cost_ars?.toString() || '');
   const [salePriceARS, setSalePriceARS] = useState(product?.sale_price_ars?.toString() || '');
   const [supplierId, setSupplierId] = useState<string>(product?.supplier_id || '');
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
@@ -1853,6 +1870,8 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   }, [orgId]);
 
   const cost = parseFloat(costUSD) || 0;
+  const costoPesos = parseFloat(costARS) || 0;
+  const enPesos = costCurrency === 'ARS';
   const salePrice = parseFloat(salePriceARS) || 0;
   const customsPercent = Number(settings?.customs_percent || 15);
   const exchangeRate = Number(settings?.exchange_rate || 1695);
@@ -1981,7 +2000,13 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         : parseInt(stock) || 0;
       const data = {
         name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
-        cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
+        // ⚠️ La moneda va explícita: sin ella el resolver tiene que deducirla, y
+        // deducir la moneda de un costo es deducir el margen.
+        cost_usd: enPesos ? 0 : cost,
+        cost_ars: enPesos ? costoPesos : null,
+        cost_currency: costCurrency,
+        customs_fee: enPesos ? 0 : customsFee,
+        total_cost_usd: enPesos ? 0 : totalCostUSD,
         sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
         // Se distingue el vacio del cero a proposito: `parseFloat('') || null`
         // convertiria un 0 legitimo en null y el exento pasaria a gravado.
@@ -2527,12 +2552,49 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         <div><label className="text-sm text-muted-foreground">Stock</label><Input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" /></div>
       </div>
       <div>
-        <label className="text-sm text-muted-foreground">Costo USD *</label>
-        <Input type="number" step="0.01" min="0" value={costUSD} onChange={e => { setCostUSD(e.target.value); setManualSalePrice(false); setManualDiscountPrice(false); }} className="bg-muted border-border" required />
-        {cost > 0 && (
-          <p className="text-[10px] text-muted-foreground mt-1">
-            Fórmula: [(${cost}+{customsPercent}%) × ${exchangeRate}] × {categoryMarkup} = {formatARS(autoSalePrice)} · -{defaultDiscount}% = {formatARS(autoDiscountPrice)}
-          </p>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-sm text-muted-foreground">
+            Costo {enPesos ? 'en pesos' : 'USD'} *
+          </label>
+          {/* El comercio que compra en pesos no pasa por el dólar. */}
+          <div className="flex rounded-md border border-border overflow-hidden text-[10px]">
+            <button
+              type="button"
+              onClick={() => { setCostCurrency('ARS'); setManualSalePrice(false); setManualDiscountPrice(false); }}
+              className={`px-2 py-0.5 transition-colors ${enPesos ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+            >Pesos</button>
+            <button
+              type="button"
+              onClick={() => { setCostCurrency('USD'); setManualSalePrice(false); setManualDiscountPrice(false); }}
+              className={`px-2 py-0.5 transition-colors ${!enPesos ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+            >USD</button>
+          </div>
+        </div>
+
+        {enPesos ? (
+          <>
+            <Input
+              type="number" step="0.01" min="0" value={costARS}
+              onChange={e => { setCostARS(e.target.value); setManualSalePrice(false); setManualDiscountPrice(false); }}
+              className="bg-muted border-border" required
+            />
+            {costoPesos > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Sin tipo de cambio ni aduana: el costo es {formatARS(costoPesos)} y no cambia
+                porque se mueva el dólar. Precio con {categoryMarkup}× ={' '}
+                {formatARS(costoPesos * categoryMarkup)}
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <Input type="number" step="0.01" min="0" value={costUSD} onChange={e => { setCostUSD(e.target.value); setManualSalePrice(false); setManualDiscountPrice(false); }} className="bg-muted border-border" required />
+            {cost > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Fórmula: [(${cost}+{customsPercent}%) × ${exchangeRate}] × {categoryMarkup} = {formatARS(autoSalePrice)} · -{defaultDiscount}% = {formatARS(autoDiscountPrice)}
+              </p>
+            )}
+          </>
         )}
       </div>
       <div className="grid grid-cols-2 gap-3">
