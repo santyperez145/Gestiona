@@ -16,7 +16,7 @@ import {
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
   Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer, Bell, BookUser,
   Instagram, Droplets, List, BarChart3, Search, Filter, ArrowUpRight, PanelRight,
-  Sparkles, UserCheck, RefreshCcw, ShieldAlert,
+  Sparkles, UserCheck, RefreshCcw, ShieldAlert, Kanban,
 } from "lucide-react";
 import { NOTAS_COMUNES, taxLabel } from "@/lib/scentTaxonomy";
 import { recommendForPreferences } from "@/lib/perfumeMatch";
@@ -733,7 +733,7 @@ async function appendCustomerNote(
  * que normaliza acentos — el `ilike` de la consulta no.
  */
 async function crmRowsForCustomer<T extends { id: string; created_at?: string }>(
-  table: "quotes" | "customer_communications",
+  table: "quotes" | "customer_communications" | "deals",
   columns: string,
   orgId: string,
   customer: CustomerRef,
@@ -761,6 +761,101 @@ async function crmRowsForCustomer<T extends { id: string; created_at?: string }>
     .filter(f => belongsToCustomer(f as any, customer))
     .sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))
     .slice(0, limit);
+}
+
+/** Las etapas tal como las nombra el CHECK de `deals.stage`. */
+const DEAL_STAGE_LABEL: Record<string, string> = {
+  lead: "Lead",
+  contactado: "Contactado",
+  propuesta: "Propuesta",
+  negociacion: "Negociación",
+  cerrado: "Ganada",
+  perdido: "Perdida",
+};
+
+/**
+ * Oportunidades del cliente.
+ *
+ * Existe desde que `deals` tiene `customer_id` (2026-08-26). Era la sexta
+ * tabla del CRM y la única que seguía cruzando sólo por `customer_name`, así
+ * que mostrarlas antes habría arrastrado el problema de los homónimos que este
+ * repo ya había resuelto para las otras cinco.
+ *
+ * Usa el mismo `crmRowsForCustomer` que presupuestos y comunicaciones: dos
+ * consultas en vez de un `.or()`, y una fila enlazada a OTRO cliente no vuelve
+ * por la ventana del nombre.
+ */
+function CustomerDealsTab({ customer, orgId }: { customer: CustomerRef; orgId: string }) {
+  const [deals, setDeals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const customerId = customer.id;
+  const customerName = customer.name;
+
+  useEffect(() => {
+    setLoading(true);
+    crmRowsForCustomer<any>(
+      "deals",
+      "id,title,stage,value_ars,expected_close,created_at,customer_id,customer_name",
+      orgId,
+      { id: customerId, name: customerName },
+      20,
+    )
+      .then(filas => setDeals(filas))
+      .catch(() => toast.error("No se pudieron cargar las oportunidades"))
+      .finally(() => setLoading(false));
+  }, [customerId, customerName, orgId]);
+
+  if (loading) return <p className="text-xs text-muted-foreground text-center py-6">Cargando...</p>;
+  if (deals.length === 0) return (
+    <div className="text-center py-6 space-y-2">
+      <p className="text-xs text-muted-foreground">Sin oportunidades para este cliente.</p>
+      <a href="/crm-avanzado" className="text-xs text-primary hover:underline">Abrir el pipeline →</a>
+    </div>
+  );
+
+  const abiertas = deals.filter(d => d.stage !== "cerrado" && d.stage !== "perdido");
+  const ganadas  = deals.filter(d => d.stage === "cerrado");
+  const enJuego  = abiertas.reduce((t, d) => t + Number(d.value_ars || 0), 0);
+  const cerrado  = ganadas.reduce((t, d) => t + Number(d.value_ars || 0), 0);
+
+  return (
+    <div className="space-y-3 pb-12">
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { l: "Oportunidades", v: String(deals.length) },
+          { l: "En juego", v: formatARS(enJuego), sub: `${abiertas.length} abiertas` },
+          { l: "Ganado", v: formatARS(cerrado), sub: `${ganadas.length} cerradas` },
+        ].map(k => (
+          <div key={k.l} className="bg-muted/30 rounded-lg p-2.5 text-xs">
+            <p className="text-muted-foreground mb-1">{k.l}</p>
+            <p className="font-mono font-semibold">{k.v}</p>
+            {k.sub && <p className="text-[10px] text-muted-foreground mt-0.5">{k.sub}</p>}
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-1.5">
+        {deals.map(d => (
+          <div key={d.id} className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2 border border-border/40">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium truncate">{d.title}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
+                  {DEAL_STAGE_LABEL[d.stage] || d.stage}
+                </span>
+              </div>
+              {d.expected_close && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Cierre estimado: {new Date(d.expected_close).toLocaleDateString("es-AR")}
+                </p>
+              )}
+            </div>
+            <span className="text-xs font-mono font-semibold shrink-0">{formatARS(Number(d.value_ars || 0))}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function CustomerQuotesTab({ customer, orgId }: { customer: CustomerRef; orgId: string }) {
@@ -3369,6 +3464,7 @@ export default function CustomersPage() {
                         <TabsTrigger value="compras" className="text-xs h-7 gap-1"><Package className="w-3 h-3" />Compras ({rowsOfCustomer(sales as any[], refDe(c)).length})</TabsTrigger>
                         <TabsTrigger value="deudas" className="text-xs h-7 gap-1"><CreditCard className="w-3 h-3" />Cuotas/Deudas</TabsTrigger>
                         <TabsTrigger value="presupuestos" className="text-xs h-7 gap-1"><FileText className="w-3 h-3" />Presupuestos</TabsTrigger>
+                        <TabsTrigger value="oportunidades" className="text-xs h-7 gap-1"><Kanban className="w-3 h-3" />Oportunidades</TabsTrigger>
                         <TabsTrigger value="contacto" className="text-xs h-7 gap-1"><MessageCircle className="w-3 h-3" />Contacto</TabsTrigger>
                       </TabsList>
 
@@ -3634,6 +3730,16 @@ export default function CustomersPage() {
                       <TabsContent value="presupuestos" className="mt-0">
                         {activeOrg && (
                           <CustomerQuotesTab customer={refDe(c)} orgId={activeOrg.id} />
+                        )}
+                      </TabsContent>
+
+                      {/* ── Tab: Oportunidades ──
+                          Posible desde que `deals` tiene `customer_id`: antes
+                          cruzaba sólo por nombre y la ficha habría mezclado
+                          homónimos. */}
+                      <TabsContent value="oportunidades" className="mt-0">
+                        {activeOrg && (
+                          <CustomerDealsTab customer={refDe(c)} orgId={activeOrg.id} />
                         )}
                       </TabsContent>
 

@@ -779,9 +779,16 @@ por nombre normalizado, porque no hay trigger que enlace lo viejo cuando se da
 de alta un cliente nuevo y leer sólo por id le mostraría la ficha vacía.
 
 **Ya no queda nada del CRM cruzando por nombre.** `quotes` y
-`customer_communications` recibieron la columna en `20260802000001` y usan el
-mismo trigger genérico que las otras tres, así que `trg_sales_link_customer`
-sirve hoy a cinco tablas. Verificado forzando el caso: con el mismo cliente
+`customer_communications` recibieron la columna en `20260802000001`, y `deals`
+en `20260826000210`: `trg_sales_link_customer` sirve hoy a **seis** tablas
+—`sales`, `quotes`, `debts`, `loyalty_points`, `customer_communications` y
+`deals`—.
+
+⚠️ Esta línea decía "cinco" y **estaba incompleta**: `deals` tenía
+`customer_name text` sin columna ni trigger, y quedó afuera de aquella pasada
+sin que nada avisara. Se encontró midiendo `pg_trigger` contra la afirmación,
+no leyéndola. Al agregar una tabla al CRM hay que contar los triggers, no
+confiar en el número escrito acá. Verificado forzando el caso: con el mismo cliente
 escrito de tres formas, la lectura vieja mostraba **1 de 3** presupuestos y 1 de
 3 comunicaciones.
 

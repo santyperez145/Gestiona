@@ -279,9 +279,35 @@ usarse en una presentación, valuación o decisión de inversión.
 | Cuenta comercial MercadoLibre | Publicación e importación reales. | Comercio. |
 | Segundo comercio | Validación externa del onboarding y soporte. | Comercial / founder-led sales. |
 | Reparar el costo de las 34 ventas y backfillear el ledger | Que el ledger pueda ser la autoridad del P&L. | Dueño: escribe historia contable real en un libro inmutable. |
+| Limpiar 9 clientes `ZZ` de verificaciones anteriores | Que el conteo de clientes deje de estar inflado 26%. | Dueño: es un borrado, y son filas reales de su base. |
 
 Ninguno se cierra con una simulación. Requiere responsable, fecha, evidencia y
 entorno.
+
+### 9 clientes de prueba quedaron sin limpiar (2026-08-26)
+
+La verificación de `20260826000210` los encontró de casualidad: su aserción de
+restos contaba `LIKE 'ZZ %'` y devolvió **9**, ninguno creado por ella.
+
+| creado | nombre | ventas | deudas |
+|---|---|---|---|
+| 2026-07-31 | ZZ Circuito Test | 0 | 0 |
+| 2026-08-11 | ZZ Devolucion, ZZ Arrepentido | 0 | 0 |
+| 2026-08-19 | ZZ Ledger | 0 | 0 |
+| 2026-08-20 | ZZ Comprador, ZZ Dos, ZZ FALLA, ZZ Uno | 0 | 0 |
+| 2026-08-26 | ZZ Comprador | 0 | 0 |
+
+Son restos de bloques de verificación de sesiones anteriores que no borraron lo
+que crearon — exactamente lo que la regla de la casa exige que dé 0.
+
+⚠️ **No es sólo prolijidad.** `docs/CAPACIDADES.md` reporta «34 clientes» como
+señal de adopción real. Nueve de esos 34 son de prueba, así que **los reales
+son 25**: cualquier métrica construida sobre `customers` está inflada un 26%.
+
+No se borraron acá porque es un borrado de filas reales de la base del dueño, y
+porque hacerlo dentro de una migración de esquema mezcla dos cosas que deben
+poder revertirse por separado. Los nueve tienen 0 ventas y 0 deudas, así que
+borrarlos no arrastra nada.
 
 ### Por qué el ledger todavía no puede ser la autoridad del P&L (2026-08-26)
 

@@ -7952,6 +7952,7 @@ export type Database = {
       deals: {
         Row: {
           created_at: string | null
+          customer_id: string | null
           customer_name: string | null
           expected_close: string | null
           id: string
@@ -7966,6 +7967,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          customer_id?: string | null
           customer_name?: string | null
           expected_close?: string | null
           id?: string
@@ -7980,6 +7982,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          customer_id?: string | null
           customer_name?: string | null
           expected_close?: string | null
           id?: string
@@ -7993,6 +7996,20 @@ export type Database = {
           win_loss_reason?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "deals_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_identity_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "deals_org_id_fkey"
             columns: ["org_id"]
