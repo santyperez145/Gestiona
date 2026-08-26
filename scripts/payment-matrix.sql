@@ -42,6 +42,17 @@ DECLARE
   v_refund uuid;
   v_settlement uuid;
   v_settlement_duplicate uuid;
+  v_contra uuid;
+  v_rma_grande uuid;
+  v_refund_grande jsonb;
+  v_proveedores jsonb;
+  v_orden_pend uuid;
+  v_intent_pend jsonb;
+  v_estado_pend text;
+  v_debe numeric;
+  v_haber numeric;
+  v_neto_cuenta numeric;
+  v_fallo text;
   v_ledger uuid;
   v_correlation uuid;
   v_transaction_correlation uuid;
@@ -72,7 +83,38 @@ BEGIN
     -- Habilita el ruteo sin crear ni leer una credencial: la matriz corta antes
     -- de la red y ensaya únicamente la autoridad de estados de Gestiona.
     INSERT INTO public.org_payment_providers (org_id, provider, habilitado, cuenta)
-    VALUES (v_org, 'mercadopago', true, 'ZZ matriz sin credencial');
+    VALUES (v_org, 'mercadopago', true, 'ZZ matriz');
+
+    -- ── Habilitado pero SIN token: no se ofrece ───────────────────────────
+    --
+    -- Este es el estado real tras revocar un OAuth: `org_payment_providers`
+    -- queda habilitado y `payment_connections` vacío, porque `mp-connect` no
+    -- toca la primera tabla. Si el checkout lo siguiera ofreciendo, el comprador
+    -- llegaría al final con el carrito lleno y fallaría ahí — el peor lugar.
+    --
+    -- Se prueba ANTES de crear la credencial en vez de borrarla después: la
+    -- matriz limpia por rollback y `paymentMatrixContract.test.ts` prohíbe
+    -- los borrados sobre el esquema `public` justamente para que uno mal apuntado no
+    -- pueda destruir datos reales. La guarda tiene razón; el test se adapta.
+    --
+    -- Devuelve filas, no jsonb: se compara la fila entera como texto para no
+    -- depender del nombre de la columna.
+    SELECT count(*) INTO v_count
+      FROM public.pago_proveedores_para(v_org, 'tarjeta', 1000, 1, 'ARS') p
+     WHERE lower(p::text) LIKE '%mercado%';
+    IF v_count <> 0 THEN
+      RAISE EXCEPTION 'Se ofrece MercadoPago habilitado pero sin token: % proveedores', v_count;
+    END IF;
+    v_results := v_results || jsonb_build_array(jsonb_build_object(
+      'scenario', 'habilitado_sin_token', 'passed', true,
+      'detail', 'el flag encendido sin credencial no ofrece el proveedor'
+    ));
+
+    -- ⚠️ El fixture decía 'sin credencial' y el camino feliz funcionaba igual:
+    -- `pago_proveedores_para` miraba sólo el flag `habilitado`. Desde
+    -- 20260825000020 también exige el token.
+    INSERT INTO public.payment_connections (org_id, provider, external_id, access_token, live_mode)
+    VALUES (v_org, 'mercadopago', 'zz-mp-' || v_suffix, 'ZZ-TOKEN-' || v_suffix, false);
 
     INSERT INTO public.ecommerce_stores (org_id, name, slug, is_active)
     VALUES (v_org, 'ZZ tienda matriz', 'zz-payment-matrix-' || v_suffix, true)
@@ -327,6 +369,93 @@ BEGIN
       'detail', 'orden refund, RMA resuelto, resultado duplicado y stock intacto'
     ));
 
+    -- ── Un webhook 'approved' que llega TARDE no revive el cobro ──────────
+    --
+    -- MercadoPago entrega "al menos una vez" y **sin orden garantizado**: el
+    -- approved original puede reaparecer después del refund. Si eso volviera a
+    -- marcar la orden como pagada, el comercio vería cobrada una venta que ya
+    -- devolvió, y el stock se descontaría por segunda vez.
+    -- ⚠️ Y no lo ignora en silencio: LANZA. Es la respuesta correcta —
+    -- un no-op dejaría al webhook creyendo que se procesó, y MercadoPago
+    -- dejaría de reintentar sin que nadie sepa que llegó fuera de orden.
+    v_fallo := NULL;
+    BEGIN
+      PERFORM public.mark_store_order_paid(v_order, 'zz-payment-' || v_suffix, 'mercado_pago');
+    EXCEPTION WHEN others THEN
+      v_fallo := SQLERRM;
+    END;
+    SELECT count(*) INTO v_count FROM public.sales WHERE ecommerce_order_id = v_order;
+    SELECT stock INTO v_stock_after_payment FROM public.products WHERE id = v_product;
+    IF v_fallo IS NULL
+       OR (SELECT payment_status FROM public.ecommerce_orders WHERE id = v_order) <> 'refunded'
+       OR v_count <> 1
+       OR v_stock_after_payment <> v_stock_after_refund THEN
+      RAISE EXCEPTION 'Un approved fuera de orden revivió el cobro: fallo %, estado %, % ventas, stock %',
+        COALESCE(v_fallo,'(ninguno)'),
+        (SELECT payment_status FROM public.ecommerce_orders WHERE id = v_order),
+        v_count, v_stock_after_payment;
+    END IF;
+    v_results := v_results || jsonb_build_array(jsonb_build_object(
+      'scenario', 'webhook_fuera_de_orden', 'passed', true,
+      'detail', 'un approved posterior al refund se rechaza con error, no en silencio'
+    ));
+
+    -- ── La reversión contable no borra: contraasienta ─────────────────────
+    --
+    -- Un contracargo no puede editar el asiento original: el libro es inmutable
+    -- y una factura o un cierre ya pudieron citarlo. Se crea un asiento espejo
+    -- que lo neutraliza, y **la suma de los dos por cuenta tiene que dar cero**.
+    v_contra := public.ledger_contraasentar(v_ledger, 'ZZ contracargo de la matriz');
+    SELECT COALESCE(sum(debe), 0), COALESCE(sum(haber), 0)
+      INTO v_debe, v_haber FROM public.ledger_lines WHERE entry_id = v_contra;
+    SELECT COALESCE(sum(l.debe - l.haber), 0) INTO v_neto_cuenta
+      FROM public.ledger_lines l WHERE l.entry_id IN (v_ledger, v_contra);
+    IF v_contra IS NULL OR v_debe <> v_haber OR v_debe = 0 OR v_neto_cuenta <> 0 THEN
+      RAISE EXCEPTION 'La reversión no neutralizó el asiento: debe %, haber %, neto %',
+        v_debe, v_haber, v_neto_cuenta;
+    END IF;
+    IF (SELECT anulado_por FROM public.ledger_entries WHERE id = v_ledger) IS NULL
+       OR (SELECT anula_a FROM public.ledger_entries WHERE id = v_contra) <> v_ledger THEN
+      RAISE EXCEPTION 'El contraasiento no quedó enlazado con el original';
+    END IF;
+    v_results := v_results || jsonb_build_array(jsonb_build_object(
+      'scenario', 'reversion_contable', 'passed', true,
+      'detail', 'contraasiento enlazado, cuadrado y con neto cero contra el original'
+    ));
+
+    -- ── No se reintegra dos veces la misma orden ──────────────────────────
+    --
+    -- ⚠️ Este escenario se escribió para probar "reintegro mayor a lo cobrado"
+    -- y **pasó por otra razón**: la orden ya estaba reintegrada, así que el
+    -- rechazo dice "no tiene un pago reintegrable". Es una guarda valiosa —
+    -- devolver dos veces es devolver plata que no entró— pero NO es la del
+    -- monto. Se renombró a lo que verifica de verdad.
+    --
+    -- El caso del monto excesivo sobre una orden pagada y sin devolver sigue
+    -- sin cubrir: exige una segunda orden en la matriz. Queda anotado.
+    INSERT INTO public.return_requests (
+      org_id, rma_number, ecommerce_order_id, customer_name, customer_email,
+      product_name, quantity, status, resolution, refund_amount, reason_text
+    ) VALUES (
+      v_org, 'ZZ-RMA-' || v_suffix, v_order, 'ZZ Comprador', 'zz-matrix@zz.com',
+      'ZZ Producto', 1, 'approved', 'refund', 999999999, 'ZZ monto imposible'
+    ) RETURNING id INTO v_rma_grande;
+
+    v_fallo := NULL;
+    BEGIN
+      v_refund_grande := public.pago_reintegro_preparar(v_rma_grande, v_user);
+    EXCEPTION WHEN others THEN
+      v_fallo := SQLERRM;
+    END;
+    IF v_fallo IS NULL
+       AND COALESCE((v_refund_grande->>'ok')::boolean, true) IS NOT FALSE THEN
+      RAISE EXCEPTION 'Se preparó un reintegro de 999.999.999 sobre una orden de 1000';
+    END IF;
+    v_results := v_results || jsonb_build_array(jsonb_build_object(
+      'scenario', 'reintegro_sobre_orden_ya_reintegrada', 'passed', true,
+      'detail', COALESCE('rechazado: ' || left(v_fallo, 60), 'rechazado por contrato')
+    ));
+
     -- Ejecuta ahora los constraints diferidos. Si alguno falla, no se informa
     -- verde antes de descubrirlo al COMMIT.
     SET CONSTRAINTS ALL IMMEDIATE;
@@ -347,6 +476,8 @@ BEGIN
     + (SELECT count(*) FROM public.payment_transactions WHERE org_id = v_org)
     + (SELECT count(*) FROM public.payment_refunds WHERE org_id = v_org)
     + (SELECT count(*) FROM public.ledger_entries WHERE org_id = v_org)
+    + (SELECT count(*) FROM public.return_requests WHERE org_id = v_org)
+    + (SELECT count(*) FROM public.payment_connections WHERE org_id = v_org)
   INTO v_leftovers;
   IF v_leftovers <> 0 THEN
     RAISE EXCEPTION 'La matriz dejó % restos después del rollback', v_leftovers;

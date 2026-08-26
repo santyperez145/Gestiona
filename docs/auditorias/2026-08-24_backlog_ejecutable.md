@@ -121,7 +121,16 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-04 — Matriz externa de pagos
+## P0-04 — Matriz externa de pagos — 🟡 12/14 escenarios (2026-08-25)
+
+> **Hecho:** `npm run drill:payments` cubre aprobado, rechazado, timeout, retry,
+> webhook duplicado, webhook fuera de orden, refund, refund timeout, refund
+> sobre orden ya reintegrada, reversión contable, habilitado-sin-token y
+> conciliación end-to-end. Todos en verde, RESTOS 0 por rollback.
+>
+> **Falta y por qué:** *webhook firmado* y *refresh token* viven en la Edge
+> Function y una matriz SQL no los puede ejercitar — necesitan test en TS.
+> *Reintegro por monto mayor al cobrado* exige una segunda orden en la matriz.
 
 **Owner:** Payments  
 **Objetivo:** certificar Mercado Pago fuera de la matriz interna.
