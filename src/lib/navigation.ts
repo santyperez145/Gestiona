@@ -71,7 +71,7 @@ export const NAV_ITEMS: NavItem[] = navRoutes().map(r => ({
   to: r.path,
   label: r.nav!.label,
   icon: r.nav!.icon,
-  roles: r.nav!.roles,
+  roles: r.roles,
   group: r.nav!.group,
   keywords: r.nav!.keywords,
 }));

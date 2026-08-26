@@ -221,6 +221,23 @@ nada", y son problemas opuestos. Se distingue el error de relación inexistente
 (`42P01`/`42883`/`PGRST205`/`PGRST202`, que sí justifica el fallback) de
 cualquier otro, que se reporta.
 
+**Las rutas salen de un solo archivo.** `src/app/routeManifest.ts` declara cada
+ruta con su id estable, su módulo de permisos, sus roles, su página y sus
+alias; `App.tsx`, el sidebar, el buscador y `moduleForRoute` derivan de ahí. La
+misma decisión escrita en dos lugares ya divergió dos veces:
+
+- **Permisos:** el fallback por sección de `moduleMap.ts` usaba nombres que la
+  navegación había dejado de usar —coincidían 2 de 8— y **29 de 70 destinos**
+  quedaban sin restricción, incluidos `/ventas` y `/ajustes`.
+- **Roles:** el reparto admin/vendedor vivía en el manifest y en un
+  `{isAdmin && ...}` del router. **5 rutas divergían** y el vendedor rebotaba
+  al dashboard al tocarlas, incluido `/perfil`.
+
+Por eso `module` es obligatorio y `null` exige `openReason` escrito: abrir una
+ruta es una decisión con motivo, nunca un olvido. Lo único que `App.tsx`
+declara a mano son las rutas con parámetros, los montajes de superficie y
+`/login`. Las guardas están en `routeManifest.test.ts`.
+
 **Los tests guardia mandan.** `publicSurface`, `edgeFunctionAuth` y
 `moduleMap` no son burocracia: `edgeFunctionAuth` falló apenas apareció una
 función nueva que manda emails, antes de que llegara a producción. Si uno falla,

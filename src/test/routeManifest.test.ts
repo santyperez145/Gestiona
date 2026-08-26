@@ -3,40 +3,71 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   ROUTES, PUBLIC_ROUTES, INTERNAL_ROUTES, allRoutes, aliasRedirects, navRoutes,
+  businessRoutes, publicPages, publicAliases,
 } from "@/app/routeManifest";
+import { NAV_ITEMS } from "@/lib/navigation";
 
 const ROOT = resolve(__dirname, "../..");
 const APP = readFileSync(resolve(ROOT, "src/App.tsx"), "utf8");
 
-/** Las rutas que `App.tsx` declara, sin las paramétricas ni las comodín. */
-function rutasDelRouter(): Set<string> {
-  return new Set([...APP.matchAll(/<Route\s+path="(\/[^"*:]*)"/g)].map(m => m[1]));
+/**
+ * Las rutas que `App.tsx` todavía declara con un path literal.
+ *
+ * Desde que el router se genera del manifest, esto **tiene que ser corto**:
+ * sólo las paramétricas y los montajes de superficie, que el manifest no
+ * modela. Cualquier otra es una ruta que volvió a escribirse a mano.
+ */
+function rutasLiteralesDelRouter(): string[] {
+  return [...APP.matchAll(/<Route\s+path="(\/[^"]*)"/g)].map(m => m[1]);
 }
 
 /**
  * Guardas del Route Manifest.
  *
  * Existen porque las rutas vivían repartidas entre `App.tsx`, `navigation.ts`,
- * `moduleMap.ts`, el Command Palette y los tests, y eso ya divergió: el
- * 2026-08-26 se midió que **29 de los 70 destinos del sidebar no tenían módulo
- * de permisos**, porque el fallback por sección dependía de que dos
- * vocabularios distintos coincidieran y sólo coincidían 2 de 8.
+ * `moduleMap.ts`, el Command Palette y los tests, y eso ya divergió dos veces:
  *
- * Mientras `App.tsx` siga declarando sus `<Route>` a mano, estos tests son lo
- * que impide que se vuelvan a separar.
+ * - **Permisos:** 29 de los 70 destinos del sidebar no tenían módulo, porque
+ *   el fallback por sección dependía de que dos vocabularios coincidieran y
+ *   sólo coincidían 2 de 8.
+ * - **Roles:** 5 rutas —`/tareas`, `/seguimiento`, `/calendario`, `/envios` y
+ *   `/perfil`— figuraban en el menú de un vendedor y `App.tsx` sólo las
+ *   montaba dentro de `{isAdmin && ...}`, así que el clic lo rebotaba al
+ *   dashboard. Incluido su propio perfil.
+ *
+ * Las dos salían de tener la misma decisión escrita en dos lados.
  */
-describe("el manifest y el router no se separan", () => {
-  it("toda ruta declarada existe en el router", () => {
-    const router = rutasDelRouter();
-    const faltan = allRoutes().map(r => r.path).filter(p => !router.has(p));
-    expect(faltan).toEqual([]);
+describe("el router sale del manifest, no de una lista a mano", () => {
+  it("App.tsx ya no declara rutas de negocio con path literal", () => {
+    const literales = rutasLiteralesDelRouter();
+    const declaradas = new Set(allRoutes().map(r => r.path));
+    const aMano = literales.filter(p => declaradas.has(p) && p !== "/login");
+    expect(aMano).toEqual([]);
   });
 
-  it("todo alias existe como ruta en el router", () => {
-    // Un alias declarado y no montado es un 404 con nombre propio.
-    const router = rutasDelRouter();
-    const faltan = Object.keys(aliasRedirects()).filter(p => !router.has(p));
-    expect(faltan).toEqual([]);
+  it("lo que queda a mano son sólo paramétricas y superficies", () => {
+    // `/tienda/:slug/*`, `/platform/*`, `/finance/*`… El manifest todavía no
+    // modela parámetros, y fingir que sí sería peor que dejarlas afuera.
+    const sospechosas = rutasLiteralesDelRouter()
+      .filter(p => !p.includes(":") && !p.includes("*") && p !== "/login");
+    expect(sospechosas).toEqual([]);
+  });
+
+  it("cada ruta de negocio declara la página que renderiza", () => {
+    // Sin `component` la ruta no se monta y el destino queda muerto.
+    const sinPagina = ROUTES.filter(r => !r.component).map(r => r.path);
+    expect(sinPagina).toEqual([]);
+  });
+
+  it("el router recorre el manifest en vez de enumerar", () => {
+    expect(APP).toContain("businessRoutes(role).map");
+    expect(APP).toContain("businessAliases().map");
+    expect(APP).toContain("publicPages().map");
+  });
+
+  it("ya no hay un reparto admin/vendedor paralelo en el router", () => {
+    // Era la fuente de la divergencia de 5 rutas.
+    expect(APP).not.toContain("{isAdmin && (");
   });
 
   it("todo alias apunta a una ruta canónica que existe", () => {
@@ -49,11 +80,36 @@ describe("el manifest y el router no se separan", () => {
   });
 
   it("ningún alias es también una ruta canónica", () => {
-    // Si lo fuera, habría dos URLs vivas para la misma pantalla — que es el
-    // caso que tenían `/pricing` y `/precios`.
+    // Si lo fuera, habría dos URLs vivas para la misma pantalla — el caso que
+    // tenían `/pricing` y `/precios`.
     const canonicas = new Set(allRoutes().map(r => r.path));
     const ambos = Object.keys(aliasRedirects()).filter(a => canonicas.has(a));
     expect(ambos).toEqual([]);
+  });
+});
+
+describe("los roles viven en un solo lugar", () => {
+  it("las cinco que rebotaban al vendedor ahora se montan para él", () => {
+    const paraVendedor = new Set(businessRoutes("vendedor").map(r => r.path));
+    for (const p of ["/tareas", "/seguimiento", "/calendario", "/envios", "/perfil"]) {
+      expect(paraVendedor.has(p)).toBe(true);
+    }
+  });
+
+  it("lo que es sólo de admin no se monta para un vendedor", () => {
+    const paraVendedor = new Set(businessRoutes("vendedor").map(r => r.path));
+    for (const p of ["/productos", "/ajustes", "/admin", "/equipo"]) {
+      expect(paraVendedor.has(p)).toBe(false);
+    }
+  });
+
+  it("el menú y el router filtran por el mismo campo", () => {
+    // Si se separan vuelve la divergencia: menú que ofrece lo que el router no
+    // monta.
+    const enMenu = NAV_ITEMS.filter(i => i.roles.includes("vendedor")).map(i => i.to).sort();
+    const enRouter = businessRoutes("vendedor")
+      .filter(r => r.nav).map(r => r.path).sort();
+    expect(enRouter).toEqual(enMenu);
   });
 });
 
@@ -84,11 +140,13 @@ describe("/precios es la URL canónica de precios", () => {
     // Renderizaban las dos `PricingPage` en paralelo: dos URLs canónicas para
     // lo mismo parten el SEO, la telemetría y los enlaces compartidos.
     expect(aliasRedirects()["/pricing"]).toBe("/precios");
-    expect(APP).toMatch(/path="\/pricing"\s+element=\{<Navigate to="\/precios"/);
+    // Ya no se busca el `<Route>` a mano: el redirect lo genera el manifest.
+    expect(publicAliases()).toContainEqual(["/pricing", "/precios"]);
   });
 
   it("y /precios sigue siendo la que renderiza", () => {
-    expect(APP).toMatch(/path="\/precios"\s+element=\{<PricingPage/);
+    const precios = publicPages().find(r => r.path === "/precios");
+    expect(precios?.component).toBeTruthy();
   });
 });
 

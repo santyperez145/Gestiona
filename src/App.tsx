@@ -16,6 +16,9 @@ import PlatformLayout from "@/components/PlatformLayout";
 import FinanceLayout from "@/components/finance-product/FinanceLayout";
 import FinanceProductGate from "@/components/finance-product/FinanceProductGate";
 import { PermissionsProvider } from "@/lib/permissionsContext";
+import {
+  businessRoutes, businessAliases, publicPages, publicAliases,
+} from "@/app/routeManifest";
 import { supabase } from "@/integrations/supabase/client";
 import {
   forceStaleBuildRecovery,
@@ -29,35 +32,10 @@ import AuthPage from "@/pages/AuthPage";
 import LandingPage from "@/pages/LandingPage";
 
 // ── Lazy-loaded pages (split per route) ────────────────────────────────────
-const Dashboard              = lazy(() => import("@/pages/Dashboard"));
-const ProductsPage           = lazy(() => import("@/pages/ProductsPage"));
-const DataQualityPage        = lazy(() => import("@/pages/DataQualityPage"));
-const PurchasesPage          = lazy(() => import("@/pages/PurchasesPage"));
-const SalesPage              = lazy(() => import("@/pages/SalesPage"));
-const DebtsPage              = lazy(() => import("@/pages/DebtsPage"));
-const ReportsPage            = lazy(() => import("@/pages/ReportsPage"));
-const SettingsPage           = lazy(() => import("@/pages/SettingsPage"));
-const MarketingPage          = lazy(() => import("@/pages/MarketingPage"));
-const AIInsightsPage         = lazy(() => import("@/pages/AIInsightsPage"));
-const LocationsPage          = lazy(() => import("@/pages/LocationsPage"));
-const ReferralsPage          = lazy(() => import("@/pages/ReferralsPage"));
-const ExpensesPage           = lazy(() => import("@/pages/ExpensesPage"));
-const CustomersPage          = lazy(() => import("@/pages/CustomersPage"));
-const InfluencerExchangesPage= lazy(() => import("@/pages/InfluencerExchangesPage"));
-const InfluencersPage        = lazy(() => import("@/pages/InfluencersPage"));
-const CatalogPage            = lazy(() => import("@/pages/CatalogPage"));
-const AdminPage              = lazy(() => import("@/pages/AdminPage"));
-const ResetPasswordPage      = lazy(() => import("@/pages/ResetPasswordPage"));
 const PublicCatalogPage      = lazy(() => import("@/pages/PublicCatalogPage"));
 const StorefrontPage         = lazy(() => import("@/pages/StorefrontPage"));
 const PublicPaymentPage      = lazy(() => import("@/pages/PublicPaymentPage"));
 const InfluencerPortalPage   = lazy(() => import("@/pages/InfluencerPortalPage"));
-const PricingPage            = lazy(() => import("@/pages/PricingPage"));
-const PrivacyPage            = lazy(() => import("@/pages/PrivacyPage"));
-const TermsPage              = lazy(() => import("@/pages/TermsPage"));
-const ServiceStatusPage      = lazy(() => import("@/pages/ServiceStatusPage"));
-const OnboardingPage         = lazy(() => import("@/pages/OnboardingPage"));
-const TeamPage               = lazy(() => import("@/pages/TeamPage"));
 const InvitationAcceptPage   = lazy(() => import("@/pages/InvitationAcceptPage"));
 const PlatformAdminPage      = lazy(() => import("@/pages/PlatformAdminPage"));
 const PlatformMerchantPage  = lazy(() => import("@/pages/PlatformMerchantPage"));
@@ -70,59 +48,6 @@ const PlatformAfipPage = lazy(() => import("@/pages/PlatformAfipPage"));
 const PlatformAnnouncementsPage = lazy(() => import("@/pages/PlatformAnnouncementsPage"));
 const FinanceOverviewPage     = lazy(() => import("@/pages/FinanceOverviewPage"));
 const FinanceDocumentsPage    = lazy(() => import("@/pages/FinanceDocumentsPage"));
-const AnalyticsPage          = lazy(() => import("@/pages/AnalyticsPage"));
-const InvoicesPage           = lazy(() => import("@/pages/InvoicesPage"));
-const POSPage                = lazy(() => import("@/pages/POSPage"));
-const CashSessionPage        = lazy(() => import("@/pages/CashSessionPage"));
-const IntegrationsPage       = lazy(() => import("@/pages/IntegrationsPage"));
-const ProveedoresPage        = lazy(() => import("@/pages/ProveedoresPage"));
-const PresupuestosPage       = lazy(() => import("@/pages/PresupuestosPage"));
-const DevolucionesPage       = lazy(() => import("@/pages/DevolucionesPage"));
-const CuotasPage             = lazy(() => import("@/pages/CuotasPage"));
-const ChequesPage            = lazy(() => import("@/pages/ChequesPage"));
-const SellerCommissionsPage  = lazy(() => import("@/pages/SellerCommissionsPage"));
-const TasksPage              = lazy(() => import("@/pages/TasksPage"));
-const AutoRestockPage        = lazy(() => import("@/pages/AutoRestockPage"));
-const KardexPage             = lazy(() => import("@/pages/KardexPage"));
-const EmailCampaignsPage     = lazy(() => import("@/pages/EmailCampaignsPage"));
-const WhatsAppCampaignsPage  = lazy(() => import("@/pages/WhatsAppCampaignsPage"));
-const PaymentLinksPage       = lazy(() => import("@/pages/PaymentLinksPage"));
-const BankReconciliationPage = lazy(() => import("@/pages/BankReconciliationPage"));
-const ProfilePage              = lazy(() => import("@/pages/ProfilePage"));
-const FinancialMovementsPage   = lazy(() => import("@/pages/FinancialMovementsPage"));
-const LibroPage                = lazy(() => import("@/pages/LibroPage"));
-const FollowUpPage             = lazy(() => import("@/pages/FollowUpPage"));
-const CouponsPage              = lazy(() => import("@/pages/CouponsPage"));
-const CalendarPage             = lazy(() => import("@/pages/CalendarPage"));
-const CustomerRFMPage          = lazy(() => import("@/pages/CustomerRFMPage"));
-const SalesForecastPage        = lazy(() => import("@/pages/SalesForecastPage"));
-const ProductBundlesPage       = lazy(() => import("@/pages/ProductBundlesPage"));
-const InventoryTransfersPage   = lazy(() => import("@/pages/InventoryTransfersPage"));
-const PromotionsPage           = lazy(() => import("@/pages/PromotionsPage"));
-const SubscriptionsPage        = lazy(() => import("@/pages/SubscriptionsPage"));
-const PriceListsPage           = lazy(() => import("@/pages/PriceListsPage"));
-const WalletPage               = lazy(() => import("@/pages/WalletPage"));
-const MiPlanPage               = lazy(() => import("@/pages/MiPlanPage"));
-const AffiliateProgramPage     = lazy(() => import("@/pages/AffiliateProgramPage"));
-const InventoryForecastPage    = lazy(() => import("@/pages/InventoryForecastPage"));
-const PurchaseOrdersPage       = lazy(() => import("@/pages/PurchaseOrdersPage"));
-const DeliveryTrackingPage     = lazy(() => import("@/pages/DeliveryTrackingPage"));
-const SocialPlannerPage        = lazy(() => import("@/pages/SocialPlannerPage"));
-const BatchLotPage             = lazy(() => import("@/pages/BatchLotPage"));
-const TaxManagementPage        = lazy(() => import("@/pages/TaxManagementPage"));
-const CashFlowPage             = lazy(() => import("@/pages/CashFlowPage"));
-const KPIDashboardPage         = lazy(() => import("@/pages/KPIDashboardPage"));
-const LoyaltyAdvancedPage      = lazy(() => import("@/pages/LoyaltyAdvancedPage"));
-const SmartInventoryPage       = lazy(() => import("@/pages/SmartInventoryPage"));
-const AIChatAdvancedPage       = lazy(() => import("@/pages/AIChatAdvancedPage"));
-const AFIPPage                 = lazy(() => import("@/pages/AFIPPage"));
-const BIReportsPage            = lazy(() => import("@/pages/BIReportsPage"));
-const EcommerceStorePage       = lazy(() => import("@/pages/EcommerceStorePage"));
-const MultiCurrencyPage        = lazy(() => import("@/pages/MultiCurrencyPage"));
-const AdvancedCRMPage          = lazy(() => import("@/pages/AdvancedCRMPage"));
-const InventoryValuationPage   = lazy(() => import("@/pages/InventoryValuationPage"));
-const SmartAlertsPage          = lazy(() => import("@/pages/SmartAlertsPage"));
-const PLDashboardPage          = lazy(() => import("@/pages/PLDashboardPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
@@ -324,116 +249,24 @@ function ProtectedRoutes() {
       </Suspense>
       <Suspense fallback={<PageLoader />}>
         <ModuleGuard>
+        {/* Las rutas salen del Route Manifest, no de una lista a mano.
+            Antes el reparto admin/vendedor vivía acá Y en el manifest, y ya
+            había divergido en 5 rutas: /tareas, /seguimiento, /calendario,
+            /envios y /perfil figuraban en el menú de un vendedor y no se
+            montaban, así que el clic lo rebotaba al dashboard. */}
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/onboarding" element={<OnboardingPage />} />
-          <Route path="/ventas" element={<SalesPage />} />
-          <Route path="/clientes" element={<CustomersPage />} />
-          {/* Vendedor + admin */}
-          <Route path="/caja" element={<POSPage />} />
+          {businessRoutes(role).map(r => (
+            <Route key={r.id} path={r.path} element={<r.component />} />
+          ))}
 
-          {/* Admin-only routes */}
-          {isAdmin && (
-            <>
-              <Route path="/productos" element={<ProductsPage />} />
-              <Route path="/calidad-datos" element={<DataQualityPage />} />
-              <Route path="/compras" element={<PurchasesPage />} />
-              <Route path="/deudas" element={<DebtsPage />} />
-              <Route path="/reportes" element={<ReportsPage />} />
-              <Route path="/marketing" element={<MarketingPage />} />
-              <Route path="/canjes" element={<InfluencerExchangesPage />} />
-              <Route path="/influencers" element={<InfluencersPage />} />
-              <Route path="/liquidaciones" element={<Navigate to="/canjes" replace />} />
-              <Route path="/marca-ia" element={<Navigate to="/marketing" replace />} />
-              <Route path="/combos-banners" element={<Navigate to="/marketing" replace />} />
-              <Route path="/catalogo" element={<CatalogPage />} />
-              <Route path="/ia" element={<AIInsightsPage />} />
-              <Route path="/chat-ia" element={<AIChatAdvancedPage />} />
-              <Route path="/automatizaciones" element={<Navigate to="/marketing" replace />} />
-              <Route path="/sucursales" element={<LocationsPage />} />
-              <Route path="/referidos" element={<ReferralsPage />} />
-              <Route path="/templates" element={<Navigate to="/marketing" replace />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/facturas" element={<InvoicesPage />} />
-              <Route path="/caja/turno" element={<CashSessionPage />} />
-              <Route path="/gastos" element={<ExpensesPage />} />
-              <Route path="/proveedores" element={<ProveedoresPage />} />
-              <Route path="/presupuestos" element={<PresupuestosPage />} />
-              <Route path="/devoluciones" element={<DevolucionesPage />} />
-              <Route path="/cuotas" element={<CuotasPage />} />
-              <Route path="/cheques" element={<ChequesPage />} />
-              <Route path="/comisiones" element={<SellerCommissionsPage />} />
-              <Route path="/tareas" element={<TasksPage />} />
-              <Route path="/restock" element={<AutoRestockPage />} />
-              <Route path="/toma-fisica" element={<Navigate to="/kardex" replace />} />
-              <Route path="/kardex" element={<KardexPage />} />
-              <Route path="/email-campaigns" element={<EmailCampaignsPage />} />
-              <Route path="/whatsapp-campaigns" element={<WhatsAppCampaignsPage />} />
-              <Route path="/links-de-pago" element={<PaymentLinksPage />} />
-              <Route path="/banco" element={<BankReconciliationPage />} />
-              <Route path="/movimientos" element={<FinancialMovementsPage />} />
-              <Route path="/libro" element={<LibroPage />} />
-              <Route path="/pipeline" element={<Navigate to="/crm-avanzado" replace />} />
-              <Route path="/fidelidad" element={<LoyaltyAdvancedPage />} />
-              <Route path="/alertas" element={<SmartAlertsPage />} />
-              <Route path="/actividad" element={<Navigate to="/admin?tab=activity" replace />} />
-              <Route path="/inventario-aging" element={<Navigate to="/valuacion-inventario" replace />} />
-              <Route path="/seguimiento" element={<FollowUpPage />} />
-              <Route path="/cupones" element={<CouponsPage />} />
-              <Route path="/calendario" element={<CalendarPage />} />
-              <Route path="/rfm" element={<CustomerRFMPage />} />
-              <Route path="/forecast" element={<SalesForecastPage />} />
-              <Route path="/secuencias-email" element={<Navigate to="/email-campaigns" replace />} />
-              <Route path="/lead-scoring" element={<Navigate to="/rfm" replace />} />
-              <Route path="/bundles" element={<ProductBundlesPage />} />
-              <Route path="/transferencias" element={<InventoryTransfersPage />} />
-              <Route path="/promociones" element={<PromotionsPage />} />
-              <Route path="/webhooks" element={<Navigate to="/integraciones?tab=webhooks" replace />} />
-              <Route path="/suscripciones" element={<SubscriptionsPage />} />
-              <Route path="/recomendaciones-ia" element={<Navigate to="/" replace />} />
-              <Route path="/listas-precios" element={<PriceListsPage />} />
-              <Route path="/billetera" element={<WalletPage />} />
-              <Route path="/mi-plan" element={<MiPlanPage />} />
-              <Route path="/afiliados" element={<AffiliateProgramPage />} />
-              <Route path="/forecast-inventario" element={<InventoryForecastPage />} />
-              <Route path="/segmentos" element={<Navigate to="/rfm" replace />} />
-              <Route path="/ordenes-compra" element={<PurchaseOrdersPage />} />
-              <Route path="/envios" element={<DeliveryTrackingPage />} />
-              <Route path="/cotizaciones-proveedor" element={<Navigate to="/ordenes-compra" replace />} />
-              <Route path="/tipo-cambio" element={<Navigate to="/multi-divisa" replace />} />
-              <Route path="/planner-social" element={<SocialPlannerPage />} />
-              <Route path="/lotes" element={<BatchLotPage />} />
-              <Route path="/impuestos" element={<TaxManagementPage />} />
-              <Route path="/multi-deposito" element={<Navigate to="/sucursales" replace />} />
-              <Route path="/solicitudes-compra" element={<Navigate to="/ordenes-compra" replace />} />
-              <Route path="/cash-flow" element={<CashFlowPage />} />
-              <Route path="/kpi-dashboard" element={<KPIDashboardPage />} />
-              <Route path="/fidelidad-avanzada" element={<Navigate to="/fidelidad" replace />} />
-              <Route path="/auditoria" element={<Navigate to="/admin?tab=audit" replace />} />
-              <Route path="/api-keys" element={<Navigate to="/integraciones?tab=apikeys" replace />} />
-              <Route path="/devoluciones-rma" element={<Navigate to="/devoluciones" replace />} />
-              <Route path="/inventario-inteligente" element={<SmartInventoryPage />} />
-              <Route path="/chat-ia-avanzado" element={<Navigate to="/chat-ia" replace />} />
-              <Route path="/afip" element={<AFIPPage />} />
-              <Route path="/bi-reportes" element={<BIReportsPage />} />
-              <Route path="/tienda-online" element={<EcommerceStorePage />} />
-              <Route path="/multi-divisa" element={<MultiCurrencyPage />} />
-              <Route path="/analytics-ia" element={<Navigate to="/analytics" replace />} />
-              <Route path="/crm-avanzado" element={<AdvancedCRMPage />} />
-              <Route path="/escenarios-financieros" element={<Navigate to="/pl-dashboard" replace />} />
-              <Route path="/franquicias" element={<Navigate to="/sucursales" replace />} />
-              <Route path="/valuacion-inventario" element={<InventoryValuationPage />} />
-              <Route path="/alertas-inteligentes" element={<Navigate to="/alertas" replace />} />
-              <Route path="/pl-dashboard" element={<PLDashboardPage />} />
-              <Route path="/integraciones" element={<IntegrationsPage />} />
-              <Route path="/ajustes" element={<SettingsPage />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/equipo" element={<TeamPage />} />
-              <Route path="/perfil" element={<ProfilePage />} />
-            </>
-          )}
+          {/* URLs viejas: siguen vivas en bookmarks y mails. El destino puede
+              llevar query (`/admin?tab=audit`), así que se conserva entero. */}
+          {businessAliases().map(([desde, hacia]) => (
+            <Route key={desde} path={desde} element={<Navigate to={hacia} replace />} />
+          ))}
 
-          {/* Redirect vendedor from admin routes */}
+          {/* Un vendedor que escribe una URL de admin vuelve al inicio en vez
+              de ver un 404 que parece una falla del sistema. */}
           {isVendedor && (
             <Route path="*" element={<Navigate to="/" replace />} />
           )}
@@ -492,16 +325,17 @@ const App = () => (
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                <Route path="/landing" element={<Navigate to="/" replace />} />
+                {/* `/login` no sale del manifest: AuthPage no es lazy —es la
+                    primera pantalla y cargarla en dos pasos se ve peor. */}
                 <Route path="/login" element={<AuthPage />} />
-                {/* Canonica: /precios. Las dos renderizaban PricingPage en paralelo, y dos
-                    URLs vivas para la misma pantalla parten SEO, telemetria y enlaces. */}
-                <Route path="/pricing" element={<Navigate to="/precios" replace />} />
-                <Route path="/precios" element={<PricingPage />} />
-                <Route path="/privacidad" element={<PrivacyPage />} />
-                <Route path="/terminos" element={<TermsPage />} />
-                <Route path="/estado" element={<ServiceStatusPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                {publicPages().map(r => (
+                  <Route key={r.id} path={r.path} element={<r.component />} />
+                ))}
+                {publicAliases().map(([desde, hacia]) => (
+                  <Route key={desde} path={desde} element={<Navigate to={hacia} replace />} />
+                ))}
+
+                {/* A mano: llevan parámetros, que el manifest todavía no modela. */}
                 <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
                 <Route path="/tienda/:slug/*" element={<StorefrontPage />} />
                 <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />

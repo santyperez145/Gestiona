@@ -36,10 +36,24 @@
  *
  *   sidebar · buscador · módulo de permisos · redirects de alias
  *
- * `App.tsx` todavía declara sus `<Route>` a mano; el test
- * `routeManifest.test.ts` verifica que no se separen. Generar el router desde
- * este archivo es el paso siguiente, y se hace con las guardas ya puestas —
- * no antes.
+ * ── El segundo lugar donde ya había divergido ─────────────────────────────
+ *
+ * Al generar el router desde acá apareció la misma falla en otra forma: el
+ * reparto admin/vendedor estaba **a la vez** en este archivo y en un
+ * `{isAdmin && (...)}` de `App.tsx`. Medido: **5 rutas divergían** —`/tareas`,
+ * `/seguimiento`, `/calendario`, `/envios` y `/perfil`—. El sidebar se las
+ * mostraba a un vendedor y el router no las montaba, así que el clic caía en
+ * el `path="*"` y lo rebotaba al dashboard. Incluido su propio perfil.
+ *
+ * Por eso `roles` vive al nivel de la ruta y no dentro de `nav`: gobierna las
+ * dos cosas, y una sola decisión no puede estar escrita dos veces.
+ *
+ * ── Lo que `App.tsx` todavía declara a mano ───────────────────────────────
+ *
+ * Sólo lo que este archivo no modela: las rutas con parámetros
+ * (`/tienda/:slug/*`, `/pagar/:linkId`), los montajes de superficie
+ * (`/platform/*`, `/finance/*`) y `/login`, que no es lazy porque es la
+ * primera pantalla. `routeManifest.test.ts` falla si aparece cualquier otra.
  */
 import type { LucideIcon } from "lucide-react";
 import {
@@ -53,7 +67,12 @@ import {
   TrendingUp, Trophy, Truck, UserCircle, UserPlus, Users,
   Users2, Wallet, Warehouse, Zap,
 } from "lucide-react";
+import { lazy } from "react";
+import type { ComponentType, LazyExoticComponent } from "react";
 import type { PermissionModule } from "@/lib/permissionModules";
+
+/** Una página cargada bajo demanda. */
+export type LazyPage = LazyExoticComponent<ComponentType<Record<string, never>>>;
 
 export type NavRole = "admin" | "vendedor" | "viewer";
 
@@ -83,7 +102,6 @@ export interface RouteNav {
   /** Cómo lo llamaría quien usa el sistema, no cómo se llama la tabla. */
   label: string;
   icon: LucideIcon;
-  roles: NavRole[];
   group: NavGroupId;
   /**
    * Términos extra para el buscador: la jerga vieja, sinónimos y lo que
@@ -97,6 +115,23 @@ export interface RouteDefinition {
   /** Estable y único. Es la clave de telemetría; no se renombra al mover la URL. */
   id: string;
   path: string;
+  /**
+   * Quién puede entrar. Vive acá y no en `nav` porque gobierna **dos** cosas
+   * que estaban separadas: si el destino aparece en el sidebar y si la ruta se
+   * monta en el router.
+   *
+   * Estaban en dos lugares —este archivo y el `{isAdmin && ...}` de
+   * `App.tsx`— y divergieron en 5 rutas: `/tareas`, `/seguimiento`,
+   * `/calendario`, `/envios` y `/perfil` figuraban para vendedor en el menú y
+   * no se montaban, así que el clic rebotaba al dashboard. Incluido su propio
+   * perfil.
+   */
+  roles: NavRole[];
+  /**
+   * La página. Se declara acá para que la ruta y lo que renderiza no puedan
+   * separarse; `App.tsx` sólo recorre esta lista.
+   */
+  component?: LazyPage;
   /**
    * Módulo de permisos que exige la ruta, o `null` si es deliberadamente
    * abierta. **Obligatorio**: no hay fallback por sección, que es lo que dejó
@@ -114,79 +149,85 @@ export interface RouteDefinition {
 
 const AMBOS: NavRole[] = ["admin", "vendedor"];
 const SOLO_ADMIN: NavRole[] = ["admin"];
+/**
+ * Rutas públicas: se renderizan fuera de `ProtectedRoutes`, así que no hay rol
+ * que las gobierne. Se declara igual para que el tipo cierre y para no
+ * mantener una lista paralela de "las que no tienen roles".
+ */
+const PUBLICO: NavRole[] = [];
 
 export const ROUTES: RouteDefinition[] = [
-  { id: "inicio", path: "/", module: null, openReason: "Inicio: sin dashboard no hay desde dónde entrar a nada.", aliases: [{ path: "/landing", redirectTo: "/" }, { path: "/recomendaciones-ia", redirectTo: "/" }], status: "canonical", nav: { label: "Inicio", icon: LayoutDashboard, roles: AMBOS, group: "diario", keywords: ["dashboard", "resumen", "home", "panel"] } },
-  { id: "caja", path: "/caja", module: "pos", status: "canonical", nav: { label: "Vender", icon: ScanLine, roles: AMBOS, group: "diario", keywords: ["pos", "caja", "mostrador", "cobrar", "ticket", "punto de venta"] } },
-  { id: "ventas", path: "/ventas", module: "sales", status: "canonical", nav: { label: "Ventas", icon: DollarSign, roles: AMBOS, group: "diario", keywords: ["facturación", "vendido", "pedidos"] } },
-  { id: "productos", path: "/productos", module: "products", status: "canonical", nav: { label: "Productos", icon: Package, roles: SOLO_ADMIN, group: "diario", keywords: ["stock", "catálogo", "precios", "artículos", "mercadería"] } },
-  { id: "clientes", path: "/clientes", module: "customers", status: "canonical", nav: { label: "Clientes", icon: Users, roles: AMBOS, group: "diario", keywords: ["crm", "compradores", "contactos", "fichas"] } },
-  { id: "tienda_online", path: "/tienda-online", module: "ecommerce", status: "canonical", nav: { label: "Tienda online", icon: ShoppingBag, roles: SOLO_ADMIN, group: "diario", keywords: ["ecommerce", "web", "vitrina", "storefront", "pedidos online"] } },
-  { id: "tareas", path: "/tareas", module: null, openReason: "Tareas del propio usuario, no datos del negocio.", status: "canonical", nav: { label: "Tareas", icon: CheckSquare, roles: AMBOS, group: "trabajo", keywords: ["pendientes", "to do", "kanban"] } },
-  { id: "seguimiento", path: "/seguimiento", module: "customers", status: "canonical", nav: { label: "Seguimientos", icon: Bell, roles: AMBOS, group: "trabajo", keywords: ["recordatorios", "follow up", "llamar"] } },
-  { id: "calendario", path: "/calendario", module: null, openReason: "Agenda propia del usuario.", status: "canonical", nav: { label: "Calendario", icon: Calendar, roles: AMBOS, group: "trabajo", keywords: ["agenda", "fechas", "turnos"] } },
-  { id: "compras", path: "/compras", module: "purchases", status: "canonical", nav: { label: "Compras", icon: ShoppingCart, roles: SOLO_ADMIN, group: "compras", keywords: ["importación", "ingreso de mercadería", "proveedor"] } },
-  { id: "ordenes_compra", path: "/ordenes-compra", module: "purchases", aliases: [{ path: "/cotizaciones-proveedor", redirectTo: "/ordenes-compra" }, { path: "/solicitudes-compra", redirectTo: "/ordenes-compra" }], status: "canonical", nav: { label: "Órdenes de compra", icon: ClipboardList, roles: SOLO_ADMIN, group: "compras", keywords: ["oc", "pedido a proveedor", "recepción"] } },
-  { id: "proveedores", path: "/proveedores", module: "purchases", status: "canonical", nav: { label: "Proveedores", icon: Truck, roles: SOLO_ADMIN, group: "compras", keywords: ["suppliers", "a quién le compro"] } },
-  { id: "restock", path: "/restock", module: "inventory", status: "canonical", nav: { label: "Reposición automática", icon: RefreshCw, roles: SOLO_ADMIN, group: "compras", keywords: ["restock", "qué reponer", "sugerencias de compra"] } },
-  { id: "kardex", path: "/kardex", module: "inventory", aliases: [{ path: "/toma-fisica", redirectTo: "/kardex" }], status: "canonical", nav: { label: "Movimientos de stock", icon: History, roles: SOLO_ADMIN, group: "compras", keywords: ["kardex", "historial de stock", "entradas y salidas", "ajustes"] } },
-  { id: "transferencias", path: "/transferencias", module: "inventory", status: "canonical", nav: { label: "Transferencias", icon: ArrowRightLeft, roles: SOLO_ADMIN, group: "compras", keywords: ["mover stock", "entre sucursales", "depósitos"] } },
-  { id: "sucursales", path: "/sucursales", module: "inventory", aliases: [{ path: "/franquicias", redirectTo: "/sucursales" }, { path: "/multi-deposito", redirectTo: "/sucursales" }], status: "canonical", nav: { label: "Sucursales y depósitos", icon: Warehouse, roles: SOLO_ADMIN, group: "compras", keywords: ["locales", "puntos de venta", "almacén", "multi tienda"] } },
-  { id: "lotes", path: "/lotes", module: "inventory", status: "canonical", nav: { label: "Lotes y vencimientos", icon: ScanBarcode, roles: SOLO_ADMIN, group: "compras", keywords: ["batch", "caducidad", "trazabilidad"] } },
-  { id: "bundles", path: "/bundles", module: "products", status: "canonical", nav: { label: "Combos y kits", icon: Layers, roles: SOLO_ADMIN, group: "compras", keywords: ["bundles", "packs", "promo pack"] } },
-  { id: "listas_precios", path: "/listas-precios", module: "products", status: "canonical", nav: { label: "Listas de precios", icon: Tag, roles: SOLO_ADMIN, group: "compras", keywords: ["mayorista", "minorista", "precio por cliente"] } },
-  { id: "valuacion_inventario", path: "/valuacion-inventario", module: "inventory", aliases: [{ path: "/inventario-aging", redirectTo: "/valuacion-inventario" }], status: "canonical", nav: { label: "Valuación de inventario", icon: Layers, roles: SOLO_ADMIN, group: "compras", keywords: ["cuánto vale el stock", "fifo", "costo promedio"] } },
-  { id: "inventario_inteligente", path: "/inventario-inteligente", module: "inventory", status: "canonical", nav: { label: "Inventario con IA", icon: Brain, roles: SOLO_ADMIN, group: "compras", keywords: ["sugerencias", "optimizar stock"] } },
-  { id: "forecast_inventario", path: "/forecast-inventario", module: "inventory", status: "canonical", nav: { label: "Proyección de stock", icon: TrendingUp, roles: SOLO_ADMIN, group: "compras", keywords: ["forecast", "cuánto voy a necesitar", "quiebre de stock"] } },
-  { id: "deudas", path: "/deudas", module: "sales", status: "canonical", nav: { label: "Deudas", icon: AlertCircle, roles: SOLO_ADMIN, group: "cobranzas", keywords: ["me deben", "cuentas por cobrar", "fiado", "moroso"] } },
-  { id: "cuotas", path: "/cuotas", module: "sales", status: "canonical", nav: { label: "Cuotas", icon: CreditCard, roles: SOLO_ADMIN, group: "cobranzas", keywords: ["financiación", "plan de pago", "vencimientos"] } },
-  { id: "presupuestos", path: "/presupuestos", module: "sales", status: "canonical", nav: { label: "Presupuestos", icon: ClipboardList, roles: SOLO_ADMIN, group: "cobranzas", keywords: ["cotización", "quotes", "proforma"] } },
-  { id: "facturas", path: "/facturas", module: "invoices", status: "canonical", nav: { label: "Facturas", icon: FileText, roles: SOLO_ADMIN, group: "cobranzas", keywords: ["comprobantes", "invoices"] } },
-  { id: "devoluciones", path: "/devoluciones", module: "sales", aliases: [{ path: "/devoluciones-rma", redirectTo: "/devoluciones" }], status: "canonical", nav: { label: "Devoluciones", icon: RotateCcw, roles: SOLO_ADMIN, group: "cobranzas", keywords: ["cambios", "rma", "reembolso"] } },
-  { id: "envios", path: "/envios", module: "shipping", status: "canonical", nav: { label: "Envíos", icon: Truck, roles: AMBOS, group: "cobranzas", keywords: ["seguimiento", "tracking", "despacho", "correo", "andreani"] } },
-  { id: "links_de_pago", path: "/links-de-pago", module: "payments", status: "canonical", nav: { label: "Links de pago", icon: Link2, roles: SOLO_ADMIN, group: "cobranzas", keywords: ["cobrar a distancia", "link mercadopago"] } },
-  { id: "mi_plan", path: "/mi-plan", module: "settings", status: "canonical", nav: { label: "Mi plan", icon: CreditCard, roles: SOLO_ADMIN, group: "sistema", keywords: ["suscripcion", "plan", "pagar", "mercadopago", "facturacion", "abono"] } },
-  { id: "billetera", path: "/billetera", module: "finance", status: "canonical", nav: { label: "Billetera", icon: Wallet, roles: SOLO_ADMIN, group: "finanzas", keywords: ["saldo", "plata", "retirar", "retiro", "cobros", "disponible", "acreditado", "cbu"] } },
-  { id: "gastos", path: "/gastos", module: "expenses", status: "canonical", nav: { label: "Gastos", icon: Wallet, roles: SOLO_ADMIN, group: "finanzas", keywords: ["egresos", "pagos", "costos fijos"] } },
-  { id: "cash_flow", path: "/cash-flow", module: "finance", status: "canonical", nav: { label: "Flujo de caja", icon: BarChart3, roles: SOLO_ADMIN, group: "finanzas", keywords: ["cash flow", "proyección de plata", "liquidez"] } },
-  { id: "pl_dashboard", path: "/pl-dashboard", module: "finance", aliases: [{ path: "/escenarios-financieros", redirectTo: "/pl-dashboard" }], status: "canonical", nav: { label: "Ganancias y pérdidas", icon: TrendingUp, roles: SOLO_ADMIN, group: "finanzas", keywords: ["p&l", "pl", "resultado", "rentabilidad", "estado de resultados"] } },
-  { id: "banco", path: "/banco", module: "finance", status: "canonical", nav: { label: "Banco y conciliación", icon: Landmark, roles: SOLO_ADMIN, group: "finanzas", keywords: ["conciliar", "extracto", "movimientos bancarios"] } },
-  { id: "movimientos", path: "/movimientos", module: "payments", status: "canonical", nav: { label: "Movimientos operativos", icon: BookOpen, roles: SOLO_ADMIN, group: "finanzas", keywords: ["libro mayor", "movimientos", "caja", "asientos", "financial movements"] } },
-  { id: "cheques", path: "/cheques", module: "finance", status: "canonical", nav: { label: "Cheques", icon: FileText, roles: SOLO_ADMIN, group: "finanzas", keywords: ["echeq", "valores", "cartera"] } },
-  { id: "comisiones", path: "/comisiones", module: "finance", status: "canonical", nav: { label: "Comisiones", icon: Receipt, roles: SOLO_ADMIN, group: "finanzas", keywords: ["vendedores", "aranceles", "mercadopago"] } },
-  { id: "impuestos", path: "/impuestos", module: "finance", status: "canonical", nav: { label: "Impuestos", icon: Scale, roles: SOLO_ADMIN, group: "finanzas", keywords: ["iva", "ingresos brutos", "retenciones", "arca"] } },
-  { id: "afip", path: "/afip", module: "invoices", status: "canonical", nav: { label: "AFIP y factura electrónica", icon: Shield, roles: SOLO_ADMIN, group: "finanzas", keywords: ["arca", "cae", "facturar", "wsfe", "monotributo"] } },
-  { id: "multi_divisa", path: "/multi-divisa", module: "finance", aliases: [{ path: "/tipo-cambio", redirectTo: "/multi-divisa" }], status: "canonical", nav: { label: "Multi-divisa", icon: DollarSign, roles: SOLO_ADMIN, group: "finanzas", keywords: ["dólar", "tipo de cambio", "fx", "cotización"] } },
-  { id: "suscripciones", path: "/suscripciones", module: "finance", status: "canonical", nav: { label: "Suscripciones", icon: CreditCard, roles: SOLO_ADMIN, group: "finanzas", keywords: ["abonos", "cobro recurrente", "membresías"] } },
-  { id: "marketing", path: "/marketing", module: "marketing", aliases: [{ path: "/automatizaciones", redirectTo: "/marketing" }, { path: "/combos-banners", redirectTo: "/marketing" }, { path: "/marca-ia", redirectTo: "/marketing" }, { path: "/templates", redirectTo: "/marketing" }], status: "canonical", nav: { label: "Campañas", icon: Megaphone, roles: SOLO_ADMIN, group: "marketing", keywords: ["marketing", "publicidad", "anuncios"] } },
-  { id: "cupones", path: "/cupones", module: "marketing", status: "canonical", nav: { label: "Cupones", icon: Tag, roles: SOLO_ADMIN, group: "marketing", keywords: ["descuentos", "códigos", "promo"] } },
-  { id: "promociones", path: "/promociones", module: "marketing", status: "canonical", nav: { label: "Promociones", icon: Zap, roles: SOLO_ADMIN, group: "marketing", keywords: ["ofertas", "flash sale", "2x1", "liquidación"] } },
-  { id: "email_campaigns", path: "/email-campaigns", module: "marketing", aliases: [{ path: "/secuencias-email", redirectTo: "/email-campaigns" }], status: "canonical", nav: { label: "Email", icon: Mail, roles: SOLO_ADMIN, group: "marketing", keywords: ["newsletter", "mailing", "correo masivo"] } },
-  { id: "whatsapp_campaigns", path: "/whatsapp-campaigns", module: "marketing", status: "canonical", nav: { label: "WhatsApp", icon: MessageCircle, roles: SOLO_ADMIN, group: "marketing", keywords: ["difusión", "wsp", "mensajes masivos"] } },
-  { id: "fidelidad", path: "/fidelidad", module: "marketing", aliases: [{ path: "/fidelidad-avanzada", redirectTo: "/fidelidad" }], status: "canonical", nav: { label: "Fidelidad", icon: Star, roles: SOLO_ADMIN, group: "marketing", keywords: ["puntos", "recompensas", "loyalty", "clientes frecuentes"] } },
-  { id: "canjes", path: "/canjes", module: "influencers", aliases: [{ path: "/liquidaciones", redirectTo: "/canjes" }], status: "canonical", nav: { label: "Canjes con influencers", icon: Gift, roles: SOLO_ADMIN, group: "marketing", keywords: ["regalos", "colaboraciones", "prensa"] } },
-  { id: "influencers", path: "/influencers", module: "influencers", status: "canonical", nav: { label: "Influencers", icon: Users2, roles: SOLO_ADMIN, group: "marketing", keywords: ["creadores", "instagram", "tiktok"] } },
-  { id: "afiliados", path: "/afiliados", module: "marketing", status: "canonical", nav: { label: "Afiliados", icon: UserPlus, roles: SOLO_ADMIN, group: "marketing", keywords: ["comisión por venta", "partners"] } },
-  { id: "referidos", path: "/referidos", module: "marketing", status: "canonical", nav: { label: "Referidos", icon: Trophy, roles: SOLO_ADMIN, group: "marketing", keywords: ["recomendaciones", "traé un amigo"] } },
-  { id: "planner_social", path: "/planner-social", module: "marketing", status: "canonical", nav: { label: "Planner de redes", icon: Share2, roles: SOLO_ADMIN, group: "marketing", keywords: ["calendario de contenido", "posteos", "instagram"] } },
-  { id: "catalogo", path: "/catalogo", module: "marketing", status: "canonical", nav: { label: "Catálogo por WhatsApp", icon: BookOpen, roles: SOLO_ADMIN, group: "marketing", keywords: ["lista de precios", "compartir productos", "pdf"] } },
-  { id: "reportes", path: "/reportes", module: "reports", status: "canonical", nav: { label: "Reportes", icon: TrendingUp, roles: SOLO_ADMIN, group: "reportes", keywords: ["informes", "exportar", "excel"] } },
-  { id: "analytics", path: "/analytics", module: "analytics", aliases: [{ path: "/analytics-ia", redirectTo: "/analytics" }], status: "canonical", nav: { label: "Analytics", icon: BarChart3, roles: SOLO_ADMIN, group: "reportes", keywords: ["métricas", "estadísticas", "gráficos"] } },
-  { id: "kpi_dashboard", path: "/kpi-dashboard", module: "analytics", status: "canonical", nav: { label: "KPIs", icon: LineChart, roles: SOLO_ADMIN, group: "reportes", keywords: ["indicadores", "objetivos", "metas"] } },
-  { id: "bi_reportes", path: "/bi-reportes", module: "reports", status: "canonical", nav: { label: "Reportes avanzados", icon: BarChart3, roles: SOLO_ADMIN, group: "reportes", keywords: ["bi", "business intelligence", "cohortes", "drilldown"] } },
-  { id: "forecast", path: "/forecast", module: "analytics", status: "canonical", nav: { label: "Proyección de ventas", icon: TrendingUp, roles: SOLO_ADMIN, group: "reportes", keywords: ["forecast", "cuánto voy a vender", "pronóstico"] } },
-  { id: "rfm", path: "/rfm", module: "customers", aliases: [{ path: "/lead-scoring", redirectTo: "/rfm" }, { path: "/segmentos", redirectTo: "/rfm" }], status: "canonical", nav: { label: "Segmentación de clientes", icon: Users, roles: SOLO_ADMIN, group: "reportes", keywords: ["rfm", "quién compra más", "recencia", "segmentos"] } },
-  { id: "crm_avanzado", path: "/crm-avanzado", module: "crm", aliases: [{ path: "/pipeline", redirectTo: "/crm-avanzado" }], status: "canonical", nav: { label: "Pipeline de ventas", icon: Kanban, roles: SOLO_ADMIN, group: "reportes", keywords: ["embudo", "oportunidades", "negocios", "crm avanzado"] } },
-  { id: "ia", path: "/ia", module: "analytics", status: "canonical", nav: { label: "Insights con IA", icon: Sparkles, roles: SOLO_ADMIN, group: "reportes", keywords: ["inteligencia artificial", "sugerencias", "análisis"] } },
-  { id: "chat_ia", path: "/chat-ia", module: "analytics", aliases: [{ path: "/chat-ia-avanzado", redirectTo: "/chat-ia" }], status: "canonical", nav: { label: "Asistente IA", icon: Brain, roles: SOLO_ADMIN, group: "sistema", keywords: ["chat", "preguntar", "copiloto"] } },
-  { id: "alertas", path: "/alertas", module: null, openReason: "Avisos derivados de otros modulos: ocultarlos dejaria al usuario sin enterarse de lo que si puede ver.", aliases: [{ path: "/alertas-inteligentes", redirectTo: "/alertas" }], status: "canonical", nav: { label: "Alertas", icon: AlertTriangle, roles: SOLO_ADMIN, group: "sistema", keywords: ["avisos", "notificaciones", "reglas"] } },
-  { id: "integraciones", path: "/integraciones", module: "settings", aliases: [{ path: "/api-keys", redirectTo: "/integraciones?tab=apikeys" }, { path: "/webhooks", redirectTo: "/integraciones?tab=webhooks" }], status: "canonical", nav: { label: "Integraciones", icon: Plug, roles: SOLO_ADMIN, group: "sistema", keywords: ["api", "mercadolibre", "mercadopago", "conectar", "webhooks"] } },
-  { id: "equipo", path: "/equipo", module: "team", status: "canonical", nav: { label: "Equipo", icon: Users, roles: SOLO_ADMIN, group: "sistema", keywords: ["usuarios", "permisos", "empleados", "invitar"] } },
-  { id: "ajustes", path: "/ajustes", module: "settings", status: "canonical", nav: { label: "Ajustes", icon: Settings, roles: SOLO_ADMIN, group: "sistema", keywords: ["configuración", "preferencias", "datos del negocio"] } },
-  { id: "perfil", path: "/perfil", module: null, openReason: "Perfil del propio usuario.", status: "canonical", nav: { label: "Mi perfil", icon: UserCircle, roles: AMBOS, group: "sistema", keywords: ["cuenta", "contraseña", "2fa"] } },
-  { id: "admin", path: "/admin", module: "settings", aliases: [{ path: "/actividad", redirectTo: "/admin?tab=activity" }, { path: "/auditoria", redirectTo: "/admin?tab=audit" }], status: "canonical", nav: { label: "Admin", icon: Crown, roles: SOLO_ADMIN, group: "sistema", keywords: ["administración", "organización", "suscripción"] } },
-  { id: "calidad_datos", path: "/calidad-datos", module: "products", status: "canonical", nav: { label: "Calidad de datos", icon: ScanSearch, roles: SOLO_ADMIN, group: "sistema", keywords: ["identidad", "sku", "ean", "duplicados", "completitud", "data quality"] } },
-  { id: "libro", path: "/libro", module: "finance", status: "canonical", nav: { label: "Libro mayor", icon: BookOpen, roles: SOLO_ADMIN, group: "finanzas", keywords: ["ledger", "asientos", "contabilidad", "resultado", "libro"] } },
+  { id: "inicio", path: "/", roles: AMBOS, component: lazy(() => import("@/pages/Dashboard")), module: null, openReason: "Inicio: sin dashboard no hay desde dónde entrar a nada.", aliases: [{ path: "/landing", redirectTo: "/" }, { path: "/recomendaciones-ia", redirectTo: "/" }], status: "canonical", nav: { label: "Inicio", icon: LayoutDashboard, group: "diario", keywords: ["dashboard", "resumen", "home", "panel"] } },
+  { id: "caja", path: "/caja", roles: AMBOS, component: lazy(() => import("@/pages/POSPage")), module: "pos", status: "canonical", nav: { label: "Vender", icon: ScanLine, group: "diario", keywords: ["pos", "caja", "mostrador", "cobrar", "ticket", "punto de venta"] } },
+  { id: "ventas", path: "/ventas", roles: AMBOS, component: lazy(() => import("@/pages/SalesPage")), module: "sales", status: "canonical", nav: { label: "Ventas", icon: DollarSign, group: "diario", keywords: ["facturación", "vendido", "pedidos"] } },
+  { id: "productos", path: "/productos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ProductsPage")), module: "products", status: "canonical", nav: { label: "Productos", icon: Package, group: "diario", keywords: ["stock", "catálogo", "precios", "artículos", "mercadería"] } },
+  { id: "clientes", path: "/clientes", roles: AMBOS, component: lazy(() => import("@/pages/CustomersPage")), module: "customers", status: "canonical", nav: { label: "Clientes", icon: Users, group: "diario", keywords: ["crm", "compradores", "contactos", "fichas"] } },
+  { id: "tienda_online", path: "/tienda-online", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/EcommerceStorePage")), module: "ecommerce", status: "canonical", nav: { label: "Tienda online", icon: ShoppingBag, group: "diario", keywords: ["ecommerce", "web", "vitrina", "storefront", "pedidos online"] } },
+  { id: "tareas", path: "/tareas", roles: AMBOS, component: lazy(() => import("@/pages/TasksPage")), module: null, openReason: "Tareas del propio usuario, no datos del negocio.", status: "canonical", nav: { label: "Tareas", icon: CheckSquare, group: "trabajo", keywords: ["pendientes", "to do", "kanban"] } },
+  { id: "seguimiento", path: "/seguimiento", roles: AMBOS, component: lazy(() => import("@/pages/FollowUpPage")), module: "customers", status: "canonical", nav: { label: "Seguimientos", icon: Bell, group: "trabajo", keywords: ["recordatorios", "follow up", "llamar"] } },
+  { id: "calendario", path: "/calendario", roles: AMBOS, component: lazy(() => import("@/pages/CalendarPage")), module: null, openReason: "Agenda propia del usuario.", status: "canonical", nav: { label: "Calendario", icon: Calendar, group: "trabajo", keywords: ["agenda", "fechas", "turnos"] } },
+  { id: "compras", path: "/compras", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PurchasesPage")), module: "purchases", status: "canonical", nav: { label: "Compras", icon: ShoppingCart, group: "compras", keywords: ["importación", "ingreso de mercadería", "proveedor"] } },
+  { id: "ordenes_compra", path: "/ordenes-compra", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PurchaseOrdersPage")), module: "purchases", aliases: [{ path: "/cotizaciones-proveedor", redirectTo: "/ordenes-compra" }, { path: "/solicitudes-compra", redirectTo: "/ordenes-compra" }], status: "canonical", nav: { label: "Órdenes de compra", icon: ClipboardList, group: "compras", keywords: ["oc", "pedido a proveedor", "recepción"] } },
+  { id: "proveedores", path: "/proveedores", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ProveedoresPage")), module: "purchases", status: "canonical", nav: { label: "Proveedores", icon: Truck, group: "compras", keywords: ["suppliers", "a quién le compro"] } },
+  { id: "restock", path: "/restock", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AutoRestockPage")), module: "inventory", status: "canonical", nav: { label: "Reposición automática", icon: RefreshCw, group: "compras", keywords: ["restock", "qué reponer", "sugerencias de compra"] } },
+  { id: "kardex", path: "/kardex", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/KardexPage")), module: "inventory", aliases: [{ path: "/toma-fisica", redirectTo: "/kardex" }], status: "canonical", nav: { label: "Movimientos de stock", icon: History, group: "compras", keywords: ["kardex", "historial de stock", "entradas y salidas", "ajustes"] } },
+  { id: "transferencias", path: "/transferencias", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InventoryTransfersPage")), module: "inventory", status: "canonical", nav: { label: "Transferencias", icon: ArrowRightLeft, group: "compras", keywords: ["mover stock", "entre sucursales", "depósitos"] } },
+  { id: "sucursales", path: "/sucursales", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/LocationsPage")), module: "inventory", aliases: [{ path: "/franquicias", redirectTo: "/sucursales" }, { path: "/multi-deposito", redirectTo: "/sucursales" }], status: "canonical", nav: { label: "Sucursales y depósitos", icon: Warehouse, group: "compras", keywords: ["locales", "puntos de venta", "almacén", "multi tienda"] } },
+  { id: "lotes", path: "/lotes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/BatchLotPage")), module: "inventory", status: "canonical", nav: { label: "Lotes y vencimientos", icon: ScanBarcode, group: "compras", keywords: ["batch", "caducidad", "trazabilidad"] } },
+  { id: "bundles", path: "/bundles", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ProductBundlesPage")), module: "products", status: "canonical", nav: { label: "Combos y kits", icon: Layers, group: "compras", keywords: ["bundles", "packs", "promo pack"] } },
+  { id: "listas_precios", path: "/listas-precios", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PriceListsPage")), module: "products", status: "canonical", nav: { label: "Listas de precios", icon: Tag, group: "compras", keywords: ["mayorista", "minorista", "precio por cliente"] } },
+  { id: "valuacion_inventario", path: "/valuacion-inventario", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InventoryValuationPage")), module: "inventory", aliases: [{ path: "/inventario-aging", redirectTo: "/valuacion-inventario" }], status: "canonical", nav: { label: "Valuación de inventario", icon: Layers, group: "compras", keywords: ["cuánto vale el stock", "fifo", "costo promedio"] } },
+  { id: "inventario_inteligente", path: "/inventario-inteligente", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SmartInventoryPage")), module: "inventory", status: "canonical", nav: { label: "Inventario con IA", icon: Brain, group: "compras", keywords: ["sugerencias", "optimizar stock"] } },
+  { id: "forecast_inventario", path: "/forecast-inventario", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InventoryForecastPage")), module: "inventory", status: "canonical", nav: { label: "Proyección de stock", icon: TrendingUp, group: "compras", keywords: ["forecast", "cuánto voy a necesitar", "quiebre de stock"] } },
+  { id: "deudas", path: "/deudas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/DebtsPage")), module: "sales", status: "canonical", nav: { label: "Deudas", icon: AlertCircle, group: "cobranzas", keywords: ["me deben", "cuentas por cobrar", "fiado", "moroso"] } },
+  { id: "cuotas", path: "/cuotas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CuotasPage")), module: "sales", status: "canonical", nav: { label: "Cuotas", icon: CreditCard, group: "cobranzas", keywords: ["financiación", "plan de pago", "vencimientos"] } },
+  { id: "presupuestos", path: "/presupuestos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PresupuestosPage")), module: "sales", status: "canonical", nav: { label: "Presupuestos", icon: ClipboardList, group: "cobranzas", keywords: ["cotización", "quotes", "proforma"] } },
+  { id: "facturas", path: "/facturas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InvoicesPage")), module: "invoices", status: "canonical", nav: { label: "Facturas", icon: FileText, group: "cobranzas", keywords: ["comprobantes", "invoices"] } },
+  { id: "devoluciones", path: "/devoluciones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/DevolucionesPage")), module: "sales", aliases: [{ path: "/devoluciones-rma", redirectTo: "/devoluciones" }], status: "canonical", nav: { label: "Devoluciones", icon: RotateCcw, group: "cobranzas", keywords: ["cambios", "rma", "reembolso"] } },
+  { id: "envios", path: "/envios", roles: AMBOS, component: lazy(() => import("@/pages/DeliveryTrackingPage")), module: "shipping", status: "canonical", nav: { label: "Envíos", icon: Truck, group: "cobranzas", keywords: ["seguimiento", "tracking", "despacho", "correo", "andreani"] } },
+  { id: "links_de_pago", path: "/links-de-pago", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PaymentLinksPage")), module: "payments", status: "canonical", nav: { label: "Links de pago", icon: Link2, group: "cobranzas", keywords: ["cobrar a distancia", "link mercadopago"] } },
+  { id: "mi_plan", path: "/mi-plan", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/MiPlanPage")), module: "settings", status: "canonical", nav: { label: "Mi plan", icon: CreditCard, group: "sistema", keywords: ["suscripcion", "plan", "pagar", "mercadopago", "facturacion", "abono"] } },
+  { id: "billetera", path: "/billetera", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/WalletPage")), module: "finance", status: "canonical", nav: { label: "Billetera", icon: Wallet, group: "finanzas", keywords: ["saldo", "plata", "retirar", "retiro", "cobros", "disponible", "acreditado", "cbu"] } },
+  { id: "gastos", path: "/gastos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ExpensesPage")), module: "expenses", status: "canonical", nav: { label: "Gastos", icon: Wallet, group: "finanzas", keywords: ["egresos", "pagos", "costos fijos"] } },
+  { id: "cash_flow", path: "/cash-flow", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CashFlowPage")), module: "finance", status: "canonical", nav: { label: "Flujo de caja", icon: BarChart3, group: "finanzas", keywords: ["cash flow", "proyección de plata", "liquidez"] } },
+  { id: "pl_dashboard", path: "/pl-dashboard", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PLDashboardPage")), module: "finance", aliases: [{ path: "/escenarios-financieros", redirectTo: "/pl-dashboard" }], status: "canonical", nav: { label: "Ganancias y pérdidas", icon: TrendingUp, group: "finanzas", keywords: ["p&l", "pl", "resultado", "rentabilidad", "estado de resultados"] } },
+  { id: "banco", path: "/banco", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/BankReconciliationPage")), module: "finance", status: "canonical", nav: { label: "Banco y conciliación", icon: Landmark, group: "finanzas", keywords: ["conciliar", "extracto", "movimientos bancarios"] } },
+  { id: "movimientos", path: "/movimientos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/FinancialMovementsPage")), module: "payments", status: "canonical", nav: { label: "Movimientos operativos", icon: BookOpen, group: "finanzas", keywords: ["libro mayor", "movimientos", "caja", "asientos", "financial movements"] } },
+  { id: "cheques", path: "/cheques", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ChequesPage")), module: "finance", status: "canonical", nav: { label: "Cheques", icon: FileText, group: "finanzas", keywords: ["echeq", "valores", "cartera"] } },
+  { id: "comisiones", path: "/comisiones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SellerCommissionsPage")), module: "finance", status: "canonical", nav: { label: "Comisiones", icon: Receipt, group: "finanzas", keywords: ["vendedores", "aranceles", "mercadopago"] } },
+  { id: "impuestos", path: "/impuestos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/TaxManagementPage")), module: "finance", status: "canonical", nav: { label: "Impuestos", icon: Scale, group: "finanzas", keywords: ["iva", "ingresos brutos", "retenciones", "arca"] } },
+  { id: "afip", path: "/afip", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AFIPPage")), module: "invoices", status: "canonical", nav: { label: "AFIP y factura electrónica", icon: Shield, group: "finanzas", keywords: ["arca", "cae", "facturar", "wsfe", "monotributo"] } },
+  { id: "multi_divisa", path: "/multi-divisa", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/MultiCurrencyPage")), module: "finance", aliases: [{ path: "/tipo-cambio", redirectTo: "/multi-divisa" }], status: "canonical", nav: { label: "Multi-divisa", icon: DollarSign, group: "finanzas", keywords: ["dólar", "tipo de cambio", "fx", "cotización"] } },
+  { id: "suscripciones", path: "/suscripciones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SubscriptionsPage")), module: "finance", status: "canonical", nav: { label: "Suscripciones", icon: CreditCard, group: "finanzas", keywords: ["abonos", "cobro recurrente", "membresías"] } },
+  { id: "marketing", path: "/marketing", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/MarketingPage")), module: "marketing", aliases: [{ path: "/automatizaciones", redirectTo: "/marketing" }, { path: "/combos-banners", redirectTo: "/marketing" }, { path: "/marca-ia", redirectTo: "/marketing" }, { path: "/templates", redirectTo: "/marketing" }], status: "canonical", nav: { label: "Campañas", icon: Megaphone, group: "marketing", keywords: ["marketing", "publicidad", "anuncios"] } },
+  { id: "cupones", path: "/cupones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CouponsPage")), module: "marketing", status: "canonical", nav: { label: "Cupones", icon: Tag, group: "marketing", keywords: ["descuentos", "códigos", "promo"] } },
+  { id: "promociones", path: "/promociones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PromotionsPage")), module: "marketing", status: "canonical", nav: { label: "Promociones", icon: Zap, group: "marketing", keywords: ["ofertas", "flash sale", "2x1", "liquidación"] } },
+  { id: "email_campaigns", path: "/email-campaigns", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/EmailCampaignsPage")), module: "marketing", aliases: [{ path: "/secuencias-email", redirectTo: "/email-campaigns" }], status: "canonical", nav: { label: "Email", icon: Mail, group: "marketing", keywords: ["newsletter", "mailing", "correo masivo"] } },
+  { id: "whatsapp_campaigns", path: "/whatsapp-campaigns", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/WhatsAppCampaignsPage")), module: "marketing", status: "canonical", nav: { label: "WhatsApp", icon: MessageCircle, group: "marketing", keywords: ["difusión", "wsp", "mensajes masivos"] } },
+  { id: "fidelidad", path: "/fidelidad", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/LoyaltyAdvancedPage")), module: "marketing", aliases: [{ path: "/fidelidad-avanzada", redirectTo: "/fidelidad" }], status: "canonical", nav: { label: "Fidelidad", icon: Star, group: "marketing", keywords: ["puntos", "recompensas", "loyalty", "clientes frecuentes"] } },
+  { id: "canjes", path: "/canjes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencerExchangesPage")), module: "influencers", aliases: [{ path: "/liquidaciones", redirectTo: "/canjes" }], status: "canonical", nav: { label: "Canjes con influencers", icon: Gift, group: "marketing", keywords: ["regalos", "colaboraciones", "prensa"] } },
+  { id: "influencers", path: "/influencers", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InfluencersPage")), module: "influencers", status: "canonical", nav: { label: "Influencers", icon: Users2, group: "marketing", keywords: ["creadores", "instagram", "tiktok"] } },
+  { id: "afiliados", path: "/afiliados", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AffiliateProgramPage")), module: "marketing", status: "canonical", nav: { label: "Afiliados", icon: UserPlus, group: "marketing", keywords: ["comisión por venta", "partners"] } },
+  { id: "referidos", path: "/referidos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ReferralsPage")), module: "marketing", status: "canonical", nav: { label: "Referidos", icon: Trophy, group: "marketing", keywords: ["recomendaciones", "traé un amigo"] } },
+  { id: "planner_social", path: "/planner-social", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SocialPlannerPage")), module: "marketing", status: "canonical", nav: { label: "Planner de redes", icon: Share2, group: "marketing", keywords: ["calendario de contenido", "posteos", "instagram"] } },
+  { id: "catalogo", path: "/catalogo", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CatalogPage")), module: "marketing", status: "canonical", nav: { label: "Catálogo por WhatsApp", icon: BookOpen, group: "marketing", keywords: ["lista de precios", "compartir productos", "pdf"] } },
+  { id: "reportes", path: "/reportes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ReportsPage")), module: "reports", status: "canonical", nav: { label: "Reportes", icon: TrendingUp, group: "reportes", keywords: ["informes", "exportar", "excel"] } },
+  { id: "analytics", path: "/analytics", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AnalyticsPage")), module: "analytics", aliases: [{ path: "/analytics-ia", redirectTo: "/analytics" }], status: "canonical", nav: { label: "Analytics", icon: BarChart3, group: "reportes", keywords: ["métricas", "estadísticas", "gráficos"] } },
+  { id: "kpi_dashboard", path: "/kpi-dashboard", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/KPIDashboardPage")), module: "analytics", status: "canonical", nav: { label: "KPIs", icon: LineChart, group: "reportes", keywords: ["indicadores", "objetivos", "metas"] } },
+  { id: "bi_reportes", path: "/bi-reportes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/BIReportsPage")), module: "reports", status: "canonical", nav: { label: "Reportes avanzados", icon: BarChart3, group: "reportes", keywords: ["bi", "business intelligence", "cohortes", "drilldown"] } },
+  { id: "forecast", path: "/forecast", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SalesForecastPage")), module: "analytics", status: "canonical", nav: { label: "Proyección de ventas", icon: TrendingUp, group: "reportes", keywords: ["forecast", "cuánto voy a vender", "pronóstico"] } },
+  { id: "rfm", path: "/rfm", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CustomerRFMPage")), module: "customers", aliases: [{ path: "/lead-scoring", redirectTo: "/rfm" }, { path: "/segmentos", redirectTo: "/rfm" }], status: "canonical", nav: { label: "Segmentación de clientes", icon: Users, group: "reportes", keywords: ["rfm", "quién compra más", "recencia", "segmentos"] } },
+  { id: "crm_avanzado", path: "/crm-avanzado", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AdvancedCRMPage")), module: "crm", aliases: [{ path: "/pipeline", redirectTo: "/crm-avanzado" }], status: "canonical", nav: { label: "Pipeline de ventas", icon: Kanban, group: "reportes", keywords: ["embudo", "oportunidades", "negocios", "crm avanzado"] } },
+  { id: "ia", path: "/ia", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AIInsightsPage")), module: "analytics", status: "canonical", nav: { label: "Insights con IA", icon: Sparkles, group: "reportes", keywords: ["inteligencia artificial", "sugerencias", "análisis"] } },
+  { id: "chat_ia", path: "/chat-ia", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AIChatAdvancedPage")), module: "analytics", aliases: [{ path: "/chat-ia-avanzado", redirectTo: "/chat-ia" }], status: "canonical", nav: { label: "Asistente IA", icon: Brain, group: "sistema", keywords: ["chat", "preguntar", "copiloto"] } },
+  { id: "alertas", path: "/alertas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SmartAlertsPage")), module: null, openReason: "Avisos derivados de otros modulos: ocultarlos dejaria al usuario sin enterarse de lo que si puede ver.", aliases: [{ path: "/alertas-inteligentes", redirectTo: "/alertas" }], status: "canonical", nav: { label: "Alertas", icon: AlertTriangle, group: "sistema", keywords: ["avisos", "notificaciones", "reglas"] } },
+  { id: "integraciones", path: "/integraciones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/IntegrationsPage")), module: "settings", aliases: [{ path: "/api-keys", redirectTo: "/integraciones?tab=apikeys" }, { path: "/webhooks", redirectTo: "/integraciones?tab=webhooks" }], status: "canonical", nav: { label: "Integraciones", icon: Plug, group: "sistema", keywords: ["api", "mercadolibre", "mercadopago", "conectar", "webhooks"] } },
+  { id: "equipo", path: "/equipo", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/TeamPage")), module: "team", status: "canonical", nav: { label: "Equipo", icon: Users, group: "sistema", keywords: ["usuarios", "permisos", "empleados", "invitar"] } },
+  { id: "ajustes", path: "/ajustes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SettingsPage")), module: "settings", status: "canonical", nav: { label: "Ajustes", icon: Settings, group: "sistema", keywords: ["configuración", "preferencias", "datos del negocio"] } },
+  { id: "perfil", path: "/perfil", roles: AMBOS, component: lazy(() => import("@/pages/ProfilePage")), module: null, openReason: "Perfil del propio usuario.", status: "canonical", nav: { label: "Mi perfil", icon: UserCircle, group: "sistema", keywords: ["cuenta", "contraseña", "2fa"] } },
+  { id: "admin", path: "/admin", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AdminPage")), module: "settings", aliases: [{ path: "/actividad", redirectTo: "/admin?tab=activity" }, { path: "/auditoria", redirectTo: "/admin?tab=audit" }], status: "canonical", nav: { label: "Admin", icon: Crown, group: "sistema", keywords: ["administración", "organización", "suscripción"] } },
+  { id: "calidad_datos", path: "/calidad-datos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/DataQualityPage")), module: "products", status: "canonical", nav: { label: "Calidad de datos", icon: ScanSearch, group: "sistema", keywords: ["identidad", "sku", "ean", "duplicados", "completitud", "data quality"] } },
+  { id: "libro", path: "/libro", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/LibroPage")), module: "finance", status: "canonical", nav: { label: "Libro mayor", icon: BookOpen, group: "finanzas", keywords: ["ledger", "asientos", "contabilidad", "resultado", "libro"] } },
 ];
 
 /**
@@ -197,6 +238,8 @@ export const PUBLIC_ROUTES: RouteDefinition[] = [
   {
     id: "precios",
     path: "/precios",
+    roles: PUBLICO,
+    component: lazy(() => import("@/pages/PricingPage")),
     module: null,
     openReason: "Pagina publica de precios: la abre alguien sin sesion.",
     // `/pricing` renderizaba la MISMA pagina en paralelo. Dos URLs canonicas
@@ -204,22 +247,23 @@ export const PUBLIC_ROUTES: RouteDefinition[] = [
     aliases: [{ path: "/pricing", redirectTo: "/precios" }],
     status: "canonical",
   },
-  { id: "login", path: "/login", module: null,
+  { id: "login", path: "/login", roles: PUBLICO, module: null,
     openReason: "Entrada al sistema: la abre alguien que todavia no tiene sesion.",
     status: "canonical" },
-  { id: "reset_password", path: "/reset-password", module: null,
+  { id: "reset_password", path: "/reset-password", roles: PUBLICO, module: null,
+    component: lazy(() => import("@/pages/ResetPasswordPage")),
     openReason: "Recuperar la clave no puede exigir estar adentro.",
     status: "canonical" },
-  { id: "onboarding", path: "/onboarding", module: null,
-    openReason: "Corre antes de que la organizacion tenga permisos configurados.",
-    status: "canonical" },
-  { id: "privacidad", path: "/privacidad", module: null,
+  { id: "privacidad", path: "/privacidad", roles: PUBLICO, module: null,
+    component: lazy(() => import("@/pages/PrivacyPage")),
     openReason: "Texto legal publico: la ley pide que sea accesible sin cuenta.",
     status: "canonical" },
-  { id: "terminos", path: "/terminos", module: null,
+  { id: "terminos", path: "/terminos", roles: PUBLICO, module: null,
+    component: lazy(() => import("@/pages/TermsPage")),
     openReason: "Texto legal publico: la ley pide que sea accesible sin cuenta.",
     status: "canonical" },
-  { id: "estado", path: "/estado", module: null,
+  { id: "estado", path: "/estado", roles: PUBLICO, module: null,
+    component: lazy(() => import("@/pages/ServiceStatusPage")),
     openReason: "Estado del servicio: si hay una caida tiene que verse sin sesion.",
     status: "canonical" },
 ];
@@ -230,7 +274,14 @@ export const PUBLIC_ROUTES: RouteDefinition[] = [
  * como estuvieron hasta el 2026-08-26.
  */
 export const INTERNAL_ROUTES: RouteDefinition[] = [
-  { id: "caja_turno", path: "/caja/turno", module: "pos", status: "internal" },
+  { id: "caja_turno", path: "/caja/turno", roles: AMBOS,
+    component: lazy(() => import("@/pages/CashSessionPage")),
+    module: "pos", status: "internal" },
+  { id: "onboarding", path: "/onboarding", roles: AMBOS,
+    component: lazy(() => import("@/pages/OnboardingPage")),
+    module: null,
+    openReason: "Corre antes de que la organizacion tenga permisos configurados.",
+    status: "internal" },
 ];
 
 const TODAS = [...ROUTES, ...INTERNAL_ROUTES, ...PUBLIC_ROUTES];
@@ -258,4 +309,34 @@ export function allRoutes(): RouteDefinition[] {
 /** Las rutas que el sidebar muestra, en el orden declarado. */
 export function navRoutes(): RouteDefinition[] {
   return ROUTES.filter(r => r.nav && r.status === "canonical");
+}
+
+/**
+ * Las rutas que monta `ProtectedRoutes`, ya filtradas por rol.
+ *
+ * El filtro vive acá y no en un `{isAdmin && ...}` del router porque estaban en
+ * los dos lados y divergieron: `/tareas`, `/seguimiento`, `/calendario`,
+ * `/envios` y `/perfil` figuraban en el menú de un vendedor y no se montaban,
+ * así que el clic lo rebotaba al dashboard.
+ */
+export function businessRoutes(role: NavRole): RouteDefinition[] {
+  return [...ROUTES, ...INTERNAL_ROUTES]
+    .filter(r => r.component && r.roles.includes(role));
+}
+
+/** Los alias de negocio, como pares `[url vieja, destino]`. */
+export function businessAliases(): Array<[string, string]> {
+  return [...ROUTES, ...INTERNAL_ROUTES]
+    .flatMap(r => (r.aliases ?? []).map(a => [a.path, a.redirectTo] as [string, string]));
+}
+
+/** Las rutas públicas con página propia. */
+export function publicPages(): RouteDefinition[] {
+  return PUBLIC_ROUTES.filter(r => r.component);
+}
+
+/** Los alias públicos, como pares `[url vieja, destino]`. */
+export function publicAliases(): Array<[string, string]> {
+  return PUBLIC_ROUTES
+    .flatMap(r => (r.aliases ?? []).map(a => [a.path, a.redirectTo] as [string, string]));
 }
