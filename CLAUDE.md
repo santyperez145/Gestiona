@@ -174,6 +174,13 @@ sí: espera un segundo comercio, no una decisión de arquitectura.
 código para alguien sin experiencia, con un orden de estudio y ejercicios sobre
 los archivos de este repo.
 
+📋 **¿Qué está construido, qué está probado y qué se usa de verdad?**
+[docs/CAPACIDADES.md](docs/CAPACIDADES.md) — cuatro estados
+(`built` / `verified` / `operated` / `adopted`) con la evidencia al lado, medido
+contra la base el 2026-08-26. ⚠️ Existe porque "está construido" y "se probó
+contra el organismo" se leen igual en un README, y de ahí salieron los dos bugs
+más caros del proyecto.
+
 📊 **¿Dónde estamos parados contra la competencia?**
 [docs/COMPARACION.md](docs/COMPARACION.md) — medido contra la base el
 2026-08-21, con fuentes y fechas para cada dato de un competidor. Incluye lo que

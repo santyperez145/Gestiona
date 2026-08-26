@@ -38,7 +38,7 @@ Toda entrega debe contemplar, cuando corresponda:
 
 # P0 — Verdad operacional
 
-## P0-01 — Fuente de verdad documental — 🟡 falta el ledger de capacidades (2026-08-26)
+## P0-01 — Fuente de verdad documental — 🟢 completo (2026-08-26)
 
 > **Hecho:** conteos unificados y con fecha con guarda `check:conteos` en CI,
 > procedimiento único de migraciones al tope de la sección, npm declarado con
@@ -59,9 +59,14 @@ Toda entrega debe contemplar, cuando corresponda:
 > Probado en rojo antes de confiar en él: detectó archivo inexistente, ancla
 > inexistente en otro archivo y ancla local rota, y dejó pasar la válida.
 >
-> **Falta:** marcar capacidades como `built/verified/operated/adopted`. Es lo
-> más caro de los tres y lo que más sirve: hoy "está construido" y "se probó
-> contra el organismo" se leen igual en la documentación.
+> ~~Capacidades marcadas como `built/verified/operated/adopted`~~ **hecho el
+> 2026-08-26** en `docs/CAPACIDADES.md`, con la evidencia medida al lado de cada
+> fila y no con una opinión.
+>
+> ⚠️ Medir para escribirlo destapó dos cosas: **0 facturas y 0 comprobantes ARCA
+> en la base**, así que el CAE que la documentación declara emitido no se puede
+> volver a mirar; y **0 ventas con `source = pos`**, que resultó ser adopción y
+> no un bug de instrumentación — el POS sí escribe el valor.
 
 **Owner:** Tech Lead  
 **Objetivo:** eliminar contradicciones entre README, Roadmap, Arquitectura y estado real.

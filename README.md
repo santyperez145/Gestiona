@@ -183,6 +183,13 @@ dashboard. Las migraciones se escriben **idempotentes** (`IF NOT EXISTS`,
 > `SUPABASE_URL` y `SUPABASE_ANON_KEY` del **vault de Supabase**. Sin esos dos
 > secretos fallan todos en silencio. Ver [docs/CRON.md](docs/CRON.md).
 
+## Qué está construido y qué se usa
+
+[docs/CAPACIDADES.md](docs/CAPACIDADES.md) separa las capacidades en cuatro
+estados —construido, probado, operado y adoptado— con la evidencia medida al
+lado. Es el lugar honesto para responder "¿esto anda?": un README describe
+código, y código que existe no es código que funcionó.
+
 ## Las cuatro superficies
 
 | Superficie | Ruta | Quién entra | Aislamiento |
