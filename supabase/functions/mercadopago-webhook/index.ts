@@ -390,27 +390,53 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const orgIdFromQuery = url.searchParams.get("org_id") || "";
 
-    // Verify MP signature — mandatory when MP_WEBHOOK_SECRET is configured
+    // ── La firma es obligatoria, siempre ─────────────────────────────────
+    //
+    // ⚠️ Hasta el 2026-08-26 esta verificación estaba adentro de
+    // `if (globalWebhookSecret)`: **sin el secreto configurado, el webhook
+    // aceptaba cualquier request**. Alcanzaba con conocer la URL para marcar un
+    // pedido como pagado, descontar stock y generar el asiento.
+    //
+    // Era disponibilidad sobre seguridad —sin secreto, exigir firma dejaría
+    // todos los cobros sin acreditar— y para plata es el default equivocado: un
+    // cobro que no se acredita se nota y se arregla; un pedido marcado como
+    // pagado por un tercero no se nota nunca.
+    //
+    // Ahora **falla cerrado**. Verificado con el dueño que `MP_WEBHOOK_SECRET`
+    // está cargado en el proyecto antes de hacer el cambio; si algún día se
+    // borra, el motivo del 401 lo dice con todas las letras en vez de dejar los
+    // cobros colgados sin explicación — que es exactamente cómo se perdió una
+    // tarde la última vez.
     const globalWebhookSecret = Deno.env.get("MP_WEBHOOK_SECRET") || "";
-    if (globalWebhookSecret) {
-      if (!signature || !requestId) {
-        console.warn(`Missing MP signature headers for payment ${paymentId}`);
-        return new Response(JSON.stringify({ ok: false, reason: "missing signature headers" }), {
-          status: 401, headers: { "Content-Type": "application/json" },
-        });
-      }
-      const valid = await verifyMpSignature(signedId, requestId, signature, globalWebhookSecret);
-      if (!valid) {
-        // Sin filtrar el secreto: alcanza con saber qué se firmó para
-        // diagnosticar, y este log es lo único que había cuando una compra
-        // real quedó colgada.
-        console.warn(
-          `Invalid MP signature. payment=${paymentId} signedId=${signedId} requestId=${requestId ? "presente" : "AUSENTE"}`,
-        );
-        return new Response(JSON.stringify({ ok: false, reason: "invalid signature" }), {
-          status: 401, headers: { "Content-Type": "application/json" },
-        });
-      }
+    if (!globalWebhookSecret) {
+      console.error(
+        "MP_WEBHOOK_SECRET no está configurado: el webhook rechaza TODO. " +
+        "Cargarlo en Project Settings → Edge Functions → Secrets.",
+      );
+      return new Response(
+        JSON.stringify({ ok: false, reason: "webhook secret not configured" }),
+        { status: 503, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    if (!signature || !requestId) {
+      console.warn(`Missing MP signature headers for payment ${paymentId}`);
+      return new Response(JSON.stringify({ ok: false, reason: "missing signature headers" }), {
+        status: 401, headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const valid = await verifyMpSignature(signedId, requestId, signature, globalWebhookSecret);
+    if (!valid) {
+      // Sin filtrar el secreto: alcanza con saber qué se firmó para
+      // diagnosticar, y este log es lo único que había cuando una compra
+      // real quedó colgada.
+      console.warn(
+        `Invalid MP signature. payment=${paymentId} signedId=${signedId} requestId=${requestId ? "presente" : "AUSENTE"}`,
+      );
+      return new Response(JSON.stringify({ ok: false, reason: "invalid signature" }), {
+        status: 401, headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Find the org — try query param first, then lookup by payment external_reference later

@@ -102,25 +102,31 @@ describe("la firma del webhook de MercadoPago", () => {
   });
 
   /**
-   * ⚠️ Encontrado el 2026-08-26 escribiendo esta guarda.
+   * ⚠️ Encontrado el 2026-08-26 escribiendo esta guarda, y cerrado el mismo día.
    *
-   * La verificación está adentro de `if (globalWebhookSecret)`. Si
-   * `MP_WEBHOOK_SECRET` no está configurado en el proyecto, **el webhook acepta
-   * cualquier request**: alcanza con conocer la URL para marcar un pedido como
-   * pagado.
+   * La verificación estaba adentro de `if (globalWebhookSecret)`: sin el
+   * secreto configurado, **el webhook aceptaba cualquier request**. Alcanzaba
+   * con conocer la URL para marcar un pedido como pagado, descontar stock y
+   * generar el asiento.
    *
-   * Es una decisión de disponibilidad sobre seguridad —sin secreto, exigir
-   * firma dejaría todos los cobros sin acreditar— pero para plata es el default
-   * equivocado, y no había nada que lo dijera.
+   * Ahora **falla cerrado**. Un cobro que no se acredita se nota y se arregla;
+   * un pedido marcado como pagado por un tercero no se nota nunca.
    *
-   * Este test no lo arregla: fija el comportamiento actual y deja el problema
-   * escrito donde se lee. Cambiarlo a "rechazar siempre" exige confirmar antes
-   * que el secreto esté cargado en producción, y eso no se puede comprobar
-   * desde acá.
+   * El dueño confirmó que `MP_WEBHOOK_SECRET` está cargado antes del cambio. Si
+   * algún día se borra, el 503 lo dice con todas las letras en vez de dejar los
+   * cobros colgados sin explicación — que es exactamente cómo se perdió una
+   * tarde la última vez.
    */
-  it("documenta que sin MP_WEBHOOK_SECRET la firma no se exige", () => {
-    expect(webhook).toContain('const globalWebhookSecret = Deno.env.get("MP_WEBHOOK_SECRET") || "";');
-    expect(webhook).toContain("if (globalWebhookSecret) {");
+  it("sin MP_WEBHOOK_SECRET el webhook rechaza TODO, no acepta todo", () => {
+    expect(webhook).toContain("if (!globalWebhookSecret) {");
+    expect(webhook).toContain('reason: "webhook secret not configured"');
+    expect(webhook).toContain("status: 503");
+    // ⚠️ La condición vieja no puede volver: era la que abría la puerta.
+    expect(webhook).not.toContain("if (globalWebhookSecret) {");
+  });
+
+  it("y el error dice dónde cargar el secreto", () => {
+    expect(webhook).toContain("Project Settings → Edge Functions → Secrets");
   });
 });
 
