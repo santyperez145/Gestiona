@@ -1070,6 +1070,12 @@ export default function Dashboard() {
     );
     const agingCount30 = products.filter((p: any) => p.stock > 0 && !soldLast30.has(p.id)).length;
 
+    // Deudas realmente vencidas hace más de 30 días. Vive acá y no dentro del
+    // semáforo para que el panel y el foco del día lean el mismo número.
+    const treintaDiasAtras = new Date(Date.now() - 30 * 86400000);
+    const overdueDebts30 = debts.filter((d: any) =>
+      d.status !== 'paid' && d.due_date && new Date(d.due_date) < treintaDiasAtras).length;
+
     const dueDebtsWeek = debts.filter((d: any) => d.status !== 'paid' && d.due_date && new Date(d.due_date) > new Date() && new Date(d.due_date) < new Date(Date.now() + 7 * 86400000)).length;
     const expensesRatio = monthSalesARS > 0 ? (totalMonthExpenses / monthSalesARS) * 100 : 0;
     const lowMarginCount = products.filter((p: any) => Number(p.sale_price_ars) > 0 && (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 < marginAlertPct).length;
@@ -1202,6 +1208,7 @@ export default function Dashboard() {
       bestWeekdayData, bestWeekday,
       avgDailySalesARS,
       agingCount30,
+      overdueDebts30,
       hourData, bestHour,
       weekIncome, weekExpensesAmt, weekPurchasesAmt, weekNetCashFlow,
       // raw passthrough
@@ -1523,6 +1530,10 @@ export default function Dashboard() {
           dos preguntas con las que se abre el sistema a la mañana: cómo viene
           el mes, y qué hay para hacer ahora. */}
       {stats && (
+        /* ⚠️ `deudasVencidas30` recibía `agingCount30`, que cuenta PRODUCTOS sin
+           movimiento en 30 días. El panel decía "42 deudas vencidas hace más de
+           30 días · Cobrar" con 0 deudas pendientes: el 42 eran los productos
+           con stock parado. Mandaba a cobrar plata que nadie debe. */
         <FocoDelDia
           orgId={activeOrg?.id}
           ventasMes={stats.monthSalesARS}
@@ -1533,7 +1544,7 @@ export default function Dashboard() {
           stockBajo={stats.lowStock}
           deudasPendientes={stats.pendingDebts}
           deudaTotalARS={stats.totalDebtsARS}
-          deudasVencidas30={stats.agingCount30}
+          deudasVencidas30={stats.overdueDebts30}
           seguimientosHoy={pendingFollowUps.length}
         />
       )}
@@ -1706,9 +1717,15 @@ export default function Dashboard() {
           red: { bg: 'bg-destructive/10', border: 'border-destructive/30', dot: 'bg-destructive', label: 'text-destructive', text: '🔴 Requiere atención' },
         }[overallColor];
 
+        // ⚠️ `labels[score]`, no `labels[2 - score]`. Los arreglos se escriben
+        // [rojo, amarillo, verde] y el indice invertido mostraba el texto
+        // contrario al color: con 18 productos agotados el panel decia
+        // "Sin agotados ✓" en rojo, con 42 productos parados "Todos rotando ✓",
+        // y con 0% de margen "0.0% ✓". El punto quedaba del color correcto, que
+        // es lo que lo hacia dificil de ver.
         const sigLabel = (score: number, labels: [string, string, string]) => (
           <span className={`text-[10px] font-medium ${score === 2 ? 'text-emerald-400' : score === 1 ? 'text-yellow-400' : 'text-destructive'}`}>
-            {score === 2 ? '●' : score === 1 ? '●' : '●'} {labels[2 - score]}
+            {score === 2 ? '●' : score === 1 ? '●' : '●'} {labels[score]}
           </span>
         );
 
