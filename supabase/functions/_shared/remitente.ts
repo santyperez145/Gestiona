@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import type { SmtpConfig } from "./smtpSender.ts";
 /**
  * De qué dirección sale un correo de la plataforma.
  *
@@ -28,6 +29,13 @@ export interface Remitente {
   /** Si el envío está probado contra el proveedor. */
   listo: boolean;
   dominio: string | null;
+  /**
+   * El SMTP propio de la plataforma, si está configurado.
+   *
+   * ⚠️ La contraseña sale del entorno (`SMTP_PASSWORD`), nunca de la base:
+   * `platform_messaging_config` la lee el staff desde el navegador.
+   */
+  smtp: SmtpConfig | null;
 }
 
 /**
@@ -47,13 +55,13 @@ export async function remitenteDe(proposito: Proposito = "default"): Promise<Rem
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceRole) {
     console.error("remitenteDe: falta SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY");
-    return { from: "", listo: false, dominio: null };
+    return { from: "", listo: false, dominio: null, smtp: null };
   }
   const admin = createClient(url, serviceRole);
   const { data, error } = await admin.rpc("mensajeria_de_plataforma");
   if (error || !data) {
     console.error("no se pudo leer la configuración de mensajería", error);
-    return { from: "", listo: false, dominio: null };
+    return { from: "", listo: false, dominio: null, smtp: null };
   }
 
   const dominio = data.email_dominio as string | null;
@@ -61,9 +69,33 @@ export async function remitenteDe(proposito: Proposito = "default"): Promise<Rem
   const casillas = (data.email_casillas ?? {}) as Record<string, string>;
   const casilla = casillas[proposito] || casillas.default || "noreply";
 
+  // ⚠️ Con Gmail —y con casi cualquier SMTP— el `From` tiene que ser la misma
+  // casilla que se autentica. Mandar «desde» otra dirección hace que el
+  // servidor rechace, o que el mensaje caiga en spam por DMARC. Por eso cuando
+  // hay SMTP propio el remitente es su casilla y no se arma con el dominio.
+  const pass = Deno.env.get("SMTP_PASSWORD");
+  const smtp: SmtpConfig | null = (data.smtp_configurado && pass)
+    ? {
+        host: String(data.smtp_host),
+        port: Number(data.smtp_port) || 465,
+        user: String(data.smtp_user),
+        pass,
+        secure: data.smtp_secure !== false,
+        fromName: nombre,
+        fromEmail: String(data.smtp_from_email),
+      }
+    : null;
+
+  const from = smtp
+    ? `${nombre} <${smtp.fromEmail}>`
+    : (dominio ? `${nombre} <${casilla}@${dominio}>` : "");
+
   return {
-    from: dominio ? `${nombre} <${casilla}@${dominio}>` : "",
-    listo: Boolean(data.email_listo),
+    from,
+    // Con SMTP propio no hace falta el dominio verificado de Resend: el envío
+    // ya sale por otro lado.
+    listo: smtp ? true : Boolean(data.email_listo),
     dominio,
+    smtp,
   };
 }

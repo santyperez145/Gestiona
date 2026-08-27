@@ -96,7 +96,10 @@ Deno.serve(async (req) => {
   const admin = createClient(url, serviceRole);
 
   const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
-  const resendFrom = (await remitenteDe("default")).from;
+  // Un solo lugar resuelve remitente y SMTP: pedirlos por separado hacía
+  // que el  y el servidor pudieran quedar desalineados.
+  const remitente = await remitenteDe("default");
+  const resendFrom = remitente.from;
 
   let avisados = 0, aplicados = 0, reautorizar = 0, fallidos = 0;
   const problemas: string[] = [];
@@ -149,7 +152,7 @@ Deno.serve(async (req) => {
       sube: Number(t.precio_nuevo) > Number(t.precio_anterior ?? 0),
     });
 
-    const r = await sendEmail(null, resendKey, resendFrom, { to: email, ...cuerpo },
+    const r = await sendEmail(remitente.smtp, resendKey, resendFrom, { to: email, ...cuerpo },
                               { tipo: "cambio_de_precio" });
     if (!r.ok) {
       problemas.push(`no se pudo avisar a ${comercio}: ${r.error ?? "sin detalle"}`);

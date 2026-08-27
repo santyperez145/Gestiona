@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 /**
@@ -131,5 +131,32 @@ describe("los sellos de confianza no afirman lo que no se cumple", () => {
     const trust = pricing.slice(i, pricing.indexOf("]", i));
     expect(trust, "volvió una promesa sobre dónde están alojados los datos")
       .not.toMatch(/hosting|argentina|servidor/i);
+  });
+});
+
+describe("los secretos no entran por una pantalla", () => {
+  it("⚠️ la configuración de mensajería no tiene campo de contraseña", () => {
+    /**
+     * `platform_messaging_config` la lee el staff desde el navegador. Una
+     * contraseña ahí sería un secreto en una tabla que la UI consulta — la
+     * misma clase de error que puso la clave privada de AFIP en `settings`,
+     * donde CLAUDE.md ya dejó escrito que la RLS es por fila y no por columna.
+     *
+     * El servidor además rechaza el guardado si llega algo que parece una
+     * contraseña; esto guarda el otro lado, que es que la pantalla no la pida.
+     */
+    const page = readFileSync(resolve(ROOT, "src/pages/PlatformMessagingPage.tsx"), "utf8");
+    expect(page, "apareció un campo de contraseña en la pantalla de mensajería")
+      .not.toMatch(/type="password"|smtp_pass|guardar\(\{\s*(password|token|api_key)/);
+  });
+
+  it("y el servidor rechaza guardarla aunque alguien la mande", () => {
+    const dir = resolve(ROOT, "supabase/migrations");
+    const sql = readdirSync(dir).filter(f => f.endsWith(".sql")).sort().reverse()
+      .map(f => readFileSync(resolve(dir, f), "utf8"))
+      .find(t => /FUNCTION public\.mensajeria_guardar/.test(t));
+    expect(sql, "ninguna migración define mensajeria_guardar").toBeTruthy();
+    expect(sql!, "el guardado dejó de rechazar contraseñas y tokens")
+      .toMatch(/smtp_pass[\s\S]{0,200}?RAISE EXCEPTION/);
   });
 });

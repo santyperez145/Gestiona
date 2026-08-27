@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
   const problemas: string[] = [];
 
   for (const p of pendientes) {
-    const r = await sendEmail(null, apiKey, remitente.from,
+    const r = await sendEmail(remitente.smtp, apiKey, remitente.from,
                               { to: p.email, ...cuerpo(p) }, { tipo: "aviso" });
     await admin.rpc("aviso_correo_registrar", {
       p_id: p.id, p_ok: r.ok, p_error: r.ok ? null : (r.error ?? "sin detalle"),

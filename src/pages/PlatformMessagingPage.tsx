@@ -45,6 +45,11 @@ interface Config {
   email_nombre: string | null;
   email_casillas: Record<string, string> | null;
   email_listo: boolean;
+  smtp_host: string | null;
+  smtp_port: number | null;
+  smtp_user: string | null;
+  smtp_from_email: string | null;
+  smtp_configurado: boolean;
   whatsapp_proveedor: string | null;
   whatsapp_phone_number_id: string | null;
   whatsapp_numero_visible: string | null;
@@ -233,6 +238,76 @@ export default function PlatformMessagingPage() {
                 Va a tu propia casilla. Es la única forma de saber si funciona.
               </span>
             </div>
+
+            {/* ── SMTP propio ─────────────────────────────────────────
+                Existe porque Resend sólo entrega desde un dominio verificado, y
+                verificar un dominio pide tocar el DNS. Sin eso no sale un solo
+                mail — y hay avisos que ya dependen de que salgan.
+
+                ⚠️ La contraseña NO se carga acá: va en Supabase como
+                `SMTP_PASSWORD`. Esta pantalla la lee el staff desde el
+                navegador, así que un secreto en un campo de acá es un secreto
+                en una tabla que la UI consulta. */}
+            <details className="rounded-[8px] border border-border bg-muted/10 p-3">
+              <summary className="cursor-pointer text-xs font-medium">
+                ¿Todavía no verificaste el dominio? Usá un servidor de correo propio
+              </summary>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Si cargás esto, el correo sale por acá y no por Resend. Sirve con la
+                casilla de tu hosting o con Gmail. La contraseña se carga en Supabase
+                como <code>SMTP_PASSWORD</code>, no en esta pantalla.
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="smtp_host">Servidor</Label>
+                  <Input
+                    id="smtp_host" defaultValue={cfg?.smtp_host ?? ""}
+                    placeholder="smtp.gmail.com"
+                    onBlur={e => {
+                      const v = e.target.value.trim();
+                      if (v !== (cfg?.smtp_host ?? "")) void guardar({ smtp_host: v });
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="smtp_port">Puerto</Label>
+                  <Input
+                    id="smtp_port" defaultValue={cfg?.smtp_port ?? ""}
+                    placeholder="465"
+                    onBlur={e => {
+                      const v = e.target.value.trim();
+                      if (v !== String(cfg?.smtp_port ?? "")) void guardar({ smtp_port: v });
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="smtp_user">Usuario</Label>
+                  <Input
+                    id="smtp_user" defaultValue={cfg?.smtp_user ?? ""}
+                    placeholder="tucasilla@gmail.com"
+                    onBlur={e => {
+                      const v = e.target.value.trim();
+                      if (v !== (cfg?.smtp_user ?? "")) void guardar({ smtp_user: v });
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="smtp_from">Casilla que aparece como remitente</Label>
+                  <Input
+                    id="smtp_from" defaultValue={cfg?.smtp_from_email ?? ""}
+                    placeholder="tucasilla@gmail.com"
+                    onBlur={e => {
+                      const v = e.target.value.trim();
+                      if (v !== (cfg?.smtp_from_email ?? "")) void guardar({ smtp_from_email: v });
+                    }}
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Con Gmail tiene que ser la misma casilla del usuario: mandar desde
+                    otra dirección hace que el servidor rechace o que caiga en spam.
+                  </p>
+                </div>
+              </div>
+            </details>
 
             {prueba && (
               /* La respuesta del proveedor, textual: es lo único que sirve para

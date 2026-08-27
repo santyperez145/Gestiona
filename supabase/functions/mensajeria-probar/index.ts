@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
   const destino = userRes.user.email;
   if (!destino) return json({ ok: false, etapa: "configuracion", detalle: "Tu usuario no tiene email." }, 400);
 
-  const r = await sendEmail(null, apiKey, remitente.from, {
+  const r = await sendEmail(remitente.smtp, apiKey, remitente.from, {
     to: destino,
     subject: "Prueba de envío de Gestiona",
     html: `<div style="font-family:system-ui,sans-serif">
