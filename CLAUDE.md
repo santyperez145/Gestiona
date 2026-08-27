@@ -766,6 +766,34 @@ MercadoPago y las contraseñas SMTP de **todas** las organizaciones. Está cerra
   números distintos para el mismo mes: el problema que se cerró asentando las
   operaciones y reparando el costo de las 34 ventas, de vuelta.
 
+- **`audit_rpc_sin_permiso`** (vista SQL) — funciones llamables desde el
+  navegador que mueven stock o plata sin exigir permiso de módulo ni rol. Tiene
+  que estar **vacía** (medido 0 el 2026-08-27).
+
+  ⚠️ **Ser miembro de un comercio no es tener el permiso, y la base los
+  confundía.** La app tiene una matriz por rol y módulo en Admin → Permisos, y
+  `has_permission()` la lee bien. Pero las funciones que mueven el stock
+  chequeaban **sólo** membresía. Medido como `authenticated` real con una
+  membresía `vendedor` real: `has_permission(org,'inventory','edit')` daba
+  `false` y `abrir_conteo()` **pasaba igual** — y cerrar ese conteo llama a
+  `record_stock_movement`. El comercio desmarcaba «Inventario» para un empleado,
+  la pantalla desaparecía del menú, y el empleado reescribía el stock lo mismo.
+
+  Se cerró en `20260827000030` con `exigir_permiso(org, módulo, acción, qué)`
+  en nueve funciones, **después** del chequeo de membresía y antes de escribir
+  nada. Los cuerpos se regeneraron desde `pg_get_functiondef` con un script, no
+  a mano.
+
+  📌 **RLS separa comercios; no separa personas dentro de un comercio.** Antes
+  de agregar una RPC que escriba, la pregunta no es «¿filtra por `org_id`?»
+  sino «¿quién de ese comercio puede llamarla?».
+
+  ⚠️ Y el escaneo de texto no alcanza para encontrar esto: marcaba también
+  `record_stock_movement` y `ledger_contraasentar`, que **no son alcanzables**
+  —`authenticated` no tiene `EXECUTE`—, y `save_afip_config`, que **sí**
+  chequea rol. Hay que mirar los privilegios y leer el cuerpo. Detalle en
+  [docs/permisos.md](docs/permisos.md).
+
 - **`rls_audit_open_policies`** (vista SQL) — lista políticas sin filtro de
   tenant. Debería tener **exactamente 3** (medido 2026-08-21), y las tres son
   catálogos públicos a propósito: `plans` (pricing), `payment_providers` y
@@ -970,6 +998,16 @@ Pendientes conocidos al 2026-07-31:
   **producción** y el alta del punto de venta como *Web Services*, que en
   homologación no hace falta.
 
+  ⚠️ **Pero esa evidencia ya no está en la base** (medido el 2026-08-27):
+  `afip_comprobantes` tiene **0 filas** y las 2 facturas de `invoices` están
+  sin CAE. La explicación más probable es que la prueba se hizo en una de las
+  **dos organizaciones que se borraron** —de 4 quedaron 2— y el `CASCADE` se la
+  llevó. 📌 No es lo mismo que "nunca emitió": CLAUDE.md ya aprendió que «no
+  encontré rastro» nunca es «no existe». Pero tampoco se puede seguir citando
+  como verificado sin decir esto. El detalle está en
+  [docs/CAPACIDADES.md](docs/CAPACIDADES.md) §ARCA, y volver a probarlo en
+  homologación cuesta una factura de prueba.
+
 - ~~Certificado de homologación~~ para verificar el ciclo de
   facturación. Es gratis y no emite comprobantes reales.
 - **Contrato con Correo Argentino o Andreani** para la etiqueta por API.
@@ -1008,8 +1046,9 @@ Pendientes conocidos al 2026-07-31:
   contrato real**: los payloads siguen la documentación publicada.
 - **AFIP: falta probarlo contra el organismo.** La estructura está y las
   credenciales ya no se pueden leer desde el cliente (`afip_credentials`, RLS
-  con cero policies), y **ya emitió**: CAE 86330773876924 en homologación.
-  Falta producción.
+  con cero policies). Emitió una vez en homologación —CAE 86330773876924—
+  **pero esa fila ya no está en la base** (`afip_comprobantes` = 0 el
+  2026-08-27, ver arriba). Falta producción, y falta volver a dejar evidencia.
 - **Etiqueta de envío: la imprimible ya está**, con seguimiento que el comprador
   ve con número de orden + email, sin cuenta. Lo que falta es pedirle la
   etiqueta por API al correo, y eso necesita contrato.
@@ -1096,8 +1135,21 @@ la preferencia.
 
 ✅ **Ya cobró.** Dos compras reales de $1, `approved`/`accredited`, con la
 comisión de plataforma descontada — MercadoPago informa `application_fee: 0.05`
-en las dos, con la regla que estaba vigente entonces. ⚠️ **Al 2026-08-25 la regla es de 0,5% y está INACTIVA** (`is_active = false`, `approval_status = 'draft'`), así que hoy no se cobra comisión: la nota anterior de este archivo —que decía 5%— quedó vieja el 22 de agosto. Si se reactiva:
-la comisión se va a la cuenta de MercadoPago dueña de la aplicación
+en las dos, con la regla que estaba vigente entonces.
+
+⚠️ **La comisión está ACTIVA desde el 2026-08-26: 0,5%, `approval_status =
+'approved'`, `effective_from = 2026-08-26`** (medido contra
+`platform_commission_rules` el 2026-08-27). Es la salida del economics gate
+P0-09, no un cambio suelto. Esta línea decía "INACTIVA" y quedó vieja **en un
+día**; antes había dicho 5%, que quedó viejo el 22 de agosto. 📌 **El número de
+la comisión no se cita de memoria: se mide.** Es un dato que cambia por decisión
+de negocio, no por código.
+
+```bash
+npm run db -- --sql "select percent, is_active, approval_status, effective_from from platform_commission_rules order by created_at"
+```
+
+La comisión se va a la cuenta de MercadoPago dueña de la aplicación
 (`MP_APP_ID`). Conviene confirmar cuál es antes de escalar.
 
 Cómo se derivó la comisión, porque no es obvio: MercadoPago **no necesita que le

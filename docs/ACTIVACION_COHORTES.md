@@ -68,3 +68,10 @@ Antes de presentar una tasa, acompañarla con:
 Con cuatro organizaciones y un solo comercio real, la lectura actual es una
 línea de base técnica, no evidencia de product-market fit. La primera cohorte
 defendible empieza con el segundo comercio creado después del watermark.
+
+> **Al 2026-08-27 son dos organizaciones, no cuatro** (`Exentry Imports` y
+> `pruebas Workspace`): se borraron dos de prueba. Los productos (60) y las
+> ventas (34) no cambiaron, así que no se perdió nada operativo — pero el
+> `CASCADE` sí se llevó lo que colgaba de ellas, y ahí probablemente estaba la
+> evidencia del CAE de homologación. La conclusión de este párrafo no cambia:
+> sigue siendo línea de base, con un comercio real.

@@ -66,6 +66,48 @@ El `owner` no pasa por la matriz: siempre tiene todo.
   (`src/lib/usePermissions.ts`). Es **UX**, no seguridad — sirve para no ofrecer
   botones que van a fallar.
 - Base / Edge Functions: RPC `has_permission(org_id, module, action)`.
+- Dentro de una RPC: `exigir_permiso(org, módulo, acción, qué)`, que llama a la
+  anterior y **falla** con `insufficient_privilege`. Va después del chequeo de
+  membresía, nunca en su lugar: son dos preguntas distintas —de qué comercio
+  sos, y qué podés hacer adentro—.
+
+### ⚠️ Membresía no es permiso
+
+Hasta el 2026-08-27 las funciones que mueven el stock chequeaban **sólo**
+membresía. Medido contra producción como `authenticated` real, con una
+membresía `vendedor` real y dentro de una transacción revertida:
+
+```
+matriz: puede editar inventario  →  false
+abrir_conteo(...)                →  PASÓ
+```
+
+Cerrar ese conteo llama a `record_stock_movement`, la única autoridad sobre
+`products.stock`. Es decir: el comercio desmarcaba «Inventario» para un
+empleado, la pantalla desaparecía del menú, y el empleado reescribía el stock
+igual llamando la RPC.
+
+Nueve funciones exigen el permiso desde `20260827000030`: las cuatro de la Toma
+Física (`abrir_conteo`, `registrar_conteo`, `cerrar_conteo`, `cancelar_conteo`),
+`transfer_stock_between_locations`, `asignar_a_ubicacion`, `adjust_stock`,
+`record_member_stock_movement` y `wallet_solicitar_retiro`.
+
+📌 `exigir_permiso` deja pasar a `service_role` a propósito: la matriz responde
+«¿esta **persona** puede?» y cuando corre una Edge Function no hay persona a la
+que preguntarle. La API pública ajusta stock por ese camino.
+
+**La guardia es la vista `audit_rpc_sin_permiso`, que tiene que estar vacía**
+(medido 0 el 2026-08-27). Lista funciones llamables desde el navegador que
+mueven stock o plata sin exigir permiso ni rol. Del lado del repo,
+`permisoEnElServidor.test.ts` falla si una migración futura regenera una de las
+nueve y se lleva puesta la guarda — que es el modo de falla realista, porque
+regenerar desde `pg_get_functiondef` es el procedimiento recomendado.
+
+**Lo que todavía NO exige permiso**, dicho de frente: el resto de las RPC de
+escritura que hoy chequean rol `owner`/`admin` (más estricto que la matriz, así
+que no es un agujero) y `medio_de_pago_habilitar`, que hoy sólo se frena porque
+tropieza antes con «conectá tu cuenta de MercadoPago» — eso es una precondición
+de negocio, no una autorización.
 
 ---
 
@@ -97,7 +139,13 @@ nivel ni quitarse el acceso.
 ## Principios de enforcement
 
 - Toda operación de tenant se filtra por `org_id` (RLS).
-- Ninguna acción sensible depende solo de la UI.
+- **RLS separa comercios; no separa personas dentro de un comercio.** Evita que
+  una organización vea los datos de otra, y eso es todo lo que hace: no dice
+  «este empleado puede ver stock, pero no ajustarlo». Esa pregunta la contesta
+  `exigir_permiso` dentro de la RPC. Confundir las dos es lo que dejó el stock
+  abierto hasta el 2026-08-27.
+- Ninguna acción que mueva stock o plata depende sólo de la UI — verificado por
+  `audit_rpc_sin_permiso`. Para el resto de las escrituras, la puerta es el rol.
 - Las Edge Functions validan usuario + membresía (o nivel de plataforma).
 - Cambios críticos (finanzas, roles, facturación, acciones de staff) quedan
   auditados: `audit_logs` para el tenant, `admin_audit_logs` para la plataforma.

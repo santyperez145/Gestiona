@@ -21,9 +21,50 @@ const leer = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
  *
  * Y el selector de modelo tampoco hacía nada: ofrecía IDs que no existen en la
  * API y no llegaba al backend, que tenía el modelo fijo.
+ *
+ * ── Por qué no se nombra el archivo ───────────────────────────────────────
+ *
+ * ⚠️ Se nombraba, y se rompió. `AIChatAdvancedPage.tsx` desapareció el
+ * 2026-08-27 al fusionarse en Inteligencia (commit `ed859f8`), el
+ * `readFileSync` empezó a tirar ENOENT **al importar el módulo**, y el archivo
+ * entero dejó de correr: vitest lo reporta como suite fallada, pero el conteo
+ * de tests sigue subiendo con los otros y en una salida larga no se ve.
+ *
+ * Así que el archivo se busca por lo que hace, no por dónde está, y el
+ * localizador exige **exactamente uno**: si el chat se mueve otra vez, el
+ * test lo encuentra, y si desaparece, falla diciendo eso — no un ENOENT.
  */
 
-const chat = leer("src/pages/AIChatAdvancedPage.tsx");
+/** El archivo que habla con la Edge Function y procesa el stream. */
+function archivoDelChat(dir = "src"): string {
+  const encontrados: string[] = [];
+  const recorrer = (d: string) => {
+    for (const e of readdirSync(resolve(ROOT, d), { withFileTypes: true })) {
+      const rel = join(d, e.name);
+      if (e.isDirectory()) { if (e.name !== "test") recorrer(rel); continue; }
+      if (!/\.tsx?$/.test(e.name)) continue;
+      const t = readFileSync(resolve(ROOT, rel), "utf8");
+      // Los dos marcadores juntos: llamar a la función y leer el stream.
+      // Con uno solo alcanzaría a otros archivos que sólo la invocan.
+      if (t.includes("/functions/v1/ai-chat") && t.includes("resp.body.getReader()")) {
+        encontrados.push(rel.split("\\").join("/"));
+      }
+    }
+  };
+  recorrer(dir);
+
+  if (encontrados.length !== 1) {
+    throw new Error(
+      `Esperaba exactamente 1 archivo con el chat de IA y encontré ${encontrados.length}` +
+      (encontrados.length ? `: ${encontrados.join(", ")}` : "") +
+      "\nSi el chat se movió, esta guarda lo sigue solo. Si desapareció, hay que" +
+      "\nborrar este test a propósito — no dejarlo apuntando al vacío.",
+    );
+  }
+  return encontrados[0];
+}
+
+const chat = leer(archivoDelChat());
 const fn = leer("supabase/functions/ai-chat/index.ts");
 
 describe("el chat de IA no simula", () => {

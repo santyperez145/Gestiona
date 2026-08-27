@@ -284,6 +284,62 @@ usarse en una presentación, valuación o decisión de inversión.
 Ninguno se cierra con una simulación. Requiere responsable, fecha, evidencia y
 entorno.
 
+### La matriz de permisos prometía algo que el servidor no aplicaba (2026-08-27)
+
+P1-04 de la auditoría del 24 de agosto. La primitiva ya estaba y era correcta:
+`has_permission(org, módulo, acción)` lee la matriz de Admin → Permisos, es deny
+by default y tiene defaults por rol. **El problema era quiénes no la llamaban.**
+
+Probado contra producción como `authenticated` real, con una membresía
+`vendedor` real, en una transacción revertida:
+
+| | |
+|---|---|
+| `has_permission(org,'inventory','edit')` | `false` |
+| `abrir_conteo(...)` | **PASÓ** |
+
+Cerrar ese conteo llama a `record_stock_movement`, la única autoridad sobre el
+stock. El comercio desmarcaba «Inventario» para un empleado, la pantalla
+desaparecía del menú, y el empleado reescribía el stock igual por la RPC.
+
+Cerrado con `exigir_permiso()` en nueve funciones —las cuatro de Toma Física,
+transferencia entre sucursales, ubicación en posición, `adjust_stock`,
+`record_member_stock_movement` y el retiro de billetera—, más el `REVOKE` de
+`ledger_asentar_venta`/`_gasto`, que con `EXECUTE` para `authenticated` y sin
+chequeo de membresía dejaban forzar un asiento en **otro** comercio.
+
+Guardias: vista `audit_rpc_sin_permiso` (0) y `permisoEnElServidor.test.ts`.
+
+⚠️ **Tres cosas que sólo aparecieron midiendo, y valen más que el arreglo:**
+
+1. **El escaneo de texto miente en las dos direcciones.** Marcaba
+   `record_stock_movement` y `ledger_contraasentar` como desprotegidas —no son
+   alcanzables: `authenticated` no tiene `EXECUTE`— y `save_afip_config`, que sí
+   exige owner/admin. Hay que mirar privilegios y leer el cuerpo.
+2. **La primera prueba dio un falso negativo.** Asignaba el retorno a un `uuid`
+   y el error de tipo caía en el mismo `EXCEPTION WHEN OTHERS`, así que el
+   resultado fue "no pasó" y se habría cerrado como correcto. El **mensaje** del
+   error es parte de la prueba: `payments.edit` también se frena hoy, pero por
+   «conectá tu cuenta de MercadoPago», que es una precondición de negocio y no
+   una autorización.
+3. **La mitad que verifica que el admin SÍ puede no es decorativa.** Una guarda
+   que frena a todos deja la vista igual de vacía y pasa el mismo test.
+
+### Un archivo de test estuvo sin correr y el conteo no bajó (2026-08-27)
+
+`sinSimulacion.test.ts` leía `src/pages/AIChatAdvancedPage.tsx` en el cuerpo del
+módulo. La página se fusionó en Inteligencia (`ed859f8`), el `readFileSync`
+empezó a tirar ENOENT **al importar**, y sus 10 tests dejaron de correr — los que
+vigilan que el chat de IA no fabrique el conteo de tokens.
+
+📌 **Lo que lo hizo invisible: un archivo que no carga no baja el número de
+tests pasados.** Baja el de archivos, que es la línea de arriba. El total siguió
+subiendo y se citó como puerta verde.
+
+Ahora el chat se busca **por lo que hace** y no por dónde está, exigiendo
+exactamente una coincidencia; y `losTestsLeenArchivosQueExisten.test.ts` falla si
+un test vuelve a nombrar una ruta que no existe.
+
 ### Doce páginas duplicadas dejaron de existir (2026-08-27)
 
 El diagnóstico externo era correcto: había clusters de páginas compitiendo

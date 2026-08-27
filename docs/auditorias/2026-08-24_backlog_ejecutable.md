@@ -538,7 +538,7 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P1-04 — Autorización server-side
+## P1-04 — Autorización server-side — 🟡 stock y billetera cerrados (2026-08-27)
 
 **Owner:** Security/Backend  
 **Objetivo:** separar RLS de autorización funcional.
@@ -549,6 +549,66 @@ Toda entrega debe contemplar, cuando corresponda:
 - Tests cross-role/cross-branch.
 - Deny by default.
 - Auditoría.
+
+### Lo medido (2026-08-27)
+
+La primitiva ya existía y estaba bien hecha: `has_permission(org, módulo,
+acción)` lee la matriz de Admin → Permisos, es deny by default para quien no es
+miembro y tiene defaults por rol. **El problema era quiénes no la llamaban.**
+
+Probado contra producción como `authenticated` real, con una membresía
+`vendedor` real, dentro de una transacción revertida:
+
+```
+matriz: puede editar inventario  →  false
+abrir_conteo(...)                →  PASÓ
+```
+
+Cerrar ese conteo llama a `record_stock_movement`, la única autoridad sobre el
+stock. El comercio desmarcaba «Inventario» para un empleado y el empleado lo
+reescribía igual por la RPC.
+
+⚠️ **Un escaneo de texto no encuentra esto y además miente en las dos
+direcciones.** Marcaba `record_stock_movement`, `ledger_contraasentar` y
+`pago_reintegro_preparar` como desprotegidas —no son alcanzables, `authenticated`
+no tiene `EXECUTE`— y `save_afip_config`, que sí exige owner/admin. Hay que
+mirar privilegios y leer el cuerpo.
+
+⚠️ **Y la primera versión de la prueba dio un falso negativo.** Asignaba el
+retorno a un `uuid` y el error de tipo caía en el mismo `EXCEPTION WHEN OTHERS`,
+así que el resultado era «no pasó» y se habría cerrado como correcto. El
+mensaje del error es parte de la prueba, no un adorno: `payments.edit` se frena
+hoy, pero por «Primero conectá tu cuenta de MercadoPago» —una precondición de
+negocio—, no por un permiso.
+
+### Hecho
+
+- `exigir_permiso(org, módulo, acción, qué)` — una sola puerta, con `RAISE`
+  `insufficient_privilege`. Deja pasar a `service_role`: la matriz responde
+  «¿esta persona puede?» y en una Edge Function no hay persona. Sin esa rama,
+  agregar la guarda rompía el ajuste de stock de la API pública.
+- Nueve funciones la llaman, después de la membresía y antes de escribir:
+  `abrir_conteo`, `registrar_conteo`, `cerrar_conteo`, `cancelar_conteo`,
+  `transfer_stock_between_locations`, `asignar_a_ubicacion`, `adjust_stock`,
+  `record_member_stock_movement`, `wallet_solicitar_retiro`. Los cuerpos se
+  regeneraron desde `pg_get_functiondef` con un script.
+- `ledger_asentar_venta` / `ledger_asentar_gasto` pierden el `EXECUTE` de
+  `authenticated`: las llaman los triggers y nadie desde el cliente. Con el
+  grant puesto, un miembro podía forzar un asiento en **otro** comercio.
+- **Auditoría:** vista `audit_rpc_sin_permiso`, tiene que estar vacía (0).
+- **Test cross-role:** la migración verifica en los dos sentidos — un vendedor
+  queda frenado **y** un admin sigue pudiendo. La segunda mitad no es
+  decorativa: una guarda que frena a todos deja la vista igual de vacía.
+- `permisoEnElServidor.test.ts` (11 tests, probado en rojo en tres dimensiones:
+  guarda ausente, módulo equivocado y guarda puesta antes de la membresía).
+
+### Falta
+
+- Refund, payable, price override y fiscal: hoy la puerta es el rol
+  `owner`/`admin`, que es **más** estricto que la matriz — no es un agujero,
+  pero tampoco es la matriz.
+- `medio_de_pago_habilitar` no chequea permiso.
+- Cross-branch: no hay sucursales suficientes para probarlo de verdad.
 
 ---
 

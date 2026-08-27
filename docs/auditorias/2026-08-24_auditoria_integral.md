@@ -273,6 +273,14 @@ Falta:
 
 `ModuleGuard` es explícitamente una barrera visual. RLS evita cruces entre tenants, pero no necesariamente impide que un usuario interno ejecute una acción para la cual no tiene autorización funcional.
 
+> **Verificado el 2026-08-27, y no era «no necesariamente»: era así.** Como
+> `authenticated` real, con una membresía `vendedor` real,
+> `has_permission(org,'inventory','edit')` devolvía `false` y `abrir_conteo()`
+> pasaba igual — y cerrar ese conteo reescribe el stock por
+> `record_stock_movement`. Cerrado en `20260827000030` para las nueve funciones
+> que mueven stock o plata, con la vista `audit_rpc_sin_permiso` como guardia.
+> Estado y lo que falta, en el backlog P1-04.
+
 **Orden:** las acciones sensibles deben pasar por comandos/RPC/Edge Functions que validen:
 
 - tenant;
