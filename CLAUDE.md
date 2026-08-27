@@ -234,16 +234,27 @@ del `git push`, así que hasta que no se pushea, el sitio publicado tiene el
 código viejo aunque las migraciones ya estén aplicadas. Verificar contra
 `exentryimports.vercel.app` da falsos negativos garantizados.
 
-⚠️ **Pero eso necesita un `.env`, y no está en las dos PCs.** Sin
+⚠️ **Pero eso necesita las variables `VITE_*`, y no están en las dos PCs.** Sin
 `VITE_SUPABASE_URL` el cliente se construye con la URL vacía (ver
 `src/integrations/supabase/client.ts`) y la app levanta pero no se conecta a
 nada: la tienda pública dice "Tienda no encontrada" con la tienda activa en la
-base. **Eso no es un bug, es la falta del archivo** — y confundirlo cuesta una
-hora. Comprobar antes de planificar una verificación en navegador:
+base. **Eso no es un bug, es la falta de la variable** — y confundirlo cuesta
+una hora.
+
+⚠️ **Y `ls .env` NO alcanza para saberlo.** Vite también toma las `VITE_*` del
+entorno del proceso, así que una PC puede no tener el archivo y aun así
+conectarse. Medido el 2026-08-27: esta máquina **no tiene `.env` y sí tiene las
+variables a nivel de usuario** — la nota anterior de este archivo decía que no
+llegaba a la base, y era falsa. Se comprueba mirando las dos cosas:
 
 ```bash
-ls .env .env.local 2>/dev/null || echo "sin .env: el navegador no llega a la base"
+ls .env .env.local 2>/dev/null; env | grep -c '^VITE_'
 ```
+
+📌 **Entrar al panel es otra cosa**: necesita una sesión. `e2e/.auth/usuario.json`
+sirve si el refresh token no venció (dura pocos días). Si venció, el dueño
+inicia sesión una vez en el panel del navegador y desde ahí se puede recorrer
+todo. **Nunca tipear una contraseña por él.**
 
 Sin `.env`, lo único que el navegador prueba es que compila y que no hay errores
 de consola. Todo lo demás se verifica contra la base, y conviene hacerlo

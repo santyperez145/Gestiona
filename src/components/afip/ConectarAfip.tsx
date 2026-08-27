@@ -24,7 +24,7 @@
  * que el panel diga "listo" y la primera factura falle, que es peor que decir
  * "todavía no".
  */
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
@@ -39,6 +39,14 @@ export type MotivoAfip =
   | "falta_datos_fiscales"
   | "falta_certificado_propio"
   | "falta_plataforma"
+  /**
+   * El CUIT del comercio ES el de la plataforma: el certificado ya pertenece a
+   * ese CUIT y ARCA acepta la llamada sin ninguna delegación. Pedirle el
+   * trámite sería pedirle que se delegue un servicio a sí mismo — un trámite
+   * que no se puede hacer, así que la pantalla se quedaría pidiéndolo para
+   * siempre.
+   */
+  | "sin_delegacion_necesaria"
   | "falta_delegar"
   | "listo";
 
@@ -65,6 +73,7 @@ export default function ConectarAfip({
   onVerificado,
 }: Props) {
   const [verificando, setVerificando] = useState(false);
+  const [ultimoError, setUltimoError] = useState<string | null>(null);
 
   const copiar = async (texto: string) => {
     try {
@@ -78,7 +87,7 @@ export default function ConectarAfip({
     }
   };
 
-  const verificar = async () => {
+  const verificar = useCallback(async (silencioso = false) => {
     setVerificando(true);
     // La verificación la hace el backend contra ARCA: pide un Ticket de Acceso
     // con el certificado de la plataforma y consulta el último comprobante
@@ -91,7 +100,7 @@ export default function ConectarAfip({
 
     const r = data as { ok?: boolean } | null;
     if (r?.ok) {
-      toast.success("Delegación verificada. Ya podés emitir facturas.");
+      toast.success("Conexión con ARCA verificada. Ya podés emitir facturas.");
       onVerificado();
       return;
     }
@@ -101,8 +110,30 @@ export default function ConectarAfip({
     // code». El motivo real de ARCA viaja en el cuerpo y quedaba invisible.
     const detalle = await mensajeDeEdgeFunction(error, data);
     console.error("[afip] verificar_delegacion falló:", detalle, { data, error });
-    toast.error(detalle || "ARCA todavía no reconoce la delegación");
-  };
+    setUltimoError(detalle);
+    // En la verificación automática no se tira un toast rojo: el comercio no
+    // apretó nada. El motivo queda en la tarjeta, que es donde lo va a mirar.
+    if (!silencioso) toast.error(detalle || "ARCA todavía no reconoce la conexión");
+  }, [orgId, onVerificado]);
+
+  /**
+   * Verificación automática — el paso que la app puede hacer sola.
+   *
+   * Sólo cuando **no hay trámite pendiente**: con el CUIT de la plataforma,
+   * ARCA ya acepta la llamada y lo único que falta es preguntarle. Pedirle al
+   * comercio que apriete un botón para confirmar algo que no depende de él es
+   * exactamente el paso que Tiendanube no te hace dar.
+   *
+   * ⚠️ En `falta_delegar` NO se auto-verifica: ahí el trámite sí depende del
+   * comercio, y consultar antes de que lo haga sólo gasta un Ticket de Acceso
+   * —que ARCA no renueva por ~12 h— para obtener un «no» previsible.
+   */
+  const yaIntento = useRef(false);
+  useEffect(() => {
+    if (motivo !== "sin_delegacion_necesaria" || !orgId || yaIntento.current) return;
+    yaIntento.current = true;
+    void verificar(true);
+  }, [motivo, orgId, verificar]);
 
   if (motivo === "listo") {
     return (
@@ -115,6 +146,46 @@ export default function ConectarAfip({
             {ambiente === "homologacion" && " en ambiente de prueba (homologación)"}.
             No hay ningún certificado tuyo guardado acá.
           </p>
+        </div>
+      </Card>
+    );
+  }
+
+  /**
+   * No hay trámite: el CUIT del comercio es el de la plataforma.
+   *
+   * Se verifica solo al entrar. Lo único que puede fallar acá es ARCA, así que
+   * la tarjeta muestra lo que contestó en vez de pedir un trámite imposible.
+   */
+  if (motivo === "sin_delegacion_necesaria") {
+    return (
+      <Card className="p-4 flex items-start gap-3">
+        {verificando
+          ? <Loader2 className="w-4 h-4 mt-0.5 animate-spin text-primary shrink-0" />
+          : ultimoError
+            ? <Clock className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />
+            : <ShieldCheck className="w-4 h-4 mt-0.5 text-primary shrink-0" />}
+        <div className="text-sm min-w-0 flex-1">
+          <p className="font-medium">
+            {verificando ? "Confirmando con ARCA…" : "No tenés que hacer ningún trámite"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Tu CUIT {formatearCuit(cuitDelComercio)} es el mismo con el que está
+            emitido el certificado, así que no hay nada que delegar en el
+            Administrador de Relaciones. Sólo falta que ARCA lo confirme, y eso
+            lo hace la app sola.
+          </p>
+          {ultimoError && !verificando && (
+            <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2">
+              <p className="text-[11px] text-muted-foreground break-words">{ultimoError}</p>
+            </div>
+          )}
+          {!verificando && (
+            <Button size="sm" variant="outline" className="mt-2"
+                    onClick={() => verificar()} disabled={!orgId}>
+              Reintentar ahora
+            </Button>
+          )}
         </div>
       </Card>
     );
@@ -208,7 +279,7 @@ export default function ConectarAfip({
             Abrir ARCA <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
           </a>
         </Button>
-        <Button size="sm" onClick={verificar} disabled={verificando || !plataformaCuit || !orgId}>
+        <Button size="sm" onClick={() => verificar()} disabled={verificando || !plataformaCuit || !orgId}>
           {verificando ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : null}
           Ya lo hice, verificar
         </Button>

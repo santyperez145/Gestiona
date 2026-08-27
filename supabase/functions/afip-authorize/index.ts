@@ -35,6 +35,28 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
+/**
+ * Guarda el Ticket de Acceso sin poder perderlo.
+ *
+ * ⚠️ Antes, si el guardado fallaba se lanzaba «No se pudo guardar el Ticket de
+ * Acceso». Pero para ese momento **ARCA ya lo emitió**, y no entrega otro para
+ * el mismo certificado hasta que venza (~12 h). O sea que un error de escritura
+ * dejaba al comercio sin poder facturar durante medio día, con un mensaje que
+ * suena a problema de configuración.
+ *
+ * Ahora el fallo se registra y la llamada sigue con el ticket que ya tiene en
+ * memoria: se pierde el reuso, no la sesión.
+ */
+// deno-lint-ignore no-explicit-any
+async function guardarTicketSinPerderlo(cred: any, orgId: string, ta: any) {
+  try {
+    const r = await guardarTicketAcceso(supabase, cred, orgId, ta);
+    if (r?.error) console.error("No se pudo guardar el Ticket de Acceso:", r.error);
+  } catch (e) {
+    console.error("No se pudo guardar el Ticket de Acceso:", e);
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -108,7 +130,7 @@ Deno.serve(async (req) => {
       let token = cred.ta_token, sign = cred.ta_sign;
       if (!taVigente || !token || !sign) {
         const ta = await getTicketAcceso(wsaaUrl, cred.certificate, cred.private_key);
-        await guardarTicketAcceso(supabase, cred, body.org_id, ta);
+        await guardarTicketSinPerderlo(cred, body.org_id, ta);
         token = ta.token; sign = ta.sign;
       }
 
@@ -190,8 +212,7 @@ Deno.serve(async (req) => {
       // prueba hace que la primera factura reutilice exactamente esa sesión.
       // En modo delegado se guarda en la fila de la plataforma, porque el TA es
       // uno solo para todos los comercios que comparten el certificado.
-      const guardado = await guardarTicketAcceso(supabase, cred, body.org_id, ta);
-      if (guardado.error) throw new Error("No se pudo guardar el Ticket de Acceso");
+      await guardarTicketSinPerderlo(cred, body.org_id, ta);
 
       return ok({
         ok: true,
@@ -299,7 +320,7 @@ Deno.serve(async (req) => {
       // rechaza pedidos repetidos en poco tiempo, así que reusarlo no es sólo
       // una optimización. En modo delegado va a la fila de la plataforma: el TA
       // es del certificado, y el certificado es uno para todos.
-      await guardarTicketAcceso(supabase, cred, invoice.org_id, ta);
+      await guardarTicketSinPerderlo(cred, invoice.org_id, ta);
     }
 
     const cuit = String(cred.cuit).replace(/[-\s]/g, "");
