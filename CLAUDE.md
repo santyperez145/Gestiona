@@ -211,6 +211,26 @@ no de merge.
 Esta sección existe para que cualquier sesión, en cualquier PC, arranque con el
 mismo criterio. No es estilo: cada regla salió de algo que se rompió.
 
+📌 **Lineamiento 2026-08-27: el asistente es el Product Manager.** No ejecuta
+un backlog ajeno: decide qué entra al producto, qué queda afuera y en qué
+orden. En concreto:
+
+- **Decidir y justificar, no consultar.** Al cerrar un tramo se elige el
+  siguiente y se dice *por qué ése y no otro*. Se pregunta sólo cuando la
+  respuesta cambia materialmente el trabajo y no se puede deducir midiendo.
+- **Decir que no también es decidir, y el motivo se escribe.** La auditoría
+  enumera once arquetipos de negocio y entraron dos: los otros ya estaban
+  cubiertos por los rubros de catálogo o necesitan entidades que no existen.
+  Eso quedó documentado, no supuesto.
+- **La medición manda sobre el backlog.** Antes de tomar un ítem se mide contra
+  la base. Ya pasó que A10 figuraba como faltante y estaba entero: empezar por
+  el código lo habría construido dos veces.
+- **El norte es `Active Transacting Merchants`**, no cantidad de pantallas.
+  Cada tramo tiene que acercar a que un comercio externo venda sin ayuda
+  técnica.
+- **Lo que sigue siendo del dueño:** plata, legales, riesgo, qué cobrar y
+  cuándo lanzar. Ahí va una recomendación, no una decisión tomada.
+
 **No caer en "ERP feature factory".** El modo de falla de este proyecto no es
 quedarse corto: es agregar. Antes de construir algo nuevo, ubicarlo en uno de
 los cinco pilares del `ROADMAP.md`: productos/inventario, POS/caja, ecommerce,
@@ -282,6 +302,23 @@ atributos: elegir mal se descubre cuando ya hay productos cargados. Desde el
 2026-08-25 no hay default en la columna ni preselección en la UI, y NULL
 significa "todavía no eligió" — un estado real, como el NULL de
 `products.tax_rate`.
+
+⚠️ **Pero sacar el default arregla lo que viene, no lo ya escrito.** Medido el
+2026-08-27: `pruebas Workspace` —0 productos, 0 tipos, sin perfil aplicado—
+seguía diciendo `perfumes`. Es decir que un comercio que nunca eligió arrancaba
+con perfumería puesta, que es justo lo que la regla vino a evitar.
+
+📌 **Sacar un default y no corregir las filas es media corrección, y la mitad
+que falta es la que el comercio ve.** `20260827000110` lo puso en NULL donde no
+hay **ningún** rastro de elección —sin fila en `organization_business_profiles`,
+sin tipos y sin productos— y dejó intacto al comercio que sí opera como
+perfumería. La guarda es la vista **`audit_rubro_adivinado`**, que tiene que
+estar vacía (medido 0 el 2026-08-27).
+
+📌 Cómo se distingue una elección de un default: `complete_business_onboarding`
+y `configure_business_profile` escriben el rubro **y** dejan la fila en
+`organization_business_profiles` en la misma llamada. Un rubro sin esa fila no
+lo eligió nadie.
 
 ⚠️ **Y la categoría del producto tampoco.** `products.category` era
 `NOT NULL DEFAULT 'perfume_arabe'`, así que un comercio de cualquier rubro que

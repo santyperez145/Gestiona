@@ -59,6 +59,28 @@ describe("la categoría no viene puesta en perfumería", () => {
     expect(migracion).not.toMatch(/UPDATE\s+public\.products\s+SET\s+category/i);
   });
 
+  it("⚠️ y el rubro que ya estaba escrito se corrigió, no sólo el default", () => {
+    // Sacar el `DEFAULT 'perfumes'` de la columna arregla lo que viene; no
+    // toca lo ya escrito. Medido el 2026-08-27: `pruebas Workspace` —0
+    // productos, 0 tipos, sin perfil aplicado— seguía diciendo «perfumes».
+    // El rubro siembra tipos y atributos, así que ese comercio arrancaba con
+    // perfumería puesta sin haberlo pedido.
+    //
+    // 📌 Sacar un default y no corregir las filas es media corrección, y la
+    // mitad que falta es la que el comercio ve.
+    const dir = resolve(__dirname, "../../supabase/migrations");
+    const archivo = readdirSync(dir).find(f => f.includes("el_rubro_que_nadie_eligio"));
+    expect(archivo, "no existe la migración que corrige el rubro heredado").toBeTruthy();
+
+    const texto = readFileSync(resolve(dir, archivo!), "utf8");
+    expect(texto, "la corrección no exige que NO haya perfil aplicado")
+      .toContain("organization_business_profiles");
+    // ⚠️ Y es conservadora: sólo donde no hay NINGÚN rastro de elección.
+    expect(texto, "la corrección borraría el rubro de un comercio con productos")
+      .toMatch(/NOT EXISTS[\s\S]{0,120}?public\.products/);
+    expect(texto, "falta la vista guardia").toContain("audit_rubro_adivinado");
+  });
+
   it("crear una categoría deja de exigir una tienda", () => {
     // 3 de 4 organizaciones no tenían tienda, así que sin esto el comercio
     // nuevo se quedaba con una lista vacía y ninguna forma de llenarla.
