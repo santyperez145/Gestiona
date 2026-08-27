@@ -19,7 +19,10 @@ interface Props {
 function parseBullets(text: string): string[] {
   return text
     .split("\n")
-    .map(l => l.replace(/^[-*•]\s*/, "").replace(/^\*\*(.+?)\*\*/, "$1").trim())
+    // El prompt de `daily_pulse` pide guiones y sin numerar, pero un modelo
+    // numera igual de vez en cuando y el widget ya pone su propio número: sin
+    // sacar el prefijo se lee «1 · 1. Reponer…».
+    .map(l => l.replace(/^[-*•]\s*/, "").replace(/^\d+[.)]\s+/, "").replace(/^\*\*(.+?)\*\*/, "$1").trim())
     .filter(l => l.length > 10 && !l.startsWith("#"))
     .slice(0, 5);
 }
@@ -65,9 +68,15 @@ export default function AIProactiveWidget({ orgId, stats }: Props) {
         category: e.category, amount_ars: e.amount_ars, date: e.date,
       }));
 
+      // El tipo es la intención; el prompt lo arma el servidor. Este widget pedía
+      // `predict_sales` y adjuntaba un campo `instructions` con su propio pedido
+      // —«4 sugerencias breves»—, que la función nunca leyó: acá se mostraban las
+      // primeras cinco líneas de un informe de cinco secciones. Si el pulso tiene
+      // que decir otra cosa, se cambia `daily_pulse` en la Edge Function, no se
+      // manda texto libre desde el navegador.
       const data = await llamarIA("ai-analysis", {
         body: {
-          type: "predict_sales",
+          type: "daily_pulse",
           orgId,
           data: {
             products: simProducts,
@@ -80,7 +89,6 @@ export default function AIProactiveWidget({ orgId, stats }: Props) {
               totalDebtsARS: stats.totalDebtsARS,
             },
           },
-          instructions: "Dame 4 sugerencias concretas y breves (1 línea cada una) para mejorar el negocio HOY basándote en estos datos. Formato: lista con guiones. Sin introducción.",
         },
       });
       const content: string = data?.content || "";

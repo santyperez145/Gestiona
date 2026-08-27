@@ -44,6 +44,59 @@ Dame SOLO lo siguiente, citando nombres reales y números:
 Si los datos son insuficientes (menos de 5 ventas), decilo y pedí más historial en vez de inventar.`,
   }),
 
+  /**
+   * El pulso del Dashboard: cuatro líneas accionables, no un informe.
+   *
+   * ⚠️ Existe porque `AIProactiveWidget` pedía `predict_sales` y adjuntaba un
+   * campo `instructions` de primer nivel con su propio pedido —«4 sugerencias
+   * breves, una línea cada una»—. La función nunca leyó ese campo: armaba el
+   * informe de cinco secciones de `predict_sales`, el widget le pasaba
+   * `parseBullets` —que corta en la quinta línea— y mostraba el arranque de
+   * «📈 PREDICCIÓN» cortado a mitad de idea, rotulado «Sugerencias IA».
+   * No fallaba ni avisaba. Encontrado el 2026-08-27.
+   *
+   * 📌 La decisión fue **no** hacer llegar `instructions` al prompt. Un texto
+   * libre del cliente metido en el system/user convierte esta función en un
+   * LLM de propósito general pagado con `ANTHROPIC_API_KEY` —la anon key va en
+   * el bundle— y deja al navegador pisando el guardrail. Es la misma regla que
+   * precios y stock: el cliente manda la intención (un `type` con nombre) y los
+   * datos, y el prompt lo compone el servidor.
+   *
+   * 📌 Y va **sin** `GUARDRAIL_TEXT` a propósito. Ese texto encierra al
+   * asistente en perfumería árabe y vapers, así que una peluquería recibía
+   * «Solo puedo ayudarte con análisis de tu negocio de perfumes y vapers» en su
+   * propio Dashboard. Los otros cinco tipos lo siguen usando; sacarlo de todos
+   * es otro slice.
+   */
+  daily_pulse: (data) => ({
+    system: `Sos un analista de negocios senior que le habla al dueño de un comercio en Argentina.
+
+REGLAS NO NEGOCIABLES:
+- Trabajás SOLO con los datos que te paso. Nunca inventes productos, clientes, montos ni fechas.
+- Si los datos no alcanzan para una sugerencia, decilo en esa línea en vez de rellenar.
+- No supongas el rubro: sale de los nombres de producto que te paso, o no se menciona.
+- Idioma: español rioplatense, directo, sin clichés ni promesas.
+- Cada sugerencia tiene que ser algo que el dueño pueda hacer HOY, con el nombre real del producto o del cliente y el número real al lado.`,
+    user: `Estos son los datos reales de mi negocio.
+
+NÚMEROS DEL PERÍODO:
+${JSON.stringify(data.kpis || {}, null, 1)}
+
+PRODUCTOS (${(data.products as unknown[])?.length || 0}):
+${JSON.stringify((data.products as unknown[])?.slice(0, 20) || [], null, 1)}
+
+VENTAS RECIENTES (${(data.sales as unknown[])?.length || 0}):
+${JSON.stringify((data.sales as unknown[])?.slice(0, 30) || [], null, 1)}
+
+GASTOS RECIENTES (${(data.expenses as unknown[])?.length || 0}):
+${JSON.stringify((data.expenses as unknown[])?.slice(0, 10) || [], null, 1)}
+
+Devolvé EXACTAMENTE 4 líneas, una por sugerencia, con este formato:
+- <acción concreta> (<el dato real que la justifica>)
+
+Sin título, sin introducción, sin cierre, sin numerar y sin ningún texto fuera de esas 4 líneas.
+Cada sugerencia entra en un renglón: máximo 140 caracteres.`,
+  }),
   restock_analysis: (data) => ({
     system: `Sos analista de inventario senior para retail de perfumería árabe/diseñador y vapers en Argentina. Pensás en USD (compra) y ARS (venta), considerando comisión de pasero del 15%.\n\n${GUARDRAIL_TEXT}`,
     user: `Analizá el inventario REAL de mi negocio (no inventes productos):
