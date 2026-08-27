@@ -1291,6 +1291,7 @@ export type Database = {
           delegacion_verificada_at: string | null
           domicilio: string | null
           environment: string
+          last_error: string | null
           modo: string
           org_id: string
           private_key: string | null
@@ -1309,6 +1310,7 @@ export type Database = {
           delegacion_verificada_at?: string | null
           domicilio?: string | null
           environment?: string
+          last_error?: string | null
           modo?: string
           org_id: string
           private_key?: string | null
@@ -1327,6 +1329,7 @@ export type Database = {
           delegacion_verificada_at?: string | null
           domicilio?: string | null
           environment?: string
+          last_error?: string | null
           modo?: string
           org_id?: string
           private_key?: string | null
@@ -1480,6 +1483,24 @@ export type Database = {
           ta_sign?: string | null
           ta_token?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      afip_ta_leases: {
+        Row: {
+          clave: string
+          expira_at: string
+          tomado_at: string
+        }
+        Insert: {
+          clave: string
+          expira_at: string
+          tomado_at?: string
+        }
+        Update: {
+          clave?: string
+          expira_at?: string
+          tomado_at?: string
         }
         Relationships: []
       }
@@ -26948,6 +26969,7 @@ export type Database = {
           length_cm: number | null
           lot_number: string | null
           low_stock_threshold: number | null
+          maneja_stock: boolean
           markup_mode: string | null
           markup_pct: number | null
           name: string
@@ -26999,6 +27021,7 @@ export type Database = {
           length_cm?: number | null
           lot_number?: string | null
           low_stock_threshold?: number | null
+          maneja_stock?: boolean
           markup_mode?: string | null
           markup_pct?: number | null
           name: string
@@ -27050,6 +27073,7 @@ export type Database = {
           length_cm?: number | null
           lot_number?: string | null
           low_stock_threshold?: number | null
+          maneja_stock?: boolean
           markup_mode?: string | null
           markup_pct?: number | null
           name?: string
@@ -39449,6 +39473,7 @@ export type Database = {
           delegacion_verificada_at: string | null
           domicilio: string | null
           environment: string | null
+          last_error: string | null
           modo: string | null
           motivo: string | null
           org_id: string | null
@@ -39468,6 +39493,7 @@ export type Database = {
           delegacion_verificada_at?: string | null
           domicilio?: string | null
           environment?: string | null
+          last_error?: string | null
           modo?: string | null
           motivo?: never
           org_id?: string | null
@@ -39487,6 +39513,7 @@ export type Database = {
           delegacion_verificada_at?: string | null
           domicilio?: string | null
           environment?: string | null
+          last_error?: string | null
           modo?: string | null
           motivo?: never
           org_id?: string | null
@@ -39702,6 +39729,29 @@ export type Database = {
           roles: string | null
           tabla: unknown
           usando: string | null
+        }
+        Relationships: []
+      }
+      audit_resultado_divergente: {
+        Row: {
+          costo_ledger: number | null
+          costo_pantallas: number | null
+          dif_costo: number | null
+          dif_ingreso: number | null
+          ingreso_ledger: number | null
+          ingreso_pantallas: number | null
+          mes: string | null
+          motivo: string | null
+          org_id: string | null
+        }
+        Relationships: []
+      }
+      audit_rpc_sin_permiso: {
+        Row: {
+          argumentos: string | null
+          funcion: unknown
+          mueve_plata: boolean | null
+          mueve_stock: boolean | null
         }
         Relationships: []
       }
@@ -41852,6 +41902,17 @@ export type Database = {
             referencedColumns: ["org_id"]
           },
         ]
+      }
+      operaciones_sin_asentar: {
+        Row: {
+          detalle: string | null
+          fecha: string | null
+          id: string | null
+          importe: number | null
+          org_id: string | null
+          tipo: string | null
+        }
+        Relationships: []
       }
       ordenes_sin_facturar: {
         Row: {
@@ -45903,6 +45964,11 @@ export type Database = {
         Args: { p_detalle?: string; p_ok: boolean; p_org: string }
         Returns: undefined
       }
+      afip_ta_lease_soltar: { Args: { p_clave: string }; Returns: undefined }
+      afip_ta_lease_tomar: {
+        Args: { p_clave: string; p_segundos?: number }
+        Returns: boolean
+      }
       anonymize_customer: {
         Args: { p_customer_id: string; p_org_id: string }
         Returns: Json
@@ -46266,6 +46332,15 @@ export type Database = {
       eval_territory_conditions: {
         Args: { p_attributes: Json; p_conditions: Json }
         Returns: boolean
+      }
+      exigir_permiso: {
+        Args: {
+          p_accion: string
+          p_modulo: string
+          p_org: string
+          p_que: string
+        }
+        Returns: undefined
       }
       expire_batches: { Args: { p_org_id: string }; Returns: number }
       expire_overdue_contracts: { Args: never; Returns: number }

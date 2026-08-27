@@ -689,8 +689,14 @@ export default function ProductsPage() {
 
   if (loading) return <TableSkeleton rows={8} cols={8} />;
 
-  const lowStockCount = products.filter(p => p.stock > 0 && p.stock <= 3).length;
-  const outOfStockCount = products.filter(p => p.stock <= 0).length;
+  // ⚠️ Lo que no lleva stock no puede estar «sin stock». Un servicio —un corte
+  // de pelo, una hora de consultoría— se vende y no se descuenta, así que se
+  // queda en el valor con el que se cargó (0 por default) y aparecía como
+  // agotado para siempre, inflando la alerta que el comercio sí tiene que
+  // mirar. `maneja_stock` viene en el `select('*')` de `getProductsDB`.
+  const conStock = products.filter(p => p.maneja_stock !== false);
+  const lowStockCount = conStock.filter(p => p.stock > 0 && p.stock <= 3).length;
+  const outOfStockCount = conStock.filter(p => p.stock <= 0).length;
 
   return (
     <div className="workspace-page workspace-products space-y-5 pb-12">

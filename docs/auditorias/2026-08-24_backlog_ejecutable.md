@@ -487,7 +487,56 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P1-02 — Business Profiler universal
+## P1-02 — Business Profiler universal — 🟡 el Core ya acepta lo que no se stockea (2026-08-27)
+
+### Lo medido: el sesgo no eran los presets
+
+Los siete perfiles viven en `industry_presets`, una **tabla**: agregar
+servicios, gastronomía o turnos es un INSERT, no código. Ése no era el problema.
+
+El problema es una línea del esquema:
+
+```
+products.stock  integer  NOT NULL  DEFAULT 0
+```
+
+y ninguna noción de «esto no se stockea». Una peluquería que carga «Corte de
+pelo» y lo vende diez veces lo ve en **−10**: `trg_sale_stock_movement` dispara
+en cada venta y `record_stock_movement` descuenta. `stock_negativo` —que según
+CLAUDE.md tiene que estar vacía— se llenaría de servicios, y el panel diría
+«agotado» sobre algo que no se agota.
+
+📌 **El arreglo no era agregar rubros: era que el Business Core acepte algo que
+se vende y no se stockea.** Los rubros vienen después, y son datos.
+
+### Hecho (`20260827000090`)
+
+- `products.maneja_stock`, default `true`: los 60 productos existentes no
+  cambian en nada.
+- La guarda vive **dentro de `record_stock_movement`**, la única autoridad
+  sobre el stock: cubre de una vez venta, compra, ajuste manual, cierre de
+  conteo y transferencia. Devuelve NULL y **no escribe Kardex**.
+- `stock_a_reponer` los excluye: `run_abc_analysis` clasifica por ventas, así
+  que un servicio aparecía como «quebrado» pidiendo comprar unidades de algo
+  que no se compra.
+- Los KPI de Productos («sin stock», «poco stock») los excluyen.
+- Verificado en los dos sentidos con datos ZZ: el servicio no se movió (stock
+  10, 0 filas de Kardex) **y el producto normal sí** (10 → 7, 1 fila). Sin esa
+  segunda mitad, una guarda que frenara TODO habría pasado igual y roto el
+  stock del sistema entero en silencio.
+
+### Falta
+
+- El interruptor en la ficha de producto: hoy `maneja_stock` sólo se puede
+  poner desde la base.
+- Los presets de rubros que no venden productos con stock (servicios, turnos,
+  gastronomía, proyectos). Son INSERTs en `industry_presets`.
+- Perfil versionado y «tres negocios muy distintos generan perfiles correctos»,
+  que es el criterio de cierre original.
+
+---
+
+## P1-02 — Business Profiler universal (criterio original)
 
 **Owner:** Product/Frontend  
 **Objetivo:** eliminar sesgo a productos/perfumes.

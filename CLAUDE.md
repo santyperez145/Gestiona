@@ -341,6 +341,19 @@ y DELETE, y `record_stock_movement` es el único lugar que toca `products.stock`
 `product_variants.stock` y `location_stock`. Para mover stock por un camino
 nuevo, se llama a esa función — no se escribe la columna.
 
+⚠️ **Un producto puede NO llevar stock, y eso también lo decide la autoridad.**
+`products.maneja_stock` (default `true`) marca lo que se vende y no se
+descuenta: un corte de pelo, una hora de consultoría, un plato. Sin eso, una
+peluquería que vende «Corte de pelo» diez veces lo ve en **−10** y
+`stock_negativo` se llena de servicios.
+
+📌 La guarda vive **dentro de `record_stock_movement`** y no en los triggers:
+así cubre de una sola vez la venta, la compra, el ajuste manual, el cierre de
+conteo y la transferencia. Repartirla sería la misma decisión escrita en cinco
+lugares. Devuelve NULL y **no escribe Kardex**: una fila de algo que no se
+stockea es una fila que nadie puede conciliar. Guarda:
+`loQueNoLlevaStockNoSeDescuenta.test.ts`.
+
 La regla general: **antes de tocar stock o totales, buscar el trigger.**
 
 ```bash
