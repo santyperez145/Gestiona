@@ -1,4 +1,20 @@
-// Configuración fiscal de AFIP/ARCA — el formulario, no sólo el estado.
+// Datos fiscales del comercio. **No** un formulario de certificados.
+//
+// ⚠️ Hasta el 2026-08-27 esta pantalla pedía pegar el certificado (.crt) y la
+// clave privada (.key) en PEM, con un instructivo de cuatro pasos que empezaba
+// en "solicitá el certificado en Clave Fiscal". Eso es exactamente lo que
+// CLAUDE.md tiene prohibido desde hace meses: «AFIP se conecta por delegación,
+// no subiendo certificados. Un comercio que tiene que generar una clave con
+// openssl, armar un CSR y subirlo a WSASS abandona ahí».
+//
+// Cómo lo hace Tiendanube, que es el mecanismo que funciona: el comercio pone
+// **razón social, CUIT y punto de venta**, y la conexión la resuelve la
+// plataforma. El certificado es de la plataforma; el comercio sólo delega el
+// servicio wsfe desde el Administrador de Relaciones, que ya sabe usar.
+//
+// Lo que quedó acá son los datos que **sólo el comercio conoce** y que van
+// impresos en la factura. El resto lo hace `ConectarAfip` arriba, que dice a
+// qué CUIT delegar y le pregunta a ARCA si quedó hecho.
 //
 // ⚠️ Hasta el 2026-08-27 esto vivía dentro de `SettingsPage` (332 líneas de
 // las 2.754), mientras `/afip` mostraba el estado y tenía un botón
@@ -9,7 +25,6 @@
 // Ahora vive donde el comercio la busca. Ajustes conserva un puntero.
 
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -40,11 +55,8 @@ export default function AfipConfigForm() {
    * apretaría "Guardar" sin mirar y el campo quedaría mal igual.
    */
   const [tipoEmisor, setTipoEmisor] = useState("");
-  const [certificate, setCertificate] = useState("");
-  const [privateKey, setPrivateKey] = useState("");
+
   const [taStatus, setTaStatus] = useState<"none" | "valid" | "expired">("none");
-  /** Hay certificado PROPIO cargado. No se sabe cuál: eso no vuelve del servidor. */
-  const [certConfigurado, setCertConfigurado] = useState(false);
   /**
    * C14 — de qué certificado se factura.
    *
@@ -62,7 +74,6 @@ export default function AfipConfigForm() {
   /** El formulario del certificado propio arranca cerrado en modo delegado:
    *  mostrar un campo de clave privada a quien no necesita subirla es lo que
    *  hace que el onboarding parezca un trámite. */
-  const [mostrarCert, setMostrarCert] = useState(false);
 
   const refreshConnectionStatus = useCallback(async () => {
     if (!activeOrg) return;
@@ -77,7 +88,6 @@ export default function AfipConfigForm() {
     if (error) throw error;
 
     if (!data) {
-      setCertConfigurado(false);
       setTaStatus("none");
       return;
     }
@@ -93,9 +103,6 @@ export default function AfipConfigForm() {
     setPuntoVenta(String(data.punto_venta || 1));
     setEnvironment(data.environment || "homologacion");
     setTipoEmisor(data.tipo_emisor || "");
-    // El certificado PROPIO sólo existe en modo propio; en delegado
-    // `configured` habla del de la plataforma.
-    setCertConfigurado(data.modo === "propio" && !!data.configured);
     setTaStatus(data.ta_expires_at && new Date(data.ta_expires_at) > new Date() ? "valid" : "none");
   }, [activeOrg]);
 
@@ -130,29 +137,43 @@ export default function AfipConfigForm() {
     });
     if (cfgErr) throw new Error(cfgErr.message.replace(/^.*?:\s*/, ""));
 
-    // El certificado sólo si se pegó uno nuevo. La Edge Function lo escribe con
-    // `service_role`; desde el navegador no hay forma de llegar a esa tabla.
-    // Sólo si efectivamente pegó uno. En modo delegado estos campos están
-    // ocultos y vacíos, así que este bloque no corre.
-    if (certificate.trim() || privateKey.trim()) {
-      const { data, error } = await supabase.functions.invoke("afip-credentials", {
-        body: { org_id: activeOrg.id, certificate, privateKey },
-      });
-      const err = (data as { error?: string } | null)?.error ?? error?.message;
-      if (err) throw new Error(err);
-      setCertConfigurado(true);
-      // No se conservan en memoria más de lo necesario.
-      setCertificate("");
-      setPrivateKey("");
-    }
+    // ⚠️ Acá se mandaba el certificado y la clave privada a `afip-credentials`.
+    // El comercio ya no sube nada: el certificado es de la plataforma y se
+    // administra en /platform/afip. Esta pantalla sólo guarda datos fiscales.
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
       await doSave();
+
+      // ── La conexión se hace sola ────────────────────────────────────────
+      // Guardar los datos fiscales y después pedirle al comercio que aprete
+      // "Probar conexión" es hacerle a él un paso que la app puede hacer.
+      // Se intenta verificar contra ARCA en el acto.
+      //
+      // ⚠️ Si falla, NO se convierte en error de guardado: los datos fiscales
+      // quedaron bien guardados y el problema es la delegación, que se resuelve
+      // en otro lado. Decir "no se pudo guardar" mandaría al comercio a
+      // corregir un formulario que está correcto.
+      if (plataformaLista) {
+        const resp = await supabase.functions.invoke("afip-authorize", {
+          body: { action: "test_connection", org_id: activeOrg!.id },
+        });
+        const errMsg: string = resp.error?.message || (resp.data as { error?: string })?.error || "";
+        if (errMsg) {
+          toast.success("Datos fiscales guardados");
+          toast.warning("Falta delegar el servicio en ARCA: mirá los pasos de arriba.");
+        } else {
+          setTaStatus("valid");
+          toast.success("✓ Datos guardados y conexión con AFIP verificada");
+        }
+      } else {
+        toast.success("Datos fiscales guardados");
+        toast.warning("La plataforma todavía no cargó su certificado; no es algo de tu lado.");
+      }
+
       await refreshConnectionStatus();
-      toast.success("Configuración AFIP guardada");
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -162,18 +183,11 @@ export default function AfipConfigForm() {
 
   const handleTestConnection = async () => {
     if (!activeOrg) return;
-    const tieneNuevoCertificado = !!(certificate.trim() && privateKey.trim());
     if (!cuit) {
       toast.error("Completá el CUIT antes de probar");
       return;
     }
-    // En modo delegado el certificado es el de la plataforma: pedirle uno al
-    // comercio sería mandarlo a resolver algo que no es suyo.
-    if (modo === "propio" && !certConfigurado && !tieneNuevoCertificado) {
-      toast.error("Completá certificado y clave privada antes de probar");
-      return;
-    }
-    if (modo === "delegado" && !plataformaLista) {
+    if (!plataformaLista) {
       toast.error("La plataforma todavía no cargó su certificado de AFIP. No es un problema de tu configuración.");
       return;
     }
@@ -200,10 +214,10 @@ export default function AfipConfigForm() {
 
   if (loading) return null;
 
-  const isConfigured = !!(cuit && (modo === "delegado" ? plataformaLista : certConfigurado));
-  const canTestConnection = !!(cuit && (
-    modo === "delegado" ? plataformaLista : (certConfigurado || (certificate.trim() && privateKey.trim()))
-  ));
+  // ⚠️ Configurado = datos fiscales + certificado DE LA PLATAFORMA. El
+  //    comercio ya no sube el suyo, así que su estado no entra acá.
+  const isConfigured = !!(cuit && plataformaLista);
+  const canTestConnection = !!(cuit && plataformaLista);
 
   return (
     <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
@@ -224,14 +238,17 @@ export default function AfipConfigForm() {
         )}
       </div>
 
-      <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs text-muted-foreground space-y-1">
-        <p className="font-medium text-foreground">Requisitos previos</p>
-        <ol className="list-decimal list-inside space-y-0.5">
-          <li>Solicitá el certificado en <strong>CLAVE FISCAL → Administrador de Relaciones de Clave Fiscal</strong></li>
-          <li>Vinculá el servicio <strong>wsfe</strong> a tu CUIT</li>
-          <li>Pegá el certificado (.crt) y clave privada (.key) en formato PEM abajo</li>
-          <li>Probá con <strong>Homologación</strong> antes de pasar a Producción</li>
-        </ol>
+      {/* ⚠️ Acá había un instructivo de cuatro pasos que terminaba en "pegá el
+          certificado (.crt) y la clave privada (.key)". Ése es el trámite que
+          hace abandonar a un comercio, y no hace falta: el certificado lo pone
+          la plataforma. Los pasos que SÍ le tocan —a qué CUIT delegar wsfe y
+          verificar que quedó hecho— los explica `ConectarAfip`, arriba. */}
+      <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs text-muted-foreground">
+        <p className="font-medium text-foreground mb-0.5">Estos datos van impresos en tu factura</p>
+        <p>
+          Son los únicos que la plataforma no puede averiguar sola. La conexión con
+          AFIP se verifica automáticamente al guardar.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -279,61 +296,34 @@ export default function AfipConfigForm() {
         </div>
       </div>
 
-      {/* ── C14: en modo delegado no se sube ninguna clave ───────────────
-          El trámite lo explica y lo verifica `ConectarAfip` en /afip, que dice
-          a qué CUIT delegar y le pregunta a ARCA si quedó hecho. Acá sólo queda
-          el desvío hacia el certificado propio, que es lo único de esta
-          pantalla: los campos del PEM viven abajo. */}
-      {modo === "delegado" && (
-        <div className="rounded-[8px] border border-border/60 bg-muted/40 p-3 space-y-2">
-          <p className="text-xs font-medium">Facturás con el certificado de la plataforma</p>
-          <p className="text-[11px] text-muted-foreground">
-            No tenés que generar ninguna clave.{" "}
-            <Link to="/afip" className="underline underline-offset-2">
-              Conectá AFIP desde acá
-            </Link>{" "}
-            — te dice a qué CUIT delegar el servicio y verifica contra ARCA que
-            haya quedado hecho.
+      {/* ── De qué certificado se factura: información, no una decisión ──
+          Antes este bloque aparecía sólo en modo delegado y ofrecía un
+          «prefiero usar mi propio certificado». Elegir certificado no es una
+          decisión del comercio: es de la plataforma. Acá se cuenta cuál se
+          usa, que es distinto. */}
+      <div className="rounded-[8px] border border-border/60 bg-muted/40 p-3 space-y-2">
+        <p className="text-xs font-medium">
+          {modo === "propio"
+            ? "Facturás con un certificado propio, administrado por la plataforma"
+            : "Facturás con el certificado de la plataforma"}
+        </p>
+        <p className="text-[11px] text-muted-foreground">
+          No tenés que generar ninguna clave ni subir ningún archivo.{" "}
+          {modo === "propio"
+            ? "Tu certificado ya está cargado; si hay que renovarlo lo hace la plataforma."
+            : "Sólo tenés que delegar el servicio wsfe desde el Administrador de Relaciones de ARCA."}
+        </p>
+        {!plataformaLista && (
+          <p className="text-[11px] text-destructive">
+            La plataforma todavía no cargó su certificado. No es un problema de tu
+            configuración: no hay nada que puedas hacer de este lado.
           </p>
-          {!plataformaLista && (
-            <p className="text-[11px] text-destructive">
-              La plataforma todavía no cargó su certificado. No es un problema de tu
-              configuración: no hay nada que puedas hacer de este lado.
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={() => setMostrarCert(v => !v)}
-            className="text-[11px] text-muted-foreground underline underline-offset-2"
-          >
-            {mostrarCert ? "Ocultar" : "Prefiero usar mi propio certificado"}
-          </button>
-        </div>
-      )}
-
-      <div className={`space-y-3 pb-12 ${modo === "delegado" && !mostrarCert ? "hidden" : ""}`}>
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Certificado AFIP (PEM)</label>
-          <Textarea
-            value={certificate}
-            onChange={e => setCertificate(e.target.value)}
-            placeholder={"-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"}
-            className="bg-muted border-border font-mono text-xs h-28 resize-none"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Clave privada (PEM)</label>
-          <Textarea
-            value={privateKey}
-            onChange={e => setPrivateKey(e.target.value)}
-            placeholder={"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"}
-            className="bg-muted border-border font-mono text-xs h-28 resize-none"
-          />
-          <p className="text-[10px] text-muted-foreground mt-1">
-            Se guarda fuera del alcance del navegador: después de enviarla no se puede volver a leer desde la app.
-          </p>
-        </div>
+        )}
       </div>
+      {/* ⚠️ Acá vivían los dos <Textarea> del certificado y la clave privada en
+          PEM. El comercio no sube ninguna clave: el certificado es de la
+          plataforma y se administra en /platform/afip. Pedirle a un comerciante
+          que genere una clave con openssl es donde abandona. */}
 
       <div className="flex gap-2 pt-1">
         <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold">
