@@ -6,6 +6,7 @@
 // The email contains a link to /invitacion/<token> where the user
 // completes signup and is auto-added to the org with the given role.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { remitenteDe } from "../_shared/remitente.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendKey = Deno.env.get("RESEND_API_KEY");
-    const fromEmail = Deno.env.get("FROM_EMAIL") || "Gestiona <noreply@gestiona.app>";
+    const fromEmail = Deno.env.get("FROM_EMAIL") || (await remitenteDe("default")).from;
 
     if (!resendKey) {
       return json({ error: "Resend no está configurado en la plataforma" }, 500);

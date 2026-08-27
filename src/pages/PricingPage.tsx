@@ -61,20 +61,73 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   paused:   { label: 'Pausado',        color: 'bg-muted text-muted-foreground border-border' },
 };
 
+/**
+ * Las preguntas frecuentes.
+ *
+ * ── Dos reglas, y las dos salieron de encontrar el problema ───────────────
+ *
+ * ⚠️ **Cada respuesta tiene que ser cierta.** Medidas contra el código el
+ * 2026-08-27, cuatro de cinco no lo eran:
+ *
+ *   - «Cancelás desde Configuración → Facturación» — esa pestaña no existe (es
+ *     Ajustes → Suscripción), y el botón que sí existía **no cancelaba nada**.
+ *   - «Te avisamos 3 días antes de que termine el trial» — ninguna función
+ *     manda ese aviso.
+ *   - «La cuenta se pausa» — no se pausa: se apagan los extras y el comercio
+ *     sigue entrando y viendo todo lo suyo.
+ *   - «Los cambios de plan se aplican al final del período (downgrade)» — no
+ *     hay nada que programe un cambio de plan a futuro.
+ *
+ * 📌 Una página de precios es una promesa comercial. Una respuesta que no se
+ * puede cumplir no es un detalle de redacción: es lo que hace que alguien se dé
+ * de baja el primer mes sintiéndose engañado.
+ *
+ * 📌 **Y se escriben para el comercio, no para el que programó.** Nada de
+ * «upgrade», «downgrade», «período de facturación» ni nombres de pantallas
+ * internas. El que lee esto vende perfumes, no lee código.
+ */
 const FAQ = [
-  { q: '¿Puedo cambiar de plan en cualquier momento?', a: 'Sí. Podés subir o bajar de plan cuando quieras. Los cambios se aplican de forma inmediata (upgrade) o al final del período de facturación (downgrade).' },
-  { q: '¿Qué pasa cuando termina el trial?', a: 'Te avisamos 3 días antes del vencimiento. Si no cargás una tarjeta, la cuenta se pausa y podés exportar tus datos. No se borran de forma automática.' },
-  { q: '¿Puedo cancelar en cualquier momento?', a: 'Sí, sin costo. Cancelás desde Configuración → Facturación. El acceso continúa hasta el final del período ya pagado.' },
-  // ⚠️ Este FAQ decía "Sí, en USD… a través de Stripe". Las dos mitades eran
-  // falsas: la suscripción se cobra en PESOS y por MercadoPago (`mp-subscribe`
-  // arma un preapproval con `currency_id: 'ARS'`). Prometer un precio en
-  // dólares y cobrar otro en pesos es la clase de sorpresa que hace que alguien
-  // dé de baja el primer mes.
-  { q: '¿En qué moneda son los precios?', a: 'En pesos argentinos. El cobro es mensual o anual por MercadoPago, con la tarjeta o el saldo que ya usás.' },
-  { q: '¿Hay descuento por pago anual?', a: 'Sí, 17% de descuento al pagar el año completo por adelantado.' },
+  {
+    q: '¿Puedo cambiar de plan cuando quiera?',
+    a: 'Sí. Elegís el plan nuevo desde Mi plan y MercadoPago te pide autorizar el nuevo importe. Desde ese momento pagás el plan nuevo.',
+  },
+  {
+    q: '¿Qué pasa cuando se termina la prueba gratis?',
+    a: 'Nada se borra. Seguís entrando y viendo tus ventas, tu stock y tus clientes; lo que se apaga son los extras del plan, como el asistente de inteligencia artificial. Cuando elegís un plan, vuelve todo.',
+  },
+  {
+    q: '¿Puedo darme de baja cuando quiera?',
+    a: 'Sí, sin costo y desde la misma pantalla donde contratás: Mi plan. Le avisamos a MercadoPago para que no te cobre más, y seguís usando el sistema hasta que termine el mes que ya pagaste.',
+  },
+  {
+    q: '¿Qué pasa con mi información si me doy de baja?',
+    a: 'Queda toda. Podés seguir entrando a ver tus ventas, productos y clientes, y descargarte una copia desde Ajustes cuando quieras. No borramos nada por dejar de pagar.',
+  },
+  {
+    q: '¿En qué moneda son los precios?',
+    a: 'En pesos argentinos. Se cobra por mes o por año con MercadoPago, usando la tarjeta o el saldo que ya tenés ahí.',
+  },
+  {
+    q: '¿Conviene pagar el año entero?',
+    a: 'Sí: pagando los doce meses juntos te sale alrededor de un 17% menos que mes a mes.',
+  },
+  {
+    q: '¿Y si alguna vez suben el precio?',
+    a: 'Te avisamos por mail con treinta días de anticipación, diciéndote cuánto pagás hoy, cuánto vas a pagar y desde qué día. Si no te conviene, te das de baja antes y no se te cobra el importe nuevo.',
+  },
 ];
 
-const TRUST = ['Sin contrato', 'Datos 100% tuyos', 'Hosting en Argentina', 'Soporte en español', 'HTTPS incluido'];
+/**
+ * ⚠️ Acá decía **«Hosting en Argentina»**, y es falso: la base está en
+ * `aws-1-us-east-1`, o sea Virginia, Estados Unidos. Es una afirmación sobre
+ * dónde viven los datos de otro — de las que se firman, no de las que se
+ * escriben para llenar una fila.
+ *
+ * 📌 También salió «HTTPS incluido»: es cierto y no significa nada para quien
+ * vende perfumes. Un sello de confianza que el lector no entiende no genera
+ * confianza, ocupa lugar.
+ */
+const TRUST = ['Sin contrato de permanencia', 'Tus datos son tuyos', 'Te podés dar de baja solo', 'Soporte en español'];
 
 // ⚠️ El precio que vale es el de PESOS: es el que cobra MercadoPago, que es
 // el único medio con el que se puede pagar la suscripción, y el que lee

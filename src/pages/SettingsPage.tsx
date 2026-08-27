@@ -1411,18 +1411,37 @@ function SubscriptionPanel({ session }: { session: any }) {
     finally { setCheckingOut(null); }
   };
 
+  /**
+   * ⚠️ Este handler arrancaba con `if (!subscription?.stripe_subscription_id)
+   * return;` — y esa columna está en NULL en **todas** las filas, porque el
+   * cobro nunca fue por Stripe. O sea que el botón «Cancelar suscripción» no
+   * llamaba a nada, no fallaba y no avisaba: quedaba pensando y listo.
+   *
+   * Y la función del otro lado también era de Stripe, así que aunque hubiera
+   * pasado, **MercadoPago habría seguido cobrando**. Medido el 2026-08-27.
+   *
+   * 📌 Ahora se manda la organización, que es la llave real de una suscripción
+   * (`UNIQUE (org_id)`), y la función cancela el `preapproval` en MercadoPago
+   * antes de dejar constancia.
+   */
   const handleCancel = async () => {
-    if (!subscription?.stripe_subscription_id) return;
+    if (!activeOrg?.id) return;
     setCanceling(true);
     try {
-      const { error } = await supabase.functions.invoke('cancel-subscription', {
-        body: { subscriptionId: subscription.stripe_subscription_id },
-        headers: { Authorization: `Bearer ${session?.access_token}` },
+      const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+        body: { org_id: activeOrg.id },
       });
-      if (error) throw error;
-      toast.success('Suscripción cancelada. Seguirás teniendo acceso hasta el fin del período.');
+      // El motivo real vive en el cuerpo del no-2xx; `invoke` lo descarta.
+      if (error) throw new Error(await mensajeDeEdgeFunction(error, data) || 'No se pudo cancelar');
+      toast.success(
+        (data as { mensaje?: string })?.mensaje
+          ?? 'Suscripción dada de baja. Seguís con acceso hasta el fin del período pago.',
+      );
       await refresh();
-    } catch { toast.error('Error al cancelar.'); }
+    } catch (e) {
+      console.error('cancel-subscription', e);
+      toast.error(e instanceof Error ? e.message : 'No se pudo cancelar.');
+    }
     finally { setCanceling(false); }
   };
 
@@ -1519,13 +1538,7 @@ function SubscriptionPanel({ session }: { session: any }) {
                 {checkingOut === 'portal' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo...</> : <><CreditCard className="w-4 h-4 mr-2" />Actualizar método de pago</>}
               </Button>
             )}
-            {(subscription?.status === 'active' || subscription?.status === 'past_due') && subscription?.stripe_subscription_id && (
-              <Button variant="outline" size="sm" className="text-xs w-full" onClick={handleBillingPortal} disabled={!!checkingOut}>
-                {checkingOut === 'portal' ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : null}
-                Gestionar facturación en Stripe
-              </Button>
-            )}
-            {subscription?.status === 'active' && !subscription.cancel_at_period_end && (
+            {(subscription?.status === 'active' || subscription?.status === 'past_due' || subscription?.status === 'trialing') && !subscription.cancel_at_period_end && (
               <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={handleCancel} disabled={canceling}>
                 {canceling ? 'Cancelando...' : 'Cancelar suscripción'}
               </Button>

@@ -17,6 +17,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 
 const corsHeaders = {
@@ -190,7 +191,7 @@ Deno.serve(async (req) => {
     const result = await sendEmail(
       smtpCfg,
       resendKey,
-      `${businessName} <pedidos@gestiona.app>`,
+      (await remitenteDe("pedidos")).from,
       {
         to: supplierEmail,
         subject: `Pedido de Compra N° ${poNumber} — ${productName} (${quantity} u.)`,

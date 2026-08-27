@@ -8,6 +8,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { remitenteDe } from "../_shared/remitente.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 
@@ -63,7 +64,7 @@ Deno.serve(async (req) => {
     }
 
     const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
-    const resendFrom = `${orgName || "Gestiona"} <facturas@gestiona.app>`;
+    const resendFrom = (await remitenteDe("facturas")).from;
 
     const dueDateStr = dueDate
       ? new Date(dueDate).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })

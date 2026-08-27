@@ -46,6 +46,7 @@ const PlatformCommissionsPage = lazy(() => import("@/pages/PlatformCommissionsPa
 const PlatformBusinessPage = lazy(() => import("@/pages/PlatformBusinessPage"));
 const PlatformAfipPage = lazy(() => import("@/pages/PlatformAfipPage"));
 const PlatformAnnouncementsPage = lazy(() => import("@/pages/PlatformAnnouncementsPage"));
+const PlatformMessagingPage = lazy(() => import("@/pages/PlatformMessagingPage"));
 const FinanceOverviewPage     = lazy(() => import("@/pages/FinanceOverviewPage"));
 const FinanceDocumentsPage    = lazy(() => import("@/pages/FinanceDocumentsPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
@@ -148,6 +149,7 @@ function PlatformRoutes() {
           <Route path="soporte" element={<PlatformAdminPage section="support" />} />
           <Route path="anuncios" element={<PlatformAnnouncementsPage />} />
           <Route path="sistema" element={<PlatformAdminPage section="system" />} />
+          <Route path="mensajeria" element={<PlatformMessagingPage />} />
           {/* Ruta vieja */}
           <Route path="admin" element={<Navigate to="/platform" replace />} />
           <Route path="*" element={<Navigate to="/platform" replace />} />

@@ -3,6 +3,7 @@
  * Sends an in-app notification summarizing the previous week's KPIs per org.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { remitenteDe } from "../_shared/remitente.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 
@@ -143,7 +144,7 @@ serve(async (_req) => {
           await sendEmail(
             smtpCfg,
             resendKey,
-            "Gestiona <digest@gestiona.app>",
+            (await remitenteDe("digest")).from,
             { to: email, subject: `📊 ${org.name} — Resumen ${wStartStr} al ${wEndStr}`, html },
           );
         }

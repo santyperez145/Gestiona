@@ -8,6 +8,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { remitenteDe } from "../_shared/remitente.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 
@@ -90,7 +91,7 @@ Deno.serve(async (req) => {
 
     const smtpCfg = parseSmtpConfig(settings as Record<string, unknown> | null);
     const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
-    const resendFrom = `${orgName || "Gestiona"} <marketing@gestiona.app>`;
+    const resendFrom = (await remitenteDe("marketing")).from;
 
     let sent = 0;
     let failed = 0;

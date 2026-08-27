@@ -11,6 +11,7 @@
  * pasa ninguna tarjeta — se manda al comercio al link de MercadoPago.
  */
 import { useCallback, useEffect, useState } from "react";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -86,6 +87,7 @@ export default function MiPlanPage() {
   const [ciclo, setCiclo] = useState<"mensual" | "anual">("mensual");
   const [loading, setLoading] = useState(true);
   const [contratando, setContratando] = useState<string | null>(null);
+  const [cancelando, setCancelando] = useState(false);
 
   const cargar = useCallback(async () => {
     if (!activeOrg) return;
@@ -204,6 +206,49 @@ export default function MiPlanPage() {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/**
+          * Dar de baja, acá.
+          *
+          * ⚠️ Hasta el 2026-08-27 la baja sólo estaba en Ajustes, y **no
+          * funcionaba**: el handler cortaba con `if (!stripe_subscription_id)
+          * return`, una columna que está NULL en todas las filas, y del otro
+          * lado la función era de Stripe. El comercio no tenía forma de
+          * cancelar algo que se le seguía cobrando.
+          *
+          * 📌 Va en Mi plan porque es donde el comercio viene a ver su plan.
+          * Que la baja esté en otra pantalla es una fricción puesta a
+          * propósito, y de las que se pagan con una queja pública.
+          */}
+        {!sub?.cancela_al_final
+          && ["active", "past_due", "trialing"].includes(estadoActual) && (
+          <div className="mt-4 flex justify-end">
+            <Button
+              variant="ghost" size="sm" className="text-xs text-muted-foreground"
+              disabled={cancelando}
+              onClick={async () => {
+                if (!activeOrg?.id) return;
+                if (!confirm("¿Dar de baja tu suscripción? Seguís con acceso hasta que termine el período que ya pagaste.")) return;
+                setCancelando(true);
+                const { data, error } = await supabase.functions.invoke("cancel-subscription", {
+                  body: { org_id: activeOrg.id },
+                });
+                setCancelando(false);
+                if (error) {
+                  const motivo = await mensajeDeEdgeFunction(error, data);
+                  console.error("cancel-subscription", motivo || error);
+                  toast.error(motivo || "No se pudo dar de baja");
+                  return;
+                }
+                toast.success((data as { mensaje?: string })?.mensaje ?? "Suscripción dada de baja");
+                await cargar();
+              }}
+            >
+              {cancelando && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
+              Dar de baja mi suscripción
+            </Button>
           </div>
         )}
 

@@ -23048,6 +23048,48 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_messaging_config: {
+        Row: {
+          actualizado_por: string | null
+          email_casillas: Json
+          email_dominio: string | null
+          email_nombre: string
+          email_verificado_at: string | null
+          id: boolean
+          updated_at: string
+          whatsapp_numero_visible: string | null
+          whatsapp_phone_number_id: string | null
+          whatsapp_proveedor: string | null
+          whatsapp_verificado_at: string | null
+        }
+        Insert: {
+          actualizado_por?: string | null
+          email_casillas?: Json
+          email_dominio?: string | null
+          email_nombre?: string
+          email_verificado_at?: string | null
+          id?: boolean
+          updated_at?: string
+          whatsapp_numero_visible?: string | null
+          whatsapp_phone_number_id?: string | null
+          whatsapp_proveedor?: string | null
+          whatsapp_verificado_at?: string | null
+        }
+        Update: {
+          actualizado_por?: string | null
+          email_casillas?: Json
+          email_dominio?: string | null
+          email_nombre?: string
+          email_verificado_at?: string | null
+          id?: boolean
+          updated_at?: string
+          whatsapp_numero_visible?: string | null
+          whatsapp_phone_number_id?: string | null
+          whatsapp_proveedor?: string | null
+          whatsapp_verificado_at?: string | null
+        }
+        Relationships: []
+      }
       platform_metric_watermarks: {
         Row: {
           created_at: string
@@ -47585,6 +47627,12 @@ export type Database = {
           provider: string
           soporta_cuotas: boolean
         }[]
+      }
+      mensajeria_de_plataforma: { Args: never; Returns: Json }
+      mensajeria_guardar: { Args: { p_cambios: Json }; Returns: Json }
+      mensajeria_marcar_verificado: {
+        Args: { p_canal: string; p_ok: boolean }
+        Returns: undefined
       }
       next_quote_number: { Args: { p_org_id: string }; Returns: string }
       next_store_order_number: { Args: never; Returns: string }

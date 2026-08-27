@@ -113,12 +113,20 @@ describe("los planes se muestran y se cobran en pesos", () => {
     // Pero con `MP_APP_ID` + `MP_APP_SECRET` —los que ya usa `mp-connect`—
     // MercadoPago entrega uno por `client_credentials`, sobre la cuenta dueña
     // de la aplicación, que es la de la plataforma.
-    expect(subscribe, "mp-subscribe no deriva el token de las credenciales existentes")
+    // 📌 El token dejó de resolverse dentro de `mp-subscribe`: lo necesitaban
+    // tres funciones —alta, cambio de precio y baja— y con dos ya estaba
+    // duplicado. Vive en `_shared/mpPlataforma.ts`, y el invariante se verifica
+    // ahí; acá se verifica que `mp-subscribe` lo use en vez de rehacerlo.
+    const helper = readFileSync(
+      resolve(ROOT, "supabase/functions/_shared/mpPlataforma.ts"), "utf8");
+    expect(helper, "el helper no deriva el token de las credenciales existentes")
       .toContain("client_credentials");
-    expect(subscribe, "se perdió MP_APP_SECRET como fuente del token")
+    expect(helper, "se perdió MP_APP_SECRET como fuente del token")
       .toContain("MP_APP_SECRET");
     // El token puesto a mano manda: es una decisión explícita.
-    expect(subscribe, "MP_PLATFORM_ACCESS_TOKEN dejó de tener prioridad")
+    expect(helper, "MP_PLATFORM_ACCESS_TOKEN dejó de tener prioridad")
       .toMatch(/MP_PLATFORM_ACCESS_TOKEN[\s\S]{0,120}?if \(directo\) return directo/);
+    expect(subscribe, "mp-subscribe volvió a resolver el token por su cuenta")
+      .toContain("tokenDeLaPlataforma");
   });
 });

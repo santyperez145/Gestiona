@@ -25,6 +25,7 @@
 // MercadoPago confirma que cobró. Activarla acá le daría acceso a alguien que
 // abrió el link de pago y no lo completó.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { tokenDeLaPlataforma } from "../_shared/mpPlataforma.ts";
 import { getAuthedUser } from "../_shared/requireUser.ts";
 
 const CORS = {
@@ -51,58 +52,6 @@ const json = (body: unknown, status = 200) =>
   });
 
 
-/**
- * El token con el que la plataforma cobra sus suscripciones.
- *
- * ── Por qué hay dos caminos ───────────────────────────────────────────────
- *
- * ⚠️ `MP_APP_ID` **no es** un token: es el identificador público de la
- * aplicación y no autentica ninguna llamada. Pero no hace falta cargar un
- * secreto nuevo: con `MP_APP_ID` + `MP_APP_SECRET` —los que ya usa `mp-connect`
- * para el OAuth de los comercios— MercadoPago entrega un token de aplicación
- * por `client_credentials`, y ese token actúa sobre la cuenta **dueña de la
- * aplicación**, que es justo la de la plataforma.
- *
- * `MP_PLATFORM_ACCESS_TOKEN` sigue teniendo prioridad si está cargado: un
- * token puesto a mano es una decisión explícita y no se pisa.
- *
- * 📌 El token derivado **no se cachea acá**. Vence, y guardarlo en memoria de
- * una Edge Function que se recicla sola es la clase de estado que después nadie
- * puede explicar. Pedirlo cuesta una llamada por suscripción contratada, que es
- * una operación que pasa pocas veces por día.
- */
-async function tokenDeLaPlataforma(): Promise<string | null> {
-  const directo = Deno.env.get("MP_PLATFORM_ACCESS_TOKEN");
-  if (directo) return directo;
-
-  const clientId = Deno.env.get("MP_APP_ID");
-  const clientSecret = Deno.env.get("MP_APP_SECRET");
-  if (!clientId || !clientSecret) return null;
-
-  try {
-    const resp = await fetch("https://api.mercadopago.com/oauth/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        grant_type: "client_credentials",
-        client_id: clientId,
-        client_secret: clientSecret,
-      }),
-      signal: AbortSignal.timeout(15_000),
-    });
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok || !data?.access_token) {
-      // El motivo va al log, no a la pantalla: acá hay credenciales de por
-      // medio y el comercio no puede hacer nada con el detalle.
-      console.error("mp-subscribe: client_credentials falló", resp.status, data?.message ?? data?.error);
-      return null;
-    }
-    return String(data.access_token);
-  } catch (e) {
-    console.error("mp-subscribe: no se pudo pedir el token de aplicación", e);
-    return null;
-  }
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });

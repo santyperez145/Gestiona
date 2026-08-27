@@ -24,6 +24,8 @@
  * que el día que pase se vea, en vez de quedar como un error genérico.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { remitenteDe } from "../_shared/remitente.ts";
+import { tokenDeLaPlataforma } from "../_shared/mpPlataforma.ts";
 import { sendEmail } from "../_shared/smtpSender.ts";
 
 const corsHeaders = {
@@ -41,30 +43,6 @@ const fecha = (d: string) =>
   new Date(d + "T12:00:00-03:00").toLocaleDateString("es-AR",
     { day: "2-digit", month: "long", year: "numeric" });
 
-/**
- * El token de la plataforma. Mismo criterio que `mp-subscribe`: un token puesto
- * a mano manda porque es una decisión explícita; si no, se deriva de las
- * credenciales OAuth que ya existen.
- */
-async function tokenDeLaPlataforma(): Promise<string | null> {
-  const directo = Deno.env.get("MP_PLATFORM_ACCESS_TOKEN");
-  if (directo) return directo;
-
-  const id = Deno.env.get("MP_APP_ID");
-  const secret = Deno.env.get("MP_APP_SECRET");
-  if (!id || !secret) return null;
-
-  const res = await fetch("https://api.mercadopago.com/oauth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ grant_type: "client_credentials", client_id: id, client_secret: secret }),
-  });
-  if (!res.ok) {
-    console.error("no se pudo obtener el token de plataforma", res.status, await res.text());
-    return null;
-  }
-  return (await res.json())?.access_token ?? null;
-}
 
 function cuerpoDelAviso(o: {
   comercio: string; anterior: number | null; nuevo: number;
@@ -118,7 +96,7 @@ Deno.serve(async (req) => {
   const admin = createClient(url, serviceRole);
 
   const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
-  const resendFrom = Deno.env.get("RESEND_FROM") ?? "Gestiona <onboarding@resend.dev>";
+  const resendFrom = (await remitenteDe("default")).from;
 
   let avisados = 0, aplicados = 0, reautorizar = 0, fallidos = 0;
   const problemas: string[] = [];

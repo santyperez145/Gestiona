@@ -7,6 +7,7 @@
 // Supported actions:  notification, email, whatsapp_message,
 //                     create_task, create_purchase_order, webhook
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
@@ -417,7 +418,7 @@ async function actionEmail(
     const result = await sendEmail(
       smtpCfg,
       resendKey,
-      "Gestiona <automatizaciones@gestiona.app>",
+      (await remitenteDe("automatizaciones")).from,
       { to, subject: summary.title, html },
     );
     if (result.ok) sent++;
