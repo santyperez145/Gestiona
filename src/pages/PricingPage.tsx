@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { mensajeDeEdgeFunction } from '@/lib/edgeErrors';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/lib/orgContext';
@@ -72,7 +73,8 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
  *   - «Cancelás desde Configuración → Facturación» — esa pestaña no existe (es
  *     Ajustes → Suscripción), y el botón que sí existía **no cancelaba nada**.
  *   - «Te avisamos 3 días antes de que termine el trial» — ninguna función
- *     manda ese aviso.
+ *     mandaba ese aviso. Ahora existe: `avisar_trial_por_vencer` corre por cron
+ *     y el mail sale por `avisos-por-correo`.
  *   - «La cuenta se pausa» — no se pausa: se apagan los extras y el comercio
  *     sigue entrando y viendo todo lo suyo.
  *   - «Los cambios de plan se aplican al final del período (downgrade)» — no
@@ -166,13 +168,39 @@ export default function PricingPage() {
     if (currentPlan?.code === plan.code && subscription?.status === 'active') { toast.info('Ya estás en este plan.'); return; }
     setCheckingOut(plan.code);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { planCode: plan.code, orgId: activeOrg.id, yearly },
-        headers: { Authorization: `Bearer ${session?.access_token}` },
+      /**
+       * ⚠️ Esto llamaba a `create-checkout`, que es **Stripe puro** y hace
+       * `requireEnv("STRIPE_SECRET_KEY")` al cargar el módulo: sin ese secreto
+       * la función devuelve 500 antes de ejecutar una línea del handler.
+       *
+       * O sea que el botón de contratar de la página de precios —la puerta de
+       * entrada de todo el negocio— caía siempre en «No se pudo iniciar el
+       * pago». Medido el 2026-08-27.
+       *
+       * El cobro real es por MercadoPago, con la misma función que ya usa
+       * Mi plan. Una sola forma de contratar, y es la que cobra.
+       */
+      const { data, error } = await supabase.functions.invoke('mp-subscribe', {
+        body: {
+          org_id: activeOrg.id,
+          plan_code: plan.code,
+          ciclo: yearly ? 'anual' : 'mensual',
+          back_url: `${window.location.origin}/mi-plan`,
+        },
       });
-      if (error || !data?.url) { toast.error('No se pudo iniciar el pago. Intentá de nuevo.'); return; }
-      window.location.href = data.url;
-    } catch {
+      if (error) {
+        const motivo = await mensajeDeEdgeFunction(error, data);
+        console.error('mp-subscribe', motivo || error);
+        toast.error(motivo || 'No se pudo iniciar la suscripción.');
+        return;
+      }
+      const link = (data as { init_point?: string })?.init_point;
+      if (!link) { toast.error('MercadoPago no devolvió el link de pago.'); return; }
+      // Se manda a autorizar el débito. La suscripción se activa cuando MP
+      // confirma el primer cobro, no al abrir el link.
+      window.location.href = link;
+    } catch (e) {
+      console.error('handleSelect', e);
       toast.error('Error al conectar con el sistema de pagos.');
     } finally {
       setCheckingOut(null);

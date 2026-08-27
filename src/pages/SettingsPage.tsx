@@ -1234,7 +1234,7 @@ export default function SettingsPage() {
 
         <div className="space-y-4 md:space-y-6 workspace-settings-column">
           {/* Subscription */}
-          <div id="settings-subscription" className="settings-panel settings-panel--billing"><SubscriptionPanel session={session} /></div>
+          <div id="settings-subscription" className="settings-panel settings-panel--billing"><SuscripcionPuntero /></div>
 
           {/* Taxes */}
           <div id="settings-taxes" className="settings-panel settings-panel--billing bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
@@ -1382,174 +1382,46 @@ export default function SettingsPage() {
 }
 
 // ===== Subscription Panel =====
-function SubscriptionPanel({ session }: { session: any }) {
-  const { activeOrg } = useOrg();
-  const { plan, subscription, isTrialing, trialDaysLeft, loading, refresh } = useEntitlements();
-  const [checkingOut, setCheckingOut] = useState<string | null>(null);
-  const [canceling, setCanceling] = useState(false);
+/**
+ * La suscripción no se administra desde Ajustes.
+ *
+ * ── Por qué se sacó de acá ────────────────────────────────────────────────
+ *
+ * Había un panel de 170 líneas que duplicaba `/mi-plan`: mostraba los planes,
+ * ofrecía contratar y ofrecía cancelar. Medido el 2026-08-27, **ninguna de las
+ * dos acciones funcionaba**:
+ *
+ *   - «Mejorar plan» llamaba a `create-checkout`, que es Stripe puro y hace
+ *     `requireEnv("STRIPE_SECRET_KEY")` al cargar el módulo. Sin ese secreto la
+ *     función devuelve 500 antes de ejecutar una línea. El cobro real es por
+ *     MercadoPago (`mp-subscribe`).
+ *   - «Gestionar facturación en Stripe» dependía de `stripe_subscription_id`,
+ *     que está en NULL en todas las filas: el botón no aparecía nunca.
+ *
+ * 📌 Dos pantallas para lo mismo, y la segunda rota. Ajustes queda con un
+ * puntero —el mismo patrón que ya se usó para AFIP, cupones y sucursales— y la
+ * suscripción vive en un solo lugar.
+ */
+function SuscripcionPuntero() {
+  const { plan, subscription, isTrialing, trialDaysLeft, loading } = useEntitlements();
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('checkout') === 'success') {
-      toast.success('¡Suscripción activada! Gracias por confiar en Gestiona.');
-      refresh();
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, []);
-
-  const handleUpgrade = async (planCode: string) => {
-    if (!activeOrg || !session) return;
-    setCheckingOut(planCode);
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { planCode, orgId: activeOrg.id, yearly: false },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      if (error || !data?.url) { toast.error('No se pudo iniciar el pago.'); return; }
-      window.location.href = data.url;
-    } catch { toast.error('Error al conectar con pagos.'); }
-    finally { setCheckingOut(null); }
-  };
-
-  /**
-   * ⚠️ Este handler arrancaba con `if (!subscription?.stripe_subscription_id)
-   * return;` — y esa columna está en NULL en **todas** las filas, porque el
-   * cobro nunca fue por Stripe. O sea que el botón «Cancelar suscripción» no
-   * llamaba a nada, no fallaba y no avisaba: quedaba pensando y listo.
-   *
-   * Y la función del otro lado también era de Stripe, así que aunque hubiera
-   * pasado, **MercadoPago habría seguido cobrando**. Medido el 2026-08-27.
-   *
-   * 📌 Ahora se manda la organización, que es la llave real de una suscripción
-   * (`UNIQUE (org_id)`), y la función cancela el `preapproval` en MercadoPago
-   * antes de dejar constancia.
-   */
-  const handleCancel = async () => {
-    if (!activeOrg?.id) return;
-    setCanceling(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('cancel-subscription', {
-        body: { org_id: activeOrg.id },
-      });
-      // El motivo real vive en el cuerpo del no-2xx; `invoke` lo descarta.
-      if (error) throw new Error(await mensajeDeEdgeFunction(error, data) || 'No se pudo cancelar');
-      toast.success(
-        (data as { mensaje?: string })?.mensaje
-          ?? 'Suscripción dada de baja. Seguís con acceso hasta el fin del período pago.',
-      );
-      await refresh();
-    } catch (e) {
-      console.error('cancel-subscription', e);
-      toast.error(e instanceof Error ? e.message : 'No se pudo cancelar.');
-    }
-    finally { setCanceling(false); }
-  };
-
-  const handleBillingPortal = async () => {
-    if (!activeOrg || !session) return;
-    setCheckingOut('portal');
-    try {
-      const { data, error } = await supabase.functions.invoke('create-billing-portal', {
-        body: { orgId: activeOrg.id, returnUrl: window.location.href },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      if (error || !data?.url) { toast.error('No se pudo abrir el portal de facturación.'); return; }
-      window.location.href = data.url;
-    } catch { toast.error('Error al conectar con el portal de pagos.'); }
-    finally { setCheckingOut(null); }
-  };
-
-  const statusColor = {
-    active: 'text-green-500',
-    trialing: 'text-blue-500',
-    past_due: 'text-yellow-500',
-    canceled: 'text-red-500',
-    paused: 'text-muted-foreground',
-  }[subscription?.status ?? 'canceled'] ?? 'text-muted-foreground';
-
-  const StatusIcon = subscription?.status === 'active' ? CheckCircle2
-    : subscription?.status === 'trialing' ? Zap
-    : subscription?.status === 'past_due' ? AlertTriangle
-    : XCircle;
+  const estado = loading ? "Cargando…"
+    : isTrialing ? `Prueba gratuita — ${trialDaysLeft} día${trialDaysLeft === 1 ? "" : "s"} restantes`
+    : !subscription ? "Sin plan contratado"
+    : subscription.status === "active" ? `Plan ${plan?.name ?? ""} — al día`
+    : subscription.status === "past_due" && !subscription.current_period_end
+      ? `Plan ${plan?.name ?? ""} — confirmando el pago`
+    : subscription.status === "past_due" ? `Plan ${plan?.name ?? ""} — pago pendiente`
+    : subscription.status === "canceled" ? "Suscripción dada de baja"
+    : `Plan ${plan?.name ?? ""}`;
 
   return (
-    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
-      <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
-        <CreditCard className="w-4 h-4 text-primary" />Suscripción
-      </h2>
-
-      {loading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" /> Cargando...
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold">{plan?.name ?? 'Sin plan'}</p>
-              <div className={`flex items-center gap-1.5 text-sm mt-0.5 ${statusColor}`}>
-                <StatusIcon className="w-3.5 h-3.5" />
-                <span>
-                  {subscription?.status === 'trialing' ? `Trial — ${trialDaysLeft} días restantes`
-                    : subscription?.status === 'active' ? 'Activo'
-                    : subscription?.status === 'past_due' ? 'Pago pendiente'
-                    : subscription?.status === 'canceled' ? 'Cancelado'
-                    : 'Sin suscripción'}
-                </span>
-              </div>
-              {subscription?.current_period_end && subscription.status !== 'canceled' && (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Próximo cobro: {new Date(subscription.current_period_end).toLocaleDateString('es-AR')}
-                </p>
-              )}
-            </div>
-            <div className="text-right">
-              {plan && plan.price_usd_monthly > 0 && (
-                <p className="text-2xl font-bold font-mono tracking-tight">${plan.price_usd_monthly}<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
-              )}
-            </div>
-          </div>
-
-          {/* Plan limits */}
-          {plan && (
-            <div className="grid grid-cols-3 gap-2 text-center">
-              {[
-                { label: 'Productos', val: plan.max_products ?? '∞' },
-                { label: 'Usuarios', val: plan.max_users ?? '∞' },
-                { label: 'IA', val: plan.ai_enabled ? 'Sí' : 'No' },
-              ].map(item => (
-                <div key={item.label} className="bg-muted rounded-lg p-2">
-                  <p className="text-xs text-muted-foreground">{item.label}</p>
-                  <p className="font-semibold text-sm">{String(item.val)}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex flex-col gap-2">
-            {(!subscription || subscription.status === 'canceled' || subscription.status === 'trialing') && (
-              <Button onClick={() => handleUpgrade('pro')} disabled={!!checkingOut} className="w-full gradient-gold text-primary-foreground font-semibold">
-                {checkingOut === 'pro' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo...</> : <><Zap className="w-4 h-4 mr-2" />Actualizar al plan Pro</>}
-              </Button>
-            )}
-            {subscription?.status === 'past_due' && (
-              <Button onClick={handleBillingPortal} disabled={!!checkingOut} className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold">
-                {checkingOut === 'portal' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo...</> : <><CreditCard className="w-4 h-4 mr-2" />Actualizar método de pago</>}
-              </Button>
-            )}
-            {(subscription?.status === 'active' || subscription?.status === 'past_due' || subscription?.status === 'trialing') && !subscription.cancel_at_period_end && (
-              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={handleCancel} disabled={canceling}>
-                {canceling ? 'Cancelando...' : 'Cancelar suscripción'}
-              </Button>
-            )}
-            {subscription?.cancel_at_period_end && (
-              <p className="text-xs text-yellow-500 text-center">Cancelación programada al fin del período</p>
-            )}
-          </div>
-        </>
-      )}
-    </div>
+    <PunteroAPagina
+      titulo="Tu plan"
+      detalle={`${estado}. Contratá, cambiá de plan, mirá tus facturas o date de baja desde Mi plan.`}
+      href="/mi-plan"
+      cta="Abrir Mi plan"
+    />
   );
 }
 

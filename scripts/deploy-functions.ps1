@@ -48,6 +48,7 @@ $noJwt = @(
     "customer-reactivation-alerts",
     "fetch-usd-rate",
     "precio-suscripcion",
+    "avisos-por-correo",
     "recover-abandoned-carts",
     "notify-back-in-stock",
     "send-drip-emails",
