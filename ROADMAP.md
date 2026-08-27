@@ -595,6 +595,20 @@ porque hacerlo dentro de una migración de esquema mezcla dos cosas que deben
 poder revertirse por separado. Los nueve tienen 0 ventas y 0 deudas, así que
 borrarlos no arrastra nada.
 
+> **Borrados el 2026-08-27** en `20260827000130`, una migración que **no toca
+> esquema** — que era la condición que faltaba. Quedan **25 clientes reales**.
+>
+> ⚠️ Lo que NO se borró, aunque empiece con `ZZ`: el producto «ZZ NO COMPRAR -
+> Prueba de pago» y sus dos ventas de $1. El prefijo engaña — no son basura de
+> verificación, son **la evidencia de que el cobro real funcionó**, con su
+> `application_fee` informado por MercadoPago. Un borrado por prefijo se las
+> habría llevado.
+>
+> La guarda exige que el cliente no tenga nada colgando —ventas, deudas,
+> presupuestos, comunicaciones, puntos ni oportunidades— y la verificación
+> comprueba las dos mitades: que no queden de prueba **y** que los reales
+> sigan, más que la guarda frena de verdad a un cliente con deuda.
+
 ### Por qué el ledger todavía no puede ser la autoridad del P&L (2026-08-26)
 
 El bloque «Finanzas canónicas» pide que todos los estados reales salgan del

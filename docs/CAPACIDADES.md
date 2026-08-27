@@ -1,6 +1,6 @@
 # Capacidades — qué está construido, qué está probado y qué se usa
 
-**Medido contra la base de producción el 2026-08-26.** Cada fila lleva el número
+**Medido contra la base de producción el 2026-08-27.** Cada fila lleva el número
 con el que se decidió su estado. Los comandos están al final para volver a
 correrlo.
 
@@ -43,9 +43,9 @@ mostrar.
 | Capacidad | Estado | Evidencia (2026-08-26) |
 |---|---|---|
 | Catálogo de productos | 📈 adopted | 60 productos activos |
-| Clientes / CRM | 📈 adopted | 34 clientes |
+| Clientes / CRM | 📈 adopted | **25 clientes reales** (2026-08-27). Eran 34: nueve eran de prueba y se borraron en `20260827000130`, así que toda métrica sobre `customers` venía inflada un 26% |
 | Ventas | 📈 adopted | 34 ventas |
-| Inventario / Kardex | ⚙️ operated | 40 movimientos de stock |
+| Inventario / Kardex | ⚙️ operated | 105 movimientos de stock (2026-08-27). El salto desde 40 es la reparación del costo de las 34 ventas del 2026-08-26, que revirtió y reaplicó cada una |
 | Eventos de dominio (H2) | ⚙️ operated | 21 en `domain_events` |
 | Toma física auditada | 🔨 built | **0 conteos cerrados**. El circuito `abrir/registrar/cerrar` está y se probó, pero nadie contó todavía — y contar es justamente lo que P0-03 necesita |
 | Ledger financiero (H3) | ⚙️ operated | **48 asientos** (2026-08-26): ventas, gastos y cobranzas asentados y conciliados **exacto** contra la fuente operativa (ventas $1.143.696 = $1.143.696, costo $798.851, gastos $21.560, 0 descuadrados). `trg_sale_ledger`, `trg_expense_ledger` y `trg_debt_ledger` asientan lo nuevo solos; `operaciones_sin_asentar` = 0 y Deudores netea a $0 con las 3 deudas saldadas. El P&L lee de acá |
@@ -55,7 +55,7 @@ mostrar.
 | Capacidad | Estado | Evidencia (2026-08-26) |
 |---|---|---|
 | Tienda online pública | ⚙️ operated | 1 tienda publicada, 6 órdenes, 2 pagadas |
-| POS | 🔨 built | **0 ventas con `source = 'pos'`**. El código lo escribe (`POSPage.tsx:979`), así que no es un bug de instrumentación: nadie vendió por mostrador. Las 32 ventas `manual` son carga a mano |
+| POS | 🔨 built | **0 ventas con `source = 'pos'`** (sigue en 0 al 2026-08-27). El código lo escribe (`POSPage.tsx:979`), así que no es un bug de instrumentación: nadie vendió por mostrador. Las 32 ventas `manual` son carga a mano |
 | MercadoLibre | 🔨 built | **0 conexiones, 0 publicaciones.** 5 tablas, 3 funciones y 3 Edge Functions construidas y sin una sola cuenta conectada. ⚠️ Construir más acá es construir a ciegas: no hay contra qué verificarlo |
 | WhatsApp | 🔨 built | Sin medición de uso en esta pasada |
 
@@ -64,7 +64,7 @@ mostrar.
 | Capacidad | Estado | Evidencia (2026-08-26) |
 |---|---|---|
 | Cobro online (MercadoPago) | ⚙️ operated | 2 transacciones aprobadas, 1 conexión OAuth. Dos compras reales de $1 el 2026-07-31 |
-| Comisión de plataforma | 🔬 verified | **0 reglas aprobadas, 0 activas** → hoy no cobra nada. Cobró dos veces con la regla vigente entonces (`application_fee: 0.05` informado por MercadoPago) |
+| Comisión de plataforma | 🔬 verified | ⚠️ **Cambió el 2026-08-26: hoy SÍ cobra.** 0,5%, `is_active = true`, `approval_status = approved`, vigente desde el 26/8 — es la salida del economics gate P0-09. La fila anterior de este documento decía «0 activas → hoy no cobra nada» y quedó vieja en un día. Cobró dos veces con la regla de entonces (`application_fee: 0.05` informado por MercadoPago) |
 | Gross profit por pago | 🔬 verified | 9/9 con el JWT de un admin real. Los únicos datos son los 2 pagos de $1 |
 | Reintegros | 🔬 verified | **0 RMA reales.** 16/16 escenarios en `drill:payments`, incluidos monto mayor al cobrado y `NULL` no autoriza |
 | Cuotas | 🔬 verified | **0 planes configurados.** 10/10 en verificación, y `store-pay` valida antes de cobrar |
@@ -75,22 +75,28 @@ mostrar.
 
 | Capacidad | Estado | Evidencia (2026-08-26) |
 |---|---|---|
-| Facturación ARCA | 🔨 built | ⚠️ Ver la nota de abajo |
+| Facturación ARCA | 🔬 verified | **Conexión probada contra el organismo el 2026-08-27**: `delegacion_verificada = true`, Ticket de Acceso de WSAA vigente, y `FECompUltimoAutorizado` respondió con el CUIT del comercio. Se puede volver a mirar (`delegacion_verificada_at`, `ta_expires_at`). ⚠️ Sigue en **0 comprobantes**: conectado no es emitido. Ver la nota de abajo |
 | Notas de crédito | 🔬 verified | Contradocumentación verificada con datos `ZZ` |
 | Páginas legales | 🔨 built | El generador escribe el borrador; falta que el dueño cargue razón social, CUIT y domicilio y publique |
 
-⚠️ **Sobre ARCA, con precisión.** `afip_credentials` tiene **1 fila, ambiente
-`homologacion`**: el certificado está cargado. Pero `invoices` y
-`afip_comprobantes` están **los dos en 0**, así que hoy **no queda en la base
-ninguna evidencia** del CAE 86330773876924 que CLAUDE.md declara emitido en la
-sesión 114.
+⚠️ **Sobre ARCA, con precisión (actualizado 2026-08-27).**
 
-Eso no dice que no haya pasado —el número está escrito en un commit de ese día—
-pero sí que **no se puede volver a mirar**, y ésa es la diferencia entre 🔬
-`verified` y una afirmación. Se queda en 🔨 `built` hasta que haya un comprobante
-en la base que alguien pueda abrir. La causa más probable es el borrado de las
-organizaciones de prueba de esta semana; no se investigó más porque la salida es
-la misma: emitir una de nuevo.
+La **conexión** pasó a 🔬 `verified` y la evidencia se puede volver a mirar:
+`delegacion_verificada = true` con fecha 2026-08-27, Ticket de Acceso de WSAA
+vigente en `afip_platform_credentials`, y `FECompUltimoAutorizado` respondiendo
+con el CUIT del comercio. El panel dice «AFIP conectado».
+
+Llegar ahí destapó cinco bugs encadenados —el TRA se declaraba 3 h en el futuro,
+el ticket venía escapado y no se des-escapaba, el regex del faultcode no
+aceptaba atributos, el ticket se podía perder, y la verificación decía `ok` sin
+guardar nada—. Ninguno se veía desde el anterior.
+
+⚠️ **Pero `afip_comprobantes` sigue en 0.** Conectado no es emitido: no queda
+en la base ninguna evidencia del CAE 86330773876924 que CLAUDE.md declara
+emitido en la sesión 114. La causa más probable es el borrado de las
+organizaciones de prueba —de 4 quedaron 2—; no se investigó más porque la
+salida es la misma: emitir una de nuevo. **La facturación no pasa a
+`operated` hasta que haya un comprobante que alguien pueda abrir.**
 
 ### Operación
 
