@@ -5,22 +5,28 @@
 // workspace → una URL canónica. La ruta vieja redirige con ?vista=. El
 // contenido es el mismo; sólo se demolió el PageHeader propio a una toolbar
 // compacta, porque el header de la página ahora es el de Clientes.
-// ⚠️ Deuda declarada, no resuelta acá: esta vista agrupa ventas POR NOMBRE
-// («Ya no queda nada del CRM cruzando por nombre» tenía esta excepción sin
-// listar). Migrarla a customer_id es el cierre de CRM-001, no parte de la
-// consolidación de páginas: mover y reescribir en el mismo paso deja sin saber
-// cuál de los dos cambios rompió qué.
+// La agrupación sigue el patrón del CRM (customerMatch.ts): una venta ENLAZADA
+// se agrupa sólo por customer_id; una sin enlazar, por nombre normalizado —
+// porque no hay trigger que enlace lo viejo al dar de alta un cliente nuevo.
+//
+// ⚠️ Hasta 2026-08-27 esta vista agrupaba POR NOMBRE CRUDO: era la última
+// excepción viva a «ya no queda nada del CRM cruzando por nombre». El mismo
+// cliente escrito de dos formas era dos filas del RFM, con recencia, frecuencia
+// y valor partidos — un «Campeón» podía figurar como dos clientes mediocres.
+// Medido al migrar: 33 de 34 ventas ya tenían customer_id.
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Download, Users, TrendingUp, AlertTriangle, Crown, Flame, Zap, Leaf, Moon, Skull, RefreshCw, Search, Filter, DollarSign, BarChart3 } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
+import { normalizeName } from "@/lib/customerMatch";
 import CustomerSegmentsTab from "@/components/customers/CustomerSegmentsTab";
 import AILeadScoringWidget from "@/components/customers/AILeadScoringWidget";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Sale {
+  customer_id: string | null;
   customer_name: string;
   total_ars: number;
   created_at: string;
@@ -114,7 +120,14 @@ const fmtNum = (n: number) => new Intl.NumberFormat("es-AR").format(n);
 export default function SegmentosView() {
   const { activeOrg } = useOrg();
   const [sales, setSales] = useState<Sale[]>([]);
-  const [emailByName, setEmailByName] = useState<Record<string, string>>({});
+  // Dos mapas: por id (la vía fuerte) y por nombre normalizado (el fallback
+  // para ventas sin enlazar). El nombre que se MUESTRA sale de la ficha cuando
+  // hay id: un cliente renombrado deja de aparecer con el nombre viejo.
+  const [clientesPorId, setClientesPorId] = useState<Record<string, { name: string; email: string }>>({});
+  // nombre normalizado → id del cliente, o "ambiguo" si hay homónimos: una
+  // venta sin enlazar con nombre ambiguo no se puede asignar a ninguno.
+  const [idPorNombre, setIdPorNombre] = useState<Record<string, string>>({});
+  const [emailPorNombre, setEmailPorNombre] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"overview" | "clientes" | "segmentos">("overview");
   const [search, setSearch] = useState("");
@@ -129,7 +142,7 @@ export default function SegmentosView() {
     since.setFullYear(since.getFullYear() - 1);
     supabase
       .from("sales")
-      .select("customer_name, total_ars, created_at")
+      .select("customer_id, customer_name, total_ars, created_at")
       .eq("org_id", activeOrg.id)
       .gte("created_at", since.toISOString())
       .then(({ data }) => {
@@ -137,10 +150,23 @@ export default function SegmentosView() {
         setLoading(false);
       });
     // `sales` no guarda el email del cliente: se resuelve desde `customers`.
-    supabase.from("customers").select("name, email").eq("org_id", activeOrg.id).then(({ data }) => {
-      const m: Record<string, string> = {};
-      (data ?? []).forEach((c: any) => { if (c.name) m[c.name] = c.email || ""; });
-      setEmailByName(m);
+    supabase.from("customers").select("id, name, email").eq("org_id", activeOrg.id).then(({ data }) => {
+      const porId: Record<string, { name: string; email: string }> = {};
+      const porNombre: Record<string, string> = {};
+      const ids: Record<string, string> = {};
+      (data ?? []).forEach((c: any) => {
+        porId[c.id] = { name: c.name || "", email: c.email || "" };
+        const norm = normalizeName(c.name);
+        if (norm) {
+          porNombre[norm] = c.email || "";
+          // Homónimos: dos clientes con el mismo nombre normalizado no se
+          // pueden distinguir desde una venta sin enlazar.
+          ids[norm] = ids[norm] ? "ambiguo" : c.id;
+        }
+      });
+      setClientesPorId(porId);
+      setIdPorNombre(ids);
+      setEmailPorNombre(porNombre);
     }, () => {});
   }, [activeOrg]);
 
@@ -152,14 +178,26 @@ export default function SegmentosView() {
     // Group by customer
     const map = new Map<string, { name: string; email: string; dates: Date[]; total: number }>();
     sales.forEach(s => {
-      const key = s.customer_name || "Anónimo";
+      // Enlazada → por id. Sin enlazar → por nombre normalizado, nunca por el
+      // texto crudo: "Pérez, Juan" y "juan perez" son la misma persona.
+      // Semántica de belongsToCustomer: una venta sin enlazar se cruza al
+      // cliente cuyo nombre normalizado coincide — si coincide con UNO solo.
+      // Con homónimos o sin ficha, queda como grupo propio por nombre.
+      const norm = normalizeName(s.customer_name);
+      const idResuelto = s.customer_id
+        ?? (norm && idPorNombre[norm] !== "ambiguo" ? idPorNombre[norm] : undefined)
+        ?? null;
+      const key = idResuelto ? `id:${idResuelto}` : `nom:${norm || "anonimo"}`;
+      const ficha = idResuelto ? clientesPorId[idResuelto] : undefined;
+      const nombre = ficha?.name || s.customer_name || "Anónimo";
+      const email = ficha?.email || (norm ? emailPorNombre[norm] : "") || "";
       const existing = map.get(key);
       const d = new Date(s.created_at);
       if (existing) {
         existing.dates.push(d);
         existing.total += s.total_ars || 0;
       } else {
-        map.set(key, { name: s.customer_name || "Anónimo", email: emailByName[s.customer_name] || "", dates: [d], total: s.total_ars || 0 });
+        map.set(key, { name: nombre, email, dates: [d], total: s.total_ars || 0 });
       }
     });
 
@@ -185,7 +223,7 @@ export default function SegmentosView() {
       const segment = classifySegment(rScore, fScore, mScore);
       return { ...c, rScore, fScore, mScore, rfmScore, segment };
     });
-  }, [sales, emailByName]);
+  }, [sales, clientesPorId, idPorNombre, emailPorNombre]);
 
   // ── Filtered + sorted ──────────────────────────────────────────────────────
   const filtered = useMemo(() => {
