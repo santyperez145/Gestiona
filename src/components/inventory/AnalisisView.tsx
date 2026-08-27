@@ -1,4 +1,10 @@
-﻿import { useState, useEffect, useCallback } from "react";
+// Vista «Análisis ABC» del workspace de Planificación de inventario.
+//
+// ⚠️ Era una página propia (/inventario-inteligente) hasta la consolidación 2026-08-27.
+// El contenido es idéntico — PageHeader y acciones incluidas — porque este
+// paso mueve superficies, no reescribe cálculos: unificar los tres motores
+// en una autoridad server-side es INV-001, y va aparte a propósito.
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -11,7 +17,6 @@ import {
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
 /* ─────────────────────────── types ─────────────────────────── */
@@ -93,8 +98,7 @@ function RevenueBar({ pct, abc }: { pct: number; abc: "A" | "B" | "C" }) {
   );
 }
 
-export default function SmartInventoryPage() {
-  usePageTitle("Inventario Inteligente");
+export default function AnalisisView() {
   const { orgId } = useOrganization();
   const [activeTab, setActiveTab] = usePersistedState<Tab>(
     orgViewKey("smart-inventory.tab", orgId),

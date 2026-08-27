@@ -180,10 +180,12 @@ describe("el sidebar sigue siendo el sidebar", () => {
     // obliga a mirar si declaró módulo. El piso BAJA con cada consolidación:
     // 71 → 68 cuando /seguimiento, /rfm y /crm-avanzado pasaron a vistas de
     // /clientes; 68 → 67 cuando /planner-social pasó a /marketing?vista=
-    // planner (2026-08-27). Bajarlo exige que la ruta borrada haya
+    // planner; 67 → 65 cuando Reposición, Proyección e Inventario con IA se
+    // volvieron /planificacion (3 rutas → 1 canónica + 3 aliases, 2026-08-27).
+    // Bajarlo exige que la ruta borrada haya
     // quedado como alias — lo garantiza "ningún alias es también una ruta
     // canónica" más el chequeo de que todo alias apunta a una canónica.
-    expect(ROUTES.length).toBeGreaterThanOrEqual(67);
+    expect(ROUTES.length).toBeGreaterThanOrEqual(65);
   });
 });
 

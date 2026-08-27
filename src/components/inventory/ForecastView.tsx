@@ -1,7 +1,12 @@
+// Vista «Proyección» del workspace de Planificación de inventario.
+//
+// ⚠️ Era una página propia (/forecast-inventario) hasta la consolidación 2026-08-27.
+// El contenido es idéntico — PageHeader y acciones incluidas — porque este
+// paso mueve superficies, no reescribe cálculos: unificar los tres motores
+// en una autoridad server-side es INV-001, y va aparte a propósito.
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -196,8 +201,7 @@ function ForecastBar({ value, lower, upper, max }: { value: number; lower: numbe
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function InventoryForecastPage() {
-  usePageTitle("Pronóstico de Inventario");
+export default function ForecastView() {
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 

@@ -1,4 +1,10 @@
-﻿import { useState, useEffect, useMemo } from "react";
+// Vista «Reposición» del workspace de Planificación de inventario.
+//
+// ⚠️ Era una página propia (/restock) hasta la consolidación 2026-08-27.
+// El contenido es idéntico — PageHeader y acciones incluidas — porque este
+// paso mueve superficies, no reescribe cálculos: unificar los tres motores
+// en una autoridad server-side es INV-001, y va aparte a propósito.
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +32,6 @@ import {
   ChevronDown, ChevronUp,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
-import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -130,8 +135,7 @@ function calcROP(dailyVelocity: number, leadTimeDays = 7): number {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function AutoRestockPage() {
-  usePageTitle("Reposición Automática");
+export default function ReposicionView() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
 

@@ -186,7 +186,21 @@ export const ROUTES: RouteDefinition[] = [
   { id: "compras", path: "/compras", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PurchasesPage")), module: "purchases", status: "canonical", nav: { label: "Compras", icon: ShoppingCart, group: "compras", keywords: ["importación", "ingreso de mercadería", "proveedor"] } },
   { id: "ordenes_compra", path: "/ordenes-compra", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PurchaseOrdersPage")), module: "purchases", aliases: [{ path: "/cotizaciones-proveedor", redirectTo: "/ordenes-compra" }, { path: "/solicitudes-compra", redirectTo: "/ordenes-compra" }], status: "canonical", nav: { label: "Órdenes de compra", icon: ClipboardList, group: "compras", keywords: ["oc", "pedido a proveedor", "recepción"] } },
   { id: "proveedores", path: "/proveedores", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ProveedoresPage")), module: "purchases", status: "canonical", nav: { label: "Proveedores", icon: Truck, group: "compras", keywords: ["suppliers", "a quién le compro"] } },
-  { id: "restock", path: "/restock", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AutoRestockPage")), module: "inventory", status: "canonical", nav: { label: "Reposición automática", icon: RefreshCw, group: "compras", keywords: ["restock", "qué reponer", "sugerencias de compra"] } },
+  {
+    id: "planificacion_inventario", path: "/planificacion", roles: SOLO_ADMIN,
+    component: lazy(() => import("@/pages/InventoryPlanningPage")), module: "inventory",
+    // Consolidación 2026-08-27: Reposición, Proyección e Inventario con IA eran
+    // tres páginas con tres implementaciones de velocidad/safety stock/punto de
+    // reposición — tres respuestas posibles para la misma pregunta. Ahora son
+    // vistas de un workspace; unificar el cálculo es INV-001 y va aparte.
+    aliases: [
+      { path: "/restock", redirectTo: "/planificacion?vista=reposicion" },
+      { path: "/forecast-inventario", redirectTo: "/planificacion?vista=forecast" },
+      { path: "/inventario-inteligente", redirectTo: "/planificacion?vista=analisis" },
+    ],
+    status: "canonical",
+    nav: { label: "Planificación", icon: RefreshCw, group: "compras", keywords: ["restock", "qué reponer", "sugerencias de compra", "forecast", "cuánto voy a necesitar", "quiebre de stock", "abc", "rotación", "optimizar stock"] },
+  },
   { id: "kardex", path: "/kardex", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/KardexPage")), module: "inventory", aliases: [{ path: "/toma-fisica", redirectTo: "/kardex" }], status: "canonical", nav: { label: "Movimientos de stock", icon: History, group: "compras", keywords: ["kardex", "historial de stock", "entradas y salidas", "ajustes"] } },
   { id: "transferencias", path: "/transferencias", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InventoryTransfersPage")), module: "inventory", status: "canonical", nav: { label: "Transferencias", icon: ArrowRightLeft, group: "compras", keywords: ["mover stock", "entre sucursales", "depósitos"] } },
   { id: "sucursales", path: "/sucursales", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/LocationsPage")), module: "inventory", aliases: [{ path: "/franquicias", redirectTo: "/sucursales" }, { path: "/multi-deposito", redirectTo: "/sucursales" }], status: "canonical", nav: { label: "Sucursales y depósitos", icon: Warehouse, group: "compras", keywords: ["locales", "puntos de venta", "almacén", "multi tienda"] } },
@@ -194,8 +208,6 @@ export const ROUTES: RouteDefinition[] = [
   { id: "bundles", path: "/bundles", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ProductBundlesPage")), module: "products", status: "canonical", nav: { label: "Combos y kits", icon: Layers, group: "compras", keywords: ["bundles", "packs", "promo pack"] } },
   { id: "listas_precios", path: "/listas-precios", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PriceListsPage")), module: "products", status: "canonical", nav: { label: "Listas de precios", icon: Tag, group: "compras", keywords: ["mayorista", "minorista", "precio por cliente"] } },
   { id: "valuacion_inventario", path: "/valuacion-inventario", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InventoryValuationPage")), module: "inventory", aliases: [{ path: "/inventario-aging", redirectTo: "/valuacion-inventario" }], status: "canonical", nav: { label: "Valuación de inventario", icon: Layers, group: "compras", keywords: ["cuánto vale el stock", "fifo", "costo promedio"] } },
-  { id: "inventario_inteligente", path: "/inventario-inteligente", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SmartInventoryPage")), module: "inventory", status: "canonical", nav: { label: "Inventario con IA", icon: Brain, group: "compras", keywords: ["sugerencias", "optimizar stock"] } },
-  { id: "forecast_inventario", path: "/forecast-inventario", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InventoryForecastPage")), module: "inventory", status: "canonical", nav: { label: "Proyección de stock", icon: TrendingUp, group: "compras", keywords: ["forecast", "cuánto voy a necesitar", "quiebre de stock"] } },
   { id: "deudas", path: "/deudas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/DebtsPage")), module: "sales", status: "canonical", nav: { label: "Deudas", icon: AlertCircle, group: "cobranzas", keywords: ["me deben", "cuentas por cobrar", "fiado", "moroso"] } },
   { id: "cuotas", path: "/cuotas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CuotasPage")), module: "sales", status: "canonical", nav: { label: "Cuotas", icon: CreditCard, group: "cobranzas", keywords: ["financiación", "plan de pago", "vencimientos"] } },
   { id: "presupuestos", path: "/presupuestos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PresupuestosPage")), module: "sales", status: "canonical", nav: { label: "Presupuestos", icon: ClipboardList, group: "cobranzas", keywords: ["cotización", "quotes", "proforma"] } },
