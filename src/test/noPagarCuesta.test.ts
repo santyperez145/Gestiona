@@ -112,6 +112,23 @@ describe("el aviso dice qué pasó de verdad", () => {
       .toMatch(/!subscription\?\.current_period_end/);
   });
 
+  it("y el cartel no se queda viejo justo después de pagar", () => {
+    /**
+     * No hay realtime sobre `plans` ni `subscriptions`, y no hace falta: el
+     * corte lo aplica el servidor en cada llamada. Lo que sí importa es que el
+     * comercio que vuelve de MercadoPago no siga leyendo «estamos
+     * confirmando» hasta recargar a mano — es el momento de mayor ansiedad y
+     * fue literalmente el «no actualiza nada» del reporte original.
+     */
+    // ⚠️ Se exige el `addEventListener`, no la palabra: con `toContain` el
+    // test seguía verde con el listener borrado, porque `removeEventListener`
+    // también nombra el evento. Verificado sacándolo.
+    expect(ent, "el hook dejó de releer al volver a la pestaña")
+      .toMatch(/addEventListener\(\s*['"]visibilitychange['"]/);
+    expect(ent, "dejó de reintentar mientras la suscripción se está confirmando")
+      .toMatch(/if \(!confirmando\) return;/);
+  });
+
   it("y cuando corta, aclara que los datos siguen ahí", () => {
     // Cortar apaga extras. Un comercio que lee «perdés el acceso» y cree que
     // se queda sin sus ventas no paga: se va.

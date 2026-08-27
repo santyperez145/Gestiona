@@ -135,6 +135,40 @@ export function useEntitlements(): Entitlements {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [activeOrg?.id]);
 
+  /**
+   * ── Cuándo se vuelve a leer ───────────────────────────────────────────────
+   *
+   * No hay realtime sobre `plans` ni `subscriptions`, y no hace falta: el corte
+   * lo aplica el servidor en cada llamada, así que una pantalla desactualizada
+   * no habilita nada. Lo que sí importa es **no dejar al comercio mirando un
+   * cartel viejo en el momento en que acaba de pagar**.
+   *
+   * Dos disparadores, los dos baratos:
+   *
+   * 1. Volver a la pestaña. Cubre el caso real: el comercio se va a
+   *    MercadoPago, paga, y vuelve. Sin esto, el banner le sigue diciendo
+   *    «estamos confirmando» hasta que recargue a mano.
+   * 2. Mientras la suscripción está **confirmándose** —`past_due` sin
+   *    `current_period_end`, que es como nace— se relee cada 20 s. Es el único
+   *    estado transitorio que depende de que llegue un webhook, y dura
+   *    minutos. No se poletea nada más: un plan estable no cambia solo.
+   */
+  const confirmando = sub?.status === 'past_due' && !sub?.current_period_end;
+
+  useEffect(() => {
+    const alVolver = () => { if (document.visibilityState === 'visible') load(); };
+    document.addEventListener('visibilitychange', alVolver);
+    return () => document.removeEventListener('visibilitychange', alVolver);
+    /* eslint-disable-next-line */
+  }, [activeOrg?.id]);
+
+  useEffect(() => {
+    if (!confirmando) return;
+    const t = setInterval(load, 20_000);
+    return () => clearInterval(t);
+    /* eslint-disable-next-line */
+  }, [confirmando, activeOrg?.id]);
+
   const isTrialing = sub?.status === 'trialing';
 
   /**
