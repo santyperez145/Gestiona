@@ -70,14 +70,38 @@ interface Entitlements {
  */
 const DIAS_DE_GRACIA = 7;
 
+/**
+ * Lo que devuelve `public.org_entitlements` — la autoridad.
+ *
+ * ⚠️ Esta interface refleja una función de la base, no una tabla: si se le
+ * agrega un campo allá, se agrega acá.
+ */
+interface EntitlementsDeLaBase {
+  vigente: boolean;
+  motivo_de_corte: 'impago' | 'cancelado' | 'pausado' | null;
+  dias_de_gracia: number;
+  ia: boolean;
+  backups: boolean;
+  branding: boolean;
+  max_products: number | null;
+  max_users: number | null;
+  max_sales_per_month: number | null;
+}
+
+/** La relación/función todavía no existe en esta base. */
+function noExiste(code: string | undefined): boolean {
+  return code === '42883' || code === 'PGRST202' || code === '42P01' || code === 'PGRST205';
+}
+
 export function useEntitlements(): Entitlements {
   const { activeOrg } = useOrg();
   const [plan, setPlan] = useState<Plan | null>(null);
   const [sub, setSub] = useState<Subscription | null>(null);
+  const [servidor, setServidor] = useState<EntitlementsDeLaBase | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    if (!activeOrg) { setPlan(null); setSub(null); setLoading(false); return; }
+    if (!activeOrg) { setPlan(null); setSub(null); setServidor(null); setLoading(false); return; }
     setLoading(true);
     const { data: subData } = await supabase
       .from('subscriptions')
@@ -92,6 +116,18 @@ export function useEntitlements(): Entitlements {
       const { data: p } = await supabase.from('plans').select('*').eq('id', activeOrg.plan_id).maybeSingle();
       planRow = p as Plan | null;
     }
+
+    // La decisión la toma la base. Acá sólo se muestra.
+    const { data: ent, error: entError } = await supabase
+      .rpc('org_entitlements', { p_org: activeOrg.id });
+    if (entError && !noExiste(entError.code)) {
+      // No se traga: un fallo real tiene que verse. Igual se sigue —el corte
+      // de verdad lo hace el servidor, así que el navegador puede errar del
+      // lado generoso sin que eso habilite nada.
+      console.error('org_entitlements falló', entError);
+    }
+    setServidor((ent as unknown as EntitlementsDeLaBase) ?? null);
+
     setSub(subData as Subscription | null);
     setPlan(planRow);
     setLoading(false);
@@ -126,21 +162,34 @@ export function useEntitlements(): Entitlements {
   const diasImpago = sub?.status === 'past_due'
     ? vencidoHace(sub.current_period_end)
     : 0;
-  const diasDeGracia = sub?.status === 'past_due'
+  const graciaLocal = sub?.status === 'past_due'
     ? Math.max(0, DIAS_DE_GRACIA - diasImpago)
     : 0;
 
-  const motivoDeCorte: Entitlements['motivoDeCorte'] =
+  const motivoLocal: Entitlements['motivoDeCorte'] =
     sub?.status === 'canceled' ? 'cancelado'
     : sub?.status === 'paused' ? 'pausado'
-    : sub?.status === 'past_due' && diasDeGracia === 0 ? 'impago'
+    : sub?.status === 'past_due' && graciaLocal === 0 ? 'impago'
     : null;
 
-  const planVigente = !sub || motivoDeCorte === null;
-  const conBeneficio = (activo: boolean | null | undefined) => planVigente && !!activo;
+  // La respuesta del servidor manda. El cálculo local es el respaldo para
+  // cuando la función todavía no existe en esta base — el mismo patrón que
+  // `publicDataSource.ts`, porque las migraciones se aplican a mano y el
+  // cliente no puede asumir que la de su propio commit ya corrió.
+  const diasDeGracia = servidor ? servidor.dias_de_gracia : graciaLocal;
+  const motivoDeCorte = servidor ? servidor.motivo_de_corte : motivoLocal;
+  const planVigente = servidor ? servidor.vigente : (!sub || motivoLocal === null);
+
+  const conBeneficio = (delServidor: boolean | undefined, local: boolean | null | undefined) =>
+    servidor ? !!delServidor : (planVigente && !!local);
   // El piso: lo mínimo con lo que se puede seguir operando sin perder nada.
-  const limite = (valor: number | null | undefined, piso: number) =>
-    planVigente ? (valor ?? null) : Math.min(valor ?? piso, piso);
+  const limite = (
+    delServidor: number | null | undefined,
+    local: number | null | undefined,
+    piso: number,
+  ) => servidor
+    ? (delServidor ?? null)
+    : (planVigente ? (local ?? null) : Math.min(local ?? piso, piso));
   const trialDaysLeft = sub?.current_period_end
     ? Math.max(0, Math.ceil((new Date(sub.current_period_end).getTime() - Date.now()) / 86400000))
     : 0;
@@ -151,12 +200,12 @@ export function useEntitlements(): Entitlements {
     subscription: sub,
     isTrialing,
     trialDaysLeft,
-    canUseAI: conBeneficio(plan?.ai_enabled),
-    canCustomBrand: conBeneficio(plan?.custom_branding),
-    canUseBackups: conBeneficio(plan?.backups_enabled),
-    productLimit: limite(plan?.max_products, 50),
-    userLimit: limite(plan?.max_users, 1),
-    salesLimit: limite(plan?.max_sales_per_month, 50),
+    canUseAI: conBeneficio(servidor?.ia, plan?.ai_enabled),
+    canCustomBrand: conBeneficio(servidor?.branding, plan?.custom_branding),
+    canUseBackups: conBeneficio(servidor?.backups, plan?.backups_enabled),
+    productLimit: limite(servidor?.max_products, plan?.max_products, 50),
+    userLimit: limite(servidor?.max_users, plan?.max_users, 1),
+    salesLimit: limite(servidor?.max_sales_per_month, plan?.max_sales_per_month, 50),
     planVigente,
     motivoDeCorte,
     diasDeGracia,

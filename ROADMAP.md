@@ -342,6 +342,63 @@ los sitios que mostraban el genérico de una Edge Function.
 archivo no protege a nadie — por eso ahora hay una guarda que falla si alguien
 vuelve a escribirlo a mano.
 
+### No pagar no costaba nada, y la IA la pagaba la plataforma (2026-08-27)
+
+El circuito de cobro quedó completo esa mañana —`mp-subscribe` crea el
+`preapproval`, el webhook activa y corre el período— pero **cobrar y cortar son
+dos cosas distintas**, y sólo estaba la primera.
+
+Medido contra producción antes de tocar nada:
+
+| | |
+|---|---|
+| Funciones que gastan `ANTHROPIC_API_KEY` | 9 |
+| …que verificaban el plan del comercio | **0** |
+| Pantallas que llaman IA | 13 |
+| …que mostraban el motivo real de un error | **2** |
+
+O sea: una organización con la suscripción vencida podía seguir quemando
+crédito de Anthropic indefinidamente, y el único corte —el del navegador— se
+podía saltear llamando la función directo. **La UI orienta, el servidor
+decide**, la misma distinción de P1-04.
+
+Lo que se construyó:
+
+- `public.org_entitlements(org)` como **única autoridad**. Devuelve `vigente`,
+  `motivo_de_corte`, `dias_de_gracia` y los beneficios/límites resueltos. La
+  leen el hook del navegador y las Edge Functions; la ventana de gracia y el
+  piso de límites no se escriben en ningún otro lado.
+- `_shared/entitlements.ts` con `exigirBeneficio(...)` → **402**, no 403: no es
+  que la persona no tenga permiso, es que el plan no lo cubre. ⚠️ Consulta con
+  el **JWT del usuario**: con `service_role`, `auth.uid()` es NULL, el chequeo
+  de membresía se saltea y se podría pedir prestado el plan de otro comercio.
+- Las 7 funciones de IA cortadas. Las 2 restantes en allowlist con motivo:
+  `platform-admin-action` es del staff, y Finance ya tiene su gate propio en
+  `finance_document_can`.
+- `llamarIA` en `src/lib/ia.ts`: `functions.invoke` **descarta el cuerpo** en un
+  status no-2xx, así que el 402 se habría visto como «Error al generar» en 11
+  de 13 pantallas — un bug donde hay una decisión de producto.
+
+⚠️ **Lo que encontró la verificación en rojo.** Los seis guardias pasaban
+saboteados: uno matcheaba el `import` en vez de la llamada, otro un comentario
+(la trampa de `ledger_plan_default`, de vuelta), y el de `orgId` miraba una
+ventana de 900 caracteres que atrapaba un `CACHE_KEY(orgId)` sin relación. Se
+reescribieron contando paréntesis y exigiendo la llamada; los seis fallan ahora
+cuando deben.
+
+⚠️ **Y una alarma falsa que ya estaba en producción:** el banner decía «Pago
+fallido. Actualizá tu método de pago» ante cualquier `past_due` — que es
+**también el estado con el que nace toda suscripción**, porque `mp-subscribe` la
+guarda así hasta que el webhook confirma el cobro. Al comercio que acababa de
+poner la tarjeta se lo acusaba de no haber pagado. Ahora se distinguen tres
+estados que se veían iguales: confirmación en curso, pago pendiente con gracia,
+y beneficios apagados.
+
+📌 **Pendiente del dueño, no del código:** `trial` (gratis) tiene IA, backups y
+branding; `starter` ($19.900) no tiene ninguno. Pagar el plan más barato baja
+capacidades respecto del trial. Es una decisión de precios y se corrige desde
+`/platform` → Planes, que ya tiene los interruptores.
+
 ### La matriz de permisos prometía algo que el servidor no aplicaba (2026-08-27)
 
 P1-04 de la auditoría del 24 de agosto. La primitiva ya estaba y era correcta:

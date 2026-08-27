@@ -99,7 +99,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return new Set([...fijados, activo]);
   }, [fijados, pathname]);
   const config = useBusinessConfig();
-  const { subscription, isTrialing, trialDaysLeft } = useEntitlements();
+  const { subscription, isTrialing, trialDaysLeft, motivoDeCorte, diasDeGracia } = useEntitlements();
 
   // ── Global real-time KPI subscriptions ──────────────────────────────────
   // Toasts for new sales and stock alerts fire automatically from this hook.
@@ -465,26 +465,67 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Trial / subscription status banners */}
         {!bannerDismissed && (() => {
-          if (subscription?.status === 'past_due') return (
+          /**
+           * ── El aviso dice qué pasó de verdad ─────────────────────────────
+           *
+           * ⚠️ Antes, cualquier `past_due` mostraba «Pago fallido. Actualizá
+           * tu método de pago». Pero `past_due` es también el estado con el
+           * que **nace** toda suscripción: `mp-subscribe` la guarda así, sin
+           * `current_period_end`, y la activa el webhook cuando MercadoPago
+           * confirma el primer cobro. Al comercio que acababa de poner la
+           * tarjeta se le acusaba de no haber pagado.
+           *
+           * Se distinguen tres cosas distintas que se veían iguales:
+           * confirmación en curso, pago pendiente con gracia, y beneficios ya
+           * apagados.
+           */
+          const nuncaSeCobro = subscription?.status === 'past_due'
+            && !subscription?.current_period_end;
+
+          if (nuncaSeCobro) return (
+            <div className="bg-primary/8 border-b border-primary/20 px-4 py-2.5 flex items-center gap-3">
+              <Zap className="w-4 h-4 text-primary shrink-0" />
+              <p className="text-sm flex-1">
+                <span className="font-semibold">Estamos confirmando tu suscripción con MercadoPago.</span>{' '}
+                Puede tardar unos minutos. No hace falta que hagas nada.
+              </p>
+              <Link to="/mi-plan"><Button size="sm" variant="outline" className="h-7 text-xs shrink-0">Ver mi plan</Button></Link>
+              <button onClick={() => setBannerDismissed(true)} className="text-muted-foreground/60 hover:text-muted-foreground shrink-0"><XIcon className="w-4 h-4" /></button>
+            </div>
+          );
+
+          if (motivoDeCorte) return (
             <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2.5 flex items-center gap-3">
               <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
               <p className="text-sm flex-1 text-destructive">
-                <span className="font-semibold">Pago fallido.</span> Actualizá tu método de pago para no perder el acceso.
+                <span className="font-semibold">
+                  {motivoDeCorte === 'impago' ? 'Tu suscripción tiene un pago pendiente.'
+                    : motivoDeCorte === 'pausado' ? 'Tu suscripción está pausada.'
+                    : 'Tu suscripción está cancelada.'}
+                </span>{' '}
+                Se apagaron los extras del plan. Tus datos, ventas y stock siguen intactos.
               </p>
-              <Link to="/ajustes"><Button size="sm" variant="destructive" className="h-7 text-xs shrink-0">Actualizar pago</Button></Link>
+              <Link to="/mi-plan"><Button size="sm" variant="destructive" className="h-7 text-xs shrink-0">Regularizar</Button></Link>
               <button onClick={() => setBannerDismissed(true)} className="text-destructive/60 hover:text-destructive shrink-0"><XIcon className="w-4 h-4" /></button>
             </div>
           );
-          if (subscription?.status === 'canceled') return (
+
+          if (subscription?.status === 'past_due') return (
             <div className="bg-warning/10 border-b border-warning/20 px-4 py-2.5 flex items-center gap-3">
               <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
               <p className="text-sm flex-1 text-warning">
-                <span className="font-semibold">Suscripción cancelada.</span> Reactivá tu plan para seguir usando Gestiona.
+                <span className="font-semibold">Pago pendiente.</span>{' '}
+                {diasDeGracia === 1
+                  ? 'Te queda 1 día antes de que se apaguen los extras del plan.'
+                  : `Te quedan ${diasDeGracia} días antes de que se apaguen los extras del plan.`}
               </p>
-              <Link to="/pricing"><Button size="sm" className="h-7 text-xs shrink-0 bg-warning hover:bg-warning/90 text-warning-foreground">Reactivar</Button></Link>
+              <Link to="/mi-plan"><Button size="sm" className="h-7 text-xs shrink-0 bg-warning hover:bg-warning/90 text-warning-foreground">Actualizar pago</Button></Link>
               <button onClick={() => setBannerDismissed(true)} className="text-warning/60 hover:text-warning shrink-0"><XIcon className="w-4 h-4" /></button>
             </div>
           );
+          // `canceled` y `paused` ya los cubre la rama de `motivoDeCorte`:
+          // tener un segundo cartel para lo mismo es cómo terminan
+          // contradiciéndose dos mensajes sobre el mismo estado.
           if (isTrialing && trialDaysLeft <= 7) return (
             <div className="bg-primary/8 border-b border-primary/20 px-4 py-2.5 flex items-center gap-3">
               <Zap className="w-4 h-4 text-primary shrink-0" />

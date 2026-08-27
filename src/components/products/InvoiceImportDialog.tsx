@@ -13,6 +13,7 @@ import {
   Trash2, X, ChevronDown, ChevronUp, Plus,
 } from "lucide-react";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { useOrg } from "@/lib/orgContext";
 
 /**
  * InvoiceImportDialog — AI-powered invoice importer using Claude Vision.
@@ -79,6 +80,7 @@ const SUPPORTED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/gif", "i
 const SUPPORTED_EXT = ".jpg,.jpeg,.png,.gif,.webp,.pdf";
 
 export default function InvoiceImportDialog({ mode, onClose, onImported }: InvoiceImportDialogProps) {
+  const { activeOrg } = useOrg();
   const { user } = useAuth();
 
   // ── Upload / extraction state ──────────────────────────────────────
@@ -137,7 +139,7 @@ export default function InvoiceImportDialog({ mode, onClose, onImported }: Invoi
       const mediaType = file.type === "image/jpg" ? "image/jpeg" : file.type;
 
       const { data, error } = await supabase.functions.invoke("extract-invoice", {
-        body: { fileBase64, mediaType },
+        body: { fileBase64, mediaType, orgId: activeOrg?.id },
       });
 
       if (error) throw new Error(await mensajeDeEdgeFunction(error, data) || "Error al llamar la función");

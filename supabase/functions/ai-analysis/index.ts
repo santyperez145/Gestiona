@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
+import { exigirBeneficio } from "../_shared/entitlements.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -173,9 +174,14 @@ serve(async (req) => {
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
 
-    const { type, data } = await req.json();
+    const { type, data, orgId } = await req.json();
     const builder = PROMPTS[type];
     if (!builder) throw new Error(`Invalid analysis type: ${type}`);
+
+    // El plan cubre la IA, o acá se corta. Ser un usuario real no es tener el
+    // beneficio: cada llamada quema crédito de Anthropic.
+    const sinPlan = await exigirBeneficio(req, orgId, "ia", corsHeaders);
+    if (sinPlan) return sinPlan;
 
     const { system, user } = builder(data || {});
 

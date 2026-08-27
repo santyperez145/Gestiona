@@ -11,6 +11,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
+import { exigirBeneficio } from "../_shared/entitlements.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -70,6 +71,11 @@ Deno.serve(async (req) => {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // El plan cubre la IA, o acá se corta. Ser miembro no es tener el
+    // beneficio: cada respuesta quema crédito de Anthropic.
+    const sinPlan = await exigirBeneficio(req, orgId, "ia", corsHeaders);
+    if (sinPlan) return sinPlan;
 
     // Load business context
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);

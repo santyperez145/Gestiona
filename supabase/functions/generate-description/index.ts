@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { requireUser } from "../_shared/requireUser.ts";
+import { exigirBeneficio } from "../_shared/entitlements.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,13 +19,18 @@ serve(async (req) => {
   if (auth.response) return auth.response;
 
   try {
-    const { name, brand, category, gender } = await req.json();
+    const { name, brand, category, gender, orgId } = await req.json();
     if (!name) {
       return new Response(JSON.stringify({ error: "name is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // El plan cubre la IA, o acá se corta. Ser un usuario real no es tener el
+    // beneficio: cada llamada quema crédito de Anthropic.
+    const sinPlan = await exigirBeneficio(req, orgId, "ia", corsHeaders);
+    if (sinPlan) return sinPlan;
 
     const categoryLabel = category === 'perfume_arabe' ? 'perfume árabe (estilo Medio Oriente)'
       : category === 'perfume_diseñador' ? 'perfume de diseñador (occidental/nicho)'

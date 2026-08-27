@@ -49,10 +49,74 @@ describe("no pagar corta los beneficios", () => {
   });
 
   it("una organización sin suscripción conserva lo suyo", () => {
-    // Los comercios anteriores al cobro no tienen fila. Cortarles algo que
-    // nunca se les vendió sería romperles el sistema por una migración.
-    expect(ent, "una org sin suscripción dejó de estar contemplada")
-      .toMatch(/planVigente\s*=\s*!sub/);
+    /**
+     * Los comercios anteriores al cobro no tienen fila. Cortarles algo que
+     * nunca se les vendió sería romperles el sistema por una migración.
+     *
+     * ⚠️ Este test miraba el texto del hook (`planVigente = !sub`). El
+     * 2026-08-27 la decisión se mudó a `public.org_entitlements` para que el
+     * navegador y las Edge Functions no pudieran divergir, y el test se puso
+     * rojo sin que el invariante hubiera cambiado. Ahora se verifica **en la
+     * autoridad**, que es donde vive la regla, y de paso en el respaldo local.
+     */
+    const dir = resolve(ROOT, "supabase/migrations");
+    const autoridad = readdirSync(dir)
+      .filter(f => f.endsWith(".sql")).sort().reverse()
+      .map(f => readFileSync(resolve(dir, f), "utf8"))
+      .find(t => /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.org_entitlements/i.test(t));
+
+    expect(autoridad, "ninguna migración define org_entitlements").toBeTruthy();
+    expect(autoridad!, "la base dejó de contemplar la organización sin suscripción")
+      .toMatch(/v_sub\.id IS NULL[\s\S]{0,200}?v_vigente\s*:=\s*true/);
+
+    // Y el respaldo del navegador, para cuando la función todavía no existe.
+    expect(ent, "el respaldo local dejó de contemplar la org sin suscripción")
+      .toMatch(/!sub \|\| motivoLocal === null/);
+  });
+});
+
+/**
+ * El código sin comentarios.
+ *
+ * ⚠️ Sin esto, un test que prohíbe una frase la encuentra en el comentario que
+ * explica por qué se sacó, y falla contra sí mismo. Ya pasó tres veces en este
+ * repo — con `ledger_plan_default`, con el nombre del RPC de entitlements, y
+ * con esta misma frase.
+ */
+function soloCodigo(texto: string): string {
+  return texto
+    .split("\n")
+    .filter(l => {
+      const t = l.trim();
+      return !t.startsWith("//") && !t.startsWith("*") && !t.startsWith("/*");
+    })
+    .join("\n");
+}
+
+describe("el aviso dice qué pasó de verdad", () => {
+  const layout = soloCodigo(readFileSync(resolve(ROOT, "src/components/AppLayout.tsx"), "utf8"));
+
+  it("⚠️ no acusa de no pagar a quien acaba de suscribirse", () => {
+    /**
+     * `mp-subscribe` guarda la suscripción como `past_due` y SIN
+     * `current_period_end`: la activa el webhook cuando MercadoPago confirma
+     * el primer cobro. El banner mostraba «Pago fallido. Actualizá tu método
+     * de pago» a alguien que había puesto la tarjeta hacía cinco minutos.
+     *
+     * Son tres cosas distintas que se veían iguales: confirmación en curso,
+     * pago pendiente con gracia, y beneficios ya apagados.
+     */
+    expect(layout, "volvió a tratar todo past_due como un pago fallido")
+      .not.toMatch(/Pago fallido/);
+    expect(layout, "no distingue la suscripción que todavía no se cobró nunca")
+      .toMatch(/!subscription\?\.current_period_end/);
+  });
+
+  it("y cuando corta, aclara que los datos siguen ahí", () => {
+    // Cortar apaga extras. Un comercio que lee «perdés el acceso» y cree que
+    // se queda sin sus ventas no paga: se va.
+    expect(layout, "el aviso de corte dejó de aclarar que los datos no se tocan")
+      .toMatch(/datos, ventas y stock siguen intactos/i);
   });
 });
 

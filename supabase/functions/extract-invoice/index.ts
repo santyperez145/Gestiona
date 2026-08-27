@@ -9,6 +9,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { exigirBeneficio } from "../_shared/entitlements.ts";
 
 // ── Inlined rate limiter (avoids _shared import issues during deploy) ──
 const _rlStore = new Map<string, { count: number; resetAt: number }>();
@@ -57,7 +58,8 @@ serve(async (req) => {
   }
 
   try {
-    const { fileBase64, mediaType } = await req.json() as { fileBase64: string; mediaType: string };
+    const { fileBase64, mediaType, orgId } = await req.json() as
+      { fileBase64: string; mediaType: string; orgId?: string };
 
     if (!fileBase64 || !mediaType) {
       return new Response(JSON.stringify({ error: "Se requiere fileBase64 y mediaType" }), {
@@ -71,6 +73,14 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // El plan cubre la IA, o acá se corta. Leer una factura con visión es de
+    // las llamadas más caras que hace el sistema.
+    //
+    // 📌 El gate va DESPUÉS de validar el archivo: un request que iba a fallar
+    // igual no debería costar un viaje a la base.
+    const sinPlan = await exigirBeneficio(req, orgId, "ia", corsHeaders);
+    if (sinPlan) return sinPlan;
 
     const isPdf = mediaType === "application/pdf";
 

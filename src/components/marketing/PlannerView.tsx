@@ -5,6 +5,7 @@
 // era de modelo sino de superficie. La consolidación 2026-08-27 la vuelve una
 // vista de /marketing; la ruta vieja redirige con ?vista=planner.
 import { useState, useEffect, useMemo } from "react";
+import { llamarIA } from "@/lib/ia";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
@@ -167,16 +168,16 @@ export default function PlannerView() {
     }
     setAiGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-social-copy", {
+      const data = await llamarIA("generate-social-copy", {
         body: {
           productName: prod?.name || postForm.title.trim(),
           brand: prod?.brand || "",
           category: prod?.category || "",
           postType: postForm.post_type,
           topic: postForm.title.trim(),
+          orgId,
         },
       });
-      if (error) throw error;
       setPostForm(p => ({
         ...p,
         title: p.title.trim() || (data?.title ?? p.title),

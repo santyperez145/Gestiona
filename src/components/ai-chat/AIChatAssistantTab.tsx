@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { cotizacionDe } from "@/lib/exchangeRate";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
+import { motivoDeRespuesta } from "@/lib/ia";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -2329,7 +2330,7 @@ export default function AIChatAssistantTab() {
         }),
       });
 
-      if (!res.ok || !res.body) throw new Error(await res.text().catch(() => "Error"));
+      if (!res.ok || !res.body) throw new Error(await motivoDeRespuesta(res, "No se pudo analizar la imagen"));
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -2416,8 +2417,9 @@ export default function AIChatAssistantTab() {
       });
 
       if (!res.ok || !res.body) {
-        const errText = await res.text().catch(() => "Error desconocido");
-        throw new Error(errText);
+        // El 402 de plan sin IA trae el motivo escrito adentro del JSON:
+        // mostrarlo crudo sería darle al comercio un error de programa.
+        throw new Error(await motivoDeRespuesta(res, "Error desconocido"));
       }
 
       const reader = res.body.getReader();

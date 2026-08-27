@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
+import { llamarIA } from "@/lib/ia";
 import { getMarketingPostsDB, addMarketingPostDB, updateMarketingPostDB, deleteMarketingPostDB, getProductsDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,10 +89,9 @@ export default function MarketingPage() {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke('ai-analysis', {
-        body: { type: 'marketing_copy', data: { products: topProducts, postType, theme, industry: industryCode } }
+      const data = await llamarIA('ai-analysis', {
+        body: { type: 'marketing_copy', orgId: activeOrg?.id, data: { products: topProducts, postType, theme, industry: industryCode } }
       });
-      if (error) throw error;
       const content = data?.content || '';
       if (!content) {
         toast.error("La IA no devolvió contenido. Probá de nuevo.");

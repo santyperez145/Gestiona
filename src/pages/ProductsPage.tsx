@@ -3045,7 +3045,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
             setGeneratingDesc(true);
             try {
               const { data, error } = await supabase.functions.invoke('generate-description', {
-                body: { name: name.trim(), brand: brand.trim(), category, gender }
+                body: { name: name.trim(), brand: brand.trim(), category, gender, orgId }
               });
               if (error) throw error;
               if (data?.description) {

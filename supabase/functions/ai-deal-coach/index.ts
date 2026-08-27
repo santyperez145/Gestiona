@@ -28,6 +28,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
+import { exigirBeneficio } from "../_shared/entitlements.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -315,6 +316,17 @@ serve(async (req) => {
     if (!deal_id || typeof deal_id !== "string") {
       throw new Error("deal_id requerido");
     }
+
+    // El plan cubre la IA, o acá se corta.
+    //
+    // ⚠️ La organización sale del deal, no del cuerpo del request: dejar que el
+    // cliente mande un `org_id` junto al deal de otra organización sería
+    // dejarlo elegir con qué plan se paga el análisis. La lectura va con el
+    // cliente del usuario, así que la RLS ya filtra los deals ajenos.
+    const { data: dealOrg } = await sb
+      .from("deals").select("org_id").eq("id", deal_id).maybeSingle();
+    const sinPlan = await exigirBeneficio(req, dealOrg?.org_id, "ia", corsHeaders);
+    if (sinPlan) return sinPlan;
 
     const context = await buildContext(sb, deal_id);
     const userPrompt = buildUserPrompt(context);

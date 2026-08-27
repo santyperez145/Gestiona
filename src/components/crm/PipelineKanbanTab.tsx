@@ -11,6 +11,7 @@
  * in favor of this one).
  */
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { llamarIA } from "@/lib/ia";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -180,10 +181,9 @@ function ActivityPanel({
     setCoachError(null);
     setCoachOpen(true);
     try {
-      const { data, error } = await supabase.functions.invoke("ai-deal-coach", {
+      const data = await llamarIA("ai-deal-coach", {
         body: { deal_id: deal.id },
       });
-      if (error) throw error;
       setCoach(data as CoachResult);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error invocando al coach";

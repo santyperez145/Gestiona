@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { llamarIA } from "@/lib/ia";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, getVariantsDB } from "@/lib/supabaseStore";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
@@ -10,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, Download, Image as ImageIcon, Loader2, Copy, Wind, Layers, Square, CheckSquare, Type } from "lucide-react";
 import { toast } from "sonner";
+import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { listStoryTemplates } from "@/lib/marketingExtraDB";
 
@@ -444,6 +446,7 @@ async function renderStory(opts: {
 }
 
 export function InstagramStoryGenerator() {
+  const { activeOrg } = useOrg();
   const { user } = useAuth();
   const config = useBusinessConfig();
   const [open, setOpen] = useState(false);
@@ -586,9 +589,10 @@ export function InstagramStoryGenerator() {
     if (!product) return;
     setLoadingAi(true);
     try {
-      const { data, error } = await supabase.functions.invoke("ai-analysis", {
+      const data = await llamarIA("ai-analysis", {
         body: {
           type: "marketing_copy",
+          orgId: activeOrg?.id,
           data: {
             products: [{ name: product.name, brand: product.brand, category: product.category, price: product.sale_price_ars, flavors: selectedFlavors.length > 0 ? selectedFlavors : undefined }],
             postType: "story",
@@ -596,7 +600,6 @@ export function InstagramStoryGenerator() {
           },
         },
       });
-      if (error) throw error;
       setAiCaption(data.content || "");
       toast.success("Copy generado con IA");
     } catch (e: any) {

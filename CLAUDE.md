@@ -992,9 +992,52 @@ al medir cualquier cosa del Business Core hay que pensar en **dos** comercios.
   y cuánto cobran **antes** de conectarse. Cualquier cuarta es un bug.
 - **`moduleMap.test.ts`** — el vocabulario de módulos de permisos vive sólo en
   `src/lib/permissionModules.ts`; agregar uno es una edición, no tres.
+- **`elServidorDecideElPlan.test.ts`** — falla si una función que gasta crédito
+  de IA no chequea el plan del comercio. Ver abajo.
 
 El staff de plataforma pasa por `MfaGate` sin excepción: es la cuenta más
 valiosa del sistema para un atacante.
+
+**El plan se decide en `public.org_entitlements(org)`, y en ningún otro lado.**
+Devuelve `vigente`, `motivo_de_corte`, `dias_de_gracia` y los beneficios/límites
+ya resueltos. La leen el hook `useEntitlements` (para orientar en pantalla) y
+`supabase/functions/_shared/entitlements.ts` (para decidir en el servidor). La
+ventana de gracia, qué estado corta y el piso de límites viven **sólo ahí**: es
+la misma regla que ya divergió dos veces escrita en dos lugares —el mapa de
+permisos y el reparto de roles—.
+
+⚠️ **Ser miembro no es tener el plan, igual que no es tener el permiso.** Hasta
+el 2026-08-27 ninguna función de IA lo miraba: un comercio con la suscripción
+vencida podía seguir quemando `ANTHROPIC_API_KEY` indefinidamente, porque el
+único corte estaba en el navegador. Una función nueva que gaste crédito llama a
+`exigirBeneficio(req, orgId, "ia", corsHeaders)` **después** de validar la
+entrada, o entra en la allowlist del test con el motivo escrito.
+
+⚠️ Y ese helper consulta **con el JWT del usuario, nunca con `service_role`**:
+con service_role `auth.uid()` es NULL, el chequeo de membresía de la función se
+saltea, y cualquiera podría mandar el `org_id` de otro comercio para pedir
+prestado su plan.
+
+📌 **Cortar apaga extras y baja límites a un piso; no bloquea datos.** El
+comercio sigue entrando, viendo lo suyo y pudiendo pagar. Y una organización
+**sin** fila de `subscriptions` conserva sus beneficios: son los comercios
+anteriores al cobro, y cortarles algo que nunca se les vendió sería romperles el
+sistema por una migración.
+
+⚠️ **`past_due` es también el estado con el que NACE una suscripción.**
+`mp-subscribe` la guarda así, sin `current_period_end`, y la activa el webhook
+al confirmar el primer cobro. Por eso hay 7 días de gracia y por eso el banner
+distingue «confirmando tu suscripción» de «pago pendiente»: antes le decía
+«Pago fallido» a quien había puesto la tarjeta cinco minutos antes.
+
+⚠️ **El estado no puede depender de que llegue el webhook.**
+`expire_overdue_trials` (cron horario) marca `past_due` los trials vencidos **y**
+las suscripciones pagas con el período cumplido hace más de un día. Sin eso, una
+suscripción que dejó de cobrarse se quedaba `active` para siempre.
+
+📌 Finance queda afuera de este corte a propósito: es un producto aparte y su
+gate está en `finance_document_can`, que exige membresía,
+`organization_product_access` habilitado y `has_permission(org,'finance',…)`.
 
 **Tablas de credenciales: RLS habilitada y CERO policies, a propósito.**
 `payment_connections`, `meli_connections` y `afip_padron_cache` sólo las tocan

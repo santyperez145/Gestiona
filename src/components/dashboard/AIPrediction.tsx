@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { llamarIA } from "@/lib/ia";
 import { Brain, Sparkles, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useOrg } from "@/lib/orgContext";
 
 interface Prediction {
   projectedRevenue: number;
@@ -15,6 +17,7 @@ interface Prediction {
 }
 
 export default function AIPrediction({ sales }: { sales: any[] }) {
+  const { activeOrg } = useOrg();
   const [pred, setPred] = useState<Prediction | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,8 +34,7 @@ export default function AIPrediction({ sales }: { sales: any[] }) {
         setLoading(false); return;
       }
 
-      const { data, error } = await supabase.functions.invoke('predict-sales', { body: { sales: last90 } });
-      if (error) throw error;
+      const data = await llamarIA('predict-sales', { body: { sales: last90, orgId: activeOrg?.id } });
       if (data?.error) throw new Error(data.error);
       setPred(data);
     } catch (e: any) {

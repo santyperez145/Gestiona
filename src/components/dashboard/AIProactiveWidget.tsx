@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { llamarIA } from "@/lib/ia";
 import { supabase } from "@/integrations/supabase/client";
 import { Brain, RefreshCw, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -64,9 +65,10 @@ export default function AIProactiveWidget({ orgId, stats }: Props) {
         category: e.category, amount_ars: e.amount_ars, date: e.date,
       }));
 
-      const { data, error } = await supabase.functions.invoke("ai-analysis", {
+      const data = await llamarIA("ai-analysis", {
         body: {
           type: "predict_sales",
+          orgId,
           data: {
             products: simProducts,
             sales: simSales,
@@ -81,8 +83,6 @@ export default function AIProactiveWidget({ orgId, stats }: Props) {
           instructions: "Dame 4 sugerencias concretas y breves (1 línea cada una) para mejorar el negocio HOY basándote en estos datos. Formato: lista con guiones. Sin introducción.",
         },
       });
-
-      if (error) throw error;
       const content: string = data?.content || "";
       const parsed = parseBullets(content);
       if (parsed.length) {

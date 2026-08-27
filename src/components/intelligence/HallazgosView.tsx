@@ -5,6 +5,7 @@
 // (pricing, restock, CRM coach, Finance) viven en su dominio; lo transversal
 // —hallazgos y conversaciones— vive acá, junto.
 import { useState, useCallback, useMemo } from "react";
+import { llamarIA } from "@/lib/ia";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import {
@@ -244,14 +245,13 @@ export default function HallazgosView() {
       }
       const customers = Object.values(customerMap).sort((a, b) => b.total_ars - a.total_ars).slice(0, 30);
 
-      const { data, error } = await supabase.functions.invoke("ai-analysis", {
+      const data = await llamarIA("ai-analysis", {
         body: {
           type,
+          orgId: activeOrg?.id,
           data: { products: simProducts, sales: simSales, expenses: simExpenses, purchases: simPurchases, customers },
         },
       });
-
-      if (error) throw error;
       const content = data?.content || "Sin resultado";
 
       setActiveResult({ type, content });

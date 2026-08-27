@@ -1,5 +1,6 @@
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
+import { exigirBeneficio } from "../_shared/entitlements.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 
 const corsHeaders = {
@@ -79,10 +80,15 @@ Deno.serve(async (req) => {
   if (auth.response) return auth.response;
 
   try {
-    const { sales } = await req.json();
+    const { sales, orgId } = await req.json();
     if (!Array.isArray(sales) || sales.length < 5) {
       return response({ error: "Necesitas al menos 5 ventas" }, 400);
     }
+
+    // El plan cubre la IA, o acá se corta. Ser un usuario real no es tener el
+    // beneficio: cada llamada quema crédito de Anthropic.
+    const sinPlan = await exigirBeneficio(req, orgId, "ia", corsHeaders);
+    if (sinPlan) return sinPlan;
 
     const summary = {
       totalSales: sales.length,
