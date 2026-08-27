@@ -93,45 +93,10 @@ function suggestQty(dailyVelocity: number, currentStock: number, targetDays = 30
   return Math.max(needed - currentStock, 1);
 }
 
-/**
- * Economic Order Quantity (EOQ) — Wilson formula
- * EOQ = sqrt(2 * annualDemand * orderingCost / holdingCostPerUnit)
- * @param dailyVelocity units/day
- * @param costUSD unit cost in USD
- * @param orderingCostARS fixed cost per purchase order (default 5000 ARS)
- * @param holdingRateAnnual fraction of unit cost as annual holding cost (default 0.25)
- * @param exchangeRate ARS per USD (default 1000)
- */
-function calcEOQ(
-  dailyVelocity: number,
-  costUSD: number,
-  orderingCostARS = 5000,
-  holdingRateAnnual = 0.25,
-  exchangeRate = 1000
-): number {
-  if (dailyVelocity <= 0 || costUSD <= 0) return 0;
-  const annualDemand = dailyVelocity * 365;
-  const costARS = costUSD * exchangeRate;
-  const holdingCostPerUnit = costARS * holdingRateAnnual;
-  return Math.ceil(Math.sqrt((2 * annualDemand * orderingCostARS) / holdingCostPerUnit));
-}
-
-/**
- * Safety Stock — basic formula with 95% service level (Z=1.645) and 7-day lead time.
- * SS = Z * stdDev(demand) * sqrt(leadTimeDays)
- * Approximated as: 1.5 * avg_daily_velocity * lead_time_days
- */
-function calcSafetyStock(dailyVelocity: number, leadTimeDays = 7): number {
-  if (dailyVelocity <= 0) return 0;
-  return Math.ceil(1.5 * dailyVelocity * Math.sqrt(leadTimeDays));
-}
-
-/**
- * Reorder Point (ROP) = demand during lead time + safety stock
- */
-function calcROP(dailyVelocity: number, leadTimeDays = 7): number {
-  return Math.ceil(dailyVelocity * leadTimeDays) + calcSafetyStock(dailyVelocity, leadTimeDays);
-}
+// ⚠️ Acá vivían calcEOQ, calcSafetyStock y calcROP: la segunda implementación
+// de las mismas fórmulas que ya calculaba `run_abc_analysis` en el servidor,
+// con peores datos (Z aproximado 1.5, lead time fijo 7). Se fueron con
+// INV-001: la autoridad es el motor, y esta vista sólo muestra.
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -157,51 +122,89 @@ export default function ReposicionView() {
     if (!user || !activeOrg) return;
     setLoading(true);
     try {
-      const since30 = new Date();
-      since30.setDate(since30.getDate() - 30);
       const since7 = new Date();
       since7.setDate(since7.getDate() - 7);
 
-      const [{ data: products }, { data: sales30 }, { data: suppData }] = await Promise.all([
+      // ── El motor primero: run_abc_analysis es LA autoridad de velocidad,
+      //    safety stock, punto de reposición y EOQ (INV-001). Hasta 2026-08-27
+      //    esta vista calculaba los cuatro en el navegador con
+      //    `SS = 1.5 × velocidad × √7` — Z aproximado a ojo y lead time FIJO en
+      //    7 días, ignorando el `lead_time_days` del producto. El mismo
+      //    producto tenía un colchón acá y otro en Análisis ABC.
+      //
+      //    El error no se traga: sin análisis no se muestran números viejos
+      //    como si fueran de hoy.
+      const motor = await supabase.rpc("run_abc_analysis", {
+        p_org_id: activeOrg.id, p_period_days: 30,
+      });
+      if (motor.error) {
+        console.error("no se pudo correr el análisis de inventario", motor.error.message);
+        toast.error("No se pudo calcular la reposición");
+        setLoading(false);
+        return;
+      }
+
+      const hoy = new Date().toISOString().slice(0, 10);
+      const [{ data: products }, abcRes, { data: sales7 }, { data: suppData }] = await Promise.all([
         supabase.from("products").select("id,name,category,stock,cost_usd,supplier_id").eq("org_id", activeOrg.id).order("name"),
-        supabase.from("sales").select("product_id,quantity,date").eq("org_id", activeOrg.id).gte("date", since30.toISOString()),
+        supabase.from("inventory_abc")
+          .select("product_id,total_units,days_on_hand,safety_stock,reorder_point,eoq")
+          .eq("org_id", activeOrg.id).eq("analysis_date", hoy).eq("period_days", 30),
+        // Los últimos 7 días son una columna informativa, no un cálculo: se
+        // leen crudos.
+        supabase.from("sales").select("product_id,quantity").eq("org_id", activeOrg.id).gte("date", since7.toISOString()),
         supabase.from("suppliers").select("id,name").eq("org_id", activeOrg.id).order("name"),
       ]);
+      if (abcRes.error) {
+        console.error("no se pudo leer el análisis de inventario", abcRes.error.message);
+        toast.error("No se pudo leer la reposición");
+        setLoading(false);
+        return;
+      }
 
       const supplierList: Supplier[] = suppData || [];
       setSuppliers(supplierList);
       const supplierMap: Record<string, string> = {};
       supplierList.forEach(s => { supplierMap[s.id] = s.name; });
 
-      const salesRows: SaleRow[] = (sales30 || []) as SaleRow[];
-
-      // Aggregate
-      const aggLast30: Record<string, number> = {};
+      // El agregado de 30 días viene del motor; el de 7, crudo para mostrar.
+      const porProducto: Record<string, { units: number; days: number | null; ss: number | null; rop: number | null; eoq: number | null }> = {};
+      (abcRes.data ?? []).forEach((r: any) => {
+        porProducto[r.product_id] = {
+          units: Number(r.total_units) || 0,
+          days: r.days_on_hand === null ? null : Number(r.days_on_hand),
+          ss: r.safety_stock === null ? null : Number(r.safety_stock),
+          rop: r.reorder_point === null ? null : Number(r.reorder_point),
+          eoq: r.eoq === null ? null : Number(r.eoq),
+        };
+      });
       const aggLast7: Record<string, number> = {};
-      const since7str = since7.toISOString();
-      salesRows.forEach(s => {
+      ((sales7 || []) as SaleRow[]).forEach(s => {
         if (!s.product_id) return;
-        aggLast30[s.product_id] = (aggLast30[s.product_id] || 0) + s.quantity;
-        if (s.date >= since7str) {
-          aggLast7[s.product_id] = (aggLast7[s.product_id] || 0) + s.quantity;
-        }
+        aggLast7[s.product_id] = (aggLast7[s.product_id] || 0) + s.quantity;
       });
 
       const restockItems: RestockItem[] = (products || [])
         .filter((p: Product) => {
-          const sold30 = aggLast30[p.id] || 0;
+          const sold30 = porProducto[p.id]?.units || 0;
           if (sold30 === 0 && p.stock > 50) return false; // skip dead stock with plenty
           return true;
         })
         .map((p: Product) => {
-          const sold30 = aggLast30[p.id] || 0;
+          const abc = porProducto[p.id];
+          const sold30 = abc?.units || 0;
           const sold7 = aggLast7[p.id] || 0;
           const daily = sold30 / 30;
-          const daysOut = daily > 0 ? Math.floor(p.stock / daily) : 999;
+          // La cobertura la calcula el motor. 999 conserva el centinela viejo
+          // de "alcanza para siempre" que el filtro y el orden ya esperan.
+          const daysOut = abc?.days ?? (daily > 0 ? Math.floor(p.stock / daily) : 999);
           const qty = suggestQty(daily, p.stock, targetDays);
-          const eoq = calcEOQ(daily, p.cost_usd || 0);
-          const rop = calcROP(daily);
-          const ss  = calcSafetyStock(daily);
+          // NULL del motor = "no calculable con honestidad" (sin lead time,
+          // sin 3 meses de historia, sin costos). El render ya trata 0 como
+          // ausencia, así que 0 lo muestra como "—" en vez de inventar.
+          const eoq = abc?.eoq ?? 0;
+          const rop = abc?.rop ?? 0;
+          const ss  = abc?.ss ?? 0;
           return {
             product: p,
             soldLast30: sold30,

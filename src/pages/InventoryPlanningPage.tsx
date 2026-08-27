@@ -15,12 +15,16 @@ import { PackageOpen, TrendingUp, Brain, Loader2 } from "lucide-react";
 // Tres motores para la misma pregunta («¿qué compro y cuándo?») pueden dar
 // tres respuestas distintas para el mismo producto según qué página se abra.
 //
-// La consolidación las vuelve vistas de un solo workspace. 📌 **Lo que este
-// paso NO hace:** unificar los tres cálculos en una autoridad server-side
-// (INV-001, el planning engine). Mover y reescribir en el mismo paso deja sin
-// saber cuál de los dos cambios rompió qué — primero una URL, después una
-// autoridad. Mientras tanto, verlas juntas hace visible la divergencia en vez
-// de esconderla en tres URLs.
+// La consolidación las volvió vistas de un solo workspace, y desde 2026-08-27
+// **Reposición y Análisis ABC comparten la misma autoridad**:
+// `run_abc_analysis` calcula velocidad, safety stock (Z×σ×√L con el lead time
+// REAL del producto), punto de reposición y EOQ en el servidor, y las vistas
+// sólo muestran. Antes Reposición tenía su propio motor en el navegador con
+// `SS = 1.5 × velocidad × √7` — lead time fijo, ignorando el del producto.
+//
+// 📌 Proyección (Forecast) todavía calcula su propia proyección de demanda:
+// es una tarea distinta (curvas futuras, no punto de pedido) y migrarla al
+// motor es el resto de INV-001.
 //
 // Cada vista carga con `lazy()`: sólo la activa consulta y pesa. Sus
 // PageHeaders propios se conservan porque cada una tiene acciones reales

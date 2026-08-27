@@ -116,8 +116,17 @@ export default function AnalisisView() {
   const load = useCallback(async () => {
     if (!orgId) return;
     setLoading(true);
+    // ⚠️ Sólo el análisis MÁS RECIENTE. La tabla guarda una fila por producto
+    //    por día (UNIQUE org+product+date): leer sin filtrar la fecha mostraba
+    //    cada producto repetido por cada día en que se corrió el análisis.
+    const { data: ultima } = await supabase
+      .from("inventory_abc").select("analysis_date")
+      .eq("org_id", orgId).order("analysis_date", { ascending: false }).limit(1).maybeSingle();
+
     const [ar, sr] = await Promise.allSettled([
-      supabase.from("inventory_abc").select("*, products(name,stock)").eq("org_id", orgId).order("cumulative_pct"),
+      supabase.from("inventory_abc").select("*, products(name,stock)").eq("org_id", orgId)
+        .eq("analysis_date", (ultima as any)?.analysis_date ?? "1900-01-01")
+        .order("cumulative_pct"),
       supabase.from("demand_signals").select("*, products(name)").eq("org_id", orgId).eq("is_resolved", false).order("detected_at", { ascending: false }),
     ]);
     if (ar.status === "fulfilled" && ar.value.data) setAbcData(ar.value.data as ABCRow[]);
