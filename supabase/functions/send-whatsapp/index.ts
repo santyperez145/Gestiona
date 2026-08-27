@@ -25,6 +25,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
@@ -46,37 +47,34 @@ function normalizePhone(phone: string): string {
 }
 
 /** Envía un único mensaje via Evolution API */
+/**
+ * ⚠️ Acá había un `fetch` a Evolution API — el puente no oficial que enlaza un
+ * teléfono escaneando un QR, como WhatsApp Web. Meta bloquea los números que
+ * detecta usando un cliente no oficial, sin aviso, y el número que se pierde es
+ * el del comercio.
+ *
+ * Ahora delega en `_shared/whatsapp.ts`, que manda por la API oficial de Meta
+ * desde el número de la plataforma. Se conserva la firma y la forma del
+ * resultado para no tocar los llamados; los argumentos de Evolution quedaron
+ * sin uso.
+ */
 async function sendViaEvolution(
-  baseUrl: string,
-  apiKey: string,
-  instance: string,
+  _baseUrl: string,
+  _apiKey: string,
+  _instance: string,
   phone: string,
   text: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const url = `${baseUrl.replace(/\/$/, "")}/message/sendText/${encodeURIComponent(instance)}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        apikey: apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        number: normalizePhone(phone),
-        text,
-        // delay opcional (ms) para parecer más humano
-        delay: Math.floor(Math.random() * 1000) + 500,
-      }),
-    });
-
-    if (res.ok) return { ok: true };
-
-    const errBody = await res.json().catch(() => ({}));
-    const msg = (errBody as any)?.message || (errBody as any)?.error || `HTTP ${res.status}`;
-    return { ok: false, error: msg };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Error de red" };
-  }
+  const r = await enviarWhatsApp(phone, text);
+  if (r.ok) return { ok: true };
+  return {
+    ok: false,
+    // «Sin WhatsApp configurado» no es un fallo del envío: es que todavía no se
+    // dio de alta el número en Plataforma → Mensajería.
+    error: r.configurado
+      ? (r.error ?? "El proveedor rechazó el mensaje")
+      : "Todavía no hay un número de WhatsApp configurado en la plataforma",
+  };
 }
 
 Deno.serve(async (req) => {

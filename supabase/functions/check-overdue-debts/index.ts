@@ -3,6 +3,7 @@
 // creates in-app notifications for org admins AND sends a WhatsApp
 // alert via Evolution API if the org has it configured.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
 const supabase = createClient(
@@ -10,25 +11,22 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-async function sendWhatsApp(
-  baseUrl: string,
-  apiKey: string,
-  instance: string,
-  number: string,
-  text: string,
-): Promise<boolean> {
-  try {
-    const res = await fetch(`${baseUrl}/message/sendText/${instance}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: apiKey },
-      body: JSON.stringify({ number, text }),
-      signal: AbortSignal.timeout(15_000),
-    });
-    return res.ok;
-  } catch (e) {
-    console.error("Evolution API fetch error:", e);
-    return false;
-  }
+/**
+ * ⚠️ Acá había una copia propia del `fetch` a Evolution API — el puente no
+ * oficial que enlaza un teléfono escaneando un QR. Había cinco copias iguales
+ * en cinco crons: el mismo patrón que dejó nueve remitentes de correo
+ * distintos, ninguno funcionando.
+ *
+ * Ahora delega en `_shared/whatsapp.ts`, que manda por la API oficial de Meta
+ * desde el número de la plataforma. Se conserva la firma para no tocar los
+ * llamados; los argumentos de Evolution quedaron sin uso.
+ */
+async function sendWhatsApp(_baseUrl: string, _apiKey: string, _instance: string, number: string, text: string): Promise<boolean> {
+  const r = await enviarWhatsApp(number, text);
+  // «Sin WhatsApp configurado» no es un error para loguear en cada corrida:
+  // es que todavía no se dio de alta el número.
+  if (!r.ok && r.configurado) console.error("WhatsApp no salió:", r.error);
+  return r.ok;
 }
 
 Deno.serve(async () => {

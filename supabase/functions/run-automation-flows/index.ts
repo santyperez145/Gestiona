@@ -7,6 +7,7 @@
 // Supported actions:  notification, email, whatsapp_message,
 //                     create_task, create_purchase_order, webhook
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
@@ -454,24 +455,22 @@ async function actionWhatsApp(
     const text = interpolate(customMsg || defaultWhatsAppMsg(triggerType), subject);
 
     try {
-      const res = await fetch(`${evolution.apiUrl}/message/sendText/${evolution.instance}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: evolution.apiKey,
-        },
-        body: JSON.stringify({ number, text }),
-        signal: AbortSignal.timeout(15_000),
-      });
+      // ⚠️ Esto era un `fetch` a Evolution API, el puente no oficial que enlaza
+      // un teléfono por QR. Meta bloquea los números que detecta usando un
+      // cliente no oficial, y el que se pierde es el del comercio. Ahora sale
+      // por la API oficial desde el número de la plataforma.
+      const res = await enviarWhatsApp(number, text);
 
       if (res.ok) {
         sent++;
-      } else {
-        const errText = await res.text().catch(() => res.status.toString());
-        console.error(`Evolution API error for ${number}:`, errText);
+      } else if (res.configurado) {
+        // Sólo se loguea si HAY WhatsApp configurado: si no lo hay, esto
+        // llenaría el log de todas las corridas con algo que nadie va a
+        // arreglar mirando el log.
+        console.error(`WhatsApp no salió para ${number}:`, res.error);
       }
     } catch (e) {
-      console.error(`Evolution API fetch failed for ${number}:`, e);
+      console.error(`WhatsApp falló para ${number}:`, e);
     }
   }
   return sent;

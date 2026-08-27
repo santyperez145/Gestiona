@@ -19,6 +19,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
@@ -280,16 +281,14 @@ Deno.serve(async (req) => {
                   .replace(/\{detalle\}/gi, entity.extra ?? "")
                   .replace(/\{monto\}/gi, entity.extra ?? "");
                 try {
-                  const res = await fetch(`${evolution.apiUrl}/message/sendText/${evolution.instance}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", apikey: evolution.apiKey },
-                    body: JSON.stringify({ number, text }),
-                    signal: AbortSignal.timeout(15_000),
-                  });
+                  // ⚠️ Era un `fetch` a Evolution API, el puente no oficial que
+                  // enlaza un teléfono por QR. Ahora sale por la API oficial de
+                  // Meta desde el número de la plataforma.
+                  const res = await enviarWhatsApp(number, text);
                   if (res.ok) actionsTaken++;
-                  else console.error("Evolution API error:", await res.text().catch(() => res.status));
+                  else if (res.configurado) console.error("WhatsApp no salió:", res.error);
                 } catch (e) {
-                  console.error("Evolution API fetch failed:", e);
+                  console.error("WhatsApp falló:", e);
                 }
               }
             }
