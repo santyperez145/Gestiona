@@ -244,10 +244,21 @@ export const ROUTES: RouteDefinition[] = [
   { id: "referidos", path: "/referidos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ReferralsPage")), module: "marketing", status: "canonical", nav: { label: "Referidos", icon: Trophy, group: "marketing", keywords: ["recomendaciones", "traé un amigo"] } },
   { id: "catalogo", path: "/catalogo", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CatalogPage")), module: "marketing", status: "canonical", nav: { label: "Catálogo por WhatsApp", icon: BookOpen, group: "marketing", keywords: ["lista de precios", "compartir productos", "pdf"] } },
   { id: "reportes", path: "/reportes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ReportsPage")), module: "reports", status: "canonical", nav: { label: "Reportes", icon: TrendingUp, group: "reportes", keywords: ["informes", "exportar", "excel"] } },
-  { id: "analytics", path: "/analytics", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AnalyticsPage")), module: "analytics", aliases: [{ path: "/analytics-ia", redirectTo: "/analytics" }], status: "canonical", nav: { label: "Analytics", icon: BarChart3, group: "reportes", keywords: ["métricas", "estadísticas", "gráficos"] } },
-  { id: "kpi_dashboard", path: "/kpi-dashboard", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/KPIDashboardPage")), module: "analytics", status: "canonical", nav: { label: "KPIs", icon: LineChart, group: "reportes", keywords: ["indicadores", "objetivos", "metas"] } },
-  { id: "bi_reportes", path: "/bi-reportes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/BIReportsPage")), module: "reports", status: "canonical", nav: { label: "Reportes avanzados", icon: BarChart3, group: "reportes", keywords: ["bi", "business intelligence", "cohortes", "drilldown"] } },
-  { id: "forecast", path: "/forecast", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SalesForecastPage")), module: "analytics", status: "canonical", nav: { label: "Proyección de ventas", icon: TrendingUp, group: "reportes", keywords: ["forecast", "cuánto voy a vender", "pronóstico"] } },
+  {
+    id: "analytics", path: "/analytics", roles: SOLO_ADMIN,
+    component: lazy(() => import("@/pages/AnalyticsPage")), module: "analytics",
+    // Consolidación 2026-08-27: KPIs, Reportes avanzados y Proyección de ventas
+    // eran páginas propias compitiendo por ser el centro analítico. Ahora son
+    // vistas de este workspace; el KPI Registry (ANA-001) va aparte.
+    aliases: [
+      { path: "/analytics-ia", redirectTo: "/analytics" },
+      { path: "/kpi-dashboard", redirectTo: "/analytics?vista=tableros" },
+      { path: "/bi-reportes", redirectTo: "/analytics?vista=cohortes" },
+      { path: "/forecast", redirectTo: "/analytics?vista=pronostico" },
+    ],
+    status: "canonical",
+    nav: { label: "Analytics", icon: BarChart3, group: "reportes", keywords: ["métricas", "estadísticas", "gráficos", "kpis", "indicadores", "objetivos", "metas", "bi", "business intelligence", "cohortes", "drilldown", "forecast", "pronóstico", "cuánto voy a vender"] },
+  },
   { id: "ia", path: "/ia", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AIInsightsPage")), module: "analytics", status: "canonical", nav: { label: "Insights con IA", icon: Sparkles, group: "reportes", keywords: ["inteligencia artificial", "sugerencias", "análisis"] } },
   { id: "chat_ia", path: "/chat-ia", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AIChatAdvancedPage")), module: "analytics", aliases: [{ path: "/chat-ia-avanzado", redirectTo: "/chat-ia" }], status: "canonical", nav: { label: "Asistente IA", icon: Brain, group: "sistema", keywords: ["chat", "preguntar", "copiloto"] } },
   { id: "alertas", path: "/alertas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SmartAlertsPage")), module: null, openReason: "Avisos derivados de otros modulos: ocultarlos dejaria al usuario sin enterarse de lo que si puede ver.", aliases: [{ path: "/alertas-inteligentes", redirectTo: "/alertas" }], status: "canonical", nav: { label: "Alertas", icon: AlertTriangle, group: "sistema", keywords: ["avisos", "notificaciones", "reglas"] } },

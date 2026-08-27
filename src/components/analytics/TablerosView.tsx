@@ -1,4 +1,11 @@
-﻿import { useState, useEffect, useCallback } from "react";
+// Vista «Tableros» del workspace de Analytics.
+//
+// ⚠️ Era una página propia (/kpi-dashboard) hasta la consolidación 2026-08-27.
+// Cinco páginas competían por ser el centro analítico; ahora son vistas de
+// /analytics y sólo la activa carga (lazy). El contenido es idéntico: este
+// paso mueve superficies, no unifica métricas — el KPI Registry (ANA-001) va
+// aparte a propósito.
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -233,7 +240,7 @@ function WidgetCard({ widget, liveValues, onEdit, onDelete, onToggleVisibility }
 const TABS = ["Dashboards", "Widgets", "Metas", "Alertas"] as const;
 type Tab = typeof TABS[number];
 
-export default function KPIDashboardPage() {
+export default function TablerosView() {
   const { orgId } = useOrganization();
   // usePageTitle via PageHeader icon
   const [activeTab, setActiveTab] = usePersistedState<Tab>(

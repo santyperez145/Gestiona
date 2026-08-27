@@ -1,4 +1,11 @@
-﻿import { useEffect, useMemo, useState } from "react";
+// Vista «Pronóstico» del workspace de Analytics.
+//
+// ⚠️ Era una página propia (/forecast) hasta la consolidación 2026-08-27.
+// Cinco páginas competían por ser el centro analítico; ahora son vistas de
+// /analytics y sólo la activa carga (lazy). El contenido es idéntico: este
+// paso mueve superficies, no unifica métricas — el KPI Registry (ANA-001) va
+// aparte a propósito.
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import {
@@ -9,7 +16,6 @@ import { TrendingUp, TrendingDown, Minus, Target, AlertTriangle, Info, Loader2 }
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const MONTHS_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -68,8 +74,7 @@ const fmtK = (n: number) => {
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function SalesForecastPage() {
-  usePageTitle("Forecast de Ventas");
+export default function PronosticoView() {
   const { activeOrg } = useOrg();
   const [salesRows, setSalesRows] = useState<{ created_at: string; total_ars: number }[]>([]);
   const [goalRows, setGoalRows] = useState<{ month: string; target_ars: number }[]>([]);

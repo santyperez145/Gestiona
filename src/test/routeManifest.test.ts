@@ -181,11 +181,12 @@ describe("el sidebar sigue siendo el sidebar", () => {
     // 71 → 68 cuando /seguimiento, /rfm y /crm-avanzado pasaron a vistas de
     // /clientes; 68 → 67 cuando /planner-social pasó a /marketing?vista=
     // planner; 67 → 65 cuando Reposición, Proyección e Inventario con IA se
-    // volvieron /planificacion (3 rutas → 1 canónica + 3 aliases, 2026-08-27).
+    // volvieron /planificacion; 65 → 62 cuando KPIs, BI y Proyección de ventas
+    // se volvieron vistas de /analytics (2026-08-27).
     // Bajarlo exige que la ruta borrada haya
     // quedado como alias — lo garantiza "ningún alias es también una ruta
     // canónica" más el chequeo de que todo alias apunta a una canónica.
-    expect(ROUTES.length).toBeGreaterThanOrEqual(65);
+    expect(ROUTES.length).toBeGreaterThanOrEqual(62);
   });
 });
 

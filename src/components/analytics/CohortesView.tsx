@@ -1,4 +1,11 @@
-﻿import { useState, useEffect, useMemo } from "react";
+// Vista «Cohortes y BI» del workspace de Analytics.
+//
+// ⚠️ Era una página propia (/bi-reportes) hasta la consolidación 2026-08-27.
+// Cinco páginas competían por ser el centro analítico; ahora son vistas de
+// /analytics y sólo la activa carga (lazy). El contenido es idéntico: este
+// paso mueve superficies, no unifica métricas — el KPI Registry (ANA-001) va
+// aparte a propósito.
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -15,7 +22,6 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 // Note: StoreFilter is intentionally not wired here — bi_snapshots/sale_items
 // have no location_id in the schema yet (see Dashboard.tsx for the one real
@@ -82,8 +88,7 @@ type CohortRow = { month: string; m0: number; m1: number | null; m2: number | nu
 type CatRevRow = { name: string; rev: number; pct: number };
 type TopProductRow = { name: string; rev: number; orders: number; margin: number };
 
-export default function BIReportsPage() {
-  usePageTitle("Business Intelligence");
+export default function CohortesView() {
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"overview" | "reports" | "cohort" | "drilldown">("overview");
   const [search, setSearch] = useState("");
