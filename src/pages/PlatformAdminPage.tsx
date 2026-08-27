@@ -174,6 +174,10 @@ const SECTION_PATH: Record<string, string> = {
   system: '/platform/sistema',
 };
 
+/** Un importe en pesos, como lo lee el dueño. */
+const pesos = (n: number | null | undefined) =>
+  `$${Number(n ?? 0).toLocaleString('es-AR')}`;
+
 export default function PlatformAdminPage({ section = 'overview' }: { section?: string }) {
   usePageTitle("Platform Admin");
   const { isPlatformAdmin, loading: orgLoading } = useOrg();
@@ -247,7 +251,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
     const [{ data: orgsData }, { data: subsData }, { data: plansData }, { data: memsData }] = await Promise.all([
       supabase.from('organizations').select('id,name,slug,created_at,trial_ends_at,plan_id').order('created_at', { ascending: false }),
       supabase.from('subscriptions').select('org_id,plan_id,status'),
-      supabase.from('plans').select('id,name,price_usd_monthly'),
+      supabase.from('plans').select('id,name,price_ars_monthly'),
       supabase.from('memberships').select('org_id'),
     ]);
 
@@ -264,7 +268,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
         created_at: o.created_at, trial_ends_at: o.trial_ends_at,
         plan_name: plan?.name || '—',
         plan_id: sub?.plan_id || o.plan_id || null,
-        plan_price: plan?.price_usd_monthly || 0,
+        plan_price: plan?.price_ars_monthly || 0,
         member_count: memCounts[o.id] || 0,
         status: sub?.status || 'trialing',
       };
@@ -272,7 +276,10 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
     setOrgs(enriched);
 
     const activeSubs = (subsData || []).filter(s => s.status === 'active');
-    const mrr = activeSubs.reduce((acc, s) => acc + (planMap.get(s.plan_id)?.price_usd_monthly || 0), 0);
+    // ⚠️ El MRR se calcula en PESOS. Sumaba `price_usd_monthly`, y los planes
+    // que ya tienen precio en pesos lo tienen en 0: el MRR daba 0 con planes
+    // cobrando $19.900. `mp-subscribe` sólo cobra ARS.
+    const mrr = activeSubs.reduce((acc, s) => acc + (planMap.get(s.plan_id)?.price_ars_monthly || 0), 0);
     const everTrialed = enriched.filter(r => r.trial_ends_at).length;
     const converted = enriched.filter(r => r.status === 'active').length;
 
@@ -516,7 +523,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
   };
 
   const exportOrgsCSV = () => {
-    const headers = ['Nombre', 'Slug', 'Plan', 'Estado', 'MRR USD', 'Usuarios', 'Trial Termina', 'Creada'];
+    const headers = ['Nombre', 'Slug', 'Plan', 'Estado', 'MRR ARS', 'Usuarios', 'Trial Termina', 'Creada'];
     const rows = filteredOrgs.map(r => [
       r.name, r.slug, r.plan_name || '', r.status,
       r.status === 'active' ? r.plan_price : 0,
@@ -909,15 +916,15 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                   MRR: <span className="font-mono font-bold text-foreground">${stats.mrr.toLocaleString()}</span>
                 </span>
               </div>
-              {plans.filter(p => p.price_usd_monthly > 0).length === 0 ? (
+              {plans.filter(p => (p.price_ars_monthly ?? 0) > 0).length === 0 ? (
                 <div className="flex items-center justify-center py-6">
                   <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                 </div>
               ) : (
                 <div className="space-y-2.5">
-                  {plans.filter(p => p.price_usd_monthly > 0).map(p => {
+                  {plans.filter(p => (p.price_ars_monthly ?? 0) > 0).map(p => {
                     const planOrgs = orgs.filter(o => o.plan_id === p.id && o.status === 'active');
-                    const planMrr = planOrgs.length * p.price_usd_monthly;
+                    const planMrr = planOrgs.length * (p.price_ars_monthly ?? 0);
                     const pct = stats.mrr > 0 ? Math.round((planMrr / stats.mrr) * 100) : 0;
                     return (
                       <div key={p.id} className="flex items-center gap-3">
@@ -1344,7 +1351,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
               : plans.map((p, idx) => {
                   const planOrgs = orgs.filter(o => o.plan_id === p.id);
                   const activeOrgs = planOrgs.filter(o => o.status === 'active');
-                  const planMrr = activeOrgs.length * p.price_usd_monthly;
+                  const planMrr = activeOrgs.length * (p.price_ars_monthly ?? 0);
                   const tierColors = [
                     'from-muted/20 to-muted/5 border-border/60',
                     'from-blue-500/10 to-blue-500/5 border-blue-500/20',
@@ -1358,7 +1365,10 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                         <div>
                           <div className="flex items-center gap-2 mb-0.5">
                             <h3 className="font-display font-bold text-lg">{p.name}</h3>
-                            {p.price_usd_monthly === 0 && (
+                            {/* ⚠️ Miraba el precio en USD: `starter` cobra
+                                $19.900 y tenía USD 0, así que el panel de la
+                                plataforma lo mostraba como «Gratis». */}
+                            {(p.price_ars_monthly ?? 0) === 0 && (
                               <Badge variant="outline" className="text-[10px] text-muted-foreground">Gratis</Badge>
                             )}
                           </div>
@@ -1388,11 +1398,11 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                       <div className="space-y-1.5 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Precio mensual</span>
-                          <span className="font-mono font-medium">{p.price_usd_monthly > 0 ? `$${p.price_usd_monthly}/mo` : 'Gratis'}</span>
+                          <span className="font-mono font-medium">{(p.price_ars_monthly ?? 0) > 0 ? `${pesos(p.price_ars_monthly)}/mes` : 'Gratis'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Precio anual</span>
-                          <span className="font-mono font-medium">{p.price_usd_yearly > 0 ? `$${p.price_usd_yearly}/yr` : '—'}</span>
+                          <span className="font-mono font-medium">{(p.price_ars_yearly ?? 0) > 0 ? `${pesos(p.price_ars_yearly)}/año` : '—'}</span>
                         </div>
                         <div className="border-t border-border/50 my-2" />
                         <div className="flex justify-between">
@@ -1708,7 +1718,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                       <SelectItem value="__default__">Por defecto (trial)</SelectItem>
                       {plans.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
-                          {p.name} {p.price_usd_monthly > 0 ? `($${p.price_usd_monthly}/mo)` : ''}
+                          {p.name} {(p.price_ars_monthly ?? 0) > 0 ? `(${pesos(p.price_ars_monthly)}/mes)` : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1800,7 +1810,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                 <SelectContent>
                   {plans.map(p => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.name} — ${p.price_usd_monthly}/mo
+                      {p.name} — {(p.price_ars_monthly ?? 0) > 0 ? `${pesos(p.price_ars_monthly)}/mes` : 'Gratis'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1865,9 +1875,14 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                 <Label>Descripción</Label>
                 <Input value={editPlanForm.description || ''} onChange={e => setEditPlanForm(p => ({ ...p, description: e.target.value }))} className="h-9" />
               </div>
-                            {/* ⚠️ Los pesos primero: son los que se cobran. MercadoPago
-                  sólo cobra ARS y `mp-subscribe` lee `price_ars_monthly`.
-                  Los de dólares quedan como referencia comercial. */}
+              {/* ⚠️ Sólo pesos. Acá había además dos campos de dólares y dos de
+                  «Stripe Price ID», y ninguno de los cuatro cobra nada: la
+                  suscripción va por `mp-subscribe`, que crea un `preapproval`
+                  de MercadoPago leyendo `price_ars_monthly`. Peor todavía, el
+                  panel filtraba y mostraba por el precio en USD, así que
+                  `starter` —$19.900 por mes, USD 0— aparecía como «Gratis».
+                  Un campo que no cobra al lado de uno que sí es una invitación
+                  a cargar el número en el lugar equivocado. */}
               <div>
                 <Label className="text-xs">Precio mensual (ARS) — el que se cobra</Label>
                 <Input type="number" min="0" value={editPlanForm.price_ars_monthly ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, price_ars_monthly: parseFloat(e.target.value) || 0 }))} className="h-9" />
@@ -1875,14 +1890,6 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
               <div>
                 <Label className="text-xs">Precio anual (ARS)</Label>
                 <Input type="number" min="0" value={editPlanForm.price_ars_yearly ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, price_ars_yearly: parseFloat(e.target.value) || 0 }))} className="h-9" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Precio mensual (USD)</Label>
-                <Input type="number" min="0" value={editPlanForm.price_usd_monthly ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, price_usd_monthly: parseFloat(e.target.value) || 0 }))} className="h-9" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Precio anual (USD)</Label>
-                <Input type="number" min="0" value={editPlanForm.price_usd_yearly ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, price_usd_yearly: parseFloat(e.target.value) || 0 }))} className="h-9" />
               </div>
               <div className="space-y-1.5">
                 <Label>Máx. productos (vacío = ilimitado)</Label>
@@ -1895,14 +1902,6 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
               <div className="space-y-1.5">
                 <Label>Máx. usuarios</Label>
                 <Input type="number" min="0" value={editPlanForm.max_users ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, max_users: e.target.value ? parseInt(e.target.value) : null }))} className="h-9" placeholder="∞" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Stripe Price ID (mensual)</Label>
-                <Input value={editPlanForm.stripe_price_id_monthly || ''} onChange={e => setEditPlanForm(p => ({ ...p, stripe_price_id_monthly: e.target.value || null }))} className="h-9 font-mono text-xs" placeholder="price_..." />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Stripe Price ID (anual)</Label>
-                <Input value={editPlanForm.stripe_price_id_yearly || ''} onChange={e => setEditPlanForm(p => ({ ...p, stripe_price_id_yearly: e.target.value || null }))} className="h-9 font-mono text-xs" placeholder="price_..." />
               </div>
             </div>
             <div className="space-y-3 border-t border-border pt-3">

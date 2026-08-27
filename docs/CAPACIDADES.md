@@ -68,7 +68,7 @@ mostrar.
 | Gross profit por pago | 🔬 verified | 9/9 con el JWT de un admin real. Los únicos datos son los 2 pagos de $1 |
 | Reintegros | 🔬 verified | **0 RMA reales.** 16/16 escenarios en `drill:payments`, incluidos monto mayor al cobrado y `NULL` no autoriza |
 | Cuotas | 🔬 verified | **0 planes configurados.** 10/10 en verificación, y `store-pay` valida antes de cobrar |
-| Suscripción al SaaS | 🔨 built | 1 suscripción en **`past_due`**, plan `trial`, proveedor `mercadopago`. Precios en pesos cargados; falta el secreto `MP_PLATFORM_ACCESS_TOKEN` |
+| Suscripción al SaaS | 🔨 built | 1 suscripción en **`past_due`**, plan `trial`, proveedor `mercadopago`. Precios en pesos cargados y ya visibles en la consola de plataforma (hasta el 2026-08-27 mostraba y filtraba por USD, así que `starter` —$19.900/mes, USD 0— figuraba **«Gratis»** y sumaba 0 al MRR). ⚠️ Sin cobro probado: `mp-subscribe` ahora deriva el token de `MP_APP_ID` + `MP_APP_SECRET` por `client_credentials`, pero ese camino **no se ejerció contra MercadoPago** |
 | Idempotencia (H1) | 🔬 verified | `checkout_idempotente` y `timeout_sin_doble_cobro` en la matriz |
 
 ### Fiscal y legal
@@ -152,7 +152,20 @@ Las dos cosas que hoy bloquean el lanzamiento y **no** se resuelven con código:
    descuento doble, y ningún código lo arregla: se corrige contando.
 
 Y una tercera que sí es código, pero depende de un secreto: la suscripción no
-cobra hasta que exista `MP_PLATFORM_ACCESS_TOKEN`.
+cobra hasta que el token de plataforma funcione.
+
+⚠️ **`MP_APP_ID` no es un token.** Es el identificador público de la
+aplicación y no autentica ninguna llamada; confundirlos hace perder una tarde.
+Pero no hace falta cargar un secreto nuevo: con `MP_APP_ID` + `MP_APP_SECRET`
+—los que ya usa `mp-connect` para el OAuth de los comercios— MercadoPago
+entrega un token por `client_credentials`, y actúa sobre la cuenta **dueña de
+la aplicación**, que es la de la plataforma. `MP_PLATFORM_ACCESS_TOKEN` sigue
+teniendo prioridad si está cargado.
+
+📌 **Escrito según la documentación del proveedor, no ejercido.** Los secretos
+viven en el entorno de las Edge Functions y no se pueden leer desde el repo, así
+que este camino se confirma contratando una suscripción de prueba — y hasta
+entonces la fila de arriba se queda en 🔨 `built`.
 
 ⚠️ Y lo que este cuadro **no** mide: latencia, error rate, P95. Eso es P0-07 y
 necesita un exporter que hoy no existe. Un estado `operated` acá significa "pasó
