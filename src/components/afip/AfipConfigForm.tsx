@@ -59,16 +59,12 @@ export default function AfipConfigForm() {
 
   const [taStatus, setTaStatus] = useState<"none" | "valid" | "expired">("none");
   /**
-   * C14 — de qué certificado se factura.
-   *
-   * `delegado`: el comercio no sube nada; se emite con el certificado de la
-   * plataforma y su CUIT en el comprobante, porque delegó `wsfe` desde el
-   * Administrador de Relaciones de ARCA.
-   *
-   * `propio`: subió su certificado. Sigue siendo posible y no se quita — es
-   * la salida si la delegación no le sirve.
+   * ⚠️ Acá vivía el estado `modo` (`delegado` | `propio`). Se fue con
+   * `20260827000050`: todas las organizaciones facturan por delegación y una
+   * constraint impide guardar un certificado en la fila del comercio, así que
+   * `propio` no es alcanzable. Quedaba sólo escrito y nunca leído — que es
+   * exactamente cómo empezó el bug del CUIT vacío.
    */
-  const [modo, setModo] = useState<"delegado" | "propio">("delegado");
   /** La plataforma tiene su certificado cargado. Si no, el modo delegado no
    *  puede emitir, y eso NO es un problema del comercio: hay que decirlo. */
   const [plataformaLista, setPlataformaLista] = useState(false);
@@ -83,7 +79,7 @@ export default function AfipConfigForm() {
     // vuelven al navegador, ni siquiera después de que se hayan guardado.
     const { data, error } = await supabase
       .from("afip_connection_status")
-      .select("cuit, razon_social, domicilio, punto_venta, environment, tipo_emisor, configured, modo, plataforma_lista, ta_expires_at")
+      .select("cuit, razon_social, domicilio, punto_venta, environment, tipo_emisor, configured, plataforma_lista, ta_expires_at")
       .eq("org_id", activeOrg.id)
       .maybeSingle();
     if (error) throw error;
@@ -94,8 +90,7 @@ export default function AfipConfigForm() {
     }
 
     // ⚠️ `configured` de la vista significa PUEDE EMITIR, no "subió un
-    // certificado": en modo delegado el certificado es el de la plataforma.
-    setModo(data.modo === "propio" ? "propio" : "delegado");
+    // certificado": el certificado es siempre el de la plataforma.
     setPlataformaLista(!!data.plataforma_lista);
     setDomicilio(data.domicilio || "");
 
@@ -323,21 +318,21 @@ export default function AfipConfigForm() {
       </div>
 
       {/* ── De qué certificado se factura: información, no una decisión ──
-          Antes este bloque aparecía sólo en modo delegado y ofrecía un
-          «prefiero usar mi propio certificado». Elegir certificado no es una
-          decisión del comercio: es de la plataforma. Acá se cuenta cuál se
-          usa, que es distinto. */}
+          Antes ofrecía un «prefiero usar mi propio certificado». Elegir
+          certificado no es una decisión del comercio: es de la plataforma. */}
+      {/* ⚠️ Acá había una rama para `modo === "propio"`. Dejó de ser
+          alcanzable el 2026-08-27: `20260827000050` puso a todas las
+          organizaciones en delegado y agregó una constraint que impide guardar
+          un certificado en la fila del comercio. Una rama que no puede
+          ejecutarse es una promesa que nadie va a poder cumplir. */}
       <div className="rounded-[8px] border border-border/60 bg-muted/40 p-3 space-y-2">
         <p className="text-xs font-medium">
-          {modo === "propio"
-            ? "Facturás con un certificado propio, administrado por la plataforma"
-            : "Facturás con el certificado de la plataforma"}
+          Facturás con el certificado de la plataforma
         </p>
         <p className="text-[11px] text-muted-foreground">
-          No tenés que generar ninguna clave ni subir ningún archivo.{" "}
-          {modo === "propio"
-            ? "Tu certificado ya está cargado; si hay que renovarlo lo hace la plataforma."
-            : "Sólo tenés que delegar el servicio wsfe desde el Administrador de Relaciones de ARCA."}
+          No tenés que generar ninguna clave ni subir ningún archivo. Sólo tenés
+          que delegar el servicio wsfe desde el Administrador de Relaciones de
+          ARCA, y la conexión se verifica sola al guardar.
         </p>
         {!plataformaLista && (
           <p className="text-[11px] text-destructive">

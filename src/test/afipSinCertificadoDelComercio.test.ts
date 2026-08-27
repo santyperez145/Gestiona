@@ -88,6 +88,31 @@ describe("el comercio no sube su certificado de AFIP", () => {
     ].join("\n")).toEqual([]);
   });
 
+  it("la base impide guardar un certificado en la fila del comercio", () => {
+    // ⚠️ Sacar el formulario no alcanza: la Edge Function `afip-credentials`
+    // sigue deployada y podría reinstalar un certificado por comercio. La
+    // barrera de verdad es la constraint, no la pantalla.
+    //
+    // Se mira la ÚLTIMA migración que la nombra: si una futura la dropea sin
+    // volver a crearla, esto falla.
+    const dir = resolve(ROOT, "supabase/migrations");
+    const archivos = readdirSync(dir).filter(f => f.endsWith(".sql")).sort();
+
+    let ultima: { archivo: string; texto: string } | null = null;
+    for (let i = archivos.length - 1; i >= 0; i--) {
+      const texto = readFileSync(resolve(dir, archivos[i]), "utf8");
+      if (texto.includes("afip_credentials_sin_certificado_propio")) {
+        ultima = { archivo: archivos[i], texto };
+        break;
+      }
+    }
+    expect(ultima, "ninguna migración crea la constraint").not.toBeNull();
+    expect(
+      ultima!.texto,
+      `${ultima!.archivo}: la constraint quedó dropeada sin volver a crearse`,
+    ).toMatch(/ADD\s+CONSTRAINT\s+afip_credentials_sin_certificado_propio[\s\S]{0,200}?CHECK\s*\(\s*certificate\s+IS\s+NULL/i);
+  });
+
   it("el formulario fiscal pide sólo lo que el comercio conoce", () => {
     const form = leer("src/components/afip/AfipConfigForm.tsx");
     // Lo que va impreso en la factura y la plataforma no puede averiguar.

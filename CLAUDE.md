@@ -438,6 +438,21 @@ Casos concretos donde esto ya decidió el diseño:
   tiene que generar una clave con `openssl`, armar un CSR y subirlo a WSASS
   abandona ahí. El mecanismo real es el Administrador de Relaciones de ARCA, que
   el comercio ya usa.
+
+  ⚠️ **Y desde el 2026-08-27 es la única forma, por decisión de producto:**
+  «todas las org deben funcionar por igual, con delegación, no con el
+  certificado propio». `20260827000050` puso a todas en `delegado`, borró el
+  certificado y la clave de la fila del comercio, y agregó la constraint
+  `afip_credentials_sin_certificado_propio` para que no vuelvan. El modo
+  `propio` sigue en el código de `resolverCredencialesAfip` pero **no es
+  alcanzable**: no hay certificado del que tirar.
+
+  📌 Antes de borrar se comparó contra `afip_platform_credentials`: mismo
+  certificado y misma clave, huella SHA-256 idéntica. Borrar una clave privada
+  no se deshace, así que primero se prueba que existe la copia.
+
+  📌 Lo que esto cierra: un comercio grande que se niegue a delegar y quiera su
+  propio certificado. Es la contrapartida de que todas funcionen igual.
 - **La verificación le pregunta al organismo, no al usuario.** Un checkbox de
   "ya lo hice" hace que el panel diga "listo" y la primera factura falle. Se
   consulta `FECompUltimoAutorizado`, que es de sólo lectura y falla si la
