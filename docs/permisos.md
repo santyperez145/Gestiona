@@ -4,6 +4,13 @@
 > `20260827000050` todas facturan por delegación con el de la plataforma, y una
 > constraint impide guardar uno en `afip_credentials`. Detalle en
 > [CLAUDE.md](../CLAUDE.md) y en el ADR de la superficie fiscal.
+>
+> ⚠️ **El Ticket de Acceso es uno solo para todos los comercios delegados.**
+> WSAA lo entrega por (certificado, servicio) y rechaza el pedido siguiente
+> mientras el anterior viva. `afip_ta_leases` + `afip_ta_lease_tomar` hacen que
+> lo pida uno solo a la vez; el que pierde el lease espera a que aparezca en
+> vez de pedir uno que ARCA va a rechazar. Sin eso, dos comercios simultáneos
+> dejan al segundo ~12 h sin poder facturar.
 
 El sistema tiene **dos superficies separadas**. No se heredan permisos entre ellas.
 

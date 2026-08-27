@@ -477,6 +477,19 @@ Casos concretos donde esto ya decidió el diseño:
 
   📌 Lo que esto cierra: un comercio grande que se niegue a delegar y quiera su
   propio certificado. Es la contrapartida de que todas funcionen igual.
+
+  ⚠️ **Y el Ticket de Acceso pasa a ser un recurso compartido.** WSAA lo
+  entrega por (certificado, servicio) y **rechaza el pedido siguiente mientras
+  el anterior viva** (`coe.alreadyAuthenticated`, ~12 h). Con un certificado
+  para todos, dos comercios que verifican o facturan al mismo tiempo se piden
+  un ticket cada uno y el segundo queda medio día afuera, con un error que
+  suena a problema suyo. `afip_ta_leases` lo convierte en un singleflight: uno
+  va a WSAA, el resto espera a que aparezca guardado.
+
+  📌 **Esto no se puede reproducir con una sola organización**, y por eso no
+  apareció antes. Al medir el flujo delegado hay que pensar en dos comercios,
+  no en uno — es la misma clase de bug que el descuento doble de stock: se ve
+  recién cuando hay volumen.
 - **La verificación le pregunta al organismo, no al usuario.** Un checkbox de
   "ya lo hice" hace que el panel diga "listo" y la primera factura falle. Se
   consulta `FECompUltimoAutorizado`, que es de sólo lectura y falla si la

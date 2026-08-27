@@ -36,6 +36,76 @@ const supabase = createClient(
 );
 
 /**
+ * El Ticket de Acceso, pedido de a uno aunque haya cien comercios.
+ *
+ * ⚠️ En modo delegado **todos facturan con el mismo certificado**, y WSAA
+ * entrega el TA por (certificado, servicio): rechaza el pedido siguiente
+ * mientras el anterior viva, y no da otro hasta que venza (~12 h). Si dos
+ * comercios llegan juntos y todavía no hay ticket, los dos ven «no hay» y los
+ * dos se lo piden a ARCA: el segundo queda medio día sin poder facturar, con
+ * un error que suena a problema suyo.
+ *
+ * Entonces: el que gana el lease va a WSAA; el que lo pierde **espera y vuelve
+ * a leer**, porque el ganador va a dejar el ticket guardado en segundos. Es un
+ * singleflight, no una cola: nadie hace dos veces el mismo trabajo.
+ *
+ * 📌 Con una sola organización esto no se puede reproducir. Aparece el primer
+ * día del segundo comercio.
+ */
+async function ticketCompartido(
+  cred: { certificate: string; private_key: string; modo: string; ta_token: string | null;
+          ta_sign: string | null; ta_expires_at: string | null },
+  orgId: string,
+  wsaaUrl: string,
+): Promise<{ token: string; sign: string }> {
+  const vigente = (exp: string | null) =>
+    !!exp && new Date(exp) > new Date(Date.now() + 5 * 60 * 1000);
+
+  if (vigente(cred.ta_expires_at) && cred.ta_token && cred.ta_sign) {
+    return { token: cred.ta_token, sign: cred.ta_sign };
+  }
+
+  // La clave es del CERTIFICADO, no del comercio: lo que ARCA limita es el
+  // certificado. En delegado hay uno solo para todos.
+  const clave = `afip:ta:${cred.modo === "propio" ? orgId : "plataforma"}`;
+  const { data: gane } = await supabase.rpc("afip_ta_lease_tomar", {
+    p_clave: clave, p_segundos: 45,
+  });
+
+  if (!gane) {
+    // Otro lo está pidiendo. Se espera a que lo deje guardado en vez de pedir
+    // uno que ARCA va a rechazar.
+    for (let i = 0; i < 6; i++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const otra = await resolverCredencialesAfip(supabase, orgId);
+      const c = otra.cred;
+      if (c && vigente(c.ta_expires_at) && c.ta_token && c.ta_sign) {
+        return { token: c.ta_token, sign: c.ta_sign };
+      }
+    }
+    // Nueve segundos y no apareció: se sigue igual. Peor que esperar de más es
+    // no poder facturar por algo que quizá ya se destrabó.
+    console.error("ticketCompartido: el lease no se liberó a tiempo, se pide igual");
+  }
+
+  try {
+    const ta = await getTicketAcceso(wsaaUrl, cred.certificate, cred.private_key);
+    await guardarTicketSinPerderlo(cred, orgId, ta);
+    return { token: ta.token, sign: ta.sign };
+  } finally {
+    // Se suelta SIEMPRE, también si WSAA falló: dejarlo tomado bloquearía a
+    // todos los demás hasta que venza el lease.
+    try {
+      await supabase.rpc("afip_ta_lease_soltar", { p_clave: clave });
+    } catch (e) {
+      // Si no se pudo soltar, el lease vence solo a los 45 s. Se registra, no
+      // se propaga: el ticket ya está y la factura no puede fallar por esto.
+      console.error("no se pudo soltar el lease del TA:", e);
+    }
+  }
+}
+
+/**
  * Deja constancia de la verificación, y **avisa si no pudo**.
  *
  * Un `supabase.rpc()` que no mira `.error` convierte «no se guardó» en «listo».
@@ -141,15 +211,9 @@ Deno.serve(async (req) => {
       // El TA vigente se reusa. WSAA rechaza pedir otro mientras el anterior
       // viva, y con certificado compartido eso choca apenas haya dos comercios
       // verificando el mismo día.
-      const taExpira = cred.ta_expires_at ? new Date(cred.ta_expires_at) : null;
-      const taVigente = taExpira && taExpira > new Date(Date.now() + 5 * 60 * 1000);
-
-      let token = cred.ta_token, sign = cred.ta_sign;
-      if (!taVigente || !token || !sign) {
-        const ta = await getTicketAcceso(wsaaUrl, cred.certificate, cred.private_key);
-        await guardarTicketSinPerderlo(cred, body.org_id, ta);
-        token = ta.token; sign = ta.sign;
-      }
+      // El reuso y el candado los resuelve `ticketCompartido`.
+      const ta1 = await ticketCompartido(cred, body.org_id, wsaaUrl);
+      const token = ta1.token, sign = ta1.sign;
 
       try {
         // Tipo 11 (Factura C) alcanza: lo que se prueba es que ARCA acepte el
@@ -231,18 +295,15 @@ Deno.serve(async (req) => {
         });
       }
 
-      const ta = await getTicketAcceso(wsaaUrl, cred.certificate, cred.private_key);
-
-      // WSAA rechaza pedidos repetidos; conservar el ticket obtenido en la
-      // prueba hace que la primera factura reutilice exactamente esa sesión.
-      // En modo delegado se guarda en la fila de la plataforma, porque el TA es
-      // uno solo para todos los comercios que comparten el certificado.
-      await guardarTicketSinPerderlo(cred, body.org_id, ta);
+      // `ticketCompartido` reusa el vigente, toma el candado y guarda: no puede
+      // haber dos pedidos simultáneos del mismo certificado.
+      await ticketCompartido(cred, body.org_id, wsaaUrl);
+      const refrescada = await resolverCredencialesAfip(supabase, body.org_id);
 
       return ok({
         ok: true,
         environment: isProd ? "produccion" : "homologacion",
-        ticket_expires_at: ta.expiresAt,
+        ticket_expires_at: refrescada.cred?.ta_expires_at ?? null,
         modo: cred.modo,
       });
     }
@@ -337,15 +398,16 @@ Deno.serve(async (req) => {
       token_ta = cred.ta_token;
       sign_ta = cred.ta_sign;
     } else {
-      const ta = await getTicketAcceso(wsaaUrl, cred.certificate, cred.private_key);
+      const ta = await ticketCompartido(cred, invoice.org_id, wsaaUrl);
       token_ta = ta.token;
       sign_ta = ta.sign;
 
-      // El ticket dura 12 h; se guarda para no pedir uno por factura. WSAA
-      // rechaza pedidos repetidos en poco tiempo, así que reusarlo no es sólo
-      // una optimización. En modo delegado va a la fila de la plataforma: el TA
-      // es del certificado, y el certificado es uno para todos.
-      await guardarTicketSinPerderlo(cred, invoice.org_id, ta);
+      // ⚠️ Acá se volvía a guardar el ticket. `ticketCompartido` ya lo hace, y
+      // el objeto que devuelve NO trae `expiresAt` —sólo token y sign—, así que
+      // este segundo guardado habría escrito una vigencia vacía: el ticket
+      // quedaría como vencido y el pedido siguiente iría a WSAA para recibir
+      // `coe.alreadyAuthenticated`. Exactamente el bug que este cambio viene a
+      // cerrar.
     }
 
     const cuit = String(cred.cuit).replace(/[-\s]/g, "");
