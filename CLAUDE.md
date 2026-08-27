@@ -410,6 +410,19 @@ leía `error.context` desde hacía meses, bien, y los otros 47 archivos no. Un
 patrón encerrado en un archivo no protege a nadie. La guarda de
 `edgeErrors.test.ts` falla si alguien vuelve a escribirlo a mano.
 
+⚠️ **Y un `supabase.rpc()` sin mirar `.error` convierte "no se guardó" en
+"listo".** Encontrado el 2026-08-27 verificando en el navegador con la sesión
+real: `verificar_delegacion` devolvía `{"ok":true}` —ARCA había aceptado de
+verdad— y `delegacion_verificada` seguía en `false`. La función
+`afip_marcar_delegacion` escribía `last_error`, **una columna que no existía**,
+el UPDATE fallaba con `42703`, y el `await supabase.rpc(...)` sin `.error` se lo
+tragaba. Toda la cadena funcionaba y el último paso —dejar constancia— fallaba
+en silencio, así que el panel decía "falta conectar" para siempre.
+
+📌 **Una función que dice `ok: true` sin haber escrito es peor que una que
+falla.** Si el resultado del `rpc` importa, se mira; si no importa, no debería
+llamarse.
+
 **No tragarse errores.** Un `?? []` convierte "no tengo permiso" en "no hay
 nada", y son problemas opuestos. Se distingue el error de relación inexistente
 (`42P01`/`42883`/`PGRST205`/`PGRST202`, que sí justifica el fallback) de

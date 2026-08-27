@@ -329,10 +329,16 @@ export default function AfipConfigForm() {
         <p className="text-xs font-medium">
           Facturás con el certificado de la plataforma
         </p>
+        {/* ⚠️ Acá decía «sólo tenés que delegar el servicio wsfe». Se
+            contradecía con la tarjeta de arriba, que para un comercio cuyo
+            CUIT es el de la plataforma dice «no tenés que hacer ningún
+            trámite». Qué falta —y si falta algo— lo decide `ConectarAfip`
+            mirando el motivo; este bloque sólo cuenta de qué certificado se
+            factura. Dos lugares contando el mismo estado terminan
+            contradiciéndose, que es justo lo que pasó. */}
         <p className="text-[11px] text-muted-foreground">
-          No tenés que generar ninguna clave ni subir ningún archivo. Sólo tenés
-          que delegar el servicio wsfe desde el Administrador de Relaciones de
-          ARCA, y la conexión se verifica sola al guardar.
+          No tenés que generar ninguna clave ni subir ningún archivo, y la
+          conexión se verifica sola al guardar.
         </p>
         {!plataformaLista && (
           <p className="text-[11px] text-destructive">

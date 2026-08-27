@@ -284,6 +284,35 @@ usarse en una presentación, valuación o decisión de inversión.
 Ninguno se cierra con una simulación. Requiere responsable, fecha, evidencia y
 entorno.
 
+### AFIP quedó conectado, y la cadena tenía cinco eslabones rotos (2026-08-27)
+
+Verificado en el navegador con la sesión real contra producción: el panel dice
+**«AFIP conectado — Facturás con tu CUIT 20-44648443-6 en homologación»**.
+
+Llegar ahí destapó cinco bugs encadenados, y ninguno se veía desde el anterior:
+
+1. **El TRA se declaraba 3 h en el futuro.** `toISOString()` es UTC y el código
+   le pegaba `-03:00` encima. Estaba así desde el primer commit de AFIP.
+2. **El ticket viene escapado dentro de `loginCmsReturn`** y no se
+   des-escapaba: ARCA contestaba bien y la pantalla decía que había fallado.
+3. **El regex de tag no aceptaba atributos**, así que no veía
+   `<faultcode xmlns:ns1="…">` —como Axis lo escribe— y la traducción de
+   códigos de ARCA no habría funcionado nunca. **Lo encontró el test.**
+4. **El Ticket de Acceso se podía perder**: si el guardado fallaba se lanzaba
+   error, y ARCA no entrega otro por ~12 h. Un error de escritura dejaba al
+   comercio sin facturar medio día.
+5. **La verificación decía `ok: true` sin guardar nada.**
+   `afip_marcar_delegacion` escribía `last_error`, una columna que no existía;
+   el UPDATE fallaba con 42703 y el `rpc` sin `.error` se lo tragaba.
+
+📌 **El quinto es el que más enseña:** todo lo demás ya funcionaba —el TRA era
+válido, el ticket se leyó y se guardó, ARCA respondió— y el panel seguía
+diciendo «falta conectar» porque el último paso fallaba en silencio. Una
+función que responde `ok: true` sin haber escrito es peor que una que falla.
+
+Además: el panel le pedía al comercio **delegar a su propio CUIT**. `motivo`
+ahora distingue `sin_delegacion_necesaria` y la app confirma sola al entrar.
+
 ### El panel de AFIP mostraba un mensaje fijo en vez del de ARCA (2026-08-27)
 
 Reportado desde la pantalla: «Falta delegar el servicio en ARCA» seguía

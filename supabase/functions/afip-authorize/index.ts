@@ -36,6 +36,23 @@ const supabase = createClient(
 );
 
 /**
+ * Deja constancia de la verificación, y **avisa si no pudo**.
+ *
+ * Un `supabase.rpc()` que no mira `.error` convierte «no se guardó» en «listo».
+ * Es la regla de CLAUDE.md —no tragarse errores— y acá costó una tarde:
+ * `afip_marcar_delegacion` escribía `last_error`, la columna no existía, y
+ * `verificar_delegacion` respondía `ok: true` sobre un UPDATE que había
+ * fallado.
+ */
+async function marcarDelegacion(orgId: string, okDelegacion: boolean, detalle: string | null) {
+  const { error } = await supabase.rpc("afip_marcar_delegacion", {
+    p_org: orgId, p_ok: okDelegacion, p_detalle: detalle,
+  });
+  if (error) console.error("afip_marcar_delegacion falló:", error);
+  return { error: error?.message ?? null };
+}
+
+/**
  * Guarda el Ticket de Acceso sin poder perderlo.
  *
  * ⚠️ Antes, si el guardado fallaba se lanzaba «No se pudo guardar el Ticket de
@@ -141,18 +158,26 @@ Deno.serve(async (req) => {
           wsfeUrl, token!, sign!, cred.cuit, cred.punto_venta ?? 1, 11);
       } catch (e) {
         const detalle = e instanceof Error ? e.message : String(e);
-        await supabase.rpc("afip_marcar_delegacion", {
-          p_org: body.org_id, p_ok: false, p_detalle: detalle,
-        });
+        await marcarDelegacion(body.org_id, false, detalle);
         // Se devuelve lo que dijo ARCA, no un genérico. "El CUIT no está
         // autorizado" y "el punto de venta no existe" mandan a lugares
         // distintos, y confundirlos hace perder una tarde.
         return ok({ ok: false, error: detalle });
       }
 
-      await supabase.rpc("afip_marcar_delegacion", {
-        p_org: body.org_id, p_ok: true, p_detalle: null,
-      });
+      // ⚠️ Este resultado SÍ se mira. Antes era un `rpc` sin `.error`, y la
+      // función escribía una columna que no existía: el UPDATE fallaba con
+      // 42703, el fallo se tragaba y esto devolvía `ok: true` igual. ARCA había
+      // aceptado de verdad, pero el panel seguía diciendo «falta conectar»
+      // después de recargar, porque no había quedado constancia de nada.
+      const marcado = await marcarDelegacion(body.org_id, true, null);
+      if (marcado.error) {
+        return ok({
+          ok: false,
+          error: "ARCA aceptó la conexión pero no se pudo guardar el resultado: "
+            + marcado.error + ". Es un problema del lado de Gestiona.",
+        });
+      }
       return ok({ ok: true, environment: isProd ? "produccion" : "homologacion" });
     }
 
