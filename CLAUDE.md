@@ -357,6 +357,27 @@ cada `select` contra el esquema real de `types.ts`. Y un `catch` que sólo hace
 `toast.error` sin loguear es lo que mantuvo esos bugs invisibles: va con
 `console.error` al lado.
 
+⚠️ **Y el error espejo es peor, porque no falla nunca: pedir de MENOS.** La
+interface declara el campo, la pantalla lo lee, el `select` no lo pide. Llega
+`undefined`, y con `strictNullChecks: false` el cast a la interface hace que
+TypeScript crea que está. No hay 400, no hay toast, no hay pantalla vacía: hay
+una pantalla que muestra **otra cosa**.
+
+Encontrado el 2026-08-27 en `AFIPPage`: el select sobre `afip_connection_status`
+no pedía `motivo`, `plataforma_cuit` ni `plataforma_razon_social`. La vista los
+devolvía bien —`motivo=listo`, `plataforma_cuit=20446484436`, verificado como
+el rol real— pero el CUIT a delegar salía «—» (`formatearCuit(null)`) y, como
+`motivo` llegaba `undefined`, no matcheaba ningún caso y el panel mostraba
+**«Conectá AFIP en 3 pasos» con AFIP ya conectado**. Un campo sin pedir, dos
+pantallas equivocadas.
+
+La guarda es `elSelectPideLoQueLaPantallaUsa.test.ts`. 📌 No marca un campo que
+el archivo **asigna** (`campo: valor`), porque ése está calculado o vino de otra
+consulta y se mergeó: sin esa regla el detector daba 5 hallazgos y **los 5 eran
+falsos positivos**. Un campo declarado en la interface y nunca pedido ni usado
+—`delegacion_verificada` era uno— se saca de la interface: es la semilla del
+próximo.
+
 **No tragarse errores.** Un `?? []` convierte "no tengo permiso" en "no hay
 nada", y son problemas opuestos. Se distingue el error de relación inexistente
 (`42P01`/`42883`/`PGRST205`/`PGRST202`, que sí justifica el fallback) de

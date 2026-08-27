@@ -36,7 +36,9 @@ interface AfipConnectionStatus {
   plataforma_razon_social: string | null;
   /** Por qué no puede emitir, para no mandar al comercio a un trámite ajeno. */
   motivo: MotivoAfip | null;
-  delegacion_verificada: boolean | null;
+  // `delegacion_verificada` existe en la vista pero esta pantalla no la usa.
+  // Se saca de acá a propósito: un campo declarado y nunca pedido es
+  // exactamente cómo empezó el bug del CUIT vacío.
 }
 
 interface FiscalInvoice {
@@ -106,7 +108,16 @@ export default function AFIPPage() {
     const [connectionResult, invoicesResult] = await Promise.all([
       supabase
         .from("afip_connection_status")
-        .select("cuit, configured, environment, punto_venta, razon_social, ta_expires_at, ticket_vigente, modo, plataforma_lista")
+        // ⚠️ `motivo`, `plataforma_cuit` y `plataforma_razon_social` faltaban
+        // acá aunque la interface los declaraba y la pantalla los usaba. La
+        // vista los devuelve bien —medido: motivo=listo, cuit=20446484436—
+        // pero llegaban `undefined`, así que el panel mostraba "Conectá AFIP
+        // en 3 pasos" con AFIP ya conectado, y el CUIT a delegar salía "—".
+        //
+        // No lo agarraba nada: `columnasQueExisten` vigila lo contrario —pedir
+        // una columna que no existe— y con `strictNullChecks: false` el cast a
+        // la interface hace que TypeScript crea que el campo está.
+        .select("cuit, configured, environment, punto_venta, razon_social, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo")
         .eq("org_id", orgId)
         .maybeSingle(),
       supabase
