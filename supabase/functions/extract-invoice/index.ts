@@ -10,6 +10,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { exigirBeneficio } from "../_shared/entitlements.ts";
+import { leerPerfilDelComercio, personaDe } from "../_shared/perfilDelComercio.ts";
 
 // ── Inlined rate limiter (avoids _shared import issues during deploy) ──
 const _rlStore = new Map<string, { count: number; resetAt: number }>();
@@ -82,6 +83,10 @@ serve(async (req) => {
     const sinPlan = await exigirBeneficio(req, orgId, "ia", corsHeaders);
     if (sinPlan) return sinPlan;
 
+    // Qué vende el comercio sale de `settings.industry_code`, no del prompt.
+    // Una factura de proveedor no tiene por qué ser de perfumería.
+    const perfil = await leerPerfilDelComercio(req, orgId);
+
     const isPdf = mediaType === "application/pdf";
 
     // Build content block — Claude supports PDFs and images natively
@@ -95,7 +100,7 @@ serve(async (req) => {
           source: { type: "base64", media_type: mediaType, data: fileBase64 },
         };
 
-    const systemPrompt = `Sos un asistente especializado en extraer datos de facturas de proveedores de perfumería árabe/diseñador y vapers en Argentina.
+    const systemPrompt = `${personaDe("un asistente especializado en extraer datos de facturas de proveedores", perfil)}
 Tu tarea es analizar la imagen o PDF de la factura y extraer TODOS los productos listados.
 
 REGLAS ESTRICTAS:

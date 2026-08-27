@@ -125,7 +125,10 @@ describe("el prompt lo arma el servidor", () => {
       resolve(ROOT, "supabase/functions/ai-analysis/index.ts"), "utf8",
     );
     const mapa = fuente.slice(fuente.indexOf("const PROMPTS"), fuente.indexOf("\nserve("));
-    const tipos = new Set([...mapa.matchAll(/^ {2}(\w+): \(data\) =>/gm)].map(m => m[1]));
+    // El builder pasó a recibir `(data, perfil)` cuando el rubro dejó de
+    // estar hardcodeado en el prompt. La aridad es incidental para este test
+    // —lo que enumera son los `type`—, así que el parser acepta las dos.
+    const tipos = new Set([...mapa.matchAll(/^ {2}(\w+): \([^)]*\) =>/gm)].map(m => m[1]));
 
     expect(tipos.size, "no se pudo leer PROMPTS de ai-analysis").toBeGreaterThan(0);
     expect(tipos.has("daily_pulse"), "falta `daily_pulse`, el pulso del Dashboard").toBe(true);

@@ -1,6 +1,7 @@
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import { exigirBeneficio } from "../_shared/entitlements.ts";
+import { leerPerfilDelComercio, personaDe } from "../_shared/perfilDelComercio.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 
 const corsHeaders = {
@@ -105,12 +106,17 @@ Deno.serve(async (req) => {
       ));
     }
 
+    // El rubro sale de `settings.industry_code`, no del prompt. Va acá y no
+    // antes: si falta la API key la función devuelve la estimación
+    // estadística y no hace falta ni esta consulta.
+    const perfil = await leerPerfilDelComercio(req, orgId);
+
     try {
       const client = new Anthropic({ apiKey });
       const message = await client.messages.create({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 1024,
-        system: "Eres un analista de ventas para un comercio de perfumes y vapers en Argentina. Usa siempre la herramienta proporcionada para devolver tu análisis estructurado.",
+        system: `${personaDe("un analista de ventas", perfil)} Usá siempre la herramienta proporcionada para devolver tu análisis estructurado.`,
         messages: [{
           role: "user",
           content: `Historial reciente: ${JSON.stringify(summary)}. Total ventas individuales: ${sales.length}. Estima la facturación proyectada en los próximos 30 días en pesos argentinos (ARS), nivel de confianza (% entre 50-95), tendencia general, y 3 insights breves accionables en español. Considera estacionalidad y crecimiento histórico.`,

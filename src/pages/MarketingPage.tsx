@@ -51,7 +51,6 @@ export default function MarketingPage() {
 
   const [postTypes, setPostTypes] = useState<any[]>([]);
   const [themes, setThemes] = useState<any[]>([]);
-  const [industryCode, setIndustryCode] = useState<string | null>(null);
   const [activeTab, setActiveTab] = usePersistedState<'posts' | 'planner' | 'images' | 'calendar' | 'templates' | 'combos' | 'automations' | 'brand'>(
     orgViewKey("marketing.tab", activeOrg?.id),
     "posts",
@@ -67,10 +66,12 @@ export default function MarketingPage() {
     reload();
     if (!user) return;
     listPostTypes().then(setPostTypes).catch(() => {});
+    // El rubro se sigue leyendo acá para elegir los temas de marketing, que
+    // son una lista de la base. Lo que ya no hace es viajar al prompt: eso lo
+    // resuelve la Edge Function leyendo `settings.industry_code` con el JWT
+    // del usuario. El campo `industry` que se mandaba nunca se leyó.
     supabase.from('settings').select('industry_code').limit(1).maybeSingle().then(({ data }) => {
-      const code = data?.industry_code || null;
-      setIndustryCode(code);
-      listMarketingThemes(code).then(setThemes, () => {});
+      listMarketingThemes(data?.industry_code || null).then(setThemes, () => {});
     }, () => {});
   }, [user]);
 
@@ -90,7 +91,7 @@ export default function MarketingPage() {
       }
 
       const data = await llamarIA('ai-analysis', {
-        body: { type: 'marketing_copy', orgId: activeOrg?.id, data: { products: topProducts, postType, theme, industry: industryCode } }
+        body: { type: 'marketing_copy', orgId: activeOrg?.id, data: { products: topProducts, postType, theme } }
       });
       const content = data?.content || '';
       if (!content) {

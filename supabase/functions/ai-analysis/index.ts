@@ -3,6 +3,13 @@ import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import { exigirBeneficio } from "../_shared/entitlements.ts";
+import {
+  FORMATO_INFORME,
+  leerPerfilDelComercio,
+  personaDe,
+  reglasDelAnalisis,
+  type PerfilDelComercio,
+} from "../_shared/perfilDelComercio.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,21 +18,12 @@ const corsHeaders = {
 
 const client = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
 
-const GUARDRAIL_TEXT = `REGLAS NO NEGOCIABLES:
-- Sos un asistente especializado EXCLUSIVAMENTE en negocios de perfumería árabe/de diseñador y vapers/pods en Argentina.
-- Solo respondé sobre: análisis de ventas, stock, restock, precios, márgenes, marketing de perfumes/vapers, tendencias del rubro.
-- Si te piden algo fuera de rubro, respondé EXACTAMENTE: "Solo puedo ayudarte con análisis de tu negocio de perfumes y vapers."
-- NUNCA inventes datos: si no hay ventas suficientes para una predicción, decilo claramente.
-- Usá los datos REALES provistos. Citá nombres de productos textuales, números reales (stock, precios, ganancias).
-- Idioma: español rioplatense, directo, profesional, sin clichés.
-- Marcas árabes: Lattafa, Armaf, Al Haramain, Rasasi, Maison Alhambra, Asdaaf, Khadlaj, Ard Al Zaafaran, Afnan, Swiss Arabian, Paris Corner.
-- Vocabulario: familia olfativa (oriental, amaderada, gourmand, ámbar, floral), proyección, longevidad, decants, tester, original/clon.
-- Para vapers: pods, descartables, puffs, nicotina (mg/ml), sabores, autonomía.
-- Formato: secciones con emoji + título en MAYÚSCULAS, bullets cortos, números concretos. Sin relleno.`;
-
-const PROMPTS: Record<string, (data: Record<string, unknown>) => { system: string; user: string }> = {
-  predict_sales: (data) => ({
-    system: `Sos un analista de negocios senior especializado en retail de perfumería árabe/diseñador y vapers en Argentina.\n\n${GUARDRAIL_TEXT}`,
+const PROMPTS: Record<
+  string,
+  (data: Record<string, unknown>, perfil: PerfilDelComercio) => { system: string; user: string }
+> = {
+  predict_sales: (data, perfil) => ({
+    system: `${personaDe("un analista de negocios senior", perfil)}\n\n${reglasDelAnalisis(perfil)}\n${FORMATO_INFORME}`,
     user: `Analizá ESTOS datos reales de mi negocio (no inventes productos que no estén en la lista):
 
 PRODUCTOS (${(data.products as unknown[])?.length || 0}):
@@ -39,7 +37,7 @@ Dame SOLO lo siguiente, citando nombres reales y números:
 2. 📦 RESTOCK URGENTE: productos con stock ≤ 3 que tuvieron ventas recientes.
 3. 💰 PRECIOS: productos con margen < 30% en ARS o sobreprecio que frena ventas.
 4. 🎯 ESTRELLAS vs LASTRE: top 3 más rentables y bottom 3 que conviene liquidar.
-5. 📊 PATRONES: marca/familia olfativa/categoría con mayor tracción.
+5. 📊 PATRONES: marca o categoría con mayor tracción, según los datos.
 
 Si los datos son insuficientes (menos de 5 ventas), decilo y pedí más historial en vez de inventar.`,
   }),
@@ -58,24 +56,20 @@ Si los datos son insuficientes (menos de 5 ventas), decilo y pedí más historia
    * 📌 La decisión fue **no** hacer llegar `instructions` al prompt. Un texto
    * libre del cliente metido en el system/user convierte esta función en un
    * LLM de propósito general pagado con `ANTHROPIC_API_KEY` —la anon key va en
-   * el bundle— y deja al navegador pisando el guardrail. Es la misma regla que
+   * el bundle— y deja al navegador pisando las reglas. Es la misma regla que
    * precios y stock: el cliente manda la intención (un `type` con nombre) y los
    * datos, y el prompt lo compone el servidor.
    *
-   * 📌 Y va **sin** `GUARDRAIL_TEXT` a propósito. Ese texto encierra al
-   * asistente en perfumería árabe y vapers, así que una peluquería recibía
-   * «Solo puedo ayudarte con análisis de tu negocio de perfumes y vapers» en su
-   * propio Dashboard. Los otros cinco tipos lo siguen usando; sacarlo de todos
-   * es otro slice.
+   * 📌 Nació sin `GUARDRAIL_TEXT` porque ese texto encerraba al asistente en
+   * perfumería árabe y vapers, y este widget vive en el Dashboard de **toda**
+   * organización. Hoy comparte `reglasDelAnalisis` con los otros seis: el
+   * guardrail dejó de nombrar un rubro, así que ya no hace falta esquivarlo.
    */
-  daily_pulse: (data) => ({
-    system: `Sos un analista de negocios senior que le habla al dueño de un comercio en Argentina.
+  daily_pulse: (data, perfil) => ({
+    system: `${personaDe("un analista de negocios senior", perfil)} Le hablás al dueño.
 
-REGLAS NO NEGOCIABLES:
-- Trabajás SOLO con los datos que te paso. Nunca inventes productos, clientes, montos ni fechas.
+${reglasDelAnalisis(perfil)}
 - Si los datos no alcanzan para una sugerencia, decilo en esa línea en vez de rellenar.
-- No supongas el rubro: sale de los nombres de producto que te paso, o no se menciona.
-- Idioma: español rioplatense, directo, sin clichés ni promesas.
 - Cada sugerencia tiene que ser algo que el dueño pueda hacer HOY, con el nombre real del producto o del cliente y el número real al lado.`,
     user: `Estos son los datos reales de mi negocio.
 
@@ -97,8 +91,9 @@ Devolvé EXACTAMENTE 4 líneas, una por sugerencia, con este formato:
 Sin título, sin introducción, sin cierre, sin numerar y sin ningún texto fuera de esas 4 líneas.
 Cada sugerencia entra en un renglón: máximo 140 caracteres.`,
   }),
-  restock_analysis: (data) => ({
-    system: `Sos analista de inventario senior para retail de perfumería árabe/diseñador y vapers en Argentina. Pensás en USD (compra) y ARS (venta), considerando comisión de pasero del 15%.\n\n${GUARDRAIL_TEXT}`,
+
+  restock_analysis: (data, perfil) => ({
+    system: `${personaDe("analista de inventario senior", perfil)} Pensás el costo en USD y la venta en ARS, que es como vienen los datos.\n\n${reglasDelAnalisis(perfil)}\n${FORMATO_INFORME}`,
     user: `Analizá el inventario REAL de mi negocio (no inventes productos):
 
 PRODUCTOS CON STOCK:
@@ -114,13 +109,13 @@ Dame un plan de restock concreto:
 1. 🚨 URGENTE: stock ≤ 2 con ventas en los últimos 30 días. Cantidad sugerida = 2x velocidad mensual.
 2. 📋 PRÓXIMO LOTE: rotación media, reponer en 2-4 semanas.
 3. ❌ DESCARTAR: sin ventas en 60+ días o margen < 20%. Sugerí liquidación con descuento.
-4. 💵 INVERSIÓN USD: total estimado del lote urgente + próximo, recordando sumar 15% pasero.
+4. 💵 INVERSIÓN USD: total estimado del lote urgente + próximo, usando los costos que te paso tal como vienen. No les sumes comisiones ni recargos: los costos y márgenes que recibís ya los incluyen.
 
 Citá nombres exactos de los productos y cantidades.`,
   }),
 
-  marketing_copy: (data) => ({
-    system: `Sos copywriter experto en Instagram para tiendas argentinas de perfumería árabe/diseñador y vapers. Público 18-35.\n\n${GUARDRAIL_TEXT}`,
+  marketing_copy: (data, perfil) => ({
+    system: `${personaDe("copywriter experto en Instagram", perfil)}\n\n${reglasDelAnalisis(perfil)}\n${FORMATO_INFORME}`,
     user: `Creá contenido de Instagram SOLO para estos productos reales:
 
 ${JSON.stringify(data.products || [], null, 1)}
@@ -129,8 +124,8 @@ Tipo de publicación: ${data.postType || "post"}
 Tema/enfoque: ${data.theme || "promoción general"}
 
 Generá:
-1. 📝 CAPTION: hasta 600 caracteres, con notas olfativas reales del perfume y CTA por DM/WhatsApp.
-2. #️⃣ HASHTAGS: 20 hashtags mezclando nicho (#perfumeArabe #lattafa #decants), genéricos (#perfumesargentina) y locales (#caba #buenosaires).
+1. 📝 CAPTION: hasta 600 caracteres, con los datos reales del producto y CTA por DM/WhatsApp.
+2. #️⃣ HASHTAGS: 20 hashtags mezclando nicho, genéricos y locales de Argentina. Los de nicho salen del rubro y de los productos reales que te paso, nunca de un rubro supuesto.
 3. 📱 STORY: 1 frase + 1 sticker interactivo (pregunta o encuesta).
 4. 💡 IDEA VISUAL: descripción concreta (fondo, iluminación, ángulo, props).
 5. ⏰ HORARIO ARG: franja específica (ej: "21:00-23:00 jueves").
@@ -138,8 +133,8 @@ Generá:
 PROHIBIDO: promesas falsas, palabras como "mágico", "único e irrepetible".`,
   }),
 
-  customer_analysis: (data) => ({
-    system: `Sos analista de CRM y comportamiento de clientes para retail de perfumería y vapers en Argentina.\n\n${GUARDRAIL_TEXT}`,
+  customer_analysis: (data, perfil) => ({
+    system: `${personaDe("analista de CRM y comportamiento de clientes", perfil)}\n\n${reglasDelAnalisis(perfil)}\n${FORMATO_INFORME}`,
     user: `Analizá mis clientes reales:
 
 CLIENTES (${(data.customers as unknown[])?.length || 0}):
@@ -158,8 +153,8 @@ Dame un análisis de clientes:
 Solo con datos reales. No inventes clientes ni montos.`,
   }),
 
-  cashflow_advice: (data) => ({
-    system: `Sos asesor financiero especializado en emprendimientos de perfumería y vapers en Argentina, con conocimiento de dólar informal, paseros y costos de importación.\n\n${GUARDRAIL_TEXT}`,
+  cashflow_advice: (data, perfil) => ({
+    system: `${personaDe("asesor financiero", perfil)} Conocés el contexto argentino: inflación, tipo de cambio y estacionalidad.\n\n${reglasDelAnalisis(perfil)}\n${FORMATO_INFORME}`,
     user: `Analizá mi flujo de caja real:
 
 VENTAS (${(data.sales as unknown[])?.length || 0} registros):
@@ -174,15 +169,15 @@ ${JSON.stringify((data.purchases as unknown[])?.slice(0, 10) || [], null, 1)}
 Analizá:
 1. 💰 RESULTADO DEL MES: ingresos vs egresos reales. Ganancia neta estimada en ARS.
 2. 📉 MESES CRÍTICOS: períodos de flujo negativo o bajo, causas.
-3. 🏦 LIQUIDEZ: si tenés suficiente para el próximo lote de restock.
+3. 🏦 LIQUIDEZ: si el efectivo alcanza para cubrir los próximos gastos y reposiciones.
 4. ⚠️ ALERTAS: gastos desproporcionados o tendencias preocupantes.
 5. 💡 RECOMENDACIONES: 3 acciones específicas para mejorar el flujo.
 
 Solo datos reales. Sin inventar montos.`,
   }),
 
-  pricing_strategy: (data) => ({
-    system: `Sos especialista en pricing de perfumería árabe/diseñador y vapers en Argentina. Conocés márgenes del rubro, competencia informal y sensibilidad al precio por segmento.\n\n${GUARDRAIL_TEXT}`,
+  pricing_strategy: (data, perfil) => ({
+    system: `${personaDe("especialista en pricing", perfil)} Conocés márgenes, elasticidad y sensibilidad al precio por segmento.\n\n${reglasDelAnalisis(perfil)}\n${FORMATO_INFORME}`,
     user: `Analizá la estrategia de precios de mis productos reales:
 
 PRODUCTOS (${(data.products as unknown[])?.length || 0}):
@@ -193,9 +188,9 @@ ${JSON.stringify((data.sales as unknown[])?.slice(0, 20) || [], null, 1)}
 
 Revisá:
 1. 📊 MÁRGENES: productos con margen < 25% (riesgo) y > 60% (oportunidad de bajar para mover).
-2. 💲 PRECIOS FUERA DE MERCADO: productos probablemente muy caros o muy baratos vs rubro.
+2. 💲 PRECIOS FUERA DE MERCADO: productos probablemente muy caros o muy baratos para lo que son.
 3. 🎯 OPORTUNIDADES: productos donde subir precio 10-15% no afectaría ventas.
-4. 🏷️ ESTRATEGIA POR CATEGORÍA: perfumes árabes vs diseñador vs vapers — margins objetivo.
+4. 🏷️ ESTRATEGIA POR CATEGORÍA: compará las categorías que aparecen en los datos y proponé un margen objetivo para cada una.
 5. 📦 BUNDLES SUGERIDOS: 2-3 combinaciones de productos para aumentar ticket promedio.
 
 Citá precios y márgenes reales. No inventes cifras.`,
@@ -246,7 +241,18 @@ serve(async (req) => {
       throw new Error("El asistente no está disponible en este momento. Probá más tarde.");
     }
 
-    const { system, user } = builder(data || {});
+    // El rubro sale de `settings.industry_code`, leído acá con el JWT del
+    // usuario. NO viene del cliente: `MarketingPage` mandaba `data.industry`
+    // y `marketing_copy` nunca lo leyó, así que el campo se descartaba en
+    // silencio — la misma forma de fallar que `instructions`.
+    //
+    // 📌 Va después del gate del plan: a quien se le cortó no se le gasta ni
+    // esta consulta. Y si la lectura falla, `leerPerfilDelComercio` devuelve
+    // `SIN_RUBRO` en vez de lanzar: el análisis sale genérico, que es correcto
+    // para cualquier comercio, en lugar de salir con un rubro inventado.
+    const perfil = await leerPerfilDelComercio(req, orgId);
+
+    const { system, user } = builder(data || {}, perfil);
 
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",

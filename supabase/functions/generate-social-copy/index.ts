@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { requireUser } from "../_shared/requireUser.ts";
 import { exigirBeneficio } from "../_shared/entitlements.ts";
+import { leerPerfilDelComercio, personaDe } from "../_shared/perfilDelComercio.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,19 +41,24 @@ serve(async (req) => {
     const sinPlan = await exigirBeneficio(req, orgId, "ia", corsHeaders);
     if (sinPlan) return sinPlan;
 
+    // El rubro lo resuelve el servidor con `settings.industry_code`. Antes
+    // estaba escrito en el prompt: cualquier comercio recibía copy de
+    // perfumería árabe y hashtags de un rubro que no vende.
+    const perfil = await leerPerfilDelComercio(req, orgId);
+
     const typeLabel = POST_TYPE_LABEL[postType] || "post de Instagram";
     const catLabel = category === "perfume_arabe" ? "perfume árabe"
       : category === "perfume_diseñador" ? "perfume de diseñador"
       : category === "vaper" ? "vaper" : category || "";
 
-    const systemPrompt = `Sos community manager y copywriter de una tienda argentina de perfumería árabe/de diseñador y vapers que vende por Instagram y WhatsApp. Escribís en español rioplatense, cercano y vendedor, sin clichés vacíos. Conocés las marcas árabes (Lattafa, Armaf, Al Haramain, Rasasi, Maison Alhambra, Afnan) y de diseñador.
+    const systemPrompt = `${personaDe("community manager y copywriter", perfil)} Vendés por Instagram y WhatsApp. Escribís en español rioplatense, cercano y vendedor, sin clichés vacíos.
 
 REGLAS:
 1. Copy pensado para vender, con un gancho fuerte en la primera línea.
 2. Emojis con moderación (2-5, bien ubicados), NUNCA en exceso.
 3. Sin inventar datos falsos ni promesas imposibles ("atrae mujeres", "100% original" si no se aclaró).
 4. Incluí un call-to-action claro (escribinos por WhatsApp / DM para reservar).
-5. Hashtags relevantes al rubro perfumería/vapers en Argentina, en minúscula, sin espacios.`;
+5. Hashtags relevantes al rubro del comercio y a Argentina, en minúscula, sin espacios. Los de nicho salen del producto real que te paso, nunca de un rubro supuesto.`;
 
     const prompt = `Generá el copy para un ${typeLabel}.
 ${productName ? `- Producto: "${productName}"` : ""}
