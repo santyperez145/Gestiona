@@ -1338,6 +1338,19 @@ un 0 legítimo en NULL y el exento pasaría a gravado.
   — y el `<faultstring>`, que es el único texto legible, **empieza después del
   corte**. El reporte que llegó decía `ns1:xml.` y nada más. Se parsea el
   fault y se muestra `faultstring`; el XML entero va al log de la función.
+- **Un XML adentro de otro XML viene escapado.** El Ticket de Acceso de WSAA
+  viaja dentro de `<loginCmsReturn>` como **texto**: `&lt;token&gt;`. Buscar
+  `<token>` derecho no encuentra nada, y el mensaje volvía a ser el SOAP
+  cortado — o sea que **ARCA había contestado bien y la pantalla decía que
+  había fallado**. Al des-escapar, `&amp;` va último: si va primero, un
+  `&amp;lt;` legítimo termina en `<` e inventa una etiqueta.
+- **Un regex de tag XML tiene que aceptar atributos.** `<(?:\w+:)?tag>` no ve
+  `<faultcode xmlns:ns1="http://xml.apache.org/axis/">`, que es exactamente
+  como Axis escribe el faultcode. Con ese regex la traducción de códigos de
+  ARCA no habría funcionado nunca. **Lo encontró el test, no producción** —
+  por eso el parseo de WSAA vive en `_shared/wsaaRespuesta.ts`, puro y con
+  test: no se puede ensayar contra ARCA sin quemar un Ticket de Acceso, que no
+  se renueva por ~12 h.
 - **`LIKE '%_iva%'` matchea "inactiva".** El `_` es comodín de un carácter. Para
   buscar un nombre de columna que empieza con guión bajo hay que escaparlo.
 - **Verificar en los dos sentidos.** Una búsqueda difusa que "encuentra" no

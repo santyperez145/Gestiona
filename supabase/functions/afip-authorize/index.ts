@@ -26,6 +26,9 @@
 import forge from "https://esm.sh/node-forge@1.3.1";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolverCredencialesAfip, guardarTicketAcceso } from "../_shared/afipCredenciales.ts";
+import {
+  extraerXml as extractXml, motivoDeWsaa, leerTicketWsaa,
+} from "../_shared/wsaaRespuesta.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -410,48 +413,6 @@ Deno.serve(async (req) => {
 // ─────────────────────────────────────────────────────────────
 // WSAA — Ticket de Acceso
 // ─────────────────────────────────────────────────────────────
-/**
- * Lo que dijo WSAA, en castellano y con qué hacer.
- *
- * ⚠️ Antes esto devolvía `xml.slice(0, 300)` del SOAP crudo. Los primeros 300
- * caracteres de un Fault de Axis son el `<?xml?>`, cinco declaraciones de
- * namespace y el `<faultcode>` — **el `<faultstring>`, que es el único texto
- * legible, empieza después del corte**. O sea que se mostraba exactamente la
- * parte inútil, y el reporte que llegó terminaba en «ns1:xml.» sin decir qué
- * pasó.
- */
-function motivoDeWsaa(xml: string): string {
-  const code = (extractXml(xml, "faultcode") || "").replace(/^\w+:/, "");
-  const detalle = extractXml(xml, "faultstring") || "";
-
-  // Los códigos que documenta ARCA para WSAA. Cada uno manda a un lugar
-  // distinto, y confundirlos hace perder una tarde.
-  const conocidos: Record<string, string> = {
-    "coe.alreadyAuthenticated":
-      "ARCA ya entregó un Ticket de Acceso vigente para este certificado y no da otro hasta que venza (dura ~12 h). "
-      + "No es un problema de configuración: esperá o volvé a intentar más tarde.",
-    "coe.notAuthorized":
-      "El certificado no tiene autorizado el servicio wsfe. Hay que asociarlo desde el Administrador de Relaciones de ARCA.",
-    "cms.cert.untrusted":
-      "ARCA no reconoce el certificado: no lo emitió su autoridad certificante, o es de producción usándose en homologación (o al revés).",
-    "cms.cert.expired": "El certificado venció. Hay que generar uno nuevo en ARCA.",
-    "cms.cert.notFound": "El pedido no incluyó el certificado.",
-    "cms.sign.invalid": "La firma no valida: el certificado y la clave privada no son del mismo par.",
-    "cms.bad": "ARCA no pudo leer el mensaje firmado (CMS mal formado).",
-    "wsaa.unavailable": "El servicio de ARCA no está disponible en este momento.",
-    "wsaa.internalError": "Error interno de ARCA. No es algo de este lado.",
-  };
-
-  const explicado = conocidos[code];
-  if (explicado) return `${explicado} (código de ARCA: ${code})`;
-
-  // Sin código conocido, lo que dijo ARCA textual — el faultstring primero,
-  // que es lo legible, y recién después el código.
-  if (detalle) return `ARCA respondió: ${detalle}${code ? ` (código ${code})` : ""}`;
-  if (code) return `ARCA respondió con el código ${code}`;
-  return xml.slice(0, 300);
-}
-
 async function getTicketAcceso(
   wsaaUrl: string,
   certPem: string,
@@ -531,16 +492,17 @@ async function getTicketAcceso(
     throw new Error(motivoDeWsaa(xml));
   }
 
-  const token = extractXml(xml, "token");
-  const sign = extractXml(xml, "sign");
-  if (!token || !sign) {
-    // Axis a veces devuelve el Fault con HTTP 200. Sin esto, el mensaje sería
-    // «no devolvió Token/Sign» tapando el motivo, que está en el mismo XML.
+  // El parseo vive en `_shared/wsaaRespuesta.ts`, con test: el ticket viene
+  // adentro de `loginCmsReturn` y escapado, y leerlo mal hacía que una
+  // respuesta CORRECTA de ARCA se mostrara como si ARCA hubiera fallado.
+  const ticket = leerTicketWsaa(xml);
+  if (ticket.error || !ticket.token || !ticket.sign) {
     console.error("WSAA sin token/sign", xml);
-    throw new Error(motivoDeWsaa(xml));
+    throw new Error(ticket.error || motivoDeWsaa(xml));
   }
 
-  return { token, sign, expiresAt: exp.toISOString() };
+  // La vigencia la decide ARCA. Si no la informó, se usa la calculada.
+  return { token: ticket.token, sign: ticket.sign, expiresAt: ticket.expiresAt || exp.toISOString() };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -733,11 +695,6 @@ async function wsfeCall(url: string, soap: string, action: string): Promise<stri
   const xml = await resp.text();
   if (!resp.ok) throw new Error(`WSFE HTTP ${resp.status}: ${xml.slice(0, 300)}`);
   return xml;
-}
-
-function extractXml(xml: string, tag: string): string | null {
-  const m = xml.match(new RegExp(`<(?:[^:>]+:)?${tag}>([\\s\\S]*?)<\\/(?:[^:>]+:)?${tag}>`));
-  return m ? m[1].trim() : null;
 }
 
 function xmlEscape(s: string): string {
