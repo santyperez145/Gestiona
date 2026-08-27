@@ -129,6 +129,28 @@ describe("el aviso dice qué pasó de verdad", () => {
       .toMatch(/if \(!confirmando\) return;/);
   });
 
+  it("⚠️ y Mi plan no contradice al banner en la misma pantalla", () => {
+    /**
+     * Encontrado verificando en producción con la sesión real el 2026-08-27:
+     * el banner ya decía «estamos confirmando tu suscripción» y, diez
+     * centímetros más abajo, `MiPlanPage` decía «el último cobro no se pudo
+     * hacer». La app se contradecía sola.
+     *
+     * Arreglar el banner y no la página es media corrección, y la mitad que
+     * falta es la que el comercio mira cuando va a pagar.
+     */
+    const page = soloCodigo(readFileSync(resolve(ROOT, "src/pages/MiPlanPage.tsx"), "utf8"));
+    const i = page.indexOf('estadoActual === "past_due"');
+    expect(i, "desapareció el aviso de pago pendiente de Mi plan").toBeGreaterThan(-1);
+    const bloque = page.slice(i, i + 1400);
+    // ⚠️ Se exige el MENSAJE de la suscripción que todavía no se cobró, no la
+    // condición: `sub?.renueva_el` también aparece eligiendo el color, y con
+    // eso el test seguía verde aunque el texto volviera a ser uno solo.
+    // Verificado sustituyendo la condición del mensaje por `false`.
+    expect(bloque, "Mi plan volvió a tratar todo past_due como un cobro fallido")
+      .toMatch(/Estamos esperando que MercadoPago confirme/);
+  });
+
   it("y cuando corta, aclara que los datos siguen ahí", () => {
     // Cortar apaga extras. Un comercio que lee «perdés el acceso» y cree que
     // se queda sin sus ventas no paga: se va.

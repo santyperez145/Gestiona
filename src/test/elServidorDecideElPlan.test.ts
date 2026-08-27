@@ -109,6 +109,37 @@ describe("la decisión no se escribe dos veces", () => {
       .toMatch(/if \(!e\)[\s\S]{0,300}?status: 503/);
   });
 
+  it("⚠️ el plan se chequea antes que la configuración, y el secreto no sale a pantalla", () => {
+    /**
+     * Encontrado verificando en producción con la sesión real el 2026-08-27:
+     * `ai-analysis` chequeaba `ANTHROPIC_API_KEY` **antes** que el plan, así que
+     * un comercio sin IA recibía «ANTHROPIC_API_KEY is not configured» — un
+     * detalle interno que no puede arreglar, en lugar de lo único accionable
+     * para él, que es su plan.
+     *
+     * 📌 Y el nombre de un secreto nunca va a pantalla: al comercio le sirve
+     * saber que el asistente no está disponible; el detalle va al log.
+     */
+    for (const nombre of funcionesQueGastanIA()) {
+      if (nombre in SIN_PLAN_DEL_COMERCIO) continue;
+      const src = readFileSync(resolve(FUNCS, nombre, "index.ts"), "utf8");
+
+      const gate = src.search(/exigirBeneficio\s*\(/);
+      // Sólo importa el chequeo que corta el request, no el `new Anthropic(...)`
+      // de arriba del archivo, que no le muestra nada a nadie.
+      const config = src.search(/if \(!apiKey\)|if \(!Deno\.env\.get\("ANTHROPIC_API_KEY"\)\)/);
+      if (config >= 0) {
+        expect(gate, `${nombre}: el chequeo de configuración corre antes que el del plan`)
+          .toBeLessThan(config);
+      }
+
+      expect(
+        src.replace(/^\s*(\/\/|\*|\/\*).*$/gm, ""),
+        `${nombre}: el nombre del secreto sale en un mensaje al usuario`,
+      ).not.toMatch(/throw new Error\([^)]*ANTHROPIC_API_KEY/);
+    }
+  });
+
   it("y el hook del navegador lee esa misma función", () => {
     const hook = readFileSync(resolve(ROOT, "src/lib/useEntitlements.ts"), "utf8");
     // ⚠️ Se exige el RPC, no el nombre suelto: el archivo lo menciona en un

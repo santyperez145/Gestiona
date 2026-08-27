@@ -308,10 +308,6 @@ serve(async (req) => {
   }
 
   try {
-    if (!Deno.env.get("ANTHROPIC_API_KEY")) {
-      throw new Error("ANTHROPIC_API_KEY no está configurado");
-    }
-
     const { deal_id } = await req.json();
     if (!deal_id || typeof deal_id !== "string") {
       throw new Error("deal_id requerido");
@@ -327,6 +323,17 @@ serve(async (req) => {
       .from("deals").select("org_id").eq("id", deal_id).maybeSingle();
     const sinPlan = await exigirBeneficio(req, dealOrg?.org_id, "ia", corsHeaders);
     if (sinPlan) return sinPlan;
+
+    // ⚠️ La configuración se chequea DESPUÉS del plan. Al revés, un comercio
+    // sin IA recibía el nombre de un secreto —algo que no puede arreglar— en
+    // lugar de lo único accionable para él. Encontrado en producción el
+    // 2026-08-27 en `ai-analysis`, y estaba igual acá.
+    //
+    // 📌 Y el nombre del secreto no sale a pantalla: al log sí.
+    if (!Deno.env.get("ANTHROPIC_API_KEY")) {
+      console.error("ANTHROPIC_API_KEY no está configurada en el entorno");
+      throw new Error("El copiloto no está disponible en este momento. Probá más tarde.");
+    }
 
     const context = await buildContext(sb, deal_id);
     const userPrompt = buildUserPrompt(context);

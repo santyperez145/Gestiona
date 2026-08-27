@@ -219,11 +219,32 @@ export default function MiPlanPage() {
         )}
 
         {estadoActual === "past_due" && (
-          <div className="mt-4 flex items-start gap-2 rounded-[6px] border border-destructive/25 bg-destructive/8 px-3 py-2 text-sm">
-            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-destructive" />
+          /**
+           * ⚠️ `past_due` es DOS cosas distintas y este cartel las trataba
+           * igual: una suscripción recién contratada nace `past_due` sin
+           * `current_period_end` —`mp-subscribe` la guarda así hasta que el
+           * webhook confirma el primer cobro—, y una suscripción vieja cae en
+           * `past_due` cuando un cobro falla.
+           *
+           * Verificado en producción el 2026-08-27 con la sesión real: el
+           * banner de arriba ya decía «estamos confirmando tu suscripción» y
+           * este cartel, a diez centímetros, decía «el último cobro no se pudo
+           * hacer». La app se contradecía sola en la misma pantalla.
+           */
+          <div className={`mt-4 flex items-start gap-2 rounded-[6px] border px-3 py-2 text-sm ${
+            sub?.renueva_el
+              ? "border-destructive/25 bg-destructive/8"
+              : "border-primary/25 bg-primary/8"
+          }`}>
+            <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${
+              sub?.renueva_el ? "text-destructive" : "text-primary"
+            }`} />
             <p className="text-muted-foreground">
-              El último cobro no se pudo hacer. Revisá el medio de pago en
-              MercadoPago para no perder el servicio.
+              {sub?.renueva_el
+                ? <>El último cobro no se pudo hacer. Revisá el medio de pago en
+                   MercadoPago para no perder el servicio.</>
+                : <>Estamos esperando que MercadoPago confirme tu primer cobro. Puede
+                   tardar unos minutos y no hace falta que hagas nada.</>}
             </p>
           </div>
         )}

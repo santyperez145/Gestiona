@@ -171,17 +171,27 @@ serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
-
     const { type, data, orgId } = await req.json();
     const builder = PROMPTS[type];
     if (!builder) throw new Error(`Invalid analysis type: ${type}`);
 
     // El plan cubre la IA, o acá se corta. Ser un usuario real no es tener el
     // beneficio: cada llamada quema crédito de Anthropic.
+    //
+    // ⚠️ Va ANTES del chequeo de configuración. Verificado en producción el
+    // 2026-08-27: al revés, un comercio sin IA en su plan recibía
+    // «ANTHROPIC_API_KEY is not configured» — un detalle interno que no puede
+    // arreglar, en lugar de lo único accionable para él, que es su plan.
     const sinPlan = await exigirBeneficio(req, orgId, "ia", corsHeaders);
     if (sinPlan) return sinPlan;
+
+    // 📌 Y el nombre del secreto no sale a pantalla: al comercio le sirve saber
+    // que el asistente no está disponible; el detalle va al log de la función.
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!apiKey) {
+      console.error("ANTHROPIC_API_KEY no está configurada en el entorno");
+      throw new Error("El asistente no está disponible en este momento. Probá más tarde.");
+    }
 
     const { system, user } = builder(data || {});
 
