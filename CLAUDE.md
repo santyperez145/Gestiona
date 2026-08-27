@@ -904,6 +904,27 @@ MercadoPago y las contraseñas SMTP de **todas** las organizaciones. Está cerra
   📌 **Escribir lo ajeno es peor que leerlo**: una fuga se mira, un destrozo no
   se deshace.
 
+⚠️ **Y el segundo comercio perdía el asiento de su primera venta.** Los tres
+triggers de asiento —venta, gasto, cobranza— arrancaban con «sin plan de
+cuentas no hay libro donde asentar, `RETURN NEW`». Suena prudente y era un
+círculo cerrado: sin plan no se asienta, y nada más sembraba el plan. **Un
+comercio nuevo nunca empezaba**: vendía bien y su libro quedaba vacío para
+siempre, sin hacer ruido, porque el trigger atrapa la excepción a propósito
+—una venta no puede caerse por contabilidad—.
+
+Medido el 2026-08-27 vendiendo por el camino real del POS en la organización
+`pruebas`: stock 5 → 4, Kardex 1 movimiento, **asientos 0**, con
+«La cuenta 1.1.01 no existe en el plan» como motivo real.
+
+📌 `ledger_asentar` siembra el plan por su cuenta —es la puerta única de todo
+asiento y `ledger_plan_default` es idempotente—, así que «todavía no tiene
+plan» dejó de ser un motivo para no registrar nada. Guarda:
+`elComercioNuevoAsienta.test.ts`.
+
+📌 **Con una sola organización esto no se puede reproducir.** Exentry ya tenía
+sus 25 cuentas de antes. Es la misma familia que el descuento doble de stock:
+al medir cualquier cosa del Business Core hay que pensar en **dos** comercios.
+
 - **`audit_resultado_divergente`** (vista SQL) — meses donde el ledger y la
   fuente operativa no dicen lo mismo. Tiene que estar **vacía** (medido 0 el
   2026-08-27). Una fila significa que el P&L, Analytics y Reportes muestran
