@@ -18,6 +18,7 @@ import {
   CreditCard, Loader2, Unlink, RefreshCw, CheckCircle2, AlertTriangle, ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 interface Estado {
   provider: string;
@@ -66,7 +67,7 @@ export default function PaymentConnectionsPanel() {
         body: { action: "callback", orgId: activeOrg.id, code, state },
       });
       setBusy(null);
-      const err = (data as any)?.error ?? error?.message;
+      const err = await mensajeDeEdgeFunction(error, data);
       if (err) toast.error("No se pudo conectar: " + err);
       else toast.success(`Cuenta de MercadoPago conectada${(data as any)?.nickname ? ` (${(data as any).nickname})` : ""}`);
 
@@ -85,7 +86,7 @@ export default function PaymentConnectionsPanel() {
     setBusy(null);
     const url = (data as any)?.url;
     if (url) { window.location.href = url; return; }
-    toast.error((data as any)?.error ?? error?.message ?? "No se pudo iniciar la conexión");
+    toast.error(await mensajeDeEdgeFunction(error, data) || "No se pudo iniciar la conexión");
   };
 
   const accion = async (action: string, ok: string) => {
@@ -96,7 +97,7 @@ export default function PaymentConnectionsPanel() {
       body: { action, orgId: activeOrg.id },
     });
     setBusy(null);
-    const err = (data as any)?.error ?? error?.message;
+    const err = await mensajeDeEdgeFunction(error, data);
     if (err) toast.error(err); else toast.success(ok);
     load();
   };

@@ -28,6 +28,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import AdvancedApiKeysPanel from "@/components/integrations/AdvancedApiKeysPanel";
 import AdvancedWebhooksPanel from "@/components/integrations/AdvancedWebhooksPanel";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 // ── Integration health types ──────────────────────────────────────────────────
 type IntegrationStatus = "ok" | "error" | "warning" | "unknown";
@@ -843,7 +844,7 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
       body: { orgId, action },
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(await mensajeDeEdgeFunction(error, data));
     return data;
   }, [orgId, session]);
 

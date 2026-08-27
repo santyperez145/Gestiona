@@ -26,6 +26,7 @@ import { usePriceList } from "@/hooks/usePriceList";
 import { listaVigente, etiquetaDescuento } from "@/lib/priceListCalc";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { useVibration } from "@/hooks/useVibration";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 // fuse.js loaded dynamically to avoid Rollup TDZ (const kt) in production builds
 
 async function fireConfetti(opts: Record<string, unknown>) {
@@ -323,7 +324,7 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
     });
     setMpLoading(false);
     if (error || data?.error) {
-      toast.error(data?.error || error?.message || "Error al generar link MP");
+      toast.error(await mensajeDeEdgeFunction(error, data) || "Error al generar link MP");
       return;
     }
     setMpLink(data.url);

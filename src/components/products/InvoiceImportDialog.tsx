@@ -12,6 +12,7 @@ import {
   Upload, FileText, Loader2, Sparkles, CheckCircle2, AlertCircle,
   Trash2, X, ChevronDown, ChevronUp, Plus,
 } from "lucide-react";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 /**
  * InvoiceImportDialog — AI-powered invoice importer using Claude Vision.
@@ -139,7 +140,7 @@ export default function InvoiceImportDialog({ mode, onClose, onImported }: Invoi
         body: { fileBase64, mediaType },
       });
 
-      if (error) throw new Error(error.message || "Error al llamar la función");
+      if (error) throw new Error(await mensajeDeEdgeFunction(error, data) || "Error al llamar la función");
       if (data?.error) throw new Error(data.error);
 
       const rawItems: any[] = data?.items || [];

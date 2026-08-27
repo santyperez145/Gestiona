@@ -26,6 +26,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -134,18 +135,12 @@ const adminCall = async (action: string, params: Record<string, unknown> = {}) =
     body: { action, ...params },
   });
   if (error) {
-    // Try to extract the real error message from the response body
-    const ctx = (error as { context?: unknown }).context;
-    if (ctx) {
-      try {
-        const ctxAny = ctx as { json?: () => Promise<any> };
-        const body = typeof ctxAny.json === 'function' ? await ctxAny.json() : null;
-        if (body?.error) throw new Error(body.error);
-      } catch (parseErr) {
-        if (parseErr instanceof Error && parseErr.message !== error.message) throw parseErr;
-      }
-    }
-    const msg = error.message || '';
+    // ⚠️ Esta función era el ÚNICO lugar del repo que leía `error.context` para
+    // sacar el mensaje real del cuerpo. Estaba bien y nunca se propagó: los
+    // otros 47 archivos que invocan Edge Functions mostraban el genérico
+    // «Edge Function returned a non-2xx status code». La extracción se mudó a
+    // `mensajeDeEdgeFunction` para que haya un solo lugar donde esté bien.
+    const msg = await mensajeDeEdgeFunction(error, data);
     if (msg.includes('Failed to send') || msg.includes('NetworkError') || msg.includes('fetch')) {
       throw new Error('No se pudo conectar con la función. Verificá que esté desplegada en Supabase.');
     }

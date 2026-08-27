@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 interface ProductRow {
   product_key: 'business' | 'finance';
@@ -35,7 +36,7 @@ export default function ProductAccessPanel({ orgId, canManage }: { orgId: string
     });
     if (invokeError || data?.error) {
       setRows([]);
-      setError(data?.error || invokeError?.message || 'No se pudo leer el acceso por producto.');
+      setError(await mensajeDeEdgeFunction(invokeError, data) || 'No se pudo leer el acceso por producto.');
     } else {
       setRows((data?.products || []) as ProductRow[]);
     }
@@ -59,7 +60,7 @@ export default function ProductAccessPanel({ orgId, canManage }: { orgId: string
     });
     setSaving(false);
     if (invokeError || data?.error) {
-      toast.error(data?.error || invokeError?.message || 'No se pudo cambiar el producto.');
+      toast.error(await mensajeDeEdgeFunction(invokeError, data) || 'No se pudo cambiar el producto.');
       return;
     }
     toast.success(decision.enabled ? 'Finance habilitado' : 'Finance deshabilitado');

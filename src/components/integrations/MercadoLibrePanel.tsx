@@ -14,6 +14,7 @@ import {
   ShoppingBag, Loader2, RefreshCw, Download, Unlink, AlertTriangle, ExternalLink, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 interface Status {
   nickname: string | null;
@@ -94,7 +95,7 @@ export default function MercadoLibrePanel() {
       });
       setBusy(null);
       if (error || (data as any)?.error) {
-        toast.error("No se pudo conectar: " + ((data as any)?.error ?? error?.message));
+        toast.error("No se pudo conectar: " + await mensajeDeEdgeFunction(error, data));
       } else {
         toast.success(`Conectado a MercadoLibre como ${(data as any)?.nickname ?? "tu cuenta"}`);
       }
@@ -112,7 +113,7 @@ export default function MercadoLibrePanel() {
       body: { action, orgId: activeOrg.id, ...extra },
     });
     setBusy(null);
-    const err = (data as any)?.error ?? error?.message;
+    const err = await mensajeDeEdgeFunction(error, data);
     if (err) { toast.error(err); return; }
     const d = data as any;
     if (action === "sync-stock") {

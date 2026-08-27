@@ -19,6 +19,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PaymentLink {
@@ -215,7 +216,7 @@ export default function PaymentLinksPage() {
         },
         headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
       });
-      if (error || !mpData?.url) throw new Error(error?.message || "Sin respuesta de MP");
+      if (error || !mpData?.url) throw new Error(await mensajeDeEdgeFunction(error, mpData) || "Sin respuesta de MP");
       await supabase.from("payment_links").update({
         mp_link: mpData.url,
         mp_preference_id: mpData.preferenceId || null,

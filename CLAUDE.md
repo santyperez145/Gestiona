@@ -378,6 +378,27 @@ falsos positivos**. Un campo declarado en la interface y nunca pedido ni usado
 —`delegacion_verificada` era uno— se saca de la interface: es la semilla del
 próximo.
 
+⚠️ **`functions.invoke` tira a la basura el mensaje de la Edge Function.**
+Cuando la función responde con status ≥ 400, `error.message` es **siempre** el
+mismo texto: `"Edge Function returned a non-2xx status code"`. El cuerpo no se
+pierde —queda en `error.context`, que es el `Response`— pero hay que ir a
+buscarlo, y medido el 2026-08-27 **no lo hacía nadie salvo un archivo**.
+
+Así que todos los mensajes que las funciones escriben con cuidado —«El CUIT no
+está autorizado», «el punto de venta no existe», «Sólo el dueño puede
+verificar»— nunca llegaban a la pantalla. Y mandan a lugares distintos:
+confundirlos hace perder una tarde. Se encontró porque el panel de AFIP decía
+«Falta delegar el servicio en ARCA» tapando lo que ARCA había contestado.
+
+Va siempre por `mensajeDeEdgeFunction(error, data)` (`src/lib/edgeErrors.ts`),
+que prueba en orden: `data.error` (el 200 con `{ok:false, error}`), el cuerpo
+del no-2xx, y recién ahí el genérico.
+
+📌 **El patrón correcto existía y no se propagó:** `PlatformAdminPage.adminCall`
+leía `error.context` desde hacía meses, bien, y los otros 47 archivos no. Un
+patrón encerrado en un archivo no protege a nadie. La guarda de
+`edgeErrors.test.ts` falla si alguien vuelve a escribirlo a mano.
+
 **No tragarse errores.** Un `?? []` convierte "no tengo permiso" en "no hay
 nada", y son problemas opuestos. Se distingue el error de relación inexistente
 (`42P01`/`42883`/`PGRST205`/`PGRST202`, que sí justifica el fallback) de

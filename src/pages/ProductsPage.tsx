@@ -58,6 +58,7 @@ import ProfitCalculatorModal from "@/components/shared/ProfitCalculatorModal";
 import { useProductExpiry } from "@/hooks/useProductExpiry";
 import { BarcodePrintSheet } from "@/components/shared/BarcodeLabel";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
@@ -3251,7 +3252,7 @@ function MercadoLibrePublishCard({ productId, orgId, productCategory }: {
     });
     setBusy(null);
     const result = data as any;
-    const message = result?.error ?? error?.message;
+    const message = await mensajeDeEdgeFunction(error, result);
     if (message) {
       toast.error(message);
       return null;

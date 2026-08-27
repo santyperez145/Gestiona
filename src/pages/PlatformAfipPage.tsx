@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 interface Estado {
   cuit: string | null;
@@ -92,7 +93,7 @@ export default function PlatformAfipPage() {
     setGuardando(false);
 
     if (error || data?.error) {
-      toast.error(data?.error ?? error?.message ?? 'No se pudo guardar');
+      toast.error(await mensajeDeEdgeFunction(error, data) || 'No se pudo guardar');
       return;
     }
     // El PEM se borra del formulario apenas se guarda: no hay motivo para que
@@ -109,7 +110,7 @@ export default function PlatformAfipPage() {
     const { data, error } = await supabase.functions.invoke('afip-platform-cert', { body: { action: 'delete' } });
     setGuardando(false);
     if (error || data?.error) {
-      toast.error(data?.error ?? error?.message ?? 'No se pudo borrar');
+      toast.error(await mensajeDeEdgeFunction(error, data) || 'No se pudo borrar');
       return;
     }
     toast.success('Certificado borrado');

@@ -284,6 +284,35 @@ usarse en una presentación, valuación o decisión de inversión.
 Ninguno se cierra con una simulación. Requiere responsable, fecha, evidencia y
 entorno.
 
+### El panel de AFIP mostraba un mensaje fijo en vez del de ARCA (2026-08-27)
+
+Reportado desde la pantalla: «Falta delegar el servicio en ARCA» seguía
+apareciendo con AFIP conectado. Tres errores encadenados, y el tercero es el
+que importa para todo el repo.
+
+**1. La acción equivocada.** El guardado automático llamaba `test_connection`,
+que prueba el CERTIFICADO —que WSAA entregue un Ticket de Acceso— y no dice
+nada sobre si el comercio puede emitir. Lo que prueba eso es
+`verificar_delegacion`, que consulta `FECompUltimoAutorizado`.
+
+**2. El mensaje equivocado.** Cualquier fallo se traducía a «falta delegar»,
+incluso con `modo: propio`, donde no hay nada que delegar.
+
+**3. ⚠️ El mensaje real no llegaba, y eso pasa en todo el repo.**
+`functions.invoke` reemplaza el cuerpo de un no-2xx por
+`"Edge Function returned a non-2xx status code"`. El cuerpo queda en
+`error.context`, pero medido: **47 archivos invocan Edge Functions y sólo uno
+lo leía**. Todos los mensajes que las funciones escriben con cuidado —«El CUIT
+no está autorizado», «el punto de venta no existe»— eran invisibles.
+
+Se cerró con `mensajeDeEdgeFunction()` en `src/lib/edgeErrors.ts` y se migraron
+los sitios que mostraban el genérico de una Edge Function.
+
+📌 **El patrón correcto existía:** `PlatformAdminPage.adminCall` leía
+`error.context` desde hacía meses. Nunca se propagó. Un patrón encerrado en un
+archivo no protege a nadie — por eso ahora hay una guarda que falla si alguien
+vuelve a escribirlo a mano.
+
 ### La matriz de permisos prometía algo que el servidor no aplicaba (2026-08-27)
 
 P1-04 de la auditoría del 24 de agosto. La primitiva ya estaba y era correcta:

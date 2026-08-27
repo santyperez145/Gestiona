@@ -41,6 +41,7 @@ import {
   verifyOrganizationBackup,
   type OrganizationBackup,
 } from "@/lib/orgBackups";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 // ─── SystemInfoSection ────────────────────────────────────────────────────────
 function SystemInfoSection({ businessName, productCount, userEmail }: { businessName: string; productCount: number; userEmail?: string }) {
@@ -323,7 +324,7 @@ export default function SettingsPage() {
           secure: smtpConfig.secure,
         },
       });
-      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
       toast.success('Conexión SMTP verificada ✓', { description: `${smtpConfig.host}:${smtpConfig.port}` });
     } catch (err: any) {
       toast.error('Error SMTP: ' + err.message);

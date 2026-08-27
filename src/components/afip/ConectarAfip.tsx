@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import {
   ShieldCheck, Copy, ExternalLink, Loader2, AlertTriangle, Check, Clock,
 } from "lucide-react";
@@ -88,17 +89,19 @@ export default function ConectarAfip({
     });
     setVerificando(false);
 
-    if (error) {
-      toast.error("No se pudo verificar: " + error.message);
-      return;
-    }
-    const r = data as { ok?: boolean; error?: string } | null;
+    const r = data as { ok?: boolean } | null;
     if (r?.ok) {
       toast.success("Delegación verificada. Ya podés emitir facturas.");
       onVerificado();
-    } else {
-      toast.error(r?.error || "ARCA todavía no reconoce la delegación");
+      return;
     }
+
+    // ⚠️ Antes, un fallo con status ≥ 400 mostraba `error.message`, que en
+    // `functions.invoke` es SIEMPRE «Edge Function returned a non-2xx status
+    // code». El motivo real de ARCA viaja en el cuerpo y quedaba invisible.
+    const detalle = await mensajeDeEdgeFunction(error, data);
+    console.error("[afip] verificar_delegacion falló:", detalle, { data, error });
+    toast.error(detalle || "ARCA todavía no reconoce la delegación");
   };
 
   if (motivo === "listo") {
