@@ -10,12 +10,48 @@ import { toast } from 'sonner';
 import type { Plan } from '@/lib/useEntitlements';
 import BrandLogo from '@/components/shared/BrandLogo';
 
+/**
+ * Los renglones que se pueden escribir a mano, y sólo ésos.
+ *
+ * ⚠️ Antes esta lista también decía los límites, y **mentía**: prometía «hasta
+ * 100 productos» en Starter cuando el plan permite 1000, y «hasta 1.000» en Pro
+ * cuando es ilimitado. Un texto suelto al lado de una columna se desincroniza
+ * el día que alguien toca la columna — y acá el texto es una promesa de venta.
+ *
+ * Los límites ahora salen de las columnas del plan (`limitesDelPlan`), así que
+ * no pueden contradecirlo. Esto queda para lo que de verdad es texto de venta.
+ */
 const FALLBACK_FEATURES: Record<string, string[]> = {
-  trial:    ['14 días gratis, sin tarjeta', 'Hasta 50 productos', '3 usuarios', 'Catálogo público', 'IA incluida'],
-  starter:  ['Hasta 100 productos', '2 usuarios', 'Catálogo público', 'Soporte por email'],
-  pro:      ['Hasta 1.000 productos', '5 usuarios', 'IA + descripciones automáticas', 'Branding personalizado', 'Backups semanales', 'Integraciones Tiendanube y MP'],
-  business: ['Productos ilimitados', 'Usuarios ilimitados', 'Todas las features Pro', 'Soporte prioritario', 'API pública con rate limit alto', 'Onboarding dedicado'],
+  trial:    ['14 días gratis, sin tarjeta', 'Catálogo público'],
+  starter:  ['Catálogo público', 'Soporte por email'],
+  pro:      ['Integraciones Tiendanube y MercadoPago', 'Soporte por email'],
+  business: ['Soporte prioritario', 'API pública con rate limit alto', 'Onboarding dedicado'],
 };
+
+/**
+ * Lo que el plan permite, dicho desde sus propias columnas.
+ *
+ * Si el dueño cambia `max_products` en la consola, la landing lo dice sola: no
+ * hay que acordarse de editar también un texto.
+ */
+function limitesDelPlan(p: Plan): string[] {
+  const cantidad = (n: number | null | undefined, singular: string, plural: string) =>
+    n == null ? `${plural} ilimitados` : `Hasta ${Number(n).toLocaleString('es-AR')} ${n === 1 ? singular : plural}`;
+
+  const lineas = [
+    cantidad(p.max_products, 'producto', 'productos'),
+    cantidad(p.max_users, 'usuario', 'usuarios'),
+  ];
+  if (p.max_sales_per_month != null) {
+    lineas.push(`${Number(p.max_sales_per_month).toLocaleString('es-AR')} ventas por mes`);
+  } else {
+    lineas.push('Ventas ilimitadas');
+  }
+  if (p.ai_enabled) lineas.push('Inteligencia artificial incluida');
+  if (p.backups_enabled) lineas.push('Backups automáticos');
+  if (p.custom_branding) lineas.push('Branding propio en la tienda');
+  return lineas;
+}
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   active:   { label: 'Activo',         color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
@@ -106,9 +142,13 @@ export default function PricingPage() {
     return `Elegir ${plan.name}`;
   };
 
+  // Primero lo que el plan PERMITE —derivado de sus columnas, así que siempre
+  // cierto— y después lo que el dueño escribió como texto de venta.
   const getFeatures = (p: Plan): string[] => {
-    if (Array.isArray(p.features) && p.features.length > 0) return p.features;
-    return FALLBACK_FEATURES[p.code] || [];
+    const escritas = Array.isArray(p.features) && p.features.length > 0
+      ? p.features
+      : (FALLBACK_FEATURES[p.code] || []);
+    return [...limitesDelPlan(p), ...escritas];
   };
 
   const subStatus = subscription?.status;

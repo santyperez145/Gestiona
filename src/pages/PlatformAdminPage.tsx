@@ -1899,6 +1899,30 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                 <Label>Máx. ventas/mes</Label>
                 <Input type="number" min="0" value={editPlanForm.max_sales_per_month ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, max_sales_per_month: e.target.value ? parseInt(e.target.value) : null }))} className="h-9" placeholder="∞" />
               </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label>Características que se muestran en la landing</Label>
+                {/* ⚠️ Una por línea. Acá van sólo los textos de VENTA: los
+                    límites —productos, usuarios, ventas, IA, backups,
+                    branding— los arma la landing desde las columnas de arriba,
+                    así que no hay que repetirlos ni pueden contradecirlas.
+                    Antes se repetían a mano y mentían: la landing prometía
+                    «hasta 100 productos» en Starter cuando el plan permite
+                    1000, y «hasta 1.000» en Pro cuando es ilimitado. */}
+                <Textarea
+                  rows={4}
+                  value={(editPlanForm.features ?? []).join("\n")}
+                  onChange={e => setEditPlanForm(p => ({
+                    ...p,
+                    features: e.target.value.split("\n").map(l => l.trim()).filter(Boolean),
+                  }))}
+                  className="text-xs"
+                  placeholder={"Soporte prioritario\nOnboarding dedicado"}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Vacío = se usan los textos por defecto del plan. Los límites se
+                  muestran solos.
+                </p>
+              </div>
               <div className="space-y-1.5">
                 <Label>Máx. usuarios</Label>
                 <Input type="number" min="0" value={editPlanForm.max_users ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, max_users: e.target.value ? parseInt(e.target.value) : null }))} className="h-9" placeholder="∞" />
