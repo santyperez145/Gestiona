@@ -442,6 +442,27 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ## P0-10 — Segundo comercio externo — 🔴 depende del dueño
 
+### El camino ya está auditado y es repetible (2026-08-27)
+
+`supabase/verificaciones/20260827_comercio_nuevo_puede_vender.sql` recorre el
+camino entero sobre una organización recién creada: nace con settings y
+permisos, **sin rubro adivinado**, carga un producto, vende en el POS, siembra
+precios y envíos, crea su tienda, y el comprador **anónimo** la ve, ve el
+producto y compra. Doce pasos, por los caminos reales y como los roles reales.
+
+Al 2026-08-27 los doce dan `ok`. Pero encontró dos bugs que llevaban días
+escondidos porque Exentry ya tenía todo configurado:
+
+- el rubro salía `perfumes` en un comercio que nunca eligió (`20260827000110`);
+- **la primera venta no llegaba al libro** (`20260827000120`): los tres
+  triggers de asiento cortaban con «sin plan de cuentas no hay libro donde
+  asentar» y nada más sembraba el plan. Un círculo cerrado y silencioso —el
+  trigger atrapa la excepción para no voltear la venta— así que el comercio
+  vendía bien y su P&L quedaba vacío para siempre.
+
+📌 **Lo que queda de P0-10 es conseguir el comercio, no arreglar el camino.**
+Eso depende del dueño; el software ya lo recorre entero sin ayuda técnica.
+
 > Es la condición de salida de la fase y el único dato que le importa a un
 > inversor: que Gestiona funcione con alguien que no lo escribió. No hay trabajo
 > de código que lo destrabe.

@@ -1088,6 +1088,25 @@ descuento de stock duplicado porque `trg_sale_stock_movement` ya lo hacía.
 **Antes de descontar stock o tocar totales, revisar si hay un trigger que ya lo
 haga.**
 
+⚠️ **Y hay una verificación que conviene correr después de tocar el Business
+Core: `supabase/verificaciones/20260827_comercio_nuevo_puede_vender.sql`.**
+Crea una organización ZZ recién nacida y recorre el camino entero —vender en el
+POS, sembrar precios y envíos, crear la tienda, que el comprador anónimo la vea
+y compre— por los caminos reales y **como los roles reales** (`authenticated`
+el comercio, `anon` el comprador). Doce pasos, cada uno con su esperado al
+lado, y limpieza que exige 0 restos.
+
+```bash
+npm run db -- --file supabase/verificaciones/20260827_comercio_nuevo_puede_vender.sql
+```
+
+📌 **Existe porque con una sola organización varios bugs no se pueden
+reproducir.** El 2026-08-27 encontró dos que llevaban días escondidos: el rubro
+`perfumes` en un comercio que nunca eligió, y —el caro— **la primera venta no
+llegaba al libro**, porque los tres triggers de asiento cortaban con «sin plan
+de cuentas no hay libro donde asentar» y nada más sembraba el plan. Exentry no
+lo mostraba: ya tenía sus 25 cuentas.
+
 ---
 
 ## Scripts
