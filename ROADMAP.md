@@ -342,6 +342,69 @@ los sitios que mostraban el genérico de una Edge Function.
 archivo no protege a nadie — por eso ahora hay una guarda que falla si alguien
 vuelve a escribirlo a mano.
 
+### Cambiarle el precio a quien ya está suscripto (2026-08-27)
+
+Salió de una pregunta del dueño —«si modifico un valor de plan, ¿cambian las
+funciones?»— y la respuesta tenía una excepción: los beneficios y límites
+propagan al instante, **el precio no**.
+
+Medido: `mp-subscribe` crea el `preapproval` de MercadoPago con el monto del día
+y **nadie lo actualiza después**. Cero menciones a `preapproval` en
+`platform-admin-action`. Un cambio de precio no llegaba jamás a los actuales.
+
+⚠️ **Y el problema de raíz era anterior:** `subscriptions` no guardaba en ningún
+lado cuánto acordó pagar cada comercio. Sin eso no hay aviso posible —no se
+sabe desde qué precio— y `Mi plan` ni siquiera mostraba un monto: nombre, estado
+y fecha de renovación. El comercio no podía ver cuánto se le cobraba.
+
+Lo que se construyó, en orden de dependencia:
+
+1. `subscriptions.precio_ars` — lo autorizado en MercadoPago. Backfill **sólo
+   donde se puede probar** (el precio del plan no se tocó desde que se
+   suscribió); donde no, NULL, que significa «no consta» y no «gratis».
+   Reconstruido: 1 de 2.
+2. `plan_price_changes` + `plan_price_change_targets` — la decisión con fecha y
+   constancia, siguiendo el patrón de `platform_commission_rules`. Va por
+   suscripción y no sólo por plan porque MercadoPago puede aceptar una y
+   rechazar otra.
+3. `programar_cambio_de_precio` con **30 días de preaviso para un aumento y 0
+   para una baja**. ⚠️ El preaviso se mide contra lo que paga **cada uno**, no
+   contra el precio de lista: a quien se le cobra menos, esto le sube aunque la
+   lista baje.
+4. `precio-suscripcion` (cron 9 AM ARG): avisa por mail y, el día que rige,
+   aplica el `PUT /preapproval`.
+5. El comercio lo ve en un banner **que no se puede descartar** y en `Mi plan`,
+   que ahora dice cuánto paga de verdad.
+
+**El invariante:** no se aplica un precio que el comercio no recibió. Probado en
+producción de punta a punta.
+
+⚠️ **Y esa prueba destapó algo que afecta a todo el producto.** Con un comercio
+ZZ y un dominio reservado, la función avisó, MercadoPago no llegó a tocarse, y
+el objetivo quedó `pendiente`. El motivo:
+
+> «You can only send testing emails to your own email address. To send emails to
+> other recipients, please verify a domain at resend.com/domains».
+
+`RESEND_API_KEY` **está configurada** y aun así **ningún email llega a ningún
+comercio**: campañas, secuencias, facturas, invitaciones y este aviso. La doc
+decía que faltaba la clave —mirar ahí no lleva a ningún lado—. Corregido en
+`docs/CONFIGURACION.md`. Espera al dueño: verificar un dominio y poner
+`RESEND_FROM`.
+
+📌 La buena noticia es que **falla cerrado**: sin aviso entregado no hay
+aumento. El sistema no le sube el precio a nadie en silencio.
+
+⚠️ **Sin verificar:** el `PUT /preapproval` sigue la documentación publicada
+pero **no se probó contra una suscripción viva**. En particular, si MercadoPago
+exige que el pagador vuelva a autorizar un monto mayor. Por eso la respuesta se
+guarda entera y existe el estado `requiere_reautorizacion`.
+
+📌 **Y el relevamiento legal falta:** `docs/LEGAL.md` cubre precios al
+consumidor en la tienda, no la suscripción al SaaS. Los 30 días son un default
+prudente elegido acá, no una norma verificada. Se cambia en un solo lugar
+(`preaviso_minimo_dias`).
+
 ### No pagar no costaba nada, y la IA la pagaba la plataforma (2026-08-27)
 
 El circuito de cobro quedó completo esa mañana —`mp-subscribe` crea el

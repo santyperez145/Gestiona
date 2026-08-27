@@ -9,6 +9,8 @@ import { useUserRole } from "@/lib/useUserRole";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { useEntitlements } from "@/lib/useEntitlements";
+import { useCambioDePrecio } from "@/lib/useCambioDePrecio";
+import { formatARS } from "@/lib/supabaseStore";
 import { useRealtimeKPIs } from "@/hooks/useRealtimeKPIs";
 import { useStockAlerts } from "@/hooks/useStockAlerts";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
@@ -100,6 +102,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [fijados, pathname]);
   const config = useBusinessConfig();
   const { subscription, isTrialing, trialDaysLeft, motivoDeCorte, diasDeGracia } = useEntitlements();
+  const { cambio: cambioDePrecio } = useCambioDePrecio();
 
   // ── Global real-time KPI subscriptions ──────────────────────────────────
   // Toasts for new sales and stock alerts fire automatically from this hook.
@@ -462,6 +465,39 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
         {/* Plataforma → comercios: no se muestra en la tienda pública ni en /platform. */}
         <PlatformAnnouncementBanner enabled={Boolean(activeOrg)} />
+
+        {/* ── Cambio de precio programado ──────────────────────────────────
+            Va ANTES de los avisos de suscripción y **no se puede descartar**:
+            es información que cambia lo que le van a cobrar, y esconderla
+            detrás de una X sería vaciar el aviso de sentido. Desaparece sola
+            cuando el cambio se aplica. */}
+        {cambioDePrecio && (
+          <div className={`border-b px-4 py-2.5 flex items-center gap-3 ${
+            cambioDePrecio.sube
+              ? 'bg-warning/10 border-warning/20 text-warning'
+              : 'bg-teal-500/10 border-teal-500/20 text-teal-700 dark:text-teal-300'
+          }`}>
+            <Tag className="w-4 h-4 shrink-0" />
+            <p className="text-sm flex-1">
+              <span className="font-semibold">
+                {cambioDePrecio.sube ? 'Tu suscripción cambia de precio.' : 'Tu suscripción baja de precio.'}
+              </span>{' '}
+              {cambioDePrecio.precio_anterior != null && (
+                <>Pasa de {formatARS(cambioDePrecio.precio_anterior)} a </>
+              )}
+              {cambioDePrecio.precio_anterior == null && <>Pasa a </>}
+              <span className="font-semibold">{formatARS(cambioDePrecio.precio_nuevo)}</span>
+              {cambioDePrecio.ciclo === 'anual' ? ' por año' : ' por mes'}
+              {cambioDePrecio.dias_para_que_rija > 0
+                ? ` en ${cambioDePrecio.dias_para_que_rija} ${cambioDePrecio.dias_para_que_rija === 1 ? 'día' : 'días'}.`
+                : ' desde hoy.'}
+              {cambioDePrecio.motivo ? ` ${cambioDePrecio.motivo}` : ''}
+            </p>
+            <Link to="/mi-plan">
+              <Button size="sm" variant="outline" className="h-7 text-xs shrink-0">Ver mi plan</Button>
+            </Link>
+          </div>
+        )}
 
         {/* Trial / subscription status banners */}
         {!bannerDismissed && (() => {

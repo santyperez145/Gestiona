@@ -44,6 +44,17 @@ interface EstadoSuscripcion {
   cancela_al_final?: boolean;
   dias_restantes?: number | null;
   plan?: { code: string; name: string; price_ars_monthly: number | null } | null;
+  /**
+   * Lo que ESTE comercio autorizó en MercadoPago.
+   *
+   * ⚠️ No es `plan.price_ars_monthly`: ése es el precio de lista, el que paga
+   * quien se suscriba hoy. El `preapproval` se creó con el monto del día de la
+   * contratación, así que los dos pueden diferir — y mostrarle al comercio el
+   * de lista es mostrarle el precio de otro.
+   *
+   * NULL = no consta. No es lo mismo que gratis.
+   */
+  precio_ars?: number | null;
 }
 
 interface Factura {
@@ -163,6 +174,13 @@ export default function MiPlanPage() {
             <div>
               <p className="text-xs text-muted-foreground">Plan actual</p>
               <p className="text-xl font-semibold">{sub?.plan?.name ?? "—"}</p>
+              {estadoActual !== "sin_suscripcion" && (
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {sub?.precio_ars != null
+                    ? <>Pagás <span className="font-medium text-foreground">{formatARS(sub.precio_ars)}</span>{sub?.ciclo === "anual" ? " por año" : " por mes"}</>
+                    : "No tenemos registro del monto: revisalo en tu resumen de MercadoPago"}
+                </p>
+              )}
               <span className={`inline-block mt-1.5 text-[11px] px-2 py-0.5 rounded border ${badge.clase}`}>
                 {badge.texto}
               </span>

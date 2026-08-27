@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import CambioDePrecioDialog from "@/components/platform/CambioDePrecioDialog";
 import { useOrg } from '@/lib/orgContext';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import {
@@ -642,14 +643,38 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
 
   // ── Plan actions ───────────────────────────────────────────────────────────
 
+  /**
+   * El cambio de precio para los que YA están suscriptos.
+   *
+   * ⚠️ Guardar el plan cambia el precio de lista —lo que paga quien se suscriba
+   * de ahí en adelante— y **no toca** a los actuales: su monto vive en el
+   * `preapproval` de MercadoPago. Esto abre el paso aparte, con preaviso.
+   */
+  const [cambioPrecio, setCambioPrecio] = useState<{
+    open: boolean; planId: string; planName: string;
+    ciclo: 'mensual' | 'anual'; precio: number;
+  }>({ open: false, planId: '', planName: '', ciclo: 'mensual', precio: 0 });
+
   const handleSavePlan = async () => {
     if (!editPlanDialog.plan) return;
     setSaving(true);
     try {
-      await adminCall('updatePlan', { planId: editPlanDialog.plan.id, updates: editPlanForm });
+      const plan = editPlanDialog.plan;
+      const precioAnterior = plan.price_ars_monthly ?? null;
+      const precioNuevo = editPlanForm.price_ars_monthly ?? null;
+      await adminCall('updatePlan', { planId: plan.id, updates: editPlanForm });
       toast.success('Plan actualizado');
       setEditPlanDialog({ open: false, plan: null });
       loadPlans();
+      // Si cambió el precio mensual, los que ya están suscriptos siguen en el
+      // viejo hasta que se programe el cambio. Se ofrece en el momento, que es
+      // cuando el dueño tiene el contexto.
+      if (precioNuevo != null && Number(precioNuevo) !== Number(precioAnterior ?? -1)) {
+        setCambioPrecio({
+          open: true, planId: plan.id, planName: plan.name,
+          ciclo: 'mensual', precio: Number(precioNuevo),
+        });
+      }
     } catch (e: any) { toast.error(e.message); }
     setSaving(false);
   };
@@ -1953,6 +1978,15 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CambioDePrecioDialog
+        open={cambioPrecio.open}
+        onOpenChange={open => setCambioPrecio(prev => ({ ...prev, open }))}
+        planId={cambioPrecio.planId}
+        planName={cambioPrecio.planName}
+        ciclo={cambioPrecio.ciclo}
+        precioNuevo={cambioPrecio.precio}
+      />
     </div>
   );
 }

@@ -22458,6 +22458,203 @@ export type Database = {
           },
         ]
       }
+      plan_price_change_targets: {
+        Row: {
+          aplicado_at: string | null
+          cambio_id: string
+          created_at: string
+          error: string | null
+          estado: string
+          id: string
+          mp_respuesta: Json | null
+          notificado_at: string | null
+          org_id: string
+          precio_anterior: number | null
+          precio_nuevo: number
+          subscription_id: string
+        }
+        Insert: {
+          aplicado_at?: string | null
+          cambio_id: string
+          created_at?: string
+          error?: string | null
+          estado?: string
+          id?: string
+          mp_respuesta?: Json | null
+          notificado_at?: string | null
+          org_id: string
+          precio_anterior?: number | null
+          precio_nuevo: number
+          subscription_id: string
+        }
+        Update: {
+          aplicado_at?: string | null
+          cambio_id?: string
+          created_at?: string
+          error?: string | null
+          estado?: string
+          id?: string
+          mp_respuesta?: Json | null
+          notificado_at?: string | null
+          org_id?: string
+          precio_anterior?: number | null
+          precio_nuevo?: number
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_price_change_targets_cambio_id_fkey"
+            columns: ["cambio_id"]
+            isOneToOne: false
+            referencedRelation: "mi_cambio_de_precio"
+            referencedColumns: ["cambio_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_cambio_id_fkey"
+            columns: ["cambio_id"]
+            isOneToOne: false
+            referencedRelation: "plan_price_changes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_price_changes: {
+        Row: {
+          aplicado_at: string | null
+          ciclo: string
+          creado_por: string | null
+          created_at: string
+          estado: string
+          id: string
+          motivo: string | null
+          notificado_at: string | null
+          plan_id: string
+          precio_anterior: number | null
+          precio_nuevo: number
+          vigente_desde: string
+        }
+        Insert: {
+          aplicado_at?: string | null
+          ciclo: string
+          creado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          motivo?: string | null
+          notificado_at?: string | null
+          plan_id: string
+          precio_anterior?: number | null
+          precio_nuevo: number
+          vigente_desde: string
+        }
+        Update: {
+          aplicado_at?: string | null
+          ciclo?: string
+          creado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          motivo?: string | null
+          notificado_at?: string | null
+          plan_id?: string
+          precio_anterior?: number | null
+          precio_nuevo?: number
+          vigente_desde?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_price_changes_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "planes_contratables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_price_changes_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           active: boolean
@@ -35779,6 +35976,8 @@ export type Database = {
           mp_preapproval_id: string | null
           org_id: string
           plan_id: string
+          precio_ars: number | null
+          precio_ars_desde: string | null
           provider: string
           status: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id: string | null
@@ -35797,6 +35996,8 @@ export type Database = {
           mp_preapproval_id?: string | null
           org_id: string
           plan_id: string
+          precio_ars?: number | null
+          precio_ars_desde?: string | null
           provider?: string
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
@@ -35815,6 +36016,8 @@ export type Database = {
           mp_preapproval_id?: string | null
           org_id?: string
           plan_id?: string
+          precio_ars?: number | null
+          precio_ars_desde?: string | null
           provider?: string
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
@@ -41986,6 +42189,94 @@ export type Database = {
           },
         ]
       }
+      mi_cambio_de_precio: {
+        Row: {
+          cambio_id: string | null
+          ciclo: string | null
+          dias_para_que_rija: number | null
+          estado: string | null
+          motivo: string | null
+          notificado_at: string | null
+          org_id: string | null
+          precio_anterior: number | null
+          precio_nuevo: number | null
+          sube: boolean | null
+          target_id: string | null
+          vigente_desde: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       operaciones_sin_asentar: {
         Row: {
           detalle: string | null
@@ -46172,6 +46463,19 @@ export type Database = {
         Args: { p_cost: number; p_life_years: number; p_salvage: number }
         Returns: number
       }
+      cambios_de_precio_a_aplicar: {
+        Args: never
+        Returns: {
+          cambio_id: string
+          ciclo: string
+          mp_preapproval_id: string
+          org_id: string
+          precio_anterior: number
+          precio_nuevo: number
+          subscription_id: string
+          target_id: string
+        }[]
+      }
       can_review_product: {
         Args: { p_product_id: string; p_slug: string }
         Returns: Json
@@ -47117,6 +47421,10 @@ export type Database = {
         }
         Returns: Json
       }
+      impacto_cambio_de_precio: {
+        Args: { p_ciclo: string; p_plan_id: string; p_precio_nuevo: number }
+        Returns: Json
+      }
       import_meli_order_as_sales: {
         Args: { p_actor_id: string; p_meli_order_id: string; p_org_id: string }
         Returns: Json
@@ -47494,6 +47802,7 @@ export type Database = {
           requires_settlement: boolean
         }[]
       }
+      preaviso_minimo_dias: { Args: { p_sube: boolean }; Returns: number }
       precio_pos_autoritativo: {
         Args: {
           p_org: string
@@ -47537,6 +47846,16 @@ export type Database = {
           requested_at: string
           status: string
         }[]
+      }
+      programar_cambio_de_precio: {
+        Args: {
+          p_ciclo: string
+          p_motivo?: string
+          p_plan_id: string
+          p_precio_nuevo: number
+          p_vigente_desde: string
+        }
+        Returns: Json
       }
       prorratear: {
         Args: { p_moneda?: string; p_pesos: number[]; p_total: number }
@@ -47714,6 +48033,15 @@ export type Database = {
           p_source?: string
         }
         Returns: boolean
+      }
+      registrar_cambio_de_precio: {
+        Args: {
+          p_error?: string
+          p_estado: string
+          p_respuesta?: Json
+          p_target_id: string
+        }
+        Returns: undefined
       }
       registrar_conteo: {
         Args: { p_cantidad: number; p_count_id: string; p_product_id: string }

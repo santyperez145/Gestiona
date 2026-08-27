@@ -38,6 +38,18 @@ con el estado medido contra la base cuando se pudo.
 
 ### 1.2 Precios y publicidad
 
+⚠️ **Hueco conocido (2026-08-27): el precio de la suscripción al SaaS no está
+relevado.** Todo lo que sigue en esta sección es sobre el precio que la **tienda
+del comercio** le muestra a un consumidor. Cambiarle el precio a un comercio que
+ya paga la suscripción de Gestiona es otra relación —Gestiona con su cliente,
+que además es una empresa— y no se analizó contra la normativa.
+
+Lo construido asume un preaviso de **30 días** para un aumento y ninguno para
+una baja (`public.preaviso_minimo_dias`). Es un default prudente **elegido por
+criterio de producto, no verificado**. Si el número correcto es otro, se cambia
+en esa función y rige para todo el circuito. Requiere opinión profesional, como
+el art. 37 de la 25.065 más abajo.
+
 | Requisito | Estado |
 |---|---|
 | **Precio final al consumidor, con IVA incluido** (Res. 7/2002) | ✅ Los precios son finales. El IVA se discrimina por línea desde A3/A8: `products.tax_rate` permite que cada producto herede la tasa de la organización o declare 0% exento. |

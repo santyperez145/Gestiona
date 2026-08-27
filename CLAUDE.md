@@ -1321,6 +1321,23 @@ Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md). Los dos que más duelen:
 `ANTHROPIC_API_KEY` (toda la IA responde error) y `RESEND_API_KEY` (los crons de
 email corren, encuentran los destinatarios y no pueden enviar).
 
+⚠️ **Y `RESEND_API_KEY` ya no es el problema: la cuenta de Resend sí lo es.**
+Medido el 2026-08-27 mandando un mail real desde `precio-suscripcion` a un
+dominio reservado, la API contestó:
+
+> «You can only send testing emails to your own email address
+> (santyperez145s@gmail.com). To send emails to other recipients, please verify
+> a domain at resend.com/domains, and change the `from` address».
+
+O sea que la clave **está configurada** y aun así **ningún email llega a ningún
+comercio**: campañas, secuencias, facturas, invitaciones al equipo, órdenes a
+proveedores y el aviso de cambio de precio, todos. Es peor que la clave faltante
+porque el síntoma es idéntico —nadie recibe nada— pero la doc decía que faltaba
+la clave y mirar ahí no lleva a ningún lado.
+
+📌 Espera al dueño: verificar un dominio en `resend.com/domains` y poner
+`RESEND_FROM` con una casilla de ese dominio.
+
 ### Brechas contra Tiendanube / Empretienda
 
 Lo que la tienda todavía no tiene, en orden de impacto:

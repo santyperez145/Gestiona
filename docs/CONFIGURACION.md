@@ -12,7 +12,7 @@ Estado al 2026-08-21. Lo que **no** esté acá, ya funciona sin tocar nada.
 | Catálogo público `/catalogo/:userId` | ✅ Funciona |
 | Notificaciones push | ✅ VAPID cargado |
 | **IA** (chat, descripciones, insights, OCR) | ⚠️ Falta `ANTHROPIC_API_KEY` para IA generativa; `predict-sales` conserva un respaldo estadístico |
-| **Emails** (campañas, secuencias, facturas) | ❌ Falta `RESEND_API_KEY` |
+| **Emails** (campañas, secuencias, facturas) | 🟠 `RESEND_API_KEY` está puesta, pero la cuenta de Resend está en modo de prueba: **sólo envía a la casilla del dueño**. Verificado el 2026-08-27 contra la API. Falta verificar un dominio en resend.com/domains y poner `RESEND_FROM`. |
 | **WhatsApp automático** | ⚠️ Requiere una conexión Evolution por comercio o una configuración global de plataforma |
 | **Cobros con tarjeta** | ❌ Falta Stripe |
 | **MercadoPago** | ⚠️ Token por org en Integraciones; falta el webhook |
