@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Sparkles, Instagram, Copy, Send, Megaphone, Link2, ChevronDown, ChevronUp, FileSpreadsheet, ImageIcon, Calendar, Download, RefreshCw, Loader2, TrendingUp, CheckCircle2, LayoutTemplate, Package, Zap, Brain } from "lucide-react";
+import { Plus, Trash2, Sparkles, Instagram, Copy, Send, Megaphone, Link2, ChevronDown, ChevronUp, FileSpreadsheet, ImageIcon, Calendar, Download, RefreshCw, Loader2, TrendingUp, CheckCircle2, LayoutTemplate, Package, Zap, Brain, Share2 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -20,6 +20,8 @@ import AutomationFlowsTab from "@/components/marketing/AutomationFlowsTab";
 import { listPostTypes, listMarketingThemes } from "@/lib/marketingExtraDB";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import { useSearchParams } from "react-router-dom";
+import PlannerView from "@/components/marketing/PlannerView";
 import { useOrg } from "@/lib/orgContext";
 
 export default function MarketingPage() {
@@ -34,10 +36,22 @@ export default function MarketingPage() {
     orgViewKey("marketing.status-filter", activeOrg?.id),
     "all",
   );
+  // El redirect de /planner-social llega con ?vista=planner. La URL gana
+  // cuando alguien pidió una tab explícita; sin ?vista= manda la persistida.
+  const [marketingParams] = useSearchParams();
+  useEffect(() => {
+    const vista = marketingParams.get("vista");
+    if (vista === 'posts' || vista === 'planner' || vista === 'images' || vista === 'calendar'
+        || vista === 'templates' || vista === 'combos' || vista === 'automations' || vista === 'brand') {
+      setActiveTab(vista);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marketingParams]);
+
   const [postTypes, setPostTypes] = useState<any[]>([]);
   const [themes, setThemes] = useState<any[]>([]);
   const [industryCode, setIndustryCode] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = usePersistedState<'posts' | 'images' | 'calendar' | 'templates' | 'combos' | 'automations' | 'brand'>(
+  const [activeTab, setActiveTab] = usePersistedState<'posts' | 'planner' | 'images' | 'calendar' | 'templates' | 'combos' | 'automations' | 'brand'>(
     orgViewKey("marketing.tab", activeOrg?.id),
     "posts",
   );
@@ -175,6 +189,7 @@ export default function MarketingPage() {
       <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 w-fit border border-border flex-wrap">
         {([
           { id: 'posts', label: 'Publicaciones', icon: Instagram },
+          { id: 'planner', label: 'Planner de redes', icon: Share2 },
           { id: 'images', label: 'Imágenes IA', icon: ImageIcon },
           { id: 'calendar', label: 'Calendario', icon: Calendar },
           { id: 'templates', label: 'Plantillas', icon: LayoutTemplate },
@@ -305,6 +320,11 @@ export default function MarketingPage() {
       )}
 
       {/* ── TAB: IMÁGENES IA ── */}
+      {/* Vista consolidada: era /planner-social hasta 2026-08-27. Misma
+          autoridad que Publicaciones (social_posts); dos páginas para la misma
+          tabla eran el duplicado. */}
+      {activeTab === 'planner' && <PlannerView />}
+
       {activeTab === 'images' && <AIImageGenerator products={products} />}
 
       {/* ── TAB: CALENDARIO ── */}

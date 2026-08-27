@@ -178,11 +178,12 @@ describe("el sidebar sigue siendo el sidebar", () => {
   it("el manifest cubre los destinos medidos", () => {
     // Si alguien agrega una pantalla sin pasar por acá, este número cambia y
     // obliga a mirar si declaró módulo. El piso BAJA con cada consolidación:
-    // 71 → 68 cuando /seguimiento, /rfm y /crm-avanzado pasaron a ser vistas
-    // de /clientes (2026-08-27). Bajarlo exige que la ruta borrada haya
+    // 71 → 68 cuando /seguimiento, /rfm y /crm-avanzado pasaron a vistas de
+    // /clientes; 68 → 67 cuando /planner-social pasó a /marketing?vista=
+    // planner (2026-08-27). Bajarlo exige que la ruta borrada haya
     // quedado como alias — lo garantiza "ningún alias es también una ruta
     // canónica" más el chequeo de que todo alias apunta a una canónica.
-    expect(ROUTES.length).toBeGreaterThanOrEqual(68);
+    expect(ROUTES.length).toBeGreaterThanOrEqual(67);
   });
 });
 

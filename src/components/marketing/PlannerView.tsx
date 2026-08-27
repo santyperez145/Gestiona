@@ -1,7 +1,12 @@
-﻿import { useState, useEffect, useMemo } from "react";
+// Vista «Planner» del workspace de Marketing.
+//
+// ⚠️ Era la página SocialPlannerPage (/planner-social). Desde MKT-001 las dos
+// pantallas mostraban la MISMA autoridad (`social_posts`) — el duplicado ya no
+// era de modelo sino de superficie. La consolidación 2026-08-27 la vuelve una
+// vista de /marketing; la ruta vieja redirige con ?vista=planner.
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -23,7 +28,6 @@ import {
   Eye, Heart, MessageCircle, Repeat2, MousePointerClick, CheckCircle2, Clock,
   Send, XCircle, FileEdit, Loader2, Sparkles,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
 interface SocialPost {
@@ -107,8 +111,7 @@ const EMPTY_POST = {
   campaign_name: "", target_audience: "", cta_text: "", cta_url: "", notes: "",
 };
 
-export default function SocialPlannerPage() {
-  usePageTitle("Planner de Redes Sociales");
+export default function PlannerView() {
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -333,24 +336,26 @@ export default function SocialPlannerPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Share2}
-        title="Planner de Redes Sociales"
-        description="Planificá, programá y analizá tu contenido en Instagram, TikTok, Facebook y más."
-        actions={
-          <>
-            <Button variant="outline" onClick={() => setIdeaOpen(true)}>
-              <Lightbulb className="w-4 h-4 mr-1" /> Idea
-            </Button>
-            <Button variant="outline" onClick={() => setHashtagOpen(true)}>
-              <Hash className="w-4 h-4 mr-1" /> Hashtags
-            </Button>
-            <Button onClick={() => { setEditingPost(null); setPostForm(EMPTY_POST); setPostOpen(true); }}>
-              <Plus className="w-4 h-4 mr-1" /> Nuevo post
-            </Button>
-          </>
-        }
-      />
+      {/* Toolbar de la vista: el header de la página es el de Marketing. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Share2 className="w-4 h-4" /> Planner de redes
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Planificá, programá y analizá tu contenido en Instagram, TikTok, Facebook y más.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setIdeaOpen(true)}>
+            <Lightbulb className="w-4 h-4 mr-1" /> Idea
+          </Button>
+          <Button variant="outline" onClick={() => setHashtagOpen(true)}>
+            <Hash className="w-4 h-4 mr-1" /> Hashtags
+          </Button>
+          <Button onClick={() => { setEditingPost(null); setPostForm(EMPTY_POST); setPostOpen(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> Nuevo post
+          </Button>
+        </div>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
