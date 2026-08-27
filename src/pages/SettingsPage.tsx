@@ -1349,13 +1349,28 @@ export default function SettingsPage() {
           <AutomatedReportsSection />
 
           {/* AFIP Facturación Electrónica */}
-          <AfipSection />
+          {/* ⚠️ El formulario de AFIP se mudó a /afip el 2026-08-27: estaba
+              acá mientras la página que se llama AFIP sólo mostraba el estado
+              y mandaba para este lado. Ajustes deja el puntero, no una copia:
+              dos formularios para la misma credencial es cómo se termina con
+              dos CUIT distintos. */}
+          <AfipPuntero />
 
           {/* Coupons CRUD */}
-          <CouponsManager userId={user!.id} />
+          <PunteroAPagina
+            titulo="Cupones de descuento"
+            detalle="Crear, activar y limitar cupones — con mínimo de compra, tope por persona y envío gratis."
+            href="/cupones"
+            cta="Abrir cupones"
+          />
 
           {/* Sucursales management */}
-          <SucursalesSection orgId={orgForTemplates?.id} />
+          <PunteroAPagina
+            titulo="Sucursales"
+            detalle="Alta, dirección, sucursal principal y stock por ubicación."
+            href="/sucursales"
+            cta="Abrir sucursales"
+          />
           </div>
         </div>
       </div>
@@ -1971,116 +1986,6 @@ function ManagedBackupsSection() {
   );
 }
 
-function CouponsManager({ userId }: { userId: string }) {
-  const [coupons, setCoupons] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
-  const [code, setCode] = useState('');
-  const [discountPercent, setDiscountPercent] = useState('');
-  const [discountFixed, setDiscountFixed] = useState('');
-  const [maxUses, setMaxUses] = useState('');
-  const [validUntil, setValidUntil] = useState('');
-
-  const load = async () => {
-    const data = await getCouponsDB(userId);
-    setCoupons(data);
-  };
-
-  useEffect(() => { load(); }, [userId]);
-
-  const handleCreate = async () => {
-    if (!code.trim()) { toast.error('Ingresá un código'); return; }
-    try {
-      await addCouponDB({
-        user_id: userId,
-        code: code.toUpperCase().trim(),
-        discount_percent: parseFloat(discountPercent) || 0,
-        discount_fixed_ars: parseFloat(discountFixed) || 0,
-        max_uses: maxUses ? parseInt(maxUses) : null,
-        valid_until: validUntil || null,
-      });
-      toast.success(`Cupón ${code.toUpperCase()} creado`);
-      setOpen(false); setCode(''); setDiscountPercent(''); setDiscountFixed(''); setMaxUses(''); setValidUntil('');
-      load();
-    } catch (err: any) { toast.error(err.message); }
-  };
-
-  const handleToggle = async (id: string, active: boolean) => {
-    await updateCouponDB(id, { active: !active });
-    load();
-  };
-
-  const handleDelete = async (id: string) => {
-    await deleteCouponDB(id);
-    toast.success('Cupón eliminado');
-    load();
-  };
-
-  return (
-    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
-          <Ticket className="w-4 h-4 text-primary" />Cupones de Descuento
-        </h2>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gradient-gold text-primary-foreground"><Plus className="w-3.5 h-3.5 mr-1" />Nuevo</Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
-            <DialogHeader><DialogTitle className="font-display">Crear Cupón</DialogTitle></DialogHeader>
-            <div className="space-y-3 pb-12">
-              <div><label className="text-sm text-muted-foreground">Código</label>
-                <Input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="EXENTRY10" className="bg-muted border-border mt-1" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-sm text-muted-foreground">Descuento %</label>
-                  <Input type="number" value={discountPercent} onChange={e => setDiscountPercent(e.target.value)} placeholder="10" className="bg-muted border-border mt-1" /></div>
-                <div><label className="text-sm text-muted-foreground">Desc. fijo ARS</label>
-                  <Input type="number" value={discountFixed} onChange={e => setDiscountFixed(e.target.value)} placeholder="5000" className="bg-muted border-border mt-1" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-sm text-muted-foreground">Usos máximos</label>
-                  <Input type="number" value={maxUses} onChange={e => setMaxUses(e.target.value)} placeholder="Ilimitado" className="bg-muted border-border mt-1" /></div>
-                <div><label className="text-sm text-muted-foreground">Válido hasta</label>
-                  <Input type="date" value={validUntil} onChange={e => setValidUntil(e.target.value)} className="bg-muted border-border mt-1" /></div>
-              </div>
-              <p className="text-[10px] text-muted-foreground">Si ponés % y monto fijo, se aplica el porcentaje. Dejá vacío lo que no uses.</p>
-              <Button onClick={handleCreate} className="w-full gradient-gold text-primary-foreground font-semibold">Crear Cupón</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {coupons.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4">No hay cupones creados. Creá uno para compartir con tus clientes.</p>
-      ) : (
-        <div className="space-y-2 pb-12">
-          {coupons.map(c => (
-            <div key={c.id} className={`flex items-center justify-between p-3 rounded-lg border ${c.active ? 'bg-muted/50 border-border' : 'bg-muted/20 border-border/50 opacity-60'}`}>
-              <div>
-                <p className="font-mono font-bold text-sm">{c.code}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {c.discount_percent > 0 ? `${c.discount_percent}% OFF` : `${formatARS(Number(c.discount_fixed_ars))} OFF`}
-                  {c.max_uses ? ` · ${c.current_uses}/${c.max_uses} usos` : ` · ${c.current_uses} usos`}
-                  {c.valid_until ? ` · Hasta ${new Date(c.valid_until).toLocaleDateString('es-AR')}` : ''}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={c.active} onCheckedChange={() => handleToggle(c.id, c.active)} />
-                <ConfirmDialog
-                  trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                  title="¿Eliminar cupón?"
-                  confirmText="Eliminar"
-                  onConfirm={() => handleDelete(c.id)}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ===== Archivos de backup heredados =====
 function CloudBackupsSection({ userId }: { userId: string }) {
   const [files, setFiles] = useState<Array<{ name: string; created_at?: string; size?: number }>>([]);
   const [loading, setLoading] = useState(false);
@@ -2285,470 +2190,52 @@ function AutomatedReportsSection() {
   );
 }
 
-// ===== AFIP Facturación Electrónica =====
-function AfipSection() {
-  const { activeOrg } = useOrg();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-
-  const [cuit, setCuit] = useState("");
-  const [razonSocial, setRazonSocial] = useState("");
-  const [domicilio, setDomicilio] = useState("");
-  const [puntoVenta, setPuntoVenta] = useState("1");
-  const [environment, setEnvironment] = useState("homologacion");
-  /**
-   * ⚠️ Arranca VACÍO, no en "monotributo".
-   *
-   * La columna tenía `DEFAULT 'monotributo'` y se sacó el 2026-08-26: un
-   * responsable inscripto quedaba marcado como monotributista y emitía Factura
-   * C sin IVA discriminado, sin que nada se lo dijera. Preseleccionarlo acá
-   * reintroduciría la misma adivinanza desde el otro lado — el comercio
-   * apretaría "Guardar" sin mirar y el campo quedaría mal igual.
-   */
-  const [tipoEmisor, setTipoEmisor] = useState("");
-  const [certificate, setCertificate] = useState("");
-  const [privateKey, setPrivateKey] = useState("");
-  const [taStatus, setTaStatus] = useState<"none" | "valid" | "expired">("none");
-  /** Hay certificado PROPIO cargado. No se sabe cuál: eso no vuelve del servidor. */
-  const [certConfigurado, setCertConfigurado] = useState(false);
-  /**
-   * C14 — de qué certificado se factura.
-   *
-   * `delegado`: el comercio no sube nada; se emite con el certificado de la
-   * plataforma y su CUIT en el comprobante, porque delegó `wsfe` desde el
-   * Administrador de Relaciones de ARCA.
-   *
-   * `propio`: subió su certificado. Sigue siendo posible y no se quita — es
-   * la salida si la delegación no le sirve.
-   */
-  const [modo, setModo] = useState<"delegado" | "propio">("delegado");
-  /** La plataforma tiene su certificado cargado. Si no, el modo delegado no
-   *  puede emitir, y eso NO es un problema del comercio: hay que decirlo. */
-  const [plataformaLista, setPlataformaLista] = useState(false);
-  /** El formulario del certificado propio arranca cerrado en modo delegado:
-   *  mostrar un campo de clave privada a quien no necesita subirla es lo que
-   *  hace que el onboarding parezca un trámite. */
-  const [mostrarCert, setMostrarCert] = useState(false);
-
-  const refreshConnectionStatus = useCallback(async () => {
-    if (!activeOrg) return;
-
-    // La vista sólo devuelve metadatos seguros. El certificado y su clave no
-    // vuelven al navegador, ni siquiera después de que se hayan guardado.
-    const { data, error } = await supabase
-      .from("afip_connection_status")
-      .select("cuit, razon_social, domicilio, punto_venta, environment, tipo_emisor, configured, modo, plataforma_lista, ta_expires_at")
-      .eq("org_id", activeOrg.id)
-      .maybeSingle();
-    if (error) throw error;
-
-    if (!data) {
-      setCertConfigurado(false);
-      setTaStatus("none");
-      return;
-    }
-
-    // ⚠️ `configured` de la vista significa PUEDE EMITIR, no "subió un
-    // certificado": en modo delegado el certificado es el de la plataforma.
-    setModo(data.modo === "propio" ? "propio" : "delegado");
-    setPlataformaLista(!!data.plataforma_lista);
-    setDomicilio(data.domicilio || "");
-
-    setCuit(data.cuit || "");
-    setRazonSocial(data.razon_social || "");
-    setPuntoVenta(String(data.punto_venta || 1));
-    setEnvironment(data.environment || "homologacion");
-    setTipoEmisor(data.tipo_emisor || "");
-    // El certificado PROPIO sólo existe en modo propio; en delegado
-    // `configured` habla del de la plataforma.
-    setCertConfigurado(data.modo === "propio" && !!data.configured);
-    setTaStatus(data.ta_expires_at && new Date(data.ta_expires_at) > new Date() ? "valid" : "none");
-  }, [activeOrg]);
-
-  useEffect(() => {
-    if (!activeOrg) {
-      setLoading(false);
-      return;
-    }
-    (async () => {
-      try {
-        await refreshConnectionStatus();
-      } catch (error: any) {
-        toast.error(`No se pudo leer el estado AFIP: ${error.message}`);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [activeOrg, refreshConnectionStatus]);
-
-  const doSave = async () => {
-    if (!activeOrg) return;
-
-    // Lo que no es secreto va por RPC, que además valida CUIT y entorno.
-    const { error: cfgErr } = await supabase.rpc("save_afip_config", {
-      p_org_id: activeOrg.id,
-      p_cuit: cuit,
-      p_punto_venta: parseInt(puntoVenta) || 1,
-      p_environment: environment,
-      p_tipo_emisor: tipoEmisor || null,
-      p_razon_social: razonSocial || null,
-      p_domicilio: domicilio || null,
-    });
-    if (cfgErr) throw new Error(cfgErr.message.replace(/^.*?:\s*/, ""));
-
-    // El certificado sólo si se pegó uno nuevo. La Edge Function lo escribe con
-    // `service_role`; desde el navegador no hay forma de llegar a esa tabla.
-    // Sólo si efectivamente pegó uno. En modo delegado estos campos están
-    // ocultos y vacíos, así que este bloque no corre.
-    if (certificate.trim() || privateKey.trim()) {
-      const { data, error } = await supabase.functions.invoke("afip-credentials", {
-        body: { org_id: activeOrg.id, certificate, privateKey },
-      });
-      const err = (data as { error?: string } | null)?.error ?? error?.message;
-      if (err) throw new Error(err);
-      setCertConfigurado(true);
-      // No se conservan en memoria más de lo necesario.
-      setCertificate("");
-      setPrivateKey("");
-    }
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await doSave();
-      await refreshConnectionStatus();
-      toast.success("Configuración AFIP guardada");
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleTestConnection = async () => {
-    if (!activeOrg) return;
-    const tieneNuevoCertificado = !!(certificate.trim() && privateKey.trim());
-    if (!cuit) {
-      toast.error("Completá el CUIT antes de probar");
-      return;
-    }
-    // En modo delegado el certificado es el de la plataforma: pedirle uno al
-    // comercio sería mandarlo a resolver algo que no es suyo.
-    if (modo === "propio" && !certConfigurado && !tieneNuevoCertificado) {
-      toast.error("Completá certificado y clave privada antes de probar");
-      return;
-    }
-    if (modo === "delegado" && !plataformaLista) {
-      toast.error("La plataforma todavía no cargó su certificado de AFIP. No es un problema de tu configuración.");
-      return;
-    }
-    setTesting(true);
-    try {
-      await doSave();
-      const resp = await supabase.functions.invoke("afip-authorize", {
-        body: { action: "test_connection", org_id: activeOrg.id },
-      });
-      const errMsg: string = resp.error?.message || (resp.data as { error?: string })?.error || "";
-      if (errMsg) {
-        toast.error("Error AFIP: " + errMsg);
-      } else {
-        toast.success("✓ Conexión con AFIP verificada correctamente");
-        setTaStatus("valid");
-        await refreshConnectionStatus();
-      }
-    } catch (e: any) {
-      toast.error("Error al probar: " + e.message);
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  if (loading) return null;
-
-  const isConfigured = !!(cuit && (modo === "delegado" ? plataformaLista : certConfigurado));
-  const canTestConnection = !!(cuit && (
-    modo === "delegado" ? plataformaLista : (certConfigurado || (certificate.trim() && privateKey.trim()))
-  ));
-
+/**
+ * Ajustes apunta, no copia.
+ *
+ * ⚠️ Tres secciones de esta página eran formularios paralelos a una página
+ * que ya existía, y **el de Ajustes siempre era el pobre**. El de cupones no
+ * podía setear `min_order_value`, `max_uses_per_customer`, `free_shipping` ni
+ * `free_shipping_max_ars`: un cupón creado desde acá salía sin mínimo de
+ * compra, sin tope por persona y sin envío gratis, y el comercio no tenía
+ * forma de saber por qué su cupón se comportaba distinto.
+ *
+ * Dos formularios para el mismo registro terminan en dos verdades. Ajustes
+ * deja el camino, la página hace el trabajo.
+ */
+function PunteroAPagina({ titulo, detalle, href, cta }: {
+  titulo: string; detalle: string; href: string; cta: string;
+}) {
   return (
-    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
-          <FileCheck className="w-4 h-4 text-primary" />AFIP — Facturación Electrónica
-        </h2>
-        {isConfigured && (
-          <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-[5px] font-medium ${
-            taStatus === "valid" ? "bg-green-500/10 text-green-400" :
-            taStatus === "expired" ? "bg-yellow-500/10 text-yellow-400" :
-            "bg-muted text-muted-foreground"
-          }`}>
-            {taStatus === "valid" ? <><CheckCircle2 className="w-3 h-3" />TA activo</> :
-             taStatus === "expired" ? <><AlertTriangle className="w-3 h-3" />TA vencido</> :
-             "No verificado"}
-          </span>
-        )}
-      </div>
-
-      <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs text-muted-foreground space-y-1">
-        <p className="font-medium text-foreground">Requisitos previos</p>
-        <ol className="list-decimal list-inside space-y-0.5">
-          <li>Solicitá el certificado en <strong>CLAVE FISCAL → Administrador de Relaciones de Clave Fiscal</strong></li>
-          <li>Vinculá el servicio <strong>wsfe</strong> a tu CUIT</li>
-          <li>Pegá el certificado (.crt) y clave privada (.key) en formato PEM abajo</li>
-          <li>Probá con <strong>Homologación</strong> antes de pasar a Producción</li>
-        </ol>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="rounded-[10px] border border-border/60 bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">CUIT del emisor</label>
-          <Input value={cuit} onChange={e => setCuit(e.target.value)} placeholder="20-12345678-9" className="bg-muted border-border font-mono" />
+          <p className="text-sm font-semibold">{titulo}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{detalle}</p>
         </div>
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Razón social</label>
-          <Input value={razonSocial} onChange={e => setRazonSocial(e.target.value)} placeholder="Mi Empresa SRL" className="bg-muted border-border" />
-        </div>
-        <div className="md:col-span-2">
-          <label className="text-xs text-muted-foreground mb-1 block">Domicilio fiscal</label>
-          <Input value={domicilio} onChange={e => setDomicilio(e.target.value)} placeholder="Av. Corrientes 1234, CABA" className="bg-muted border-border" />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Punto de venta</label>
-          <Input type="number" min="1" max="9999" value={puntoVenta} onChange={e => setPuntoVenta(e.target.value)} className="bg-muted border-border" />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Tipo de emisor</label>
-          <Select value={tipoEmisor} onValueChange={setTipoEmisor}>
-            <SelectTrigger className="bg-muted border-border">
-              <SelectValue placeholder="Elegí tu condición" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="monotributo">Monotributista → Factura C</SelectItem>
-              <SelectItem value="responsable_inscripto">Responsable Inscripto → Factura A / B</SelectItem>
-              <SelectItem value="exento">Exento → Factura C</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="md:col-span-2">
-          <label className="text-xs text-muted-foreground mb-1 block">Ambiente</label>
-          <Select value={environment} onValueChange={setEnvironment}>
-            <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="homologacion">🧪 Homologación (pruebas)</SelectItem>
-              <SelectItem value="produccion">🚀 Producción (facturas reales)</SelectItem>
-            </SelectContent>
-          </Select>
-          {environment === "produccion" && (
-            <p className="text-[10px] text-destructive mt-1">⚠ Las facturas emitidas en producción son definitivas ante AFIP.</p>
-          )}
-        </div>
-      </div>
-
-      {/* ── C14: en modo delegado no se sube ninguna clave ───────────────
-          El trámite lo explica y lo verifica `ConectarAfip` en /afip, que dice
-          a qué CUIT delegar y le pregunta a ARCA si quedó hecho. Acá sólo queda
-          el desvío hacia el certificado propio, que es lo único de esta
-          pantalla: los campos del PEM viven abajo. */}
-      {modo === "delegado" && (
-        <div className="rounded-[8px] border border-border/60 bg-muted/40 p-3 space-y-2">
-          <p className="text-xs font-medium">Facturás con el certificado de la plataforma</p>
-          <p className="text-[11px] text-muted-foreground">
-            No tenés que generar ninguna clave.{" "}
-            <Link to="/afip" className="underline underline-offset-2">
-              Conectá AFIP desde acá
-            </Link>{" "}
-            — te dice a qué CUIT delegar el servicio y verifica contra ARCA que
-            haya quedado hecho.
-          </p>
-          {!plataformaLista && (
-            <p className="text-[11px] text-destructive">
-              La plataforma todavía no cargó su certificado. No es un problema de tu
-              configuración: no hay nada que puedas hacer de este lado.
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={() => setMostrarCert(v => !v)}
-            className="text-[11px] text-muted-foreground underline underline-offset-2"
-          >
-            {mostrarCert ? "Ocultar" : "Prefiero usar mi propio certificado"}
-          </button>
-        </div>
-      )}
-
-      <div className={`space-y-3 pb-12 ${modo === "delegado" && !mostrarCert ? "hidden" : ""}`}>
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Certificado AFIP (PEM)</label>
-          <Textarea
-            value={certificate}
-            onChange={e => setCertificate(e.target.value)}
-            placeholder={"-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"}
-            className="bg-muted border-border font-mono text-xs h-28 resize-none"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Clave privada (PEM)</label>
-          <Textarea
-            value={privateKey}
-            onChange={e => setPrivateKey(e.target.value)}
-            placeholder={"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"}
-            className="bg-muted border-border font-mono text-xs h-28 resize-none"
-          />
-          <p className="text-[10px] text-muted-foreground mt-1">
-            Se guarda fuera del alcance del navegador: después de enviarla no se puede volver a leer desde la app.
-          </p>
-        </div>
-      </div>
-
-      <div className="flex gap-2 pt-1">
-        <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold">
-          {saving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Guardando…</> : "Guardar AFIP"}
+        <Button asChild variant="outline" size="sm">
+          <a href={href}>{cta}</a>
         </Button>
-        {canTestConnection && (
-          <Button onClick={handleTestConnection} disabled={testing} variant="outline">
-            {testing ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Verificando…</> : "Verificar conexión"}
-          </Button>
-        )}
       </div>
     </div>
   );
 }
 
-// ===== Sucursales (Locations) Management =====
-function SucursalesSection({ orgId }: { orgId?: string }) {
-  const [locations, setLocations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newAddress, setNewAddress] = useState('');
-  const [adding, setAdding] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editAddress, setEditAddress] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  const load = async () => {
-    if (!orgId) return;
-    setLoading(true);
-    const { data } = await supabase.from('locations').select('id, name, address, active').eq('org_id', orgId).order('name');
-    setLocations(data || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, [orgId]);
-
-  const handleAdd = async () => {
-    if (!orgId || !newName.trim()) return;
-    setAdding(true);
-    const { error } = await supabase.from('locations').insert({ org_id: orgId, name: newName.trim(), address: newAddress.trim() || null, active: true });
-    if (error) { toast.error('Error al crear sucursal: ' + error.message); }
-    else { toast.success('Sucursal creada'); setNewName(''); setNewAddress(''); await load(); }
-    setAdding(false);
-  };
-
-  const handleSaveEdit = async (id: string) => {
-    if (!editName.trim()) return;
-    setSaving(true);
-    const { error } = await supabase.from('locations').update({ name: editName.trim(), address: editAddress.trim() || null }).eq('id', id);
-    if (error) toast.error('Error al actualizar');
-    else { toast.success('Sucursal actualizada'); setEditId(null); await load(); }
-    setSaving(false);
-  };
-
-  const handleToggle = async (loc: any) => {
-    await supabase.from('locations').update({ active: !loc.active }).eq('id', loc.id);
-    await load();
-  };
-
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('locations').delete().eq('id', id);
-    if (error) toast.error('No se puede eliminar: ' + error.message);
-    else { toast.success('Sucursal eliminada'); await load(); }
-  };
-
+function AfipPuntero() {
   return (
-    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
-      <div>
-        <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-primary" />Gestión de Sucursales
-        </h2>
-        <p className="text-xs text-muted-foreground mt-1">Administrá tus puntos de venta o depósitos. El stock puede asignarse por ubicación en Inventario.</p>
-      </div>
-
-      {/* Add form */}
-      <div className="space-y-2 pb-12">
-        <div className="flex gap-2">
-          <Input
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            placeholder="Nombre de la sucursal"
-            className="bg-muted border-border text-sm"
-            onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
-          />
-          <Button onClick={handleAdd} disabled={adding || !newName.trim()} size="sm" className="shrink-0">
-            {adding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-          </Button>
+    <div className="rounded-[10px] border border-border/60 bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold">Facturación electrónica (AFIP / ARCA)</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Los datos fiscales, el punto de venta y la prueba de conexión viven en su propia página.
+          </p>
         </div>
-        <Input
-          value={newAddress}
-          onChange={e => setNewAddress(e.target.value)}
-          placeholder="Dirección (opcional)"
-          className="bg-muted border-border text-sm text-xs"
-        />
+        <Button asChild variant="outline" size="sm">
+          <a href="/afip">Abrir AFIP</a>
+        </Button>
       </div>
-
-      {/* List */}
-      {loading ? (
-        <p className="text-xs text-muted-foreground">Cargando...</p>
-      ) : locations.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No hay sucursales registradas. Creá la primera arriba.</p>
-      ) : (
-        <div className="space-y-2 pb-12">
-          {locations.map(loc => (
-            <div key={loc.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${loc.active ? 'bg-muted/30 border-border' : 'bg-muted/10 border-border/50 opacity-60'}`}>
-              <MapPin className={`w-3.5 h-3.5 shrink-0 ${loc.active ? 'text-primary' : 'text-muted-foreground'}`} />
-              {editId === loc.id ? (
-                <div className="flex-1 flex items-center gap-2 min-w-0">
-                  <Input value={editName} onChange={e => setEditName(e.target.value)} className="h-7 text-xs bg-background border-border" />
-                  <Input value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="Dirección" className="h-7 text-xs bg-background border-border" />
-                  <button onClick={() => handleSaveEdit(loc.id)} disabled={saving} className="text-emerald-400 hover:text-emerald-400/80 transition-colors shrink-0">
-                    <Check className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => setEditId(null)} className="text-muted-foreground hover:text-foreground shrink-0">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{loc.name}</p>
-                  {loc.address && <p className="text-[10px] text-muted-foreground truncate">{loc.address}</p>}
-                </div>
-              )}
-              {editId !== loc.id && (
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => { setEditId(loc.id); setEditName(loc.name); setEditAddress(loc.address || ''); }}
-                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    title="Editar"
-                  ><Edit2 className="w-3 h-3" /></button>
-                  <button
-                    onClick={() => handleToggle(loc)}
-                    className={`text-[10px] font-medium px-2 py-0.5 rounded-[5px] transition-colors ${loc.active ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-                    title={loc.active ? 'Desactivar' : 'Activar'}
-                  >{loc.active ? 'Activa' : 'Inactiva'}</button>
-                  <button
-                    onClick={() => { if (window.confirm(`¿Eliminar "${loc.name}"?`)) handleDelete(loc.id); }}
-                    className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                    title="Eliminar"
-                  ><Trash2 className="w-3 h-3" /></button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-      <p className="text-[10px] text-muted-foreground">Las sucursales aparecen en Reportes → Sucursales y en la asignación de stock de inventario.</p>
     </div>
   );
 }
+

@@ -69,6 +69,8 @@ interface PlanRow {
   description: string | null;
   price_usd_monthly: number;
   price_usd_yearly: number;
+  price_ars_monthly: number | null;
+  price_ars_yearly: number | null;
   max_products: number | null;
   max_sales_per_month: number | null;
   max_users: number | null;
@@ -1867,6 +1869,17 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
               <div className="space-y-1.5 col-span-2">
                 <Label>Descripción</Label>
                 <Input value={editPlanForm.description || ''} onChange={e => setEditPlanForm(p => ({ ...p, description: e.target.value }))} className="h-9" />
+              </div>
+                            {/* ⚠️ Los pesos primero: son los que se cobran. MercadoPago
+                  sólo cobra ARS y `mp-subscribe` lee `price_ars_monthly`.
+                  Los de dólares quedan como referencia comercial. */}
+              <div>
+                <Label className="text-xs">Precio mensual (ARS) — el que se cobra</Label>
+                <Input type="number" min="0" value={editPlanForm.price_ars_monthly ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, price_ars_monthly: parseFloat(e.target.value) || 0 }))} className="h-9" />
+              </div>
+              <div>
+                <Label className="text-xs">Precio anual (ARS)</Label>
+                <Input type="number" min="0" value={editPlanForm.price_ars_yearly ?? ''} onChange={e => setEditPlanForm(p => ({ ...p, price_ars_yearly: parseFloat(e.target.value) || 0 }))} className="h-9" />
               </div>
               <div className="space-y-1.5">
                 <Label>Precio mensual (USD)</Label>

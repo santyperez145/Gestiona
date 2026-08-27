@@ -6,6 +6,15 @@ export interface Plan {
   id: string;
   code: 'trial' | 'starter' | 'pro' | 'business' | string;
   name: string;
+  // ⚠️ Los PESOS son el precio que se cobra: MercadoPago es el único medio
+  // de pago de la suscripción y sólo cobra ARS (`mp-subscribe` arma el
+  // preapproval con `currency_id: 'ARS'`). Los de dólares quedan como
+  // referencia comercial; ninguna pantalla del comercio los muestra.
+  //
+  // Nullable a propósito: un plan sin precio en pesos NO se puede cobrar, y
+  // eso tiene que poder verse en vez de taparse con una conversión inventada.
+  price_ars_monthly: number | null;
+  price_ars_yearly: number | null;
   price_usd_monthly: number;
   price_usd_yearly: number;
   max_products: number | null;

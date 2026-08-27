@@ -440,13 +440,26 @@ Deno.serve(async (req) => {
     // ── UPDATE PLAN ────────────────────────────────────────────
     if (action === "updatePlan") {
       const { planId, updates } = body;
-      const allowed = ["name", "description", "price_usd_monthly", "price_usd_yearly",
+      // ⚠️ Los precios en PESOS son los que se cobran: MercadoPago sólo cobra
+      // ARS y `mp-subscribe` lee `price_ars_monthly`. Hasta 2026-08-27 esta
+      // allowlist sólo dejaba escribir los de dólares, así que el dueño editaba
+      // el precio en la consola y **no cambiaba nada**: el comercio seguía
+      // viendo el ARS viejo y MercadoPago cobrando el ARS viejo.
+      const allowed = ["name", "description",
+        "price_ars_monthly", "price_ars_yearly",
+        "price_usd_monthly", "price_usd_yearly",
         "max_products", "max_sales_per_month", "max_users", "ai_enabled",
         "backups_enabled", "custom_branding", "stripe_price_id_monthly",
         "stripe_price_id_yearly", "features"];
-      const safe = Object.fromEntries(
+      const safe: Record<string, unknown> = Object.fromEntries(
         Object.entries(updates || {}).filter(([k]) => allowed.includes(k)),
       );
+      // `price_ars_updated_at` existe para ver desde cuándo no se toca un precio
+      // —con inflación, uno viejo es un descuento que nadie decidió—. Si se
+      // actualizara a mano, mentiría en cuanto alguien edite por otra vía.
+      if ("price_ars_monthly" in safe || "price_ars_yearly" in safe) {
+        safe.price_ars_updated_at = new Date().toISOString();
+      }
       await admin.from("plans").update(safe).eq("id", planId);
       await logAction("updatePlan", { details: { planId, updates: safe } });
       return json({ ok: true });

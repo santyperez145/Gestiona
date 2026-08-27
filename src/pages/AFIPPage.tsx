@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PageHeader from "@/components/shared/PageHeader";
 import ConectarAfip, { type MotivoAfip } from "@/components/afip/ConectarAfip";
+import AfipConfigForm from "@/components/afip/AfipConfigForm";
 import KPICard from "@/components/shared/KPICard";
 import {
   AlertTriangle,
@@ -207,9 +208,8 @@ export default function AFIPPage() {
         description="Estado real de la conexión fiscal y de los CAE solicitados desde Facturas"
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm" className="gap-1.5">
-              <Link to="/ajustes"><Settings className="w-3.5 h-3.5" /> Configurar AFIP</Link>
-            </Button>
+            {/* El botón mandaba a /ajustes, donde estaba el formulario. Ahora
+                el formulario está acá abajo: no hace falta ir a ningún lado. */}
             <Button asChild size="sm" className="gap-1.5 gradient-gold text-primary-foreground">
               <Link to="/facturas"><FileText className="w-3.5 h-3.5" /> Ver facturas</Link>
             </Button>
@@ -229,6 +229,10 @@ export default function AFIPPage() {
         ambiente={connection?.environment ?? null}
         onVerificado={load}
       />
+
+      {/* La configuración fiscal, en la página que se llama AFIP. Antes vivía
+          en Ajustes → Sistema, a dos clics de acá. */}
+      <AfipConfigForm />
 
       <div className={`rounded-xl border p-4 ${readiness.className}`}>
         <div className="flex gap-3">

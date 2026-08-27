@@ -29,12 +29,29 @@ const FAQ = [
   { q: '¿Puedo cambiar de plan en cualquier momento?', a: 'Sí. Podés subir o bajar de plan cuando quieras. Los cambios se aplican de forma inmediata (upgrade) o al final del período de facturación (downgrade).' },
   { q: '¿Qué pasa cuando termina el trial?', a: 'Te avisamos 3 días antes del vencimiento. Si no cargás una tarjeta, la cuenta se pausa y podés exportar tus datos. No se borran de forma automática.' },
   { q: '¿Puedo cancelar en cualquier momento?', a: 'Sí, sin costo. Cancelás desde Configuración → Facturación. El acceso continúa hasta el final del período ya pagado.' },
-  { q: '¿Los precios son en dólares?', a: 'Sí, en USD. El cobro se realiza a través de Stripe con tarjeta de crédito o débito internacional.' },
+  // ⚠️ Este FAQ decía "Sí, en USD… a través de Stripe". Las dos mitades eran
+  // falsas: la suscripción se cobra en PESOS y por MercadoPago (`mp-subscribe`
+  // arma un preapproval con `currency_id: 'ARS'`). Prometer un precio en
+  // dólares y cobrar otro en pesos es la clase de sorpresa que hace que alguien
+  // dé de baja el primer mes.
+  { q: '¿En qué moneda son los precios?', a: 'En pesos argentinos. El cobro es mensual o anual por MercadoPago, con la tarjeta o el saldo que ya usás.' },
   { q: '¿Hay descuento por pago anual?', a: 'Sí, 17% de descuento al pagar el año completo por adelantado.' },
 ];
 
 const TRUST = ['Sin contrato', 'Datos 100% tuyos', 'Hosting en Argentina', 'Soporte en español', 'HTTPS incluido'];
 
+// ⚠️ El precio que vale es el de PESOS: es el que cobra MercadoPago, que es
+// el único medio con el que se puede pagar la suscripción, y el que lee
+// `mp-subscribe`. Los de dólares quedan en la tabla como referencia
+// comercial y NO se muestran: publicar USD y cobrar ARS es prometer un
+// precio y cobrar otro.
+//
+// Un plan sin precio en pesos no se puede cobrar. Se devuelve 0 y la tarjeta
+// lo muestra como "Sin precio" en vez de inventar una conversión.
+const precioMensual = (p: { price_ars_monthly?: number | null }) => Number(p.price_ars_monthly) || 0;
+const precioAnual = (p: { price_ars_yearly?: number | null }) => Number(p.price_ars_yearly) || 0;
+
+const fmtARS = (n: number) => n.toLocaleString('es-AR');
 export default function PricingPage() {
   const { user, session } = useAuth();
   const { activeOrg } = useOrg();
@@ -81,8 +98,11 @@ export default function PricingPage() {
       if (subscription?.status === 'past_due') return 'Renovar ahora';
       if (subscription?.status === 'canceled') return 'Reactivar';
     }
-    if (currentPlan && plan.price_usd_monthly > currentPlan.price_usd_monthly) return `Subir a ${plan.name}`;
-    if (currentPlan && plan.price_usd_monthly < currentPlan.price_usd_monthly) return `Bajar a ${plan.name}`;
+    // ⚠️ Se compara por el precio que se COBRA (ARS). Comparar por el de
+    //    dólares podía decir "Subir" para un plan más barato en pesos si las
+    //    dos escalas dejaban de ser proporcionales — y lo son sólo por ahora.
+    if (currentPlan && precioMensual(plan) > precioMensual(currentPlan)) return `Subir a ${plan.name}`;
+    if (currentPlan && precioMensual(plan) < precioMensual(currentPlan)) return `Bajar a ${plan.name}`;
     return `Elegir ${plan.name}`;
   };
 
@@ -182,7 +202,7 @@ export default function PricingPage() {
               <div key={i} className="rounded-[10px] border border-border/50 bg-card p-6 h-96 animate-pulse" />
             ))
           : plans.map((p, idx) => {
-              const price = yearly ? p.price_usd_yearly : p.price_usd_monthly;
+              const price = yearly ? precioAnual(p) : precioMensual(p);
               const isPro = p.code === 'pro';
               const isCurrent = currentPlan?.code === p.code;
               const isLoading = checkingOut === p.code;
@@ -235,18 +255,18 @@ export default function PricingPage() {
 
                   {/* Price */}
                   <div className="mb-5">
-                    {p.price_usd_monthly === 0 ? (
+                    {precioMensual(p) === 0 ? (
                       <span className="font-mono text-[2.2rem] font-bold tracking-tight">Gratis</span>
                     ) : (
                       <div className="flex items-end gap-1">
                         <span className="font-mono text-[2.2rem] font-bold tracking-tight">${price}</span>
-                        <span className="text-[11px] text-muted-foreground/50 pb-1.5">/ {yearly ? 'año' : 'mes'} USD</span>
+                        <span className="text-[11px] text-muted-foreground/50 pb-1.5">/ {yearly ? 'año' : 'mes'}</span>
                       </div>
                     )}
-                    {yearly && p.price_usd_monthly > 0 && (
+                    {yearly && precioMensual(p) > 0 && (
                       <p className="text-[11px] text-muted-foreground/45 mt-0.5 font-mono">
-                        <span className="line-through">${p.price_usd_monthly * 12}/año</span>
-                        {' '}→ ahorrás ${Math.round(p.price_usd_monthly * 12 - p.price_usd_yearly)} USD
+                        <span className="line-through">${fmtARS(precioMensual(p) * 12)}/año</span>
+                        {' '}→ ahorrás ${fmtARS(Math.round(precioMensual(p) * 12 - precioAnual(p)))}
                       </p>
                     )}
                   </div>
