@@ -29,7 +29,18 @@ import { getAuthedUser } from "../_shared/requireUser.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type, apikey",
+  // ⚠️ `x-client-info` **tiene que estar**: supabase-js lo manda en toda
+  // llamada, así que sin él el navegador ni siquiera llega a la función —
+  // el preflight falla con «Request header field x-client-info is not allowed»
+  // y el POST muere en `net::ERR_FAILED`. Pasó en producción el 2026-08-27 al
+  // contratar un plan: la suscripción no se podía contratar y el error no
+  // decía nada del cobro.
+  //
+  // Van también los `x-supabase-client-*`: las versiones nuevas del cliente
+  // los agregan, y arreglar sólo el primero deja el mismo bug esperando en el
+  // header siguiente. Es la lista que ya usan `generate-description` y
+  // `generate-social-copy`.
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 

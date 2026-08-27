@@ -871,6 +871,20 @@ MercadoPago y las contraseñas SMTP de **todas** las organizaciones. Está cerra
 - **`edgeFunctionAuth.test.ts`** — falla si una función que usa una API paga no
   exige usuario real. `verify_jwt` **no es una barrera**: la anon key es un JWT
   válido y público. Usar `_shared/requireUser.ts`.
+- **`elNavegadorLlegaALaFuncion.test.ts`** — toda Edge Function que el cliente
+  invoque tiene que dejar pasar `x-client-info` en
+  `Access-Control-Allow-Headers`.
+
+  ⚠️ `supabase-js` lo manda en **cada** llamada: sin él el preflight falla y el
+  navegador ni siquiera ejecuta la función. Pasó el 2026-08-27 al contratar un
+  plan — `mp-subscribe` tenía `"authorization, content-type, apikey"` y la
+  suscripción no se podía contratar. **Lo caro es que el error no habla del
+  negocio**: dice CORS, no dice nada de planes ni de MercadoPago.
+
+  📌 Y no alcanza con agregar `x-client-info`: las versiones nuevas del cliente
+  mandan además los `x-supabase-client-*`, así que arreglar sólo el primero
+  deja el mismo bug esperando en el header siguiente. La lista que funciona es
+  la de `generate-description`.
 - **`audit_policies_sin_tenant`** (vista SQL) — políticas de lectura **y de
   escritura** sobre
   tablas con `org_id` que no acotan a nadie: ni al comercio (`org_id`,
