@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useSalesForecaster } from "@/hooks/useSalesForecaster";
 import {
-  getProductsDB, getSalesDB, getPurchasesDB, getExpensesDB,
+  getProductsDB, getSalesDB, getExpensesDB,
   formatARS,
 } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +37,7 @@ const PALETTE = [
 
 const MONTHS_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
-function buildMonthlyData(sales: any[], expenses: any[], purchases: any[], yearOffset = 0) {
+function buildMonthlyData(sales: any[], expenses: any[], yearOffset = 0) {
   const now = new Date();
   const year = now.getFullYear() - yearOffset;
   return MONTHS_ES.map((name, i) => {
@@ -49,14 +49,16 @@ function buildMonthlyData(sales: any[], expenses: any[], purchases: any[], yearO
       const d = new Date(e.date);
       return d.getFullYear() === year && d.getMonth() === i;
     });
-    const monthPurch = purchases.filter((p) => {
-      const d = new Date(p.date);
-      return d.getFullYear() === year && d.getMonth() === i;
-    });
     const revenue = monthSales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
     const profit = monthSales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
     const opex = monthExp.reduce((s: number, e: any) => s + Number(e.amount_ars), 0);
-    const cogs = monthPurch.reduce((s: number, p: any) => s + Number(p.total_ars), 0);
+    // ⚠️ El COGS es el costo de lo VENDIDO: ingreso menos ganancia bruta, que es
+    //    exactamente lo que dice el ledger (conciliado peso por peso en
+    //    20260826000270). Acá se sumaban las COMPRAS del mes — un error
+    //    contable: una compra entra al stock, no al resultado. Con 0 compras,
+    //    el CSV exportaba "COGS (ARS)" en cero para meses con $600.000
+    //    vendidos. Es el mismo bug que tenía el P&L.
+    const cogs = revenue - profit;
     const units = monthSales.reduce((s: number, v: any) => s + Number(v.quantity), 0);
     return { name, revenue, profit, opex, cogs, units, net: profit - opex };
   });
@@ -216,9 +218,10 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [products, sales, purchases, expenses] = await Promise.all([
-        getProductsDB(user.id), getSalesDB(user.id),
-        getPurchasesDB(user.id), getExpensesDB(user.id),
+      // Las compras ya no se cargan: su único uso era el COGS mal calculado
+      // (costo de lo vendido ≠ compras del mes). Ver buildMonthlyData.
+      const [products, sales, expenses] = await Promise.all([
+        getProductsDB(user.id), getSalesDB(user.id), getExpensesDB(user.id),
       ]);
       // Load quotes for funnel
       let quotes: any[] = [];
@@ -226,24 +229,23 @@ export default function AnalyticsPage() {
         const { data } = await supabase.from("quotes").select("id,status,total_ars:total,created_at").eq("org_id", activeOrg.id);
         quotes = data || [];
       }
-      setRawData({ products, sales, purchases, expenses, quotes });
+      setRawData({ products, sales, expenses, quotes });
     })();
   }, [user, activeOrg]);
 
   const derived = useMemo(() => {
     if (!rawData) return null;
-    const { products, sales: salesAll, purchases: purchasesAll, expenses: expensesAll, quotes = [] } = rawData;
+    const { products, sales: salesAll, expenses: expensesAll, quotes = [] } = rawData;
     // Shared date-range filter (URL-persisted) — scopes all Analytics data below
     const hasDateFilter = !!dateFrom;
     const salesDated = hasDateFilter ? salesAll.filter((s: any) => inRange(s.date)) : salesAll;
-    const purchases = hasDateFilter ? purchasesAll.filter((p: any) => inRange(p.date)) : purchasesAll;
     const expensesDated = hasDateFilter ? expensesAll.filter((e: any) => inRange(e.date)) : expensesAll;
     // Shared store filter (URL-persisted) — scopes sales/expenses to the selected sucursal
     const sales = storeId ? salesDated.filter((s: any) => s.location_id === storeId) : salesDated;
     const expenses = storeId ? expensesDated.filter((e: any) => e.location_id === storeId) : expensesDated;
     const offset = Number(year);
-    const monthly = buildMonthlyData(sales, expenses, purchases, offset);
-    const prevMonthly = buildMonthlyData(sales, expenses, purchases, offset + 1);
+    const monthly = buildMonthlyData(sales, expenses, offset);
+    const prevMonthly = buildMonthlyData(sales, expenses, offset + 1);
     const productPerf = buildProductPerformance(sales, products);
     const customerData = buildCustomerData(sales);
     const categoryMix = buildCategoryMix(sales, products);
