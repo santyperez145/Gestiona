@@ -318,10 +318,21 @@ SOLO_ADMIN y `/clientes` es AMBOS — Pipeline y Segmentos se montan sólo con
 
 📌 **Lo que se decidió NO hacer, y por qué:**
 
-- **Mover ≠ reescribir.** Los tres motores de inventario siguen calculando
-  cada uno lo suyo (INV-001, el planning engine server-side, va aparte); las
-  métricas de Analytics no se unificaron (ANA-001, KPI Registry). Verlas
-  juntas hace visible la divergencia en vez de esconderla en tres URLs.
+- **Mover ≠ reescribir** — y verlas juntas hizo su trabajo: ~~los tres motores
+  de inventario siguen calculando cada uno lo suyo~~ **Reposición migró al
+  motor el 2026-08-27** (INV-001), y conectarla destapó que
+  `run_abc_analysis` no refrescaba `period_days` y que Análisis leía
+  `inventory_abc` sin filtrar la fecha. Proyección sigue con su propio
+  cálculo: es otra tarea (curvas futuras, no punto de pedido).
+  ⚠️ **ANA-001 se midió antes de construirlo, y el diagnóstico ya no aplica:**
+  después de que el ledger recibiera las operaciones, la serie mensual de
+  Analytics coincide **peso por peso** con la del ledger (abril 16.784 /
+  37.265; mayo 26.910 / 61.586). Unificar las métricas en un registro
+  sería consistencia arquitectónica, no corrección — y este repo no construye
+  por prolijidad antes de lanzar. Lo que sí se hizo es la guarda:
+  `audit_resultado_divergente` tiene que estar **vacía**, y una fila significa
+  que el P&L, Analytics y Reportes volvieron a mostrar números distintos para
+  el mismo mes.
 - **`ReportsPage` (4.386 líneas) no se tocó**: sus números ya coinciden con
   el ledger. Reducirla a exportaciones es un slice propio.
 - **Admin y Equipo NO son duplicados** — se midió antes de fusionar: el tab
@@ -329,9 +340,11 @@ SOLO_ADMIN y `/clientes` es AMBOS — Pipeline y Segmentos se montan sólo con
   gestión de miembros e invitaciones (escritura). Tareas distintas. De paso
   se verificó que el `from("profiles").select("*")` sin filtro de Admin no
   fuga: la RLS de `profiles` acota a compañeros de organización.
-- **La vista Segmentos hereda su deuda declarada**: agrupa ventas por nombre.
-  Migrarla a `customer_id` es el cierre de CRM-001, no parte de mover
-  superficies.
+- ~~**La vista Segmentos hereda su deuda declarada**: agrupa ventas por
+  nombre.~~ **Cerrado el 2026-08-27**: agrupa por `customer_id`, con fallback
+  al nombre normalizado para las ventas sin enlazar y grupo propio para los
+  homónimos. Era la última excepción viva a «ya no queda nada del CRM cruzando
+  por nombre».
 
 ### El resultado financiero tenía cuatro calculadoras (2026-08-26)
 

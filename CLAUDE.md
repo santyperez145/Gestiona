@@ -760,6 +760,12 @@ MercadoPago y las contraseñas SMTP de **todas** las organizaciones. Está cerra
   📌 **Escribir lo ajeno es peor que leerlo**: una fuga se mira, un destrozo no
   se deshace.
 
+- **`audit_resultado_divergente`** (vista SQL) — meses donde el ledger y la
+  fuente operativa no dicen lo mismo. Tiene que estar **vacía** (medido 0 el
+  2026-08-27). Una fila significa que el P&L, Analytics y Reportes muestran
+  números distintos para el mismo mes: el problema que se cerró asentando las
+  operaciones y reparando el costo de las 34 ventas, de vuelta.
+
 - **`rls_audit_open_policies`** (vista SQL) — lista políticas sin filtro de
   tenant. Debería tener **exactamente 3** (medido 2026-08-21), y las tres son
   catálogos públicos a propósito: `plans` (pricing), `payment_providers` y
