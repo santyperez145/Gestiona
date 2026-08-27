@@ -182,11 +182,12 @@ describe("el sidebar sigue siendo el sidebar", () => {
     // /clientes; 68 → 67 cuando /planner-social pasó a /marketing?vista=
     // planner; 67 → 65 cuando Reposición, Proyección e Inventario con IA se
     // volvieron /planificacion; 65 → 62 cuando KPIs, BI y Proyección de ventas
-    // se volvieron vistas de /analytics (2026-08-27).
+    // se volvieron vistas de /analytics; 62 → 61 cuando el chat de IA pasó a
+    // /ia?vista=asistente (2026-08-27).
     // Bajarlo exige que la ruta borrada haya
     // quedado como alias — lo garantiza "ningún alias es también una ruta
     // canónica" más el chequeo de que todo alias apunta a una canónica.
-    expect(ROUTES.length).toBeGreaterThanOrEqual(62);
+    expect(ROUTES.length).toBeGreaterThanOrEqual(61);
   });
 });
 

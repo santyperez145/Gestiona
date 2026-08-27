@@ -1,4 +1,10 @@
-﻿import { useState, useCallback, useMemo } from "react";
+// Vista «Hallazgos» del workspace de Inteligencia.
+//
+// ⚠️ Era una página propia (/ia (el contenido original)) hasta la consolidación 2026-08-27.
+// «No deberían existir dos páginas de IA genéricas»: los copilotos de dominio
+// (pricing, restock, CRM coach, Finance) viven en su dominio; lo transversal
+// —hallazgos y conversaciones— vive acá, junto.
+import { useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import {
@@ -8,7 +14,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Brain, TrendingUp, Package, Megaphone, Users, DollarSign,
   Tag, Loader2, ChevronDown, ChevronUp, Clock, Sparkles, RefreshCw,
@@ -182,8 +187,7 @@ function HistoryItem({ entry, onExpand }: { entry: HistoryEntry; onExpand: () =>
   );
 }
 
-export default function AIInsightsPage() {
-  usePageTitle("IA Insights");
+export default function HallazgosView() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const [loadingType, setLoadingType] = useState<AnalysisType | null>(null);

@@ -259,8 +259,19 @@ export const ROUTES: RouteDefinition[] = [
     status: "canonical",
     nav: { label: "Analytics", icon: BarChart3, group: "reportes", keywords: ["métricas", "estadísticas", "gráficos", "kpis", "indicadores", "objetivos", "metas", "bi", "business intelligence", "cohortes", "drilldown", "forecast", "pronóstico", "cuánto voy a vender"] },
   },
-  { id: "ia", path: "/ia", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AIInsightsPage")), module: "analytics", status: "canonical", nav: { label: "Insights con IA", icon: Sparkles, group: "reportes", keywords: ["inteligencia artificial", "sugerencias", "análisis"] } },
-  { id: "chat_ia", path: "/chat-ia", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AIChatAdvancedPage")), module: "analytics", aliases: [{ path: "/chat-ia-avanzado", redirectTo: "/chat-ia" }], status: "canonical", nav: { label: "Asistente IA", icon: Brain, group: "sistema", keywords: ["chat", "preguntar", "copiloto"] } },
+  {
+    id: "ia", path: "/ia", roles: SOLO_ADMIN,
+    component: lazy(() => import("@/pages/IntelligencePage")), module: "analytics",
+    // Consolidación 2026-08-27: Insights y Asistente eran dos páginas de IA
+    // genéricas con entrada propia. Los copilotos de dominio viven en su
+    // dominio; lo transversal vive acá.
+    aliases: [
+      { path: "/chat-ia", redirectTo: "/ia?vista=asistente" },
+      { path: "/chat-ia-avanzado", redirectTo: "/ia?vista=asistente" },
+    ],
+    status: "canonical",
+    nav: { label: "Inteligencia", icon: Sparkles, group: "reportes", keywords: ["inteligencia artificial", "sugerencias", "análisis", "chat", "preguntar", "copiloto", "asistente"] },
+  },
   { id: "alertas", path: "/alertas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SmartAlertsPage")), module: null, openReason: "Avisos derivados de otros modulos: ocultarlos dejaria al usuario sin enterarse de lo que si puede ver.", aliases: [{ path: "/alertas-inteligentes", redirectTo: "/alertas" }], status: "canonical", nav: { label: "Alertas", icon: AlertTriangle, group: "sistema", keywords: ["avisos", "notificaciones", "reglas"] } },
   { id: "integraciones", path: "/integraciones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/IntegrationsPage")), module: "settings", aliases: [{ path: "/api-keys", redirectTo: "/integraciones?tab=apikeys" }, { path: "/webhooks", redirectTo: "/integraciones?tab=webhooks" }], status: "canonical", nav: { label: "Integraciones", icon: Plug, group: "sistema", keywords: ["api", "mercadolibre", "mercadopago", "conectar", "webhooks"] } },
   { id: "equipo", path: "/equipo", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/TeamPage")), module: "team", status: "canonical", nav: { label: "Equipo", icon: Users, group: "sistema", keywords: ["usuarios", "permisos", "empleados", "invitar"] } },

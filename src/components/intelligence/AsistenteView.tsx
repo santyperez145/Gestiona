@@ -1,4 +1,10 @@
-﻿import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+// Vista «Asistente» del workspace de Inteligencia.
+//
+// ⚠️ Era una página propia (/chat-ia) hasta la consolidación 2026-08-27.
+// «No deberían existir dos páginas de IA genéricas»: los copilotos de dominio
+// (pricing, restock, CRM coach, Finance) viven en su dominio; lo transversal
+// —hallazgos y conversaciones— vive acá, junto.
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAuth } from "@/lib/auth";
@@ -16,7 +22,6 @@ import {
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import AIChatAssistantTab from "@/components/ai-chat/AIChatAssistantTab";
 
 /* ─────────────────────────── types ─────────────────────────── */
@@ -115,8 +120,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   );
 }
 
-export default function AIChatAdvancedPage() {
-  usePageTitle("Chat IA");
+export default function AsistenteView() {
   const [pageTab, setPageTab] = useState<"asistente" | "conversaciones">("asistente");
   const { orgId } = useOrganization();
   const { user } = useAuth();
