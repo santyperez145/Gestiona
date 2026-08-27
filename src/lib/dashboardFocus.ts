@@ -168,7 +168,7 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       id: "sin-stock",
       texto: `${d.sinStock} ${d.sinStock === 1 ? "producto sin stock" : "productos sin stock"}`,
       accion: "Reponer",
-      destino: "/restock",
+      destino: "/planificacion?vista=reposicion",
       urgencia: "critico",
     });
   }
@@ -208,7 +208,7 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       id: "seguimientos",
       texto: `${d.seguimientosHoy} ${d.seguimientosHoy === 1 ? "seguimiento para hoy" : "seguimientos para hoy"}`,
       accion: "Ver",
-      destino: "/seguimiento",
+      destino: "/clientes?vista=seguimientos",
       urgencia: "atencion",
     });
   }

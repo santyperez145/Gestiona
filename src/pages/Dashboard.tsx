@@ -1601,7 +1601,7 @@ export default function Dashboard() {
         <button
           onClick={() => {
             sessionStorage.setItem("gestiona.ai_prefill", "Dame un insight del día: qué vendí hoy, qué productos destacaron y qué debería priorizar ahora");
-            navigate("/chat-ia");
+            navigate("/ia?vista=asistente");
           }}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors text-xs text-primary font-medium"
         >
@@ -1626,7 +1626,7 @@ export default function Dashboard() {
             <p className="text-xs text-foreground leading-relaxed">{monthlySummary}</p>
           </div>
           <div className="flex flex-col gap-1 shrink-0">
-            <button onClick={() => { sessionStorage.setItem("gestiona.ai_prefill", `Analizá este resumen y dame 3 recomendaciones concretas: ${monthlySummary}`); navigate("/chat-ia"); }}
+            <button onClick={() => { sessionStorage.setItem("gestiona.ai_prefill", `Analizá este resumen y dame 3 recomendaciones concretas: ${monthlySummary}`); navigate("/ia?vista=asistente"); }}
               className="text-[10px] text-primary hover:underline whitespace-nowrap">Analizar con IA</button>
             <button onClick={() => { setMonthlySummaryDismissed(true); localStorage.setItem(monthlySummaryKey + '.dismissed', '1'); }}
               className="text-[10px] text-muted-foreground hover:text-foreground">Cerrar</button>
@@ -1669,7 +1669,7 @@ export default function Dashboard() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Top producto</p>
               <p className="text-sm font-semibold truncate">{weeklyComparison.topProd || "—"}</p>
               <button
-                onClick={() => { sessionStorage.setItem("gestiona.ai_prefill", `Comparativa semanal: esta semana ${formatARS(weeklyComparison.thisTotal)} (${weeklyComparison.thisUnits} uds), semana anterior ${formatARS(weeklyComparison.lastTotal)} (${weeklyComparison.lastUnits} uds). Variación ${weeklyComparison.diff.toFixed(1)}%. Dame 2 acciones concretas.`); navigate("/chat-ia"); }}
+                onClick={() => { sessionStorage.setItem("gestiona.ai_prefill", `Comparativa semanal: esta semana ${formatARS(weeklyComparison.thisTotal)} (${weeklyComparison.thisUnits} uds), semana anterior ${formatARS(weeklyComparison.lastTotal)} (${weeklyComparison.lastUnits} uds). Variación ${weeklyComparison.diff.toFixed(1)}%. Dame 2 acciones concretas.`); navigate("/ia?vista=asistente"); }}
                 className="text-[10px] text-primary hover:underline"
               >Analizar con IA →</button>
             </div>
@@ -2915,7 +2915,7 @@ export default function Dashboard() {
             <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Target className="w-4 h-4 text-primary" />Pipeline de Ventas
             </h2>
-            <Link to="/pipeline" className="text-xs text-primary hover:underline">Ver pipeline →</Link>
+            <Link to="/clientes?vista=pipeline" className="text-xs text-primary hover:underline">Ver pipeline →</Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="text-center">
@@ -3204,7 +3204,7 @@ export default function Dashboard() {
             onClick={() => {
               const list = stats.restockSuggestions.map((r: any) => `${r.name} (${r.stock}u, ${r.daysOfStock !== Infinity ? r.daysOfStock + 'd restantes' : 'sin datos'}, sugerir ${r.suggestedOrder}u)`).join('\n');
               sessionStorage.setItem("gestiona.ai_prefill", `Tengo estos productos con stock crítico:\n${list}\n\n¿Qué priorizo comprar primero y por qué?`);
-              navigate("/chat-ia");
+              navigate("/ia?vista=asistente");
             }}
             className="mt-3 text-xs text-primary hover:underline flex items-center gap-1"
           >

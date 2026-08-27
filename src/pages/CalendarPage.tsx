@@ -144,7 +144,7 @@ export default function CalendarPage() {
         title: d.title,
         type: "deal",
         amount: d.value_ars,
-        link: "/pipeline",
+        link: "/clientes?vista=pipeline",
       });
     });
 
@@ -155,7 +155,7 @@ export default function CalendarPage() {
         date: f.follow_up_date.slice(0, 10),
         title: `Follow-up: ${f.customer_name}`,
         type: "followup",
-        link: "/seguimiento",
+        link: "/clientes?vista=seguimientos",
       });
     });
 

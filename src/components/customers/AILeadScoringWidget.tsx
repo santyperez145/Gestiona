@@ -95,7 +95,7 @@ export default function AILeadScoringWidget() {
         <h3 className="text-sm font-semibold flex items-center gap-1.5">
           <Brain className="w-4 h-4 text-primary" /> AI Lead Scoring — Top oportunidades
         </h3>
-        <Link to="/crm-avanzado" className="text-xs text-primary hover:underline flex items-center gap-1">
+        <Link to="/clientes?vista=pipeline" className="text-xs text-primary hover:underline flex items-center gap-1">
           Ver CRM <ArrowRight className="w-3 h-3" />
         </Link>
       </div>

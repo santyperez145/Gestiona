@@ -284,6 +284,55 @@ usarse en una presentación, valuación o decisión de inversión.
 Ninguno se cierra con una simulación. Requiere responsable, fecha, evidencia y
 entorno.
 
+### Doce páginas duplicadas dejaron de existir (2026-08-27)
+
+El diagnóstico externo era correcto: había clusters de páginas compitiendo
+por la misma tarea. Se eliminaron **12** en cinco slices, cada uno con puerta
+completa y push propio:
+
+| Cluster | Eliminadas | Ahora |
+|---|---|---|
+| CRM | `AdvancedCRMPage`, `CustomerRFMPage`, `FollowUpPage` | vistas de `/clientes` (Pipeline, Segmentos, Seguimientos) |
+| Marketing | `SocialPlannerPage` | tab Planner de `/marketing` — desde MKT-001 mostraba la MISMA tabla que Publicaciones |
+| Inventario | `AutoRestockPage`, `InventoryForecastPage`, `SmartInventoryPage` | vistas de `/planificacion` |
+| Analytics | `KPIDashboardPage`, `BIReportsPage`, `SalesForecastPage` (+ el viejo `AnalyticsPage` pasó a vista Resumen) | vistas de `/analytics` |
+| IA | `AIInsightsPage`, `AIChatAdvancedPage` | vistas de `/ia` (Hallazgos, Asistente) |
+
+El mecanismo es siempre el mismo: la ruta vieja queda como **alias con
+`?vista=`** en el manifest (el redirect preserva la intención, no sólo el
+destino), el contenido se mueve **idéntico** a `components/<dominio>/` con
+`lazy()` por vista, la jerga vieja pasa a keywords de la canónica (el
+buscador sigue llegando), y el **piso del manifest baja con el porqué escrito
+en el test**: 71 → 61 rutas canónicas. Bajar el piso exige que la borrada
+haya quedado como alias — lo garantizan las guardas de aliases.
+
+Los 12 enlaces internos que apuntaban a rutas viejas (Dashboard, Calendario,
+FocoDelDia, widgets) se reescribieron a la canónica: un alias es para el
+bookmark de un usuario, no para que la app se hable a sí misma con jerga
+retirada. ⚠️ `pageGuides` se indexa por `pathname` — su clave NO puede llevar
+`?vista=`, y por eso quedó fuera del reemplazo genérico.
+
+**Los gates por rol no se pierden: se mudan.** `/rfm` y `/crm-avanzado` eran
+SOLO_ADMIN y `/clientes` es AMBOS — Pipeline y Segmentos se montan sólo con
+`isAdmin` dentro de la página.
+
+📌 **Lo que se decidió NO hacer, y por qué:**
+
+- **Mover ≠ reescribir.** Los tres motores de inventario siguen calculando
+  cada uno lo suyo (INV-001, el planning engine server-side, va aparte); las
+  métricas de Analytics no se unificaron (ANA-001, KPI Registry). Verlas
+  juntas hace visible la divergencia en vez de esconderla en tres URLs.
+- **`ReportsPage` (4.386 líneas) no se tocó**: sus números ya coinciden con
+  el ledger. Reducirla a exportaciones es un slice propio.
+- **Admin y Equipo NO son duplicados** — se midió antes de fusionar: el tab
+  «Equipo» de Admin es rendimiento de vendedores (lectura), TeamPage es
+  gestión de miembros e invitaciones (escritura). Tareas distintas. De paso
+  se verificó que el `from("profiles").select("*")` sin filtro de Admin no
+  fuga: la RLS de `profiles` acota a compañeros de organización.
+- **La vista Segmentos hereda su deuda declarada**: agrupa ventas por nombre.
+  Migrarla a `customer_id` es el cierre de CRM-001, no parte de mover
+  superficies.
+
 ### El resultado financiero tenía cuatro calculadoras (2026-08-26)
 
 `PLDashboardPage`, `ReportsPage`, `AnalyticsPage` y `ledger_resultado`

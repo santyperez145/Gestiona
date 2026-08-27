@@ -421,7 +421,7 @@ export default function SeguimientosView() {
                         size="sm"
                         variant="ghost"
                         className="h-7 text-xs gap-1"
-                        onClick={() => navigate("/pipeline")}
+                        onClick={() => navigate("/clientes?vista=pipeline")}
                       >
                         Ver <ArrowRight className="w-3 h-3" />
                       </Button>

@@ -816,7 +816,7 @@ function CustomerDealsTab({ customer, orgId }: { customer: CustomerRef; orgId: s
   if (deals.length === 0) return (
     <div className="text-center py-6 space-y-2">
       <p className="text-xs text-muted-foreground">Sin oportunidades para este cliente.</p>
-      <a href="/crm-avanzado" className="text-xs text-primary hover:underline">Abrir el pipeline →</a>
+      <a href="/clientes?vista=pipeline" className="text-xs text-primary hover:underline">Abrir el pipeline →</a>
     </div>
   );
 

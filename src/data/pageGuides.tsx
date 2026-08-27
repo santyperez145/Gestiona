@@ -383,7 +383,7 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
   },
 
   // ── Restock automático ───────────────────────────────────────
-  "/restock": {
+  "/planificacion": {
     title: "Restock Inteligente",
     subtitle: "Reposición basada en velocidad de ventas",
     color: "text-teal-400",
