@@ -310,6 +310,21 @@ chequeo de membresía dejaban forzar un asiento en **otro** comercio.
 
 Guardias: vista `audit_rpc_sin_permiso` (0) y `permisoEnElServidor.test.ts`.
 
+**Segunda pasada:** al volver a medir quedaban seis sin puerta y dos merecían
+una. `medio_de_pago_habilitar` (prende y apaga un medio de cobro) y —la que
+más importaba— **`promotions`**, que no es una RPC: se escribe derecho contra la
+tabla, así que la puerta es la policy, y era `ALL` con sólo membresía.
+Cualquier vendedor podía crear una promoción, y **una promoción es un precio**.
+Lo raro no era que faltara: `quantity_discounts` hace lo mismo y exige rol desde
+el día uno, y `/promociones` ya era `SOLO_ADMIN` en el manifest.
+
+⚠️ **La lectura no se tocó, y ahí estaba la trampa.** El POS lee `promotions`
+para cobrar. Apretar la policy `ALL` entera le sacaba la lectura al vendedor
+—justo quien atiende el mostrador— y el POS habría cobrado **sin la promoción**,
+en silencio y a favor del comercio. Va partida en dos: SELECT para miembros,
+escritura para el rol. Al cerrar una policy `ALL`, preguntar siempre quién
+necesita leer eso.
+
 ⚠️ **Tres cosas que sólo aparecieron midiendo, y valen más que el arreglo:**
 
 1. **El escaneo de texto miente en las dos direcciones.** Marcaba

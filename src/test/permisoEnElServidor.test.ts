@@ -45,6 +45,7 @@ const EXIGEN_PERMISO: Record<string, string> = {
   adjust_stock: "inventory",
   record_member_stock_movement: "inventory",
   wallet_solicitar_retiro: "finance",
+  medio_de_pago_habilitar: "payments",
 };
 
 /** El archivo más nuevo que define esa función, que es el que manda. */
@@ -97,6 +98,33 @@ describe("las RPC que mueven stock o plata exigen permiso en el servidor", () =>
         .toMatch(new RegExp(`exigir_permiso\\([^)]*'${modulo}'`));
     });
   }
+
+  it("una promoción se lee entre todos pero se escribe con rol", () => {
+    // Una promoción es un precio: se resuelve dentro del precio de la línea.
+    // Hasta el 2026-08-27 la policy era `ALL` con sólo membresía, así que
+    // cualquier vendedor podía fijar precios — mientras `quantity_discounts`,
+    // que hace lo mismo, exigía rol desde el día uno.
+    //
+    // ⚠️ Y la lectura tiene que quedar abierta: el POS lee `promotions` para
+    // cobrar. Cerrar la policy entera habría hecho que el mostrador cobrara
+    // SIN la promoción, en silencio.
+    const archivos = readdirSync(MIGRACIONES).filter(f => f.endsWith(".sql")).sort();
+    let ultima: { archivo: string; texto: string } | null = null;
+    for (let i = archivos.length - 1; i >= 0; i--) {
+      const texto = readFileSync(resolve(MIGRACIONES, archivos[i]), "utf8");
+      if (/CREATE\s+POLICY[\s\S]{0,200}?ON\s+public\.promotions/i.test(texto)) {
+        ultima = { archivo: archivos[i], texto };
+        break;
+      }
+    }
+    expect(ultima, "ninguna migración define policies sobre promotions").not.toBeNull();
+
+    const { archivo, texto } = ultima!;
+    expect(texto, `${archivo}: la escritura de promociones no exige rol`)
+      .toMatch(/FOR\s+ALL[\s\S]{0,200}?has_org_role/i);
+    expect(texto, `${archivo}: el POS se quedó sin leer promociones`)
+      .toMatch(/FOR\s+SELECT[\s\S]{0,120}?is_org_member/i);
+  });
 
   it("la guarda va DESPUÉS de la membresía, no en su lugar", () => {
     // Son dos preguntas distintas: de qué comercio sos, y qué podés hacer

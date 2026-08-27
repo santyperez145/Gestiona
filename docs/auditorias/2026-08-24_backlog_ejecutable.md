@@ -602,12 +602,35 @@ negocio—, no por un permiso.
 - `permisoEnElServidor.test.ts` (11 tests, probado en rojo en tres dimensiones:
   guarda ausente, módulo equivocado y guarda puesta antes de la membresía).
 
+### Segunda pasada (`20260827000040`)
+
+Al volver a medir quedaban seis funciones sin puerta y **dos merecían una**:
+
+- `medio_de_pago_habilitar` → `payments.edit`. Se frenaba, pero por «Primero
+  conectá tu cuenta de MercadoPago»: una precondición de negocio. El día que la
+  cuenta está conectada —que es siempre, en un comercio que vende— dejaba de
+  frenar.
+- **`promotions`**, que no es una RPC: se escribe derecho contra la tabla y la
+  puerta es la policy. Era `ALL` con sólo membresía, así que cualquier vendedor
+  podía crear una promoción — y una promoción **es un precio**. Lo raro no era
+  que faltara: `quantity_discounts` hace lo mismo y exige rol desde el día uno,
+  y `/promociones` ya era `SOLO_ADMIN`.
+
+⚠️ **La lectura de `promotions` NO se tocó, y ahí estaba la trampa.** El POS la
+lee para cobrar. Apretar la policy `ALL` entera le sacaba la lectura al vendedor
+—justo quien atiende el mostrador— y el POS habría cobrado **sin la promoción**,
+en silencio y a favor del comercio. Va partida en dos, como `quantity_discounts`.
+
+Price override queda cubierto: `products`, `price_lists`, `price_list_items`,
+`product_variants`, `purchases` y `expenses` ya exigían rol `owner`/`admin`.
+
 ### Falta
 
-- Refund, payable, price override y fiscal: hoy la puerta es el rol
-  `owner`/`admin`, que es **más** estricto que la matriz — no es un agujero,
-  pero tampoco es la matriz.
-- `medio_de_pago_habilitar` no chequea permiso.
+- Refund y fiscal: la puerta es el rol `owner`/`admin`, más estricto que la
+  matriz — no es un agujero, pero tampoco es la matriz.
+- `expire_batches`, `expire_stock_reservations`, `run_abc_analysis` y los dos
+  contadores de plantillas siguen sin permiso. Ninguno fija precio, mueve stock
+  ni saca plata.
 - Cross-branch: no hay sucursales suficientes para probarlo de verdad.
 
 ---

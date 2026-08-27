@@ -794,6 +794,18 @@ MercadoPago y las contraseñas SMTP de **todas** las organizaciones. Está cerra
   chequea rol. Hay que mirar los privilegios y leer el cuerpo. Detalle en
   [docs/permisos.md](docs/permisos.md).
 
+  ⚠️ **El precio no siempre pasa por una RPC.** `promotions` se escribe derecho
+  contra la tabla, así que la puerta es la policy — y era `ALL` con sólo
+  membresía: **cualquier vendedor podía crear una promoción**, que es fijar un
+  precio. `quantity_discounts` hace lo mismo y exigía rol desde el día uno.
+  Cerrado en `20260827000040` partiendo la policy en dos.
+
+  📌 **La lectura quedó abierta a propósito, y ahí estaba la trampa:** el POS
+  lee `promotions` para cobrar. Apretar la policy entera le habría sacado la
+  lectura al vendedor —justo quien atiende el mostrador— y el POS habría
+  cobrado **sin la promoción**, en silencio y a favor del comercio. Al cerrar
+  una policy `ALL`, preguntar siempre quién necesita **leer** eso.
+
 - **`rls_audit_open_policies`** (vista SQL) — lista políticas sin filtro de
   tenant. Debería tener **exactamente 3** (medido 2026-08-21), y las tres son
   catálogos públicos a propósito: `plans` (pricing), `payment_providers` y

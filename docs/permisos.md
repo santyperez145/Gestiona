@@ -87,10 +87,32 @@ Cerrar ese conteo llama a `record_stock_movement`, la única autoridad sobre
 empleado, la pantalla desaparecía del menú, y el empleado reescribía el stock
 igual llamando la RPC.
 
-Nueve funciones exigen el permiso desde `20260827000030`: las cuatro de la Toma
-Física (`abrir_conteo`, `registrar_conteo`, `cerrar_conteo`, `cancelar_conteo`),
+Diez funciones exigen el permiso: las cuatro de la Toma Física (`abrir_conteo`,
+`registrar_conteo`, `cerrar_conteo`, `cancelar_conteo`),
 `transfer_stock_between_locations`, `asignar_a_ubicacion`, `adjust_stock`,
-`record_member_stock_movement` y `wallet_solicitar_retiro`.
+`record_member_stock_movement` y `wallet_solicitar_retiro` en
+`20260827000030`; `medio_de_pago_habilitar` en `20260827000040`.
+
+### Y el precio no siempre pasa por una RPC
+
+Los precios se escriben **derecho contra la tabla**, así que ahí la puerta es la
+policy de RLS y no `exigir_permiso`. Medido el 2026-08-27: `products`,
+`price_lists`, `price_list_items`, `product_variants`, `purchases`, `expenses` y
+`quantity_discounts` exigen rol `owner`/`admin` — más estricto que la matriz, así
+que no son un agujero.
+
+⚠️ **`promotions` era la excepción**, y era la que más importaba: policy `ALL`
+con sólo membresía, así que **cualquier vendedor podía crear una promoción**. Una
+promoción es un precio —se resuelve dentro del precio de la línea, no como
+descuento aparte—. `quantity_discounts`, que hace lo mismo, exigía rol desde el
+día uno; y `/promociones` ya era `SOLO_ADMIN` en el manifest. La UI decía una
+cosa y la base otra.
+
+📌 **La lectura quedó abierta a propósito.** El POS lee `promotions` para cobrar
+(`loadActivePromotions`). Apretar la policy `ALL` entera le habría sacado la
+lectura al vendedor —justo quien atiende el mostrador— y el POS habría cobrado
+**sin la promoción**, en silencio. Va partida en dos, como `quantity_discounts`:
+`promotions_org_select` para miembros, `promotions_org_write` para el rol.
 
 📌 `exigir_permiso` deja pasar a `service_role` a propósito: la matriz responde
 «¿esta **persona** puede?» y cuando corre una Edge Function no hay persona a la
@@ -103,11 +125,12 @@ mueven stock o plata sin exigir permiso ni rol. Del lado del repo,
 nueve y se lleva puesta la guarda — que es el modo de falla realista, porque
 regenerar desde `pg_get_functiondef` es el procedimiento recomendado.
 
-**Lo que todavía NO exige permiso**, dicho de frente: el resto de las RPC de
-escritura que hoy chequean rol `owner`/`admin` (más estricto que la matriz, así
-que no es un agujero) y `medio_de_pago_habilitar`, que hoy sólo se frena porque
-tropieza antes con «conectá tu cuenta de MercadoPago» — eso es una precondición
-de negocio, no una autorización.
+**Lo que todavía NO exige permiso**, dicho de frente: `expire_batches` y
+`expire_stock_reservations` (mantenimiento idempotente por fecha),
+`marketing_template_sumar_uso` / `_like` (contadores, que existen justamente
+para no abrir un UPDATE ancho) y `run_abc_analysis` (recalcula una
+clasificación de lectura). Ninguna fija precio, mueve stock ni saca plata. El
+resto de las escrituras usa rol `owner`/`admin`.
 
 ---
 
