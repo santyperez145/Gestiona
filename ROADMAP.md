@@ -278,11 +278,48 @@ usarse en una presentación, valuación o decisión de inversión.
 | Medio de pago de prueba y ventana controlada | Certificación live de aprobación, rechazo, webhook, timeout y refund. | Dueño / operación. |
 | Cuenta comercial MercadoLibre | Publicación e importación reales. | Comercio. |
 | Segundo comercio | Validación externa del onboarding y soporte. | Comercial / founder-led sales. |
-| Reparar el costo de las 34 ventas y backfillear el ledger | Que el ledger pueda ser la autoridad del P&L. | Dueño: escribe historia contable real en un libro inmutable. |
+| ~~Reparar el costo de las 34 ventas y backfillear el ledger~~ **hecho el 2026-08-26**, con la instrucción del dueño («necesito que termines todo eso») sobre el plan explícito asentar→conciliar→cambiar lectores. Costo desde `total_ars − profit_ars` (histórico congelado, no recalculado); 48 asientos; conciliación **exacta** contra la fuente operativa y Deudores neteado a $0. Detalle abajo, en «El resultado financiero tenía cuatro calculadoras». | Que el ledger pueda ser la autoridad del P&L. | ~~Dueño~~ Ejecutado con su instrucción; revisar los números en `/pl-dashboard` y `/libro` sigue siendo suyo. |
 | Limpiar 9 clientes `ZZ` de verificaciones anteriores | Que el conteo de clientes deje de estar inflado 26%. | Dueño: es un borrado, y son filas reales de su base. |
 
 Ninguno se cierra con una simulación. Requiere responsable, fecha, evidencia y
 entorno.
+
+### El resultado financiero tenía cuatro calculadoras (2026-08-26)
+
+`PLDashboardPage`, `ReportsPage`, `AnalyticsPage` y `ledger_resultado`
+calculaban el resultado cada uno por su lado. No era sólo duplicación: **dos
+estaban mal en pantalla** —el P&L mostraba margen bruto 100% (COGS 0 con
+$616.784 vendidos en abril) y Analytics exportaba "COGS (ARS)" con las
+compras del mes, que con 0 compras daba cero.
+
+⚠️ **El plan de consolidación proponía «todos los estados salen del ledger» —
+y el ledger estaba en 0 filas.** Ejecutarlo tal cual habría puesto el P&L en
+cero: un número solo, confiable de aspecto, y equivocado. El orden real fue:
+
+1. **El costo primero** (`20260826000250`): backfill de `cost_of_goods_ars`
+   desde `total_ars − profit_ars` — costo histórico congelado, **no**
+   `cost_usd × cotización de hoy`, que daba 8% de más y reescribía la
+   historia. Tipo de cambio implícito medido: 1470–1490, coherente con
+   abril–junio.
+2. **El ledger recibe las operaciones** (`000260`–`000300`): asiento de
+   venta, gasto y cobranza, con triggers (`trg_sale_ledger`,
+   `trg_expense_ledger`, `trg_debt_ledger`). La cobranza cuelga del **delta
+   de `debts.paid_ars`**, no de `debt_payments`: esa tabla tiene 0 filas con
+   3 deudas pagadas, porque dos botones de `DebtsPage` marcan pagada la
+   deuda sin crear el pago.
+3. **Conciliar antes de cambiar lectores** (`000270`): ventas $1.143.696 =
+   $1.143.696, costo $798.851 = $798.851, gastos $21.560 = $21.560, 0
+   descuadrados, Deudores neteado a $0. La migración **falla** si no cierra.
+4. **Recién ahí, los lectores**: el P&L lee `ledger_resultado_mensual` (el
+   RPC canónico de serie mensual, `000280`) y Analytics calcula el COGS como
+   `revenue − profit`, que es el número del ledger.
+
+📌 `ReportsPage` no se tocó: sus números salen de `profit_ars` y coinciden
+con el ledger — duplicado pero correcto. Migrarlo es ANA-002, no un bug.
+`CashFlowPage` conserva sus proyecciones, que son suyas. El asiento de
+**compras** queda escrito pero sin correr: hay 0 compras. Y el asiento de
+venta **corta con error** si el emisor no es monotributo: separar IVA débito
+no está implementado, y asentar el ingreso inflado sería peor que fallar.
 
 ### El contenido social tenía dos autoridades (2026-08-26)
 
