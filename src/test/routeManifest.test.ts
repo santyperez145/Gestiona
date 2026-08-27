@@ -91,7 +91,9 @@ describe("el router sale del manifest, no de una lista a mano", () => {
 describe("los roles viven en un solo lugar", () => {
   it("las cinco que rebotaban al vendedor ahora se montan para él", () => {
     const paraVendedor = new Set(businessRoutes("vendedor").map(r => r.path));
-    for (const p of ["/tareas", "/seguimiento", "/calendario", "/envios", "/perfil"]) {
+    // /seguimiento dejó de ser ruta propia (consolidación CRM 2026-08-27): el
+    // vendedor llega por /clientes, que es AMBOS, y el alias lo redirige.
+    for (const p of ["/tareas", "/clientes", "/calendario", "/envios", "/perfil"]) {
       expect(paraVendedor.has(p)).toBe(true);
     }
   });
@@ -175,8 +177,12 @@ describe("el sidebar sigue siendo el sidebar", () => {
 
   it("el manifest cubre los destinos medidos", () => {
     // Si alguien agrega una pantalla sin pasar por acá, este número cambia y
-    // obliga a mirar si declaró módulo.
-    expect(ROUTES.length).toBeGreaterThanOrEqual(71);
+    // obliga a mirar si declaró módulo. El piso BAJA con cada consolidación:
+    // 71 → 68 cuando /seguimiento, /rfm y /crm-avanzado pasaron a ser vistas
+    // de /clientes (2026-08-27). Bajarlo exige que la ruta borrada haya
+    // quedado como alias — lo garantiza "ningún alias es también una ruta
+    // canónica" más el chequeo de que todo alias apunta a una canónica.
+    expect(ROUTES.length).toBeGreaterThanOrEqual(68);
   });
 });
 

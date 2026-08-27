@@ -83,7 +83,9 @@ describe("buscador de la paleta", () => {
   it("encuentra por el nombre VIEJO que se dejó de mostrar", () => {
     expect(buscarItems("kardex").map(i => i.to)).toContain("/kardex");
     expect(buscarItems("pos").map(i => i.to)).toContain("/caja");
-    expect(buscarItems("rfm").map(i => i.to)).toContain("/rfm");
+    // /rfm es alias desde la consolidación CRM: quien busca la jerga vieja
+    // llega al workspace de Clientes, donde vive la vista Segmentos.
+    expect(buscarItems("rfm").map(i => i.to)).toContain("/clientes");
     expect(buscarItems("p&l").map(i => i.to)).toContain("/pl-dashboard");
     expect(buscarItems("bundles").map(i => i.to)).toContain("/bundles");
     expect(buscarItems("ecommerce").map(i => i.to)).toContain("/tienda-online");

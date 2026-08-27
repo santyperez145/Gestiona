@@ -161,10 +161,27 @@ export const ROUTES: RouteDefinition[] = [
   { id: "caja", path: "/caja", roles: AMBOS, component: lazy(() => import("@/pages/POSPage")), module: "pos", status: "canonical", nav: { label: "Vender", icon: ScanLine, group: "diario", keywords: ["pos", "caja", "mostrador", "cobrar", "ticket", "punto de venta"] } },
   { id: "ventas", path: "/ventas", roles: AMBOS, component: lazy(() => import("@/pages/SalesPage")), module: "sales", status: "canonical", nav: { label: "Ventas", icon: DollarSign, group: "diario", keywords: ["facturación", "vendido", "pedidos"] } },
   { id: "productos", path: "/productos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ProductsPage")), module: "products", status: "canonical", nav: { label: "Productos", icon: Package, group: "diario", keywords: ["stock", "catálogo", "precios", "artículos", "mercadería"] } },
-  { id: "clientes", path: "/clientes", roles: AMBOS, component: lazy(() => import("@/pages/CustomersPage")), module: "customers", status: "canonical", nav: { label: "Clientes", icon: Users, group: "diario", keywords: ["crm", "compradores", "contactos", "fichas"] } },
+  {
+    id: "clientes", path: "/clientes", roles: AMBOS,
+    component: lazy(() => import("@/pages/CustomersPage")), module: "customers",
+    // Consolidación 2026-08-27: /seguimiento, /rfm y /crm-avanzado eran páginas
+    // propias con el mismo dominio. Sus modelos medían 0 filas (crm_contacts,
+    // crm_activities, crm_followups, tasks, deals — medido ese día) y su
+    // contenido pasó a vistas de este workspace. El gate por rol de las que
+    // eran SOLO_ADMIN vive ahora dentro de CustomersPage (isAdmin).
+    aliases: [
+      { path: "/seguimiento", redirectTo: "/clientes?vista=seguimientos" },
+      { path: "/crm-avanzado", redirectTo: "/clientes?vista=pipeline" },
+      { path: "/pipeline", redirectTo: "/clientes?vista=pipeline" },
+      { path: "/rfm", redirectTo: "/clientes?vista=segmentos" },
+      { path: "/segmentos", redirectTo: "/clientes?vista=segmentos" },
+      { path: "/lead-scoring", redirectTo: "/clientes?vista=segmentos" },
+    ],
+    status: "canonical",
+    nav: { label: "Clientes", icon: Users, group: "diario", keywords: ["crm", "compradores", "contactos", "fichas", "rfm", "segmentos", "pipeline", "embudo", "oportunidades", "seguimientos", "recordatorios", "follow up"] },
+  },
   { id: "tienda_online", path: "/tienda-online", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/EcommerceStorePage")), module: "ecommerce", status: "canonical", nav: { label: "Tienda online", icon: ShoppingBag, group: "diario", keywords: ["ecommerce", "web", "vitrina", "storefront", "pedidos online"] } },
   { id: "tareas", path: "/tareas", roles: AMBOS, component: lazy(() => import("@/pages/TasksPage")), module: null, openReason: "Tareas del propio usuario, no datos del negocio.", status: "canonical", nav: { label: "Tareas", icon: CheckSquare, group: "trabajo", keywords: ["pendientes", "to do", "kanban"] } },
-  { id: "seguimiento", path: "/seguimiento", roles: AMBOS, component: lazy(() => import("@/pages/FollowUpPage")), module: "customers", status: "canonical", nav: { label: "Seguimientos", icon: Bell, group: "trabajo", keywords: ["recordatorios", "follow up", "llamar"] } },
   { id: "calendario", path: "/calendario", roles: AMBOS, component: lazy(() => import("@/pages/CalendarPage")), module: null, openReason: "Agenda propia del usuario.", status: "canonical", nav: { label: "Calendario", icon: Calendar, group: "trabajo", keywords: ["agenda", "fechas", "turnos"] } },
   { id: "compras", path: "/compras", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PurchasesPage")), module: "purchases", status: "canonical", nav: { label: "Compras", icon: ShoppingCart, group: "compras", keywords: ["importación", "ingreso de mercadería", "proveedor"] } },
   { id: "ordenes_compra", path: "/ordenes-compra", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PurchaseOrdersPage")), module: "purchases", aliases: [{ path: "/cotizaciones-proveedor", redirectTo: "/ordenes-compra" }, { path: "/solicitudes-compra", redirectTo: "/ordenes-compra" }], status: "canonical", nav: { label: "Órdenes de compra", icon: ClipboardList, group: "compras", keywords: ["oc", "pedido a proveedor", "recepción"] } },
@@ -216,8 +233,6 @@ export const ROUTES: RouteDefinition[] = [
   { id: "kpi_dashboard", path: "/kpi-dashboard", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/KPIDashboardPage")), module: "analytics", status: "canonical", nav: { label: "KPIs", icon: LineChart, group: "reportes", keywords: ["indicadores", "objetivos", "metas"] } },
   { id: "bi_reportes", path: "/bi-reportes", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/BIReportsPage")), module: "reports", status: "canonical", nav: { label: "Reportes avanzados", icon: BarChart3, group: "reportes", keywords: ["bi", "business intelligence", "cohortes", "drilldown"] } },
   { id: "forecast", path: "/forecast", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SalesForecastPage")), module: "analytics", status: "canonical", nav: { label: "Proyección de ventas", icon: TrendingUp, group: "reportes", keywords: ["forecast", "cuánto voy a vender", "pronóstico"] } },
-  { id: "rfm", path: "/rfm", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CustomerRFMPage")), module: "customers", aliases: [{ path: "/lead-scoring", redirectTo: "/rfm" }, { path: "/segmentos", redirectTo: "/rfm" }], status: "canonical", nav: { label: "Segmentación de clientes", icon: Users, group: "reportes", keywords: ["rfm", "quién compra más", "recencia", "segmentos"] } },
-  { id: "crm_avanzado", path: "/crm-avanzado", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AdvancedCRMPage")), module: "crm", aliases: [{ path: "/pipeline", redirectTo: "/crm-avanzado" }], status: "canonical", nav: { label: "Pipeline de ventas", icon: Kanban, group: "reportes", keywords: ["embudo", "oportunidades", "negocios", "crm avanzado"] } },
   { id: "ia", path: "/ia", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AIInsightsPage")), module: "analytics", status: "canonical", nav: { label: "Insights con IA", icon: Sparkles, group: "reportes", keywords: ["inteligencia artificial", "sugerencias", "análisis"] } },
   { id: "chat_ia", path: "/chat-ia", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/AIChatAdvancedPage")), module: "analytics", aliases: [{ path: "/chat-ia-avanzado", redirectTo: "/chat-ia" }], status: "canonical", nav: { label: "Asistente IA", icon: Brain, group: "sistema", keywords: ["chat", "preguntar", "copiloto"] } },
   { id: "alertas", path: "/alertas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/SmartAlertsPage")), module: null, openReason: "Avisos derivados de otros modulos: ocultarlos dejaria al usuario sin enterarse de lo que si puede ver.", aliases: [{ path: "/alertas-inteligentes", redirectTo: "/alertas" }], status: "canonical", nav: { label: "Alertas", icon: AlertTriangle, group: "sistema", keywords: ["avisos", "notificaciones", "reglas"] } },

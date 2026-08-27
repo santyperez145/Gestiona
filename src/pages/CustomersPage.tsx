@@ -16,7 +16,7 @@ import {
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
   Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer, Bell, BookUser,
   Instagram, Droplets, List, BarChart3, Search, Filter, ArrowUpRight, PanelRight,
-  Sparkles, UserCheck, RefreshCcw, ShieldAlert, Kanban,
+  Sparkles, UserCheck, RefreshCcw, ShieldAlert, Kanban, PieChart,
 } from "lucide-react";
 import { NOTAS_COMUNES, taxLabel } from "@/lib/scentTaxonomy";
 import { recommendForPreferences } from "@/lib/perfumeMatch";
@@ -39,6 +39,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { toast } from "sonner";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import { useUserRole } from "@/lib/useUserRole";
+import PipelineKanbanTab from "@/components/crm/PipelineKanbanTab";
+import SeguimientosView from "@/components/crm/SeguimientosView";
+import SegmentosView from "@/components/crm/SegmentosView";
 import { normalizeIdentityEmail, normalizeIdentityPhone, normalizeIdentityText } from "@/lib/recordIdentity";
 
 // ─────────────────────────────────────────────────────────────
@@ -1423,6 +1427,7 @@ ${transactions.length > 0 ? `
 // Main Page
 // ─────────────────────────────────────────────────────────────
 export default function CustomersPage() {
+  const { isAdmin } = useUserRole();
   usePageTitle("Clientes — CRM");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
@@ -1454,7 +1459,7 @@ export default function CustomersPage() {
     orgViewKey("customers.selected", activeOrg?.id),
     null,
   );
-  const [crmWorkspaceTab, setCrmWorkspaceTab] = usePersistedState<"clientes" | "insights">(
+  const [crmWorkspaceTab, setCrmWorkspaceTab] = usePersistedState<"clientes" | "insights" | "pipeline" | "seguimientos" | "segmentos">(
     orgViewKey("customers.workspace-tab", activeOrg?.id),
     "clientes",
   );
@@ -1506,6 +1511,18 @@ export default function CustomersPage() {
   const [bulkBdayWaOpen, setBulkBdayWaOpen] = useState(false);
   const navigate = useNavigate();
   const [identityParams, setIdentityParams] = useSearchParams();
+
+  // Los redirects de /crm-avanzado, /rfm y /seguimiento llegan con ?vista=.
+  // La URL gana cuando alguien pidió una vista explícita; sin ?vista= manda la
+  // preferencia persistida. Mismo criterio que /settings#seccion.
+  useEffect(() => {
+    const vista = identityParams.get("vista");
+    if (vista === "clientes" || vista === "insights" || vista === "pipeline"
+        || vista === "seguimientos" || vista === "segmentos") {
+      setCrmWorkspaceTab(vista);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [identityParams]);
 
   // Reset follow-up form when switching customers
   useEffect(() => {
@@ -2272,6 +2289,7 @@ export default function CustomersPage() {
             : { label: "Sin deudas ✓", variant: "success" }
         }
         actions={
+          crmWorkspaceTab !== "clientes" ? undefined :
           <div className="flex flex-wrap gap-2 flex-wrap">
             <Button
               variant="outline"
@@ -2358,6 +2376,40 @@ export default function CustomersPage() {
             Insights
             <span className="crm-workspace-nav__count">4</span>
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={crmWorkspaceTab === "seguimientos"}
+            className={`crm-workspace-nav__tab ${crmWorkspaceTab === "seguimientos" ? "is-active" : ""}`}
+            onClick={() => setCrmWorkspaceTab("seguimientos")}
+          >
+            <Bell className="w-4 h-4" />
+            Seguimientos
+          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={crmWorkspaceTab === "pipeline"}
+              className={`crm-workspace-nav__tab ${crmWorkspaceTab === "pipeline" ? "is-active" : ""}`}
+              onClick={() => setCrmWorkspaceTab("pipeline")}
+            >
+              <Kanban className="w-4 h-4" />
+              Pipeline
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={crmWorkspaceTab === "segmentos"}
+              className={`crm-workspace-nav__tab ${crmWorkspaceTab === "segmentos" ? "is-active" : ""}`}
+              onClick={() => setCrmWorkspaceTab("segmentos")}
+            >
+              <PieChart className="w-4 h-4" />
+              Segmentos
+            </button>
+          )}
         </div>
         <div className="crm-workspace-nav__meta">
           <span className="crm-workspace-nav__dot" />
@@ -2370,6 +2422,14 @@ export default function CustomersPage() {
           )}
         </div>
       </div>
+
+      {/* ── Vistas consolidadas: eran páginas propias hasta 2026-08-27 ────
+          El contenido vive en components/crm; acá sólo se monta la activa. Un
+          vendedor que fuerce ?vista=pipeline ve la lista: el gate por rol que
+          tenía la ruta vieja no se pierde, se muda. */}
+      {crmWorkspaceTab === "seguimientos" && <SeguimientosView />}
+      {crmWorkspaceTab === "pipeline" && (isAdmin ? <PipelineKanbanTab /> : null)}
+      {crmWorkspaceTab === "segmentos" && (isAdmin ? <SegmentosView /> : null)}
 
       {crmWorkspaceTab === "insights" && (
         <section className="crm-insights-view" aria-label="Insights de clientes">

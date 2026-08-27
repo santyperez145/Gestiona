@@ -1,6 +1,8 @@
 /**
  * PipelineKanbanTab — ported from the former SalesPipelinePage (/pipeline).
- * Rendered as the default "Pipeline Kanban" tab inside AdvancedCRMPage (/crm-avanzado).
+ * Vista «Pipeline» del workspace de Clientes (/clientes?vista=pipeline) desde la
+ * consolidación 2026-08-27; antes era la tab default de AdvancedCRMPage, que dejó
+ * de existir como página.
  *
  * Full drag-and-drop pipeline board on the `deals` table: KPIs, funnel/win-loss
  * analytics, revenue forecast by month, per-deal activity timeline with an AI coach,

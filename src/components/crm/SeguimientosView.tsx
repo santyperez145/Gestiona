@@ -1,4 +1,11 @@
-﻿/**
+// Vista «Seguimientos» del workspace de Clientes / CRM.
+//
+// ⚠️ Era la página FollowUpPage (/seguimiento) (ruta propia en el manifest). La consolidación
+// de 2026-08-27 la convirtió en vista de /clientes: una tarea empresarial → un
+// workspace → una URL canónica. La ruta vieja redirige con ?vista=. El
+// contenido es el mismo; sólo se demolió el PageHeader propio a una toolbar
+// compacta, porque el header de la página ahora es el de Clientes.
+/**
  * FollowUpPage — /seguimiento
  *
  * The seller's "morning view": all the items that need attention today.
@@ -10,7 +17,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
 import { safeChannel } from "@/lib/realtimeChannel";
@@ -24,7 +30,6 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -84,8 +89,7 @@ function timeAgo(iso: string): string {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function FollowUpPage() {
-  usePageTitle("Seguimiento");
+export default function SeguimientosView() {
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -226,32 +230,38 @@ export default function FollowUpPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Bell}
-        title="Centro de Seguimiento"
-        description="Deals sin actividad, tareas vencidas y clientes pendientes de contacto"
-        badge={urgentCount > 0 ? { label: `${urgentCount} urgente${urgentCount > 1 ? "s" : ""}`, variant: "destructive" } : undefined}
-        actions={
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-xs text-muted-foreground">Deals estancados:</span>
-            <Select value={String(staleThreshold)} onValueChange={v => setStaleThreshold(Number(v))}>
-              <SelectTrigger className="w-28 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="3">3 días</SelectItem>
-                <SelectItem value="5">5 días</SelectItem>
-                <SelectItem value="7">7 días</SelectItem>
-                <SelectItem value="14">14 días</SelectItem>
-                <SelectItem value="30">30 días</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" className="gap-1" onClick={load}>
-              <RefreshCw className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        }
-      />
+      {/* Toolbar de la vista: el header de la página es el de Clientes. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Bell className="w-4 h-4" /> Centro de Seguimiento
+            {urgentCount > 0 && (
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">
+                {urgentCount} urgente{urgentCount > 1 ? "s" : ""}
+              </span>
+            )}
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Deals sin actividad, tareas vencidas y clientes pendientes de contacto</p>
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-xs text-muted-foreground">Deals estancados:</span>
+          <Select value={String(staleThreshold)} onValueChange={v => setStaleThreshold(Number(v))}>
+            <SelectTrigger className="w-28 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="3">3 días</SelectItem>
+              <SelectItem value="5">5 días</SelectItem>
+              <SelectItem value="7">7 días</SelectItem>
+              <SelectItem value="14">14 días</SelectItem>
+              <SelectItem value="30">30 días</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" className="gap-1" onClick={load}>
+            <RefreshCw className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      </div>
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

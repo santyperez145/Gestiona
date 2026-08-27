@@ -1,11 +1,21 @@
-﻿import { useEffect, useMemo, useState } from "react";
+// Vista «Segmentos» del workspace de Clientes / CRM.
+//
+// ⚠️ Era la página CustomerRFMPage (/rfm) (ruta propia en el manifest). La consolidación
+// de 2026-08-27 la convirtió en vista de /clientes: una tarea empresarial → un
+// workspace → una URL canónica. La ruta vieja redirige con ?vista=. El
+// contenido es el mismo; sólo se demolió el PageHeader propio a una toolbar
+// compacta, porque el header de la página ahora es el de Clientes.
+// ⚠️ Deuda declarada, no resuelta acá: esta vista agrupa ventas POR NOMBRE
+// («Ya no queda nada del CRM cruzando por nombre» tenía esta excepción sin
+// listar). Migrarla a customer_id es el cierre de CRM-001, no parte de la
+// consolidación de páginas: mover y reescribir en el mismo paso deja sin saber
+// cuál de los dos cambios rompió qué.
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Download, Users, TrendingUp, AlertTriangle, Crown, Flame, Zap, Leaf, Moon, Skull, RefreshCw, Search, Filter, DollarSign, BarChart3 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import CustomerSegmentsTab from "@/components/customers/CustomerSegmentsTab";
 import AILeadScoringWidget from "@/components/customers/AILeadScoringWidget";
 
@@ -101,8 +111,7 @@ const fmt = (n: number) => new Intl.NumberFormat("es-AR", { style: "currency", c
 const fmtNum = (n: number) => new Intl.NumberFormat("es-AR").format(n);
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function CustomerRFMPage() {
-  usePageTitle("Segmentación RFM");
+export default function SegmentosView() {
   const { activeOrg } = useOrg();
   const [sales, setSales] = useState<Sale[]>([]);
   const [emailByName, setEmailByName] = useState<Record<string, string>>({});
@@ -273,20 +282,21 @@ export default function CustomerRFMPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* PageHeader */}
-      <PageHeader
-        icon={Users}
-        title="Segmentación RFM"
-        description="Recencia, Frecuencia y Valor monetario por cliente"
-        actions={
-          <button
-            onClick={exportCSV}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 text-sm hover:bg-muted/50 transition-colors"
-          >
-            <Download className="w-4 h-4" /> Exportar CSV
-          </button>
-        }
-      />
+      {/* Toolbar de la vista: el header de la página es el de Clientes. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Users className="w-4 h-4" /> Segmentación RFM
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Recencia, Frecuencia y Valor monetario por cliente</p>
+        </div>
+        <button
+          onClick={exportCSV}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 text-sm hover:bg-muted/50 transition-colors"
+        >
+          <Download className="w-4 h-4" /> Exportar CSV
+        </button>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
