@@ -26646,6 +26646,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          maneja_stock: boolean
           name: string
           org_id: string
           slug: string
@@ -26659,6 +26660,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          maneja_stock?: boolean
           name: string
           org_id: string
           slug: string
@@ -26672,6 +26674,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          maneja_stock?: boolean
           name?: string
           org_id?: string
           slug?: string

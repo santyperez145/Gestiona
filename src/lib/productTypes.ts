@@ -12,6 +12,14 @@ export interface ProductType {
   source: "custom" | "business_profile";
   template_code: string | null;
   template_version: number | null;
+  /**
+   * ¿Los productos de este tipo se descuentan al venderse?
+   *
+   * Lo sabe el TIPO, no cada producto: un «Servicio» nunca se stockea, un
+   * «Insumo» sí. La ficha lo usa como valor inicial; la autoridad sigue siendo
+   * `products.maneja_stock`, porque un producto puntual puede diferir.
+   */
+  maneja_stock: boolean;
   created_at: string;
   updated_at: string;
 }

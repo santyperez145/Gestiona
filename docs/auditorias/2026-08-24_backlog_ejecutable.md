@@ -525,12 +525,31 @@ se vende y no se stockea.** Los rubros vienen después, y son datos.
   segunda mitad, una guarda que frenara TODO habría pasado igual y roto el
   stock del sistema entero en silencio.
 
+### Segunda pasada (`20260827000100`)
+
+El interruptor por producto no alcanzaba: una peluquería con veinte
+prestaciones las marca veinte veces, y la primera que se le pasa vuelve a bajar
+a −1 con cada venta. **Lo que sabe si algo se descuenta no es el producto: es
+el tipo.** `product_types.maneja_stock` sube la declaración al tipo, el preset
+la trae puesta y la ficha la usa como valor inicial — sólo al crear, porque en
+un producto que ya existe cambiar el tipo no puede reescribir una decisión
+tomada.
+
+Dos rubros nuevos: **Servicios** y **Gastronomía**.
+
+⚠️ Gastronomía trae DOS tipos a propósito: `Plato` sin stock y `Insumo` con
+stock. **Un restaurante no es un negocio sin stock** — el plato se prepara,
+pero la harina, la bebida y el descartable se compran y se consumen. Marcar
+todo como «sin stock» le rompe el inventario al día siguiente, y es el error
+fácil al agregar el rubro. Hay un test que lo vigila.
+
 ### Falta
 
-- El interruptor en la ficha de producto: hoy `maneja_stock` sólo se puede
-  poner desde la base.
-- Los presets de rubros que no venden productos con stock (servicios, turnos,
-  gastronomía, proyectos). Son INSERTs en `industry_presets`.
+- Los otros arquetipos de la auditoría. **No se agregaron a propósito:**
+  mayorista, ecommerce y retail ya funcionan con los rubros de catálogo —no son
+  un rubro distinto, son la misma mercadería por otro canal— y turnos,
+  proyectos, alquileres y suscripciones necesitan entidades que hoy no existen
+  (una agenda, un contrato, un plazo). Un preset suyo sería una promesa vacía.
 - Perfil versionado y «tres negocios muy distintos generan perfiles correctos»,
   que es el criterio de cierre original.
 

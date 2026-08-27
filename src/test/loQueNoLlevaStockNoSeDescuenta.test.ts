@@ -113,6 +113,34 @@ describe("lo que no lleva stock no se descuenta", () => {
       .toMatch(/maneja_stock:\s*manejaStock/);
   });
 
+  it("un rubro sin stock no marca sin stock TODO lo que vende", () => {
+    // ⚠️ Un restaurante NO es un negocio sin stock: el plato no se descuenta
+    // —se prepara— pero la harina, la bebida y el descartable sí. Un preset
+    // que marcara todo como «sin stock» le rompe el inventario al día
+    // siguiente, y es el error fácil de cometer al agregar el rubro.
+    const archivos = readdirSync(MIGRACIONES).filter(f => f.endsWith(".sql")).sort();
+    const preset = archivos
+      .map(f => readFileSync(resolve(MIGRACIONES, f), "utf8"))
+      .find(t => t.includes("'gastronomia'") && t.includes("industry_presets"));
+    expect(preset, "ningún preset de gastronomía").toBeTruthy();
+
+    expect(preset!, "el plato quedó marcado como que lleva stock")
+      .toMatch(/"slug":\s*"plato"[\s\S]{0,200}?"maneja_stock":\s*false/);
+    expect(preset!, "el insumo quedó SIN stock: un restaurante sí stockea mercadería")
+      .toMatch(/"slug":\s*"insumo"[\s\S]{0,200}?"maneja_stock":\s*true/);
+  });
+
+  it("la ficha toma el default del tipo de producto, y sólo al crear", () => {
+    // Sin esto el comercio marca veinte prestaciones una por una, y la que se
+    // le pasa vuelve a bajar a −1 con cada venta.
+    //
+    // ⚠️ `!product &&` importa: en un producto que YA existe, cambiar el tipo
+    // no puede reescribir una decisión que el comercio ya tomó.
+    const page = readFileSync(resolve(ROOT, "src/pages/ProductsPage.tsx"), "utf8");
+    expect(page, "la ficha no toma el default del tipo")
+      .toMatch(/!product\s*&&[\s\S]{0,300}?setManejaStock\(tipo\.maneja_stock/);
+  });
+
   it("los KPI de stock de Productos excluyen lo que no lleva stock", () => {
     // Un servicio se queda en el valor con el que se cargó —0 por default— así
     // que aparecía como agotado para siempre, inflando la alerta que el

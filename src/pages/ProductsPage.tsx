@@ -2363,7 +2363,17 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           </div>
           <Layers className="w-4 h-4 text-primary shrink-0" />
         </div>
-        <Select value={productTypeId || "none"} onValueChange={value => setProductTypeId(value === "none" ? "" : value)}>
+        <Select value={productTypeId || "none"} onValueChange={value => {
+          const id = value === "none" ? "" : value;
+          setProductTypeId(id);
+          // El tipo trae el default: un «Servicio» no se stockea, un «Insumo»
+          // sí. Sólo al crear — en un producto que ya existe, cambiar el tipo
+          // no puede reescribir una decisión que el comercio ya tomó.
+          if (!product && id) {
+            const tipo = productTypes.find(t => t.id === id);
+            if (tipo) setManejaStock(tipo.maneja_stock !== false);
+          }
+        }}>
           <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Sin tipo asignado" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="none">Sin tipo asignado</SelectItem>

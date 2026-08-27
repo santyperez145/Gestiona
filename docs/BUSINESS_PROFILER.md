@@ -26,6 +26,21 @@ metadatos editables para describir y filtrar productos.
 | Cosmética | Cosmético | marca, contenido, tipo de piel, cruelty free |
 | Alimentos | Alimento | marca, peso, conservación, aptitud |
 | Otro | Producto | marca, modelo o línea |
+| **Servicios** | Servicio *(no lleva stock)* | duración, modalidad, a cargo de |
+| **Gastronomía** | Plato *(no lleva stock)*, Insumo | sección de carta, apto para, porciones / unidad de compra, conservación |
+
+⚠️ **Gastronomía tiene DOS tipos a propósito, y ahí está el punto: un
+restaurante no es un negocio sin stock.** El plato no se descuenta —se
+prepara— pero la harina, la bebida y el descartable sí. Un rubro que marcara
+todo como «sin stock» le rompería el inventario al día siguiente.
+
+📌 **Por qué dos rubros y no los once que enumera la auditoría.** Se agregaron
+los que hoy no se podían operar de ninguna forma, porque el Core descontaba
+stock de algo que no lo tiene. Mayorista, ecommerce y retail ya funcionan con
+los rubros de catálogo: no son un rubro distinto, son la misma mercadería
+vendida por otro canal. Turnos, proyectos, alquileres y suscripciones
+necesitan entidades que hoy no existen —una agenda, un contrato, un plazo—, así
+que un preset suyo sería una promesa vacía.
 
 Talle y color con stock propio continúan como variantes. Lotes y vencimientos
 continúan en trazabilidad de inventario. El perfil no duplica esas funciones.
