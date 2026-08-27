@@ -58,6 +58,55 @@ describe("leerTicketWsaa", () => {
     expect(r.error).toContain("problema del lado de Gestiona");
     expect(r.error).not.toContain("certificado venció");
   });
+
+  // ── Las formas que la respuesta tomó de verdad ──────────────────────────
+  //
+  // ⚠️ Cada una de éstas costó un intento contra producción, y cada intento
+  // fallido quema un Ticket de Acceso que ARCA no renueva por ~12 h. Por eso
+  // el parser prueba todas en vez de apostar a una.
+
+  it("lee el ticket escapado con referencias numéricas (&#60;)", () => {
+    // No todos los stacks SOAP escapan con `&lt;`. Con `&#60;` la versión
+    // anterior dejaba el XML sin des-escapar SIN fallar, y parecía que ARCA
+    // no había mandado el token.
+    const numerico = respuestaOk
+      .replace(/&lt;/g, "&#60;")
+      .replace(/&gt;/g, "&#62;");
+    const r = leerTicketWsaa(numerico);
+    expect(r.error).toBeUndefined();
+    expect(r.token).toBe("UEQ5eG1s");
+  });
+
+  it("lee el ticket con referencias hexadecimales (&#x3c;)", () => {
+    const hex = respuestaOk.replace(/&lt;/g, "&#x3c;").replace(/&gt;/g, "&#x3e;");
+    expect(leerTicketWsaa(hex).token).toBe("UEQ5eG1s");
+  });
+
+  it("lee el ticket si vino SIN escapar adentro de loginCmsReturn", () => {
+    const crudo = `<soapenv:Envelope><soapenv:Body><LoginCmsResponse><loginCmsReturn>${ticketInterno}</loginCmsReturn></LoginCmsResponse></soapenv:Body></soapenv:Envelope>`;
+    expect(leerTicketWsaa(crudo).token).toBe("UEQ5eG1s");
+  });
+
+  it("lee el ticket si no hay loginCmsReturn y el token está suelto", () => {
+    expect(leerTicketWsaa(ticketInterno).token).toBe("UEQ5eG1s");
+  });
+
+  it("el error trae un reporte de forma, para no volver a adivinar", () => {
+    const roto = respuestaOk.replace(/&lt;token&gt;[^&]*&lt;\/token&gt;/, "");
+    const r = leerTicketWsaa(roto);
+    expect(r.error).toContain("loginCmsReturn");
+    expect(r.error).toContain("etiquetas:");
+  });
+
+  it("⚠️ el reporte NO filtra el token ni la firma", () => {
+    // El token es una credencial: con él se factura. Un diagnóstico que lo
+    // imprima lo deja en un toast, en el historial del navegador y en
+    // cualquier captura de pantalla.
+    const roto = respuestaOk.replace(/&lt;sign&gt;[^&]*&lt;\/sign&gt;/, "");
+    const r = leerTicketWsaa(roto);
+    expect(r.error).not.toContain("UEQ5eG1s");
+    expect(r.error).not.toContain("ZmlybWE=");
+  });
 });
 
 describe("motivoDeWsaa", () => {

@@ -44,15 +44,52 @@ export function extraerXml(xml: string, tag: string): string | null {
  *
  * ⚠️ `&amp;` va ÚLTIMO. Si se reemplaza primero, un `&amp;lt;` legítimo se
  * convierte en `&lt;` y después en `<`, inventando una etiqueta que no estaba.
+ *
+ * ⚠️ Y las referencias numéricas cuentan: no todos los stacks SOAP escapan con
+ * `&lt;`. Axis puede mandar `&#60;` o `&#x3c;` para lo mismo, y una versión que
+ * sólo mira `&lt;` deja el XML sin des-escapar **sin fallar** — el resultado es
+ * que no se encuentra `<token>` y parece que ARCA no lo mandó.
  */
 export function desescaparXml(s: string): string {
   const sinCdata = s.replace(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/, "$1");
   return sinCdata
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'")
     .replace(/&amp;/g, "&");
+}
+
+/**
+ * Qué forma tenía la respuesta, para poder diagnosticar sin ver el contenido.
+ *
+ * ⚠️ **No incluye ningún valor**: sólo nombres de etiqueta, longitudes y qué
+ * marcadores de escapado aparecieron. El `token` y el `sign` son credenciales
+ * —con ellos se factura— así que no pueden ir a un toast, a un log de negocio
+ * ni a un mensaje de error.
+ *
+ * Existe porque este parseo ya falló dos veces contra producción y cada intento
+ * cuesta un Ticket de Acceso que ARCA no renueva por ~12 h. Sin esto, el
+ * intento siguiente vuelve a ser una suposición.
+ */
+export function reporteDeForma(xml: string): string {
+  const interno = extraerXml(xml, "loginCmsReturn");
+  const fuente = interno ?? xml;
+  const tags = [...new Set(
+    [...fuente.matchAll(/&(?:lt|#60|#x3c);\/?\s*([a-zA-Z][\w.-]*)|<\/?\s*([a-zA-Z][\w.-]*)/g)]
+      .map(m => m[1] || m[2]),
+  )].slice(0, 12);
+
+  return [
+    `respuesta ${xml.length} ch`,
+    interno ? `loginCmsReturn ${interno.length} ch` : "sin loginCmsReturn",
+    `&lt; ${fuente.includes("&lt;") ? "sí" : "no"}`,
+    `&#60; ${/&#(60|x3c);/i.test(fuente) ? "sí" : "no"}`,
+    `CDATA ${fuente.includes("<![CDATA[") ? "sí" : "no"}`,
+    `etiquetas: ${tags.join(",") || "ninguna"}`,
+  ].join(" · ");
 }
 
 /** Los códigos que documenta ARCA, y qué hacer con cada uno. */
@@ -109,18 +146,40 @@ export interface TicketWsaa {
 }
 
 export function leerTicketWsaa(xml: string): TicketWsaa {
-  // El ticket viene adentro de `loginCmsReturn`, escapado.
+  // ⚠️ Se prueban varias formas a propósito. La respuesta de WSAA llegó ya de
+  // dos maneras distintas en producción, cada intento fallido cuesta un Ticket
+  // de Acceso que ARCA no renueva por ~12 h, y adivinar cuál es «la buena» ya
+  // salió mal dos veces. Se intentan todas y gana la que encuentre el ticket.
   const interno = extraerXml(xml, "loginCmsReturn");
-  const ticketXml = interno ? desescaparXml(interno) : xml;
+  const candidatos = [
+    interno ? desescaparXml(interno) : null, // lo normal: escapado adentro
+    interno,                                 // por si vino sin escapar
+    desescaparXml(xml),                      // por si no hay loginCmsReturn
+    xml,                                     // crudo
+  ].filter(Boolean) as string[];
 
-  const token = extraerXml(ticketXml, "token");
-  const sign = extraerXml(ticketXml, "sign");
-  if (!token || !sign) return { error: motivoDeWsaa(xml) };
+  let ticketXml: string | null = null;
+  let token: string | null = null;
+  let sign: string | null = null;
+  for (const c of candidatos) {
+    const t = extraerXml(c, "token");
+    const s = extraerXml(c, "sign");
+    if (t && s) { ticketXml = c; token = t; sign = s; break; }
+  }
+
+  if (!token || !sign) {
+    // El reporte de forma va PEGADO al motivo: sin él, el intento siguiente
+    // vuelve a ser una suposición y cuesta otras 12 h.
+    return { error: `${motivoDeWsaa(xml)} [${reporteDeForma(xml)}]` };
+  }
 
   // La vigencia la decide ARCA, no nosotros. Guardar una inventada hace que el
   // reuso se calcule mal: si la de ARCA es más corta, se pide otro antes de
   // tiempo y WSAA lo rechaza con `coe.alreadyAuthenticated`.
-  const expDeArca = extraerXml(ticketXml, "expirationTime");
+  // `ticketXml` no puede ser null acá —se asigna en el mismo `break` que token
+  // y sign— pero el `?? xml` deja el invariante escrito en vez de afirmarlo con
+  // un `!`, que es lo mismo que pedirle a TypeScript que confíe.
+  const expDeArca = extraerXml(ticketXml ?? xml, "expirationTime");
   const parseada = expDeArca ? new Date(expDeArca) : null;
   const expiresAt = parseada && !isNaN(parseada.getTime()) ? parseada.toISOString() : undefined;
 
