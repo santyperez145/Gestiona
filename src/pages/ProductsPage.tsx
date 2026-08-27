@@ -59,6 +59,7 @@ import { useProductExpiry } from "@/hooks/useProductExpiry";
 import { BarcodePrintSheet } from "@/components/shared/BarcodeLabel";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { Switch } from "@/components/ui/switch";
 
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
@@ -1792,6 +1793,19 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [attributeDefinitions, setAttributeDefinitions] = useState<AttributeDefinition[]>([]);
   const [attributeValues, setAttributeValues] = useState<Record<string, unknown>>({});
   const [activeLocationCount, setActiveLocationCount] = useState(0);
+  /**
+   * ¿Esto se descuenta al venderlo?
+   *
+   * Un servicio —un corte de pelo, una hora de consultoría, un plato— se vende
+   * igual que un producto pero no hay nada que descontar. Sin este interruptor
+   * el stock baja a −1, −2, −3 en cada venta y el panel dice «agotado» sobre
+   * algo que no se agota.
+   *
+   * La autoridad es `record_stock_movement`, que ignora estos productos; acá
+   * sólo se elige. Default `true`: un producto nuevo lleva stock salvo que se
+   * diga lo contrario.
+   */
+  const [manejaStock, setManejaStock] = useState(product?.maneja_stock !== false);
 
   useEffect(() => {
     if (!orgId) return;
@@ -2097,12 +2111,17 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         width_cm: parseFloat(widthCm) || null,
         height_cm: parseFloat(heightCm) || null,
         product_type_id: productTypeId || null,
+        maneja_stock: manejaStock,
         ...(Object.keys(customFieldValues).length > 0 ? { custom_fields: customFieldValues } : {}),
       };
       let productId = product?.id;
       if (product) {
         await updateProductDB(product.id, data);
-        if (!showVariants) {
+        // ⚠️ Sobre un producto sin stock no se fuerza ningún ajuste. La
+        // autoridad lo ignoraría igual, pero pedirle un movimiento que no va a
+        // ocurrir deja un «Ajuste de stock» en el log de auditoría que nunca
+        // pasó.
+        if (!showVariants && manejaStock) {
           await setStockAbsoluteDB({
             productId: product.id,
             newStock: variantTotal,
@@ -2611,7 +2630,25 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
             <SelectContent><SelectItem value="masculino">Masculino</SelectItem><SelectItem value="femenino">Femenino</SelectItem><SelectItem value="unisex">Unisex</SelectItem></SelectContent>
           </Select>
         </div>
-        <div><label className="text-sm text-muted-foreground">Stock</label><Input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" /></div>
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <label className="text-sm text-muted-foreground">Stock</label>
+            {/* Un servicio no se descuenta: el interruptor va PEGADO al campo
+                que deja de tener sentido, no escondido en otra pestaña. */}
+            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
+              <Switch checked={!manejaStock} onCheckedChange={v => setManejaStock(!v)} />
+              No lleva stock
+            </label>
+          </div>
+          {manejaStock ? (
+            <Input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" />
+          ) : (
+            <p className="text-[11px] text-muted-foreground rounded-[8px] border border-border/60 bg-muted/40 p-2">
+              Se vende y se factura, pero no se descuenta nada. Para un servicio,
+              una hora de trabajo o un plato.
+            </p>
+          )}
+        </div>
       </div>
       <div>
         <div className="flex items-center justify-between mb-1">

@@ -102,6 +102,17 @@ describe("lo que no lleva stock no se descuenta", () => {
       .toContain("maneja_stock");
   });
 
+  it("la ficha de producto deja elegirlo y lo persiste", () => {
+    // ⚠️ Una capacidad que sólo se puede activar desde la base es una
+    // capacidad que nadie va a usar. `docs/CAPACIDADES.md` existe justamente
+    // porque «está construido» y «se puede usar» se leen igual en un README.
+    const page = readFileSync(resolve(ROOT, "src/pages/ProductsPage.tsx"), "utf8");
+    expect(page, "el formulario no ofrece elegir si el producto lleva stock")
+      .toContain("setManejaStock");
+    expect(page, "el formulario elige `maneja_stock` pero no lo guarda")
+      .toMatch(/maneja_stock:\s*manejaStock/);
+  });
+
   it("los KPI de stock de Productos excluyen lo que no lleva stock", () => {
     // Un servicio se queda en el valor con el que se cargó —0 por default— así
     // que aparecía como agotado para siempre, inflando la alerta que el
