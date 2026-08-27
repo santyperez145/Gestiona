@@ -75,6 +75,39 @@ describe("los planes se muestran y se cobran en pesos", () => {
       .toContain("price_ars_monthly");
   });
 
+  it("guarda la suscripción por organización, no por preapproval", () => {
+    /**
+     * ⚠️ `onConflict: "mp_preapproval_id"` hacía fallar TODA contratación con
+     * un 500, y encima **después** de que MercadoPago ya había creado el
+     * preapproval.
+     *
+     * `subscriptions_mp_preapproval_unico` es un índice **parcial**
+     * (`WHERE mp_preapproval_id IS NOT NULL`), y `ON CONFLICT (col)` no puede
+     * inferir un índice parcial. Verificado contra producción:
+     *
+     *     ON CONFLICT (mp_preapproval_id)  → 42P10
+     *     ON CONFLICT (org_id)             → PASÓ, y también al cambiar de plan
+     *
+     * Y aunque el índice parcial sirviera, la tabla tiene `UNIQUE (org_id)`:
+     * un comercio que cambia de plan chocaría contra esa otra restricción, que
+     * no es el target del conflicto, y volvería a fallar.
+     *
+     * 📌 Misma familia que las notas de cliente, que decían «guardado» con una
+     * constraint que no existía.
+     */
+    expect(subscribe, "el upsert de la suscripción volvió a un target que no resuelve el conflicto")
+      .toMatch(/onConflict:\s*"org_id"/);
+    expect(subscribe, "volvió el conflicto sobre el índice parcial de mp_preapproval_id")
+      .not.toMatch(/onConflict:\s*"mp_preapproval_id"/);
+  });
+
+  it("si no se puede guardar, devuelve el preapproval para poder encontrarlo", () => {
+    // Cuando ese guardado falla, en MercadoPago quedó una suscripción creada.
+    // Un «escribinos» sin el id deja al comercio y al soporte buscando a ciegas.
+    expect(subscribe, "el error de guardado no devuelve el preapproval_id")
+      .toMatch(/error:[\s\S]{0,200}?preapproval_id:\s*String\(mp\.id\)/);
+  });
+
   it("y consigue el token sin pedir un secreto nuevo", () => {
     // ⚠️ `MP_APP_ID` NO es un token: es el identificador público de la app.
     // Pero con `MP_APP_ID` + `MP_APP_SECRET` —los que ya usa `mp-connect`—

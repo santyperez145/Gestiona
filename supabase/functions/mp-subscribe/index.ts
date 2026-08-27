@@ -225,6 +225,26 @@ Deno.serve(async (req) => {
   // Se guarda la suscripción en estado NO activo. La activa el webhook cuando
   // MercadoPago confirme el primer cobro: activarla acá le daría acceso a
   // alguien que abrió el link y nunca lo pagó.
+  // ⚠️ El conflicto se resuelve por `org_id`, NO por `mp_preapproval_id`.
+  //
+  // Dos razones, y la primera hacía fallar TODA contratación:
+  //
+  //  1. `subscriptions_mp_preapproval_unico` es un índice **parcial**
+  //     (`WHERE mp_preapproval_id IS NOT NULL`), y `ON CONFLICT (col)` no
+  //     puede inferir un índice parcial: Postgres corta con `42P10`, «there is
+  //     no unique or exclusion constraint matching the ON CONFLICT
+  //     specification». El upsert fallaba siempre, así que el comercio veía un
+  //     500 **después** de que MercadoPago ya había creado el preapproval.
+  //  2. La tabla tiene `UNIQUE (org_id)`: una suscripción por organización.
+  //     Aunque el índice parcial funcionara, un comercio que cambia de plan
+  //     chocaría contra esa otra restricción, que no es el target del
+  //     conflicto — y volvería a fallar.
+  //
+  // `org_id` es el invariante de verdad y cubre los dos casos: recontratar y
+  // cambiar de plan.
+  //
+  // 📌 El preapproval anterior no se duplica: `X-Idempotency-Key` es
+  // `org-plan-ciclo`, así que MercadoPago devuelve el mismo al reintentar.
   const { error: subErr } = await admin.from("subscriptions").upsert({
     org_id: orgId,
     plan_id: plan.id,
@@ -233,11 +253,17 @@ Deno.serve(async (req) => {
     ciclo,
     mp_preapproval_id: String(mp.id),
     mp_payer_email: user.email,
-  }, { onConflict: "mp_preapproval_id" });
+  }, { onConflict: "org_id" });
 
   if (subErr) {
     console.error("mp-subscribe: no se pudo guardar la suscripción", subErr);
-    return json({ error: "La suscripción se creó en MercadoPago pero no se pudo guardar. Escribinos." }, 500);
+    // Se devuelve el `preapproval_id` a propósito: si esto falla, en
+    // MercadoPago quedó una suscripción creada y hay que poder encontrarla.
+    return json({
+      error: "La suscripción se creó en MercadoPago pero no se pudo guardar de este lado. Escribinos con este código.",
+      preapproval_id: String(mp.id),
+      detalle: subErr.message,
+    }, 500);
   }
 
   return json({

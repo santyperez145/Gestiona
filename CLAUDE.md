@@ -1336,6 +1336,27 @@ una constraint que no existe (`42P10`) y sin mirar `.error`, así que la UI dec�
 "Nota guardada" con cero filas guardadas. Se escribe con `appendCustomerNote`,
 que lanza si falla.
 
+⚠️ **`42P10` volvió el 2026-08-27, y ahora por un índice PARCIAL.**
+`mp-subscribe` hacía `upsert(..., { onConflict: "mp_preapproval_id" })`, pero
+ese índice es `... WHERE mp_preapproval_id IS NOT NULL`. **`ON CONFLICT (col)`
+no puede inferir un índice parcial**: corta con «there is no unique or
+exclusion constraint matching the ON CONFLICT specification».
+
+Consecuencia: **toda contratación de plan fallaba con un 500**, y encima
+*después* de que MercadoPago ya había creado el preapproval. El comercio veía
+un error genérico y del otro lado quedaba una suscripción viva.
+
+📌 **Antes de elegir un `onConflict`, mirar el índice, no el nombre de la
+columna.** Un `UNIQUE` parcial se ve igual que uno completo en un diagrama:
+
+```bash
+npm run db -- --sql "select indexdef from pg_indexes where tablename='subscriptions'"
+```
+
+📌 Y el target correcto era `org_id`, que además es el invariante real
+(`UNIQUE (org_id)`: una suscripción por comercio). Con el otro, cambiar de plan
+habría chocado igual contra esa restricción, que no era el target del conflicto.
+
 `marketplace_fee` **cobra de verdad**, confirmado contra MercadoPago: se aplica
 en `store-pay` desde el commit 85fa7b1, con `platform_commission_amount()` como
 única fuente del número para que el checkout cobre exactamente lo que la
