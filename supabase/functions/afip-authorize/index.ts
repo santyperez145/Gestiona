@@ -355,9 +355,19 @@ Deno.serve(async (req) => {
     if (msg.includes("AFIP rechazó") || msg.includes("Resultado") || msg.includes("ErrMsg")) {
       afipStatus = "rejected";
       userMsg = `AFIP rechazó la factura: ${msg}`;
+    } else if (msg.includes("ARCA") || msg.includes("certificado") || msg.includes("Ticket de Acceso")) {
+      // `motivoDeWsaa` ya devuelve una frase accionable y en castellano: se
+      // pasa tal cual.
+      //
+      // ⚠️ Acá se le agregaba «Verificá el certificado y la clave privada en
+      // Ajustes», y desde el 2026-08-27 eso manda a un lugar que no existe:
+      // el comercio no sube certificados. El de la plataforma se administra en
+      // /platform/afip y el suyo tampoco lo toca desde el panel.
+      afipStatus = "config_error";
+      userMsg = msg;
     } else if (msg.includes("certificate") || msg.includes("private key") || msg.includes("WSAA")) {
       afipStatus = "config_error";
-      userMsg = `Error de credenciales AFIP: ${msg}. Verificá el certificado y la clave privada en Ajustes.`;
+      userMsg = `Error de credenciales AFIP: ${msg}`;
     } else if (msg.includes("HTTP 5") || msg.includes("timeout") || msg.includes("fetch")) {
       afipStatus = "network_error";
       userMsg = `Error de conexión con AFIP: ${msg}. Intentá de nuevo en unos minutos.`;
@@ -400,12 +410,63 @@ Deno.serve(async (req) => {
 // ─────────────────────────────────────────────────────────────
 // WSAA — Ticket de Acceso
 // ─────────────────────────────────────────────────────────────
+/**
+ * Lo que dijo WSAA, en castellano y con qué hacer.
+ *
+ * ⚠️ Antes esto devolvía `xml.slice(0, 300)` del SOAP crudo. Los primeros 300
+ * caracteres de un Fault de Axis son el `<?xml?>`, cinco declaraciones de
+ * namespace y el `<faultcode>` — **el `<faultstring>`, que es el único texto
+ * legible, empieza después del corte**. O sea que se mostraba exactamente la
+ * parte inútil, y el reporte que llegó terminaba en «ns1:xml.» sin decir qué
+ * pasó.
+ */
+function motivoDeWsaa(xml: string): string {
+  const code = (extractXml(xml, "faultcode") || "").replace(/^\w+:/, "");
+  const detalle = extractXml(xml, "faultstring") || "";
+
+  // Los códigos que documenta ARCA para WSAA. Cada uno manda a un lugar
+  // distinto, y confundirlos hace perder una tarde.
+  const conocidos: Record<string, string> = {
+    "coe.alreadyAuthenticated":
+      "ARCA ya entregó un Ticket de Acceso vigente para este certificado y no da otro hasta que venza (dura ~12 h). "
+      + "No es un problema de configuración: esperá o volvé a intentar más tarde.",
+    "coe.notAuthorized":
+      "El certificado no tiene autorizado el servicio wsfe. Hay que asociarlo desde el Administrador de Relaciones de ARCA.",
+    "cms.cert.untrusted":
+      "ARCA no reconoce el certificado: no lo emitió su autoridad certificante, o es de producción usándose en homologación (o al revés).",
+    "cms.cert.expired": "El certificado venció. Hay que generar uno nuevo en ARCA.",
+    "cms.cert.notFound": "El pedido no incluyó el certificado.",
+    "cms.sign.invalid": "La firma no valida: el certificado y la clave privada no son del mismo par.",
+    "cms.bad": "ARCA no pudo leer el mensaje firmado (CMS mal formado).",
+    "wsaa.unavailable": "El servicio de ARCA no está disponible en este momento.",
+    "wsaa.internalError": "Error interno de ARCA. No es algo de este lado.",
+  };
+
+  const explicado = conocidos[code];
+  if (explicado) return `${explicado} (código de ARCA: ${code})`;
+
+  // Sin código conocido, lo que dijo ARCA textual — el faultstring primero,
+  // que es lo legible, y recién después el código.
+  if (detalle) return `ARCA respondió: ${detalle}${code ? ` (código ${code})` : ""}`;
+  if (code) return `ARCA respondió con el código ${code}`;
+  return xml.slice(0, 300);
+}
+
 async function getTicketAcceso(
   wsaaUrl: string,
   certPem: string,
   keyPem: string,
 ): Promise<{ token: string; sign: string; expiresAt: string }> {
   const now = new Date();
+
+  // ⚠️ `toISOString()` devuelve UTC. Escribir esa hora y firmarla con el
+  // sufijo `-03:00` declara la hora UTC como si fuera hora argentina, o sea
+  // **tres horas en el futuro**. ARCA valida la ventana del TRA contra su
+  // propio reloj, así que se convierte el instante a hora argentina antes de
+  // formatear.
+  const ART = 3 * 3600_000;
+  const enArgentina = (t: number) => new Date(t - ART).toISOString().slice(0, 19) + "-03:00";
+
   const gen = new Date(now.getTime() - 60_000);
   const exp = new Date(now.getTime() + 12 * 3600_000);
 
@@ -414,8 +475,8 @@ async function getTicketAcceso(
     '<loginTicketRequest version="1.0">',
     "  <header>",
     `    <uniqueId>${Math.floor(now.getTime() / 1000)}</uniqueId>`,
-    `    <generationTime>${gen.toISOString().slice(0, 19)}-03:00</generationTime>`,
-    `    <expirationTime>${exp.toISOString().slice(0, 19)}-03:00</expirationTime>`,
+    `    <generationTime>${enArgentina(gen.getTime())}</generationTime>`,
+    `    <expirationTime>${enArgentina(exp.getTime())}</expirationTime>`,
     "  </header>",
     "  <service>wsfe</service>",
     "</loginTicketRequest>",
@@ -463,11 +524,21 @@ async function getTicketAcceso(
   });
 
   const xml = await resp.text();
-  if (!resp.ok) throw new Error(`WSAA HTTP ${resp.status}: ${xml.slice(0, 300)}`);
+  // El XML completo va al log de la función, donde sí sirve para diagnosticar.
+  // A la pantalla va el motivo, que es lo que el comercio puede accionar.
+  if (!resp.ok) {
+    console.error("WSAA fault", resp.status, xml);
+    throw new Error(motivoDeWsaa(xml));
+  }
 
   const token = extractXml(xml, "token");
   const sign = extractXml(xml, "sign");
-  if (!token || !sign) throw new Error("WSAA no devolvió Token/Sign. Respuesta: " + xml.slice(0, 500));
+  if (!token || !sign) {
+    // Axis a veces devuelve el Fault con HTTP 200. Sin esto, el mensaje sería
+    // «no devolvió Token/Sign» tapando el motivo, que está en el mismo XML.
+    console.error("WSAA sin token/sign", xml);
+    throw new Error(motivoDeWsaa(xml));
+  }
 
   return { token, sign, expiresAt: exp.toISOString() };
 }

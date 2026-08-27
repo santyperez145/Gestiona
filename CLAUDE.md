@@ -1326,6 +1326,18 @@ un 0 legítimo en NULL y el exento pasaría a gravado.
   ("historial de precios") figuraba como faltante y estaba entero: 656 filas,
   627 con autor, trigger y gráfico en pantalla. Empezar por el código lo habría
   construido dos veces.
+- **`toISOString()` es UTC: pegarle `-03:00` mueve la hora tres horas.**
+  `d.toISOString().slice(0,19) + "-03:00"` toma la hora UTC y la **declara**
+  hora argentina, así que el instante queda 3 h en el futuro. Estaba así en el
+  TRA de WSAA desde el commit original de AFIP (`82122e4`): el pedido le decía
+  a ARCA que se había generado 3 horas más tarde y que vencía a las 15 h.
+  Para escribir una hora con offset hay que **convertir el instante primero**
+  (`new Date(t - 3*3600e3)`), o usar el `Z` que ya trae `toISOString()`.
+- **El primer error de un SOAP Fault es el inútil.** Cortar la respuesta con
+  `xml.slice(0, 300)` muestra el `<?xml?>`, los namespaces y el `<faultcode>`
+  — y el `<faultstring>`, que es el único texto legible, **empieza después del
+  corte**. El reporte que llegó decía `ns1:xml.` y nada más. Se parsea el
+  fault y se muestra `faultstring`; el XML entero va al log de la función.
 - **`LIKE '%_iva%'` matchea "inactiva".** El `_` es comodín de un carácter. Para
   buscar un nombre de columna que empieza con guión bajo hay que escaparlo.
 - **Verificar en los dos sentidos.** Una búsqueda difusa que "encuentra" no
