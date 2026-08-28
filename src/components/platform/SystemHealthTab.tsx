@@ -28,29 +28,56 @@ interface FunctionStat {
   status: "ok" | "warning" | "error" | "unknown";
 }
 
-const EXPECTED_SECRETS: Omit<SecretStatus, "configured">[] = [
-  // Always auto-injected — no action needed
-  { name: "SUPABASE_URL", required: true, category: "core", description: "Inyectado automáticamente por Supabase" },
-  { name: "SUPABASE_ANON_KEY", required: true, category: "core", description: "Inyectado automáticamente por Supabase" },
-  { name: "SUPABASE_SERVICE_ROLE_KEY", required: true, category: "core", description: "Inyectado automáticamente por Supabase" },
+/**
+ * Qué es cada secreto, para que el panel no muestre nombres crudos.
+ *
+ * ⚠️ Esto **ya no es la lista**: la autoridad es `platform-admin-action`, que
+ * es la única que puede leer el entorno. Antes había dos listas que tenían que
+ * coincidir y —medido el 2026-08-28— habían divergido en las dos direcciones:
+ * mostraban Twilio y Tiendanube, que nadie usa, y no mostraban
+ * `BACKUP_CRON_SECRET` ni `SMTP_PASSWORD`, de los que dependen los 19 crons y
+ * todo el correo.
+ *
+ * 📌 Un secreto que la función reporte y no esté acá se muestra igual, con una
+ * descripción genérica. Es a propósito: **la lista no puede esconder algo que
+ * el servidor sí ve.**
+ */
+const DESCRIPCIONES: Record<string, Omit<SecretStatus, "configured" | "name">> = {
+  SUPABASE_URL:              { required: true,  category: "core",  description: "Inyectado automáticamente por Supabase" },
+  SUPABASE_ANON_KEY:         { required: true,  category: "core",  description: "Inyectado automáticamente por Supabase" },
+  SUPABASE_SERVICE_ROLE_KEY: { required: true,  category: "core",  description: "Inyectado automáticamente por Supabase" },
 
-  // Required for core functionality
-  { name: "ANTHROPIC_API_KEY", required: true, category: "ai", description: "Habilita Chat IA, predicciones, descripciones automáticas" },
-  { name: "RESEND_API_KEY", required: true, category: "email", description: "Envía emails (facturas, campañas, recuperación de contraseña)" },
-  { name: "FROM_EMAIL", required: true, category: "email", description: "Dirección remitente verificada en Resend" },
+  ANTHROPIC_API_KEY:         { required: true,  category: "ai",    description: "Sin esta clave TODA la IA responde error: copiloto, descripciones, análisis y recomendaciones" },
 
-  // Payments
-  { name: "STRIPE_SECRET_KEY", required: false, category: "payments", description: "Cobros de suscripciones del SaaS" },
-  { name: "STRIPE_WEBHOOK_SECRET", required: false, category: "payments", description: "Verifica webhooks de Stripe" },
-  { name: "MP_WEBHOOK_SECRET", required: false, category: "payments", description: "Verifica webhooks de Mercado Pago" },
+  RESEND_API_KEY:            { required: false, category: "email", description: "Envío por Resend. Alternativa: SMTP propio" },
+  FROM_EMAIL:                { required: false, category: "email", description: "Remitente verificado en Resend" },
+  SMTP_PASSWORD:             { required: true,  category: "email", description: "Clave del SMTP propio. Es por acá que sale el correo hoy" },
+  RESEND_WEBHOOK_SECRET:     { required: false, category: "email", description: "Verifica los webhooks de Resend (rebotes, quejas)" },
 
-  // Integrations
+  MP_APP_ID:                 { required: true,  category: "payments", description: "Identificador público de la app. Con el secret deriva el token de plataforma" },
+  MP_APP_SECRET:             { required: true,  category: "payments", description: "Secreto de la app: OAuth de los comercios y token de plataforma" },
+  MP_WEBHOOK_SECRET:         { required: true,  category: "payments", description: "Verifica la firma de los webhooks. Sin esto una compra queda pagada de un lado e impaga del otro" },
+  MP_PLATFORM_ACCESS_TOKEN:  { required: false, category: "payments", description: "Token de plataforma explícito. Si falta se deriva de MP_APP_ID + MP_APP_SECRET" },
 
-  // WhatsApp (optional)
-  { name: "TWILIO_ACCOUNT_SID", required: false, category: "whatsapp", description: "Mensajes de WhatsApp en automatizaciones" },
-  { name: "TWILIO_AUTH_TOKEN", required: false, category: "whatsapp", description: "Auth de Twilio" },
-  { name: "TWILIO_WHATSAPP_FROM", required: false, category: "whatsapp", description: "Número Twilio (whatsapp:+1...)" },
-];
+  BACKUP_CRON_SECRET:        { required: true,  category: "core",  description: "Identifica al cron ante las 19 tareas programadas. Sin esto ninguna corre" },
+
+  WHATSAPP_TOKEN:            { required: false, category: "whatsapp", description: "Token de la API oficial de Meta. Sin esto no sale ningún WhatsApp" },
+
+  VAPID_PUBLIC_KEY:          { required: false, category: "core", description: "Notificaciones push del navegador" },
+  VAPID_PRIVATE_KEY:         { required: false, category: "core", description: "Notificaciones push del navegador" },
+  VAPID_SUBJECT:             { required: false, category: "core", description: "Contacto declarado en las push (mailto:)" },
+
+  PUBLIC_BASE_URL:           { required: false, category: "core", description: "Base de los enlaces que salen en emails y WhatsApp" },
+  PLATFORM_ALLOWED_ORIGINS:  { required: false, category: "core", description: "Orígenes permitidos para las funciones de plataforma" },
+
+  FINANCE_DOCUMENT_EXTRACTION_ENABLED: { required: false, category: "integrations", description: "Habilita la extracción automática en el buzón de Finance" },
+  FINANCE_DOCUMENT_MODEL:              { required: false, category: "integrations", description: "Modelo usado para extraer un comprobante" },
+  FINANCE_DOCUMENT_SCANNER_URL:        { required: false, category: "integrations", description: "Scanner de archivos subidos a Finance" },
+  FINANCE_DOCUMENT_SCANNER_TOKEN:      { required: false, category: "integrations", description: "Auth del scanner de Finance" },
+
+  STRIPE_SECRET_KEY:         { required: false, category: "payments", description: "Sólo lo lee `stripe-webhook`. El cobro real es por MercadoPago" },
+  STRIPE_WEBHOOK_SECRET:     { required: false, category: "payments", description: "Sólo lo lee `stripe-webhook`. El cobro real es por MercadoPago" },
+};
 
 const CATEGORY_META: Record<SecretStatus["category"], { label: string; icon: typeof KeyRound; color: string }> = {
   core: { label: "Sistema", icon: Server, color: "text-slate-400" },
@@ -62,7 +89,7 @@ const CATEGORY_META: Record<SecretStatus["category"], { label: string; icon: typ
 };
 
 export default function SystemHealthTab() {
-  const [secrets, setSecrets] = useState<SecretStatus[]>(EXPECTED_SECRETS.map(s => ({ ...s, configured: null })));
+  const [secrets, setSecrets] = useState<SecretStatus[]>([]);
   const [functionStats, setFunctionStats] = useState<FunctionStat[]>([]);
   const [errorCount24h, setErrorCount24h] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -77,9 +104,16 @@ export default function SystemHealthTab() {
         body: { action: "checkSecrets" },
       });
       if (!error && data?.secrets) {
-        setSecrets(EXPECTED_SECRETS.map(s => ({
-          ...s,
-          configured: data.secrets[s.name] === true,
+        // La función manda qué secretos existen; acá sólo se les pone nombre.
+        // Uno que ella reporte y no esté en DESCRIPCIONES se muestra igual.
+        setSecrets(Object.entries(data.secrets as Record<string, boolean>).map(([name, ok]) => ({
+          name,
+          configured: ok === true,
+          ...(DESCRIPCIONES[name] ?? {
+            required: false,
+            category: "core" as const,
+            description: "Sin descripción todavía — se agrega en SystemHealthTab.",
+          }),
         })));
       }
     } catch {

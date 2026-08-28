@@ -752,12 +752,48 @@ Deno.serve(async (req) => {
     // Returns boolean map of which platform secrets are configured.
     // Never returns the actual values — safe to expose to platform admins.
     if (action === "checkSecrets") {
+      /**
+       * ⚠️ Esta lista habia quedado vieja, y de las dos maneras posibles.
+       *
+       * Medido el 2026-08-28 comparandola contra lo que las Edge Functions
+       * REALMENTE leen con `Deno.env.get`:
+       *
+       *   - **Cuatro que se chequeaban y nadie usa**: TIENDANUBE_CLIENT_SECRET
+       *     y los tres de TWILIO. WhatsApp pasó a la API oficial de Meta el
+       *     2026-08-27 y Twilio nunca se conecto. Aparecian como «falta
+       *     configurar» algo que no hace falta: ruido que enseña a ignorar el
+       *     panel.
+       *   - **Dieciseis que el codigo usa y no se chequeaban**, entre ellos
+       *     `BACKUP_CRON_SECRET` —que desde el 2026-08-28 gatea las 19 tareas
+       *     programadas— y `SMTP_PASSWORD`, del que depende todo el correo.
+       *
+       * 📌 La guarda es `losSecretosQueSeChequeanSeUsan.test.ts`, que compara
+       * esta lista contra el codigo y falla cuando divergen. Mantenerla a mano
+       * es como llegó a este estado.
+       */
       const names = [
+        // Inyectados por Supabase
         "SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY",
-        "ANTHROPIC_API_KEY", "RESEND_API_KEY", "FROM_EMAIL",
-        "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "MP_WEBHOOK_SECRET",
-        "TIENDANUBE_CLIENT_SECRET",
-        "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_FROM",
+        // IA
+        "ANTHROPIC_API_KEY",
+        // Correo
+        "RESEND_API_KEY", "FROM_EMAIL", "SMTP_PASSWORD", "RESEND_WEBHOOK_SECRET",
+        // Cobros y suscripciones
+        "MP_APP_ID", "MP_APP_SECRET", "MP_WEBHOOK_SECRET", "MP_PLATFORM_ACCESS_TOKEN",
+        // Tareas programadas
+        "BACKUP_CRON_SECRET",
+        // WhatsApp (API oficial de Meta)
+        "WHATSAPP_TOKEN",
+        // Notificaciones push
+        "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT",
+        // Enlaces publicos y CORS
+        "PUBLIC_BASE_URL", "PLATFORM_ALLOWED_ORIGINS",
+        // Finance (opcionales: el buzon funciona sin extraccion automatica)
+        "FINANCE_DOCUMENT_EXTRACTION_ENABLED", "FINANCE_DOCUMENT_MODEL",
+        "FINANCE_DOCUMENT_SCANNER_URL", "FINANCE_DOCUMENT_SCANNER_TOKEN",
+        // Stripe: sigue leido por `stripe-webhook`, que no se borro porque un
+        // webhook puede tener un llamador externo que no se ve desde el codigo.
+        "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
       ];
       const secrets: Record<string, boolean> = {};
       for (const n of names) {
