@@ -184,6 +184,20 @@ duele que falte.
    `whatsapp_proveedor = 'ninguno'`. La integración es la API oficial de Meta y
    necesita un número y un token de la plataforma.
 
+⚠️ **Y un riesgo que no es un bloqueador pero se cobra solo: 36 de 60
+imágenes del catálogo viven en otro proyecto Supabase.** Hoy responden 200,
+pero `wcfohngxrtopgggumjmw` no está en ninguna configuración, no entra en los
+backups del proyecto actual, y Supabase pausa los proyectos gratuitos por
+inactividad —servir imágenes estáticas puede no contar como actividad—. El día
+que se pause, la tienda pierde el 60% de las fotos **en silencio**: el navegador
+muestra un hueco, no un error.
+
+📌 Se ve con `audit_imagen_en_otro_proyecto`, que a diferencia de las demás
+vistas de auditoría **no tiene que estar vacía**: describe algo que sigue ahí.
+Moverlas es descargar y subir archivo por archivo —subir, comprobar que la URL
+nueva responde 200, y recién entonces actualizar la fila—, y eso toca el
+catálogo real, así que es decisión del dueño.
+
 📌 **El correo SÍ sale, y eso cambió.** `platform_messaging_config` tiene
 `smtp_configurado = true` con Gmail (`smtp.gmail.com:465`), y el envío se probó
 de punta a punta el 2026-08-28. ⚠️ Pero `email_dominio` está en NULL: sale desde
