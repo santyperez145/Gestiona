@@ -1427,8 +1427,8 @@ npx supabase gen types typescript --project-id hummeopatkniwkyrrhwc > src/integr
 ### Secretos sin los cuales hay features muertas
 
 Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md). Los dos que más duelen:
-`ANTHROPIC_API_KEY` (toda la IA responde error) y `RESEND_API_KEY` (los crons de
-email corren, encuentran los destinatarios y no pueden enviar).
+`ANTHROPIC_API_KEY` (toda la IA responde error) y, hasta el 2026-08-27, el
+envío de correo —ya resuelto por SMTP, ver abajo—.
 
 ⚠️ **Y `RESEND_API_KEY` ya no es el problema: la cuenta de Resend sí lo es.**
 Medido el 2026-08-27 mandando un mail real desde `precio-suscripcion` a un
@@ -1444,8 +1444,20 @@ proveedores y el aviso de cambio de precio, todos. Es peor que la clave faltante
 porque el síntoma es idéntico —nadie recibe nada— pero la doc decía que faltaba
 la clave y mirar ahí no lleva a ningún lado.
 
-📌 Espera al dueño: verificar un dominio en `resend.com/domains` y poner
-`RESEND_FROM` con una casilla de ese dominio.
+✅ **Resuelto el 2026-08-27 por otro camino, y esta sección quedó vieja: el
+correo sale.** No hacía falta un dominio para desbloquearlo. `platform_messaging_config`
+tiene `smtp_configurado = true` con Gmail (`smtp.gmail.com:465`), y el envío se
+probó de punta a punta el 2026-08-28: un aviso marcado → la cola →
+`avisos-por-correo` devuelve `enviados: 1` → `email_enviado_at` estampado.
+
+⚠️ **Pero es un techo, no una solución completa.** `email_dominio` sigue en
+NULL: sale desde una casilla de Gmail, no desde un dominio propio. Alcanza para
+avisos transaccionales a un puñado de comercios; **no alcanza para campañas**
+—una cuenta personal de Gmail tiene tope diario y termina en spam—.
+
+📌 Sigue esperando al dueño para escalar: verificar un dominio (en Resend o
+donde sea) y ponerlo en Plataforma → Mensajería. Ahí `email_listo` pasa a true
+y las campañas dejan de ser un riesgo de reputación.
 
 ### Brechas contra Tiendanube / Empretienda
 
