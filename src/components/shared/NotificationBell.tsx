@@ -30,16 +30,43 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
+
+    const { data, error } = await supabase
       .from('notifications')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(30);
-    if (data) {
-      setNotifications(data as Notification[]);
-      setUnreadCount(data.filter(n => !n.read).length);
+
+    if (error) {
+      // Sin esto, «no tengo permiso» y «no hay nada» se ven igual.
+      console.error('No se pudieron leer las notificaciones', error);
+      return;
     }
+    if (data) setNotifications(data as Notification[]);
+
+    /**
+     * ⚠️ El contador se pide aparte, y no se cuenta sobre las 30 de arriba.
+     *
+     * Antes era `data.filter(n => !n.read).length` sobre una lista con
+     * `.limit(30)`, así que **el badge no podía pasar de 30** — y justo abajo
+     * hay un `unreadCount > 99 ? '99+'` que no se alcanzaba nunca.
+     *
+     * 📌 Medido el 2026-08-28: el dueño tenía 168 notificaciones sin leer y el
+     * badge decía 30. Un contador que se queda quieto deja de avisar, que es
+     * exactamente lo que un contador tiene que hacer.
+     */
+    const { count, error: errCount } = await supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('read', false);
+
+    if (errCount) {
+      console.error('No se pudo contar las notificaciones sin leer', errCount);
+      return;
+    }
+    setUnreadCount(count ?? 0);
   }, [user]);
 
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
