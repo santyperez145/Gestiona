@@ -4,6 +4,8 @@
  * o pisa el de otra organización.
  */
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   validarImagen, rutaDeSubida, extensionDe, escalaPara, pesoLegible,
   PRESETS, MAX_BYTES,
@@ -120,5 +122,57 @@ describe("pesoLegible", () => {
     expect(pesoLegible(512)).toBe("512 B");
     expect(pesoLegible(2048)).toBe("2 KB");
     expect(pesoLegible(5 * 1024 * 1024)).toBe("5.0 MB");
+  });
+});
+
+/**
+ * ── La foto del producto no puede ser un PNG entero ────────────────────────
+ *
+ * ⚠️ Medido en la tienda real el 2026-08-28: **las 50 imágenes del catálogo son
+ * PNG y pesan 9,6 MB** —~190 KB cada una— servidas dentro de tarjetas de ~160px
+ * en mobile. Y Supabase no transforma imágenes en este plan (`/render/image/`
+ * devuelve 403), así que no hay redimensionado al servir: lo que se sube es lo
+ * que baja el comprador.
+ *
+ * La causa era una línea razonable con una consecuencia que no se ve:
+ * `file.type === "image/png" ? "image/png" : "image/jpeg"`, para no perder la
+ * transparencia de un logo. Pero **`canvas.toBlob` ignora la calidad cuando el
+ * formato es PNG**, porque PNG es sin pérdida. Una foto subida como PNG se
+ * guardaba entera.
+ *
+ * 📌 WebP resuelve las dos cosas a la vez: soporta transparencia **y** comprime
+ * con pérdida. No hay que elegir entre el logo y el peso.
+ */
+describe("comprimirImagen elige el formato que pesa menos", () => {
+  const fuente = readFileSync(
+    join(process.cwd(), "src", "lib", "imageUpload.ts"), "utf8",
+  );
+
+  it("intenta WebP antes que PNG o JPEG", () => {
+    expect(fuente).toMatch(/codificar\("image\/webp"\)/);
+  });
+
+  it("⚠️ comprueba que el navegador lo haya producido de verdad", () => {
+    /**
+     * `toBlob` con un tipo que no soporta **devuelve PNG en silencio**, sin
+     * error. Sin este chequeo, un Safari viejo subiría PNGs enormes creyendo
+     * que son WebP — el mismo bug con otro disfraz.
+     */
+    expect(
+      fuente,
+      "no verifica el tipo del blob: un navegador sin WebP subiría PNG creyendo que comprimió",
+    ).toMatch(/blob\.type\s*!==\s*"image\/webp"/);
+  });
+
+  it("conserva el camino viejo cuando WebP no está", () => {
+    // Un navegador sin WebP tiene que seguir respetando la transparencia del
+    // PNG, aunque pese más. Perder el fondo de un logo es peor que 190 KB.
+    expect(fuente).toMatch(/file\.type === "image\/png" \? "image\/png" : "image\/jpeg"/);
+  });
+
+  it("la extensión sigue al formato real, no al del archivo original", () => {
+    // Subir un WebP llamado `.png` hace que algunos CDN sirvan el
+    // Content-Type equivocado y el navegador confíe en el nombre.
+    expect(fuente).toMatch(/salida === "image\/webp" \? "\.webp"/);
   });
 });

@@ -125,18 +125,52 @@ export async function comprimirImagen(file: File, limites: Limites): Promise<Fil
     ctx.drawImage(bitmap, 0, 0, ancho, alto);
     bitmap.close?.();
 
-    // PNG se mantiene PNG para no perder transparencia — un logo recortado
-    // sobre fondo transparente pasado a JPEG queda con un rectángulo blanco.
-    const salida = file.type === "image/png" ? "image/png" : "image/jpeg";
-    const blob = await new Promise<Blob | null>(res =>
-      canvas.toBlob(res, salida, limites.calidad));
+    /**
+     * ── Se intenta WebP primero, y no es una preferencia técnica ───────────
+     *
+     * ⚠️ Antes esto era `file.type === "image/png" ? "image/png" : "image/jpeg"`,
+     * con un motivo correcto: un logo recortado sobre fondo transparente
+     * pasado a JPEG queda con un rectángulo blanco.
+     *
+     * Pero **`canvas.toBlob` ignora la calidad cuando el formato es PNG** —es
+     * sin pérdida—, así que una foto subida como PNG se guardaba entera. Medido
+     * en la tienda real el 2026-08-28: las 50 imágenes del catálogo son PNG y
+     * pesan **9,6 MB**, ~190 KB cada una, servidas dentro de tarjetas de ~160px
+     * en mobile.
+     *
+     * 📌 WebP resuelve las dos cosas al mismo tiempo: **soporta transparencia y
+     * comprime con pérdida**. No hay que elegir entre el logo y el peso.
+     *
+     * ⚠️ Y hay que comprobar que el navegador lo haya producido de verdad:
+     * `toBlob` con un tipo que no soporta **devuelve PNG en silencio**, sin
+     * error. Sin ese chequeo, un Safari viejo subiría PNGs enormes creyendo que
+     * son WebP, que es exactamente el bug que esto viene a arreglar.
+     */
+    const codificar = (tipo: string) =>
+      new Promise<Blob | null>(res => canvas.toBlob(res, tipo, limites.calidad));
+
+    let blob = await codificar("image/webp");
+    let salida = "image/webp";
+
+    if (!blob || blob.type !== "image/webp") {
+      // El navegador no sabe WebP: se vuelve al criterio anterior, que conserva
+      // la transparencia del PNG aunque pese más.
+      salida = file.type === "image/png" ? "image/png" : "image/jpeg";
+      blob = await codificar(salida);
+    }
     if (!blob) return file;
 
     // Si comprimir no ayudó, se sube el original: recomprimir un JPEG ya
     // optimizado sólo suma artefactos.
     if (blob.size >= file.size && escala === 1) return file;
 
-    const nombre = file.name.replace(/\.[^.]+$/, "") + (salida === "image/png" ? ".png" : ".jpg");
+    // La extensión sigue al formato real, no al del archivo original: subir un
+    // WebP llamado `.png` hace que el navegador confíe en el nombre y algunos
+    // CDN sirvan el Content-Type equivocado.
+    const ext = salida === "image/webp" ? ".webp"
+              : salida === "image/png"  ? ".png"
+              : ".jpg";
+    const nombre = file.name.replace(/\.[^.]+$/, "") + ext;
     return new File([blob], nombre, { type: salida });
   } catch {
     // HEIC sin soporte, imagen corrupta, canvas bloqueado: se sube el original
