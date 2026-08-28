@@ -183,7 +183,40 @@ Deno.serve(async (req) => {
     if (!previa || opcion.monto < previa.monto) mejorPorCuota.set(cuotas, opcion);
   }
 
-  const opciones = [...mejorPorCuota.values()].sort((a, b) => a.cuotas - b.cuotas);
+  const todas = [...mejorPorCuota.values()].sort((a, b) => a.cuotas - b.cuotas);
+
+  // ⚠️ Se filtra por lo que el comercio ACEPTA, con la misma autoridad que usa
+  // el cobro.
+  //
+  // Hasta el 2026-08-27 esto devolvía todo lo que ofrece MercadoPago, y
+  // `store-pay` —el que cobra— validaba después contra `cuotas_permitidas`. O
+  // sea que el comprador veía «12 cuotas sin interés» en la ficha, elegía 12, y
+  // el checkout se las rechazaba. Un plan que se muestra y no se puede pagar es
+  // peor que no mostrar cuotas: el que abandona ya había decidido comprar.
+  //
+  // 📌 `cuotas_disponibles` es la misma fuente que configura Ajustes
+  // (`org_installment_plans`). Una sola configuración, leída por la ficha y por
+  // el cobro.
+  let opciones = todas;
+  const permitidas = await admin.rpc("cuotas_disponibles", {
+    p_org: tienda.org_id, p_monto: amount, p_provider: "mercadopago",
+  });
+
+  if (permitidas.error) {
+    // No se traga: si no se puede saber qué acepta el comercio, se muestra sin
+    // cuotas. Mostrar de más es prometer algo que el checkout va a negar.
+    console.error("cuotas_disponibles falló", permitidas.error);
+    return json({ opciones: [], motivo: "no_se_pudo_validar" });
+  }
+
+  const aceptadas = new Set(
+    (permitidas.data ?? []).map((r: { installments: number }) => Number(r.installments)),
+  );
+  // Un comercio sin ninguna configurada no restringe nada: es el estado de
+  // quien nunca entró a esa pantalla, no una decisión de no aceptar cuotas.
+  if (aceptadas.size > 0) {
+    opciones = todas.filter(o => o.cuotas === 1 || aceptadas.has(o.cuotas));
+  }
 
   // Lo que la ficha necesita para una sola línea: la mejor cuota sin interés
   // —que es el gancho— y el máximo de cuotas disponible.

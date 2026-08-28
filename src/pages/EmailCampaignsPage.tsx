@@ -163,6 +163,34 @@ export default function EmailCampaignsPage() {
   const { activeOrg } = useOrg();
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  /**
+   * Si la plataforma puede mandar correo, y desde qué dirección.
+   *
+   * 📌 Sale de `mensajeria_de_plataforma`, que es la misma fuente que usan las
+   * funciones al enviar. Escribir la dirección a mano acá es cómo el cartel
+   * anterior terminó nombrando un dominio que ya no se usa.
+   */
+  const [envio, setEnvio] = useState<{ puede: boolean; desde: string | null } | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const { data, error } = await supabase.rpc("mensajeria_de_plataforma");
+      if (error) { console.error("mensajeria_de_plataforma", error); return; }
+      const c = data as unknown as {
+        email_listo?: boolean; smtp_configurado?: boolean;
+        smtp_from_email?: string | null; email_nombre?: string | null;
+        email_dominio?: string | null; email_casillas?: Record<string, string> | null;
+      };
+      const casilla = c?.email_casillas?.marketing ?? c?.email_casillas?.default ?? "noreply";
+      setEnvio({
+        puede: Boolean(c?.smtp_configurado || c?.email_listo),
+        desde: c?.smtp_configurado
+          ? (c.smtp_from_email ?? null)
+          : (c?.email_dominio ? `${casilla}@${c.email_dominio}` : null),
+      });
+    })();
+  }, []);
+
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [salesData, setSalesData] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<{ id: string; code: string }[]>([]);
@@ -490,14 +518,38 @@ export default function EmailCampaignsPage() {
         <KPICard label="Tasa apertura" value={openRate} icon={MailOpen} color="success" sub={`${totalOpensEmails} abiertos`} />
       </div>
 
-      {/* Warning: no email configured */}
-      <div className="flex items-start gap-3 rounded-lg border border-yellow-800/40 bg-yellow-950/20 px-4 py-3 text-sm text-yellow-300">
-        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-        <div>
-          Para enviar, configurá <strong>RESEND_API_KEY</strong> en las variables de entorno de Supabase y verificá tu dominio en Resend.
-          Los emails salen desde <code className="text-xs">marketing@gestiona.app</code>.
+      {/**
+        * ⚠️ Acá había un cartel FIJO que decía: «configurá RESEND_API_KEY en las
+        * variables de entorno de Supabase y verificá tu dominio. Los emails
+        * salen desde marketing@gestiona.app».
+        *
+        * Tres problemas en tres renglones:
+        *
+        *  1. **Se mostraba siempre**, estuviera configurado o no. Una
+        *     advertencia que aparece igual cuando todo funciona deja de leerse.
+        *  2. **Nombraba un secreto que el comercio no puede tocar.** Es de la
+        *     plataforma; pedírselo al que vende perfumes es mandarlo a un lugar
+        *     donde no tiene acceso ni tiene por qué tenerlo.
+        *  3. **La dirección estaba escrita a mano** y quedó vieja el día que el
+        *     remitente pasó a configurarse.
+        *
+        * Ahora sale del estado real y sólo cuando hace falta.
+        */}
+      {envio && !envio.puede && (
+        <div className="flex items-start gap-3 rounded-lg border border-yellow-800/40 bg-yellow-950/20 px-4 py-3 text-sm text-yellow-300">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div>
+            Todavía no podés enviar campañas: el correo de la plataforma no está
+            configurado. Escribinos y lo dejamos listo — no es algo que tengas
+            que resolver vos.
+          </div>
         </div>
-      </div>
+      )}
+      {envio?.puede && envio.desde && (
+        <p className="text-xs text-muted-foreground">
+          Tus campañas salen desde <strong>{envio.desde}</strong>.
+        </p>
+      )}
 
       {/* Campaigns list */}
       {loading ? (

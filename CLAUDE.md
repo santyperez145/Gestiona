@@ -1178,6 +1178,27 @@ npm run db -- --file x.sql      # SQL contra la base (necesita SUPABASE_DB_URL)
 quedar sin deployar. Va sin JWT **sólo** lo que esté en la allowlist explícita
 del script. Si falla con `Import ... 521`, es esm.sh caído — reintentar.
 
+⚠️ **Un deploy con exit code 0 NO prueba que la versión nueva quedó viva.**
+Medido el 2026-08-27: `cancel-subscription` se deployó, el comando salió con 0,
+y en producción seguía corriendo la versión anterior —la de Stripe, que hace
+`requireEnv("STRIPE_SECRET_KEY")` al cargar el módulo—. Como revienta al
+arrancar, devolvía **500 hasta en el preflight**, así que el navegador ni
+llegaba a llamarla: «CORS policy: Response to preflight request doesn't pass
+access control check».
+
+📌 La prueba es **llamarla**, no leer el código de salida:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}
+' -X OPTIONS   -H 'Origin: https://exentryimports.vercel.app'   -H 'Access-Control-Request-Method: POST'   https://hummeopatkniwkyrrhwc.supabase.co/functions/v1/<funcion>
+```
+
+200 es que arrancó. 500 en OPTIONS es casi siempre que el módulo no carga.
+
+⚠️ Y ese chequeo **sólo vale para las funciones que llama el navegador**. Un
+cron como `send-birthday-whatsapp` no implementa `OPTIONS` y da 500 sin que eso
+signifique nada — buscarle el problema es perder una hora.
+
 ---
 
 ## Estado y pendientes
