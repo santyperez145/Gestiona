@@ -1338,13 +1338,41 @@ export default function SettingsPage() {
             <span className="text-xs text-muted-foreground">Abrir →</span>
           </Link>
 
-          {/* Backup / Export */}
-          <BackupExport userId={user!.id} />
+          {/**
+            * Respaldos: tres cosas distintas, un solo tema.
+            *
+            * ⚠️ Estaban como tres tarjetas sueltas, una al lado de la otra, sin
+            * decir en qué se diferencian. Leídas de arriba abajo parecían tres
+            * features que compiten — y la pregunta que dejaban era «¿cuál de
+            * estas me respalda?».
+            *
+            * 📌 Ninguna se sacó, porque las tres tienen datos reales: 12
+            * snapshots automáticos con su cron diario, 23 archivos heredados en
+            * storage y la exportación manual. Medido el 2026-08-27 antes de
+            * tocar nada — el impulso era borrar la que parecía muerta.
+            */}
+          <div className="rounded-[10px] border border-border/60 bg-card p-4 md:p-6 space-y-4">
+            <div>
+              <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
+                <Database className="w-4 h-4 text-primary" />Respaldos de tu información
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Tres formas, para cosas distintas: una copia que te llevás vos, la
+                copia automática de todos los días, y los archivos viejos que quedaron
+                guardados.
+              </p>
+            </div>
 
-          <ManagedBackupsSection />
+            {/* 1. La que se lleva el comercio, cuando quiere. */}
+            <BackupExport userId={user!.id} />
 
-          {/* Archivos de respaldo heredados: no se generan hasta resolver D8. */}
-          <CloudBackupsSection userId={user!.id} />
+            {/* 2. La automática: corre sola todas las noches. */}
+            <ManagedBackupsSection />
+
+            {/* 3. Heredados. Ya no se generan, pero los 23 que hay se pueden
+                   bajar: esconderlos sería esconder respaldos que existen. */}
+            <CloudBackupsSection userId={user!.id} />
+          </div>
 
           {/* Automated Reports & Alerts */}
           <AutomatedReportsSection />
