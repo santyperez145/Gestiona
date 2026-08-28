@@ -122,10 +122,32 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ── 2. Recién ahora se deja constancia ──────────────────────────────────
+  /**
+   * ── 2. Recién ahora se deja constancia ──────────────────────────────────
+   *
+   * ⚠️ **«Al final del período» no significa nada si no hubo período.** Hasta
+   * el 2026-08-28 la baja escribía `cancel_at_period_end: true` siempre, y una
+   * suscripción que se cancela antes del primer cobro quedaba en `past_due`
+   * con `current_period_end` NULL — esperando para siempre un cobro que nunca
+   * iba a llegar.
+   *
+   * Verificado en producción con la sesión real: Mi plan mostraba **tres
+   * mensajes contradictorios a la vez** — el banner «estamos confirmando tu
+   * suscripción», «cancelaste, no se te va a cobrar» y «estamos esperando que
+   * MercadoPago confirme tu primer cobro», los tres en la misma pantalla.
+   *
+   * 📌 El estado real es `canceled`: no hay período que respetar. Cuando sí lo
+   * hay, se conserva el comportamiento — el comercio pagó por ese tiempo.
+   */
+  const cierreInmediato = !sub.current_period_end;
+
   const { error: errUpdate } = await admin
     .from("subscriptions")
-    .update({ cancel_at_period_end: true })
+    .update(
+      cierreInmediato
+        ? { cancel_at_period_end: true, status: "canceled" }
+        : { cancel_at_period_end: true },
+    )
     .eq("id", sub.id);
 
   if (errUpdate) {
