@@ -657,13 +657,17 @@ Deno.serve(async (req) => {
 
           if (membership?.user_id) {
             try {
-              await admin.from("notifications").insert({
+              const { error: errNotificacion } = await admin
+                .from("notifications").insert({
                 user_id: membership.user_id,
                 org_id: orgId,
                 title: "Pago Mercado Pago confirmado",
                 message: `Pago de $${paidAmount.toLocaleString("es-AR")} confirmado${payerEmail ? ` de ${payerEmail}` : ""} (${statusDetail || status})`,
                 type: "mercado_pago",
               });
+              // Un insert sin mirar `.error` convierte «no se guardó» en «listo»:
+              // es lo que escondió durante meses que check-alerts no guardaba nada.
+              if (errNotificacion) console.error("mercadopago-webhook: no se pudo notificar", errNotificacion);
             } catch { /* silent */ }
           }
         }

@@ -7,7 +7,12 @@ import { remitenteDe } from "../_shared/remitente.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 
-serve(async (_req) => {
+import { exigirCronOUsuario } from "../_shared/cronAuth.ts";
+serve(async (req) => {
+
+  // Sólo el cron de la base o una persona con sesión real.
+  const noEsCron = await exigirCronOUsuario(req, { "Access-Control-Allow-Origin": "*" });
+  if (noEsCron) return noEsCron;
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -90,7 +95,8 @@ serve(async (_req) => {
     if (existing) continue;
 
     for (const mb of members || []) {
-      await supabase.from("notifications").insert({
+      const { error: errNotificacion } = await supabase
+        .from("notifications").insert({
         user_id: mb.user_id,
         org_id: org.id,
         type: "weekly_digest",
@@ -98,6 +104,9 @@ serve(async (_req) => {
         message,
         read: false,
       });
+      // Un insert sin mirar `.error` convierte «no se guardó» en «listo»:
+      // es lo que escondió durante meses que check-alerts no guardaba nada.
+      if (errNotificacion) console.error("weekly-performance-digest: no se pudo notificar", errNotificacion);
 
       // Send digest email using own SMTP or Resend fallback
       const { data: profile } = await supabase.auth.admin.getUserById(mb.user_id);

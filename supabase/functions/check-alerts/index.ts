@@ -13,6 +13,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { exigirCronOUsuario } from "../_shared/cronAuth.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -22,6 +23,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*" } });
   }
+
+
+  // Sólo el cron de la base o una persona con sesión real.
+  const noEsCron = await exigirCronOUsuario(req, { "Access-Control-Allow-Origin": "*" });
+  if (noEsCron) return noEsCron;
 
   try {
     // Get all orgs with at least one enabled alert rule
@@ -288,6 +294,11 @@ Deno.serve(async (req) => {
           // Dedup by entity key embedded in message
           if (recentMessages.has(alert.message)) continue;
           toInsert.push({
+            // ⚠️ `notifications.org_id` es NOT NULL y acá no se mandaba: cada
+            // insert fallaba con 23502 y el error se tragaba. La función
+            // reportaba «45 notificaciones creadas» con 0 filas escritas —
+            // medido el 2026-08-28 disparándola de verdad.
+            org_id: orgId,
             user_id: adminId,
             type: alert.type,
             title: alert.title,
@@ -298,8 +309,16 @@ Deno.serve(async (req) => {
       }
 
       if (toInsert.length > 0) {
-        await supabase.from("notifications").insert(toInsert);
-        totalAlerts += toInsert.length;
+        // ⚠️ Se mira el error y sólo se cuenta lo que se escribió. Antes se
+        // sumaba igual, así que la función decía «ok» habiendo guardado nada:
+        // una función que dice ok sin haber escrito es peor que una que falla.
+        const { error: errNotif } = await supabase
+          .from("notifications").insert(toInsert);
+        if (errNotif) {
+          console.error("check-alerts: no se pudieron crear las notificaciones", errNotif);
+        } else {
+          totalAlerts += toInsert.length;
+        }
 
         // Update last_triggered_at for org's rules that fired
         await supabase

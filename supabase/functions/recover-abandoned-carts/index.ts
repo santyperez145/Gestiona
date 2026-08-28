@@ -15,6 +15,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
 import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 
+import { exigirCron } from "../_shared/cronAuth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -32,6 +33,10 @@ interface Item { name?: string; quantity?: number; unit_price?: number; image_ur
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Sólo el cron de la base: sin el secreto no pasa nadie.
+  const noEsCron = exigirCron(req, corsHeaders);
+  if (noEsCron) return noEsCron;
 
   try {
     const supabaseUrl = requireEnv("SUPABASE_URL");

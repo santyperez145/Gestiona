@@ -2,6 +2,7 @@
 // Called by pg_cron daily at 6 AM (runs fast — typically under 100ms).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
+import { exigirCron } from "../_shared/cronAuth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -26,6 +27,10 @@ function addPeriod(date: Date, freq: string): Date {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Sólo el cron de la base: sin el secreto no pasa nadie.
+  const noEsCron = exigirCron(req, corsHeaders);
+  if (noEsCron) return noEsCron;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -101,13 +106,17 @@ Deno.serve(async (req) => {
         .limit(1);
 
       if (members && members.length > 0) {
-        await admin.from("notifications").insert({
+        const { error: errNotificacion } = await admin
+          .from("notifications").insert({
           user_id: members[0].user_id,
           org_id:  orgId,
           title: "Gastos recurrentes generados",
           message: `Se crearon automáticamente ${count} gasto${count !== 1 ? "s" : ""} recurrente${count !== 1 ? "s" : ""}`,
           type: "sistema",
         });
+        // Un insert sin mirar `.error` convierte «no se guardó» en «listo»:
+        // es lo que escondió durante meses que check-alerts no guardaba nada.
+        if (errNotificacion) console.error("auto-recurring-expenses: no se pudo notificar", errNotificacion);
       }
     }
 

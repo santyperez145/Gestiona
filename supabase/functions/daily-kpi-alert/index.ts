@@ -4,6 +4,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { mensajeDeError } from "../_shared/errorMessage.ts";
+import { exigirCron } from "../_shared/cronAuth.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -13,7 +14,12 @@ function fmt(n: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+
+  // Sólo el cron de la base: sin el secreto no pasa nadie.
+  // ⚠️ Antes ni recibía `req`: no podía mirar quién la llamaba.
+  const noEsCron = exigirCron(req, { "Access-Control-Allow-Origin": "*" });
+  if (noEsCron) return noEsCron;
   try {
     const today = new Date().toISOString().slice(0, 10);
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
@@ -93,7 +99,8 @@ Deno.serve(async () => {
 
       // Insert notification for each admin
       for (const admin of admins) {
-        await supabase.from("notifications").insert({
+        const { error: errNotificacion } = await supabase
+          .from("notifications").insert({
           user_id: admin.user_id,
           org_id: orgId,
           type: "daily_kpi",
@@ -101,6 +108,9 @@ Deno.serve(async () => {
           body,
           read: false,
         });
+        // Un insert sin mirar `.error` convierte «no se guardó» en «listo»:
+        // es lo que escondió durante meses que check-alerts no guardaba nada.
+        if (errNotificacion) console.error("daily-kpi-alert: no se pudo notificar", errNotificacion);
       }
 
       alertsSent++;

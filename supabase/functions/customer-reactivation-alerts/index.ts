@@ -14,6 +14,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { mensajeDeError } from "../_shared/errorMessage.ts";
+import { exigirCron } from "../_shared/cronAuth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -21,6 +22,10 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Sólo el cron de la base: sin el secreto no pasa nadie.
+  const noEsCron = exigirCron(req, corsHeaders);
+  if (noEsCron) return noEsCron;
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -121,7 +126,11 @@ serve(async (req) => {
           .gte("created_at", todayStr + "T00:00:00");
 
         if (!existing?.length) {
-          await supabase.from("notifications").insert(notifications);
+          const { error: errNotificacion } = await supabase
+            .from("notifications").insert(notifications);
+          // Un insert sin mirar `.error` convierte «no se guardó» en «listo»:
+          // es lo que escondió durante meses que check-alerts no guardaba nada.
+          if (errNotificacion) console.error("customer-reactivation-alerts: no se pudo notificar", errNotificacion);
           totalNotifications += notifications.length;
         }
       }

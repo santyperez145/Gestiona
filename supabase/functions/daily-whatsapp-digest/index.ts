@@ -15,12 +15,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
+import { exigirCron } from "../_shared/cronAuth.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+
+  // Sólo el cron de la base: sin el secreto no pasa nadie.
+  // ⚠️ Antes ni recibía `req`: no podía mirar quién la llamaba.
+  const noEsCron = exigirCron(req, { "Access-Control-Allow-Origin": "*" });
+  if (noEsCron) return noEsCron;
   try {
     const today = new Date().toISOString().slice(0, 10);
     const todayDisplay = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
@@ -118,7 +124,8 @@ Deno.serve(async () => {
           .limit(1);
         const ownerId = members?.[0]?.user_id;
         if (ownerId) {
-          await supabase.from("notifications").insert({
+          const { error: errNotificacion } = await supabase
+            .from("notifications").insert({
             user_id: ownerId,
             org_id: s.org_id,
             type: "whatsapp_digest",
@@ -126,6 +133,9 @@ Deno.serve(async () => {
             message: `WhatsApp digest enviado: ${fmtARS(totalRevenue)} en ${saleCount} venta${saleCount !== 1 ? "s" : ""}`,
             read: false,
           });
+          // Un insert sin mirar `.error` convierte «no se guardó» en «listo»:
+          // es lo que escondió durante meses que check-alerts no guardaba nada.
+          if (errNotificacion) console.error("daily-whatsapp-digest: no se pudo notificar", errNotificacion);
         }
       } catch (orgErr) {
         console.error(`daily-whatsapp-digest org=${s.org_id} error:`, orgErr);

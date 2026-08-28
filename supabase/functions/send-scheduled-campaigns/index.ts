@@ -2,7 +2,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { mensajeDeError } from "../_shared/errorMessage.ts";
 
-serve(async (_req) => {
+import { exigirCron } from "../_shared/cronAuth.ts";
+serve(async (req) => {
+
+  // Sólo el cron de la base: sin el secreto no pasa nadie.
+  const noEsCron = exigirCron(req, { "Access-Control-Allow-Origin": "*" });
+  if (noEsCron) return noEsCron;
  try {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,

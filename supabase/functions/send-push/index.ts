@@ -16,6 +16,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { exigirCron } from "../_shared/cronAuth.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -87,6 +88,10 @@ async function sendToSubscription(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+
+  // Sólo el cron de la base: sin el secreto no pasa nadie.
+  const noEsCron = exigirCron(req, { "Access-Control-Allow-Origin": "*" });
+  if (noEsCron) return noEsCron;
 
   try {
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";

@@ -23,6 +23,7 @@ import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
+import { exigirCronOUsuario } from "../_shared/cronAuth.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -35,6 +36,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*" } });
   }
+
+
+  // Sólo el cron de la base o una persona con sesión real.
+  const noEsCron = await exigirCronOUsuario(req, { "Access-Control-Allow-Origin": "*" });
+  if (noEsCron) return noEsCron;
 
   // Optionally target a single org/flow (for "Run now" from UI)
   const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
@@ -196,6 +202,10 @@ Deno.serve(async (req) => {
             const toInsert = adminIds
               .filter(() => !recentMsgs.has(msgText))
               .map((uid: string) => ({
+                // ⚠️ `notifications.org_id` es NOT NULL y faltaba: el insert
+                // fallaba con 23502 y el error se tragaba, así que la
+                // automatización decía haber notificado sin escribir nada.
+                org_id: orgId,
                 user_id: uid,
                 type: "sistema",
                 title: flow.name,
@@ -203,8 +213,13 @@ Deno.serve(async (req) => {
                 read: false,
               }));
             if (toInsert.length > 0) {
-              await supabase.from("notifications").insert(toInsert);
-              actionsTaken = toInsert.length;
+              const { error: errNotif } = await supabase
+                .from("notifications").insert(toInsert);
+              if (errNotif) {
+                console.error("execute-automations: no se pudo notificar", errNotif);
+              } else {
+                actionsTaken = toInsert.length;
+              }
             }
 
           } else if (flow.action_type === "create_task" && adminIds.length > 0) {

@@ -6,6 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
+import { exigirCron } from "../_shared/cronAuth.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -29,7 +30,12 @@ async function sendWhatsApp(_baseUrl: string, _apiKey: string, _instance: string
   return r.ok;
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+
+  // Sólo el cron de la base: sin el secreto no pasa nadie.
+  // ⚠️ Antes ni recibía `req`: no podía mirar quién la llamaba.
+  const noEsCron = exigirCron(req, { "Access-Control-Allow-Origin": "*" });
+  if (noEsCron) return noEsCron;
   try {
     const today = new Date();
     const mm = String(today.getMonth() + 1).padStart(2, "0");
@@ -118,7 +124,8 @@ Deno.serve(async () => {
         if (sent) {
           totalSent++;
           // Log to avoid duplicate sends
-          await supabase.from("notifications").insert({
+          const { error: errNotificacion } = await supabase
+            .from("notifications").insert({
             user_id: null as any,
             org_id: orgId,
             type: "birthday_wa",
@@ -126,6 +133,9 @@ Deno.serve(async () => {
             message: `WA enviado a ${customer.id} — ${customer.name}`,
             read: true,
           });
+          // Un insert sin mirar `.error` convierte «no se guardó» en «listo»:
+          // es lo que escondió durante meses que check-alerts no guardaba nada.
+          if (errNotificacion) console.error("send-birthday-whatsapp: no se pudo notificar", errNotificacion);
         }
       }
     }

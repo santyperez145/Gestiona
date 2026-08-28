@@ -2,6 +2,7 @@
 // Runs daily via pg_cron. Finds products below threshold and creates notifications.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { exigirCron } from "../_shared/cronAuth.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -16,6 +17,10 @@ const UMBRAL_POR_DEFECTO = 3;
 const TOPE_PRODUCTOS = 5000;
 
 Deno.serve(async (req) => {
+
+  // Sólo el cron de la base: sin el secreto no pasa nadie.
+  const noEsCron = exigirCron(req, { "Access-Control-Allow-Origin": "*" });
+  if (noEsCron) return noEsCron;
   try {
     // ⚠️ Acá había una primera consulta que llamaba a `supabase.rpc(
     //    "low_stock_threshold")`. Ese nombre **no es un RPC: es una columna de
@@ -91,7 +96,8 @@ Deno.serve(async (req) => {
         const names = prods.slice(0, 5).map((p: any) => `${p.name} (${p.stock} en stock)`).join(", ");
         const extra = prods.length > 5 ? ` y ${prods.length - 5} más` : "";
 
-        await supabase.from("notifications").insert({
+        const { error: errNotificacion } = await supabase
+          .from("notifications").insert({
           user_id: member.user_id,
           org_id: orgId,
           type: "stock_bajo",
@@ -99,6 +105,9 @@ Deno.serve(async (req) => {
           message: names + extra,
           read: false,
         });
+        // Un insert sin mirar `.error` convierte «no se guardó» en «listo»:
+        // es lo que escondió durante meses que check-alerts no guardaba nada.
+        if (errNotificacion) console.error("check-stock-alerts: no se pudo notificar", errNotificacion);
         total++;
       }
     }

@@ -21,6 +21,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { sendEmail } from "../_shared/smtpSender.ts";
 import { remitenteDe } from "../_shared/remitente.ts";
 
+import { exigirCron } from "../_shared/cronAuth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -53,6 +54,10 @@ function cuerpo(p: Pendiente): { subject: string; html: string; text: string } {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Sólo el cron de la base: sin el secreto no pasa nadie.
+  const noEsCron = exigirCron(req, corsHeaders);
+  if (noEsCron) return noEsCron;
 
   const url = Deno.env.get("SUPABASE_URL");
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");

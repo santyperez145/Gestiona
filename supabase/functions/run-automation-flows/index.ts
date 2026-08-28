@@ -12,6 +12,7 @@ import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
+import { exigirCron } from "../_shared/cronAuth.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -20,7 +21,12 @@ const supabase = createClient(
 // ─────────────────────────────────────────────────────────────
 // Entry point
 // ─────────────────────────────────────────────────────────────
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+
+  // Sólo el cron de la base: sin el secreto no pasa nadie.
+  // ⚠️ Antes ni recibía `req`: no podía mirar quién la llamaba.
+  const noEsCron = exigirCron(req, { "Access-Control-Allow-Origin": "*" });
+  if (noEsCron) return noEsCron;
   try {
     const today = new Date().toISOString().slice(0, 10);
 
@@ -338,7 +344,8 @@ async function actionNotification(
 
     if (existing?.length) continue;
 
-    await supabase.from("notifications").insert({
+    const { error: errNotificacion } = await supabase
+      .from("notifications").insert({
       user_id: m.user_id,
       org_id: orgId,
       type: `automatizacion_${triggerType}`,
@@ -346,6 +353,9 @@ async function actionNotification(
       message: customMsg || summary.message,
       read: false,
     });
+    // Un insert sin mirar `.error` convierte «no se guardó» en «listo»:
+    // es lo que escondió durante meses que check-alerts no guardaba nada.
+    if (errNotificacion) console.error("run-automation-flows: no se pudo notificar", errNotificacion);
     sent++;
   }
   return sent;

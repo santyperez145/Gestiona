@@ -48,13 +48,17 @@ async function notify(orgId: string, title: string, message: string, type = "bil
     .maybeSingle();
   if (!mb?.user_id) return;
   try {
-    await supabase.from("notifications").insert({
+    const { error: errNotificacion } = await supabase
+      .from("notifications").insert({
       user_id: mb.user_id,
       org_id: orgId,
       title,
       message,
       type,
     });
+    // Un insert sin mirar `.error` convierte «no se guardó» en «listo»:
+    // es lo que escondió durante meses que check-alerts no guardaba nada.
+    if (errNotificacion) console.error("stripe-webhook: no se pudo notificar", errNotificacion);
   } catch { /* silent */ }
 }
 

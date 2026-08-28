@@ -1,6 +1,7 @@
 // Fetch live USD-ARS rates from public dolarapi.com (no API key needed) and persist to settings.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
+import { exigirCronOUsuario } from "../_shared/cronAuth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -8,6 +9,10 @@ const corsHeaders = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Sólo el cron de la base o una persona con sesión real.
+  const noEsCron = await exigirCronOUsuario(req, corsHeaders);
+  if (noEsCron) return noEsCron;
 
   try {
     const authHeader = req.headers.get("Authorization");
