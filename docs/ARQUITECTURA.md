@@ -275,6 +275,33 @@ originales: sólo roles privilegiados pueden hacerlo al activar explícitamente
 `app.finance_document_retention_cleanup`, dejando la retención como operación
 separada y auditable.
 
+### 4 ter. Capability Catalog: composición, no cuarta clase de permiso
+
+✅ **Kernel piloto cerrado el 2026-08-28.** `capability_catalog` versiona el
+contrato funcional; `organization_capabilities` dice qué activó el negocio;
+dependencias, conflictos y settings completan el grafo. Las primeras claves son
+`catalog.products`, `inventory.core`, `commerce.store` y `finance.documents`.
+
+La resolución conserva las fronteras:
+
+- `organization_product_access` sigue respondiendo qué producto comercial tiene
+  la organización;
+- `role_permissions` sigue respondiendo qué puede hacer la persona;
+- `feature_flag_overrides` sigue respondiendo qué implementación técnica está en
+  rollout;
+- `capability_evaluate` es el único lugar que compone esos controles con la
+  activación, dependencias y conflictos.
+
+La UI nunca lee las tablas crudas. Su wrapper siempre evalúa `auth.uid()`; los
+workers tienen otro wrapper exclusivo de `service_role`, sin posibilidad de
+elegir «no validar usuario» desde el navegador. `product_surface_access`,
+`finance_document_can`, inspección y extracción ya delegan al mismo evaluador.
+
+Desactivar una capability **no desprovisiona datos**. Sólo cambia su fila de
+control y la política (`read_only`, `safe_disable` o `requires_cleanup`) declara
+cómo debe comportarse la superficie. Borrar o transformar historia requiere un
+workflow separado y explícito; nunca es un efecto lateral del toggle.
+
 ---
 
 ## 5. Lo que se adopta ahora y lo que espera

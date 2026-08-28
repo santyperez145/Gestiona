@@ -100,14 +100,26 @@ function declaraciones(): Declaracion[] {
   return salida;
 }
 
-/** ¿Alguna migración dropea explícitamente esa función? */
-function seDropea(nombre: string): boolean {
-  return readdirSync(MIGRACIONES)
-    .filter(f => f.endsWith(".sql"))
-    .some(f => new RegExp(
-      `DROP\\s+FUNCTION\\s+(?:IF\\s+EXISTS\\s+)?(?:public\\.)?${nombre}\\s*\\(`, "i",
-    ).test(readFileSync(join(MIGRACIONES, f), "utf8")));
+/**
+ * Funciones que alguna migración dropea explícitamente.
+ *
+ * ⚠️ Antes `seDropea` releía las ~300 migraciones por cada nombre ambiguo. El
+ * resultado era correcto, pero bajo la suite paralela tardaba 13–20 s y vencía
+ * el timeout de 5 s; aislado tardaba 2 s. Se indexa una vez sin cambiar qué se
+ * considera un DROP válido.
+ */
+function funcionesDropeadas(): Set<string> {
+  const resultado = new Set<string>();
+  const patron = /DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?(?:public\.)?([a-z_][a-z0-9_]*)\s*\(/gi;
+  for (const archivo of readdirSync(MIGRACIONES).filter(f => f.endsWith('.sql'))) {
+    const sql = readFileSync(join(MIGRACIONES, archivo), 'utf8');
+    for (const match of sql.matchAll(patron)) resultado.add(match[1].toLowerCase());
+  }
+  return resultado;
 }
+
+const DROPEADAS = funcionesDropeadas();
+const seDropea = (nombre: string): boolean => DROPEADAS.has(nombre.toLowerCase());
 
 describe("una función, una firma", () => {
   const todas = declaraciones();

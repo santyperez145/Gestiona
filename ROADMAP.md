@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.592 tests en 142 archivos pasan al 2026-08-26; typecheck, lint y build/PWA verdes; 65 Edge Functions verificadas. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
+| Calidad técnica | 1.903 tests en 181 archivos pasan al 2026-08-28; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -234,6 +234,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Activación | Primera venta y tiempo a vender medidos por comercio, deduplicando organizaciones multi-tienda. La migración `20260821000059` suma objetivo POS/online y ocho hitos server-side compartidos con Merchant 360. `20260821000061` agrega cohortes por mes y ventanas maduras: 4 organizaciones, 1 activada en su canal objetivo, 3 pendientes, conversión histórica 25%; a 7/14 días 0/4 y a 30 días 0/1. Son datos técnicos, no PMF. Soporte autoservicio/minutos tiene watermark desde 2026-08-22: 0 altas elegibles y 0 minutos, por lo que la UI dice “sin base” en vez de atribuir falsos ceros. |
 | Importación de catálogo | La migración `20260821000060` reemplaza dos importadores client-side por un lote server-side Excel/CSV de hasta 5.000 filas: staging, preview, create/update/conflict, aprobación, aplicación atómica, retry idempotente y reconciliación. Verificación con rol `authenticated`: 1 válida + 1 inválida, bloqueo previo, 1 producto, stock 3, 1 movimiento, retry sin duplicación, anon/escritura directa sin permisos y 0 restos (2026-08-21). |
 | Business Profiler | La migración `20260822000001` declara 7 perfiles, 8 tipos y 28 atributos sobre `product_types`; onboarding y reconfiguración pasan por RPC owner/admin, son atómicos e idempotentes y preservan colisiones `custom`. Verificación real: 1 tipo/4 atributos, retry 0/0, outsider bloqueado y 0 restos. Línea de base tras rollback: 0 organizaciones configuradas y 0 tipos, por lo que todavía no es adopción. |
+| Capability Catalog | `20260828000130` versiona cinco entidades y cuatro capabilities piloto (`catalog.products`, `inventory.core`, `commerce.store`, `finance.documents`). Un evaluador compone activación, producto, dependencias, conflictos, rollout, membresía y permiso; Finance UI/comandos y sus dos workers delegan a él. Fixture transaccional: entitlement, dependencia, outsider, ciclo, preservación de datos y 0 restos. Base al 2026-08-28: 2 organizaciones con catálogo/inventario y 1/2 con tienda; esto es arquitectura habilitante, no adopción. |
 | Soporte consentido | `20260822000002` reemplaza magic links de impersonación por solicitud Support → aprobación owner → snapshot sanitizado con expiración por lectura. Retry de solicitud conserva 1 ID; retry de aprobación no extiende la ventana; outsider bloqueado; 2 vistas auditadas; revocación efectiva y 0 restos. Línea de base: 0 solicitudes reales/0 diagnósticos consumidos. |
 | Alta de comercios | `20260822000003` reemplaza escrituras parciales por un RPC superadmin: identidad técnica sin workspace prematuro; 1 org/owner/trial/settings/auditoría; retry conserva `org_id`; key con datos distintos, owner existente y outsider bloqueados; organización previa idéntica y 0 restos. El acceso se envía por email sin exponer enlace. Base real: 4 organizaciones; el segundo merchant aún no existe. |
 | Finance surface | `20260822000008` agrega `/finance`, `FinanceLayout`, entitlement separado de `finance.view`, solicitud tenant, decisión Platform auditada y snapshot agregado de proveedores/órdenes/obligaciones/ledger existentes. Fixture real: owner solicita pero no autoaprueba; staff finance habilita/deshabilita; permiso, outsider y anon bloqueados; 3 eventos append-only y restos 0. Base: Business habilitado 4/4; Finance disponible 4/4, 0 solicitudes y 0 habilitaciones. |
@@ -807,6 +808,35 @@ crean una copia «temporal» que se vuelve la verdad.
 11. Staff de Platform no obtiene permisos implícitos dentro de una organización.
 12. Pay no custodia ni presta fondos sin estructura legal, capital, riesgo y
     responsables autorizados.
+
+### Capability kernel — piloto cerrado el 2026-08-28
+
+Una capability no es un permiso, un plan ni un feature flag. Es la composición
+versionada que decide si una parte del Business Core está operativa para esa
+organización y esa persona:
+
+```text
+catálogo activo
+AND activación de la organización
+AND producto contratado
+AND dependencias listas
+AND rollout habilitado
+AND usuario autorizado
+AND sin conflicto operativo
+```
+
+`capability_evaluate` es la única autoridad de esa composición. La UI usa un
+wrapper que fija `auth.uid()`; los comandos (`product_surface_access` y
+`finance_document_can`) delegan al mismo contrato; los workers de inspección y
+extracción usan el wrapper exclusivo de `service_role`. Las tablas crudas no se
+exponen al navegador.
+
+Las cuatro primeras capabilities son `catalog.products`, `inventory.core`,
+`commerce.store` y `finance.documents`. El grafo impide ciclos, la tienda activa
+su capability al crearse y desactivar sólo cambia control: no borra productos,
+documentos ni historia. El siguiente paso no es sumar claves manualmente: P1-03
+debe producirlas desde un Blueprint idempotente generado por el Business
+Profiler.
 
 ### Evolución del repositorio
 
@@ -1489,6 +1519,15 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     merchant. Landing desktop y Auth desktop/390 px fueron revisados en
     localhost sin overflow; la captura autenticada de los tres shells sigue
     pendiente porque esta PC no tiene `.env`.
+39. ~~Capability Catalog piloto~~ — cerrado técnicamente el 2026-08-28: cinco
+    entidades, cuatro manifests v1.0.0 y un solo evaluador para UI, comandos y
+    workers. Finance conserva sus contratos públicos pero ya no reconstruye
+    entitlement + permiso en dos lugares; inspección y extracción vuelven a
+    evaluar antes de tomar lease o descargar originales. El fixture real
+    cubrió owner/outsider, entitlement, dependencia, ciclo, wrapper de worker,
+    preservación de producto y 0 restos. Producción tiene 2 organizaciones:
+    catálogo/inventario 2/2 y tienda 1/2. Continúa P1-03 Blueprint/provisioning;
+    no se agregan capabilities sin milestone y consumidor reales.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -1977,8 +2016,8 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-26: **1.592 tests en 142 archivos**,
-  typecheck, lint sin errores (142 warnings de deuda conocida), build/PWA y 65
+- Build y suites locales del 2026-08-28: **1.903 tests en 181 archivos**,
+  typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 70
   funciones verificadas. Última evidencia: 42
   E2E críticos contra la base real.
 - docs/FINANCE_DOCUMENT_EXTRACTION.md: custodia, esquema estructurado,

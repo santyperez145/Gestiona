@@ -4,6 +4,7 @@
 // legal/operativa explícita falla cerrado y no transmite ningún byte.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireUser } from "../_shared/requireUser.ts";
+import { resolveWorkerCapability } from "../_shared/capabilities.ts";
 import { sha256Hex } from "../_shared/financeDocumentInspection.ts";
 import { normalizeFinanceExtraction } from "../_shared/financeDocumentExtraction.ts";
 
@@ -117,6 +118,25 @@ Deno.serve(async req => {
   const authorization = req.headers.get("Authorization") || "";
   const userClient = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } });
   const admin = createClient(url, serviceRole);
+  const { data: documentScope, error: scopeError } = await admin
+    .from("finance_documents")
+    .select("org_id")
+    .eq("id", body.documentId)
+    .maybeSingle();
+  if (scopeError || !documentScope?.org_id) {
+    return json({ error: "No se pudo verificar la capacidad documental" }, 403);
+  }
+  const capability = await resolveWorkerCapability(
+    admin,
+    documentScope.org_id,
+    "finance.documents",
+  );
+  if (capability.error) {
+    return json({ error: "No se pudo evaluar la capacidad documental" }, 503);
+  }
+  if (!capability.allowed) {
+    return json({ error: "Finance Documents no está habilitado" }, 403);
+  }
   const { data: targetRows, error: beginError } = await userClient.rpc(
     "finance_document_begin_extraction",
     { p_document_id: body.documentId, p_version_id: body.versionId },

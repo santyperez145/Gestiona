@@ -52,6 +52,12 @@ se compartirán tokens mediante almacenamiento global.
 | `role_permissions.finance` | ¿Esta persona puede usar Finanzas? | Owner/admin de la organización |
 | `feature_flag_overrides` | ¿Qué implementación técnica se expone? | Superadmin de Platform |
 
+Desde el 2026-08-28, `finance.documents` no agrega una cuarta decisión:
+`capability_evaluate` **compone** las tres anteriores con activación,
+dependencias y conflictos. `product_surface_access`, `finance_document_can` y
+los workers documentales delegan a esa autoridad; los contratos públicos de
+esta ADR no cambian.
+
 Un owner/admin puede solicitar Finance, pero no autoaprobarlo. Platform decide
 desde Merchant 360 con un motivo obligatorio. La transición se guarda en una
 bitácora append-only y en `admin_audit_logs` dentro de la misma transacción.

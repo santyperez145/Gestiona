@@ -6,6 +6,7 @@
 // transición a ready_for_extraction.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireUser } from "../_shared/requireUser.ts";
+import { resolveWorkerCapability } from "../_shared/capabilities.ts";
 import {
   detectFinanceDocumentMime,
   findActivePdfFeature,
@@ -136,6 +137,29 @@ Deno.serve(async (req) => {
     global: { headers: { Authorization: authorization } },
   });
   const admin = createClient(url, serviceRole);
+
+  // El inspector es un worker privilegiado: vuelve a evaluar la capability
+  // antes de adquirir el lease o descargar un byte privado. No alcanza con que
+  // la pantalla haya mostrado el botón unos segundos antes.
+  const { data: documentScope, error: scopeError } = await admin
+    .from("finance_documents")
+    .select("org_id")
+    .eq("id", body.documentId)
+    .maybeSingle();
+  if (scopeError || !documentScope?.org_id) {
+    return json({ error: "No se pudo verificar la capacidad documental" }, 403);
+  }
+  const capability = await resolveWorkerCapability(
+    admin,
+    documentScope.org_id,
+    "finance.documents",
+  );
+  if (capability.error) {
+    return json({ error: "No se pudo evaluar la capacidad documental" }, 503);
+  }
+  if (!capability.allowed) {
+    return json({ error: "Finance Documents no está habilitado" }, 403);
+  }
 
   const { data: targetRows, error: beginError } = await userClient.rpc(
     "finance_document_begin_inspection",

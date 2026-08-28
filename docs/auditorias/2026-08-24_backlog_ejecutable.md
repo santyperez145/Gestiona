@@ -487,7 +487,7 @@ Eso depende del dueño; el software ya lo recorre entero sin ayuda técnica.
 
 # P1 — Activación universal
 
-## P1-01 — Capability Catalog
+## P1-01 — Capability Catalog — 🟢 kernel piloto completo (2026-08-28)
 
 **Owner:** Architecture  
 **Objetivo:** reemplazar módulos estáticos por capacidades versionadas.
@@ -502,9 +502,38 @@ Eso depende del dueño; el software ya lo recorre entero sin ayuda técnica.
 
 **Aceptación**
 
-- `catalog.products`, `inventory.core`, `commerce.store`, `finance.documents` resueltos por un evaluador único.
-- UI, backend y jobs usan la misma decisión.
-- Desactivar no borra datos.
+- [x] `catalog.products`, `inventory.core`, `commerce.store`, `finance.documents` resueltos por un evaluador único.
+- [x] UI, backend y jobs usan la misma decisión.
+- [x] Desactivar no borra datos.
+
+### Entregado (`20260828000130`)
+
+- El manifest versiona problema, arquetipos, países, producto, permiso, rollout,
+  eventos, workflows, KPI, milestone y política de desactivación. No es otro
+  mapa de navegación.
+- `capability_evaluate` es la única composición de activación por organización,
+  entitlement comercial, dependencias recursivas, conflictos, feature flag,
+  membresía y permiso. Un wrapper autenticado fija la identidad; otro, revocado
+  salvo `service_role`, sirve a workers.
+- `product_surface_access` y `finance_document_can` conservan sus contratos pero
+  delegan a `finance.documents`. Los workers de inspección y extracción vuelven
+  a consultar el mismo evaluador antes de tomar un lease o descargar el original.
+- El grafo rechaza ciclos al escribir. Crear una tienda activa
+  `commerce.store`; Finance sigue bloqueado hasta que Platform habilita el
+  producto, sin duplicar ese estado dentro de la capability.
+- Las cinco tablas tienen RLS, cero acceso crudo desde `authenticated` y no
+  conceden `DELETE` a `service_role`. La mutación de Platform actualiza sólo la
+  fila de control y audita `data_policy = preserve`.
+
+### Evidencia real
+
+Fixture transaccional con owner y outsider: catálogo permitido, Finance
+bloqueado antes del entitlement y permitido después, dependencia de inventario
+bloqueada al apagar catálogo, ciclo inverso rechazado, wrapper de worker en la
+misma decisión, producto preservado y **0 restos**. Línea de base productiva del
+2026-08-28: **4 capabilities v1.0.0**, 2 organizaciones con catálogo/inventario,
+1 con tienda activa y 1 sin tienda. Esto cierra el kernel piloto; Blueprint y
+provisioning idempotente siguen en P1-03.
 
 ---
 
