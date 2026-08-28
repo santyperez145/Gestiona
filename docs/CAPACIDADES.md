@@ -184,19 +184,21 @@ duele que falte.
    `whatsapp_proveedor = 'ninguno'`. La integración es la API oficial de Meta y
    necesita un número y un token de la plataforma.
 
-⚠️ **Y un riesgo que no es un bloqueador pero se cobra solo: 36 de 60
-imágenes del catálogo viven en otro proyecto Supabase.** Hoy responden 200,
-pero `wcfohngxrtopgggumjmw` no está en ninguna configuración, no entra en los
-backups del proyecto actual, y Supabase pausa los proyectos gratuitos por
-inactividad —servir imágenes estáticas puede no contar como actividad—. El día
-que se pause, la tienda pierde el 60% de las fotos **en silencio**: el navegador
-muestra un hueco, no un error.
+✅ **Resuelto el 2026-08-28: las imágenes volvieron a casa.** 37 filas
+apuntaban a un proyecto Supabase anterior —36 imágenes de producto y el logo del
+comercio, el 60% del catálogo— y ese proyecto no estaba en ninguna
+configuración ni en los backups. Se migraron con la Edge Function
+`migrar-imagenes`, de a un archivo: descargar, subir, **comprobar que la URL
+nueva responda 200 con el mismo peso**, y recién entonces actualizar la fila.
 
-📌 Se ve con `audit_imagen_en_otro_proyecto`, que a diferencia de las demás
-vistas de auditoría **no tiene que estar vacía**: describe algo que sigue ahí.
-Moverlas es descargar y subir archivo por archivo —subir, comprobar que la URL
-nueva responde 200, y recién entonces actualizar la fila—, y eso toca el
-catálogo real, así que es decisión del dueño.
+Medido después: 50 productos con foto en el proyecto actual, 10 sin foto —los
+mismos 10 de antes— y **0 en el viejo**. Verificado desde la tienda pidiendo las
+50 URLs: **50 responden, 0 fallan**, 9,6 MB en total.
+
+📌 Queda para el dueño: **borrar el proyecto `wcfohngxrtopgggumjmw` desde el
+panel de Supabase.** Ya no lo necesita nadie. Conviene mirar la tienda primero;
+si algo faltara, el original todavía está del otro lado —no se borró nada de
+ahí a propósito—.
 
 📌 **El correo SÍ sale, y eso cambió.** `platform_messaging_config` tiene
 `smtp_configurado = true` con Gmail (`smtp.gmail.com:465`), y el envío se probó

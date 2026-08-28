@@ -36,6 +36,8 @@ $noJwt = @(
     # API publica con su propio esquema de api keys
     "public-api",
     # Crons / tareas programadas
+    # migrar-imagenes: mueve archivos del catalogo, exige el secreto de cron
+    "migrar-imagenes",
     "check-alerts",
     "execute-automations",
     "run-automation-flows",

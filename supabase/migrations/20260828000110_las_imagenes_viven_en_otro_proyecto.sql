@@ -81,13 +81,15 @@ BEGIN
   -- sigue ahí. Lo que se verifica es que **encuentre** lo que se midió, porque
   -- una vista que devuelve 0 por un error de filtro esconde el problema en vez
   -- de mostrarlo — y se leería como «ya está resuelto».
-  ASSERT v_n = 37,
-    'la vista devuelve ' || v_n || ' y se midieron 37: o el filtro está mal, '
-    'o alguien movió imágenes y hay que actualizar este número';
-
+  -- 📌 Al crearse esta vista eran 37 (36 productos + el logo). El número no se
+  -- fija con un ASSERT porque **una migración tiene que poder correrse de
+  -- nuevo**, y el 2026-08-28 —el mismo día— se migraron las 37 con
+  -- `migrar-imagenes`. Exigir 37 dejaría este archivo roto para siempre.
+  --
+  -- Quien manda ahora es `20260828000120`, que exige que esté **vacía**.
   SELECT count(*) INTO v_prod FROM public.audit_imagen_en_otro_proyecto
    WHERE tabla = 'products';
-  ASSERT v_prod = 36, 'productos afectados: ' || v_prod || ', se midieron 36';
+  RAISE NOTICE 'imagenes en el proyecto anterior: % (% productos)', v_n, v_prod;
 
   -- Y que no marque de más: las que ya están en el proyecto actual quedan afuera.
   ASSERT NOT EXISTS (
