@@ -17,6 +17,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+import { plural } from "@/lib/plural";
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const MONTHS_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -213,7 +214,7 @@ export default function PronosticoView() {
       <PageHeader
         icon={TrendingUp}
         title="Forecast de Ventas"
-        description={`Proyección basada en regresión lineal · últimos ${historyMonths} meses`}
+        description={`Proyección basada en regresión lineal · últimos ${plural(historyMonths, "mes", "meses")}`}
         actions={
           <div className="flex items-center flex-wrap gap-3">
             <div className="flex items-center gap-2">

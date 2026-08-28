@@ -59,6 +59,7 @@ import InvoiceOCRModal, { OCRPrefillData } from "@/components/purchases/InvoiceO
 import PurchaseRequestsTab from "@/components/purchases/PurchaseRequestsTab";
 import { ScanLine } from "lucide-react";
 
+import { plural } from "@/lib/plural";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PurchaseOrder {
@@ -529,7 +530,7 @@ function ReceiveDialog({ order, open, online, onOpenChange, onDone }: {
       toast.success(
         res?.status === "received"
           ? "Orden recibida completa"
-          : `Entrega registrada — quedan ${Number(res?.pendientes ?? 0)} unidades`,
+          : `Entrega registrada — quedan ${plural(Number(res?.pendientes ?? 0), "unidad", "unidades")}`,
       );
       onOpenChange(false);
       onDone();
@@ -625,7 +626,7 @@ function ReceiveDialog({ order, open, online, onOpenChange, onDone }: {
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={confirmar} disabled={guardando || excedido || aRecibir.length === 0 || !online}>
             <Package className="w-3.5 h-3.5 mr-1" />
-            {guardando ? "Registrando…" : `Recibir ${aRecibir.reduce((s, x) => s + x.quantity, 0)} unidades`}
+            {guardando ? "Registrando…" : `Recibir ${plural(aRecibir.reduce((s, x) => s + x.quantity, 0), "unidad", "unidades")}`}
           </Button>
         </DialogFooter>
       </DialogContent>

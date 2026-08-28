@@ -30,6 +30,7 @@ import AdvancedApiKeysPanel from "@/components/integrations/AdvancedApiKeysPanel
 import AdvancedWebhooksPanel from "@/components/integrations/AdvancedWebhooksPanel";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
+import { plural } from "@/lib/plural";
 // ── Integration health types ──────────────────────────────────────────────────
 type IntegrationStatus = "ok" | "error" | "warning" | "unknown";
 
@@ -146,7 +147,7 @@ export default function IntegrationsPage() {
         if (mins < 60) return `Hace ${mins} min`;
         const hrs = Math.floor(mins / 60);
         if (hrs < 24) return `Hace ${hrs}h`;
-        return `Hace ${Math.floor(hrs / 24)} días`;
+        return `Hace ${plural(Math.floor(hrs / 24), "día")}`;
       };
 
       setHealthMap({

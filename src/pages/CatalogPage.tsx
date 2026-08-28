@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+import { plural } from "@/lib/plural";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 
 function fmtARS(n: number) {
@@ -896,7 +897,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       try {
         await navigator.share({
           title: `${settings?.business_name || ''} — Catálogo`,
-          text: `Mirá nuestro catálogo con ${filtered.length} productos disponibles`,
+          text: `Mirá nuestro catálogo con ${plural(filtered.length, "producto")} disponibles`,
           url,
         });
       } catch { /* cancelled */ }
@@ -909,7 +910,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
   const sendCatalogWhatsApp = useCallback(() => {
     const url = `${window.location.origin}/catalogo/${userId}`;
     const name = settings?.business_name || '';
-    const msg = `Hola! 👋 Mirá el catálogo${name ? ` de ${name}` : ''} con ${filtered.length} productos disponibles:\n${url}`;
+    const msg = `Hola! 👋 Mirá el catálogo${name ? ` de ${name}` : ''} con ${plural(filtered.length, "producto")} disponibles:\n${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   }, [filtered, settings, userId]);
 
@@ -924,7 +925,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       return `• ${p.name} — ${formatARS(eff)}`;
     });
     let msg = `📋 *Lista de precios${name ? ` — ${name}` : ''}*\n\n${lines.join('\n')}`;
-    if (inStock.length > CAP) msg += `\n\n…y ${inStock.length - CAP} productos más en el catálogo:\n${url}`;
+    if (inStock.length > CAP) msg += `\n\n…y ${plural(inStock.length - CAP, "producto")} más en el catálogo:\n${url}`;
     else msg += `\n\nCatálogo completo: ${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   }, [filtered, settings, userId]);
@@ -947,7 +948,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       <PageHeader
         icon={Package}
         title={isPublic ? businessName : 'Catálogo'}
-        description={`${filtered.length} productos disponibles`}
+        description={`${plural(filtered.length, "producto")} disponibles`}
         actions={
           <div className="flex flex-wrap gap-2">
             {!isPublic && (

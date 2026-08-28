@@ -22,6 +22,7 @@ import { useAuth } from "@/lib/auth";
 import { formatARS, formatUSD } from "@/lib/supabaseStore";
 import { toast } from "sonner";
 
+import { plural } from "@/lib/plural";
 interface Supplier {
   id: string;
   name: string;
@@ -130,7 +131,7 @@ export default function SupplierPOModal({ open, onClose, supplierId }: Props) {
           supplierEmail: supplier.email,
           supplierName: supplier.name,
           businessName,
-          productName: activeLInes.length === 1 ? activeLInes[0].product.name : `Orden de compra (${activeLInes.length} productos)`,
+          productName: activeLInes.length === 1 ? activeLInes[0].product.name : `Orden de compra (${plural(activeLInes.length, "producto")})`,
           quantity: activeLInes.length === 1 ? activeLInes[0].qty : activeLInes.reduce((s, l) => s + l.qty, 0),
           unitCostUSD: activeLInes.length === 1 ? (activeLInes[0].product.cost_usd ?? 0) : (totalUSD / activeLInes.reduce((s, l) => s + l.qty, 0)),
           totalUSD,

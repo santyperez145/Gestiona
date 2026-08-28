@@ -47,6 +47,7 @@ import KPICard from "@/components/shared/KPICard";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
+import { plural } from "@/lib/plural";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SegmentRule {
@@ -528,7 +529,7 @@ export default function CustomerSegmentsTab() {
   const handleSync = async (segment: CustomerSegment) => {
     const { data, error } = await supabase.rpc("sync_segment_members", { p_segment_id: segment.id });
     if (error) { toast.error("Error al sincronizar"); return; }
-    toast.success(`Segmento sincronizado: ${data} clientes`);
+    toast.success(`Segmento sincronizado: ${plural(data, "cliente")}`);
     loadAll();
   };
 

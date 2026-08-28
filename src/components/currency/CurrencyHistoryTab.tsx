@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
+import { plural } from "@/lib/plural";
 interface ExchangeRate {
   id: string;
   date: string;
@@ -192,7 +193,7 @@ export default function CurrencyHistoryTab() {
       margin_value: Number(bulkForm.margin_value),
     });
 
-    toast.success(`Actualización aplicada: ${count} productos actualizados (+${pctChange.toFixed(1)}%)`);
+    toast.success(`Actualización aplicada: ${plural(count, "producto")} actualizados (+${pctChange.toFixed(1)}%)`);
     setBulkOpen(false);
     loadData();
   }

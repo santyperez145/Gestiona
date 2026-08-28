@@ -16,6 +16,7 @@ import { isMissingRelation } from "@/lib/publicDataSource";
 import { calculateAiActionMetrics, calculateChannelMetrics, calculateCronHealthMetrics, calculateEdgeInvocationMetrics, calculatePlatformMetrics, calculateRiskSeriesMetrics, calculateStockAccuracyMetrics, type PlatformActivationRow, type PlatformAiActionRow, type PlatformCronHealthRow, type PlatformEdgeInvocationRow, type PlatformHealthRow, type PlatformRiskSeriesRow, type PlatformStockAccuracyRow } from "@/lib/platformMetrics";
 import { summarizeActivationCohorts, type ActivationCohortMemberRow, type ActivationCohortRow } from "@/lib/activationCohorts";
 
+import { plural } from "@/lib/plural";
 const SIGNALS: Record<string, { label: string; className: string }> = {
   sin_activar: { label: "Sin activar", className: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
   en_riesgo: { label: "En riesgo", className: "bg-red-500/15 text-red-400 border-red-500/25" },
@@ -362,7 +363,7 @@ export default function PlatformMetricsPage() {
                     <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">GMV 30d</p><p className="mt-0.5 text-xs font-semibold">{formatARS(row.gmv_30d || 0)}</p></div>
                     <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Productos</p><p className="mt-0.5 text-xs font-semibold">{row.productos || 0}</p></div>
                     <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tienda</p><p className="mt-0.5 text-xs font-semibold">{row.tiendas_activas || 0} activa</p></div>
-                    <div className="flex items-center justify-between gap-2 md:block md:text-right"><SignalBadge signal={row.senal} /><p className="mt-1 text-[10px] text-muted-foreground">{row.dias_sin_cobrar == null ? "Nunca cobró" : `${row.dias_sin_cobrar} días sin cobrar`}</p></div>
+                    <div className="flex items-center justify-between gap-2 md:block md:text-right"><SignalBadge signal={row.senal} /><p className="mt-1 text-[10px] text-muted-foreground">{row.dias_sin_cobrar == null ? "Nunca cobró" : `${plural(row.dias_sin_cobrar, "día")} sin cobrar`}</p></div>
                   </div>
                 ))}
               </div>
@@ -438,7 +439,7 @@ export default function PlatformMetricsPage() {
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <KPICard label="Precision medida" value={stockMetrics.accuracyPct === null ? "Sin datos" : `${stockMetrics.accuracyPct}%`} icon={PackageCheck} color={stockMetrics.accuracyPct !== null && stockMetrics.accuracyPct >= 98 ? "success" : "warning"} sub={`${stockMetrics.matchingProducts} de ${stockMetrics.measuredProducts} productos`} />
+                <KPICard label="Precision medida" value={stockMetrics.accuracyPct === null ? "Sin datos" : `${stockMetrics.accuracyPct}%`} icon={PackageCheck} color={stockMetrics.accuracyPct !== null && stockMetrics.accuracyPct >= 98 ? "success" : "warning"} sub={`${stockMetrics.matchingProducts} de ${plural(stockMetrics.measuredProducts, "producto")}`} />
                 <KPICard label="Descuadrados" value={stockMetrics.mismatchingProducts} icon={AlertTriangle} color={stockMetrics.mismatchingProducts > 0 ? "destructive" : "success"} sub="requieren conteo o investigacion" />
                 <KPICard label="Sin Kardex" value={stockMetrics.unmeasuredProducts} icon={ShoppingBag} color={stockMetrics.unmeasuredProducts > 0 ? "warning" : "success"} sub="fuera del porcentaje medido" />
                 <KPICard label="Stock negativo" value={stockMetrics.negativeStockProducts} icon={AlertTriangle} color={stockMetrics.negativeStockProducts > 0 ? "destructive" : "success"} sub="invariante que debe quedar en cero" />
@@ -477,7 +478,7 @@ export default function PlatformMetricsPage() {
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-                <KPICard label="Primera venta" value={`${channelMetrics.firstSaleRate}%`} icon={CheckCircle2} color="success" sub={`${channelMetrics.activatedOrganizations} comercios activados`} />
+                <KPICard label="Primera venta" value={`${channelMetrics.firstSaleRate}%`} icon={CheckCircle2} color="success" sub={`${plural(channelMetrics.activatedOrganizations, "comercio")} activados`} />
                 <KPICard label="Publicacion instrumentada" value={`${channelMetrics.storePublishedRate}%`} icon={Store} color="primary" sub={`${channelMetrics.organizationsWithStoreActive} activas hoy`} />
                 <KPICard label="Usan online" value={`${channelMetrics.onlineRate}%`} icon={Globe2} color="blue" sub={`${channelMetrics.organizationsWithOnline} con orden confirmada`} />
                 <KPICard label="Usan POS" value={`${channelMetrics.posRate}%`} icon={MonitorSmartphone} color="success" sub={`${channelMetrics.organizationsWithPos} con venta POS`} />

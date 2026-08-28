@@ -27,6 +27,7 @@ import { listaVigente, etiquetaDescuento } from "@/lib/priceListCalc";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { useVibration } from "@/hooks/useVibration";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { plural } from "@/lib/plural";
 // fuse.js loaded dynamically to avoid Rollup TDZ (const kt) in production builds
 
 async function fireConfetti(opts: Record<string, unknown>) {
@@ -1727,7 +1728,7 @@ export default function POSPage() {
       cart.forEach(item => {
         const updated = updatedProducts.find((p: any) => p.id === item.productId);
         if (updated && updated.stock >= 0 && updated.stock <= lowStockAlert) {
-          toast.warning(`⚠️ Stock bajo: ${item.name} — quedan ${updated.stock} unidades`, { duration: 6000 });
+          toast.warning(`⚠️ Stock bajo: ${item.name} — quedan ${plural(updated.stock, "unidad", "unidades")}`, { duration: 6000 });
         }
       });
 

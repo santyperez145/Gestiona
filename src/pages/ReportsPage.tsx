@@ -24,6 +24,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import DataPagination from "@/components/shared/DataPagination";
 
+import { plural } from "@/lib/plural";
 function exportCSV(filename: string, headers: string[], rows: string[][]) {
   const bom = '\uFEFF';
   const csv = bom + [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
@@ -847,7 +848,7 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
     doc.setFontSize(10);
     doc.setTextColor(120, 120, 120);
     doc.text(businessName, 40, 56);
-    doc.text(`Generado: ${now}  ·  ${rows.length} productos`, 40, 70);
+    doc.text(`Generado: ${now}  ·  ${plural(rows.length, "producto")}`, 40, 70);
 
     // KPI summary line
     doc.setFontSize(9);
@@ -2143,7 +2144,7 @@ function ProductProfitabilityTab({ sales, allSales }: { sales: any[]; allSales: 
     a.download = `rentabilidad_productos_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`${filtered.length} productos exportados`);
+    toast.success(`${plural(filtered.length, "producto")} exportados`);
   };
 
   const toggle = (key: typeof sortKey) => {
@@ -3194,7 +3195,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
   .kpi-item{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 14px;min-width:120px;text-align:center}
   .kpi-item .val{font-size:18px;font-weight:bold;color:#b8860b}.kpi-item .lbl{font-size:9px;color:#777;margin-top:2px}
 </style></head><body>
-<h1>📈 Tendencia de Márgenes — Últimos ${months} meses</h1>
+<h1>📈 Tendencia de Márgenes — Últimos ${plural(months, "mes", "meses")}</h1>
 <p class="sub">Generado el ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
 <div class="kpi">
   <div class="kpi-item"><div class="val">${avgGrossMargin.toFixed(1)}%</div><div class="lbl">Margen bruto promedio</div></div>

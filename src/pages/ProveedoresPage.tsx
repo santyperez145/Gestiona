@@ -23,6 +23,7 @@ import SupplierPOModal from "@/components/shared/SupplierPOModal";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
+import { plural } from "@/lib/plural";
 type Supplier = {
   id: string;
   name: string;
@@ -770,7 +771,7 @@ export default function ProveedoresPage() {
             {/* KPIs */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: "Total compras", value: formatARS(totalSpend), sub: `${totalOrders} órdenes`, icon: ShoppingCart },
+                { label: "Total compras", value: formatARS(totalSpend), sub: `${plural(totalOrders, "orden", "órdenes")}`, icon: ShoppingCart },
                 { label: "Proveedores activos", value: ranked.length, sub: "con compras registradas", icon: Truck },
                 { label: "Ticket promedio", value: formatARS(avgOrder), sub: "por orden de compra", icon: DollarSign },
                 { label: "Proveedor top", value: ranked[0]?.name?.slice(0, 16) || "—", sub: ranked[0] ? formatARS(ranked[0].totalARS) : "", icon: TrendingUp },

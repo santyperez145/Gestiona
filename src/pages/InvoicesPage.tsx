@@ -29,6 +29,7 @@ const fmtARS = (n: number) =>
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+import { plural } from "@/lib/plural";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -789,7 +790,7 @@ export default function InvoicesPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard label="Facturas totales" value={stats.total} icon={FileText} color="primary" />
         <KPICard label="Cobrado" value={formatARS(stats.paid)} icon={CheckCircle2} color="success"
-          sub={`${invoices.filter(i => i.status === "paid").length} facturas`} />
+          sub={`${plural(invoices.filter(i => i.status === "paid").length, "factura")}`} />
         <KPICard label="Pendiente cobro" value={formatARS(stats.pending)} icon={Clock} color="blue"
           sub={`${invoices.filter(i => i.status === "sent").length} enviadas`} />
         <KPICard label="Vencidas" value={stats.overdue} icon={XCircle}

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
 
+import { plural } from "@/lib/plural";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -519,8 +520,8 @@ function FlowForm({
 // ─────────────────────────────────────────────────────────────
 function triggerDescription(flow: FlowRule): string {
   const base = TRIGGER_LABELS[flow.trigger_type];
-  if (flow.trigger_type === "customer_inactive") return `${base}: ${flow.trigger_config?.days ?? 30} días`;
-  if (flow.trigger_type === "debt_overdue") return `${base}: ${flow.trigger_config?.days_overdue ?? 0} días`;
+  if (flow.trigger_type === "customer_inactive") return `${base}: ${plural(flow.trigger_config?.days ?? 30, "día")}`;
+  if (flow.trigger_type === "debt_overdue") return `${base}: ${plural(flow.trigger_config?.days_overdue ?? 0, "día")}`;
   if (flow.trigger_type === "low_stock") return `${base}: ≤ ${flow.trigger_config?.threshold ?? 3} u.`;
   if (flow.trigger_type === "big_sale") return `${base}: ≥ $${Number(flow.trigger_config?.min_amount ?? 50000).toLocaleString("es-AR")}`;
   if (flow.trigger_type === "deal_stage_change") return `Deal → "${flow.trigger_config?.stage ?? "?"}"`;

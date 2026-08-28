@@ -29,6 +29,7 @@ import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import KPICard from "@/components/shared/KPICard";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
+import { plural } from "@/lib/plural";
 const PAGE_SIZE = 20;
 
 const PAYMENT_METHODS = [
@@ -513,7 +514,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `ventas_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
     URL.revokeObjectURL(url);
-    toast.success(`${filtered.length} ventas exportadas`);
+    toast.success(`${plural(filtered.length, "venta")} exportadas`);
   };
 
   const printCierreCaja = () => {
@@ -663,7 +664,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                 <Button variant="outline" size="sm" onClick={printCierreCaja} title="Imprimir cierre de caja" className="hidden sm:flex">
                   <Printer className="w-4 h-4 mr-1.5" />Cierre
                 </Button>
-                <Button variant="outline" size="sm" onClick={exportSalesCSV} title={`Exportar ${filtered.length} ventas a CSV`}>
+                <Button variant="outline" size="sm" onClick={exportSalesCSV} title={`Exportar ${plural(filtered.length, "venta")} a CSV`}>
                   <FileSpreadsheet className="w-4 h-4 mr-1.5" />CSV
                 </Button>
               </>
@@ -1700,7 +1701,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           await attributeSaleToExchange(couponResult.coupon.influencer_exchange.id, totalSaleAmount);
           toast.success(`✓ Venta atribuida a ${couponResult.coupon.influencer_exchange.influencer_name}`);
         }
-        toast.success(`${lines.length === 1 ? 'Venta registrada' : `${lines.length} ventas registradas`}`);
+        toast.success(`${lines.length === 1 ? 'Venta registrada' : `${plural(lines.length, "venta")} registradas`}`);
         broadcastSync({ type: "sale_created", count: lines.length });
       }
       onSave();

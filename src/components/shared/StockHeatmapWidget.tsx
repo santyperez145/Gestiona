@@ -20,6 +20,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Package } from "lucide-react";
 
+import { plural } from "@/lib/plural";
 interface Product {
   id: string;
   name: string;
@@ -130,7 +131,7 @@ export default function StockHeatmapWidget({ products, maxTiles = 80, className 
                 }}
                 onClick={() => navigate("/productos")}
                 title={`${p.name}: ${p.stock} uds`}
-                aria-label={`${p.name}: ${p.stock} unidades`}
+                aria-label={`${p.name}: ${plural(p.stock, "unidad", "unidades")}`}
               />
             );
           })}

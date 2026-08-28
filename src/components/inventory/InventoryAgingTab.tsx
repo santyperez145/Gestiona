@@ -23,6 +23,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 
+import { plural } from "@/lib/plural";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type AgingBucket = "0-30" | "31-60" | "61-90" | "90+" | "never";
@@ -254,7 +255,7 @@ export default function InventoryAgingTab() {
           label="Capital total en stock"
           value={formatARS(kpis.totalCapital)}
           icon={Package}
-          sub={`${products.length} productos con stock`}
+          sub={`${plural(products.length, "producto")} con stock`}
           color="success"
         />
         <KPICard

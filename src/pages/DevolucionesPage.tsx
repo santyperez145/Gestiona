@@ -20,6 +20,7 @@ import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import ReturnsPortalTab from "@/components/sales/ReturnsPortalTab";
 
+import { plural } from "@/lib/plural";
 type Return = {
   id: string;
   sale_id: string | null;
@@ -285,7 +286,7 @@ export default function DevolucionesPage() {
       <PageHeader
         icon={RotateCcw}
         title="Devoluciones"
-        description={`${returns.length} devoluciones · ${totalUnits} unidades · ${formatARS(totalReturned)} reintegrado`}
+        description={`${returns.length} devoluciones · ${plural(totalUnits, "unidad", "unidades")} · ${formatARS(totalReturned)} reintegrado`}
         badge={
           returns.length > 0
             ? { label: `${formatARS(totalReturned)} total`, variant: "destructive" }

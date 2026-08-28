@@ -18,6 +18,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+import { plural } from "@/lib/plural";
 const DEFAULT_DEBT_TEMPLATE = "Hola {{nombre}}! 👋 Te recordamos que tenés una deuda pendiente de {{monto}}. Cuando puedas, coordenemos el pago. ¡Muchas gracias!";
 
 function getWaDebtTemplate(orgId?: string): string {
@@ -171,7 +172,7 @@ export default function DebtsPage() {
       @media print{body{margin:10px}}
     </style></head><body>
     <h1>Deudas Pendientes</h1>
-    <p class="sub">Generado el ${today} · ${pending.length} deudas pendientes · ${overdue.length} vencidas</p>
+    <p class="sub">Generado el ${today} · ${plural(pending.length, "deuda")} pendientes · ${overdue.length} vencidas</p>
     <div class="kpis">
       <div class="kpi"><div class="val">$${total.toLocaleString("es-AR", { minimumFractionDigits: 0 })}</div><div class="lbl">Total pendiente</div></div>
       <div class="kpi"><div class="val">${pending.length}</div><div class="lbl">Deudas activas</div></div>
@@ -181,7 +182,7 @@ export default function DebtsPage() {
     <table>
       <thead><tr><th>Cliente</th><th>Producto</th><th style="text-align:right">Monto orig.</th><th style="text-align:right">Resta</th><th>Fecha</th><th>Vence</th><th style="text-align:center">Demora</th></tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot><tr><td colspan="2">TOTAL (${pending.length} deudas)</td><td style="text-align:right">$${totalOriginal.toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td><td style="text-align:right;color:#ef4444">$${total.toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td><td colspan="3"></td></tr></tfoot>
+      <tfoot><tr><td colspan="2">TOTAL (${plural(pending.length, "deuda")})</td><td style="text-align:right">$${totalOriginal.toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td><td style="text-align:right;color:#ef4444">$${total.toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td><td colspan="3"></td></tr></tfoot>
     </table>
     </body></html>`;
     const w = window.open("", "_blank", "width=900,height=700");
@@ -632,7 +633,7 @@ export default function DebtsPage() {
               const next = { ...savedPlans, [planningDebt.id]: plan };
               setSavedPlans(next);
               localStorage.setItem(plansKey, JSON.stringify(next));
-              toast.success(`Plan de ${n} cuotas guardado`);
+              toast.success(`Plan de ${plural(n, "cuota")} guardado`);
               setPlanningDebt(null);
             };
             const toggleInstallmentPaid = (idx: number) => {

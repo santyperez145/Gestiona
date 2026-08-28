@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import FilePicker from "@/components/shared/FilePicker";
 import { toast } from "sonner";
+import { plural } from "@/lib/plural";
 import {
   Upload, FileSpreadsheet, CheckCircle2, AlertCircle,
   Loader2, X, ChevronDown, ChevronUp, Info,
@@ -256,7 +257,7 @@ export default function TiendanubeExcelImport() {
       }
 
       setDone({ products: productsImported, variants: variantsImported });
-      toast.success(`Importados: ${productsImported} productos, ${variantsImported} variantes`);
+      toast.success(`Importados: ${plural(productsImported, "producto")}, ${variantsImported} variantes`);
       setParsed(null);
       setFileName("");
     } catch (e: any) {

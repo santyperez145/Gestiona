@@ -45,6 +45,7 @@ import SeguimientosView from "@/components/crm/SeguimientosView";
 import SegmentosView from "@/components/crm/SegmentosView";
 import { normalizeIdentityEmail, normalizeIdentityPhone, normalizeIdentityText } from "@/lib/recordIdentity";
 
+import { plural } from "@/lib/plural";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -1995,7 +1996,7 @@ export default function CustomersPage() {
     a.download = `clientes_${segmentFilter !== "all" ? segmentFilter + "_" : ""}${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`${filtered.length} clientes exportados`);
+    toast.success(`${plural(filtered.length, "cliente")} exportados`);
   };
 
   const handleCreate = async (data: Partial<CustomerProfile>) => {
@@ -2282,7 +2283,7 @@ export default function CustomersPage() {
       <PageHeader
         icon={Users}
         title="Clientes / CRM"
-        description={`${customers.length} clientes · ${formatARS(totalRevenue)} facturado`}
+        description={`${plural(customers.length, "cliente")} · ${formatARS(totalRevenue)} facturado`}
         badge={
           totalDebt > 0
             ? { label: `${formatARS(totalDebt)} adeudado`, variant: "destructive" }
@@ -2296,7 +2297,7 @@ export default function CustomersPage() {
               onClick={exportCSV}
               disabled={filtered.length === 0}
               className="gap-2"
-              title={`Exportar ${filtered.length} clientes${segmentFilter !== "all" ? ` (${segmentFilter})` : ""} a CSV con datos RFM`}
+              title={`Exportar ${plural(filtered.length, "cliente")}${segmentFilter !== "all" ? ` (${segmentFilter})` : ""} a CSV con datos RFM`}
             >
               <Download className="w-4 h-4" />
               Exportar{segmentFilter !== "all" ? ` ${segmentFilter}` : ""} CSV
@@ -2438,7 +2439,7 @@ export default function CustomersPage() {
         <KPICard label="Clientes" value={customers.length} icon={Users} color="primary"
           sub={`${customers.filter(c => c.daysSinceLastPurchase <= 30).length} activos este mes`} />
         <KPICard label="Ticket Promedio" value={formatARS(avgTicketGlobal)} icon={ShoppingBag} color="blue"
-          sub={`${totalPurchases} ventas totales`} />
+          sub={`${plural(totalPurchases, "venta")} totales`} />
         <KPICard label="VIP / Premium" value={customers.filter(c => c.segment === "VIP" || c.segment === "Premium").length} icon={Crown} color="warning"
           sub="clientes top" />
         <KPICard label="Deuda Total" value={formatARS(totalDebt)} icon={AlertCircle}
@@ -2550,7 +2551,7 @@ export default function CustomersPage() {
               {atRisk.slice(0, 6).map(c => (
                 <a
                   key={c.name}
-                  href={c.phone ? `https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${c.name.split(' ')[0]}! 👋 Hace ${c.daysSinceLastPurchase} días que no te vemos por acá. ¿Se te ofrece algo? Tenemos novedades para vos 🛍️`)}` : undefined}
+                  href={c.phone ? `https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${c.name.split(' ')[0]}! 👋 Hace ${plural(c.daysSinceLastPurchase, "día")} que no te vemos por acá. ¿Se te ofrece algo? Tenemos novedades para vos 🛍️`)}` : undefined}
                   target="_blank"
                   rel="noreferrer"
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[5px] text-xs font-medium border transition-all ${c.phone ? "border-orange-500/40 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20 cursor-pointer" : "border-border bg-muted text-muted-foreground cursor-default"}`}
@@ -3306,7 +3307,7 @@ export default function CustomersPage() {
                       })()}
                       {c.purchaseCount > 0 && c.daysSinceLastPurchase >= 60 && c.daysSinceLastPurchase < 999 && (
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold hidden sm:inline-flex items-center gap-0.5 ${c.daysSinceLastPurchase >= 90 ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'}`}
-                          title={`Última compra hace ${c.daysSinceLastPurchase} días`}>
+                          title={`Última compra hace ${plural(c.daysSinceLastPurchase, "día")}`}>
                           🕐 {c.daysSinceLastPurchase}d sin comprar
                         </span>
                       )}
@@ -3327,7 +3328,7 @@ export default function CustomersPage() {
                     </div>
                     <div className="workspace-customer-row__cell" data-label="Ticket">
                       <strong>{formatARS(c.avgTicket)}</strong>
-                      <span>{c.frequency < 999 ? `Cada ${c.frequency} días` : "Única vez"}</span>
+                      <span>{c.frequency < 999 ? `Cada ${plural(c.frequency, "día")}` : "Única vez"}</span>
                     </div>
                     <div className="workspace-customer-row__health" data-label="Salud">
                       {c.purchaseCount > 0 ? <HealthScoreBadge score={c.healthScore} /> : <span className="text-xs text-muted-foreground">Sin score</span>}

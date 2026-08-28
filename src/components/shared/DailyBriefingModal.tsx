@@ -15,6 +15,7 @@ import { formatARS } from "@/lib/supabaseStore";
 import { Sparkles, RefreshCw, Copy, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { plural } from "@/lib/plural";
 interface BriefingData {
   salesCount: number;
   totalSalesARS: number;
@@ -39,7 +40,7 @@ Generá un briefing matutino breve y motivador (máx 5 oraciones) basado en esto
 - Ventas: ${d.salesCount} transacciones por ${formatARS(d.totalSalesARS)}
 - Producto más vendido: ${d.topProduct ?? "sin datos"}
 - Productos con bajo stock: ${d.lowStockCount}
-- Deudas pendientes: ${d.pendingDebtsCount} clientes, ${formatARS(d.pendingDebtsARS)} total
+- Deudas pendientes: ${plural(d.pendingDebtsCount, "cliente")}, ${formatARS(d.pendingDebtsARS)} total
 
 Incluí: saludo, análisis rápido del día anterior, alerta si hay bajo stock o deudas importantes, y un consejo accionable para el día de hoy. Respondé en español, tono profesional pero cercano.`;
 }

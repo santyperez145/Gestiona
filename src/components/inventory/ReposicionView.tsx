@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 
+import { plural } from "@/lib/plural";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Product {
@@ -310,7 +311,7 @@ export default function ReposicionView() {
           notes: "Generado por Auto-Restock",
         });
       }
-      toast.success(`Borrador de compra creado (${itemsForOrder.length} productos)`);
+      toast.success(`Borrador de compra creado (${plural(itemsForOrder.length, "producto")})`);
       setOrderOpen(false);
     } catch {
       toast.error("Error al guardar borrador");

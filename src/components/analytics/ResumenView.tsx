@@ -33,6 +33,7 @@ import PredictiveAnalyticsTab from "@/components/analytics/PredictiveAnalyticsTa
 import ChannelMarginTab from "@/components/analytics/ChannelMarginTab";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
+import { plural } from "@/lib/plural";
 // StoreFilter scopes sales/expenses to the selected sucursal via `location_id`.
 // Rows with null location_id only appear under "todas" (no store selected).
 
@@ -564,7 +565,7 @@ export default function ResumenView() {
         <KPICard
           label="Clientes Únicos"
           value={derived.uniqueCustomers}
-          sub={`${derived.totalUnits} unidades`}
+          sub={`${plural(derived.totalUnits, "unidad", "unidades")}`}
           icon={Users}
           color="blue"
         />

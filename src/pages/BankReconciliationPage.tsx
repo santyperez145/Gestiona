@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { plural } from "@/lib/plural";
 import {
   Landmark, Plus, CheckCircle2, AlertTriangle, Upload,
   Loader2, Trash2, RefreshCw, TrendingUp, TrendingDown,
@@ -274,7 +275,7 @@ export default function BankReconciliationPage() {
         rows.map(r => ({ ...r, org_id: activeOrg.id, matched: false }))
       );
       if (error) throw error;
-      toast.success(`${rows.length} movimientos importados`);
+      toast.success(`${plural(rows.length, "movimiento")} importados`);
       load();
     } catch { toast.error("Error al importar"); }
   };

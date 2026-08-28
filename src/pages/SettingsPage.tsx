@@ -43,6 +43,7 @@ import {
 } from "@/lib/orgBackups";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
+import { plural } from "@/lib/plural";
 // ─── SystemInfoSection ────────────────────────────────────────────────────────
 function SystemInfoSection({ businessName, productCount, userEmail }: { businessName: string; productCount: number; userEmail?: string }) {
   const storage = useStorageEstimate();
@@ -590,7 +591,7 @@ export default function SettingsPage() {
       count += chunk.length;
     }
     setProductCount(count);
-    toast.success(`${count} productos recalculados con TC $${rate}, aduana ${customs}% y el markup de cada categoría`);
+    toast.success(`${plural(count, "producto")} recalculados con TC $${rate}, aduana ${customs}% y el markup de cada categoría`);
   };
 
   if (loading) return (

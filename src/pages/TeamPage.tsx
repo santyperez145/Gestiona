@@ -15,6 +15,7 @@ import KPICard from '@/components/shared/KPICard';
 import type { OrgRole } from '@/lib/orgContext';
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+import { plural } from "@/lib/plural";
 interface Member {
   id: string;
   user_id: string;
@@ -107,7 +108,7 @@ export default function TeamPage() {
 
       const totalSeatsInUse = (membersRes.count || 0) + (invitesRes.count || 0);
       if (limit !== null && totalSeatsInUse >= limit) {
-        toast.error(`Límite de ${limit} usuarios alcanzado para este plan.`);
+        toast.error(`Límite de ${plural(limit, "usuario")} alcanzado para este plan.`);
         return;
       }
 
@@ -208,7 +209,7 @@ export default function TeamPage() {
           {userLimit !== null && members.length >= userLimit ? (
             <UpgradePrompt
               inline
-              title={`Límite de ${userLimit} usuarios alcanzado`}
+              title={`Límite de ${plural(userLimit, "usuario")} alcanzado`}
               description={`El plan ${plan?.name} permite hasta ${userLimit} miembros por organización. Actualizá para agregar más.`}
               currentPlan={plan?.name}
             />

@@ -34,6 +34,7 @@ import {
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import { plural } from "@/lib/plural";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // El rótulo de una categoría sale de `nombreDeCategoria`, no de un mapa propio.
@@ -312,7 +313,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
       vaper: { headline: "Vapers & Sabores", sub: "La selección más completa con los mejores sabores", cta: "Ver vapers", emoji: "💨", cat: "vaper" },
       electronico: { headline: "Tech & Electrónica", sub: "Los últimos gadgets al mejor precio del mercado", cta: "Ver electrónica", emoji: "⚡", cat: "electronico" },
     };
-    return cfgs[top] || { headline: businessName, sub: `${products.length} productos disponibles`, cta: "Ver catálogo", emoji: "🛍️", cat: "all" };
+    return cfgs[top] || { headline: businessName, sub: `${plural(products.length, "producto")} disponibles`, cta: "Ver catálogo", emoji: "🛍️", cat: "all" };
   }, [categories, businessName, products.length]);
 
   const showAllView = filterCat === "all" && !search;
@@ -1461,7 +1462,7 @@ function ProductDetailModal({
           {p.stock <= 5 && (
             <p className="text-[11px] font-semibold flex items-center gap-1.5" style={{ color: p.stock <= 3 ? "#fbbf24" : "#737373" }}>
               <span className={`w-2 h-2 rounded-full shrink-0 ${p.stock <= 3 ? "bg-amber-400 animate-pulse" : "bg-white/25"}`} />
-              {p.stock <= 3 ? `¡Últimas ${p.stock} unidades disponibles!` : "Quedan pocas unidades"}
+              {p.stock <= 3 ? `¡Últimas ${plural(p.stock, "unidad", "unidades")} disponibles!` : "Quedan pocas unidades"}
             </p>
           )}
           <p className="text-[10px] text-white/20 flex items-center gap-1">

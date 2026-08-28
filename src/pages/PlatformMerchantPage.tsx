@@ -21,6 +21,7 @@ import ProductAccessPanel from '@/components/platform/ProductAccessPanel';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+import { plural } from "@/lib/plural";
 type Organization = Pick<
   Database['public']['Tables']['organizations']['Row'],
   'id' | 'name' | 'slug' | 'created_at' | 'trial_ends_at' | 'plan_id' | 'onboarding_completed' | 'logo_url'
@@ -392,13 +393,13 @@ export default function PlatformMerchantPage() {
               </div>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <Metric label="Último cobro" value={formatDateTime(health?.ultimo_cobro)} />
-                <Metric label="Días sin cobrar" value={health?.dias_sin_cobrar == null ? 'Sin dato' : `${health.dias_sin_cobrar} días`} />
+                <Metric label="Días sin cobrar" value={health?.dias_sin_cobrar == null ? 'Sin dato' : `${plural(health.dias_sin_cobrar, "día")}`} />
                 <Metric label="Variación 30d" value={health?.variacion_pct == null ? 'Sin dato' : `${health.variacion_pct > 0 ? '+' : ''}${health.variacion_pct}%`} />
                 <Metric label="Formulario inicial" value={snapshot.organization.onboarding_completed ? 'Completado' : 'Pendiente'} />
                 <Metric label="Canal objetivo" value={readiness ? activationGoalLabel(readiness.selectedGoal) : 'Sin dato'} />
                 <Metric label="Activación" value={readiness ? `${readiness.doneCount}/${readiness.total} hitos` : 'Sin dato'} />
                 <Metric label="Primera venta" value={formatDateTime(activation?.firstSaleAt)} />
-                <Metric label="Tiempo a primera venta" value={activation?.daysToFirstSale == null ? 'Sin dato' : `${activation.daysToFirstSale} días`} />
+                <Metric label="Tiempo a primera venta" value={activation?.daysToFirstSale == null ? 'Sin dato' : `${plural(activation.daysToFirstSale, "día")}`} />
               </div>
               {!health && (
                 <div className="flex items-start gap-2 border border-dashed border-border rounded-[8px] p-3 text-xs text-muted-foreground">
@@ -481,7 +482,7 @@ export default function PlatformMerchantPage() {
               title="Tienda online"
               active={!!activation?.uses_online}
               status={activation?.uses_online ? 'Con actividad' : 'Sin órdenes atribuidas'}
-              detail={activation ? `${activation.online_orders_total || 0} órdenes históricas · ${activation.online_orders_30d || 0} en 30d` : 'Sin evidencia de canal'}
+              detail={activation ? `${plural(activation.online_orders_total || 0, "orden", "órdenes")} históricas · ${activation.online_orders_30d || 0} en 30d` : 'Sin evidencia de canal'}
               accent="blue"
             />
             <ChannelPanel
@@ -489,7 +490,7 @@ export default function PlatformMerchantPage() {
               title="POS"
               active={!!activation?.uses_pos}
               status={activation?.uses_pos ? 'Con actividad' : 'Sin ventas atribuidas'}
-              detail={activation ? `${activation.pos_sales_total || 0} ventas históricas · ${activation.pos_sales_30d || 0} en 30d` : 'Sin evidencia de canal'}
+              detail={activation ? `${plural(activation.pos_sales_total || 0, "venta")} históricas · ${activation.pos_sales_30d || 0} en 30d` : 'Sin evidencia de canal'}
               accent="amber"
             />
           </div>
@@ -505,9 +506,9 @@ export default function PlatformMerchantPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
               <Metric label="Estado" value={activation?.store_is_active ? 'Activa' : 'Inactiva'} />
               <Metric label="Publicada" value={activation?.store_published_at ? formatDate(activation.store_published_at) : 'Sin fecha'} />
-              <Metric label="Tiempo a publicar" value={activation?.daysToStorePublish == null ? 'Sin dato' : `${activation.daysToStorePublish} días`} />
+              <Metric label="Tiempo a publicar" value={activation?.daysToStorePublish == null ? 'Sin dato' : `${plural(activation.daysToStorePublish, "día")}`} />
               <Metric label="Primera venta" value={activation?.firstSaleAt ? `${formatDate(activation.firstSaleAt)} · ${activation.firstSaleChannel === 'online' ? 'Online' : 'POS'}` : 'Sin venta'} />
-              <Metric label="Tiempo a vender" value={activation?.daysToFirstSale == null ? 'Sin dato' : `${activation.daysToFirstSale} días`} />
+              <Metric label="Tiempo a vender" value={activation?.daysToFirstSale == null ? 'Sin dato' : `${plural(activation.daysToFirstSale, "día")}`} />
               <Metric label="Omnicanal" value={activation?.is_omnichannel ? 'Sí' : 'Todavía no'} />
             </div>
           </section>

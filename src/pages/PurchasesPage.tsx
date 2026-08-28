@@ -58,6 +58,7 @@ import KPICard from "@/components/shared/KPICard";
 import { useModulePermissions } from "@/lib/usePermissions";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+import { plural } from "@/lib/plural";
 const PAGE_SIZE = 20;
 
 export default function PurchasesPage() {
@@ -960,7 +961,7 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
         }
       });
       setOrders(newOrders);
-      toast.success(`Pre-cargado: ${agg.length} productos basado en ventas de ${restockDays} días`);
+      toast.success(`Pre-cargado: ${plural(agg.length, "producto")} basado en ventas de ${plural(restockDays, "día")}`);
     } catch (err) {
       toast.error('Error al cargar datos de ventas');
     }

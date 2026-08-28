@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { plural } from "@/lib/plural";
 import {
   TrendingUp, TrendingDown, Wallet, RefreshCw, Download,
   Search, ArrowUpCircle, ArrowDownCircle, Filter, X,
@@ -195,14 +196,14 @@ export default function FinancialMovementsPage() {
           value={formatARS(totalIncome)}
           icon={TrendingUp}
           color="success"
-          sub={`${filtered.filter(m => m.direction === "income").length} movimientos`}
+          sub={`${plural(filtered.filter(m => m.direction === "income").length, "movimiento")}`}
         />
         <KPICard
           label="Total egresos"
           value={formatARS(totalExpense)}
           icon={TrendingDown}
           color="destructive"
-          sub={`${filtered.filter(m => m.direction === "expense").length} movimientos`}
+          sub={`${plural(filtered.filter(m => m.direction === "expense").length, "movimiento")}`}
         />
         <KPICard
           label="Balance neto"

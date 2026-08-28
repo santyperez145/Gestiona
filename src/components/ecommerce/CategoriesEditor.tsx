@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import ImageUpload from "@/components/shared/ImageUpload";
+import { plural } from "@/lib/plural";
 import {
   slugDeNombre, validarNombre, validarPadre, arbolDeCategorias,
   type CategoriaTienda,
@@ -151,7 +152,7 @@ export default function CategoriesEditor({ storeId }: { storeId: string | null }
 
   async function borrar(f: Fila) {
     if (f.productos_reales > 0) {
-      toast.error(`Tiene ${f.productos_reales} productos`, {
+      toast.error(`Tiene ${plural(f.productos_reales, "producto")}`, {
         description: "Cambiales la categoría antes de borrarla, o escondela en vez de borrar.",
       });
       return;

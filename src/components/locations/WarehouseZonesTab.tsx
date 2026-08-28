@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Warehouse, Plus, Star, Package, ChevronRight, ChevronDown, MapPin, Loader2 } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
 
+import { plural } from "@/lib/plural";
 interface WarehouseData {
   id: string;
   name: string;
@@ -188,7 +189,7 @@ export default function WarehouseZonesTab() {
     const r = data as { ubicado?: number; sin_ubicar?: number } | null;
     toast.success(
       r && Number(r.sin_ubicar) > 0
-        ? `Ubicado. Quedan ${Number(r.sin_ubicar)} unidades sin ubicar en la sucursal`
+        ? `Ubicado. Quedan ${plural(Number(r.sin_ubicar), "unidad", "unidades")} sin ubicar en la sucursal`
         : "Ubicado. No queda nada sin ubicar",
     );
     setStockOpen(false); setStockProductId(""); setStockQty(0); load();

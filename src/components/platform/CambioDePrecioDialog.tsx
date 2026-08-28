@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { AlertTriangle, ArrowDown, ArrowUp, CalendarClock, Loader2, Users } from "lucide-react";
 
+import { plural } from "@/lib/plural";
 /**
  * Programar un cambio de precio para quien YA está suscripto.
  *
@@ -111,7 +112,7 @@ export default function CambioDePrecioDialog({
     toast.success(
       r.alcance === 1
         ? "Cambio programado. Se le avisa a 1 comercio."
-        : `Cambio programado. Se le avisa a ${r.alcance} comercios.`,
+        : `Cambio programado. Se le avisa a ${plural(r.alcance, "comercio")}.`,
     );
     onOpenChange(false);
     onProgramado?.();
@@ -196,7 +197,7 @@ export default function CambioDePrecioDialog({
               <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <CalendarClock className="h-3 w-3" />
                 {sube
-                  ? `Un aumento necesita ${impacto.preaviso_dias} días de aviso: lo más temprano es el ${minimo}.`
+                  ? `Un aumento necesita ${plural(impacto.preaviso_dias, "día")} de aviso: lo más temprano es el ${minimo}.`
                   : "Una baja puede regir hoy mismo: sólo beneficia a quien la recibe."}
               </p>
             </div>

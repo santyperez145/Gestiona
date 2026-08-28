@@ -29,6 +29,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
+import { plural } from "@/lib/plural";
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface OrgRow {
@@ -835,8 +836,8 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                     </div>
                     <div className="grid grid-cols-3 gap-3 p-4 text-center">
                       {[
-                        { label: 'Tienda', value: controlPlaneSummary.onlineMerchants, detail: `${controlPlaneSummary.onlineOrders30d} órdenes`, color: 'text-blue-400' },
-                        { label: 'POS', value: controlPlaneSummary.posMerchants, detail: `${controlPlaneSummary.posSales30d} ventas`, color: 'text-amber-400' },
+                        { label: 'Tienda', value: controlPlaneSummary.onlineMerchants, detail: `${plural(controlPlaneSummary.onlineOrders30d, "orden", "órdenes")}`, color: 'text-blue-400' },
+                        { label: 'POS', value: controlPlaneSummary.posMerchants, detail: `${plural(controlPlaneSummary.posSales30d, "venta")}`, color: 'text-amber-400' },
                         { label: 'Omnicanal', value: controlPlaneSummary.omnichannelMerchants, detail: `${controlPlaneSummary.activeStores} tiendas activas`, color: 'text-emerald-400' },
                       ].map(channel => (
                         <div key={channel.label}>
@@ -865,7 +866,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                             <CircleAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                             <div className="min-w-0 flex-1">
                               <p className="text-xs font-medium truncate">{row.org_name || 'Organización sin nombre'}</p>
-                              <p className="text-[10px] text-muted-foreground">{row.senal === 'dormido' ? `${row.dias_sin_cobrar || 0} días sin cobrar` : row.senal}</p>
+                              <p className="text-[10px] text-muted-foreground">{row.senal === 'dormido' ? `${plural(row.dias_sin_cobrar || 0, "día")} sin cobrar` : row.senal}</p>
                             </div>
                             <span className="text-[10px] font-mono text-muted-foreground">${Math.round(row.gmv_30d || 0).toLocaleString('es-AR')}</span>
                           </div>

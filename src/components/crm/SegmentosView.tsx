@@ -24,6 +24,7 @@ import { normalizeName } from "@/lib/customerMatch";
 import CustomerSegmentsTab from "@/components/customers/CustomerSegmentsTab";
 import AILeadScoringWidget from "@/components/customers/AILeadScoringWidget";
 
+import { plural } from "@/lib/plural";
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Sale {
   customer_id: string | null;
@@ -341,7 +342,7 @@ export default function SegmentosView() {
         <KPICard label="Campeones"         value={championsCount} sub="máximo valor y frecuencia"    icon={Crown}         color="warning"     />
         <KPICard label="En riesgo"         value={atRiskCount}    sub="acción urgente requerida"      icon={AlertTriangle} color="destructive" />
         <KPICard label="Revenue total"     value={fmt(totalRevenue)} sub="todos los clientes"         icon={DollarSign}    color="success"     />
-        <KPICard label="Score RFM promedio" value={avgRFMScore}   sub={`${rfmData.length} clientes`}  icon={BarChart3}     color="blue"        />
+        <KPICard label="Score RFM promedio" value={avgRFMScore}   sub={`${plural(rfmData.length, "cliente")}`}  icon={BarChart3}     color="blue"        />
       </div>
 
       {/* Tabs */}
@@ -369,7 +370,7 @@ export default function SegmentosView() {
                   <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" stroke="none">
                     {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
-                  <Tooltip formatter={(v: number) => [`${v} clientes`, ""]} contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
+                  <Tooltip formatter={(v: number) => [`${plural(v, "cliente")}`, ""]} contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="flex-1 space-y-1.5">

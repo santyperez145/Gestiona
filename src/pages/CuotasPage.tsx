@@ -12,6 +12,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+import { plural } from "@/lib/plural";
 type Installment = {
   id: string;
   sale_id: string;
@@ -113,7 +114,7 @@ export default function CuotasPage() {
       const { error } = await supabase.from("installment_schedule").insert(schedule);
       if (error) throw error;
 
-      toast.success(`Venta en ${n} cuotas de ${formatARS(amountPerCuota)} registrada`);
+      toast.success(`Venta en ${plural(n, "cuota")} de ${formatARS(amountPerCuota)} registrada`);
       setForm(EMPTY_FORM);
       setShowForm(false);
       await load();
@@ -173,10 +174,10 @@ export default function CuotasPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Pendiente total" value={formatARS(pendingTotal)} icon={DollarSign} color="primary"
-          sub={`${pending.length} cuotas`} />
+          sub={`${plural(pending.length, "cuota")}`} />
         <KPICard label="Vencidas" value={formatARS(overdueTotal)} icon={AlertTriangle}
           color={overdue.length > 0 ? "destructive" : "success"}
-          sub={`${overdue.length} cuotas`} />
+          sub={`${plural(overdue.length, "cuota")}`} />
         <KPICard label="Mes seleccionado" value={formatARS(monthTotal)} icon={TrendingUp} color="success"
           sub={`${formatARS(monthCollected)} cobrado`} />
         <KPICard label="Próximas" value={upcoming.length} icon={CalendarDays} color="warning"

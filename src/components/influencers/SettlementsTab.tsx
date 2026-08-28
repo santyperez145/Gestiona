@@ -11,6 +11,7 @@ import { Wallet, Download, Calendar, CheckCircle, FileText } from "lucide-react"
 import { toast } from "sonner";
 import KPICard from "@/components/shared/KPICard";
 
+import { plural } from "@/lib/plural";
 function startOfMonthISO(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1).toISOString(); }
 function endOfMonthISO(d: Date) { return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59).toISOString(); }
 function toDateInput(d: Date) { return d.toISOString().slice(0, 10); }
@@ -127,7 +128,7 @@ export default function SettlementsTab() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KPICard label="Ventas referidas" value={formatARS(totals.sales)} icon={Calendar} sub={`${totals.count} ventas`} />
+        <KPICard label="Ventas referidas" value={formatARS(totals.sales)} icon={Calendar} sub={`${plural(totals.count, "venta")}`} />
         <KPICard label="Comisiones" value={formatARS(totals.commissions)} icon={Wallet} sub="A liquidar" />
         <KPICard label="Influencers" value={totals.influencers} icon={CheckCircle} sub="Con ventas" />
         <KPICard label="Pagos hechos" value={payouts.length} icon={FileText} sub="Histórico" />

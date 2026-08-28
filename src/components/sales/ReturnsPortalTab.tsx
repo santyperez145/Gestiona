@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { receiveStoreReturnRequest, runStorePaymentRefund } from "@/lib/paymentRefunds";
 
+import { plural } from "@/lib/plural";
 /* ─────────────────────────── types ─────────────────────────── */
 interface ReturnReason { id: string; name: string; requires_photo: boolean; is_active: boolean; }
 interface ReturnRequest {
@@ -210,7 +211,7 @@ export default function ReturnsPortalTab() {
     if (request.received_at) return;
     try {
       const result = await receiveStoreReturnRequest(request.id);
-      toast.success(result.idempotent ? "La recepción ya estaba registrada" : `Mercadería recibida · ${result.quantity ?? request.quantity} unidades al Kardex`);
+      toast.success(result.idempotent ? "La recepción ya estaba registrada" : `Mercadería recibida · ${plural(result.quantity ?? request.quantity, "unidad", "unidades")} al Kardex`);
       load();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo recibir la mercadería");

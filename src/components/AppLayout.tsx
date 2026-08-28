@@ -31,6 +31,7 @@ import { usePermissionsResolver } from "@/lib/permissionsContext";
 import { moduleForRoute } from "@/lib/moduleMap";
 import { NAV_ITEMS, NAV_GROUPS, grupoDeRuta } from "@/lib/navigation";
 
+import { plural } from "@/lib/plural";
 /**
  * La navegación vive en `src/lib/navigation.ts`.
  *
@@ -553,7 +554,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <span className="font-semibold">Pago pendiente.</span>{' '}
                 {diasDeGracia === 1
                   ? 'Te queda 1 día antes de que se apaguen los extras del plan.'
-                  : `Te quedan ${diasDeGracia} días antes de que se apaguen los extras del plan.`}
+                  : `Te quedan ${plural(diasDeGracia, "día")} antes de que se apaguen los extras del plan.`}
               </p>
               <Link to="/mi-plan"><Button size="sm" className="h-7 text-xs shrink-0 bg-warning hover:bg-warning/90 text-warning-foreground">Actualizar pago</Button></Link>
               <button onClick={() => setBannerDismissed(true)} className="text-warning/60 hover:text-warning shrink-0"><XIcon className="w-4 h-4" /></button>

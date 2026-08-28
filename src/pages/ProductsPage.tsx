@@ -61,6 +61,7 @@ import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { Switch } from "@/components/ui/switch";
 
+import { plural } from "@/lib/plural";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
 
@@ -111,7 +112,7 @@ function exportPriceLabels(products: any[], businessName: string) {
   }
   .sku { font-size: 6px; color: #bbb; font-family: monospace; margin-top: 1.5mm; }
 </style></head><body>
-<h2>${businessName} — Etiquetas de precio (${items.length} productos)</h2>
+<h2>${businessName} — Etiquetas de precio (${plural(items.length, "producto")})</h2>
 <div class="grid">${rows}</div>
 </body></html>`;
   const w = window.open('', '_blank', 'width=900,height=700');
@@ -153,7 +154,7 @@ function exportQRLabels(products: any[], businessName: string) {
   .price { font-size: 11px; font-weight: bold; color: #b8860b; margin-top: 2px; }
   .sku { font-size: 6px; color: #aaa; font-family: monospace; margin-top: 1px; }
 </style></head><body>
-<h2>${businessName} — Etiquetas QR (${inStock.length} productos)</h2>
+<h2>${businessName} — Etiquetas QR (${plural(inStock.length, "producto")})</h2>
 <div class="grid">${rows}</div>
 </body></html>`;
   const w = window.open('', '_blank', 'width=900,height=700');
@@ -177,7 +178,7 @@ function printAgingPDF(aged: { name: string; stock: number; daysSince: number; v
   table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f3f4f6;padding:8px;text-align:left;border-bottom:2px solid #e5e7eb}
   td{padding:6px 8px;border-bottom:1px solid #e5e7eb}tfoot td{font-weight:bold;border-top:2px solid #111}</style></head>
   <body><h1>${businessName} — Inventario sin movimiento</h1>
-  <p>Generado el ${new Date().toLocaleDateString("es-AR")} · ${aged.length} productos · U$S ${(totalValue / exchangeRate).toFixed(0)} inmovilizado</p>
+  <p>Generado el ${new Date().toLocaleDateString("es-AR")} · ${plural(aged.length, "producto")} · U$S ${(totalValue / exchangeRate).toFixed(0)} inmovilizado</p>
   <table><thead><tr><th>Producto</th><th>Stock</th><th>Sin venta</th><th>Costo estimado</th><th>Sugerencia</th></tr></thead>
   <tbody>${rows}</tbody>
   <tfoot><tr><td colspan="3">TOTAL</td><td style="text-align:right">U$S ${(totalValue / exchangeRate).toFixed(0)}</td><td></td></tr></tfoot>
@@ -223,7 +224,7 @@ function exportPriceListPDF(products: any[], businessName: string) {
   @media print{.no-print{display:none}}
 </style></head><body>
 <h1>${businessName}</h1>
-<div class="sub">Lista de precios — ${date} · ${inStock.length} productos disponibles</div>
+<div class="sub">Lista de precios — ${date} · ${plural(inStock.length, "producto")} disponibles</div>
 <table>
   <thead><tr><th>Producto</th><th class="price">Precio</th><th class="price">Oferta</th></tr></thead>
   <tbody>${rows}</tbody>
@@ -668,7 +669,7 @@ export default function ProductsPage() {
         discount_price_ars: Math.round(Number(p.sale_price_ars) * (1 - pct / 100)),
         offer_expires_at: expiry,
       } as any)));
-      toast.success(`Oferta de ${pct}% aplicada a ${catOfferProducts.length} productos de ${nombreCategoria(catOfferCategory)}`);
+      toast.success(`Oferta de ${pct}% aplicada a ${plural(catOfferProducts.length, "producto")} de ${nombreCategoria(catOfferCategory)}`);
       setCatOfferOpen(false);
       reload();
     } catch (e: any) { toast.error(e.message || "Error aplicando la oferta"); }
@@ -681,7 +682,7 @@ export default function ProductsPage() {
     setCatOfferSaving(true);
     try {
       await Promise.all(withOffer.map(p => updateProductDB(p.id, { discount_price_ars: null, offer_expires_at: null } as any)));
-      toast.success(`Ofertas quitadas de ${withOffer.length} productos de ${nombreCategoria(catOfferCategory)}`);
+      toast.success(`Ofertas quitadas de ${plural(withOffer.length, "producto")} de ${nombreCategoria(catOfferCategory)}`);
       setCatOfferOpen(false);
       reload();
     } catch (e: any) { toast.error(e.message || "Error quitando la oferta"); }
@@ -704,7 +705,7 @@ export default function ProductsPage() {
       <PageHeader
         icon={Package}
         title="Productos"
-        description={`${filtered.length} de ${products.length} productos · ${totalStock} uds`}
+        description={`${filtered.length} de ${plural(products.length, "producto")} · ${totalStock} uds`}
         badge={
           outOfStockCount > 0
             ? { label: `${outOfStockCount} sin stock`, variant: "destructive" }
@@ -773,7 +774,7 @@ export default function ProductsPage() {
             {canCreate && (productLimit !== null && products.length >= productLimit ? (
               <Button
                 className="gradient-gold text-primary-foreground font-semibold shadow-gold"
-                onClick={() => toast.error(`Límite de ${productLimit} productos alcanzado en el plan ${plan?.name}. Actualizá tu plan.`)}
+                onClick={() => toast.error(`Límite de ${plural(productLimit, "producto")} alcanzado en el plan ${plan?.name}. Actualizá tu plan.`)}
               >
                 <Plus className="w-4 h-4 mr-2" />Nuevo
               </Button>
@@ -826,7 +827,7 @@ export default function ProductsPage() {
         onChange={(tab) => setProductsWorkspaceTab(tab as "catalog" | "overview")}
         tabs={[
           { id: "catalog", label: "Catálogo", icon: Package, count: filtered.length },
-          { id: "overview", label: "Operación", icon: BarChart2, count: `${lowStockCount + outOfStockCount} alertas` },
+          { id: "overview", label: "Operación", icon: BarChart2, count: `${plural(lowStockCount + outOfStockCount, "alerta")}` },
         ]}
         meta={<span>{products.length} productos · {totalStock} unidades</span>}
       />
@@ -862,7 +863,7 @@ export default function ProductsPage() {
         <KPICard label="Total productos" value={products.length} icon={Package} color="primary"
           sub={productLimit ? `${products.length}/${productLimit} del plan` : `${filtered.length} visibles`} />
         <KPICard label="Inversión total" value={formatUSD(totalValue)} icon={DollarSign} color="blue"
-          sub={`${totalStock} unidades en stock`} />
+          sub={`${plural(totalStock, "unidad", "unidades")} en stock`} />
         <KPICard label="Stock bajo" value={lowStockCount} icon={AlertTriangle}
           color={lowStockCount > 0 ? "warning" : "success"} sub="1–3 unidades" />
         <KPICard label="Sin stock" value={outOfStockCount} icon={X}
@@ -1461,7 +1462,7 @@ export default function ProductsPage() {
                              const days = Math.round(p.stock / vel);
                              const color = days <= 7 ? 'text-destructive font-bold' : days <= 21 ? 'text-yellow-400 font-medium' : 'text-emerald-400';
                              return (
-                               <span className={`text-xs ${color}`} title={`${(vel * 30).toFixed(1)} uds/mes · stock para ~${days} días`}>
+                               <span className={`text-xs ${color}`} title={`${(vel * 30).toFixed(1)} uds/mes · stock para ~${plural(days, "día")}`}>
                                  {days}d
                                </span>
                              );
@@ -3461,7 +3462,7 @@ function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: str
       }
       // Also save the new exchange rate to settings
       await import('@/lib/supabaseStore').then(m => m.saveSettingsDB(userId, { exchange_rate: xRate }));
-      toast.success(`${count} productos recalculados a $${xRate}/U$S`);
+      toast.success(`${plural(count, "producto")} recalculados a $${xRate}/U$S`);
       onDone();
     } catch (err: any) {
       toast.error("Error: " + err.message);
@@ -3505,7 +3506,7 @@ function BulkPriceAdjust({ userId, settings, categorias, onDone }: { userId: str
           count++;
         }
       }
-      toast.success(`${count} productos actualizados (${pct > 0 ? '+' : ''}${pct}%)`);
+      toast.success(`${plural(count, "producto")} actualizados (${pct > 0 ? '+' : ''}${pct}%)`);
       onDone();
     } catch (err: any) {
       toast.error("Error: " + err.message);

@@ -20,6 +20,7 @@ import { useEntitlements } from "@/lib/useEntitlements";
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import { plural, palabra } from "@/lib/plural";
 import {
   CreditCard, Check, Loader2, ExternalLink, AlertTriangle, Calendar, Receipt,
 } from "lucide-react";
@@ -448,7 +449,7 @@ export default function MiPlanPage() {
                   <ul className="mt-3 space-y-1 text-xs flex-1">
                     <li className="flex items-center gap-1.5">
                       <Check className="w-3 h-3 text-emerald-500 shrink-0" />
-                      {p.max_products ? `${p.max_products.toLocaleString("es-AR")} productos` : "Productos ilimitados"}
+                      {p.max_products ? `${p.max_products.toLocaleString("es-AR")} ${palabra(p.max_products, "producto")}` : "Productos ilimitados"}
                     </li>
                     <li className="flex items-center gap-1.5">
                       <Check className="w-3 h-3 text-emerald-500 shrink-0" />

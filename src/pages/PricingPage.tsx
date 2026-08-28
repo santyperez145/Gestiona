@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import type { Plan } from '@/lib/useEntitlements';
 import BrandLogo from '@/components/shared/BrandLogo';
 
+import { plural, palabra } from "@/lib/plural";
 /**
  * Los renglones que se pueden escribir a mano, y sólo ésos.
  *
@@ -44,7 +45,7 @@ function limitesDelPlan(p: Plan): string[] {
     cantidad(p.max_users, 'usuario', 'usuarios'),
   ];
   if (p.max_sales_per_month != null) {
-    lineas.push(`${Number(p.max_sales_per_month).toLocaleString('es-AR')} ventas por mes`);
+    lineas.push(`${Number(p.max_sales_per_month).toLocaleString('es-AR')} ${palabra(Number(p.max_sales_per_month), "venta")} por mes`);
   } else {
     lineas.push('Ventas ilimitadas');
   }
@@ -263,7 +264,7 @@ export default function PricingPage() {
           {subStatus === 'trialing' && <Sparkles className="w-3.5 h-3.5" />}
           {subStatus === 'active' && <Crown className="w-3.5 h-3.5" />}
           <span>
-            {subStatus === 'trialing' && `Trial activo — te quedan ${trialDaysLeft} días`}
+            {subStatus === 'trialing' && `Trial activo — te quedan ${plural(trialDaysLeft, "día")}`}
             {subStatus === 'active' && `Plan ${currentPlan?.name || ''} activo`}
             {subStatus === 'past_due' && 'Tu pago está pendiente. Actualizá tu método de pago para continuar.'}
           </span>

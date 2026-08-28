@@ -19,6 +19,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 
+import { plural, palabra } from "@/lib/plural";
 /* ─────────────────────────── types ─────────────────────────── */
 interface ABCRow {
   id: string;
@@ -141,7 +142,7 @@ export default function AnalisisView() {
     setRunning(true);
     const { data, error } = await supabase.rpc("run_abc_analysis", { p_org_id: orgId, p_period_days: parseInt(period) });
     if (error) { toast.error(error.message); setRunning(false); return; }
-    toast.success(`Análisis completado — ${data} productos clasificados`);
+    toast.success(`Análisis completado — ${plural(data, "producto")} clasificados`);
     setRunning(false);
     load();
   }
@@ -283,7 +284,7 @@ export default function AnalisisView() {
                           <td className="px-4 py-3"><RevenueBar pct={r.revenue_pct} abc={r.abc_class} /></td>
                           <td className="px-4 py-3 text-muted-foreground">{r.cumulative_pct.toFixed(1)}%</td>
                           <td className="px-4 py-3 text-muted-foreground">{(r.products as ABCRow["products"])?.stock ?? "—"}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{r.days_on_hand > 0 ? `${r.days_on_hand.toFixed(0)} días` : "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{r.days_on_hand > 0 ? `${r.days_on_hand.toFixed(0)} ${palabra(Number(r.days_on_hand.toFixed(0)), "día")}` : "—"}</td>
                           <td className="px-4 py-3"><Badge className={`${riskCfg.color} flex items-center gap-1 text-xs`}>{riskCfg.icon}{riskCfg.label}</Badge></td>
                         </tr>
                       );

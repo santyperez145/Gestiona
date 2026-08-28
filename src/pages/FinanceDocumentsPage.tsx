@@ -35,6 +35,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOrg } from '@/lib/orgContext';
 import { buildPurchaseOrderHandoffPath } from '@/lib/purchaseOrderHandoff';
+import { plural } from "@/lib/plural";
 import {
   approveFinanceDocumentDrafts,
   createFinanceDocumentDrafts,
@@ -889,7 +890,7 @@ function supplierMatchLabel(method: FinanceDocumentMatching['supplier']['matchMe
     name_alias: 'nombre aprendido en una confirmación anterior',
     exact_name: 'nombre exacto del proveedor',
     none: 'sin coincidencia automática',
-    ambiguous: `${candidateCount} proveedores posibles`,
+    ambiguous: `${plural(candidateCount, "proveedor", "proveedores")} posibles`,
   }[method];
 }
 
@@ -900,7 +901,7 @@ function productMatchLabel(method: FinanceDocumentMatching['lines'][number]['mat
     description_alias: 'descripción aprendida para este proveedor',
     exact_name: 'nombre exacto del catálogo',
     none: 'sin coincidencia automática',
-    ambiguous: `${candidateCount} productos posibles; requiere elección`,
+    ambiguous: `${plural(candidateCount, "producto")} posibles; requiere elección`,
   }[method];
 }
 

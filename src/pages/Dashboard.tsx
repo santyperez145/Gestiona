@@ -44,6 +44,7 @@ import { evaluateActivationReadiness, type ActivationGoal } from "@/lib/activati
 import { isMissingRelation } from "@/lib/publicDataSource";
 import { dashboardViewKey, isDashboardViewId } from "@/lib/dashboardViews";
 
+import { plural } from "@/lib/plural";
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
 type ActivationRow = Database['public']['Views']['organization_activation_readiness']['Row'];
@@ -1080,9 +1081,9 @@ export default function Dashboard() {
     const expensesRatio = monthSalesARS > 0 ? (totalMonthExpenses / monthSalesARS) * 100 : 0;
     const lowMarginCount = products.filter((p: any) => Number(p.sale_price_ars) > 0 && (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 < marginAlertPct).length;
     const smartAlerts: { type: 'destructive' | 'warning' | 'success'; icon: any; msg: string; link?: string }[] = [];
-    if (outOfStockProducts.length > 0) smartAlerts.push({ type: 'destructive', icon: AlertTriangle, msg: `${outOfStockProducts.length} productos sin stock`, link: '/productos' });
-    if (lowMarginCount > 0) smartAlerts.push({ type: 'warning', icon: TrendingDown, msg: `${lowMarginCount} productos con margen < ${marginAlertPct}%`, link: '/productos' });
-    if (dueDebtsWeek > 0) smartAlerts.push({ type: 'warning', icon: AlertCircle, msg: `${dueDebtsWeek} deudas vencen esta semana`, link: '/deudas' });
+    if (outOfStockProducts.length > 0) smartAlerts.push({ type: 'destructive', icon: AlertTriangle, msg: `${plural(outOfStockProducts.length, "producto")} sin stock`, link: '/productos' });
+    if (lowMarginCount > 0) smartAlerts.push({ type: 'warning', icon: TrendingDown, msg: `${plural(lowMarginCount, "producto")} con margen < ${marginAlertPct}%`, link: '/productos' });
+    if (dueDebtsWeek > 0) smartAlerts.push({ type: 'warning', icon: AlertCircle, msg: `${plural(dueDebtsWeek, "deuda")} ${dueDebtsWeek === 1 ? "vence" : "vencen"} esta semana`, link: '/deudas' });
     if (expensesRatio > expenseRatioAlertPct && monthSalesARS > 0) smartAlerts.push({ type: 'destructive', icon: Wallet, msg: `Gastos representan ${expensesRatio.toFixed(0)}% de tus ventas (límite ${expenseRatioAlertPct}%)`, link: '/gastos' });
 
     // ===== Anomaly detection =====
@@ -1293,11 +1294,11 @@ export default function Dashboard() {
   if (loading || !stats) return <DashboardSkeleton />;
 
   const kpiCards = [
-    { label: "Hoy", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${liveTodaySales?.count ?? 0} ventas`; const pct = ((today - lw) / lw) * 100; return `${liveTodaySales?.count ?? 0} ventas · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, tone: "green", live: true },
+    { label: "Hoy", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${plural(liveTodaySales?.count ?? 0, "venta")}`; const pct = ((today - lw) / lw) * 100; return `${plural(liveTodaySales?.count ?? 0, "venta")} · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, tone: "green", live: true },
     { label: "Ganancia bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, tone: stats.grossProfitARS >= 0 ? "green" : "red" },
     { label: "Resultado neto", value: formatARS(stats.netMonthProfitARS), sub: `Bruta - gastos${stats.taxEnabled ? ' - imp.' : ''}`, icon: Zap, tone: stats.netMonthProfitARS >= 0 ? "green" : "red" },
-    { label: "Facturación", value: formatARS(stats.totalSalesARS), sub: `${stats.totalSalesCount} ventas`, icon: DollarSign, tone: "amber" },
-    { label: "Gastos del mes", value: formatARS(stats.totalMonthExpenses), sub: `${stats.expensesChartData.length} categorías`, icon: Wallet, tone: "yellow" },
+    { label: "Facturación", value: formatARS(stats.totalSalesARS), sub: `${plural(stats.totalSalesCount, "venta")}`, icon: DollarSign, tone: "amber" },
+    { label: "Gastos del mes", value: formatARS(stats.totalMonthExpenses), sub: `${plural(stats.expensesChartData.length, "categoría")}`, icon: Wallet, tone: "yellow" },
     { label: "Inversión", value: formatUSD(stats.totalPurchasesUSD), sub: formatARS(stats.totalPurchasesARS), icon: TrendingDown, tone: "yellow" },
     { label: "Deudas", value: formatARS(stats.totalDebtsARS), sub: `${stats.pendingDebts} activas`, icon: AlertCircle, tone: "red" },
     { label: "Inventario", value: `${stats.totalStock} uds`, sub: formatUSD(stats.inventoryValueUSD), icon: Package, tone: "blue" },
@@ -1750,7 +1751,7 @@ export default function Dashboard() {
               <div className="bg-card/60 rounded-lg px-3 py-2 space-y-0.5">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Stock crítico</p>
                 {sigLabel(sigStock, [
-                  `${criticalStock} productos sin stock`,
+                  `${plural(criticalStock, "producto")} sin stock`,
                   `${criticalStock} sin stock`,
                   'Sin agotados ✓',
                 ])}
@@ -1758,7 +1759,7 @@ export default function Dashboard() {
               <div className="bg-card/60 rounded-lg px-3 py-2 space-y-0.5">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Deudas vencidas</p>
                 {sigLabel(sigDebt, [
-                  `${overdueCount} deudas vencidas`,
+                  `${plural(overdueCount, "deuda")} vencidas`,
                   `${overdueCount} deuda${overdueCount !== 1 ? 's' : ''} vencida${overdueCount !== 1 ? 's' : ''}`,
                   'Sin vencidas ✓',
                 ])}
@@ -2296,7 +2297,7 @@ export default function Dashboard() {
                       <p className="text-[10px] text-muted-foreground mt-1.5">
                         {pct >= 100
                           ? "🎉 ¡Meta alcanzada!"
-                          : `Faltan ${formatARS(remaining)} · ${daysLeft} días restantes`}
+                          : `Faltan ${formatARS(remaining)} · ${plural(daysLeft, "día")} restantes`}
                       </p>
                       {atRisk && (
                         <div className="mt-2 flex items-start gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
@@ -2552,7 +2553,7 @@ export default function Dashboard() {
                     <div
                       className={`w-full rounded-t-md transition-all duration-500 ${isBest ? 'bg-primary' : 'bg-muted-foreground/20'}`}
                       style={{ height: `${Math.max(4, heightPct)}%` }}
-                      title={`${d.day}: ${formatARS(d.avg)} prom · ${d.count} ventas`}
+                      title={`${d.day}: ${formatARS(d.avg)} prom · ${plural(d.count, "venta")}`}
                     />
                     <span className={`text-[9px] font-medium ${isBest ? 'text-primary' : 'text-muted-foreground/60'}`}>{d.day}</span>
                   </div>
@@ -2581,7 +2582,7 @@ export default function Dashboard() {
               const pct = maxCount > 0 ? (h.count / maxCount) * 100 : 0;
               const isBest = h.hour === stats.bestHour!.hour;
               return (
-                <div key={h.hour} className="flex flex-col items-center gap-0.5 flex-1 min-w-[16px]" title={`${h.label}: ${h.count} ventas`}>
+                <div key={h.hour} className="flex flex-col items-center gap-0.5 flex-1 min-w-[16px]" title={`${h.label}: ${plural(h.count, "venta")}`}>
                   <div className={`w-full rounded-sm ${isBest ? 'bg-primary' : 'bg-muted-foreground/20'}`} style={{ height: `${Math.max(4, pct)}%` }} />
                   {(h.hour % 4 === 0) && <span className="text-[8px] text-muted-foreground">{h.hour}</span>}
                 </div>

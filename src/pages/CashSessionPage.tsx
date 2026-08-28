@@ -19,6 +19,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import CashDenominationCountDialog from "@/components/shared/CashDenominationCountDialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+import { plural } from "@/lib/plural";
 // ── Export helpers ────────────────────────────────────────────────────────────
 function printCashReport(
   session: CashSession,
@@ -335,7 +336,7 @@ export default function CashSessionPage() {
           </p>
           <p className="text-xs text-muted-foreground">
             {openSession
-              ? `Abierta hace ${sessionDuration < 60 ? `${sessionDuration} min` : `${Math.round(sessionDuration / 60)}h ${sessionDuration % 60}m`} · ${sessionSales.length} ventas · ${formatARS(totalAll)}`
+              ? `Abierta hace ${sessionDuration < 60 ? `${sessionDuration} min` : `${Math.round(sessionDuration / 60)}h ${sessionDuration % 60}m`} · ${plural(sessionSales.length, "venta")} · ${formatARS(totalAll)}`
               : "No hay turno activo"
             }
           </p>

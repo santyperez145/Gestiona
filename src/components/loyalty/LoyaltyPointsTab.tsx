@@ -14,6 +14,7 @@ import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders, FileSpreadsheet, Tag, AlertCircle, Medal } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
 
+import { plural } from "@/lib/plural";
 // ─── Tier system ──────────────────────────────────────────────────────────────
 
 const TIERS = [
@@ -229,7 +230,7 @@ export default function LoyaltyPointsTab() {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Puntos activos" value={totalPointsOutstanding.toLocaleString("es-AR")} icon={Star} color="warning"
-          sub={`${balances.length} clientes con saldo`} />
+          sub={`${plural(balances.length, "cliente")} con saldo`} />
         <KPICard label="Valor en canje" value={formatARS(totalValueOutstanding)} icon={Gift} color="primary"
           sub="valor potencial a redimir" />
         <KPICard label="Transacciones" value={entries.length} icon={Trophy} color="blue"
