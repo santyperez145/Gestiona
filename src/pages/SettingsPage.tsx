@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X, Smartphone, BookMarked, Save, Mail, Lock, Server, Eye, EyeOff, TrendingUp, Package, Tag } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X, Smartphone, BookMarked, Save, Mail, Lock, Server, Eye, EyeOff, TrendingUp, Package, Tag , ExternalLink } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { logAudit } from "@/lib/auditLog";
 import { FormSkeleton } from "@/components/shared/PageSkeleton";
@@ -863,6 +863,17 @@ export default function SettingsPage() {
           </div>
 
           {/* Financial params */}
+          {/**
+            * ⚠️ La cotización del dólar y las categorías de gasto estaban en
+            * «Sistema», entre los respaldos y la información técnica. Las dos son
+            * parámetros de plata: quien viene a configurar cuánto vale el dólar no
+            * lo busca al lado de los backups.
+            */}
+          <div className="settings-panel settings-panel--finance space-y-4 md:space-y-6">
+            <USDQuoteSection userId={user!.id} onApply={(rate) => setExchangeRate(String(rate))} />
+            <ExpenseCategoriesSection userId={user!.id} />
+          </div>
+
           <div id="settings-finance" className="settings-panel settings-panel--finance bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4 md:space-y-5">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <Palette className="w-4 h-4 text-primary" />Parámetros Financieros
@@ -995,6 +1006,20 @@ export default function SettingsPage() {
           </div>
 
           {/* Notification preferences */}
+          {/**
+            * ⚠️ Estaban en «Sistema», y no son del sistema:
+            *
+            *  - Los umbrales son **los números que disparan las alertas** (stock
+            *    bajo, venta grande, caja en rojo). Configurarlos lejos de los
+            *    avisos que disparan obliga a acordarse de que existen.
+            *  - Los reportes automáticos **mandan** los resúmenes. Es lo mismo que
+            *    hay en esta pestaña, sólo que programado.
+            */}
+          <div className="settings-panel settings-panel--messaging space-y-4 md:space-y-6">
+            <ThresholdsSection userId={user!.id} />
+            <AutomatedReportsSection />
+          </div>
+
           <div id="settings-notifications" className="settings-panel settings-panel--messaging bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
@@ -1313,31 +1338,6 @@ export default function SettingsPage() {
           <SupportAccessAuditSection />
 
           <div id="settings-tools" className="settings-panel settings-panel--system space-y-4 md:space-y-6">
-          {/* USD Real-time Quote */}
-          <USDQuoteSection userId={user!.id} onApply={(rate) => setExchangeRate(String(rate))} />
-
-          {/* Thresholds & Alerts */}
-          <ThresholdsSection userId={user!.id} />
-
-          {/* Expense Categories CRUD */}
-          <ExpenseCategoriesSection userId={user!.id} />
-
-          {/* Listas de precios — se editan en su propia pantalla.
-              Acá había un segundo editor que escribía otras columnas que la
-              pantalla del menú: una lista "Mayorista 20%" creada en un lado le
-              cobraba el precio completo al mayorista en el otro. Dos editores
-              de lo mismo es cómo se llegó a eso. */}
-          <Link
-            to="/listas-precios"
-            className="rounded-[10px] border border-border/50 px-4 py-3 flex items-center justify-between bg-muted/30 hover:bg-muted/50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Tag className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold">Listas de Precios</span>
-            </div>
-            <span className="text-xs text-muted-foreground">Abrir →</span>
-          </Link>
-
           {/**
             * Respaldos: tres cosas distintas, un solo tema.
             *
@@ -1374,9 +1374,6 @@ export default function SettingsPage() {
             <CloudBackupsSection userId={user!.id} />
           </div>
 
-          {/* Automated Reports & Alerts */}
-          <AutomatedReportsSection />
-
           {/* AFIP Facturación Electrónica */}
           {/* ⚠️ El formulario de AFIP se mudó a /afip el 2026-08-27: estaba
               acá mientras la página que se llama AFIP sólo mostraba el estado
@@ -1385,21 +1382,50 @@ export default function SettingsPage() {
               dos CUIT distintos. */}
           <AfipPuntero />
 
-          {/* Coupons CRUD */}
-          <PunteroAPagina
-            titulo="Cupones de descuento"
-            detalle="Crear, activar y limitar cupones — con mínimo de compra, tope por persona y envío gratis."
-            href="/cupones"
-            cta="Abrir cupones"
-          />
-
-          {/* Sucursales management */}
-          <PunteroAPagina
-            titulo="Sucursales"
-            detalle="Alta, dirección, sucursal principal y stock por ubicación."
-            href="/sucursales"
-            cta="Abrir sucursales"
-          />
+          {/**
+            * Lo que NO se configura acá.
+            *
+            * ⚠️ Estos punteros estaban sueltos entre los formularios, con el
+            * mismo peso visual que un ajuste. Eso hacía que Ajustes pareciera
+            * tener cupones, sucursales y listas de precios adentro — y quien
+            * los buscaba después no sabía si editarlos acá o en su pantalla.
+            *
+            * 📌 Cada uno tiene su propia página **y su propia autoridad**. El
+            * de listas de precios existe porque acá hubo un segundo editor que
+            * escribía otras columnas: una lista «Mayorista 20%» creada en un
+            * lado le cobraba el precio completo al mayorista en el otro.
+            *
+            * Quedan juntos, al final, como lo que son: la salida hacia otra
+            * pantalla, no una sección de configuración.
+            */}
+          <div className="rounded-[10px] border border-border/60 bg-card p-4 md:p-6 space-y-3">
+            <div>
+              <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
+                <ExternalLink className="w-4 h-4 text-primary" />Se administran en su propia pantalla
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                No son ajustes: son cosas que se cargan y se usan todos los días.
+              </p>
+            </div>
+            <PunteroAPagina
+              titulo="Listas de precios"
+              detalle="Precios distintos por tipo de cliente, con descuentos y tramos por cantidad."
+              href="/listas-precios"
+              cta="Abrir listas"
+            />
+            <PunteroAPagina
+              titulo="Cupones de descuento"
+              detalle="Crear, activar y limitar cupones — con mínimo de compra, tope por persona y envío gratis."
+              href="/cupones"
+              cta="Abrir cupones"
+            />
+            <PunteroAPagina
+              titulo="Sucursales"
+              detalle="Alta, dirección, sucursal principal y stock por ubicación."
+              href="/sucursales"
+              cta="Abrir sucursales"
+            />
+          </div>
           </div>
         </div>
       </div>
