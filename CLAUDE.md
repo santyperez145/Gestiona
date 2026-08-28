@@ -1734,6 +1734,23 @@ La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de inf
 - Los numeros se alinean y se comparan con periodo, canal, sucursal y variacion. Un KPI sin fecha o fuente no se presenta como verdad.
 - El dashboard abre con cuatro metricas de Business Core y deja el resto en una segunda capa visual. Las tarjetas metricas viven en componentes reutilizables para que Ventas, Stock, Finanzas y Plataforma no inventen estilos paralelos.
 - Mobile no es una version comprimida: tablas tienen scroll explicito, acciones llegan a 40px y la navegacion conserva Resumen, POS, Ventas, Productos y Clientes.
+
+  ⚠️ **En la tienda publica el minimo es 44px, y ahora se exige.** Medido el
+  2026-08-28 a 375px: **47 controles por debajo de 40**, incluidos el carrito
+  (36), el menu (36), «Agregar» (36) y la cantidad en el carrito (~24). El
+  patron era siempre `p-2` sobre un icono de 20px. Apple pide 44 y Material 48;
+  se adopto 44 para los 16 controles del recorrido del comprador.
+
+  📌 No es estetica: en Argentina la mayoria del trafico de ecommerce es
+  mobile, y un carrito de 36px se erra. Guarda: `elDedoLlegaAlBoton.test.ts`,
+  que exige `min-h-11` en cualquier `<button>` de `src/storefront` que se apoye
+  solo en padding. Los enlaces de texto dentro de un parrafo quedan afuera: un
+  «Ver todo» de 44px rompe la linea.
+
+  ⚠️ **Y esa guarda paso en verde sin mirar nada la primera vez.** Sacaba el
+  `className` con `/<button([\s\S]{0,600}?)>/`, que **corta en el primer `>`**
+  —y `onClick={() => …}` tiene uno—. Al arreglarlo contando llaves aparecieron
+  nueve casos mas. Se descubrio saboteandola, no corriendola.
 - Los kits de Figma son referencias de criterio. La implementacion vive en los componentes y tokens del repo para que todas las superficies evolucionen juntas.
 - El shell de organizacion debe priorizar lectura y accion: sidebar silencioso, breadcrumb visible, busqueda global, estado operativo y una accion primaria. Las tarjetas metricas no son decoracion: deben tener una sola lectura y una fuente temporal clara.
 - `PageHeader`, `MetricCard` y `KPICard` son la base compartida. Antes de crear una tarjeta, toolbar o encabezado nuevo, buscar si el componente existente puede resolverlo. Las tablas de Productos, Ventas y Plataforma deben conservar scroll horizontal en mobile y estados legibles sin depender del modo oscuro.
