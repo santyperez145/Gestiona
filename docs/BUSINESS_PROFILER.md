@@ -1,6 +1,6 @@
 # Business Profiler
 
-**Corte:** 2026-08-22
+**Corte:** 2026-08-28
 
 **Estado:** infraestructura productiva; adopción externa todavía no medida.
 
@@ -50,7 +50,8 @@ continúan en trazabilidad de inventario. El perfil no duplica esas funciones.
 - `industry_presets.product_type_templates` contiene JSON declarativo y
   versionado; el cliente sólo lo interpreta para mostrar una vista previa.
 - `configure_business_profile` vuelve a validar y aplica el preset en el
-  servidor. Sólo `owner` o `admin` puede ejecutarlo.
+  servidor, pero ahora es una autoridad interna: el navegador no puede saltar
+  la orquestación.
 - `product_types.source` distingue `custom` de `business_profile`. Si el equipo
   ya creó el mismo slug, el RPC devuelve `skipped_custom`: no lo sobreescribe ni
   le agrega atributos.
@@ -58,9 +59,26 @@ continúan en trazabilidad de inventario. El perfil no duplica esas funciones.
   estructura anterior ni reasigna productos existentes.
 - `organization_business_profiles` guarda versión y resultado aplicado. Los
   miembros pueden leerlo por RLS; no pueden escribirlo directamente.
-- `complete_business_onboarding` valida nombre, color, objetivo y perfil, y
-  actualiza organización + ajustes en una sola transacción. Así no existe un
-  onboarding a medio guardar.
+- `business_blueprint_preview` calcula el estado deseado, el SHA-256 y el diff
+  sin escribir. Owner/admin puede revisar qué falta antes de confirmar.
+- `provision_business_blueprint` coordina perfil/settings, permisos por rol,
+  capabilities base, ubicación principal y pipeline CRM. Cada ejecución tiene
+  key idempotente, progreso y checklist de cinco pasos.
+- `complete_business_onboarding` entra por el mismo Blueprint y luego valida
+  nombre, color y objetivo. Así onboarding y reconfiguración no divergen.
+
+## Fallos y recuperación
+
+Los cinco pasos se ejecutan dentro de una subtransacción de PostgreSQL. Si uno
+falla, se revierten también los anteriores: no queda settings actualizado con
+permisos o pipeline a medio crear. Afuera de ese rollback se conserva la
+corrida fallida y el checklist indica qué se compensó, qué falló y qué se
+omitió. Reintentar la misma key continúa la misma corrida; repetir una corrida
+exitosa devuelve replay y no vuelve a mutar el negocio.
+
+Las tablas `organization_blueprints`, `provisioning_runs` y
+`provisioning_steps` son legibles por miembros vía RLS pero no admiten escritura
+directa desde el navegador.
 
 ## Experiencia
 
@@ -77,6 +95,7 @@ parecer que todo el onboarding falló.
 
 ~~~bash
 npx supabase db query --linked --file supabase/verificaciones/20260822_business_profiler.sql
+npx supabase db query --linked --file supabase/verificaciones/20260828_business_blueprint.sql
 npx supabase db push --linked --dry-run
 ~~~
 
@@ -90,10 +109,16 @@ rollback deliberado:
 - usuario externo: bloqueado;
 - restos de tipos, atributos, perfil y nombre `ZZ`: 0.
 
-Línea de base después del rollback: 7 perfiles activos, 8 tipos y 28 atributos
-declarados; 0 organizaciones configuradas y 0 tipos reales. Es capacidad
-disponible, no adopción. La próxima evidencia válida es un segundo comercio que
-elija un perfil, importe su catálogo y venda sin SQL ni cambios de esquema.
+La prueba de Blueprint del 2026-08-28 agregó una falla controlada en el paso 4:
+los tres pasos previos quedaron compensados, el dominio quedó vacío, el retry
+2 terminó los cinco pasos y el replay conservó un solo run. Produjo 60+
+permisos, una ubicación, seis etapas CRM y dos capabilities base, con outsider
+bloqueado y 0 restos.
+
+Línea de base después del rollback: 9 perfiles activos y 0 blueprints/runs/
+steps reales. Es capacidad disponible, no adopción. La próxima evidencia válida
+es un segundo comercio que elija un perfil, importe su catálogo y venda sin SQL
+ni cambios de esquema.
 
 ## Comparación de producto
 

@@ -167,7 +167,7 @@ patrones de producto/UX y la matriz de ejecución viven en
 | Confiabilidad | Pruebas automáticas de los recorridos que venden y operan. | Tienda desktop/móvil y panel autenticado bloquean CI; restore y trazas prueban recuperación, no sólo compilación. |
 | Activación | Wizard, checklist, ayuda para publicar/cobrar y cohortes básicas. | Ocho hitos calculados por el Business Core separan formulario de resultado; la primera venta del canal elegido define activación. Cohortes mensuales usan ventanas maduras 7/14/30, distinguen autoservicio de acompañamiento y miden minutos sin PII. El diferencial no es el dashboard: es poder conectar costo de onboarding con el mismo Core que prueba la venta. |
 | Migración de catálogo | Excel/CSV, mapeo de columnas y altas masivas. | Un lote se prepara sin mutar datos, resuelve altas/actualizaciones/conflictos en servidor, exige aprobación y reconcilia cada fila con stock asentado sólo por Kardex. La importación es paridad; la reversibilidad, autoridad e idempotencia son confianza operativa. |
-| Configuración por rubro | Presets, campos personalizados y plantillas de catálogo. | Siete perfiles declarativos preparan tipos/atributos sin crear verticales, preservan lo propio y se aplican por RPC idempotente sobre el mismo Core. La plantilla es paridad; cambiar la forma del catálogo sin bifurcar stock, costo, orden, cliente ni margen es la tesis diferencial que aún debe probar un merchant externo. |
+| Configuración por rubro | Presets, campos personalizados y plantillas de catálogo. | Nueve perfiles declarativos preparan tipos/atributos sin crear verticales y un Blueprint revisable coordina settings, roles, capabilities, ubicación y CRM con retry transaccional. La plantilla es paridad; cambiar la forma del negocio sin bifurcar stock, costo, orden, cliente ni margen es la tesis diferencial que aún debe probar un merchant externo. |
 | Soporte remoto | Panel de cuenta, auditoría e impersonación/diagnóstico. | Se retiró la impersonación: Support solicita un snapshot agregado, owner autoriza 15/30/60 minutos, cada lectura revalida expiración/revocación y queda contada. La herramienta es paridad; consentimiento, minimización y no heredar una sesión son confianza operativa a validar con menor tiempo de soporte. |
 | Alta de comercios | Cuenta, trial, invitación y panel de activación. | Platform aprovisiona org + owner + plan + settings + auditoría en una transacción idempotente, bloquea identidades ya vinculadas y envía el acceso sin mostrar el token. El alta es paridad; no corromper otro tenant ni duplicar al reintentar es confiabilidad a demostrar en el segundo merchant. |
 
@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.903 tests en 181 archivos pasan al 2026-08-28; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
+| Calidad técnica | 1.908 tests en 182 archivos pasan al 2026-08-28; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. |
@@ -235,6 +235,7 @@ usarse en una presentación, valuación o decisión de inversión.
 | Importación de catálogo | La migración `20260821000060` reemplaza dos importadores client-side por un lote server-side Excel/CSV de hasta 5.000 filas: staging, preview, create/update/conflict, aprobación, aplicación atómica, retry idempotente y reconciliación. Verificación con rol `authenticated`: 1 válida + 1 inválida, bloqueo previo, 1 producto, stock 3, 1 movimiento, retry sin duplicación, anon/escritura directa sin permisos y 0 restos (2026-08-21). |
 | Business Profiler | La migración `20260822000001` declara 7 perfiles, 8 tipos y 28 atributos sobre `product_types`; onboarding y reconfiguración pasan por RPC owner/admin, son atómicos e idempotentes y preservan colisiones `custom`. Verificación real: 1 tipo/4 atributos, retry 0/0, outsider bloqueado y 0 restos. Línea de base tras rollback: 0 organizaciones configuradas y 0 tipos, por lo que todavía no es adopción. |
 | Capability Catalog | `20260828000130` versiona cinco entidades y cuatro capabilities piloto (`catalog.products`, `inventory.core`, `commerce.store`, `finance.documents`). Un evaluador compone activación, producto, dependencias, conflictos, rollout, membresía y permiso; Finance UI/comandos y sus dos workers delegan a él. Fixture transaccional: entitlement, dependencia, outsider, ciclo, preservación de datos y 0 restos. Base al 2026-08-28: 2 organizaciones con catálogo/inventario y 1/2 con tienda; esto es arquitectura habilitante, no adopción. |
+| Blueprint y Provisioning | `20260828000140` persiste estado deseado + hash, runs idempotentes y checklist de cinco pasos; preview muestra diff sin escribir. Perfil/settings, roles, capabilities, ubicación y CRM se coordinan en una subtransacción recuperable. Fixture real: falla en paso 4 sin estado parcial, retry 2, replay 1 run, 5/5 pasos, 60+ permisos, 1 ubicación, 6 etapas, 2 capabilities, outsider bloqueado y 0 restos. Base productiva: 0 runs reales; confiabilidad, no adopción. |
 | Soporte consentido | `20260822000002` reemplaza magic links de impersonación por solicitud Support → aprobación owner → snapshot sanitizado con expiración por lectura. Retry de solicitud conserva 1 ID; retry de aprobación no extiende la ventana; outsider bloqueado; 2 vistas auditadas; revocación efectiva y 0 restos. Línea de base: 0 solicitudes reales/0 diagnósticos consumidos. |
 | Alta de comercios | `20260822000003` reemplaza escrituras parciales por un RPC superadmin: identidad técnica sin workspace prematuro; 1 org/owner/trial/settings/auditoría; retry conserva `org_id`; key con datos distintos, owner existente y outsider bloqueados; organización previa idéntica y 0 restos. El acceso se envía por email sin exponer enlace. Base real: 4 organizaciones; el segundo merchant aún no existe. |
 | Finance surface | `20260822000008` agrega `/finance`, `FinanceLayout`, entitlement separado de `finance.view`, solicitud tenant, decisión Platform auditada y snapshot agregado de proveedores/órdenes/obligaciones/ledger existentes. Fixture real: owner solicita pero no autoaprueba; staff finance habilita/deshabilita; permiso, outsider y anon bloqueados; 3 eventos append-only y restos 0. Base: Business habilitado 4/4; Finance disponible 4/4, 0 solicitudes y 0 habilitaciones. |
@@ -834,9 +835,9 @@ exponen al navegador.
 Las cuatro primeras capabilities son `catalog.products`, `inventory.core`,
 `commerce.store` y `finance.documents`. El grafo impide ciclos, la tienda activa
 su capability al crearse y desactivar sólo cambia control: no borra productos,
-documentos ni historia. El siguiente paso no es sumar claves manualmente: P1-03
-debe producirlas desde un Blueprint idempotente generado por el Business
-Profiler.
+documentos ni historia. P1-03 ya produce las capabilities base desde un
+Blueprint idempotente generado por el Business Profiler; las activaciones
+comerciales o de rollout siguen fuera del perfil y no se pueden autoaprobar.
 
 ### Evolución del repositorio
 
@@ -918,9 +919,9 @@ merchant.
 **Objetivo:** incorporar comercios que no participaron en el desarrollo.
 
 **Estado:** en curso; primera venta/tiempo a vender, la ruta universal de ocho
-hitos, Business Profiler, importación reconciliada y cohortes con costo de
-acompañamiento ya están instrumentados. Falta la prueba externa con segundo y
-tercer comercio.
+hitos, Business Profiler + Blueprint recuperable, importación reconciliada y
+cohortes con costo de acompañamiento ya están instrumentados. Falta la prueba
+externa con segundo y tercer comercio.
 
 **Entregables**
 
@@ -933,8 +934,15 @@ tercer comercio.
   declarativos crean ocho tipos y 28 atributos por RPC owner/admin; el retry es
   idempotente, las colisiones propias se preservan y cambiar de rubro no borra
   tipos ni productos. Onboarding guarda perfil, organización y ajustes en una
-  sola transacción. La base sigue en 0 organizaciones configuradas: falta uso
-  externo, no más infraestructura vertical.
+  sola transacción. Servicios y gastronomía elevaron el total a nueve perfiles
+  sin prometer agenda/contratos que el Core aún no tiene. La base sigue en 0
+  organizaciones configuradas: falta uso externo, no más infraestructura
+  vertical.
+- ~~Blueprint revisable y provisioning recuperable.~~ **Entregado
+  2026-08-28:** preview/diff/hash, run idempotente y checklist coordinan perfil,
+  settings, 60+ permisos, capabilities base, ubicación principal y pipeline de
+  seis etapas. Una falla revierte el dominio completo pero deja diagnóstico y
+  retry; el replay no duplica. Producción sigue en 0 runs reales.
 - ~~Importador CSV/Excel con staging, preview, validación y reconciliación.~~
   **Entregado 2026-08-21:** un solo flujo acepta `.xlsx`, `.xls` y `.csv`,
   normaliza formatos numéricos locales, conserva celdas vacías, detecta
@@ -1313,6 +1321,8 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
 11. ~~alta técnica del segundo comercio sin estados parciales ni enlace de
     sesión visible~~ — cerrada el 2026-08-22: RPC transaccional, retry
     idempotente, owner previo protegido, acceso por email y cero restos;
+    El follow-up de Blueprint quedó cerrado técnicamente el 2026-08-28: diff
+    previo, cinco pasos, rollback, retry/replay, owner/outsider y cero restos.
 12. onboarding acompañado del segundo comercio y primera cohorte real.
 13. ~~hechos canónicos de margen sin ceros optimistas ni ventas omitidas~~ —
     cerrado el 2026-08-22: 34/34 líneas, fuente por componente, asignaciones
@@ -1526,8 +1536,16 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     evaluar antes de tomar lease o descargar originales. El fixture real
     cubrió owner/outsider, entitlement, dependencia, ciclo, wrapper de worker,
     preservación de producto y 0 restos. Producción tiene 2 organizaciones:
-    catálogo/inventario 2/2 y tienda 1/2. Continúa P1-03 Blueprint/provisioning;
-    no se agregan capabilities sin milestone y consumidor reales.
+    catálogo/inventario 2/2 y tienda 1/2. No se agregan capabilities sin
+    milestone y consumidor reales.
+40. ~~Blueprint y Provisioning P1-03~~ — cerrado técnicamente el 2026-08-28:
+    estado deseado versionado + SHA-256, preview/diff, run idempotente y
+    checklist coordinan cinco autoridades existentes. Una falla inyectada en
+    ubicación revirtió perfil/settings, permisos y capabilities; retry 2 creó
+    60+ permisos, una ubicación principal, pipeline de seis etapas y dos
+    capabilities, y el replay conservó un run. Owner/outsider y 0 restos
+    verificados. Producción quedó en 0 runs reales: el próximo paso sigue siendo
+    el onboarding acompañado del segundo comercio, no más infraestructura.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2016,7 +2034,7 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-28: **1.903 tests en 181 archivos**,
+- Build y suites locales del 2026-08-28: **1.908 tests en 182 archivos**,
   typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 70
   funciones verificadas. Última evidencia: 42
   E2E críticos contra la base real.

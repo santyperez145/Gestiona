@@ -118,6 +118,20 @@ function parseApplication(value: Json): BusinessProfileApplication {
   return { orgId, industryCode, profileVersion, typesCreated, attributesCreated, customConflicts };
 }
 
+function parseProvisionedApplication(value: Json): BusinessProfileApplication {
+  if (!isRecord(value)) {
+    throw new Error('El servidor devolvio un provisioning invalido');
+  }
+  if (value.status === 'failed') {
+    const error = isRecord(value.error) ? value.error : null;
+    throw new Error(stringValue(error?.message) || 'No se pudo configurar el negocio; el intento quedo listo para reintentar');
+  }
+  if (value.status !== 'succeeded' || !isRecord(value.profile)) {
+    throw new Error('El servidor no confirmo el Blueprint del negocio');
+  }
+  return parseApplication(value.profile as Json);
+}
+
 export async function listBusinessProfilePresets(): Promise<BusinessProfilePreset[]> {
   const { data, error } = await supabase
     .from('industry_presets')
@@ -139,12 +153,13 @@ export async function getOrganizationBusinessProfile(orgId: string): Promise<Org
 }
 
 export async function configureBusinessProfile(orgId: string, industryCode: string): Promise<BusinessProfileApplication> {
-  const { data, error } = await supabase.rpc('configure_business_profile', {
+  const { data, error } = await supabase.rpc('provision_business_blueprint', {
     p_org_id: orgId,
     p_industry_code: industryCode,
+    p_idempotency_key: crypto.randomUUID(),
   });
   if (error) throw error;
-  return parseApplication(data);
+  return parseProvisionedApplication(data);
 }
 
 export async function completeBusinessOnboarding(input: {
@@ -162,6 +177,10 @@ export async function completeBusinessOnboarding(input: {
     p_onboarding_goal: input.onboardingGoal,
   });
   if (error) throw error;
+  if (isRecord(data) && data.status === 'failed') {
+    const provisioningError = isRecord(data.error) ? data.error : null;
+    throw new Error(stringValue(provisioningError?.message) || 'No se pudo completar la configuracion; podes reintentar sin duplicar datos');
+  }
   if (!isRecord(data) || !isRecord(data.profile)) {
     throw new Error('El servidor no confirmo el perfil de negocio');
   }

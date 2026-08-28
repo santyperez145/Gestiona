@@ -302,6 +302,27 @@ control y la política (`read_only`, `safe_disable` o `requires_cleanup`) declar
 cómo debe comportarse la superficie. Borrar o transformar historia requiere un
 workflow separado y explícito; nunca es un efecto lateral del toggle.
 
+### 4 quater. Blueprint: orquestación, no otra autoridad
+
+✅ **P1-03 cerrado técnicamente el 2026-08-28.** El Business Profiler produce
+un estado deseado versionado en `organization_blueprints`. El preview devuelve
+ese JSON, su hash y el diff sin escribir; una confirmación crea una
+`provisioning_run` con cinco `provisioning_steps`.
+
+Blueprint no implementa perfiles, permisos, capabilities, sucursales ni CRM.
+Coordina, en ese orden, `configure_business_profile`,
+`seed_default_permissions`, Capability Catalog, `locations` y
+`seed_crm_pipeline`. El configurador de perfil dejó de ser ejecutable por
+`authenticated`, por lo que onboarding y reconfiguración pasan por la misma
+orquestación.
+
+La ejecución toma un advisory lock por organización y el trabajo de dominio
+vive en una subtransacción. Ante una falla, PostgreSQL revierte todos los pasos;
+afuera se conserva la corrida como evidencia con compensación
+`transaction_rollback`. La misma idempotency key reintenta el run fallido y un
+run exitoso sólo devuelve replay. Es recuperación transaccional, no una cola
+distribuida ni una promesa de compensar efectos externos futuros.
+
 ---
 
 ## 5. Lo que se adopta ahora y lo que espera

@@ -22462,6 +22462,133 @@ export type Database = {
           },
         ]
       }
+      organization_blueprints: {
+        Row: {
+          applied_at: string | null
+          blueprint_hash: string
+          created_at: string
+          created_by: string
+          desired_state: Json
+          id: string
+          industry_code: string
+          org_id: string
+          profile_version: number
+          schema_version: number
+          status: string
+        }
+        Insert: {
+          applied_at?: string | null
+          blueprint_hash: string
+          created_at?: string
+          created_by: string
+          desired_state: Json
+          id?: string
+          industry_code: string
+          org_id: string
+          profile_version: number
+          schema_version?: number
+          status?: string
+        }
+        Update: {
+          applied_at?: string | null
+          blueprint_hash?: string
+          created_at?: string
+          created_by?: string
+          desired_state?: Json
+          id?: string
+          industry_code?: string
+          org_id?: string
+          profile_version?: number
+          schema_version?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_blueprints_industry_code_fkey"
+            columns: ["industry_code"]
+            isOneToOne: false
+            referencedRelation: "industry_presets"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "organization_blueprints_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_blueprints_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_blueprints_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_blueprints_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_blueprints_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_blueprints_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_blueprints_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_blueprints_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_blueprints_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_blueprints_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "organization_blueprints_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       organization_business_profiles: {
         Row: {
           applied_templates: Json
@@ -29476,6 +29603,198 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      provisioning_runs: {
+        Row: {
+          attempt_count: number
+          blueprint_id: string
+          compensation_status: string
+          completed_at: string | null
+          created_at: string
+          current_step: string | null
+          error: Json
+          id: string
+          idempotency_key: string
+          org_id: string
+          progress_percent: number
+          requested_by: string
+          result: Json
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          blueprint_id: string
+          compensation_status?: string
+          completed_at?: string | null
+          created_at?: string
+          current_step?: string | null
+          error?: Json
+          id?: string
+          idempotency_key: string
+          org_id: string
+          progress_percent?: number
+          requested_by: string
+          result?: Json
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          blueprint_id?: string
+          compensation_status?: string
+          completed_at?: string | null
+          created_at?: string
+          current_step?: string | null
+          error?: Json
+          id?: string
+          idempotency_key?: string
+          org_id?: string
+          progress_percent?: number
+          requested_by?: string
+          result?: Json
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provisioning_runs_blueprint_id_fkey"
+            columns: ["blueprint_id"]
+            isOneToOne: false
+            referencedRelation: "organization_blueprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provisioning_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "provisioning_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "provisioning_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "provisioning_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provisioning_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "provisioning_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "provisioning_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "provisioning_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "provisioning_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "provisioning_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "provisioning_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      provisioning_steps: {
+        Row: {
+          attempts: number
+          compensation_status: string
+          completed_at: string | null
+          error: Json
+          label: string
+          result: Json
+          run_id: string
+          started_at: string | null
+          status: string
+          step_key: string
+          step_order: number
+        }
+        Insert: {
+          attempts?: number
+          compensation_status?: string
+          completed_at?: string | null
+          error?: Json
+          label: string
+          result?: Json
+          run_id: string
+          started_at?: string | null
+          status?: string
+          step_key: string
+          step_order: number
+        }
+        Update: {
+          attempts?: number
+          compensation_status?: string
+          completed_at?: string | null
+          error?: Json
+          label?: string
+          result?: Json
+          run_id?: string
+          started_at?: string | null
+          status?: string
+          step_key?: string
+          step_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provisioning_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "provisioning_runs"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -49672,6 +49991,14 @@ export type Database = {
           titulo: string
         }[]
       }
+      business_blueprint_intent_uuid: {
+        Args: { p_intent: string }
+        Returns: string
+      }
+      business_blueprint_preview: {
+        Args: { p_industry_code: string; p_org_id: string }
+        Returns: Json
+      }
       calc_sl_depreciation: {
         Args: { p_cost: number; p_life_years: number; p_salvage: number }
         Returns: number
@@ -51138,6 +51465,14 @@ export type Database = {
       prorratear: {
         Args: { p_moneda?: string; p_pesos: number[]; p_total: number }
         Returns: number[]
+      }
+      provision_business_blueprint: {
+        Args: {
+          p_idempotency_key: string
+          p_industry_code: string
+          p_org_id: string
+        }
+        Returns: Json
       }
       provision_platform_organization: {
         Args: {

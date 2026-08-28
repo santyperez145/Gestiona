@@ -633,7 +633,7 @@ fácil al agregar el rubro. Hay un test que lo vigila.
 
 ---
 
-## P1-03 — Blueprint y Provisioning
+## P1-03 — Blueprint y Provisioning — 🟢 cerrado técnicamente (2026-08-28)
 
 **Owner:** Backend  
 **Objetivo:** configurar automáticamente una organización.
@@ -653,6 +653,35 @@ fácil al agregar el rubro. Hay un test que lo vigila.
 - Repetir provisioning no duplica.
 - Roles, settings, pipelines, ubicaciones y checklist se crean.
 - Fallo parcial es recuperable.
+
+### Entregado
+
+`organization_blueprints` conserva el estado deseado versionado y su SHA-256;
+`provisioning_runs` hace única la idempotency key por organización y
+`provisioning_steps` es el checklist observable. Antes de confirmar,
+`business_blueprint_preview` devuelve estado actual, diff y hash sin escribir.
+
+La ejecución serializa por organización y delega en las autoridades existentes:
+`configure_business_profile`, `seed_default_permissions`, Capability Catalog,
+`locations` y `seed_crm_pipeline`. El navegador perdió permiso para llamar al
+configurador interno y sólo entra por Blueprint u onboarding. No aparece otro
+stock, settings, pipeline ni sistema de roles.
+
+El bloque de pasos corre en una subtransacción real. Ante error, PostgreSQL
+revierte todas las mutaciones del intento y luego persiste run/checklist como
+`failed`, con pasos previos `compensated`, paso actual `failed` y siguientes
+`skipped`. La misma key puede reintentar; después de éxito devuelve replay sin
+ejecutar ni duplicar.
+
+### Evidencia real
+
+Fixture productivo `ZZ`, transaccional: preview con **5 cambios**, falla
+inyectada al crear ubicación, **0** perfiles/tipos/permisos/capabilities/
+ubicaciones/pipelines parciales, retry exitoso en el intento **2**, replay sobre
+**1 run**, **5/5 pasos**, matriz de **60+ permisos**, **1 ubicación principal**,
+pipeline de **6 etapas**, **2 capabilities base**, outsider bloqueado y **0
+restos**. La línea de base productiva sigue en 0 blueprints/runs/steps reales:
+se cerró confiabilidad técnica, no adopción del segundo comercio.
 
 ---
 
