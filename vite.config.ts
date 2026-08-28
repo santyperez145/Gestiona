@@ -31,6 +31,11 @@ export default defineConfig(({ mode }) => ({
       filename: "sw.ts",
       registerType: "autoUpdate",
       injectRegister: "auto",
+      // 📌 `brand/gestiona-mark.png` figura dos veces en el manifiesto —una
+      // por acá y otra por `globPatterns`— pero es **la misma URL con la
+      // misma revisión**: el navegador la baja una sola vez. Lo duplicado es
+      // el número que reporta el plugin, no la descarga. Vaciar esta lista
+      // sólo saca `robots.txt` del precache y no ahorra nada.
       includeAssets: ["brand/gestiona-mark.png", "robots.txt"],
       manifest: {
         name: "Gestiona — Sistema de Gestión",
@@ -57,6 +62,37 @@ export default defineConfig(({ mode }) => ({
       injectManifest: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        /**
+         * ── Lo que NO se precachea ────────────────────────────────────────
+         *
+         * ⚠️ Medido el 2026-08-28: el precache eran **8,2 MB en 257 entradas**,
+         * y el service worker se registra en **toda** página —incluida la
+         * tienda pública—. O sea que alguien que entra a mirar un perfume
+         * bajaba en segundo plano el panel entero: 87 chunks de páginas que no
+         * va a abrir (3 MB) más xlsx, gráficos y PDF (1,3 MB).
+         *
+         * En Argentina la mayoría del tráfico de ecommerce es mobile y con
+         * datos. Eso es plata del comprador, gastada en algo que no va a usar.
+         *
+         * 📌 Lo que se conserva a propósito, porque el SW sí sirve:
+         *   - el **shell** (entry, vendors compartidos, CSS, íconos), para que
+         *     la app abra sin conexión;
+         *   - **`POSPage`**, que es la razón de ser del PWA: una feria sin
+         *     señal tiene que poder vender;
+         *   - el runtime caching de la REST y del storage de Supabase, que no
+         *     depende del precache y sigue igual.
+         *
+         * El resto de las páginas se cachea **la primera vez que se abren**,
+         * que es como funciona cualquier PWA grande. La única contrapartida:
+         * una página que nunca se visitó online no está offline — y eso es
+         * cierto para cualquier estrategia que no baje 8 MB por las dudas.
+         */
+        globIgnores: [
+          // Las páginas del panel, salvo el POS.
+          "assets/!(POSPage|index|vendor)*-*.js",
+          // Vendors que sólo usan pantallas puntuales: reportes, exportaciones.
+          "assets/vendor-{xlsx,charts,pdf}-*.js",
+        ],
       },
     }),
     // Debe ir al final del array de plugins. Solo se activa con credenciales.

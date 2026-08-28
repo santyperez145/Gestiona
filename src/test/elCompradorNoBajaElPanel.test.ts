@@ -96,3 +96,74 @@ describe("el comprador no baja el panel", () => {
     ).toEqual([]);
   });
 });
+
+/**
+ * ── Y tampoco lo baja por atrás ───────────────────────────────────────────
+ *
+ * ⚠️ Medido el 2026-08-28: el precache del service worker eran **8,2 MB en 257
+ * entradas**, y `registerSW.js` se inyecta en **toda** página —incluida la
+ * tienda pública—. O sea que alguien que entraba a mirar un perfume bajaba en
+ * segundo plano el panel entero: 87 chunks de páginas que no va a abrir (3 MB)
+ * más xlsx, gráficos y PDF (1,3 MB).
+ *
+ * No se ve en la primera carga porque ocurre después, en background — y es
+ * justamente por eso que nadie lo nota.
+ *
+ * 📌 Lo que se conserva a propósito: el shell, para que la app abra sin
+ * conexión, y **`POSPage`**, que es la razón de ser del PWA — una feria sin
+ * señal tiene que poder vender. El resto se cachea la primera vez que se abre.
+ */
+describe("el service worker no precachea el panel entero", () => {
+  // La misma lectura que arriba, una sola fuente.
+  //
+  // 📌 Llegar acá costó una hora por algo que no era esto: la aserción de abajo
+  // tenía un **carácter de retroceso invisible** (`\x08`) metido por el
+  // escapado de un script, así que el regex era `/\bglobIgnores…/` con `\b`
+  // convertido en byte 0x08. El editor lo mostraba bien y el test fallaba
+  // diciendo que el archivo no contenía algo que sí contenía. Se vio con
+  // `cat -A`, no leyendo.
+  const config = cuerpo;
+
+  it("hay un globIgnores que deja afuera las páginas", () => {
+    /**
+     * ⚠️ La clave exacta, con dos puntos. La primera versión pedía
+     * `/globIgnores/` a secas y **`globIgnoresX` la satisfacía**: renombrar la
+     * opción —que la deja de tener efecto— pasaba en verde. Es el mismo
+     * problema de subcadena que ya mordió otras guardas de este repo.
+     */
+    expect(config).toMatch(/globIgnores\s*:/);
+    expect(config).toMatch(/POSPage\|index\|vendor/);
+  });
+
+  it("los vendors de reportes y exportación no se precachean", () => {
+    expect(config).toMatch(/vendor-\{xlsx,charts,pdf\}/);
+  });
+
+  it("lo que no se precachea se cachea al usarse", () => {
+    // Sin esto, una página abierta una vez seguiría sin estar offline: se
+    // habría cambiado un problema de peso por uno de disponibilidad.
+    const sw = sinComentarios(
+      readFileSync(join(process.cwd(), "src", "sw.ts"), "utf8"),
+    );
+    expect(sw).toMatch(/StaleWhileRevalidate/);
+    expect(sw, "no hay una ruta para los chunks de /assets/").toMatch(/\/assets\//);
+  });
+
+  it("si hay un build, el POS sigue disponible sin conexión", () => {
+    const sw = join(process.cwd(), "dist", "sw.js");
+    if (!existsSync(sw)) return;
+    const urls = [...readFileSync(sw, "utf8").matchAll(/"url":"([^"]+)"/g)].map(m => m[1]);
+
+    expect(
+      urls.some(u => u.includes("POSPage")),
+      "el POS dejó de estar precacheado: una feria sin señal se queda sin vender",
+    ).toBe(true);
+
+    const panel = urls.filter(u => /(Admin|Reports|Analytics|Platform|Finance)Page/.test(u));
+    expect(
+      panel,
+      `El precache trae ${panel.length} chunk(s) del panel que un comprador no ` +
+        `abre nunca: ${panel.slice(0, 3).join(", ")}`,
+    ).toEqual([]);
+  });
+});

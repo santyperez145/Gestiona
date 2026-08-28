@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import { precacheAndRoute, cleanupOutdatedCaches } from "workbox-precaching";
 import { registerRoute } from "workbox-routing";
-import { NetworkFirst, CacheFirst } from "workbox-strategies";
+import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 
 declare const self: ServiceWorkerGlobalScope & {
@@ -27,6 +27,34 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
+
+/**
+ * ── Runtime caching — los chunks que el precache ya no trae ───────────────
+ *
+ * ⚠️ Hasta el 2026-08-28 el precache eran **8,2 MB**: el panel entero, y el
+ * service worker se registra en toda página, así que un comprador que entraba
+ * a la tienda bajaba 87 chunks del panel en segundo plano.
+ *
+ * Ahora el precache trae sólo el shell y el POS. El resto se guarda **la
+ * primera vez que se abre**, con `StaleWhileRevalidate`: se sirve la copia al
+ * instante y se refresca por atrás.
+ *
+ * 📌 Los nombres llevan hash, así que una versión nueva es otra URL y nunca se
+ * sirve un chunk viejo por error. La expiración es para que el caché no crezca
+ * sin techo entre deploys.
+ */
+registerRoute(
+  ({ url, request }) =>
+    url.origin === self.location.origin &&
+    url.pathname.startsWith("/assets/") &&
+    (request.destination === "script" || request.destination === "style"),
+  new StaleWhileRevalidate({
+    cacheName: "app-chunks",
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 30 }),
+    ],
+  })
+);
 
 // ── Runtime caching — Supabase REST ─────────────────────────
 registerRoute(
