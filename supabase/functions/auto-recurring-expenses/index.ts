@@ -102,7 +102,10 @@ Deno.serve(async (req) => {
         .from("memberships")
         .select("user_id")
         .eq("org_id", orgId)
-        .eq("role", "admin")
+        // ⚠️ El dueño también. Acá decía `.eq("role","admin")`, así que en un
+        // comercio de una sola persona —todo comercio nuevo— la lista quedaba
+        // vacía y no se mandaba **ninguna** alerta.
+        .in("role", ["owner", "admin"])
         .limit(1);
 
       if (members && members.length > 0) {

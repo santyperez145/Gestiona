@@ -273,7 +273,10 @@ Deno.serve(async (req) => {
         .from("memberships")
         .select("user_id")
         .eq("org_id", orgId)
-        .eq("role", "admin");
+        // ⚠️ El dueño también. Acá decía `.eq("role","admin")`, así que en un
+        // comercio de una sola persona —todo comercio nuevo— la lista quedaba
+        // vacía y no se mandaba **ninguna** alerta.
+        .in("role", ["owner", "admin"]);
 
       const adminIds = (members ?? []).map((m: any) => m.user_id);
       if (adminIds.length === 0) continue;
@@ -282,17 +285,24 @@ Deno.serve(async (req) => {
       const cutoff24h = new Date(now.getTime() - 86400000).toISOString();
       const { data: recentNotifs } = await supabase
         .from("notifications")
-        .select("message")
+        // ⚠️ También el `user_id`: la deduplicación era **global entre
+        // personas**, así que si un admin ya había recibido la alerta, nadie
+        // más la recibía en 24 h — ni el dueño, ni alguien que recién entra al
+        // equipo. Se deduplica por persona y mensaje, que es lo que la
+        // cabecera de este archivo siempre dijo que hacía.
+        .select("user_id, message")
         .in("user_id", adminIds)
         .gte("created_at", cutoff24h);
 
-      const recentMessages = new Set((recentNotifs ?? []).map((n: any) => n.message));
+      const recentMessages = new Set(
+        (recentNotifs ?? []).map((n: any) => `${n.user_id}|${n.message}`),
+      );
 
       const toInsert: any[] = [];
       for (const adminId of adminIds) {
         for (const alert of alerts) {
           // Dedup by entity key embedded in message
-          if (recentMessages.has(alert.message)) continue;
+          if (recentMessages.has(`${adminId}|${alert.message}`)) continue;
           toInsert.push({
             // ⚠️ `notifications.org_id` es NOT NULL y acá no se mandaba: cada
             // insert fallaba con 23502 y el error se tragaba. La función

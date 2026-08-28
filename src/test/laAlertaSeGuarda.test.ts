@@ -132,4 +132,41 @@ describe("una alerta que se dice creada está guardada", () => {
       ).toEqual([]);
     });
   }
+
+  it("el dueño recibe las alertas de su propio comercio", () => {
+    /**
+     * ⚠️ Tres funciones elegían a quién avisar con `.eq("role", "admin")`, que
+     * **excluye al dueño**. Y en un comercio de una sola persona —todo comercio
+     * nuevo— la lista quedaba vacía y la función salía por `continue` sin
+     * mandar nada.
+     *
+     * 📌 Medido el 2026-08-28: las 45 alertas que `check-alerts` acababa de
+     * crear fueron **al admin y ninguna al dueño**. En una organización sin
+     * admin no habría creado ninguna. Es justo el caso del segundo comercio.
+     */
+    const malas: string[] = [];
+
+    for (const fn of readdirSync(FUNCIONES, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && !e.name.startsWith("_"))
+      .map((e) => e.name)) {
+      const archivo = join(FUNCIONES, fn, "index.ts");
+      if (!existsSync(archivo)) continue;
+
+      const src = sinComentarios(readFileSync(archivo, "utf8"));
+      // Sólo importa donde se elige a quién avisar.
+      if (!/from\(["']memberships["']\)/.test(src)) continue;
+      if (!/from\(["']notifications["']\)\s*\.insert|enviarWhatsApp|sendEmail/.test(src)) continue;
+
+      const roles = [...src.matchAll(/\.(?:eq|in)\(\s*["']role["']\s*,\s*([^)]+)\)/g)]
+        .map((m) => m[1]);
+      if (roles.length === 0) continue;
+      if (roles.every((r) => !r.includes("owner"))) malas.push(fn);
+    }
+
+    expect(
+      malas,
+      `Estas funciones avisan sólo a los «admin» y dejan afuera al dueño, así ` +
+        `que un comercio de una sola persona no recibe nada: ${malas.join(", ")}.`,
+    ).toEqual([]);
+  });
 });

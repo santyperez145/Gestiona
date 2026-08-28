@@ -179,17 +179,24 @@ Deno.serve(async (req) => {
             .from("memberships")
             .select("user_id")
             .eq("org_id", orgId)
-            .eq("role", "admin");
+            // ⚠️ El dueño también. Acá decía `.eq("role","admin")`, así que en un
+        // comercio de una sola persona —todo comercio nuevo— la lista quedaba
+        // vacía y no se mandaba **ninguna** alerta.
+        .in("role", ["owner", "admin"]);
           const adminIds = (members ?? []).map((m: any) => m.user_id);
 
           // Dedup: only notify for entities we haven't notified about in last 24h
           const cutoff24h = new Date(now.getTime() - 86400000).toISOString();
           const { data: recentNotifs } = await supabase
             .from("notifications")
-            .select("message")
+            // ⚠️ También el `user_id`: sin él la deduplicación es global entre
+            // personas y una alerta que ya vio un admin no le llega a nadie más.
+            .select("user_id, message")
             .in("user_id", adminIds.length > 0 ? adminIds : ["00000000-0000-0000-0000-000000000000"])
             .gte("created_at", cutoff24h);
-          const recentMsgs = new Set((recentNotifs ?? []).map((n: any) => n.message));
+          const recentMsgs = new Set(
+            (recentNotifs ?? []).map((n: any) => `${n.user_id}|${n.message}`),
+          );
 
           // Build notification text
           const entitiesStr = matchedEntities.slice(0, 5).map(e =>
@@ -200,7 +207,7 @@ Deno.serve(async (req) => {
 
           if (flow.action_type === "notification" && adminIds.length > 0) {
             const toInsert = adminIds
-              .filter(() => !recentMsgs.has(msgText))
+              .filter((uid: string) => !recentMsgs.has(`${uid}|${msgText}`))
               .map((uid: string) => ({
                 // ⚠️ `notifications.org_id` es NOT NULL y faltaba: el insert
                 // fallaba con 23502 y el error se tragaba, así que la
