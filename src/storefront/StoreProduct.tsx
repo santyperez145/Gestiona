@@ -245,6 +245,10 @@ export default function StoreProduct() {
           <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
             {stockEfectivo <= 0 ? "Sin stock"
               : stockEfectivo > 3 ? "En stock"
+              // ⚠️ Con una sola unidad decía «¡Últimas 1 unidades!». Es el
+              // cartel de escasez, o sea el que más empuja a comprar: mal
+              // escrito hace dudar de todo lo demás.
+              : stockEfectivo === 1 ? "¡Última unidad!"
               : `¡Últimas ${stockEfectivo} unidades!`}
           </p>
 

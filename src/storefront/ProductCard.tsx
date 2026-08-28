@@ -65,7 +65,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
             className="absolute top-2 right-2 px-2 py-0.5 text-[11px] font-medium bg-black/70 text-white"
             style={{ borderRadius: "var(--st-radius)" }}
           >
-            ¡Últimas {p.stock}!
+            {p.stock === 1 ? "¡Última!" : `¡Últimas ${p.stock}!`}
           </span>
         ) : null}
       </Link>

@@ -504,7 +504,11 @@ export default function StoreCheckout() {
                     <span className="text-sm block truncate">{o.label}</span>
                     {o.days_min != null && (
                       <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
-                        {o.days_min}–{o.days_max ?? "?"} días hábiles
+                        {/* ⚠️ Un rango de un solo día decía «1–1 días hábiles»,
+                            y un `days_max` faltante mostraba «1–? días». */}
+                        {o.days_max == null || o.days_max === o.days_min
+                          ? `${o.days_min} día${o.days_min === 1 ? "" : "s"} hábil${o.days_min === 1 ? "" : "es"}`
+                          : `${o.days_min}–${o.days_max} días hábiles`}
                       </span>
                     )}
                   </span>
@@ -519,7 +523,11 @@ export default function StoreCheckout() {
                 <p className="text-xs flex items-center gap-1.5" style={{ color: "hsl(var(--st-muted))" }}>
                   <Truck className="w-3 h-3" />
                   {opciones[0].label}
-                  {opciones[0].days_min != null && ` · ${opciones[0].days_min}–${opciones[0].days_max ?? "?"} días hábiles`}
+                  {opciones[0].days_min != null && (
+                    // ⚠️ Un rango de un solo día decía «1–1 días hábiles».
+                    opciones[0].days_max == null || opciones[0].days_max === opciones[0].days_min
+                      ? ` · ${opciones[0].days_min} día${opciones[0].days_min === 1 ? "" : "s"} hábil${opciones[0].days_min === 1 ? "" : "es"}`
+                      : ` · ${opciones[0].days_min}–${opciones[0].days_max} días hábiles`)}
                   {" · "}
                   {opciones[0].is_free || Number(opciones[0].price) === 0
                     ? "Gratis"
