@@ -29,9 +29,17 @@ import { resolve } from "node:path";
 const ROOT = resolve(__dirname, "../..");
 const FUNCS = resolve(ROOT, "supabase/functions");
 
-/** El código sin comentarios: un comentario nombra lo que se sacó. */
+/**
+ * El código sin comentarios: un comentario nombra lo que se sacó.
+ *
+ * ⚠️ Saca también los bloques de comentario de JSX. Sin eso este mismo test
+ * fallaba contra sí mismo: el comentario que explica por qué se sacó «3 cuotas»
+ * contiene, justamente, «3 cuotas». Séptima vez en el día con esta familia de
+ * error, y la primera con un comentario multilínea de JSX.
+ */
 function soloCodigo(texto: string): string {
   return texto
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
     .split("\n")
     .filter(l => {
       const t = l.trim();
@@ -106,5 +114,55 @@ describe("el comercio no ve secretos que no puede tocar", () => {
       .not.toMatch(/@gestiona\.app|@resend\.dev/);
     expect(page, "el remitente dejó de salir de la configuración")
       .toMatch(/mensajeria_de_plataforma/);
+  });
+});
+
+describe("el catálogo no promete cuotas que el comercio no ofrece", () => {
+  /**
+   * ⚠️ El catálogo decía **«Tarjeta 3 cuotas sin interés»** escrito a mano, en
+   * cuatro lugares: la pantalla interna, el PDF que se manda por WhatsApp, la
+   * tarjeta del catálogo público y su modal de detalle.
+   *
+   * Medido el 2026-08-27: el comercio tenía configuradas **3 y 12** cuotas sin
+   * interés. O sea que el texto fijo además le **subestimaba** la oferta.
+   *
+   * 📌 Y al revés es peor: a un comercio que no ofrece cuotas se las prometía
+   * igual. Una financiación que se promete y no existe es lo que hace que
+   * alguien decida comprar y después no pueda.
+   */
+  const PANTALLAS = ["src/pages/CatalogPage.tsx", "src/pages/PublicCatalogPage.tsx"];
+
+  it("ninguna escribe una cantidad de cuotas a mano", () => {
+    const culpables: string[] = [];
+    for (const rel of PANTALLAS) {
+      const src = soloCodigo(readFileSync(resolve(ROOT, rel), "utf8"));
+      // Un número pegado a «cuota» es una promesa fija.
+      if (/\d+\s*cuotas?\b/i.test(src)) culpables.push(rel);
+    }
+    expect(culpables, `volvió una cantidad de cuotas escrita a mano en: ${culpables.join(", ")}`)
+      .toEqual([]);
+  });
+
+  it("y las leen de lo que el comercio configuró", () => {
+    for (const rel of PANTALLAS) {
+      const src = readFileSync(resolve(ROOT, rel), "utf8");
+      // ⚠️ Se exige la LLAMADA, no el nombre: `useCuotasDelComercioX` contiene
+      // la cadena y el test seguía verde con el hook cambiado. Verificado.
+      expect(src, `${rel} dejó de leer las cuotas configuradas`)
+        .toMatch(/useCuotasDelComercio\s*\(/);
+    }
+  });
+
+  it("el catálogo público las pide sin abrir la tabla", () => {
+    // `org_installment_plans` la leen sólo los miembros, y el catálogo público
+    // lo mira un comprador anónimo. Se expone lo mostrable por RPC, igual que
+    // `get_store_categories`.
+    const dir = resolve(ROOT, "supabase/migrations");
+    const sql = readdirSync(dir).filter(f => f.endsWith(".sql")).sort().reverse()
+      .map(f => readFileSync(resolve(dir, f), "utf8"))
+      .find(t => /FUNCTION public\.cuotas_publicas/.test(t));
+    expect(sql, "ninguna migración define cuotas_publicas").toBeTruthy();
+    expect(sql!, "la función pública de cuotas dejó de ser SECURITY DEFINER")
+      .toMatch(/SECURITY DEFINER/);
   });
 });

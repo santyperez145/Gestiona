@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
+import { useCuotasDelComercio, textoDeCuotas } from "@/lib/cuotasDelComercio";
 import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { getActiveOrgId } from "@/lib/orgContext";
@@ -49,6 +50,13 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
   const auth = useAuth();
   const userId = isPublic ? publicUserId : auth?.user?.id;
   const [products, setProducts] = useState<any[]>([]);
+  /**
+   * ⚠️ El catálogo prometía «Tarjeta 3 cuotas sin interés» escrito a mano, en
+   * la pantalla y en el PDF que se manda por WhatsApp. Sin mirar nada. Un
+   * comercio que no ofrece cuotas las prometía igual, y uno que ofrece más
+   * quedaba subestimado.
+   */
+  const cuotasOfrecidas = useCuotasDelComercio(getActiveOrgId());
   const [settings, setSettings] = useState<any>(null);
   const [catalogPromos, setCatalogPromos] = useState<Promotion[]>([]);
   const [search, setSearch] = useState('');
@@ -772,7 +780,10 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
               doc.setFont('helvetica', 'normal');
               doc.text(fmtARS(Number(p.sale_price_ars)), x + 4, priceY + 10.5);
               doc.setFontSize(5.5);
-              doc.text('Tarjeta 3 cuotas s/interés', x + 4, priceY + 14.5);
+              {
+                const texto = textoDeCuotas(cuotasOfrecidas, Number(p.sale_price_ars), fmtARS);
+                if (texto) doc.text(`Tarjeta ${texto}`, x + 4, priceY + 14.5);
+              }
             } else {
               doc.setTextColor(acR, acG, acB);
               doc.setFontSize(13);
@@ -1127,7 +1138,11 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
                       </div>
                       <div className="px-1">
                         <span className="text-xs text-muted-foreground line-through">{formatARS(Number(p.sale_price_ars))}</span>
-                        <p className="text-[10px] text-muted-foreground/60">Tarjeta 3 cuotas s/interés</p>
+                        {textoDeCuotas(cuotasOfrecidas, Number(p.sale_price_ars), formatARS) && (
+                          <p className="text-[10px] text-muted-foreground/60">
+                            Tarjeta {textoDeCuotas(cuotasOfrecidas, Number(p.sale_price_ars), formatARS)}
+                          </p>
+                        )}
                       </div>
                     </>
                   ) : (

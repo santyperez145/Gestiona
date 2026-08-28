@@ -46,6 +46,12 @@ const PERMITIDAS = new Set([
   "store_cart_weight_kg",
   "store_payment_discount_pct",
   "get_public_promotions",
+  // El catálogo público lo mira un comprador anónimo, y necesita saber en
+  // cuántas cuotas puede pagar. Expone lo mostrable —cuántas, si son sin
+  // interés y desde qué monto— y nada más; `org_installment_plans` sigue
+  // siendo de los miembros. Antes de esto, el catálogo prometía «3 cuotas»
+  // escrito a mano, sin mirar lo que el comercio ofrece.
+  "cuotas_publicas",
   "platform_commission_amount",
   "is_email_suppressed",
   // Se ejecutan desde triggers de alta de organización, nunca desde el cliente.

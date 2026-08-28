@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
+import { useCuotasDelComercio, textoDeCuotas, type CuotaOfrecida } from "@/lib/cuotasDelComercio";
 import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { loadPublicPromotions, bestPromoPrice } from "@/lib/promotions";
@@ -176,6 +177,8 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [valid, setValid] = useState<boolean | null>(null);
+  const [orgIdCuotas, setOrgIdCuotas] = useState<string | null>(null);
+  const cuotasOfrecidas = useCuotasDelComercio(orgIdCuotas);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
   const [filterGender, setFilterGender] = useState("all");
@@ -222,6 +225,8 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
     // página para badges, % OFF, combos y el mensaje de WhatsApp.
     const rows = pRes || [];
     const orgId = (rows[0] as any)?.org_id as string | undefined;
+    // Las cuotas que se muestran salen de lo que el comercio configuró.
+    setOrgIdCuotas(orgId ?? null);
     let priced = rows;
     if (orgId) {
       const promos = await loadPublicPromotions(orgId);
@@ -581,6 +586,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
                   key={p.id}
                   product={p}
                   primaryColor={primaryColor}
+                  cuotas={cuotasOfrecidas}
                   onClick={() => setDetailProduct(p)}
                   badge={`-${Math.round((1 - Number(p.discount_price_ars) / Number(p.sale_price_ars)) * 100)}% OFF`}
                   settings={settings}
@@ -607,6 +613,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
                   key={p.id}
                   product={p}
                   primaryColor={primaryColor}
+                  cuotas={cuotasOfrecidas}
                   onClick={() => setDetailProduct(p)}
                   featured
                   settings={settings}
@@ -633,6 +640,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
                   key={p.id}
                   product={p}
                   primaryColor={primaryColor}
+                  cuotas={cuotasOfrecidas}
                   onClick={() => setDetailProduct(p)}
                   badge="Más vendido"
                   settings={settings}
@@ -659,6 +667,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
                   key={p.id}
                   product={p}
                   primaryColor={primaryColor}
+                  cuotas={cuotasOfrecidas}
                   onClick={() => setDetailProduct(p)}
                   compact
                   settings={settings}
@@ -687,6 +696,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
                   key={p.id}
                   product={p}
                   primaryColor={primaryColor}
+                  cuotas={cuotasOfrecidas}
                   onClick={() => setDetailProduct(p)}
                   compact
                   settings={settings}
@@ -725,6 +735,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
                   key={p.id}
                   product={p}
                   primaryColor={primaryColor}
+                  cuotas={cuotasOfrecidas}
                   onClick={() => setDetailProduct(p)}
                   settings={settings}
                   fullSettings={fullSettings}
@@ -811,6 +822,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
           {detailProduct && (
             <ProductDetailModal
               product={detailProduct}
+              cuotas={cuotasOfrecidas}
               primaryColor={primaryColor}
               whatsappNumber={whatsappNumber}
               buildWhatsAppUrl={buildWhatsAppUrl}
@@ -952,8 +964,11 @@ function ProductCard({
   settings,
   fullSettings,
   onAddToCart,
+  cuotas = [],
 }: {
   product: any;
+  /** Las que el comercio ofrece de verdad. Vacío = no se muestra ninguna. */
+  cuotas?: CuotaOfrecida[];
   primaryColor: string;
   onClick: () => void;
   featured?: boolean;
@@ -1136,8 +1151,11 @@ function ProductDetailModal({
   settings,
   fullSettings,
   onAddToCart,
+  cuotas = [],
 }: {
   product: any;
+  /** Las que el comercio ofrece de verdad. Vacío = no se muestra ninguna. */
+  cuotas?: CuotaOfrecida[];
   primaryColor: string;
   whatsappNumber: string | null;
   buildWhatsAppUrl: (p?: any, size?: string) => string;
@@ -1165,7 +1183,9 @@ function ProductDetailModal({
   const savings = hasDiscount ? Number(p.sale_price_ars) - Number(p.discount_price_ars) : 0;
   const isPerfume = p.category === "perfume_arabe" || p.category === "perfume_diseñador";
   const genderInfo = GENDER_LABELS[p.gender];
-  const installment = Math.round(Number(p.sale_price_ars) / 3);
+  // ⚠️ Acá se dividía por 3 fijo. El monto de la cuota depende de cuántas
+  // ofrece el comercio, y eso lo dice la configuración, no el código.
+  const textoCuota = textoDeCuotas(cuotas, Number(p.sale_price_ars), fmtARS);
   const hasCountdown = p.offer_expires_at && new Date(p.offer_expires_at) > new Date();
   const contentMl = Number(p.content_ml || 100);
   const viewers = pseudoRandom(p.id || p.name, 3, 12);
@@ -1397,14 +1417,22 @@ function ProductDetailModal({
                 </p>
                 <p className="text-[10px] font-bold text-emerald-400">Ahorrás {fmtARS(savings)}</p>
               </div>
-              <p className="text-[10px] text-white/25 mt-1">Tarjeta · 3 cuotas de {fmtARS(installment)} s/i</p>
+              {/* ⚠️ Acá decía «3 cuotas» fijo, sin mirar lo que el comercio ofrece.
+                  Prometía financiación a quien no la da, y subestimaba a quien
+                  da más. Ahora sale de la configuración; si no hay ninguna que
+                  aplique, no se muestra nada. */}
+              {textoCuota && (
+                <p className="text-[10px] text-white/25 mt-1">Tarjeta · {textoCuota}</p>
+              )}
             </>
           ) : (
             <>
               <p className="text-2xl sm:text-3xl font-black tracking-tight" style={{ color: primaryColor }}>
                 {fmtARS(Number(p.sale_price_ars))}
               </p>
-              <p className="text-[10px] text-white/25 mt-1">3 cuotas de {fmtARS(installment)} s/i</p>
+              {textoCuota && (
+                <p className="text-[10px] text-white/25 mt-1">{textoCuota}</p>
+              )}
             </>
           )}
         </div>

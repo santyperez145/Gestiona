@@ -590,7 +590,7 @@ export default function SettingsPage() {
       count += chunk.length;
     }
     setProductCount(count);
-    toast.success(`${count} productos recalculados con TC $${rate}, pasero ${customs}% y el markup de cada categoría`);
+    toast.success(`${count} productos recalculados con TC $${rate}, aduana ${customs}% y el markup de cada categoría`);
   };
 
   if (loading) return (
@@ -915,7 +915,7 @@ export default function SettingsPage() {
               )}
             </div>
             <div>
-              <label className="text-sm text-muted-foreground">Porcentaje del Pasero (%)</label>
+              <label className="text-sm text-muted-foreground">Aduana y traslado (%)</label>
               <Input type="number" value={customsPercent} onChange={e => setCustomsPercent(e.target.value)} className="bg-muted border-border mt-1" />
             </div>
             <div>

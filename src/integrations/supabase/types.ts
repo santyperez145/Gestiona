@@ -450,6 +450,13 @@ export type Database = {
             foreignKeyName: "affiliate_conversions_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["venta_id"]
+          },
+          {
+            foreignKeyName: "affiliate_conversions_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "ventas_con_cobro_sin_clasificar"
             referencedColumns: ["sale_id"]
           },
@@ -5460,6 +5467,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "coupon_usages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["orden_id"]
+          },
+          {
             foreignKeyName: "coupon_usages_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -7101,6 +7115,13 @@ export type Database = {
             foreignKeyName: "customer_payments_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["venta_id"]
+          },
+          {
+            foreignKeyName: "customer_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "ventas_con_cobro_sin_clasificar"
             referencedColumns: ["sale_id"]
           },
@@ -7262,6 +7283,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "store_order_margin_facts"
             referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "customer_referrals_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["venta_id"]
           },
           {
             foreignKeyName: "customer_referrals_sale_id_fkey"
@@ -8428,6 +8456,13 @@ export type Database = {
             foreignKeyName: "debts_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["venta_id"]
+          },
+          {
+            foreignKeyName: "debts_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "ventas_con_cobro_sin_clasificar"
             referencedColumns: ["sale_id"]
           },
@@ -8556,6 +8591,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deliveries_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["orden_id"]
+          },
+          {
             foreignKeyName: "deliveries_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -8673,6 +8715,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "store_order_margin_facts"
             referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "deliveries_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["venta_id"]
           },
           {
             foreignKeyName: "deliveries_sale_id_fkey"
@@ -15543,6 +15592,13 @@ export type Database = {
             foreignKeyName: "installment_schedule_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["venta_id"]
+          },
+          {
+            foreignKeyName: "installment_schedule_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "ventas_con_cobro_sin_clasificar"
             referencedColumns: ["sale_id"]
           },
@@ -16605,6 +16661,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "invoices_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["orden_id"]
+          },
+          {
             foreignKeyName: "invoices_nota_credito_de_fkey"
             columns: ["nota_credito_de"]
             isOneToOne: false
@@ -16736,6 +16799,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "store_order_margin_facts"
             referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "invoices_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["venta_id"]
           },
           {
             foreignKeyName: "invoices_sale_id_fkey"
@@ -19457,6 +19527,13 @@ export type Database = {
             foreignKeyName: "meli_order_sale_lines_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: true
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["venta_id"]
+          },
+          {
+            foreignKeyName: "meli_order_sale_lines_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: true
             referencedRelation: "ventas_con_cobro_sin_clasificar"
             referencedColumns: ["sale_id"]
           },
@@ -19725,6 +19802,8 @@ export type Database = {
           joined_at: string
           org_id: string
           role: Database["public"]["Enums"]["org_role"]
+          suspendido_at: string | null
+          suspendido_por_plan: boolean
           user_id: string
         }
         Insert: {
@@ -19736,6 +19815,8 @@ export type Database = {
           joined_at?: string
           org_id: string
           role?: Database["public"]["Enums"]["org_role"]
+          suspendido_at?: string | null
+          suspendido_por_plan?: boolean
           user_id: string
         }
         Update: {
@@ -19747,6 +19828,8 @@ export type Database = {
           joined_at?: string
           org_id?: string
           role?: Database["public"]["Enums"]["org_role"]
+          suspendido_at?: string | null
+          suspendido_por_plan?: boolean
           user_id?: string
         }
         Relationships: [
@@ -20183,8 +20266,11 @@ export type Database = {
       notifications: {
         Row: {
           created_at: string
+          email_enviado_at: string | null
+          email_error: string | null
           entity_id: string | null
           entity_type: string | null
+          enviar_por_correo: boolean
           id: string
           message: string
           org_id: string
@@ -20195,8 +20281,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          email_enviado_at?: string | null
+          email_error?: string | null
           entity_id?: string | null
           entity_type?: string | null
+          enviar_por_correo?: boolean
           id?: string
           message: string
           org_id: string
@@ -20207,8 +20296,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          email_enviado_at?: string | null
+          email_error?: string | null
           entity_id?: string | null
           entity_type?: string | null
+          enviar_por_correo?: boolean
           id?: string
           message?: string
           org_id?: string
@@ -21858,6 +21950,13 @@ export type Database = {
             referencedRelation: "ordenes_sin_iva"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payment_intents_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["orden_id"]
+          },
         ]
       }
       payment_links: {
@@ -22191,6 +22290,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordenes_sin_iva"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_refunds_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["orden_id"]
           },
           {
             foreignKeyName: "payment_refunds_org_id_fkey"
@@ -23056,6 +23162,11 @@ export type Database = {
           email_nombre: string
           email_verificado_at: string | null
           id: boolean
+          smtp_from_email: string | null
+          smtp_host: string | null
+          smtp_port: number | null
+          smtp_secure: boolean
+          smtp_user: string | null
           updated_at: string
           whatsapp_numero_visible: string | null
           whatsapp_phone_number_id: string | null
@@ -23069,6 +23180,11 @@ export type Database = {
           email_nombre?: string
           email_verificado_at?: string | null
           id?: boolean
+          smtp_from_email?: string | null
+          smtp_host?: string | null
+          smtp_port?: number | null
+          smtp_secure?: boolean
+          smtp_user?: string | null
           updated_at?: string
           whatsapp_numero_visible?: string | null
           whatsapp_phone_number_id?: string | null
@@ -23082,6 +23198,11 @@ export type Database = {
           email_nombre?: string
           email_verificado_at?: string | null
           id?: boolean
+          smtp_from_email?: string | null
+          smtp_host?: string | null
+          smtp_port?: number | null
+          smtp_secure?: boolean
+          smtp_user?: string | null
           updated_at?: string
           whatsapp_numero_visible?: string | null
           whatsapp_phone_number_id?: string | null
@@ -26710,6 +26831,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "product_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["orden_id"]
+          },
+          {
             foreignKeyName: "product_reviews_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -30301,6 +30429,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "return_requests_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["orden_id"]
+          },
+          {
             foreignKeyName: "return_requests_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -30538,6 +30673,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "returns_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["orden_id"]
+          },
+          {
             foreignKeyName: "returns_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -30732,6 +30874,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "store_order_margin_facts"
             referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "returns_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["venta_id"]
           },
           {
             foreignKeyName: "returns_sale_id_fkey"
@@ -31194,6 +31343,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordenes_sin_iva"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["orden_id"]
           },
           {
             foreignKeyName: "sales_invoice_id_fkey"
@@ -34429,6 +34585,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_reservations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["orden_id"]
+          },
+          {
             foreignKeyName: "stock_reservations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -35151,6 +35314,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordenes_sin_iva"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_order_status_email_log_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["orden_id"]
           },
         ]
       }
@@ -39935,6 +40105,168 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_pago_sin_llegar: {
+        Row: {
+          correlation_id: string | null
+          created_at: string | null
+          monto: number | null
+          org_id: string | null
+          pago_estado: string | null
+          problema: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      audit_pago_sin_traza: {
+        Row: {
+          correlation_id: string | null
+          created_at: string | null
+          monto: number | null
+          org_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       audit_planes_cobrables: {
         Row: {
           code: string | null
@@ -42312,6 +42644,86 @@ export type Database = {
           },
           {
             foreignKeyName: "plan_price_change_targets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      mi_exceso_de_plan: {
+        Row: {
+          max_users: number | null
+          org_id: string | null
+          suspendidos: number | null
+          usuarios: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "memberships_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
@@ -45664,6 +46076,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sales_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["orden_id"]
+          },
+          {
             foreignKeyName: "sales_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -45837,6 +46256,96 @@ export type Database = {
           verificada_el?: string | null
         }
         Relationships: []
+      }
+      traza_de_pago: {
+        Row: {
+          asientos: number | null
+          correlation_id: string | null
+          created_at: string | null
+          donde_se_corto: string | null
+          id_del_proveedor: string | null
+          monto: number | null
+          orden_estado: string | null
+          orden_id: string | null
+          org_id: string | null
+          pago_estado: string | null
+          pago_id: string | null
+          pasos_registrados: number | null
+          provider: string | null
+          venta_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
       }
       ubicaciones_descuadradas: {
         Row: {
@@ -46403,6 +46912,7 @@ export type Database = {
         Returns: undefined
       }
       api_key_tocar: { Args: { p_key_id: string }; Returns: undefined }
+      aplicar_limites_del_plan: { Args: { p_org: string }; Returns: Json }
       apply_ai_offer_recommendation: {
         Args: { p_recommendation_id: string }
         Returns: Json
@@ -46475,6 +46985,45 @@ export type Database = {
       ask_product_question: {
         Args: { p_product_id: string; p_question: string; p_slug: string }
         Returns: Json
+      }
+      avisar_a_los_que_mandan:
+        | {
+            Args: {
+              p_entidad?: string
+              p_entidad_id?: string
+              p_mensaje: string
+              p_org: string
+              p_tipo: string
+              p_titulo: string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_entidad?: string
+              p_entidad_id?: string
+              p_mensaje: string
+              p_org: string
+              p_por_correo?: boolean
+              p_tipo: string
+              p_titulo: string
+            }
+            Returns: number
+          }
+      avisar_trial_por_vencer: { Args: never; Returns: Json }
+      aviso_correo_registrar: {
+        Args: { p_error?: string; p_id: string; p_ok: boolean }
+        Returns: undefined
+      }
+      avisos_por_correo_pendientes: {
+        Args: never
+        Returns: {
+          email: string
+          id: string
+          mensaje: string
+          org_id: string
+          titulo: string
+        }[]
       }
       award_badge: {
         Args: {
@@ -46719,6 +47268,14 @@ export type Database = {
           p_provider?: string
         }
         Returns: Json
+      }
+      cuotas_publicas: {
+        Args: { p_org: string }
+        Returns: {
+          installments: number
+          monto_minimo: number
+          sin_interes: boolean
+        }[]
       }
       decimales_de_moneda: { Args: { p_moneda: string }; Returns: number }
       desglosar_iva: {

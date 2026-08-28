@@ -56,6 +56,14 @@ interface Entitlements {
   motivoDeCorte: 'impago' | 'cancelado' | 'pausado' | null;
   /** Días de gracia que quedan antes de cortar por falta de pago. */
   diasDeGracia: number;
+  /**
+   * El plan contratado NO rige porque nunca se llegó a cobrar.
+   *
+   * ⚠️ Encontrado el 2026-08-27: apretar contratar y cancelar el pago en
+   * MercadoPago daba el plan igual, con 7 días de gracia. La gracia era para
+   * «rebotó un cobro», no para «nunca se pagó».
+   */
+  planSinPagar: boolean;
   refresh: () => Promise<void>;
 }
 
@@ -86,6 +94,8 @@ interface EntitlementsDeLaBase {
   max_products: number | null;
   max_users: number | null;
   max_sales_per_month: number | null;
+  /** El plan contratado no rige porque nunca se cobró. */
+  plan_sin_pagar?: boolean;
 }
 
 /** La relación/función todavía no existe en esta base. */
@@ -243,6 +253,7 @@ export function useEntitlements(): Entitlements {
     planVigente,
     motivoDeCorte,
     diasDeGracia,
+    planSinPagar: Boolean(servidor?.plan_sin_pagar),
     refresh: load,
   };
 }

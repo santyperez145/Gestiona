@@ -148,7 +148,15 @@ export default function MiPlanPage() {
   };
 
   const estadoActual = sub?.estado ?? "sin_suscripcion";
-  const badge = ETIQUETA_ESTADO[estadoActual] ?? ETIQUETA_ESTADO.sin_suscripcion;
+  /**
+   * ⚠️ El cartel decía «Pago pendiente» a quien acababa de darse de baja. El
+   * estado en la base sigue siendo `past_due` hasta que el barrido horario lo
+   * cierre, pero para el comercio eso no es un pago pendiente: es una baja que
+   * él pidió. Se muestra lo que pasó, no el nombre interno del estado.
+   */
+  const badge = sub?.cancela_al_final
+    ? { texto: "Dada de baja", clase: "bg-muted text-muted-foreground border-border" }
+    : (ETIQUETA_ESTADO[estadoActual] ?? ETIQUETA_ESTADO.sin_suscripcion);
   const precio = (p: PlanContratable) =>
     ciclo === "anual" ? Number(p.price_ars_yearly ?? 0) : Number(p.price_ars_monthly);
 
@@ -257,8 +265,28 @@ export default function MiPlanPage() {
           <div className="mt-4 flex items-start gap-2 rounded-[6px] border border-yellow-500/25 bg-yellow-500/8 px-3 py-2 text-sm">
             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-yellow-600 dark:text-yellow-400" />
             <p className="text-muted-foreground">
-              Cancelaste la renovación. Seguís teniendo acceso hasta que termine
-              el período que ya pagaste.
+              {/**
+                * ⚠️ Antes decía «hasta que termine el período que ya pagaste»
+                * sin decir **cuándo**. Una fecha que el comercio no ve es una
+                * fecha que no puede planificar — y si nunca se llegó a cobrar,
+                * la frase directamente no aplicaba: no hay período pago.
+                */}
+              {sub?.renueva_el ? (
+                <>
+                  Cancelaste la renovación. Seguís con tu plan hasta el{" "}
+                  <strong>{new Date(sub.renueva_el).toLocaleDateString("es-AR",
+                    { day: "2-digit", month: "long", year: "numeric" })}</strong>
+                  {typeof sub.dias_restantes === "number" && sub.dias_restantes >= 0
+                    ? <> — {sub.dias_restantes === 0 ? "es hoy" : `faltan ${sub.dias_restantes} día${sub.dias_restantes === 1 ? "" : "s"}`}</>
+                    : null}
+                  . Después no se te cobra más y el plan pasa al gratuito.
+                </>
+              ) : (
+                <>
+                  Cancelaste la suscripción. Como todavía no se había hecho ningún
+                  cobro, no queda nada pendiente y no se te va a cobrar.
+                </>
+              )}
             </p>
           </div>
         )}
