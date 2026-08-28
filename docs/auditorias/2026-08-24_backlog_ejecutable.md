@@ -793,6 +793,28 @@ cross-tenant bloqueado, anon bloqueado aun invocando la función directamente,
 `service_role` habilitado, una auditoría saneada y **0 restos**. ACL medida:
 delegación `anon=false`, `authenticated=false`, `service_role=true`.
 
+### Cuarta pasada: una revocación incompleta (`20260828000160`)
+
+La vista real dejó a la vista otra diferencia entre intención y ACL:
+`REVOKE ... FROM PUBLIC` no retiró grants directos que producción conservaba
+para `anon` y `authenticated`. Seis funciones que sólo consumen cron o Edge
+seguían invocables desde el navegador:
+
+- `cambios_de_precio_a_aplicar` y `registrar_cambio_de_precio`;
+- `ia_registrar_consumo`;
+- `registrar_invocacion`, `reconciliar_invocaciones` y `podar_invocaciones`.
+
+El impacto cubría confidencialidad e integridad: ids de suscripción/preapproval,
+precio acordado, cupo/costo de IA y la telemetría con la que Plataforma decide
+si una función está sana. Las seis quedaron con ACL exclusiva de `service_role`
+y una guarda interna independiente; pg_cron/verificaciones sólo pasan sin JWT
+cuando `session_user` es realmente el dueño de la base. Además anon perdió los
+helpers heredados `platform_role`, `has_role` y `get_user_role`.
+
+**Evidencia real:** seis ataques anon rechazados aun invocando directo, acceso
+authenticated ausente, service role operativo para consumo de IA,
+`audit_costo_expuesto = 0` y **0 restos**.
+
 ### Falta
 
 - Refund: la Edge exige `owner`/`admin` antes de llegar a RPCs que son sólo

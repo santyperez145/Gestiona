@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.911 tests en 182 archivos pasan al 2026-08-28; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
+| Calidad técnica | 1.925 tests en 183 archivos pasan al 2026-08-28; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -528,6 +528,15 @@ rechazaba cuando `auth.uid()` no era NULL; anon podía autodeclarar una
 delegación como verificada. La función quedó exclusiva de `service_role`, con
 guarda interna y sin contrato público para estadísticas fiscales. Fixture real:
 vendedor deny/allow, cross-tenant, anon/service, auditoría y 0 restos.
+
+**Cuarta pasada, grants internos (2026-08-28):** la auditoría de ACL real mostró
+que `REVOKE ... FROM PUBLIC` no había borrado grants explícitos a `anon`.
+Seis funciones documentadas como internas seguían alcanzables: lectura y
+resultado de cambios de precio, consumo de IA y registro/reconciliación/poda de
+telemetría. `20260828000160` las limita a `service_role` y dueño de DB tanto por
+ACL como dentro del cuerpo. También retira de anon tres helpers de roles y el
+cálculo de precio que mantenía roja `audit_costo_expuesto`. Fixture real:
+seis ataques rechazados, service role operativo, guarda de costo en 0 y 0 restos.
 
 ### Un archivo de test estuvo sin correr y el conteo no bajó (2026-08-27)
 
@@ -1561,6 +1570,14 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     interna; sólo la Edge con `service_role` confirma después de consultar
     ARCA. Cross-role/cross-tenant, auditoría, ACL y 0 restos verificados. P1-04
     continúa parcial por refund configurable y prueba cross-branch real.
+42. ~~Funciones internas realmente internas~~ — cerrado el 2026-08-28 después
+    de medir ACL, no comentarios: seis RPC de precio, IA y observabilidad
+    conservaban grants directos a anon/authenticated. Quedaron exclusivas de
+    `service_role`, con segunda guarda interna; tres helpers de roles ya no se
+    enumeran sin sesión y `audit_costo_expuesto` volvió a 0. Prueba real en los
+    dos sentidos y 0 restos. La auditoría transversal queda registrada en
+    `docs/auditorias/2026-08-28_auditoria_transversal.md`; sus siguientes gates
+    son dependencias productivas vulnerables y fallas Edge recurrentes.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2049,7 +2066,7 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-28: **1.911 tests en 182 archivos**,
+- Build y suites locales del 2026-08-28: **1.925 tests en 183 archivos**,
   typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 70
   funciones verificadas. Última evidencia: 42
   E2E críticos contra la base real.
