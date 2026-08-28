@@ -1915,20 +1915,31 @@ export default function POSPage() {
                   </button>
                 </div>
                 <div className="flex items-center justify-between">
+                  {/*
+                    ⚠️ Estos dos eran `w-7 h-7` (28px), y son los que un
+                    vendedor toca en CADA venta, sobre el mostrador y con una
+                    mano. El contrato del repo pide 40px en mobile y estaban a
+                    la mitad: errarle a «−» borra una unidad que ya se cobró.
+
+                    📌 Se usan 40 y no los 44 de la tienda pública a propósito:
+                    ahí compra alguien que entra una vez desde su teléfono; acá
+                    opera alguien entrenado, muchas veces por día, y la lista
+                    del carrito necesita densidad para ser rápida.
+                  */}
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => changeQty(it.productId, -1)}
-                      className="w-7 h-7 rounded-lg bg-card border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                      className="w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center hover:bg-muted transition-colors"
                     >
-                      <Minus className="w-3 h-3" />
+                      <Minus className="w-4 h-4" />
                     </button>
                     <span className="w-8 text-center text-sm font-bold">{it.quantity}</span>
                     <button
                       onClick={() => changeQty(it.productId, 1)}
                       disabled={it.quantity >= it.stock && it.stock > 0}
-                      className="w-7 h-7 rounded-lg bg-card border border-border flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40"
+                      className="w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40"
                     >
-                      <Plus className="w-3 h-3" />
+                      <Plus className="w-4 h-4" />
                     </button>
                   </div>
                   <div className="text-right">
