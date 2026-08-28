@@ -22,7 +22,7 @@
  * un botón lo lleva al lugar exacto y al volver esto se actualiza solo.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { getMpCredentials } from "../_shared/mpToken.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -74,34 +74,62 @@ Deno.serve(async (req) => {
   if (!esMiembro) return json({ error: "Sin acceso a esta organización" }, 403);
 
   const admin = createClient(url, serviceRole);
-  const cred = await getMpCredentials(admin, orgId);
-  if (!cred) {
-    // No es un error: es que todavía no conectó MercadoPago.
+
+  // La `public_key` sale de la conexión OAuth del comercio. Se lee con
+  // service_role porque `payment_connections` tiene RLS y cero policies, y no
+  // sale de acá: sólo se usa para preguntarle a MercadoPago.
+  const { data: conn } = await admin
+    .from("payment_connections")
+    .select("public_key")
+    .eq("org_id", orgId)
+    .eq("provider", "mercadopago")
+    .maybeSingle();
+
+  if (!conn?.public_key) {
+    // No es un error: es que todavía no conectó MercadoPago por OAuth.
     return json({ conectado: false, opciones: [] });
   }
 
-  // El endpoint devuelve lo que la cuenta del vendedor ofrece de verdad, ya con
-  // sus costos de financiación aplicados. Es la única fuente honesta: cualquier
-  // lista escrita por nosotros quedaría vieja el día que el comercio la cambie.
-  let metodos: Array<{ payment_type_id?: string; payer_costs?: PayerCost[] }> = [];
-  try {
+  /**
+   * ⚠️ El endpoint **exige `payment_method_id`**: con sólo `amount` contesta un
+   * error, y la pantalla mostraba «MercadoPago no contestó». La primera versión
+   * de esta función mandaba un Bearer y el monto, nada más.
+   *
+   * 📌 `mp-installments` —la que ya funcionaba— consulta marca por marca con la
+   * `public_key`. Se hace igual: cuando una función del mismo repo ya resolvió
+   * el mismo problema contra el mismo proveedor, copiar su forma es más barato
+   * que redescubrirla.
+   */
+  const MARCAS = ["visa", "master", "amex", "naranja", "cabal"];
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8_000);
+
+  const respuestas = await Promise.allSettled(MARCAS.map(async (marca) => {
     const res = await fetch(
       "https://api.mercadopago.com/v1/payment_methods/installments"
-      + `?amount=${encodeURIComponent(String(monto))}&locale=es-AR`,
-      { headers: { Authorization: `Bearer ${cred.accessToken}` } },
+      + `?public_key=${encodeURIComponent(conn.public_key)}`
+      + `&amount=${encodeURIComponent(String(monto))}`
+      + `&payment_method_id=${marca}`,
+      { signal: ctrl.signal },
     );
     if (!res.ok) {
-      const detalle = await res.text().catch(() => "");
-      console.error("MercadoPago rechazó la consulta de cuotas", res.status, detalle.slice(0, 400));
-      return json({
-        conectado: true, opciones: [],
-        problema: "MercadoPago no contestó qué cuotas ofrece tu cuenta. Probá de nuevo en unos minutos.",
-      });
+      console.error("MercadoPago rechazó las cuotas de", marca, res.status,
+                    (await res.text().catch(() => "")).slice(0, 300));
+      return [] as Array<{ payment_type_id?: string; payer_costs?: PayerCost[] }>;
     }
-    metodos = await res.json();
-  } catch (e) {
-    console.error("error consultando cuotas", e);
-    return json({ conectado: true, opciones: [], problema: "No se pudo consultar a MercadoPago." });
+    return await res.json();
+  }));
+  clearTimeout(t);
+
+  const metodos: Array<{ payment_type_id?: string; payer_costs?: PayerCost[] }> =
+    respuestas.flatMap(r => (r.status === "fulfilled" && Array.isArray(r.value) ? r.value : []));
+
+  if (metodos.length === 0) {
+    // Que ninguna marca conteste es distinto de «no ofrece cuotas»: se dice.
+    return json({
+      conectado: true, opciones: [],
+      problema: "MercadoPago no contestó qué cuotas ofrece tu cuenta. Probá de nuevo en unos minutos.",
+    });
   }
 
   // Sólo crédito: débito y efectivo devuelven una "cuota" única que no es

@@ -198,9 +198,13 @@ describe("el comercio no tiene que averiguar nada", () => {
     const fn = soloCodigo(
       readFileSync(resolve(FUNCS, "mp-cuotas-cuenta/index.ts"), "utf8"));
     expect(fn, "la consulta dejó de usar las credenciales del comercio")
-      .toContain("getMpCredentials");
+      .toMatch(/payment_connections[\s\S]{0,200}?public_key/);
     expect(fn, "empezó a usar el token de la plataforma para una consulta del comercio")
       .not.toContain("tokenDeLaPlataforma");
+    // ⚠️ El endpoint EXIGE payment_method_id: con sólo el monto contesta error
+    // y la pantalla decía «MercadoPago no contestó».
+    expect(fn, "la consulta volvió a mandarse sin la marca de tarjeta")
+      .toContain("payment_method_id=");
   });
 
   it("no promete configurar lo que MercadoPago no deja configurar", () => {
