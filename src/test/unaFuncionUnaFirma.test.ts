@@ -39,15 +39,23 @@ const MIGRACIONES = join(process.cwd(), "supabase", "migrations");
 const CONVIVEN: Record<string, string> = {
   cuenta_de_cobro:
     "No son una vieja y una nueva: son dos diseños distintos que chocaron de " +
-    "nombre. La de 1 argumento (POS) devuelve NULL ante un método desconocido " +
-    "para que el llamador deje rastro, y normaliza mayúsculas y espacios. La " +
-    "de 2 (ventas) tiene fallback a Caja y agrega que una venta no cobrada es " +
-    "un crédito. Como no tienen DEFAULT, no hay ambigüedad 42725: cada llamada " +
-    "resuelve por cantidad de argumentos. Lo que sí falta es unificarlas, y " +
-    "eso toca el libro mayor. Medido el 2026-08-28: 0 ventas sin cobrar y 0 " +
-    "ventas con source='pos', así que la divergencia es latente y " +
-    "audit_resultado_divergente sigue en 0. Va como slice propio con su " +
-    "verificación, no colgado de otro commit.",
+    "nombre, y cada llamador usa el correcto. La de 1 argumento (POS) es un " +
+    "mapa puro método→cuenta que devuelve NULL ante un método desconocido para " +
+    "que el llamador deje rastro, y normaliza mayúsculas y espacios. La de 2 " +
+    "(ventas) trae la regla de no-cobrado adentro y cae a Caja ante lo " +
+    "desconocido. Como ninguna tiene DEFAULT, no hay ambigüedad 42725: cada " +
+    "llamada resuelve por cantidad de argumentos. " +
+    "⚠️ CORRECCIÓN de lo que este comentario decía antes: NO hay una " +
+    "divergencia contable. Se afirmó que una venta fiada del mostrador " +
+    "entraría a Caja como cobrada, y es falso — `ledger_asentar_venta_pos` " +
+    "resuelve el no-cobrado ANTES de llamar a cuenta_de_cobro, con un " +
+    "`IF v_r.paid IS FALSE OR v_r.payment_method = 'fiado' THEN ... 1.2.01 " +
+    "... CONTINUE`, y su propio comentario explica por qué («fiado NO es " +
+    "caja»). O sea que el POS aplica la misma regla, más arriba y más " +
+    "explícita. Lo que queda es duplicación de nombre, no de criterio: " +
+    "unificarlas tocaría el libro mayor sin ganar correctitud, así que no se " +
+    "toca. Medido el 2026-08-28: 0 ventas sin cobrar y " +
+    "audit_resultado_divergente en 0.",
 };
 
 interface Declaracion {

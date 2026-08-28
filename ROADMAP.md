@@ -1566,6 +1566,40 @@ producción. Lo verificado es el SQL —registrar descuenta, dos acciones del
 mismo día suman, «sin tope» ≠ «sin cupo»—, el permiso en los dos sentidos como
 rol real, y que las siete funciones deployadas sirven.
 
+### Corrección: `cuenta_de_cobro` no tiene una divergencia contable (2026-08-28)
+
+El 2026-08-28 se afirmó en un commit que `ledger_asentar_venta_pos` llamaba a
+la versión de `cuenta_de_cobro` «que no sabe si la venta se cobró», y que por
+eso **una venta fiada del mostrador entraría a Caja como cobrada**.
+
+⚠️ **Es falso, y conviene dejarlo escrito porque el commit sigue en la
+historia.** `ledger_asentar_venta_pos` resuelve el no-cobrado **antes** de
+llamar a `cuenta_de_cobro`:
+
+```sql
+-- ⚠️ Fiado NO es caja. Una venta a cuenta corriente asentada como efectivo
+-- infla la caja del día y esconde el crédito: son los dos errores a la vez.
+-- `paid = false` manda sobre el método, siempre.
+IF v_r.paid IS FALSE OR v_r.payment_method = 'fiado' THEN
+  ... 1.2.01 ... CONTINUE;
+END IF;
+```
+
+O sea que el POS aplica **la misma regla**, más arriba y más explícita. Las dos
+versiones de `cuenta_de_cobro` conviven porque tienen contratos distintos —una
+devuelve NULL ante lo desconocido para que el llamador deje rastro, la otra cae
+a Caja— y cada llamador usa la correcta. Queda duplicación de **nombre**, no de
+criterio.
+
+📌 **Decisión: no se unifican.** Tocar el libro mayor sin ganar correctitud es
+riesgo puro. La entrada sigue en la allowlist de `unaFuncionUnaFirma.test.ts`
+con el motivo corregido, para que la duplicación siga a la vista.
+
+⚠️ Lo que **no** se pudo cerrar en vivo: una prueba de punta a punta del
+asiento del POS. El posteo pasa por un outbox asíncrono que no se completa
+dentro de la transacción de prueba, así que la conclusión se apoya en el código
+y en que `audit_resultado_divergente` está en 0 con 0 ventas sin cobrar.
+
 ### Comisión actual
 
 La application/marketplace fee documentada no se considera modelo definitivo.
