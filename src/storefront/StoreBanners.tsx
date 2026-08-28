@@ -93,14 +93,14 @@ export default function StoreBanners({ banners, base }: { banners: StoreBanner[]
           <button
             onClick={() => ir(i - 1)}
             aria-label="Anterior"
-            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
+            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 min-h-11 min-w-11 grid place-items-center rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={() => ir(i + 1)}
             aria-label="Siguiente"
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 min-h-11 min-w-11 grid place-items-center rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

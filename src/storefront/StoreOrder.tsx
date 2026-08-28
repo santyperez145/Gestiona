@@ -267,7 +267,7 @@ export default function StoreOrder() {
               <button
                 onClick={abrirPagoExterno}
                 disabled={pagando || preparandoTarjeta}
-                className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium border disabled:opacity-60"
+                className="w-full sm:w-auto min-h-11 px-5 py-2.5 text-sm font-medium border disabled:opacity-60"
                 style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
               >
                 {pagando ? "Abriendo MercadoPago..." : tarjetaDisponible ? "Otros medios en MercadoPago" : "Pagar en MercadoPago"}

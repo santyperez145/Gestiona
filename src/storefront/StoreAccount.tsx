@@ -135,7 +135,7 @@ export default function StoreAccount() {
 
           <button
             type="submit" disabled={enviando}
-            className="w-full py-2.5 text-sm font-medium disabled:opacity-60"
+            className="w-full min-h-11 py-2.5 text-sm font-medium disabled:opacity-60"
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >
             {enviando ? "..." : modo === "login" ? "Entrar" : "Crear cuenta"}

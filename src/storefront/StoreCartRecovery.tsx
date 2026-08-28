@@ -58,7 +58,7 @@ export default function StoreCartRecovery() {
         </p>
         <button
           onClick={() => navigate(`/tienda/${store?.slug ?? ""}/productos`)}
-          className="mt-5 px-4 py-2 text-sm font-medium"
+          className="mt-5 min-h-11 px-4 py-2 text-sm font-medium"
           style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
         >
           Ver productos

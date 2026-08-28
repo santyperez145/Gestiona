@@ -264,7 +264,7 @@ export default function StoreProduct() {
                       key={v.id}
                       type="button"
                       onClick={() => { setVariantId(sel ? null : v.id); setQty(1); }}
-                      className="px-3 py-1.5 text-sm border transition-colors"
+                      className="min-h-11 px-3 py-1.5 text-sm border transition-colors"
                       style={{
                         borderColor: sel ? "hsl(var(--st-accent))" : "hsl(var(--st-border))",
                         background: sel ? "hsl(var(--st-accent) / 0.1)" : "transparent",
@@ -294,12 +294,12 @@ export default function StoreProduct() {
           ) : (
           <div className="flex items-center gap-3 mt-6">
             <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
-              <button className="px-3 py-2.5" onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="Restar">
+              <button className="px-3 py-2.5 min-h-11 min-w-11 grid place-items-center" onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="Restar">
                 <Minus className="w-4 h-4" />
               </button>
               <span className="px-3 tabular-nums font-medium">{qty}</span>
               <button
-                className="px-3 py-2.5 disabled:opacity-30"
+                className="px-3 py-2.5 min-h-11 min-w-11 grid place-items-center disabled:opacity-30"
                 onClick={() => setQty(q => Math.min(stockEfectivo, q + 1))}
                 disabled={qty >= stockEfectivo}
                 aria-label="Sumar"

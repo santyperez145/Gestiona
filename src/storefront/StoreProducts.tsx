@@ -264,7 +264,7 @@ export default function StoreProducts() {
               {activos > 0 && (
                 <button
                   onClick={limpiar}
-                  className="mt-4 px-4 py-2 text-sm font-medium"
+                  className="mt-4 min-h-11 px-4 py-2 text-sm font-medium"
                   style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
                 >
                   Limpiar filtros

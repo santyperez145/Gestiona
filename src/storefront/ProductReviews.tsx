@@ -134,7 +134,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
         {permiso?.can && !abierto && (
           <button
             onClick={() => setAbierto(true)}
-            className="px-4 py-2 text-sm font-medium"
+            className="min-h-11 px-4 py-2 text-sm font-medium"
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >
             {permiso && "existing" in permiso && (permiso as { existing?: string }).existing
@@ -190,7 +190,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
             </button>
             <button
               type="button" onClick={() => { setAbierto(false); setError(null); }}
-              className="px-4 py-2 text-sm border"
+              className="min-h-11 px-4 py-2 text-sm border"
               style={inputStyle}
             >
               Cancelar

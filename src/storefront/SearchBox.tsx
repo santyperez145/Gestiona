@@ -154,7 +154,7 @@ export default function SearchBox({
               // que el click y el desplegable se cierra sin navegar.
               onMouseDown={e => { e.preventDefault(); irA(destinoSugerencia(s, base)); }}
               onMouseEnter={() => setSel(i)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
+              className="w-full min-h-11 flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
               style={{ background: i === sel ? "hsl(var(--st-accent) / 0.12)" : "transparent" }}
             >
               {s.tipo === "producto" ? (
@@ -182,7 +182,7 @@ export default function SearchBox({
           <button
             type="button"
             onMouseDown={e => { e.preventDefault(); buscarTexto(); }}
-            className="w-full px-3 py-2 text-left text-xs border-t hover:opacity-80"
+            className="w-full min-h-11 px-3 py-2 text-left text-xs border-t hover:opacity-80"
             style={{ borderColor: "hsl(var(--st-border))", color: "hsl(var(--st-accent))" }}
           >
             Ver todo lo que coincide con "{q.trim()}"

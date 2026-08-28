@@ -45,7 +45,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
           onClick={e => { e.preventDefault(); e.stopPropagation(); toggle(p.id); }}
           aria-label={deseado ? "Quitar de mis deseos" : "Guardar en mis deseos"}
           aria-pressed={deseado}
-          className="absolute bottom-2 right-2 p-2 rounded-full bg-white/85 hover:bg-white transition-colors"
+          className="absolute bottom-2 right-2 p-2 min-h-11 min-w-11 grid place-items-center rounded-full bg-white/85 hover:bg-white transition-colors"
         >
           <Heart
             className={`w-4 h-4 ${deseado ? "fill-current" : ""}`}
@@ -99,7 +99,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         {p.stock > 0 ? (
           <button
             onClick={() => addToCart(p)}
-            className="storefront-product-card__add mt-3 w-full py-2 text-sm font-medium transition-opacity hover:opacity-90"
+            className="storefront-product-card__add mt-3 w-full min-h-11 py-2 text-sm font-medium transition-opacity hover:opacity-90"
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >
             Agregar
@@ -107,7 +107,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         ) : (
           <Link
             to={`${base}/producto/${p.id}`}
-            className="mt-3 w-full py-2 text-sm font-medium text-center border"
+            className="mt-3 w-full min-h-11 grid place-items-center py-2 text-sm font-medium text-center border"
             style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
           >
             Avisame cuando vuelva

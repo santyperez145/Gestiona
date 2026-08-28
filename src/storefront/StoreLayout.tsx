@@ -176,7 +176,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       >
         <div className="storefront-header__inner max-w-6xl mx-auto px-4 h-16 flex items-center gap-3">
           <button
-            className="lg:hidden p-2 -ml-2"
+            className="lg:hidden p-2 -ml-2 min-h-11 min-w-11 grid place-items-center"
             onClick={() => setMenuOpen(v => !v)}
             aria-label="Menú"
             style={{ color: "hsl(var(--st-accent-fg))" }}
@@ -271,7 +271,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             to={`${base}/cuenta`}
             // `ml-auto` sólo cuando no hay buscador: con los dos, ambos empujan y la
             // fila se pasa de ancho. El breakpoint acompaña al del buscador.
-            className="p-2 ml-auto sm:ml-2"
+            className="p-2 ml-auto sm:ml-2 min-h-11 min-w-11 grid place-items-center"
             aria-label={customer ? "Mi cuenta" : "Iniciar sesión"}
             title={customer ? "Mi cuenta" : "Iniciar sesión"}
             style={{ color: "hsl(var(--st-accent-fg))" }}
@@ -281,7 +281,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
           <button
             onClick={() => setCartOpen(true)}
-            className="relative p-2"
+            className="relative p-2 min-h-11 min-w-11 grid place-items-center"
             aria-label={`Carrito, ${cartCount} ${cartCount === 1 ? "artículo" : "artículos"}`}
             style={{ color: "hsl(var(--st-accent-fg))" }}
           >
@@ -452,12 +452,12 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                         <p className="text-sm font-semibold mt-0.5">{fmt(l.price * l.qty)}</p>
                         <div className="flex items-center gap-2 mt-1.5">
                           <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
-                            <button className="px-2 py-1" onClick={() => setQty(lineKeyOf(l), l.qty - 1)} aria-label="Restar">
+                            <button className="px-2 py-1 min-h-11 min-w-11 grid place-items-center" onClick={() => setQty(lineKeyOf(l), l.qty - 1)} aria-label="Restar">
                               <Minus className="w-3 h-3" />
                             </button>
                             <span className="px-2 text-sm tabular-nums">{l.qty}</span>
                             <button
-                              className="px-2 py-1 disabled:opacity-30"
+                              className="px-2 py-1 min-h-11 min-w-11 grid place-items-center disabled:opacity-30"
                               onClick={() => setQty(lineKeyOf(l), l.qty + 1)}
                               disabled={l.qty >= l.stock}
                               aria-label="Sumar"
@@ -526,7 +526,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                           ) : (
                             <button
                               onClick={() => addToCart(sg.producto, 1, null)}
-                              className="px-2 py-1 text-[11px] font-medium shrink-0"
+                              className="px-2 py-1 min-h-11 text-[11px] font-medium shrink-0"
                               style={{
                                 background: "hsl(var(--st-accent))",
                                 color: "hsl(var(--st-accent-fg))",
