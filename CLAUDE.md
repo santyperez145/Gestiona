@@ -985,6 +985,48 @@ al medir cualquier cosa del Business Core hay que pensar en **dos** comercios.
   cobrado **sin la promoción**, en silencio y a favor del comercio. Al cerrar
   una policy `ALL`, preguntar siempre quién necesita **leer** eso.
 
+- **`audit_plan_peor_que_la_prueba`** y **`audit_limite_peor_que_la_prueba`**
+  (vistas SQL) — lo que se cobra no puede dar menos que lo que se regala. Las
+  dos tienen que estar **vacías** (medido 0 el 2026-08-28).
+
+  ⚠️ Existen porque el mismo defecto apareció **dos veces el mismo día**, en
+  dos lugares distintos: el plan de entrada de $19.900 no tenía IA, backups ni
+  branding y el trial gratis sí; y el piso de límites al cortar era 1 usuario
+  contra los 3 de la prueba — lo que dejó **al administrador de un comercio
+  real sin poder entrar**.
+
+  📌 La segunda mira **las organizaciones**, no la tabla de planes: el piso se
+  calcula dentro de `org_entitlements` y no está guardado en ningún lado, así
+  que una vista sobre `plans` no vería un cambio en esa función.
+
+  📌 Y el piso sale del plan `trial` **leído de la tabla**, nunca de un número
+  escrito: un piso hardcodeado es exactamente cómo estos dos lugares
+  divergieron.
+
+- **`audit_baja_contradictoria`** (vista SQL) — suscripciones dadas de baja
+  antes del primer cobro que quedaron sin cerrar. Vacía (2026-08-28).
+
+  ⚠️ «Al final del período» no significa nada si no hubo período, y
+  `cancel-subscription` lo escribía siempre: Mi plan mostraba **tres mensajes
+  contradictorios a la vez** —«estamos confirmando tu suscripción»,
+  «cancelaste, no se te va a cobrar» y «esperando que MercadoPago confirme tu
+  primer cobro»—. Los tres leían el mismo dato y tenían razón; el dato estaba
+  mal.
+
+- **`unaFuncionUnaFirma.test.ts`** — falla si una función se declara con
+  distinta cantidad de parámetros en dos migraciones sin dropear la anterior.
+
+  ⚠️ **`CREATE OR REPLACE FUNCTION` no cambia una firma: agrega una
+  sobrecarga.** Si el parámetro nuevo tiene `DEFAULT`, toda llamada con la
+  cantidad vieja queda ambigua (`42725`). Pasó con `avisar_a_los_que_mandan` el
+  2026-08-27 y rompió `aplicar_limites_del_plan` —o sea que «bajar de plan baja
+  los límites» **nunca corrió una sola vez**— y abortaba cualquier cambio de
+  suscripción en un comercio que excediera su tope.
+
+  📌 Lo caro es que el efecto no se parece a la causa: ninguna pantalla dice
+  «hay dos funciones con el mismo nombre», dice que no se pudo contratar el
+  plan.
+
 - **`rls_audit_open_policies`** (vista SQL) — lista políticas sin filtro de
   tenant. Debería tener **exactamente 3** (medido 2026-08-21), y las tres son
   catálogos públicos a propósito: `plans` (pricing), `payment_providers` y
@@ -1156,6 +1198,22 @@ lado, y limpieza que exige 0 restos.
 ```bash
 npm run db -- --file supabase/verificaciones/20260827_comercio_nuevo_puede_vender.sql
 ```
+
+⚠️ **Pero esa verificación arranca desde una organización YA CREADA y se
+saltea el alta.** Por eso existe también
+`supabase/verificaciones/20260828_alguien_puede_registrarse.sql`, que va desde
+el `INSERT` en `auth.users` —el trigger real— hasta un comercio listo para
+trabajar: organización creada, membresía de dueño, suscripción de prueba, plan
+vigente con cupo de IA, settings, rubro **sin** adivinar, matriz de permisos, y
+que un comprador de tienda **no** se vuelva dueño de una organización.
+
+```bash
+npm run db -- --file supabase/verificaciones/20260828_alguien_puede_registrarse.sql
+```
+
+📌 Se escribió el 2026-08-28 al perseguir un bloqueo que resultó ser más chico
+de lo que parecía —el registro nunca estuvo roto—, pero el susto dejó claro que
+**nada verificaba ese camino**.
 
 📌 **Existe porque con una sola organización varios bugs no se pueden
 reproducir.** El 2026-08-27 encontró dos que llevaban días escondidos: el rubro
