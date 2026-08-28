@@ -134,7 +134,13 @@ export default function StoreHome() {
                   <span className="absolute bottom-2 left-3 right-3 text-white font-medium text-sm">
                     {c.label}
                     <span className="block text-[11px] opacity-75">
-                      {products.filter(p => p.category === c.slug).length} productos
+                      {/* ⚠️ Con una sola decía «Perfume Diseñador · 1 productos».
+                          Se vio leyendo el nombre accesible del enlace, no
+                          mirando el código. */}
+                      {(() => {
+                        const n = products.filter(p => p.category === c.slug).length;
+                        return `${n} producto${n === 1 ? "" : "s"}`;
+                      })()}
                     </span>
                   </span>
                 </Link>
