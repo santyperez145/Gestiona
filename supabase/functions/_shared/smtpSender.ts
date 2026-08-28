@@ -135,6 +135,35 @@ async function sendViaResend(
  * @param payload      - Email content
  * @param metadata     - Optional Resend webhook metadata
  */
+/**
+ * Traduce los rechazos que tienen una causa concreta y accionable.
+ *
+ * ⚠️ Existe por un caso real: Gmail contesta «535: 5.7.8 Username and Password
+ * not accepted … BadCredentials», que es exacto y no dice qué hacer. Y ese
+ * código tiene dos causas que explican casi todos los casos:
+ *
+ *   1. La contraseña de aplicación se pegó **con los espacios** que muestra
+ *      Google. Va sin espacios.
+ *   2. La contraseña es de **otra cuenta** de Google que la del usuario
+ *      configurado. Con varias sesiones abiertas es lo más fácil de errar.
+ *
+ * 📌 Se conserva el texto original abajo: traducir sin mostrar el original es
+ * cómo se pierde el caso que no entraba en ninguna de las dos.
+ */
+function pistaDelRechazo(motivo: string, usuario: string): string {
+  if (/535|BadCredentials|Username and Password not accepted/i.test(motivo)) {
+    return `El servidor rechazó el usuario y la contraseña de ${usuario}. `
+      + "Casi siempre es una de dos: la contraseña de aplicación se pegó con los "
+      + "espacios que muestra Google (va sin espacios), o es de otra cuenta de "
+      + `Google distinta de ${usuario}. Detalle del servidor: ${motivo}`;
+  }
+  if (/534|Application-specific password required/i.test(motivo)) {
+    return "Google pide una contraseña de aplicación, no la de la cuenta. Se crea "
+      + `con la verificación en dos pasos activa. Detalle del servidor: ${motivo}`;
+  }
+  return `El servidor de correo rechazó el envío: ${motivo}`;
+}
+
 export async function sendEmail(
   smtpCfg: SmtpConfig | null,
   resendApiKey: string,
@@ -142,14 +171,30 @@ export async function sendEmail(
   payload: EmailPayload,
   metadata?: Record<string, string>,
 ): Promise<SendResult> {
+  /**
+   * ⚠️ El error del SMTP ya no se pierde.
+   *
+   * Antes esto hacía `console.error` y caía a Resend, así que lo que llegaba a
+   * la pantalla era el error de **Resend**. Con un remitente de Gmail, Resend
+   * contesta «the gmail.com domain is not verified» — un error verdadero, sobre
+   * el proveedor equivocado, que manda a verificar un dominio que no tiene nada
+   * que ver con lo que falló.
+   *
+   * 📌 Un error de un proveedor que ni siquiera era el elegido es peor que un
+   * error genérico: hace perder el tiempo en el lugar que no es. Encontrado el
+   * 2026-08-28 con `SMTP_PASSWORD` ya cargada.
+   */
+  let errorDelSmtp: string | null = null;
+
   // 1. Try SMTP
   if (smtpCfg?.host && smtpCfg?.user) {
     try {
       await sendViaSmtp(smtpCfg, payload);
       return { ok: true, provider: "smtp" };
     } catch (e) {
+      errorDelSmtp = e instanceof Error ? e.message : String(e);
       console.error("SMTP send failed:", e);
-      // Fall through to Resend
+      // Se sigue intentando por Resend, pero el motivo de arriba se conserva.
     }
   }
 
@@ -160,8 +205,24 @@ export async function sendEmail(
       return { ok: true, provider: "resend" };
     } catch (e) {
       console.error("Resend send failed:", e);
+      // Si el envío elegido era el SMTP, el motivo útil es el suyo: Resend
+      // era el respaldo y con este remitente no podía funcionar igual.
+      if (errorDelSmtp) {
+        return {
+          ok: false, provider: "smtp",
+          error: pistaDelRechazo(errorDelSmtp, smtpCfg?.user ?? "el usuario configurado"),
+        };
+      }
       return { ok: false, provider: "resend", error: e instanceof Error ? e.message : String(e) };
     }
+  }
+
+  // Sin Resend configurado, el motivo del SMTP es lo único que hay.
+  if (errorDelSmtp) {
+    return {
+      ok: false, provider: "smtp",
+      error: pistaDelRechazo(errorDelSmtp, smtpCfg?.user ?? "el usuario configurado"),
+    };
   }
 
   // 3. No provider
