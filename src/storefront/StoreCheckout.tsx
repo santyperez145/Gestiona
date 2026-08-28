@@ -504,9 +504,13 @@ export default function StoreCheckout() {
                     <span className="text-sm block truncate">{o.label}</span>
                     {o.days_min != null && (
                       <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
-                        {/* ⚠️ Un rango de un solo día decía «1–1 días hábiles»,
-                            y un `days_max` faltante mostraba «1–? días». */}
-                        {o.days_max == null || o.days_max === o.days_min
+                        {/* ⚠️ Medido en el checkout real: el retiro en tienda
+                            mostraba «0–0 días hábiles». Un rango de un solo día
+                            decía «1–1», y un `days_max` faltante, «1–?».
+                            Con cero días no va ningún plazo: el retiro es hoy. */}
+                        {o.days_min === 0 && (o.days_max == null || o.days_max === 0)
+                          ? ""
+                          : o.days_max == null || o.days_max === o.days_min
                           ? `${o.days_min} día${o.days_min === 1 ? "" : "s"} hábil${o.days_min === 1 ? "" : "es"}`
                           : `${o.days_min}–${o.days_max} días hábiles`}
                       </span>
@@ -524,8 +528,11 @@ export default function StoreCheckout() {
                   <Truck className="w-3 h-3" />
                   {opciones[0].label}
                   {opciones[0].days_min != null && (
-                    // ⚠️ Un rango de un solo día decía «1–1 días hábiles».
-                    opciones[0].days_max == null || opciones[0].days_max === opciones[0].days_min
+                    // ⚠️ Con cero días no va plazo: el retiro en tienda es hoy,
+                    // y decía «0–0 días hábiles».
+                    opciones[0].days_min === 0 && (opciones[0].days_max == null || opciones[0].days_max === 0)
+                      ? ""
+                      : opciones[0].days_max == null || opciones[0].days_max === opciones[0].days_min
                       ? ` · ${opciones[0].days_min} día${opciones[0].days_min === 1 ? "" : "s"} hábil${opciones[0].days_min === 1 ? "" : "es"}`
                       : ` · ${opciones[0].days_min}–${opciones[0].days_max} días hábiles`)}
                   {" · "}
