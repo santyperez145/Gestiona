@@ -1215,6 +1215,36 @@ npm run db -- --file supabase/verificaciones/20260828_alguien_puede_registrarse.
 de lo que parecía —el registro nunca estuvo roto—, pero el susto dejó claro que
 **nada verificaba ese camino**.
 
+⚠️ **Y hay una tercera, para una familia entera que ningún test agarra:
+`supabase/verificaciones/20260828_las_funciones_resuelven_sus_nombres.sql`.**
+
+```bash
+npm run db -- --file supabase/verificaciones/20260828_las_funciones_resuelven_sus_nombres.sql
+```
+
+**plpgsql resuelve nombres en tiempo de ejecución.** Una función puede nombrar
+una columna que no existe, o un nombre que significa dos cosas a la vez, y
+crearse sin una sola queja: compila, pasa el lint, pasa los tests, y falla la
+primera vez que alguien la usa. Ya pasó dos veces —`afip_marcar_delegacion`
+escribiendo `last_error`, y las tres funciones del buzón de Finance con
+`42702 column reference is ambiguous`—.
+
+📌 Corre `plpgsql_check` **dentro de una transacción que se revierte**, así que
+no instala nada en producción. Resultado esperado hoy: **2 errores conocidos**,
+los dos falsos positivos por `TG_TABLE_NAME` y explicados en el archivo. Un
+tercero es nuevo.
+
+⚠️ **Y hay que pasarle la tabla a las funciones de trigger.** Sin eso quedaban
+136 de 371 sin analizar —un 37% de punto ciego, justo donde viven los bugs más
+caros de este repo—, y ese hueco escondía tres hallazgos más, uno de ellos real.
+Un chequeo que dice «0 errores» sobre dos tercios de las funciones es peor que
+no tenerlo.
+
+📌 De los 16 hallazgos del 2026-08-28, **catorce eran reales**: los tres del
+buzón de Finance, diez funciones huérfanas de módulos retirados, y un trigger
+que fingía auditar cada venta llamando a una función inexistente y tragándose
+el error. Descartar por intuición habría dejado los catorce.
+
 📌 **Existe porque con una sola organización varios bugs no se pueden
 reproducir.** El 2026-08-27 encontró dos que llevaban días escondidos: el rubro
 `perfumes` en un comercio que nunca eligió, y —el caro— **la primera venta no
