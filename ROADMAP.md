@@ -1514,6 +1514,58 @@ soporte quedan controlados.
 | Capital | Referral/origination mediante entidad regulada. | Datos, riesgo, volumen y marco legal. |
 | Enterprise | SLA, SSO, auditoría, infraestructura y soporte. | Demanda contractual y unit economics. |
 
+### La escalera de planes, y el defecto que tenía (2026-08-28)
+
+Medido contra la base el 2026-08-28, **pagar el plan de entrada sacaba tres
+capacidades que el trial gratis daba**:
+
+| plan | precio | IA | backups | branding | ventas/mes |
+|---|---|---|---|---|---|
+| trial | $0 | ✅ | ✅ | ✅ | sin límite |
+| **starter** | **$19.900** | ❌ | ❌ | ❌ | 1.500 |
+| pro | $34.900 | ✅ | ✅ | ✅ | 5.000 |
+| business | $69.900 | ✅ | ✅ | ✅ | sin límite |
+
+⚠️ El día 15 el comercio no elegía entre planes: elegía entre pagar y perder la
+IA, o irse. Es el peor momento posible para quitar una función.
+
+⚠️ **Y dos de las tres no existían.** `custom_branding` y `backups_enabled` se
+calculan en `useEntitlements` como `canCustomBrand` y `canUseBackups`, y **no
+los lee ninguna pantalla** (medido: cero consumidores fuera del propio hook).
+De los tres diferenciadores que la grilla de precios promete, uno solo estaba
+implementado — y el que estaba iba al revés.
+
+**La decisión (2026-08-28): los planes se diferencian por volumen, no apagando
+capacidades.** Es lo que hacen Tiendanube y Shopify. El diferenciador real pasa
+a ser el **cupo mensual de IA**, que reemplaza a los dos que no existían:
+
+| plan | acciones de IA/mes |
+|---|---|
+| trial | 100 |
+| starter | 300 |
+| pro | 2.000 |
+| business | sin tope |
+
+📌 El trial queda **por debajo** del plan de entrada a propósito: la prueba
+tiene que dejar ganas, no dejar deuda.
+
+📌 **El precio no se tocó.** Qué cobrar es del dueño; esto reparte capacidades,
+que es producto. Se deshace con un `UPDATE`.
+
+⚠️ **Y sin medición un cupo no existe.** `ai_usage_stats` estaba en la base
+desde hacía meses con **0 filas**: ocho Edge Functions quemaban
+`ANTHROPIC_API_KEY` y ninguna registraba una acción. Ahora se registra por
+`ia_registrar_consumo` —única puerta, revocada salvo `service_role`— y
+`org_entitlements` devuelve `ia_cupo_mensual`, `ia_usado` e `ia_restante`.
+Guarda: `laIaSeMideYTieneTecho.test.ts`.
+
+⚠️ **Lo que todavía NO está verificado punta a punta:** que la función
+deployada registre de verdad. `ANTHROPIC_API_KEY` no está configurada (medido
+el 2026-08-28 con `supabase secrets list`), así que la IA no corre en
+producción. Lo verificado es el SQL —registrar descuenta, dos acciones del
+mismo día suman, «sin tope» ≠ «sin cupo»—, el permiso en los dos sentidos como
+rol real, y que las siete funciones deployadas sirven.
+
 ### Comisión actual
 
 La application/marketplace fee documentada no se considera modelo definitivo.

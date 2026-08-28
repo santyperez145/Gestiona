@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { requireUser } from "../_shared/requireUser.ts";
-import { exigirBeneficio } from "../_shared/entitlements.ts";
+import { exigirBeneficio, registrarConsumoIA } from "../_shared/entitlements.ts";
 import { leerPerfilDelComercio, personaDe } from "../_shared/perfilDelComercio.ts";
 
 const corsHeaders = {
@@ -90,6 +90,13 @@ Emití con la herramienta emit_social_copy: un título corto interno, el conteni
       tools: tools as any,
       tool_choice: { type: "tool", name: "emit_social_copy" } as any,
       messages: [{ role: "user", content: prompt }],
+    });
+
+    // El consumo se registra recién acá: Claude ya contestó. Registrar antes
+    // le gastaría al comercio una acción que falló.
+    await registrarConsumoIA({
+      orgId, userId: auth.user.id, model: message.model,
+      input: message.usage?.input_tokens, output: message.usage?.output_tokens,
     });
 
     const toolBlock = message.content.find((b: any) => b.type === "tool_use") as any;

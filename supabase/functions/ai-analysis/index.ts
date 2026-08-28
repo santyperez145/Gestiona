@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
-import { exigirBeneficio } from "../_shared/entitlements.ts";
+import { exigirBeneficio, registrarConsumoIA } from "../_shared/entitlements.ts";
 import {
   FORMATO_INFORME,
   leerPerfilDelComercio,
@@ -266,6 +266,13 @@ serve(async (req) => {
         },
       ],
       messages: [{ role: "user", content: user }],
+    });
+
+    // El consumo se registra recién acá: Claude ya contestó. Registrar antes
+    // le gastaría al comercio una acción que falló.
+    await registrarConsumoIA({
+      orgId, userId: userRes.user.id, model: response.model,
+      input: response.usage?.input_tokens, output: response.usage?.output_tokens,
     });
 
     const content =

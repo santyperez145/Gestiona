@@ -40,6 +40,11 @@ export interface Entitlements {
   max_products: number | null;
   max_users: number | null;
   max_sales_per_month: number | null;
+  /** Acciones de IA por mes. `null` = sin tope. */
+  ia_cupo_mensual: number | null;
+  ia_usado: number;
+  /** `null` = sin tope. `0` = no le queda ninguna. No son lo mismo. */
+  ia_restante: number | null;
 }
 
 /** Qué decirle a alguien a quien se le cortó, según por qué. */
@@ -127,16 +132,98 @@ export async function exigirBeneficio(
     );
   }
 
-  if (e[beneficio]) return null;
+  if (!e[beneficio]) {
+    return new Response(
+      JSON.stringify({
+        error: motivoLegible(e),
+        code: e.motivo_de_corte ? "suscripcion_" + e.motivo_de_corte : "plan_sin_beneficio",
+        beneficio,
+        plan: e.plan,
+        motivo_de_corte: e.motivo_de_corte,
+      }),
+      { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
 
-  return new Response(
-    JSON.stringify({
-      error: motivoLegible(e),
-      code: e.motivo_de_corte ? "suscripcion_" + e.motivo_de_corte : "plan_sin_beneficio",
-      beneficio,
-      plan: e.plan,
-      motivo_de_corte: e.motivo_de_corte,
-    }),
-    { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-  );
+  /**
+   * ⚠️ Tener el beneficio no es tener cupo. Hasta el 2026-08-28 la IA era un
+   * booleano: cualquier organización con `ia=true` podía quemar
+   * `ANTHROPIC_API_KEY` sin techo, y `ai_usage_stats` —que existía desde hacía
+   * meses— tenía **0 filas**. Nadie registraba lo que costaba.
+   *
+   * 📌 `null` es sin tope y `0` es sin cupo. Compararlos con `!` los haría
+   * iguales, y el plan Business —el que más paga— sería el que no puede usarla.
+   */
+  if (beneficio === "ia" && e.ia_restante !== null && e.ia_restante <= 0) {
+    return new Response(
+      JSON.stringify({
+        error:
+          `Usaste las ${e.ia_cupo_mensual} acciones de IA de tu plan este mes. ` +
+          `El cupo se renueva el 1°, y desde Mi plan podés pasar a uno con más.`,
+        code: "cupo_ia_agotado",
+        beneficio,
+        plan: e.plan,
+        ia_cupo_mensual: e.ia_cupo_mensual,
+        ia_usado: e.ia_usado,
+      }),
+      { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  return null;
+}
+
+/**
+ * Registra una acción de IA ya ocurrida.
+ *
+ * ⚠️ Se llama **después** de que el proveedor contestó. Registrar antes le
+ * cobraría al comercio una acción que falló — y el cupo es lo que decide si
+ * puede seguir trabajando.
+ *
+ * 📌 No calcula el costo en dólares a propósito. El precio por token cambia y
+ * hornearlo acá lo dejaría viejo sin que nadie se entere; los tokens sí son
+ * medidos, así que el costo se puede calcular cuando se necesite con el precio
+ * que rija ese día. `estimated_cost_usd` queda NULL, que significa «no se
+ * calculó» y no «salió gratis».
+ *
+ * 📌 Va con `service_role` porque `ia_registrar_consumo` está revocada para
+ * todos los demás: si el navegador pudiera escribir ahí, el cupo lo decidiría
+ * el cliente. La organización ya la validó `exigirBeneficio` con el JWT real.
+ *
+ * Nunca lanza: que la contabilidad falle no puede tumbar una respuesta que el
+ * comercio ya recibió. Sí deja rastro en el log.
+ */
+export async function registrarConsumoIA(opciones: {
+  orgId: string | null | undefined;
+  userId: string | null | undefined;
+  model: string;
+  input?: number;
+  output?: number;
+}): Promise<void> {
+  const { orgId, userId, model, input = 0, output = 0 } = opciones;
+  if (!orgId) return;
+
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceRole) {
+    console.error("no se pudo registrar el consumo de IA: falta configuración");
+    return;
+  }
+
+  try {
+    const admin = createClient(url, serviceRole);
+    const { error } = await admin.rpc("ia_registrar_consumo", {
+      p_org: orgId,
+      p_user: userId ?? null,
+      p_model: model,
+      p_input: Math.max(0, Math.round(input)),
+      p_output: Math.max(0, Math.round(output)),
+    });
+    // ⚠️ Un `rpc` sin mirar `.error` convierte «no se guardó» en «listo», que es
+    // exactamente cómo el panel de AFIP quedó diciendo «falta conectar» para
+    // siempre. Si el consumo no se registra, el cupo no se gasta nunca.
+    if (error) console.error("ia_registrar_consumo falló", error);
+  } catch (e) {
+    console.error("ia_registrar_consumo lanzó", e);
+  }
 }

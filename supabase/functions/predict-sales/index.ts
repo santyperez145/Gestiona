@@ -1,6 +1,6 @@
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
-import { exigirBeneficio } from "../_shared/entitlements.ts";
+import { exigirBeneficio, registrarConsumoIA } from "../_shared/entitlements.ts";
 import { leerPerfilDelComercio, personaDe } from "../_shared/perfilDelComercio.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 
@@ -136,6 +136,13 @@ Deno.serve(async (req) => {
           },
         }],
         tool_choice: { type: "tool", name: "submit_prediction" },
+      });
+
+      // El consumo se registra recién acá: Claude ya contestó. Registrar antes
+      // le gastaría al comercio una acción que falló.
+      await registrarConsumoIA({
+        orgId, userId: auth.user.id, model: message.model,
+        input: message.usage?.input_tokens, output: message.usage?.output_tokens,
       });
 
       const toolUse = message.content.find((b) => b.type === "tool_use");

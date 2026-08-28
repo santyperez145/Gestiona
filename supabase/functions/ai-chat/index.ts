@@ -11,7 +11,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
-import { exigirBeneficio } from "../_shared/entitlements.ts";
+import { exigirBeneficio, registrarConsumoIA } from "../_shared/entitlements.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -224,6 +224,12 @@ ${(() => {
           try {
             const final = await claudeStream.finalMessage();
             if (final?.usage) {
+              // Y se registra del lado del servidor: el navegador lo recibe
+              // para mostrarlo, pero el cupo no lo puede llevar el cliente.
+              await registrarConsumoIA({
+                orgId, userId, model: final.model ?? modeloElegido,
+                input: final.usage.input_tokens, output: final.usage.output_tokens,
+              });
               controller.enqueue(encoder.encode(
                 `data: ${JSON.stringify({ usage: {
                   input_tokens: final.usage.input_tokens ?? null,

@@ -16,12 +16,67 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { formatARS } from "@/lib/supabaseStore";
+import { useEntitlements } from "@/lib/useEntitlements";
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
   CreditCard, Check, Loader2, ExternalLink, AlertTriangle, Calendar, Receipt,
 } from "lucide-react";
+
+/**
+ * Cuánta IA le queda al comercio este mes.
+ *
+ * ── Por qué está acá ──────────────────────────────────────────────────────
+ *
+ * ⚠️ Hasta el 2026-08-28 la IA era un booleano sin medición: el comercio no
+ * tenía forma de saber cuánto llevaba usado, y la plataforma tampoco. La
+ * primera noticia de que se acabó no puede ser un error en medio del trabajo.
+ *
+ * 📌 «Sin tope» y «sin cupo» se muestran distinto a propósito: son opuestos, y
+ * el plan que no tiene límite es justamente el que más paga.
+ */
+function CupoDeIA() {
+  const { loading, canUseAI, iaCupoMensual, iaUsado, iaRestante } = useEntitlements();
+
+  if (loading || !canUseAI) return null;
+
+  const sinTope = iaCupoMensual === null;
+  const usadoPct = sinTope || !iaCupoMensual
+    ? 0
+    : Math.min(100, Math.round((iaUsado / iaCupoMensual) * 100));
+  const agotado = !sinTope && iaRestante !== null && iaRestante <= 0;
+  const cerca = !sinTope && !agotado && usadoPct >= 80;
+
+  return (
+    <div className="mt-4 pt-4 border-t">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-sm font-medium">Inteligencia artificial</p>
+        <p className={`text-sm ${agotado ? "text-destructive" : cerca ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>
+          {sinTope
+            ? "Sin límite en tu plan"
+            : `${iaUsado.toLocaleString("es-AR")} de ${iaCupoMensual!.toLocaleString("es-AR")} acciones este mes`}
+        </p>
+      </div>
+
+      {!sinTope && (
+        <>
+          <div className="mt-2 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${agotado ? "bg-destructive" : cerca ? "bg-amber-500" : "bg-primary"}`}
+              style={{ width: `${usadoPct}%` }}
+            />
+          </div>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {agotado
+              ? "Usaste todas las acciones del mes. El cupo se renueva el 1°, o podés pasar a un plan con más."
+              : `Te quedan ${(iaRestante ?? 0).toLocaleString("es-AR")}. El cupo se renueva el 1°.`}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
 
 interface PlanContratable {
   id: string;
@@ -216,6 +271,8 @@ export default function MiPlanPage() {
             )}
           </div>
         )}
+
+        <CupoDeIA />
 
         {/**
           * Dar de baja, acá.

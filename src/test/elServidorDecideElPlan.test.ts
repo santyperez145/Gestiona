@@ -95,9 +95,27 @@ describe("la decisión no se escribe dos veces", () => {
      * otro comercio para pedir prestado su plan. Con el JWT real, pedir por
      * una organización ajena devuelve `insufficient_privilege`.
      */
-    expect(helper, "el helper empezó a usar la service role para leer el plan")
+    /**
+     * 📌 Se mira **la función que lee el plan**, no el archivo entero. Desde el
+     * 2026-08-28 el mismo archivo tiene `registrarConsumoIA`, que sí usa
+     * `service_role` — y corresponde: escribe contabilidad en una tabla cuya
+     * RPC está revocada para todos los demás, sobre una organización que
+     * `exigirBeneficio` ya validó con el JWT real. Leer el plan con permisos
+     * prestados regala un beneficio; anotar una acción ya ocurrida, no.
+     *
+     * Mirar el archivo completo habría obligado a elegir entre borrar la
+     * guarda o no registrar el consumo. Se afina el alcance, no la exigencia.
+     */
+    const lector = helper.slice(
+      helper.indexOf("export async function leerEntitlements"),
+      helper.indexOf("export async function exigirBeneficio"),
+    );
+    expect(lector.length, "no se encontró leerEntitlements: la guarda quedó vacía")
+      .toBeGreaterThan(200);
+
+    expect(lector, "el lector del plan empezó a usar la service role")
       .not.toContain("SUPABASE_SERVICE_ROLE_KEY");
-    expect(helper, "el helper dejó de mandar el Authorization del usuario")
+    expect(lector, "el lector del plan dejó de mandar el Authorization del usuario")
       .toContain("Authorization");
   });
 

@@ -64,6 +64,19 @@ interface Entitlements {
    * «rebotó un cobro», no para «nunca se pagó».
    */
   planSinPagar: boolean;
+  /**
+   * Acciones de IA del mes.
+   *
+   * ⚠️ `null` en `cupo`/`restante` significa **sin tope** —el plan Business—,
+   * no «sin cupo». Compararlos con `!` los hace iguales y deja al plan que más
+   * paga sin IA.
+   *
+   * 📌 Es orientación para la pantalla: el corte real lo hace
+   * `exigirBeneficio` en el servidor, que es donde se gasta la plata.
+   */
+  iaCupoMensual: number | null;
+  iaUsado: number;
+  iaRestante: number | null;
   refresh: () => Promise<void>;
 }
 
@@ -96,6 +109,10 @@ interface EntitlementsDeLaBase {
   max_sales_per_month: number | null;
   /** El plan contratado no rige porque nunca se cobró. */
   plan_sin_pagar?: boolean;
+  /** `null` = sin tope. No es lo mismo que 0. */
+  ia_cupo_mensual?: number | null;
+  ia_usado?: number;
+  ia_restante?: number | null;
 }
 
 /** La relación/función todavía no existe en esta base. */
@@ -254,6 +271,12 @@ export function useEntitlements(): Entitlements {
     motivoDeCorte,
     diasDeGracia,
     planSinPagar: Boolean(servidor?.plan_sin_pagar),
+    // ⚠️ `?? null` y no `?? 0`: sin dato del servidor no se sabe el cupo, y
+    // decir 0 le mostraría al comercio que se quedó sin IA cuando el problema
+    // es que no se pudo leer. Son cosas distintas.
+    iaCupoMensual: servidor?.ia_cupo_mensual ?? null,
+    iaUsado: servidor?.ia_usado ?? 0,
+    iaRestante: servidor === null ? null : (servidor.ia_restante ?? null),
     refresh: load,
   };
 }
