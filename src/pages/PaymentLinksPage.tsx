@@ -134,7 +134,10 @@ export default function PaymentLinksPage() {
 
     setSaving(true);
     try {
-      const expiresAt = expiresIn
+      // `sin_vencimiento` es el centinela del desplegable, no una cantidad de
+      // horas: sin esta traducción `Number("sin_vencimiento")` da NaN y la
+      // fecha sale inválida.
+      const expiresAt = (expiresIn && expiresIn !== "sin_vencimiento")
         ? new Date(Date.now() + Number(expiresIn) * 3_600_000).toISOString()
         : null;
 
@@ -581,7 +584,12 @@ export default function PaymentLinksPage() {
                   <SelectItem value="48">48 horas</SelectItem>
                   <SelectItem value="72">72 horas (recomendado)</SelectItem>
                   <SelectItem value="168">7 días</SelectItem>
-                  <SelectItem value="">Sin vencimiento</SelectItem>
+                  {/* ⚠️ Acá había `value=""`, y Radix lo prohíbe: la cadena
+                      vacía es el valor que usa para «sin selección». Al montar
+                      el desplegable lanzaba y el ErrorBoundary se comía la
+                      página entera de links de pago. Se usa un centinela y se
+                      traduce al guardar. */}
+                  <SelectItem value="sin_vencimiento">Sin vencimiento</SelectItem>
                 </SelectContent>
               </Select>
             </div>

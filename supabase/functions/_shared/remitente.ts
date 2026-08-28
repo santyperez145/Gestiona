@@ -36,6 +36,16 @@ export interface Remitente {
    * `platform_messaging_config` la lee el staff desde el navegador.
    */
   smtp: SmtpConfig | null;
+  /**
+   * Está configurado el servidor pero **falta la contraseña** en el entorno.
+   *
+   * ⚠️ Sin esto el sistema caía a Resend con un remitente armado para el SMTP
+   * —una casilla de Gmail— y Resend contestaba «the gmail.com domain is not
+   * verified». Un error verdadero sobre el proveedor equivocado: manda a
+   * verificar un dominio que no hace falta verificar, y esconde que lo único
+   * que falta es cargar un secreto.
+   */
+  faltaLaClaveSmtp: boolean;
 }
 
 /**
@@ -55,13 +65,13 @@ export async function remitenteDe(proposito: Proposito = "default"): Promise<Rem
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceRole) {
     console.error("remitenteDe: falta SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY");
-    return { from: "", listo: false, dominio: null, smtp: null };
+    return { from: "", listo: false, dominio: null, smtp: null, faltaLaClaveSmtp: false };
   }
   const admin = createClient(url, serviceRole);
   const { data, error } = await admin.rpc("mensajeria_de_plataforma");
   if (error || !data) {
     console.error("no se pudo leer la configuración de mensajería", error);
-    return { from: "", listo: false, dominio: null, smtp: null };
+    return { from: "", listo: false, dominio: null, smtp: null, faltaLaClaveSmtp: false };
   }
 
   const dominio = data.email_dominio as string | null;
@@ -86,12 +96,15 @@ export async function remitenteDe(proposito: Proposito = "default"): Promise<Rem
       }
     : null;
 
+  const faltaLaClaveSmtp = Boolean(data.smtp_configurado) && !pass;
+
   const from = smtp
     ? `${nombre} <${smtp.fromEmail}>`
     : (dominio ? `${nombre} <${casilla}@${dominio}>` : "");
 
   return {
     from,
+    faltaLaClaveSmtp,
     // Con SMTP propio no hace falta el dominio verificado de Resend: el envío
     // ya sale por otro lado.
     listo: smtp ? true : Boolean(data.email_listo),

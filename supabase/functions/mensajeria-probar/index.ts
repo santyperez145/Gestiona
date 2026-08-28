@@ -68,6 +68,20 @@ Deno.serve(async (req) => {
     });
   }
 
+  // ⚠️ Antes esto caía a Resend con el remitente del SMTP, y Resend contestaba
+  // «the gmail.com domain is not verified» — un error verdadero sobre el
+  // proveedor equivocado, que manda a verificar un dominio que no hace falta.
+  if (remitente.faltaLaClaveSmtp) {
+    return json({
+      ok: false,
+      etapa: "configuracion",
+      remitente: remitente.from,
+      detalle: "Está cargado el servidor de correo, pero falta la contraseña. "
+             + "Se carga en Supabase como SMTP_PASSWORD; con Gmail es una "
+             + "contraseña de aplicación, no la de tu cuenta.",
+    });
+  }
+
   const apiKey = Deno.env.get("RESEND_API_KEY") ?? "";
   if (!apiKey) {
     return json({

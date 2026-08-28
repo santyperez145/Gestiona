@@ -23,7 +23,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { AlertTriangle, CreditCard, Loader2 } from 'lucide-react';
+import { AlertTriangle, CreditCard, ExternalLink, Loader2 } from 'lucide-react';
+import { mensajeDeEdgeFunction } from '@/lib/edgeErrors';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 
@@ -50,6 +51,37 @@ const ars = (n: number) =>
 
 export default function PlanesDeCuotas({ orgId }: { orgId?: string }) {
   const [posibles, setPosibles] = useState<Posible[]>([]);
+  /**
+   * Lo que la cuenta de MercadoPago del comercio ofrece hoy. `null` mientras se
+   * consulta; `conectado:false` si todavía no la conectó — que no es un error.
+   */
+  const [ofrece, setOfrece] = useState<{
+    conectado: boolean;
+    opciones: { cuotas: number; sinInteres: boolean; recargoPct: number }[];
+    maxCuotas?: number;
+    maxSinInteres?: number;
+    problema?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!orgId) return;
+    let vivo = true;
+    void (async () => {
+      const { data, error } = await supabase.functions.invoke("mp-cuotas-cuenta", {
+        body: { org_id: orgId },
+      });
+      if (!vivo) return;
+      if (error) {
+        // No se traga: sin esto, «no contestó» y «no ofrece cuotas» se ven igual.
+        console.error("mp-cuotas-cuenta", await mensajeDeEdgeFunction(error, data));
+        setOfrece({ conectado: true, opciones: [], problema: "No se pudo consultar a MercadoPago." });
+        return;
+      }
+      setOfrece(data as never);
+    })();
+    return () => { vivo = false; };
+  }, [orgId]);
+
   const [planes, setPlanes] = useState<Plan[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -134,16 +166,62 @@ export default function PlanesDeCuotas({ orgId }: { orgId?: string }) {
         </p>
       </div>
 
-      {posibles.some(p => p.tarifa_sin_verificar) && (
-        <div className="flex items-start gap-2 rounded-[8px] border border-amber-500/25 bg-amber-500/[0.05] p-3 text-xs">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
-          <p className="text-amber-700 dark:text-amber-300">
-            Los costos de abajo salen de tarifas <strong>sin verificar</strong> contra la del
-            proveedor. Con MercadoPago, además, las cuotas sin interés se habilitan en su panel
-            (Tu negocio → Costos): acá elegís cuáles ofrecer.
+      {/**
+        * Lo que la cuenta del comercio ofrece HOY, preguntado a MercadoPago.
+        *
+        * ── Por qué esto y no un botón que lo configure ──────────────────────
+        *
+        * Verificado el 2026-08-27: **MercadoPago no expone una API para
+        * configurar** qué cuotas financia un vendedor — sólo para consultarlas
+        * al procesar. Y Tiendanube tampoco la tiene: su propia página dice que
+        * desarrollaron «nuestro propio plan para ofrecer cuotas con los mismos
+        * costos de financiación», o sea un programa de financiación propio.
+        * Es un acuerdo comercial, no una integración.
+        *
+        * 📌 Prometer un botón que lo configure sería vender algo que no se
+        * puede construir. Lo que sí se puede es que el comercio no tenga que
+        * averiguar nada: se lo preguntamos a su cuenta, se lo mostramos, y si
+        * quiere más, un botón lo lleva al lugar exacto.
+        */}
+      <div className="rounded-[8px] border border-border bg-muted/20 p-3 text-xs space-y-2">
+        {ofrece === null ? (
+          <p className="text-muted-foreground">Consultando qué ofrece tu cuenta de MercadoPago…</p>
+        ) : !ofrece.conectado ? (
+          <p className="text-muted-foreground">
+            Todavía no conectaste MercadoPago. Cuando lo hagas, acá vas a ver en cuántas
+            cuotas puede pagar tu cliente, sin que tengas que averiguarlo.
           </p>
-        </div>
-      )}
+        ) : ofrece.opciones.length === 0 ? (
+          <p className="text-muted-foreground">
+            {ofrece.problema ?? "Tu cuenta no está ofreciendo cuotas en este momento."}
+          </p>
+        ) : (
+          <>
+            <p>
+              Tu cuenta de MercadoPago hoy permite pagar hasta{" "}
+              <strong>{ofrece.maxCuotas} cuotas</strong>
+              {ofrece.maxSinInteres > 0
+                ? <>, y hasta <strong>{ofrece.maxSinInteres} sin interés</strong> las pagás vos.</>
+                : <>, todas <strong>con interés</strong> que paga quien compra.</>}
+            </p>
+            <p className="text-muted-foreground">
+              Acá abajo elegís cuáles de esas ofrecer. Lo que elijas es lo que ve el
+              comprador y lo que acepta el cobro — no hay dos listas.
+            </p>
+            <a
+              href="https://www.mercadopago.com.ar/costs-section"
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+            >
+              Cambiar las cuotas sin interés en MercadoPago
+              <ExternalLink className="h-3 w-3" />
+            </a>
+            <p className="text-[11px] text-muted-foreground">
+              Cuando vuelvas, esto se actualiza solo. No hace falta que copies nada.
+            </p>
+          </>
+        )}
+      </div>
 
       <div className="rounded-[8px] border border-primary/20 bg-primary/[0.04] p-3">
         <label className="text-xs font-medium block mb-2">Ver el costo sobre una venta de</label>
