@@ -87,14 +87,64 @@ export default defineConfig(({ mode }) => ({
     sourcemap: sentryEnabled ? "hidden" : false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom", "react-router-dom"],
-          "vendor-query": ["@tanstack/react-query"],
-          "vendor-ui": ["@radix-ui/react-dialog", "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-dropdown-menu"],
-          "vendor-supabase": ["@supabase/supabase-js"],
-          "vendor-pdf": ["jspdf", "jspdf-autotable"],
-          "vendor-charts": ["recharts"],
-          "vendor-xlsx": ["xlsx"],
+        /**
+         * ⚠️ Función, no objeto — y la diferencia se mide en KB que baja un
+         * comprador.
+         *
+         * Con la forma de objeto, Rollup mete los helpers compartidos —entre
+         * ellos el `__vitePreload` del propio Vite, que no vive en
+         * `node_modules`— dentro del primer vendor que los necesita. El chunk
+         * de entrada quedaba importando **un solo símbolo** de `vendor-pdf` y
+         * **uno** de `vendor-charts`, y con eso `index.html` emitía
+         * `modulepreload` de los dos.
+         *
+         * Medido en la tienda real el 2026-08-28: la primera carga eran 636 KB
+         * comprimidos, y **248 KB (39%) eran generación de PDF y gráficos** —
+         * que un comprador de perfumes no usa nunca.
+         *
+         * 📌 Con la forma de función sólo se mueve lo que está en
+         * `node_modules`: los helpers de Vite se quedan en el entry y los
+         * vendors pesados vuelven a cargarse recién cuando una página los pide.
+         */
+        manualChunks(id: string) {
+          /**
+           * ⚠️ El helper de `import()` de Vite va primero, y **antes** del
+           * filtro de `node_modules`, porque es un módulo virtual
+           * (`\0vite/preload-helper`) que no vive ahí.
+           *
+           * Dejarlo a criterio de Rollup lo mandaba adentro de `vendor-pdf`, y
+           * el chunk de entrada terminaba importando los 138 KB de jsPDF por
+           * una función de veinte líneas que sirve para cargar cualquier página.
+           *
+           * 📌 Verificado en el bundle: el símbolo que el entry tomaba de
+           * `vendor-pdf` era exactamente `__vitePreload`.
+           */
+          if (id.includes("vite/preload-helper")) return "vendor-utils";
+
+          if (!id.includes("node_modules")) return;
+          const en = (...paquetes: string[]) =>
+            paquetes.some(p =>
+              id.includes(`node_modules/${p}/`) || id.includes(`node_modules\\${p}\\`));
+
+          /**
+           * ⚠️ Primero las utilidades chicas y compartidas. Sin esta línea,
+           * Rollup mete `clsx` dentro de `vendor-charts` —porque recharts la
+           * usa— y el chunk de entrada, que llama a `cn()`, termina importando
+           * los 110 KB de gráficos por una función de 8 líneas.
+           *
+           * 📌 Verificado en el bundle: el símbolo que el entry tomaba de
+           * `vendor-charts` era exactamente `clsx`.
+           */
+          if (en("clsx", "tailwind-merge", "class-variance-authority")) return "vendor-utils";
+
+          if (en("react", "react-dom", "react-router-dom")) return "vendor-react";
+          if (en("@tanstack/react-query")) return "vendor-query";
+          if (en("@radix-ui/react-dialog", "@radix-ui/react-select",
+                 "@radix-ui/react-tabs", "@radix-ui/react-dropdown-menu")) return "vendor-ui";
+          if (en("@supabase/supabase-js")) return "vendor-supabase";
+          if (en("jspdf", "jspdf-autotable")) return "vendor-pdf";
+          if (en("recharts")) return "vendor-charts";
+          if (en("xlsx")) return "vendor-xlsx";
         },
       },
     },
