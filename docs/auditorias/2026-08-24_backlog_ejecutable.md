@@ -771,10 +771,33 @@ en silencio y a favor del comercio. Va partida en dos, como `quantity_discounts`
 Price override queda cubierto: `products`, `price_lists`, `price_list_items`,
 `product_variants`, `purchases` y `expenses` ya exigían rol `owner`/`admin`.
 
+### Tercera pasada fiscal (`20260828000150`)
+
+La frase «fiscal ya exige owner/admin» escondía dos problemas diferentes:
+
+- `save_afip_config` aislaba tenant y exigía un rol estricto, pero no respetaba
+  la matriz. Ahora separa membresía de `invoices.edit`, conserva deny by default
+  y audita valores fiscales anteriores/nuevos sin TA, certificado ni clave.
+- **`afip_marcar_delegacion` sí era un agujero:** decía «sólo backend», pero
+  `anon` conservaba `EXECUTE` y su guarda empezaba con
+  `auth.uid() IS NOT NULL`. Para anon era NULL, la condición no entraba y podía
+  marcar cualquier org conocida como verificada. Quedó exclusiva de
+  `service_role`, con una segunda guarda interna que también rechaza anon.
+
+Se retiró además `anon` de `get_afip_stats`: ya dependía de RLS invoker, pero no
+existe una superficie fiscal pública que justifique ese contrato.
+
+**Evidencia real:** organización `ZZ` transaccional; vendedor sin permiso
+bloqueado, el mismo vendedor con `invoices.edit` habilitado pudo guardar,
+cross-tenant bloqueado, anon bloqueado aun invocando la función directamente,
+`service_role` habilitado, una auditoría saneada y **0 restos**. ACL medida:
+delegación `anon=false`, `authenticated=false`, `service_role=true`.
+
 ### Falta
 
-- Refund y fiscal: la puerta es el rol `owner`/`admin`, más estricto que la
-  matriz — no es un agujero, pero tampoco es la matriz.
+- Refund: la Edge exige `owner`/`admin` antes de llegar a RPCs que son sólo
+  `service_role`. Es más estricto que la matriz y no es un agujero, pero todavía
+  no expresa `payments.edit` como política funcional configurable.
 - `expire_batches`, `expire_stock_reservations`, `run_abc_analysis` y los dos
   contadores de plantillas siguen sin permiso. Ninguno fija precio, mueve stock
   ni saca plata.

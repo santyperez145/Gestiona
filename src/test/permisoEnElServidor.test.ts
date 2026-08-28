@@ -46,6 +46,7 @@ const EXIGEN_PERMISO: Record<string, string> = {
   record_member_stock_movement: "inventory",
   wallet_solicitar_retiro: "finance",
   medio_de_pago_habilitar: "payments",
+  save_afip_config: "invoices",
 };
 
 /** El archivo más nuevo que define esa función, que es el que manda. */

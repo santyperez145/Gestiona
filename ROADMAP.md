@@ -223,10 +223,10 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.908 tests en 182 archivos pasan al 2026-08-28; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
+| Calidad técnica | 1.911 tests en 182 archivos pasan al 2026-08-28; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
-| Fiscal | 1 CAE de homologación; 0 CAE de producción. |
+| Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
 | Ledger | 10 eventos de ledger de dominio; 0 asientos contables operativos reales. |
 | Margen canónico | `20260822000004/5/6` conserva 34/34 líneas y reconstruye 34 operaciones / ARS 1.143.696 sin diferencia. Exige costo + cobro + envío real + IVA, registra fuente, mix y bloqueos. La próxima venta POS crea partes de cobro atómicas: efectivo/transferencia prueban cero; tarjeta espera liquidación real y luego calcula neto + asiento + auditoría. Además persiste ingreso posterior a descuento y precio de referencia. Base histórica: 0 completas, 0% explicable, 2,9% cobertura, 0 liquidaciones POS y 0/34 baselines; no se inventó backfill. |
 | Action Loop de precio | `20260822000007` convierte recomendación en propuesta aprobable, baseline canónica, aplicación, medición y reversión con guard de concurrencia. Fixture: ARS 3.000 → ARS 2.700, 100% de cobertura antes/después, cambio manual a ARS 2.600 protegido, auditoría/RLS/restos 0. Producción: 25 descartadas, 0 aplicadas, 0 outcomes; todavía no prueba impacto comercial. |
@@ -519,6 +519,15 @@ necesita leer eso.
    una autorización.
 3. **La mitad que verifica que el admin SÍ puede no es decorativa.** Una guarda
    que frena a todos deja la vista igual de vacía y pasa el mismo test.
+
+**Tercera pasada fiscal (2026-08-28):** el caso que parecía «más estricto que la
+matriz» ocultaba un bypass distinto. `save_afip_config` ahora separa membresía
+de `invoices.edit` y audita el cambio sin TA/certificado/clave. Más grave:
+`afip_marcar_delegacion` conservaba `EXECUTE` para `anon` y su condición sólo
+rechazaba cuando `auth.uid()` no era NULL; anon podía autodeclarar una
+delegación como verificada. La función quedó exclusiva de `service_role`, con
+guarda interna y sin contrato público para estadísticas fiscales. Fixture real:
+vendedor deny/allow, cross-tenant, anon/service, auditoría y 0 restos.
 
 ### Un archivo de test estuvo sin correr y el conteo no bajó (2026-08-27)
 
@@ -1546,6 +1555,12 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     capabilities, y el replay conservó un run. Owner/outsider y 0 restos
     verificados. Producción quedó en 0 runs reales: el próximo paso sigue siendo
     el onboarding acompañado del segundo comercio, no más infraestructura.
+41. ~~Autorización fiscal P1-04~~ — cerrado el gap medido el 2026-08-28:
+    `save_afip_config` exige membresía + `invoices.edit` y audita sólo datos no
+    secretos. `afip_marcar_delegacion` dejó de aceptar anon por ACL y por guarda
+    interna; sólo la Edge con `service_role` confirma después de consultar
+    ARCA. Cross-role/cross-tenant, auditoría, ACL y 0 restos verificados. P1-04
+    continúa parcial por refund configurable y prueba cross-branch real.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2034,7 +2049,7 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-28: **1.908 tests en 182 archivos**,
+- Build y suites locales del 2026-08-28: **1.911 tests en 182 archivos**,
   typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 70
   funciones verificadas. Última evidencia: 42
   E2E críticos contra la base real.

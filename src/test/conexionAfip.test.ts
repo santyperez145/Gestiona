@@ -6,6 +6,7 @@ const ROOT = resolve(__dirname, "../..");
 const leer = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 
 const migracion = leer("supabase/migrations/20260821000020_afip_delegacion_guiada.sql");
+const autorizacionFiscal = leer("supabase/migrations/20260828000150_anon_no_verifica_una_delegacion_fiscal.sql");
 const fn = leer("supabase/functions/afip-authorize/index.ts");
 const ui = leer("src/components/afip/ConectarAfip.tsx");
 
@@ -43,9 +44,28 @@ describe("conexión guiada a AFIP", () => {
   it("la delegación la marca el backend, no la pantalla", () => {
     // Si la pantalla pudiera marcarla, un comercio podría decir que delegó sin
     // haberlo hecho y el diagnóstico dejaría de servir.
-    expect(migracion).toContain("is_platform_admin(auth.uid())");
-    expect(migracion).toContain("REVOKE ALL ON FUNCTION public.afip_marcar_delegacion");
+    expect(autorizacionFiscal).toContain("auth.role() IS DISTINCT FROM 'service_role'");
+    expect(autorizacionFiscal).toContain("FROM PUBLIC, anon, authenticated");
+    expect(autorizacionFiscal).toContain("TO service_role");
     expect(ui).not.toContain("afip_marcar_delegacion");
+  });
+
+  it("anon no aprovecha auth.uid NULL para autoverificarse", () => {
+    // La guarda anterior empezaba con `auth.uid() IS NOT NULL`: para anon era
+    // falsa y dejaba pasar justo al rol que pretendía bloquear.
+    const bloque = autorizacionFiscal.slice(
+      autorizacionFiscal.indexOf("CREATE OR REPLACE FUNCTION public.afip_marcar_delegacion"),
+      autorizacionFiscal.indexOf("REVOKE ALL ON FUNCTION public.afip_marcar_delegacion"),
+    );
+    expect(bloque).not.toContain("auth.uid() IS NOT NULL AND");
+    expect(bloque).toContain("insufficient_privilege");
+  });
+
+  it("la identidad fiscal exige invoices.edit y deja auditoría sin secretos", () => {
+    expect(autorizacionFiscal).toMatch(/exigir_permiso\([\s\S]*?'invoices'[\s\S]*?'edit'/);
+    expect(autorizacionFiscal).toContain("entity_type, entity_id");
+    expect(autorizacionFiscal).toContain("'fiscal_configuration'");
+    expect(autorizacionFiscal).not.toMatch(/jsonb_build_object\([\s\S]{0,300}'(ta_token|ta_sign|certificate|private_key)'/);
   });
 
   it("no hay botón de autodeclaración: se le pregunta a ARCA", () => {
