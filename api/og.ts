@@ -44,8 +44,21 @@ async function rpc<T>(fn: string, body: Record<string, unknown>): Promise<T | nu
   }
 }
 
+/**
+ * Datos estructurados, serializados de forma segura para incrustar en HTML.
+ *
+ * ⚠️ `</script>` dentro de un string JSON cierra la etiqueta y todo lo que
+ * sigue se ejecuta como HTML. Es la inyección clásica de JSON-LD, y el
+ * contenido viene del comercio —nombre y descripción de producto—, así que no
+ * es hipotética.
+ */
+const jsonLd = (data: unknown) =>
+  JSON.stringify(data).replace(/</g, "\u003c").replace(/>/g, "\u003e");
+
 function page(o: {
   title: string; description: string; url: string; image?: string; siteName: string;
+  /** Objeto schema.org que se emite como JSON-LD. */
+  datos?: unknown;
 }) {
   return `<!doctype html>
 <html lang="es">
@@ -67,6 +80,7 @@ ${o.image ? `<meta property="og:image" content="${esc(o.image)}">
 <meta name="twitter:title" content="${esc(o.title)}">
 <meta name="twitter:description" content="${esc(o.description)}">
 ${o.image ? `<meta name="twitter:image" content="${esc(o.image)}">` : ""}
+${o.datos ? `<script type="application/ld+json">${jsonLd(o.datos)}</script>` : ""}
 </head>
 <body>
 <h1>${esc(o.title)}</h1>
@@ -121,7 +135,7 @@ export default async function handler(req: Request): Promise<Response> {
       // Se filtra además por `org_id`: sin eso, el id de un producto de otra
       // tienda devolvía su ficha bajo esta marca.
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/store_catalog_products?id=eq.${encodeURIComponent(productId)}&org_id=eq.${encodeURIComponent(store.org_id)}&select=name,brand,description,sale_price_ars,discount_price_ars,image_url&limit=1`,
+        `${SUPABASE_URL}/rest/v1/store_catalog_products?id=eq.${encodeURIComponent(productId)}&org_id=eq.${encodeURIComponent(store.org_id)}&select=name,brand,description,sale_price_ars,discount_price_ars,image_url,stock&limit=1`,
         { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
       );
       const rows = res.ok ? await res.json() : [];
@@ -139,6 +153,34 @@ export default async function handler(req: Request): Promise<Response> {
             url: `${origin}${path}`,
             image: p.image_url ?? store.logo_url ?? undefined,
             siteName: storeName,
+            /**
+             * ⚠️ Sin esto, la ficha es un link azul más en Google. Con
+             * `Product` + `offers`, el resultado muestra **el precio y si hay
+             * stock** al lado del título, que es lo que hace que lo cliqueen.
+             * Tiendanube y Shopify lo emiten en cada producto desde siempre.
+             *
+             * 📌 `availability` sale del stock real, no de un valor fijo:
+             * declarar «InStock» sobre algo agotado hace que Google marque el
+             * dato como engañoso y deje de mostrar el precio de toda la tienda.
+             */
+            datos: {
+              "@context": "https://schema.org",
+              "@type": "Product",
+              name: p.name,
+              ...(p.brand ? { brand: { "@type": "Brand", name: p.brand } } : {}),
+              ...(p.description ? { description: String(p.description).slice(0, 500) } : {}),
+              ...(p.image_url ? { image: p.image_url } : {}),
+              offers: {
+                "@type": "Offer",
+                url: `${origin}${path}`,
+                priceCurrency: "ARS",
+                price: String(price),
+                availability: Number(p.stock) > 0
+                  ? "https://schema.org/InStock"
+                  : "https://schema.org/OutOfStock",
+                seller: { "@type": "Organization", name: storeName },
+              },
+            },
           }),
           { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300" } },
         );
@@ -155,6 +197,19 @@ export default async function handler(req: Request): Promise<Response> {
       url: `${origin}/tienda/${slug}`,
       image: store.banner_url ?? store.logo_url ?? undefined,
       siteName: storeName,
+      /**
+       * La home se declara como `Store` y no como `Organization`: es un
+       * comercio que vende, y ese tipo habilita el panel de conocimiento con
+       * el logo y el link —lo que separa una tienda de una web cualquiera.
+       */
+      datos: {
+        "@context": "https://schema.org",
+        "@type": "Store",
+        name: storeName,
+        url: `${origin}/tienda/${slug}`,
+        ...(store.logo_url ? { logo: store.logo_url } : {}),
+        ...(store.description ? { description: String(store.description).slice(0, 500) } : {}),
+      },
     }),
     { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300" } },
   );
