@@ -15,6 +15,7 @@
  * real ni sube un certificado. Lo que escriba, va con datos `ZZ` y limpieza.
  */
 import { test, expect, type Page } from "@playwright/test";
+import path from "node:path";
 
 // Sin credenciales no hay sesión que reusar y estos specs no pueden correr. Se
 // saltean enteros en vez de fallar: un test rojo por falta de configuración
@@ -141,6 +142,39 @@ test.describe("clientes", () => {
 
     await tabs.getByRole("tab", { name: /Clientes/ }).click();
     await expect(page.getByRole("region", { name: "Listado de clientes" })).toBeVisible();
+  });
+});
+
+test.describe("productos", () => {
+  test("usa Variantes como capacidad y lee un archivo real sin tocar el catálogo", async ({ page }) => {
+    await page.goto("/productos");
+    await expect(page.getByRole("heading", { level: 1, name: "Productos" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Nuevo", exact: true }).click();
+    const editor = page.getByRole("dialog", { name: "Nuevo producto" });
+    await expect(editor).toBeVisible();
+    await expect(editor.getByRole("button", { name: /Variantes/ })).toBeVisible();
+    await expect(editor.getByRole("button", { name: /Sabores/ })).toHaveCount(0);
+    await editor.getByRole("button", { name: "Cerrar" }).click();
+
+    await page.getByRole("button", { name: "Más acciones de productos" }).click();
+    await page.getByRole("menuitem", { name: "Importar Excel/CSV" }).click();
+    const importer = page.getByRole("dialog", { name: "Importar catálogo" });
+    await expect(importer).toBeVisible();
+
+    const fixture = path.resolve("e2e/fixtures/productos-importacion-e2e.csv");
+    await importer.locator('input[type="file"]').setInputFiles(fixture);
+    await expect(importer.getByText("productos-importacion-e2e.csv", { exact: true })).toBeVisible();
+    await expect(importer.getByText("2 filas", { exact: true })).toBeVisible();
+    await expect(importer.locator('[aria-label="Vista previa de productos importados"]')).toBeVisible();
+    await expect(importer.getByText("ZZ Vista previa importador A", { exact: true })).toBeVisible();
+    await expect(importer.getByText("ZZ Vista previa importador B", { exact: true })).toBeVisible();
+    await expect(importer.getByRole("button", { name: "Preparar y validar" })).toBeVisible();
+
+    // No se prepara ni se aprueba el lote: este E2E valida el parser de archivo
+    // real y la vista previa, y mantiene la base de producción de sólo lectura.
+    await importer.getByRole("button", { name: "Cancelar" }).click();
+    await expect(importer).toBeHidden();
   });
 });
 

@@ -2073,9 +2073,10 @@ Finance Connect.
     tablas comparativas. No cambia autoridad: precios/stock siguen validados
     por servidor y Kardex. La guarda de contrato bloquea el regreso al modal
     angosto, al falso sticky, al contenedor sin columna y a acciones icon-only; la barrera local cerró typecheck, lint,
-    1.991/1.991 tests y build/PWA. Quedan importación autenticada con un archivo
-    real, validación publicada de la protección de borradores y medición de
-    tarea antes de declarar el flujo adoptado.
+    1.991/1.991 tests y build/PWA. La importación autenticada con archivo real
+    quedó demostrada en el slice 64. Quedan validación publicada de la
+    protección de borradores y medición de tarea antes de declarar el flujo
+    adoptado.
 
 62. Lenguaje transversal de variantes — slice técnico cerrado el 2026-08-29.
     La ficha dejó de titular el módulo como “Sabores” cuando el tipo elegido era
@@ -2096,7 +2097,21 @@ Finance Connect.
     guardar o descartar, no por abrir paneles auxiliares. `ConfirmDialog` admite
     ahora uso controlado sin obligar a un trigger visible, manteniendo
     compatibles sus usos anteriores. Falta revalidar el build publicado con
-    teclado y teléfono antes de contar la protección como evidencia adoptada.
+    teclado y teléfono antes de contar la protección como evidencia adoptada;
+    el commit está en `main`, pero Vercel informó `Deployment rate limited —
+    retry in 24 hours` y todavía sirve el chunk anterior.
+
+64. Archivo real y contrato E2E del importador de Productos — evidencia cerrada
+    el 2026-08-29. La versión publicada leyó
+    `e2e/fixtures/productos-importacion-e2e.csv`, reconoció dos filas sintéticas,
+    mostró nombre, SKU, costos, venta y stock en la vista previa y conservó
+    “Preparar y validar” como frontera antes de cualquier escritura. Se canceló
+    ahí: no se preparó ni aprobó ningún lote y la consola no agregó errores. En
+    360 px el documento mantuvo `scrollWidth = 360`; sólo la tabla de 760 px
+    hizo scroll dentro de su contenedor de 322 px y mostró la instrucción
+    mobile. `e2e/panel.spec.ts` repite el recorrido autenticado, comprueba además
+    que la capacidad se llame “Variantes” y jamás pulsa el RPC de preparación o
+    aplicación, por lo que conserva el contrato E2E de sólo lectura.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

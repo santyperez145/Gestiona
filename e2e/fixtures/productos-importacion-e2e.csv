@@ -1,0 +1,3 @@
+Nombre,Marca,Categoría,SKU,Costo USD,Precio Venta ARS,Stock,Descripción
+ZZ Vista previa importador A,Marca E2E,Pruebas,ZZ-E2E-PREVIEW-001,10,25000,3,Producto sintético de vista previa que nunca debe aplicarse
+ZZ Vista previa importador B,Marca E2E,Pruebas,ZZ-E2E-PREVIEW-002,15,39000,0,Segunda fila sintética para comprobar el parser real
