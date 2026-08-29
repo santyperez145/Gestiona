@@ -29,7 +29,7 @@ no pudo probarse quedó abierto en vez de declararse sano por intuición.
 | Secretos heredados | 0 valores en las siete columnas de credenciales antiguas de `settings`; 0 webhooks y 0 transportistas con secreto | Verde hoy; falta retirar columnas muertas |
 | Storage | 25 backups privados, 52 imágenes de producto y 2 de marketing; Finance y comprobantes privados. `expense-receipts` cerró antes del primer objeto | Verde: path por tenant, RLS por permiso y URL firmada de 60 s |
 | Cron | 25 jobs activos; 22.155 éxitos y 3 fallas en 7 días. Las tres fueron `expire-overdue-trials` y sus últimas 12 corridas ya son exitosas | Resuelto, conservar señal |
-| Edge runtime | 215 invocaciones / 12 fallas en 24 h; 429 / 42 en 7 días; 0 huérfanas | Amarillo: `fetch-usd-rate` y cumpleaños no demostraron recuperación ese día |
+| Edge runtime | Corte inicial: 215 invocaciones / 12 fallas en 24 h; 429 / 42 en 7 días; 0 huérfanas | Corregido y desplegado; falta observar la próxima corrida natural de cotización/cumpleaños |
 | Pagos | 2 pagos ARS 1 anteriores a la traza; sin pérdida actual y documentados como prueba histórica | Deuda histórica, no incidente actual |
 | Dependencias | `npm audit` completo: 0 alertas productivas o de tooling; comando reproducible desde moderado | Verde; `xlsx` conserva su guarda separada por venir del CDN oficial |
 
@@ -98,7 +98,7 @@ en la medición final. El PWA precachea 18 entradas / 1.986,06 KiB. El primer E2
 por transformación fría (31 s, luego 3,1 s); la puerta ahora ejecuta
 `build + vite preview`; la repetición final terminó sin retries en 38,2 s.
 La puerta final completó typecheck, lint con 0 errores/140 warnings conocidos y
-1.941/1.941 tests en 185 archivos al cierre del slice de Storage (2026-08-29).
+1.947/1.947 tests en 186 archivos al cierre de la recuperación de tareas programadas (2026-08-29).
 
 ⚠️ `vite-plugin-pwa` 1.3.0 —última versión instalada al corte— todavía pasa
 `inlineDynamicImports` al build del service worker y Vite 8 lo marca deprecado.
@@ -111,6 +111,36 @@ GitHub rechazó el intento de elevar el job bloqueante de `critical` a
 `npm run check:dependencies`; elevar esa puerta en GitHub sigue pendiente de una
 credencial con permiso para editar Actions. El código y el deploy no quedaron
 bloqueados por esa limitación de transporte.
+
+## Edge runtime: dos verdes de cron no eran dos funciones sanas
+
+La traza real separó tres invocaciones: `fetch-usd-rate` tuvo 1/1 respuesta 401
+el 2026-08-28; `send-birthday-whatsapp` tuvo 2/2 respuestas 500 el 27 y 28. No
+se volvieron a invocar manualmente porque una tarea de comunicación no se prueba
+contra clientes reales.
+
+La causa de cotización estaba en el control de flujo: `exigirCronOUsuario`
+aceptaba el secreto del cron y, dos líneas después, el cuerpo hacía
+`auth.getUser()` sobre la anon key. El 401 era inevitable. Tampoco había un job
+registrado. La función desplegada distingue cron/persona, actualiza todas las
+filas existentes con `service_role` en el primer caso y exige `org_id` explícito
+y membresía en el segundo; tres fuentes DolarAPI respondieron con venta positiva
+y timestamp en una consulta directa de sólo lectura. Una fuente parcial ya no
+borra el último valor sano. `fetch-usd-rate-daily` quedó activo a las 08:15 AR.
+
+Cumpleaños fallaba antes de ver que hoy hay 0 candidatos: `birthday` es `date` y
+PostgREST le aplicaba `LIKE`. Aun superado eso, la función exigía una conexión
+Evolution —0 en producción y retirada deliberadamente— mientras el helper ya
+enviaba por Meta, y el contenido era texto libre proactivo. Ahora un RPC
+service-only compara mes/día en SQL, exige opt-in del comercio, consentimiento
+vigente y ausencia de baja; una plantilla Meta aprobada de Plataforma es
+obligatoria. La tabla privada de entregas reserva `org/cliente/fecha` antes del
+efecto externo: un crash ambiguo omite el retry en vez de duplicar marketing.
+El canal actual sigue en `ninguno`, plantilla NULL, 0 candidatos y 0 entregas;
+por eso el cron responde deshabilitado hasta la activación real, sin fallback
+engañoso. El fixture transaccional seleccionó el opt-in ZZ, bloqueó el claim
+duplicado, negó el RPC a `authenticated` y dejó 0 restos. Migración 483/483,
+dos funciones activas y dry-run sin brecha.
 
 ## Storage: un recibo no es una imagen de catálogo
 
@@ -146,9 +176,8 @@ públicas; la interacción terminó sin errores de consola o página.
 
 ## Orden de continuación
 
-1. Explicar y corregir las dos tareas Edge sin recuperación comprobada:
-   cotización diaria y cumpleaños WhatsApp. No invocarlas a mano porque podrían
-   enviar mensajes o duplicar acciones reales.
+1. Confirmar la próxima corrida natural de cotización y cumpleaños en
+   `edge_invocation_log`; no invocarlas a mano ni declarar recuperación antes.
 2. Retirar del esquema las columnas de secretos heredadas sólo cuando todas sus
    lecturas estén probadas en cero y exista migración de salida reversible.
 3. Completar P1-04 con `payments.edit` para refund y prueba cross-branch cuando

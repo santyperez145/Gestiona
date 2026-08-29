@@ -5,7 +5,9 @@ import { resolve, join, sep } from "node:path";
 const ROOT = resolve(__dirname, "../..");
 const leer = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 
-const TYPES = leer("src/integrations/supabase/types.ts");
+// `supabase gen types` conserva el salto de línea nativo de la terminal que lo
+// ejecuta. La guarda debe leer el mismo esquema tanto en Windows como en CI.
+const TYPES = leer("src/integrations/supabase/types.ts").replace(/\r\n/g, "\n");
 
 /**
  * Las columnas de una tabla o vista, según los tipos generados por Supabase.

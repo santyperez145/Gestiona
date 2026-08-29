@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       activation_interventions: {
@@ -3908,6 +3933,137 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "store_catalog_products"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      birthday_whatsapp_deliveries: {
+        Row: {
+          birthday_date: string
+          created_at: string
+          customer_id: string
+          error: string | null
+          id: string
+          org_id: string
+          provider_message_id: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          birthday_date: string
+          created_at?: string
+          customer_id: string
+          error?: string | null
+          id?: string
+          org_id: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          birthday_date?: string
+          created_at?: string
+          customer_id?: string
+          error?: string | null
+          id?: string
+          org_id?: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_whatsapp_deliveries_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_identity_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_whatsapp_deliveries_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_whatsapp_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "birthday_whatsapp_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "birthday_whatsapp_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "birthday_whatsapp_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_whatsapp_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "birthday_whatsapp_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "birthday_whatsapp_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "birthday_whatsapp_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "birthday_whatsapp_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "birthday_whatsapp_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "birthday_whatsapp_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
           },
         ]
       }
@@ -24735,6 +24891,8 @@ export type Database = {
           smtp_secure: boolean
           smtp_user: string | null
           updated_at: string
+          whatsapp_birthday_template: string | null
+          whatsapp_birthday_template_language: string
           whatsapp_numero_visible: string | null
           whatsapp_phone_number_id: string | null
           whatsapp_proveedor: string | null
@@ -24753,6 +24911,8 @@ export type Database = {
           smtp_secure?: boolean
           smtp_user?: string | null
           updated_at?: string
+          whatsapp_birthday_template?: string | null
+          whatsapp_birthday_template_language?: string
           whatsapp_numero_visible?: string | null
           whatsapp_phone_number_id?: string | null
           whatsapp_proveedor?: string | null
@@ -24771,6 +24931,8 @@ export type Database = {
           smtp_secure?: boolean
           smtp_user?: string | null
           updated_at?: string
+          whatsapp_birthday_template?: string | null
+          whatsapp_birthday_template_language?: string
           whatsapp_numero_visible?: string | null
           whatsapp_phone_number_id?: string | null
           whatsapp_proveedor?: string | null
@@ -49991,6 +50153,16 @@ export type Database = {
           titulo: string
         }[]
       }
+      birthday_whatsapp_candidates: {
+        Args: { p_run_date?: string }
+        Returns: {
+          business_name: string
+          customer_id: string
+          customer_name: string
+          org_id: string
+          phone: string
+        }[]
+      }
       business_blueprint_intent_uuid: {
         Args: { p_intent: string }
         Returns: string
@@ -50297,6 +50469,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      expense_receipt_org_id: { Args: { p_path: string }; Returns: string }
       expire_batches: { Args: { p_org_id: string }; Returns: number }
       expire_overdue_contracts: { Args: never; Returns: number }
       expire_overdue_trials: { Args: never; Returns: undefined }
@@ -52148,6 +52321,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "viewer"],

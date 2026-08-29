@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.941 tests en 185 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el nuevo recorrido de Gastos conserva 0 escrituras. |
+| Calidad técnica | 1.947 tests en 186 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el nuevo recorrido de Gastos conserva 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -1616,6 +1616,24 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     Playwright autenticado y de sólo lectura abre Gastos en localhost, confirma
     un único Dialog/focus trap, el scanner inline, tres entradas de archivo, 0
     enlaces públicos y 0 errores durante la interacción.
+45. ~~Recuperar cotización y cumpleaños sin acciones fantasma~~ — autoridad
+    corregida el 2026-08-29, recuperación natural pendiente de observar. La
+    telemetría mostró `fetch-usd-rate` 1/1 en 401 y cumpleaños 2/2 en 500: la
+    primera aceptaba al cron pero después exigía usuario y ni siquiera tenía job;
+    la segunda aplicaba `LIKE` a una columna `date`, todavía exigía Evolution
+    después de migrar a Meta y pretendía enviar texto libre proactivo. La
+    migración `20260828000180` deja cotización diaria 08:15 AR, timeout/valor
+    válido, preservación por fuente y rama cron service; la acción humana exige
+    `org_id` explícito + membresía. Cumpleaños ahora resuelve candidatos por RPC
+    service-only con opt-in de comercio/cliente, fecha argentina, plantilla Meta
+    aprobada y claim único `org/cliente/fecha` antes del efecto externo. Sin
+    canal/plantilla queda deshabilitado con 200, no simula envío. Producción:
+    ambas funciones desplegadas, jobs activos, libro 483/483, 0 candidatos, 0
+    entregas y plantilla NULL; un fixture transaccional seleccionó exactamente
+    al consentimiento ZZ, bloqueó el segundo claim, dejó `authenticated=false`
+    y 0 restos. No se invocó ninguna Edge manualmente. Falta confirmar el
+    próximo resultado natural en `edge_invocation_log` antes de declarar la
+    recuperación operativa cerrada.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2104,7 +2122,7 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **1.941 tests en 185 archivos**,
+- Build y suites locales del 2026-08-29: **1.947 tests en 186 archivos**,
   typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 70
   funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
   panel y 1 setup autenticado—; el de Gastos es de sólo lectura.

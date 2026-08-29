@@ -43,6 +43,8 @@ export interface ResultadoWhatsApp {
   error?: string;
   /** `false` cuando no hay WhatsApp configurado: no es un fallo, es que no hay. */
   configurado: boolean;
+  /** ID de Meta; permite correlacionar el estado posterior sin guardar PII. */
+  messageId?: string;
 }
 
 /** Deja el teléfono como lo quiere Meta: sólo dígitos, con código de país. */
@@ -54,8 +56,9 @@ export function normalizarTelefono(crudo: string, paisPorDefecto = "54"): string
   return paisPorDefecto + digitos.replace(/^0+/, "");
 }
 
-export async function enviarWhatsApp(
-  telefono: string, texto: string,
+async function enviarPayloadWhatsApp(
+  telefono: string,
+  payload: Record<string, unknown>,
 ): Promise<ResultadoWhatsApp> {
   const url = Deno.env.get("SUPABASE_URL");
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -98,15 +101,20 @@ export async function enviarWhatsApp(
         body: JSON.stringify({
           messaging_product: "whatsapp",
           to: destino,
-          type: "text",
-          text: { preview_url: false, body: texto },
+          ...payload,
         }),
       },
     );
 
-    if (res.ok) return { ok: true, configurado: true };
-
     const crudo = await res.text().catch(() => "");
+    if (res.ok) {
+      let messageId: string | undefined;
+      try {
+        messageId = JSON.parse(crudo)?.messages?.[0]?.id;
+      } catch { /* una respuesta 2xx sin JSON sigue siendo aceptada */ }
+      return { ok: true, configurado: true, messageId };
+    }
+
     let motivo = `HTTP ${res.status}`;
     try {
       const j = JSON.parse(crudo);
@@ -123,4 +131,44 @@ export async function enviarWhatsApp(
       error: e instanceof Error ? e.message : "Error de red",
     };
   }
+}
+
+export async function enviarWhatsApp(
+  telefono: string, texto: string,
+): Promise<ResultadoWhatsApp> {
+  return enviarPayloadWhatsApp(telefono, {
+    type: "text",
+    text: { preview_url: false, body: texto },
+  });
+}
+
+/**
+ * Envía una plantilla aprobada por Meta. Las notificaciones proactivas —como
+ * cumpleaños— no son texto libre: el nombre, idioma y orden de parámetros son
+ * parte del contrato aprobado en WhatsApp Manager.
+ */
+export async function enviarPlantillaWhatsApp(
+  telefono: string,
+  templateName: string,
+  languageCode: string,
+  bodyParameters: string[],
+): Promise<ResultadoWhatsApp> {
+  if (!/^[a-z0-9_]{1,512}$/.test(templateName)) {
+    return { ok: false, configurado: true, error: "Nombre de plantilla inválido" };
+  }
+  if (!/^[a-z]{2,3}_[A-Z]{2}$/.test(languageCode)) {
+    return { ok: false, configurado: true, error: "Idioma de plantilla inválido" };
+  }
+
+  return enviarPayloadWhatsApp(telefono, {
+    type: "template",
+    template: {
+      name: templateName,
+      language: { code: languageCode },
+      components: [{
+        type: "body",
+        parameters: bodyParameters.map((text) => ({ type: "text", text })),
+      }],
+    },
+  });
 }

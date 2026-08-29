@@ -279,6 +279,9 @@ el drawer muestra política/presupuesto/historial antes de la acción.
   autoselección y confirmación que aprende aliases por tenant;
 - [x] Aprobación documental con siguiente acción Finance → OC, foco contextual,
   limpieza de filtros y recepción sólo en estados válidos, sin duplicar stock;
+- [x] Ajustes distingue borradores editables de plantillas Meta aprobadas: el
+  comercio autoriza cumpleaños, pero la interfaz no promete Evolution ni un
+  envío hasta que Plataforma tenga canal y plantilla operables (2026-08-29);
 - payables/aprobaciones con segregación visible entre solicitante, manager,
   contador y pago;
 - presupuesto, política, centro de costo/proyecto y fuera de política visibles

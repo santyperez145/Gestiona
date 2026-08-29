@@ -201,7 +201,7 @@ export default function SettingsPage() {
   const [discountCredit, setDiscountCredit] = useState('0');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [whatsappDigestEnabled, setWhatsappDigestEnabled] = useState(false);
-  const [whatsappBirthdayEnabled, setWhatsappBirthdayEnabled] = useState(true);
+  const [whatsappBirthdayEnabled, setWhatsappBirthdayEnabled] = useState(false);
   const [bankCbu, setBankCbu] = useState('');
   const [bankAlias, setBankAlias] = useState('');
   const [bankName, setBankName] = useState('');
@@ -412,7 +412,7 @@ export default function SettingsPage() {
       setDiscountCredit(String(s.discount_credit_percent ?? 0));
       setWhatsappNumber(s.whatsapp_number || '');
       setWhatsappDigestEnabled(!!s.whatsapp_digest_enabled);
-      setWhatsappBirthdayEnabled(s.whatsapp_birthday_enabled !== false);
+      setWhatsappBirthdayEnabled(s.whatsapp_birthday_enabled === true);
       setBankCbu(s.bank_cbu || '');
       setBankAlias(s.bank_alias || '');
       setBankName(s.bank_name || '');
@@ -822,7 +822,7 @@ export default function SettingsPage() {
                   <MessageCircle className="w-4 h-4 text-pink-400" />🎂 Felicitación de cumpleaños
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Enviá un WA automático a tus clientes el día de su cumpleaños. Requiere Evolution API y birthday cargado en el CRM.
+                  Autorizá el saludo cuando Gestiona tenga un canal Meta y una plantilla aprobada. Sólo alcanza a clientes con fecha y consentimiento vigentes.
                 </p>
               </div>
               <Switch checked={whatsappBirthdayEnabled} onCheckedChange={setWhatsappBirthdayEnabled} />
@@ -871,7 +871,11 @@ export default function SettingsPage() {
             * lo busca al lado de los backups.
             */}
           <div className="settings-panel settings-panel--finance space-y-4 md:space-y-6">
-            <USDQuoteSection userId={user!.id} onApply={(rate) => setExchangeRate(String(rate))} />
+            <USDQuoteSection
+              userId={user!.id}
+              orgId={orgForTemplates?.id || ''}
+              onApply={(rate) => setExchangeRate(String(rate))}
+            />
             <ExpenseCategoriesSection userId={user!.id} />
           </div>
 
@@ -977,9 +981,9 @@ export default function SettingsPage() {
           <div id="settings-whatsapp" className="settings-panel settings-panel--messaging bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
-                <MessageCircle className="w-4 h-4 text-green-400" />Plantillas de WhatsApp
+                <MessageCircle className="w-4 h-4 text-green-400" />Borradores de WhatsApp
               </h2>
-              <p className="text-xs text-muted-foreground mt-1">Mensajes pre-armados usados en deudas, cumpleaños y seguimiento. Usá <code className="bg-muted px-1 rounded">{"{{nombre}}"}</code> y <code className="bg-muted px-1 rounded">{"{{monto}}"}</code> como variables.</p>
+              <p className="text-xs text-muted-foreground mt-1">Textos de trabajo para deudas y seguimiento. Los envíos proactivos por Meta usan plantillas aprobadas por Plataforma, no texto libre. Usá <code className="bg-muted px-1 rounded">{"{{nombre}}"}</code> y <code className="bg-muted px-1 rounded">{"{{monto}}"}</code> como variables.</p>
             </div>
             {([
               { key: "sale",        label: "Venta confirmada",   emoji: "🛍️" },
@@ -1481,7 +1485,7 @@ function SuscripcionPuntero() {
 }
 
 // ===== USD Real-time Quote =====
-function USDQuoteSection({ userId, onApply }: { userId: string; onApply: (rate: number) => void }) {
+function USDQuoteSection({ userId, orgId, onApply }: { userId: string; orgId: string; onApply: (rate: number) => void }) {
   const [loading, setLoading] = useState(false);
   const [rates, setRates] = useState<{ oficial?: number; blue?: number; mep?: number; updated?: string }>({});
 
@@ -1500,7 +1504,7 @@ function USDQuoteSection({ userId, onApply }: { userId: string; onApply: (rate: 
   const refresh = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-usd-rate', { body: { user_id: userId } });
+      const { data, error } = await supabase.functions.invoke('fetch-usd-rate', { body: { org_id: orgId } });
       if (error) throw error;
       setRates({ oficial: data?.oficial, blue: data?.blue, mep: data?.mep, updated: new Date().toISOString() });
       toast.success('Cotizaciones actualizadas');

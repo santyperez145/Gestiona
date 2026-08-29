@@ -15,6 +15,10 @@ const birthdaySender = readFileSync(
   resolve(root, "supabase/functions/send-birthday-whatsapp/index.ts"),
   "utf8",
 );
+const scheduledTasksMigration = readFileSync(
+  resolve(root, "supabase/migrations/20260828000180_las_tareas_programadas_terminan.sql"),
+  "utf8",
+);
 const unsubscribeEndpoint = readFileSync(
   resolve(root, "supabase/functions/whatsapp-unsubscribe/index.ts"),
   "utf8",
@@ -45,8 +49,15 @@ describe("baja de marketing por WhatsApp", () => {
   });
 
   it("cubre también el saludo automático y expone sólo el RPC tokenizado", () => {
-    expect(birthdaySender).toContain('.not("marketing_consent_at", "is", null)');
-    expect(birthdaySender).toContain('.is("marketing_opt_out_at", null)');
+    // La lista de candidatos ahora la decide SQL como service_role: así el
+    // consentimiento no puede omitirse por accidente al refactorizar la Edge.
+    expect(birthdaySender).toContain('rpc(\n      "birthday_whatsapp_candidates"');
+    expect(scheduledTasksMigration).toContain("c.marketing_consent_at IS NOT NULL");
+    expect(scheduledTasksMigration).toContain("c.marketing_opt_out_at IS NULL");
+    expect(scheduledTasksMigration).toContain(
+      "REVOKE ALL ON FUNCTION public.birthday_whatsapp_candidates(date)",
+    );
+    expect(scheduledTasksMigration).toContain("FROM PUBLIC, anon, authenticated");
     expect(birthdaySender).toContain("whatsapp_unsubscribe_tokens");
     expect(unsubscribeEndpoint).toContain("process_whatsapp_unsubscribe");
     expect(unsubscribeEndpoint).toContain("SUPABASE_ANON_KEY");
