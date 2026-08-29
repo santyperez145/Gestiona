@@ -1,0 +1,401 @@
+{
+  "openapi": "3.1.1",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": {
+    "title": "Gestiona Public REST API",
+    "summary": "Contrato server-to-server del Business Core de Gestiona.",
+    "description": "API v1 para productos, stock, ventas y clientes. Cada request usa una API key con scopes, cupo durable por key y version explicita. ARS admite 2 decimales; costos USD, 4; stock y cantidades son unidades enteras.",
+    "version": "1.0.0",
+    "license": { "name": "Propietario - uso sujeto al contrato de Gestiona", "identifier": "LicenseRef-Gestiona-Proprietary" }
+  },
+  "externalDocs": {
+    "description": "Guia humana, ejemplos y politica de compatibilidad",
+    "url": "https://github.com/santyperez145/exentryimports/blob/main/docs/API_PUBLICA.md"
+  },
+  "servers": [
+    { "url": "https://hummeopatkniwkyrrhwc.supabase.co/functions/v1/public-api/v1", "description": "API v1 de produccion" }
+  ],
+  "security": [{ "BearerApiKey": [] }],
+  "tags": [
+    { "name": "Products", "description": "Catalogo del Business Core." },
+    { "name": "Stock", "description": "Existencia autoritativa y ajustes asentados por Kardex." },
+    { "name": "Sales", "description": "Lectura y alta idempotente de ventas." },
+    { "name": "Customers", "description": "Directorio de clientes de la organizacion." }
+  ],
+  "paths": {
+    "/products": {
+      "get": {
+        "operationId": "listProducts",
+        "summary": "Lista productos",
+        "description": "Requiere `products:read`. `stock` aparece solo con `stock:read`; `cost_usd`, solo con `costs:read`.",
+        "tags": ["Products"],
+        "x-required-scope": "products:read",
+        "parameters": [
+          { "$ref": "#/components/parameters/Category" },
+          { "$ref": "#/components/parameters/Search" },
+          { "$ref": "#/components/parameters/ProductLimit" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/ProductList" },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "429": { "$ref": "#/components/responses/Error" },
+          "503": { "$ref": "#/components/responses/Error" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/products/{productId}": {
+      "get": {
+        "operationId": "getProduct",
+        "summary": "Obtiene un producto",
+        "description": "Requiere `products:read`. Stock y costos conservan scopes independientes.",
+        "tags": ["Products"],
+        "x-required-scope": "products:read",
+        "parameters": [{ "$ref": "#/components/parameters/ProductId" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Product" },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" },
+          "429": { "$ref": "#/components/responses/Error" },
+          "503": { "$ref": "#/components/responses/Error" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/stock/{productId}": {
+      "get": {
+        "operationId": "getStock",
+        "summary": "Consulta stock",
+        "tags": ["Stock"],
+        "x-required-scope": "stock:read",
+        "parameters": [{ "$ref": "#/components/parameters/ProductId" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Stock" },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" },
+          "429": { "$ref": "#/components/responses/Error" },
+          "503": { "$ref": "#/components/responses/Error" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "patch": {
+        "operationId": "setStock",
+        "summary": "Fija el stock absoluto",
+        "description": "Requiere `stock:write`. El servidor calcula el delta y lo asienta en Kardex; el cliente nunca escribe `products.stock`.",
+        "tags": ["Stock"],
+        "x-required-scope": "stock:write",
+        "parameters": [{ "$ref": "#/components/parameters/ProductId" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StockUpdate" } } }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/StockUpdated" },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" },
+          "409": { "$ref": "#/components/responses/Error" },
+          "429": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" },
+          "503": { "$ref": "#/components/responses/Error" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/sales": {
+      "get": {
+        "operationId": "listSales",
+        "summary": "Lista ventas",
+        "tags": ["Sales"],
+        "x-required-scope": "sales:read",
+        "parameters": [
+          { "$ref": "#/components/parameters/SalesLimit" },
+          { "$ref": "#/components/parameters/Since" },
+          { "$ref": "#/components/parameters/Until" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/SaleList" },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "429": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" },
+          "503": { "$ref": "#/components/responses/Error" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "post": {
+        "operationId": "createSale",
+        "summary": "Crea una venta idempotente",
+        "description": "Requiere `sales:write` e `Idempotency-Key`. Reserva, venta, triggers y cierre idempotente ocurren en una transaccion. Costos/margen de respuesta solo aparecen con `costs:read`.",
+        "tags": ["Sales"],
+        "x-required-scope": "sales:write",
+        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SaleCreate" } } }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/SaleReplay" },
+          "201": { "$ref": "#/components/responses/SaleCreated" },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" },
+          "409": { "$ref": "#/components/responses/Error" },
+          "429": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" },
+          "503": { "$ref": "#/components/responses/Error" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/customers": {
+      "get": {
+        "operationId": "listCustomers",
+        "summary": "Lista clientes",
+        "tags": ["Customers"],
+        "x-required-scope": "customers:read",
+        "parameters": [
+          { "$ref": "#/components/parameters/Search" },
+          { "$ref": "#/components/parameters/CustomerLimit" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/CustomerList" },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "429": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" },
+          "503": { "$ref": "#/components/responses/Error" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerApiKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "gst_live_...",
+        "description": "Key emitida una vez. Guardarla solo en servidor o secret manager."
+      }
+    },
+    "parameters": {
+      "ProductId": { "name": "productId", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Uuid" } },
+      "Category": { "name": "category", "in": "query", "schema": { "type": "string", "maxLength": 200 } },
+      "Search": { "name": "search", "in": "query", "schema": { "type": "string", "maxLength": 200 } },
+      "ProductLimit": { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 } },
+      "CustomerLimit": { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 500, "default": 200 } },
+      "SalesLimit": { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 } },
+      "Since": { "name": "since", "in": "query", "description": "Fecha/hora ISO 8601 inclusiva.", "schema": { "type": "string", "format": "date-time" } },
+      "Until": { "name": "until", "in": "query", "description": "Fecha/hora ISO 8601 inclusiva y posterior o igual a since.", "schema": { "type": "string", "format": "date-time" } },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "description": "Identificador unico de esta intencion. Reusar solo para reintentar exactamente el mismo body.",
+        "schema": { "type": "string", "minLength": 1, "maxLength": 120 }
+      }
+    },
+    "headers": {
+      "RequestId": { "description": "Id de correlacion exacto de la traza.", "schema": { "$ref": "#/components/schemas/Uuid" } },
+      "ApiVersion": { "description": "Major del contrato.", "schema": { "type": "string", "const": "1" } },
+      "ApiRelease": { "description": "Revision aditiva compatible.", "schema": { "type": "string", "const": "2026-08-29" } },
+      "RateLimit": { "description": "Cupo de la API key en la ventana.", "schema": { "type": "integer", "minimum": 1 } },
+      "RateRemaining": { "description": "Requests restantes en la ventana.", "schema": { "type": "integer", "minimum": 0 } },
+      "RateReset": { "description": "Epoch UTC de reinicio de la ventana.", "schema": { "type": "integer", "minimum": 0 } },
+      "OpenApiLink": { "description": "Link rel=service-desc al contrato OpenAPI.", "schema": { "type": "string" } }
+    },
+    "responses": {
+      "ProductList": {
+        "description": "Pagina de productos.",
+        "headers": {
+          "X-Request-Id": { "$ref": "#/components/headers/RequestId" }, "X-API-Version": { "$ref": "#/components/headers/ApiVersion" },
+          "X-Gestiona-API-Release": { "$ref": "#/components/headers/ApiRelease" }, "X-RateLimit-Limit": { "$ref": "#/components/headers/RateLimit" },
+          "X-RateLimit-Remaining": { "$ref": "#/components/headers/RateRemaining" }, "X-RateLimit-Reset": { "$ref": "#/components/headers/RateReset" },
+          "Link": { "$ref": "#/components/headers/OpenApiLink" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProductListResponse" } } }
+      },
+      "Product": {
+        "description": "Producto encontrado.",
+        "headers": {
+          "X-Request-Id": { "$ref": "#/components/headers/RequestId" }, "X-API-Version": { "$ref": "#/components/headers/ApiVersion" },
+          "X-Gestiona-API-Release": { "$ref": "#/components/headers/ApiRelease" }, "X-RateLimit-Limit": { "$ref": "#/components/headers/RateLimit" },
+          "X-RateLimit-Remaining": { "$ref": "#/components/headers/RateRemaining" }, "X-RateLimit-Reset": { "$ref": "#/components/headers/RateReset" },
+          "Link": { "$ref": "#/components/headers/OpenApiLink" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProductResponse" } } }
+      },
+      "Stock": {
+        "description": "Stock actual en unidades enteras.",
+        "headers": {
+          "X-Request-Id": { "$ref": "#/components/headers/RequestId" }, "X-API-Version": { "$ref": "#/components/headers/ApiVersion" },
+          "X-Gestiona-API-Release": { "$ref": "#/components/headers/ApiRelease" }, "X-RateLimit-Limit": { "$ref": "#/components/headers/RateLimit" },
+          "X-RateLimit-Remaining": { "$ref": "#/components/headers/RateRemaining" }, "X-RateLimit-Reset": { "$ref": "#/components/headers/RateReset" },
+          "Link": { "$ref": "#/components/headers/OpenApiLink" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StockResponse" } } }
+      },
+      "StockUpdated": {
+        "description": "Ajuste confirmado.",
+        "headers": {
+          "X-Request-Id": { "$ref": "#/components/headers/RequestId" }, "X-API-Version": { "$ref": "#/components/headers/ApiVersion" },
+          "X-Gestiona-API-Release": { "$ref": "#/components/headers/ApiRelease" }, "X-RateLimit-Limit": { "$ref": "#/components/headers/RateLimit" },
+          "X-RateLimit-Remaining": { "$ref": "#/components/headers/RateRemaining" }, "X-RateLimit-Reset": { "$ref": "#/components/headers/RateReset" },
+          "Link": { "$ref": "#/components/headers/OpenApiLink" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StockUpdateResponse" } } }
+      },
+      "SaleList": {
+        "description": "Ventas en orden descendente por fecha.",
+        "headers": {
+          "X-Request-Id": { "$ref": "#/components/headers/RequestId" }, "X-API-Version": { "$ref": "#/components/headers/ApiVersion" },
+          "X-Gestiona-API-Release": { "$ref": "#/components/headers/ApiRelease" }, "X-RateLimit-Limit": { "$ref": "#/components/headers/RateLimit" },
+          "X-RateLimit-Remaining": { "$ref": "#/components/headers/RateRemaining" }, "X-RateLimit-Reset": { "$ref": "#/components/headers/RateReset" },
+          "Link": { "$ref": "#/components/headers/OpenApiLink" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SaleListResponse" } } }
+      },
+      "SaleCreated": {
+        "description": "Venta creada.",
+        "headers": {
+          "X-Request-Id": { "$ref": "#/components/headers/RequestId" }, "X-API-Version": { "$ref": "#/components/headers/ApiVersion" },
+          "X-Gestiona-API-Release": { "$ref": "#/components/headers/ApiRelease" }, "X-RateLimit-Limit": { "$ref": "#/components/headers/RateLimit" },
+          "X-RateLimit-Remaining": { "$ref": "#/components/headers/RateRemaining" }, "X-RateLimit-Reset": { "$ref": "#/components/headers/RateReset" },
+          "Link": { "$ref": "#/components/headers/OpenApiLink" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SaleCreateResponse" } } }
+      },
+      "SaleReplay": {
+        "description": "Replay: misma venta sin repetir efectos.",
+        "headers": {
+          "X-Request-Id": { "$ref": "#/components/headers/RequestId" }, "X-API-Version": { "$ref": "#/components/headers/ApiVersion" },
+          "X-Gestiona-API-Release": { "$ref": "#/components/headers/ApiRelease" }, "X-RateLimit-Limit": { "$ref": "#/components/headers/RateLimit" },
+          "X-RateLimit-Remaining": { "$ref": "#/components/headers/RateRemaining" }, "X-RateLimit-Reset": { "$ref": "#/components/headers/RateReset" },
+          "Link": { "$ref": "#/components/headers/OpenApiLink" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SaleCreateResponse" } } }
+      },
+      "CustomerList": {
+        "description": "Pagina de clientes.",
+        "headers": {
+          "X-Request-Id": { "$ref": "#/components/headers/RequestId" }, "X-API-Version": { "$ref": "#/components/headers/ApiVersion" },
+          "X-Gestiona-API-Release": { "$ref": "#/components/headers/ApiRelease" }, "X-RateLimit-Limit": { "$ref": "#/components/headers/RateLimit" },
+          "X-RateLimit-Remaining": { "$ref": "#/components/headers/RateRemaining" }, "X-RateLimit-Reset": { "$ref": "#/components/headers/RateReset" },
+          "Link": { "$ref": "#/components/headers/OpenApiLink" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CustomerListResponse" } } }
+      },
+      "Error": {
+        "description": "Error contractual; el status distingue validacion, auth, scope, ausencia, conflicto, cupo e infraestructura.",
+        "headers": {
+          "X-Request-Id": { "$ref": "#/components/headers/RequestId" }, "X-API-Version": { "$ref": "#/components/headers/ApiVersion" },
+          "X-Gestiona-API-Release": { "$ref": "#/components/headers/ApiRelease" }, "Link": { "$ref": "#/components/headers/OpenApiLink" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+      }
+    },
+    "schemas": {
+      "Uuid": { "type": "string", "format": "uuid" },
+      "MoneyArs": { "type": "number", "minimum": 0, "maximum": 999999999999.99, "multipleOf": 0.01, "description": "Importe nominal ARS como JSON number, maximo 2 decimales." },
+      "SignedMoneyArs": { "type": "number", "minimum": -999999999999.99, "maximum": 999999999999.99, "multipleOf": 0.01 },
+      "MoneyUsd": { "type": "number", "minimum": 0, "maximum": 99999999.9999, "multipleOf": 0.0001, "description": "Importe nominal USD como JSON number, maximo 4 decimales." },
+      "SignedMoneyUsd": { "type": "number", "minimum": -99999999.9999, "maximum": 99999999.9999, "multipleOf": 0.0001 },
+      "Product": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "category", "sale_price_ars", "image_url", "barcode"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/Uuid" }, "name": { "type": "string" }, "category": { "type": ["string", "null"] },
+          "stock": { "type": "integer", "description": "Solo con stock:read; un negativo no se oculta." },
+          "sale_price_ars": { "$ref": "#/components/schemas/MoneyArs" },
+          "discount_price_ars": { "oneOf": [{ "$ref": "#/components/schemas/MoneyArs" }, { "type": "null" }] },
+          "cost_usd": { "$ref": "#/components/schemas/MoneyUsd" }, "total_cost_usd": { "$ref": "#/components/schemas/MoneyUsd" },
+          "image_url": { "type": ["string", "null"], "format": "uri" }, "barcode": { "type": ["string", "null"] },
+          "description": { "type": ["string", "null"] }, "tax_rate": { "type": ["number", "null"] }, "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProductListResponse": {
+        "type": "object", "additionalProperties": false, "required": ["data", "count", "version"],
+        "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Product" } }, "count": { "type": "integer", "minimum": 0 }, "version": { "type": "string", "const": "1" } }
+      },
+      "ProductResponse": { "type": "object", "additionalProperties": false, "required": ["data"], "properties": { "data": { "$ref": "#/components/schemas/Product" } } },
+      "Stock": {
+        "type": "object", "additionalProperties": false, "required": ["id", "name", "stock"],
+        "properties": { "id": { "$ref": "#/components/schemas/Uuid" }, "name": { "type": "string" }, "stock": { "type": "integer" } }
+      },
+      "StockResponse": { "type": "object", "additionalProperties": false, "required": ["data"], "properties": { "data": { "$ref": "#/components/schemas/Stock" } } },
+      "StockUpdate": {
+        "type": "object", "additionalProperties": false, "required": ["quantity"],
+        "properties": { "quantity": { "type": "integer", "minimum": 0, "maximum": 2147483647 }, "reason": { "type": "string", "maxLength": 500 } }
+      },
+      "StockUpdateResponse": {
+        "type": "object", "additionalProperties": false, "required": ["updated", "productId", "stock"],
+        "properties": { "updated": { "type": "boolean", "const": true }, "productId": { "$ref": "#/components/schemas/Uuid" }, "stock": { "type": "integer", "minimum": 0 } }
+      },
+      "Sale": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "date", "customer_name", "total_ars", "payment_method", "product_id", "product_name", "quantity", "paid", "source"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/Uuid" }, "date": { "type": "string", "format": "date-time" }, "customer_name": { "type": ["string", "null"] },
+          "total_ars": { "$ref": "#/components/schemas/MoneyArs" }, "unit_price_ars": { "$ref": "#/components/schemas/MoneyArs" },
+          "payment_method": { "type": ["string", "null"] }, "product_id": { "oneOf": [{ "$ref": "#/components/schemas/Uuid" }, { "type": "null" }] },
+          "product_name": { "type": "string" }, "quantity": { "type": "integer", "minimum": 0 }, "paid": { "type": "boolean" }, "source": { "type": ["string", "null"] },
+          "cost_per_unit_usd": { "$ref": "#/components/schemas/MoneyUsd" }, "cost_of_goods_ars": { "$ref": "#/components/schemas/MoneyArs" },
+          "profit_ars": { "$ref": "#/components/schemas/SignedMoneyArs" }, "profit_usd": { "$ref": "#/components/schemas/SignedMoneyUsd" }
+        }
+      },
+      "SaleListResponse": {
+        "type": "object", "additionalProperties": false, "required": ["data", "count"],
+        "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Sale" } }, "count": { "type": "integer", "minimum": 0 } }
+      },
+      "SaleCreate": {
+        "type": "object", "additionalProperties": false, "required": ["product_id", "quantity", "total_ars"],
+        "properties": {
+          "product_id": { "$ref": "#/components/schemas/Uuid" }, "quantity": { "type": "integer", "minimum": 1, "maximum": 2147483647 }, "total_ars": { "$ref": "#/components/schemas/MoneyArs" },
+          "unit_price_ars": { "$ref": "#/components/schemas/MoneyArs" }, "customer_name": { "type": "string", "maxLength": 500 }, "paid": { "type": "boolean", "default": true },
+          "payment_method": { "type": "string", "minLength": 1, "maxLength": 100, "default": "efectivo" }, "date": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SaleCreateResponse": {
+        "type": "object", "additionalProperties": false, "required": ["data", "idempotent_replay"],
+        "properties": { "data": { "$ref": "#/components/schemas/Sale" }, "idempotent_replay": { "type": "boolean" } }
+      },
+      "Customer": {
+        "type": "object", "additionalProperties": false, "required": ["id", "name", "email", "phone", "created_at"],
+        "properties": { "id": { "$ref": "#/components/schemas/Uuid" }, "name": { "type": "string" }, "email": { "type": ["string", "null"], "format": "email" }, "phone": { "type": ["string", "null"] }, "created_at": { "type": "string", "format": "date-time" } }
+      },
+      "CustomerListResponse": {
+        "type": "object", "additionalProperties": false, "required": ["data", "count"],
+        "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Customer" } }, "count": { "type": "integer", "minimum": 0 } }
+      },
+      "ApiError": {
+        "type": "object", "additionalProperties": false, "required": ["error", "request_id"],
+        "properties": { "error": { "type": "string" }, "code": { "type": "string" }, "request_id": { "$ref": "#/components/schemas/Uuid" } }
+      }
+    }
+  },
+  "x-gestiona-contract": {
+    "apiPathVersion": "v1",
+    "release": "2026-08-29",
+    "transport": "server-to-server",
+    "browserCors": "disabled",
+    "rateLimitAuthority": "durable-per-api-key",
+    "money": {
+      "ARS": { "representation": "nominal-json-number", "maximumDecimals": 2 },
+      "USD": { "representation": "nominal-json-number", "maximumDecimals": 4 }
+    },
+    "stock": { "representation": "integer-units" },
+    "deprecation": { "status": "active", "minimumSupportAfterSuccessorMonths": 12, "headers": ["Deprecation", "Sunset", "Link"] }
+  }
+}

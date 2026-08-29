@@ -12,6 +12,10 @@ const pos = readFileSync(resolve(ROOT, "src/pages/POSPage.tsx"), "utf8");
 const salesPage = readFileSync(resolve(ROOT, "src/pages/SalesPage.tsx"), "utf8");
 const planLimits = readFileSync(resolve(ROOT, "src/lib/usePlanLimits.ts"), "utf8");
 const publicApi = readFileSync(resolve(ROOT, "supabase/functions/public-api/index.ts"), "utf8");
+const publicApiAuthority = readFileSync(
+  resolve(ROOT, "supabase/migrations/20260829000020_api_publica_tiene_contrato.sql"),
+  "utf8",
+);
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -67,10 +71,11 @@ describe("transacciones de venta y cupo de plan", () => {
 
   it("la API de servidor conserva el tenant y el producto persistido antes de crear una venta", () => {
     expect(publicApi).toContain('eq("org_id", orgId)');
-    expect(publicApi).toContain("user_id: settings.user_id");
-    expect(publicApi).toContain("product_name: product.name");
-    expect(publicApi).toContain("source: \"api\"");
-    expect(publicApi).toContain("trigger de `sales` crea/agrupa sale_transactions");
+    expect(publicApi).toContain('rpc("api_v1_crear_venta"');
+    expect(publicApiAuthority).toContain("v_owner, v_product.id, v_product.name");
+    expect(publicApiAuthority).toContain("p_org_id");
+    expect(publicApiAuthority).toContain("COALESCE(p_date, now()), 'api'");
+    expect(publicApiAuthority).toContain("INSERT INTO public.sales");
     expect(publicApi).not.toContain("org_id: orgId,\n      ...body,");
   });
 });

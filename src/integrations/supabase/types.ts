@@ -50273,11 +50273,31 @@ export type Database = {
         }
         Returns: Json
       }
+      api_key_consumir_cupo: {
+        Args: { p_key_id: string }
+        Returns: Json
+      }
       api_key_revocar: {
         Args: { p_key_id: string; p_org: string }
         Returns: undefined
       }
       api_key_tocar: { Args: { p_key_id: string }; Returns: undefined }
+      api_v1_crear_venta: {
+        Args: {
+          p_api_key_id: string
+          p_customer_name: string
+          p_date: string
+          p_idempotency_key: string
+          p_org_id: string
+          p_paid: boolean
+          p_payment_method: string
+          p_product_id: string
+          p_quantity: number
+          p_total_ars: number
+          p_unit_price_ars: number
+        }
+        Returns: Json
+      }
       aplicar_limites_del_plan: { Args: { p_org: string }; Returns: Json }
       apply_ai_offer_recommendation: {
         Args: { p_recommendation_id: string }

@@ -107,7 +107,7 @@ salida es la misma: emitir una de nuevo. **La facturación no pasa a
 | Restore drill | 🔬 verified | `npm run drill:restore`, con RTO y RPO medidos |
 | Aislamiento entre comercios | 🔬 verified | 260 tablas con `org_id` y RLS recorridas como usuario real no-staff: **0 fugas** en las 38 donde la otra organización tiene filas. Las 222 restantes no se pueden probar con datos —ninguna org tiene filas ahí— y por eso la garantía es estática: `audit_policies_sin_tenant` = 0 |
 | Envíos | 🔨 built | 6 zonas y **tarifa en 1 sola**. 0 envíos preparados |
-| API pública | 🔨 built | **0 API keys emitidas** |
+| API pública | 🔬 verified | Contrato v1/OpenAPI 3.1, scopes, cuota durable por key, venta idempotente atómica, precisión y deprecation verificados; Edge ACTIVE v42 y fixture real con 0 restos. **0 API keys emitidas**: contrato técnico cerrado, adopción todavía nula |
 
 ### Avisos y seguridad de las tareas programadas (2026-08-28)
 

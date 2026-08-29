@@ -1,0 +1,20 @@
+{
+  "updated_at": "2026-08-29",
+  "versions": [
+    {
+      "version": "v1",
+      "release": "2026-08-29",
+      "status": "active",
+      "deprecated_at": null,
+      "sunset_at": null,
+      "successor": null
+    }
+  ],
+  "policy": {
+    "breaking_changes_require_new_path_version": true,
+    "minimum_support_after_successor_months": 12,
+    "runtime_headers_when_deprecated": ["Deprecation", "Sunset", "Link"],
+    "unsupported_version_status": 410,
+    "additive_changes_may_ship_in_supported_versions": true
+  }
+}

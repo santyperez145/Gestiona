@@ -44,6 +44,9 @@ const NO_SON_SECRETOS: Record<string, string> = {
   DENO_DEPLOYMENT_ID:
     "La inyecta Deno Deploy para identificar el despliegue: no es un secreto " +
     "que alguien pueda cargar ni faltar.",
+  PUBLIC_APP_URL:
+    "Es el origen HTTPS público usado para construir links de documentación; " +
+    "tiene un fallback productivo y no contiene ninguna credencial.",
 };
 
 /** Los `Deno.env.get("X")` de todas las funciones y sus módulos compartidos. */

@@ -92,11 +92,11 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | Triggers | **131** | ✅ catálogo de producción, 2026-08-22 |
 | Índices | **946** | ✅ catálogo de producción, 2026-08-22 |
 | Políticas RLS | **384** | ✅ catálogo de producción, 2026-08-22 |
-| Migraciones registradas | **488** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate`, 2026-08-29 |
+| Migraciones registradas | **489** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate`, 2026-08-29 |
 | Cron jobs | **25** | ⚠️ 22.254 corridas exitosas y **3 fallidas** en 7 días; las tres históricas corresponden a `expire-overdue-trials`, cuya recuperación posterior se documenta en la auditoría del 2026-08-28 |
 | Edge Functions | **71** | ✅ `npm run check:functions`, 2026-08-29 |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **1.973** | ✅ `npm test`, 191 archivos, 2026-08-29 |
+| Tests unitarios | **1.982** | ✅ `npm test`, 192 archivos, 2026-08-29 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -167,7 +167,7 @@ Leyenda: ✅ está y se usó · 🟡 está pero nunca corrió en real · 🔴 no
 | Temas / plantillas | 🟡 7 temas propios | ✅ ❓+60 plantillas | ✅ | ✅ miles |
 | Dominio propio | 🔴 congelado a propósito | ✅ | ✅ | ✅ |
 | App móvil del comprador | 🔴 | ✅ | ❓ | ✅ |
-| Tienda de aplicaciones / API pública | 🟡 API v1 con keys/scopes + webhooks salientes firmados; sin ecosistema real | ✅ | ❓ | ✅ |
+| Tienda de aplicaciones / API pública | 🟡 API v1 y webhooks con contratos públicos, versión, scopes, cuota, idempotencia y firma; **0 keys/apps reales**, sin ecosistema | ✅ | ❓ | ✅ |
 
 📌 **Los 🔴 de tienda están congelados deliberadamente**, no olvidados. Dominios
 propios, theme engine y marketplace de apps son infraestructura para el comercio
@@ -401,8 +401,8 @@ necesita un SaaS de 2 organizaciones (2026-08-26). No es el cuello de botella.
 | **Observabilidad** | 🟡 Sentry en front, Merchant 360 y traza correlacionada del pago desde checkout hasta ledger, visible con RLS y sin PII. Faltan métricas/SLO, OpenTelemetry, alertas y health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ Deno para 71 Edge Functions + lint + typecheck + build, 1.973 tests en 191 archivos (2026-08-29), audit completo en 0 y 43 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
-| **API pública / webhooks salientes** | 🟡 API v1 con keys hasheadas/scopes/idempotencia, todavía sin su OpenAPI/deprecation/decimal contract. Webhooks sí cerraron OpenAPI 3.1 público, guía/receptor Node, HMAC, timestamp, filtro, outbox, id estable, retry, DLQ/replay, log y certificación contra HTTPS externo sintético | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio por API; webhooks cerrados |
+| **CI** | ✅ Deno para 71 Edge Functions + lint + typecheck + build, 1.982 tests en 192 archivos (2026-08-29), audit completo en 0 y 43 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
+| **API pública / webhooks salientes** | ✅ Contrato técnico cerrado: API OpenAPI 3.1, `/v1`, scopes sin filtración, cupo durable, venta atómica/idempotente, ARS 2/USD 4, lifecycle y CORS server-to-server; webhooks con guía/receptor Node, HMAC, timestamp, filtro, outbox, id estable, retry, DLQ/replay, log y certificación HTTPS externa sintética. ⚠️ 0 keys/apps reales | API documentada, versionada, con rate limit y webhooks firmados | 🟢 Base técnica; adopción externa pendiente |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
 | **SOC 2 / ISO 27001** | 🔴 | Requisito para vender a empresas | 🟢 Bajo hoy |
@@ -572,9 +572,10 @@ versión y auditoría antes de conectarse a IA o a un efecto financiero.
 
 ### Nivel 3 — Sin esto no se puede escalar (trimestres)
 
-12. **API pública con webhooks firmados y versionado.** Es lo que convierte un
-    producto en una plataforma, y es exactamente lo que hace que Tiendanube y
-    Shopify tengan ecosistema de apps.
+12. ~~**API pública con webhooks firmados y versionado.**~~ Contrato técnico
+    cerrado el 2026-08-29. El siguiente gate no es agregar endpoints: una
+    integración real debe justificar identidad OAuth, sandbox y portal antes
+    de construir un marketplace de apps.
 13. **Canary deploys con rollback automático.**
 14. **Staging.**
 15. **Multi-región y DR con RTO/RPO declarados.**

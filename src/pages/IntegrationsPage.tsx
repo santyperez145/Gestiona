@@ -380,9 +380,13 @@ export default function IntegrationsPage() {
             <code>costs:read</code>.
           </p>
           <p className="text-xs">
-            En <code>POST /v1/sales</code>, mandá <code>Idempotency-Key</code>: si
+            En <code>POST /v1/sales</code>, <code>Idempotency-Key</code> es obligatorio: si
             se corta la red y reintentás, devuelve la misma venta en vez de
             duplicarla.
+          </p>
+          <p className="text-xs">
+            ARS admite 2 decimales, costos USD 4, y el stock representa unidades
+            enteras. Cada respuesta autenticada informa el cupo real de la key.
           </p>
           <p className="text-xs">
             Es una API servidor a servidor: no la llames desde el navegador, ahí

@@ -994,23 +994,34 @@ estática exige que el permiso ocurra antes de preparación y credenciales.
 
 # P1 — Developer Platform hardening
 
-## P1-13 — API v1 — 🟡 contrato privado operativo; OpenAPI/deprecation pendientes (2026-08-29)
+## P1-13 — API v1 — ✅ cerrado técnicamente (2026-08-29)
 
 **Owner:** Platform API  
 **Objetivo:** convertir prototipo en contrato.
 
+**Cierre:** OpenAPI 3.1 público y changelog describen únicamente los siete
+métodos reales. El path `/v1` es obligatorio; scopes separan catálogo, stock y
+costos; el cupo por key es durable/atómico; `POST /sales` reúne reserva, venta,
+triggers y cierre idempotente en una transacción con lock. ARS admite 2
+decimales, USD 4 y stock/cantidades son unidades enteras. CORS browser queda
+deshabilitado por ser una API server-to-server. `Deprecation`, `Sunset` y
+`Link` ya están implementados para activarse juntos cuando exista sucesor.
+Fixture real: replay con una sola venta, stock exacto, conflicto y 0 restos;
+Edge ACTIVE v42, 401 correlacionado, alias sin versión 404 y preflight sin
+`Allow-Origin`.
+
 **Aceptación**
 
-- Keys hashed.
-- Prefix/id/last_used.
-- Scopes.
-- Rate limits.
-- Idempotency.
-- OpenAPI.
-- Versioning.
-- Deprecation.
-- CORS allowlist.
-- Decimal stock.
+- [x] Keys hashed y secreto one-time.
+- [x] Prefix/id/last_used/request_count sin leer `key_hash` en la UI.
+- [x] Scopes por recurso y por dato sensible.
+- [x] Rate limit durable por API key con headers y `Retry-After`.
+- [x] Idempotencia transaccional y serializada.
+- [x] OpenAPI 3.1 público validado con Redocly.
+- [x] Versionado obligatorio en path y header.
+- [x] Política de deprecation/sunset y soporte mínimo publicada.
+- [x] CORS de navegador deshabilitado; uso server-to-server explícito.
+- [x] Contrato numérico: ARS 2, USD 4, stock/cantidades enteras.
 
 ---
 

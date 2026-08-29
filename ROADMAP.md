@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.973 tests en 191 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 71 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
+| Calidad técnica | 1.982 tests en 192 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 71 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -1319,7 +1319,7 @@ contratos técnicos; **externo** = requiere dueño/proveedor/operación real;
 | P1-10 | F4 · slice 22 | **Pendiente** | Dominio, SSL, canonical, redirects, health y takeover prevention. |
 | P1-11 | F4 · slice 22 + Design | **Parcial** | Themes existen; faltan draft/preview/publish/version/rollback y page contract. |
 | P1-12 | F4 · slice 22 | **Parcial** | JSON-LD/sitemap existen; faltan redirects, hreflang y reporte de migración SEO. |
-| P1-13 | F8 · Developer Platform | **Parcial** | API v1 ya tiene keys/scopes/rate limit/idempotencia; faltan OpenAPI, deprecation y contrato decimal. |
+| P1-13 | F8 · bitácora 52 | **Cerrado técnicamente 2026-08-29** | API v1 con OpenAPI público, path obligatorio, scopes sin filtraciones, cupo durable por key, mutación atómica, precisión monetaria, política de compatibilidad/deprecation y CORS browser deshabilitado. Medir la primera key e integración reales. |
 | P1-14 | F8 · bitácoras 48/50/51 | **Cerrado técnicamente 2026-08-29** | Contrato OpenAPI público, receptor HTTPS externo certificado, outbox transaccional, DLQ/replay, filtro, firma e ids estables. Mantener compatibilidad y medir primera integración real. |
 | P2-01 | F2 · slices 11–12 | **Técnico** | Operación real con los cuatro costos y decisión del merchant. |
 | P2-02 | F2 · slice 13 | **Técnico** | Primer `impact_event` real maduro; fixtures no prueban valor creado. |
@@ -1347,9 +1347,10 @@ La comparación resolvió cinco contradicciones concretas:
    convierte un fixture en segundo comercio.
 3. P2-01 y P2-02 tienen autoridad y Action Loop, pero siguen sin impacto real;
    para un inversor continúan abiertos hasta demostrar valor observado.
-4. P1-13 sigue parcial; P1-14 quedó cerrado técnicamente como foundation de
-   Developer Platform. Su seguridad se adelantó para no operar una API
-   vulnerable, pero no habilita todavía un marketplace de apps sin demanda.
+4. P1-13 y P1-14 quedaron cerrados técnicamente como foundation de Developer
+   Platform. La API y los webhooks tienen contrato y autoridad; **0 API keys
+   reales** significa que adopción, OAuth de apps y marketplace siguen
+   congelados hasta demanda, no que falte otro endpoint genérico.
 5. Los seis “sprints inmediatos” del backlog eran la secuencia del 2026-08-24 y
    quedan sustituidos por los gates, portfolio y orden técnico de esta sección.
 
@@ -1844,6 +1845,36 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     cuatro rechazaron llamada anónima con 401. Puerta final: 1.973/1.973 tests
     en 191 archivos, lint 0/140, build/PWA, 71 Edge tipadas, audit 0, 488
     migraciones y 68 enlaces internos en 41 documentos (2026-08-29).
+52. ~~API pública v1 como contrato, no prototipo~~ — cerrada técnicamente el
+    2026-08-29. La auditoría encontró que `rate_limit_rpm` era decorativo —el
+    runtime frenaba 120 requests por IP y por instancia—, `products:read`
+    filtraba stock, `sales:write` devolvía costos/margen y la venta reservaba,
+    insertaba y completaba idempotencia en tres requests. `20260829000020`
+    consume cupo atómico por API key en Postgres y `api_v1_crear_venta` reúne
+    key/scope/tenant/producto/costos, lock de concurrencia, venta, triggers de
+    stock/outbox y respuesta idempotente en una sola transacción. La Edge
+    allowlistea cada respuesta por scope, exige `/v1`, UUID/fecha/límites,
+    unidades enteras y montos ARS 2/USD 4 decimales; el mismo request id une
+    body, header y log. CORS de navegador queda deshabilitado porque la key es
+    server-to-server. `/developer/api/openapi.json`, changelog y
+    `docs/API_PUBLICA.md` publican los siete métodos reales, errores, headers,
+    cuota, lifecycle y soporte mínimo de 12 meses tras un sucesor. El panel no
+    lee hashes ni promete campos sin backend y enlaza esos contratos. Redocly
+    validó OpenAPI 3.1 sin errores/warnings; la fixture real probó replay, una
+    sola venta, stock exacto, conflicto y **0 restos**. `public-api` quedó
+    ACTIVE v42: `/v1/products` sin key respondió 401 con release/version y
+    request id correlacionado, el alias sin versión 404, y el preflight de un
+    origen ajeno 204 sin `Access-Control-Allow-Origin`. Referencias oficiales:
+    [versiones de GitHub](https://docs.github.com/en/rest/about-the-rest-api/api-versions),
+    [versionado de Shopify](https://shopify.dev/docs/api/usage/versioning),
+    [idempotencia de Stripe](https://docs.stripe.com/api/idempotent_requests),
+    [unidades monetarias de Stripe](https://docs.stripe.com/currencies#minor-units-in-api-amounts)
+    y [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745.html), consultadas el
+    2026-08-29. P1-13 queda cerrado técnicamente; la primera integración real
+    es adopción y no autoriza construir un marketplace sin demanda. Puerta
+    final: 1.982/1.982 tests en 192 archivos, typecheck, lint 0/140,
+    build/PWA, 71 Edge tipadas, audit 0, 489/489 migraciones, dos OpenAPI
+    válidos y 70 enlaces internos en 42 documentos (2026-08-29).
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2325,6 +2356,16 @@ scope y sí con él, un scope faltante da 403 sin escribir, key inexistente 401,
 key revocada 401, `/v2/` da 404 en vez de mapear a v1, `OPTIONS` no devuelve
 Allow-Origin, el contador de uso se mueve, y el hash guardado no es la key ni su
 base64.
+
+El cierre contractual del **2026-08-29** corrigió lo que aquella primera capa
+todavía no resolvía: cupo durable por key en lugar de memoria por IP, separación
+real `products:read`/`stock:read`/`costs:read`, venta e idempotencia en una única
+transacción con lock de concurrencia, límites antes de Postgres, path `/v1`
+obligatorio, montos ARS/USD y stock definidos, `X-Request-Id` correlacionable y
+política estándar de `Deprecation`/`Sunset`. El contrato máquina vive en
+`/developer/api/openapi.json`; la guía humana en `docs/API_PUBLICA.md`. La
+fixture destructiva-cero probó el RPC real y producción sirve `public-api` v42.
+
 - docs/ESTRATEGIA.md: tesis de margen y comparativas con fuente/fecha.
 - docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md: investigación funcional/visual,
   arquetipos de pantalla, overlays, segmentación, estados, cobertura por
@@ -2332,7 +2373,7 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **1.973 tests en 191 archivos**,
+- Build y suites locales del 2026-08-29: **1.982 tests en 192 archivos**,
   typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 71
   funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
   panel y 1 setup autenticado—; el de Gastos es de sólo lectura.

@@ -300,6 +300,49 @@ El contrato sigue fuentes primarias consultadas el 2026-08-29:
 [Webhook.site ofrece tokens y lectura de requests efímeros](https://docs.webhook.site/api/about.html)
 y [OWASP exige validar protocolo/destino y no seguir redirects frente a SSRF](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html).
 
+## La API pública tenía seguridad de key, pero no un contrato completo
+
+P1-13 no estaba cerrado por tener hashes y scopes. La comparación entre UI,
+Edge, SQL y respuesta real encontró seis divergencias:
+
+1. `rate_limit_rpm` se mostraba por key, pero el runtime aplicaba 120 requests
+   por IP y por instancia; dos réplicas no compartían autoridad;
+2. `products:read` seleccionaba `stock` aunque faltara `stock:read`;
+3. `sales:write` hacía `.select().single()` y devolvía costos/margen aunque
+   faltara `costs:read`;
+4. reserva idempotente, insert y cierre eran tres requests: una falla parcial
+   podía dejar venta y clave en estados incompatibles;
+5. `/products` sin versión seguía funcionando y parámetros inválidos llegaban
+   a Postgres;
+6. el `X-Request-Id` de respuesta no era el que quedaba en el log, mientras el
+   429 compartido volvía a agregar CORS `*`.
+
+`20260829000020` convierte el cupo en contador atómico por key y encierra la
+venta completa en `api_v1_crear_venta`, que revalida key/scope/tenant/producto,
+lee owner/costo en servidor y toma advisory lock por idempotency key. La Edge
+exige `/v1`, valida UUID, fechas, tamaños y precisión antes de la base, y
+allowlistea la respuesta según scopes incluso en replay. Stock/cantidades son
+enteros de PostgreSQL; montos nominales usan ARS 2 y USD 4 decimales. CORS de
+navegador está deshabilitado deliberadamente: exponer una key `gst_live_…` en
+un frontend contradice el modelo server-to-server.
+
+La superficie pública ya no depende de leer el repo:
+`/developer/api/openapi.json` pasó Redocly sin errores/warnings,
+`/developer/api/changelog.json` publica lifecycle y `docs/API_PUBLICA.md`
+explica integración, errores, cupo e idempotencia. El panel no lee `key_hash`,
+retiró campos sin backend y enlaza los tres contratos. En producción la
+fixture real devolvió replay sobre una única venta, movimiento exacto de stock,
+conflicto con payload distinto y **0 restos**. La Edge `public-api` ACTIVE v42
+respondió 401 con el mismo request id en header/body, rechazó el alias sin
+versión con 404 y no entregó `Access-Control-Allow-Origin` al preflight.
+
+Fuentes primarias consultadas el 2026-08-29:
+[GitHub exige versión explícita y anuncia deprecaciones](https://docs.github.com/en/rest/about-the-rest-api/api-versions),
+[Shopify mantiene versiones solapadas](https://shopify.dev/docs/api/usage/versioning),
+[Stripe define idempotencia de requests](https://docs.stripe.com/api/idempotent_requests),
+[Stripe documenta unidades monetarias](https://docs.stripe.com/currencies#minor-units-in-api-amounts)
+y [RFC 9745 estandariza el header `Deprecation`](https://www.rfc-editor.org/rfc/rfc9745.html).
+
 ## Orden de continuación
 
 1. Confirmar la próxima corrida natural de cotización y cumpleaños en
@@ -307,5 +350,7 @@ y [OWASP exige validar protocolo/destino y no seguir redirects frente a SSRF](ht
 2. P1-14 quedó cerrado con contrato público y receptor externo; mantener
    compatibilidad y medir la primera integración real, sin inventar más eventos
    sin emisor.
-3. P1-04 ya aplica `payments.edit` al refund; completar únicamente la prueba
+3. P1-13 quedó cerrado técnicamente; medir la primera key e integración reales
+   antes de autorizar OAuth de apps, sandbox o marketplace.
+4. P1-04 ya aplica `payments.edit` al refund; completar únicamente la prueba
    cross-branch cuando existan dos ubicaciones reales aptas.

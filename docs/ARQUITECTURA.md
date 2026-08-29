@@ -340,6 +340,30 @@ afuera se conserva la corrida como evidencia con compensación
 run exitoso sólo devuelve replay. Es recuperación transaccional, no una cola
 distribuida ni una promesa de compensar efectos externos futuros.
 
+### 4 quinquies. API pública: adapter versionado, nunca segunda autoridad
+
+La API REST es otro canal alrededor del Business Core. No recibe `org_id`,
+owner, costo, nombre de producto ni margen como autoridad: la key hasheada fija
+tenant/scopes y PostgreSQL relee el resto. `PATCH /stock` delega en
+`adjust_stock`; `POST /sales` delega en `api_v1_crear_venta`, que une advisory
+lock, reserva idempotente, insert y triggers de stock/outbox en una sola
+transacción. Un replay vuelve a pasar por allowlist de scopes antes de salir.
+
+El contrato operativo vive en tres capas que se controlan entre sí:
+
+- `/developer/api/openapi.json`: siete métodos reales, schemas, errores y
+  headers;
+- `_shared/publicApiContract.ts`: versión, precisión, límites y lifecycle que
+  ejecuta la Edge;
+- `20260829000020_api_publica_tiene_contrato.sql`: cuota durable y mutación
+  transaccional, sólo para `service_role`.
+
+`/v1` es obligatorio. Breaking changes requieren otro path; un sucesor tendrá
+al menos 12 meses de solapamiento y la versión saliente anunciará
+`Deprecation`, `Sunset` y `Link`. ARS admite 2 decimales, USD 4 y el inventario
+actual son unidades enteras. No hay CORS browser: una key live pertenece a un
+backend, no al JavaScript público de un integrador.
+
 ---
 
 ## 5. Lo que se adopta ahora y lo que espera

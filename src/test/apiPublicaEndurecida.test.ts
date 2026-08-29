@@ -6,6 +6,7 @@ const ROOT = resolve(__dirname, "../..");
 const leer = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 
 const migracion = leer("supabase/migrations/20260824000001_api_keys_endurecidas.sql");
+const contrato = leer("supabase/migrations/20260829000020_api_publica_tiene_contrato.sql");
 const fn = leer("supabase/functions/public-api/index.ts");
 const panel = leer("src/components/integrations/AdvancedApiKeysPanel.tsx");
 const integraciones = leer("src/pages/IntegrationsPage.tsx");
@@ -74,8 +75,9 @@ describe("scopes: la key acota lo que puede hacer", () => {
     // deduce el margen de cada producto.
     expect(fn).toMatch(/tiene\("costs:read"\)[\s\S]{0,120}cost_usd/);
     // Y la rama sin el scope no lo incluye.
-    const sinScope = fn.slice(fn.indexOf('tiene("costs:read")'));
-    expect(sinScope).toContain('"id,name,category,stock,sale_price_ars,image_url,barcode"');
+    expect(fn).toContain('...(tiene("costs:read") ? ["cost_usd"] : [])');
+    expect(fn).toContain("publicProduct(");
+    expect(fn).toContain('tiene("costs:read"),');
   });
 
   it("la lista de scopes de la UI es la que el servidor acepta", () => {
@@ -108,18 +110,27 @@ describe("escrituras y errores", () => {
   it("POST /sales acepta Idempotency-Key", () => {
     // Un retry de red duplicaba la venta y su descuento de stock.
     expect(fn).toContain('req.headers.get("Idempotency-Key")');
-    expect(fn).toContain('p_operacion: "api_create_sale"');
-    expect(fn).toContain("idempotent_replay: true");
+    expect(fn).toContain('err("Idempotency-Key header required"');
+    expect(fn).toContain('rpc("api_v1_crear_venta"');
+    expect(contrato).toContain("v_operation text := 'api_create_sale:' || p_api_key_id::text");
+    expect(fn).toContain("idempotent_replay");
   });
 
   it("un product_id inválido NO deja la clave de idempotencia trabada", () => {
     // El 404 de producto va ANTES de reservar. Al revés, la clave quedaba
     // `en_curso` y el reintento —aun corregido— chocaba 24 h contra un 409 por
     // una request que nunca escribió nada.
-    const cuerpo = fn.slice(fn.indexOf("// ── POST /sales"));
-    expect(cuerpo.indexOf('err("Product not found"')).toBeLessThan(
-      cuerpo.indexOf('rpc("idempotencia_reservar"'),
+    expect(contrato.indexOf("SELECT * INTO v_product")).toBeLessThan(
+      contrato.indexOf("public.idempotencia_reservar("),
     );
+  });
+
+  it("la venta y la idempotencia viven en una sola transacción SQL", () => {
+    expect(contrato).toContain("CREATE OR REPLACE FUNCTION public.api_v1_crear_venta");
+    expect(contrato).toContain("INSERT INTO public.sales");
+    expect(contrato).toContain("public.idempotencia_completar(");
+    expect(fn).not.toContain('rpc("idempotencia_reservar"');
+    expect(fn).not.toContain('rpc("idempotencia_completar"');
   });
 
   it("distingue clave reusada de operación en curso", () => {
@@ -140,7 +151,7 @@ describe("escrituras y errores", () => {
 
   it("no filtra el error de Postgres al cliente", () => {
     // Un mensaje crudo revela nombres de constraints, triggers y columnas.
-    expect(fn).toContain("function dbErr(");
+    expect(fn).toContain("const dbErr = (");
     expect(fn).toContain("Internal error (request");
     expect(fn).not.toContain("err(error.message, 500)");
   });
@@ -162,6 +173,7 @@ describe("superficie", () => {
     // Allow-Origin:* invita a usar la key desde JS de navegador, donde queda
     // expuesta a cualquiera que abra las devtools.
     expect(fn).not.toContain('"Access-Control-Allow-Origin": "*"');
+    expect(fn).not.toContain("rateLimitResponse()");
   });
 
   it("una versión desconocida da 404 en vez de mapear a v1", () => {
