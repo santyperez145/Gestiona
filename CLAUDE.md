@@ -52,9 +52,10 @@ nombre.
 
 ⚠️ **Antes de escribir código nuevo, leer
 [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).** Fija los quince principios y los
-límites de dominio que no hay que cruzar. El estado medido del 2026-08-21 vive
-en [docs/COMPARACION.md](docs/COMPARACION.md): 282 tablas, 298 con `org_id`,
-62 Edge Functions y 1.592 tests (`npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-08-26). Idempotencia,
+límites de dominio que no hay que cruzar. El estado histórico medido el
+2026-08-21 vive en [docs/COMPARACION.md](docs/COMPARACION.md); la barrera de
+calidad actual, medida el 2026-08-29, es de 71 Edge Functions y 1.983 tests en
+192 archivos (`npm test -- --maxWorkers=1 --fileParallelism=false`). Idempotencia,
 eventos con outbox y ledger financiero ya están construidos y verificados en
 los commits H1–H3; no deben volver a tratarse como pendientes ni duplicarse.
 El checkout público ya consume el orquestador P0.3.1: toda llamada a

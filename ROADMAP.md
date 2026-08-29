@@ -1,6 +1,9 @@
 # Gestiona Cloud — Visión y roadmap ejecutivo
 
-**Corte:** 2026-08-22
+**Corte editorial:** 2026-08-29
+**Datos operativos:** 2026-08-22 salvo cuando una fila indique una fecha más
+reciente. La separación evita presentar una medición técnica nueva como si
+fuera tracción o adopción de negocio.
 **Estado:** documento rector de producto, ejecución y evidencia. Reemplaza la
 versión anterior del roadmap. No promete fechas ni transforma hipótesis en
 hechos.
@@ -218,12 +221,13 @@ No son diferenciales suficientes por sí solos:
 
 ## 3. Línea de base verificable
 
-Corte medido el **2026-08-22**. Todo número debe volver a medirse antes de
-usarse en una presentación, valuación o decisión de inversión.
+Las señales de negocio tienen corte medido el **2026-08-22**; las señales
+técnicas llevan su propia fecha en cada fila. Todo número debe volver a medirse
+antes de usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.982 tests en 192 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 71 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
+| Calidad técnica | 1.983 tests en 192 archivos pasan al 2026-08-29 con `npm test -- --maxWorkers=1 --fileParallelism=false`; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 71 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -2396,7 +2400,7 @@ fixture destructiva-cero probó el RPC real y producción sirve `public-api` v42
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **1.982 tests en 192 archivos**,
+- Build y suites locales del 2026-08-29: **1.983 tests en 192 archivos**,
   typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 71
   funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
   panel y 1 setup autenticado—; el de Gastos es de sólo lectura.
