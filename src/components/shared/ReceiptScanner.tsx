@@ -1,14 +1,14 @@
 /**
  * ReceiptScanner — Camera-based receipt capture with AI extraction.
  *
- * Captures a photo of a paper receipt via the device camera, uploads it to
- * Supabase Storage, then calls the AI chat endpoint to extract amount, vendor,
- * category, and date. Fills in the expense form automatically.
+ * Captures a photo of a paper receipt and calls the AI endpoint to extract
+ * amount, vendor, category, and date. The blob remains local until the parent
+ * expense form is submitted, so closing the dialog never leaves an orphan in
+ * Storage.
  *
  * Uses:
  *   - MediaDevices.getUserMedia() for camera access
  *   - HTMLCanvasElement for frame capture
- *   - Supabase Storage for image upload
  *   - Anthropic Claude via the existing AI endpoint for OCR+extraction
  *
  * Falls back to file upload if camera is unavailable.
@@ -26,7 +26,7 @@ interface ExtractedReceipt {
   date: string | null;
   category: string | null;
   description: string | null;
-  imageUrl: string | null;
+  receiptFile: Blob | null;
 }
 
 interface ReceiptScannerProps {
@@ -121,18 +121,6 @@ export default function ReceiptScanner({ onExtracted, onClose }: ReceiptScannerP
     setError(null);
 
     try {
-      // Upload to Supabase Storage
-      const path = `receipts/${user.id}/${Date.now()}.jpg`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("expense-receipts")
-        .upload(path, capturedBlob, { contentType: "image/jpeg", upsert: false });
-
-      let imageUrl: string | null = null;
-      if (!uploadError && uploadData) {
-        const { data: urlData } = supabase.storage.from("expense-receipts").getPublicUrl(path);
-        imageUrl = urlData.publicUrl;
-      }
-
       // Call AI to extract receipt data
       const base64 = capturedDataUrl?.split(",")[1] ?? "";
 
@@ -162,7 +150,14 @@ Respondé ÚNICAMENTE con el JSON, sin texto adicional.`,
         },
       });
 
-      let extracted: ExtractedReceipt = { amount: null, vendor: null, date: null, category: null, description: null, imageUrl };
+      let extracted: ExtractedReceipt = {
+        amount: null,
+        vendor: null,
+        date: null,
+        category: null,
+        description: null,
+        receiptFile: capturedBlob,
+      };
 
       if (!aiError && aiData?.content) {
         try {
@@ -176,7 +171,7 @@ Respondé ÚNICAMENTE con el JSON, sin texto adicional.`,
               date: parsed.date || null,
               category: parsed.category || null,
               description: parsed.description || null,
-              imageUrl,
+              receiptFile: capturedBlob,
             };
           }
         } catch {

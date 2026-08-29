@@ -26,8 +26,63 @@ import KPICard from "@/components/shared/KPICard";
 import { useModulePermissions } from "@/lib/usePermissions";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import {
+  createExpenseReceiptUrl,
+  removeExpenseReceipt,
+  uploadExpenseReceipt,
+  validateExpenseReceipt,
+} from "@/lib/expenseReceipts";
 
 import { plural } from "@/lib/plural";
+
+function ExpenseReceiptLink({
+  reference,
+  compact = false,
+}: {
+  reference: string;
+  compact?: boolean;
+}) {
+  const [opening, setOpening] = useState(false);
+
+  const openReceipt = async () => {
+    if (opening) return;
+    // Abrir la pestaña dentro del gesto evita el bloqueo de popups mientras
+    // se emite la URL firmada. `opener = null` impide reverse tabnabbing.
+    const tab = window.open("about:blank", "_blank");
+    if (tab) tab.opener = null;
+    setOpening(true);
+    try {
+      const url = await createExpenseReceiptUrl(reference);
+      if (!tab) {
+        toast.error("Permití ventanas emergentes para ver el comprobante");
+        return;
+      }
+      tab.location.replace(url);
+    } catch (error) {
+      tab?.close();
+      console.error("No se pudo abrir el comprobante", error);
+      toast.error("No se pudo abrir el comprobante. Reintentá.");
+    } finally {
+      setOpening(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={openReceipt}
+      disabled={opening}
+      title={opening ? "Preparando comprobante" : "Ver comprobante"}
+      aria-label={opening ? "Preparando comprobante" : "Ver comprobante"}
+      className={compact
+        ? "text-primary hover:text-primary/80 shrink-0 disabled:opacity-50"
+        : "text-[10px] text-primary inline-flex items-center gap-1 hover:underline disabled:opacity-50"}
+    >
+      {compact ? <Paperclip className="w-3 h-3" /> : <><ExternalLink className="w-3 h-3" />Ver original</>}
+    </button>
+  );
+}
+
 function exportExpensesCSV(expenses: any[], getCategoryLabel: (c: string) => string) {
   const header = ['Fecha', 'Descripción', 'Proveedor', 'Categoría', 'Monto (ARS)', 'Recurrente'];
   const rows = expenses.map(e => [
@@ -530,11 +585,7 @@ export default function ExpensesPage() {
                           <td className="px-4 py-3 text-muted-foreground max-w-[200px]">
                             <div className="flex items-center gap-1.5">
                               <p className="truncate">{e.description || '—'}</p>
-                              {e.receipt_url && (
-                                <a href={e.receipt_url} target="_blank" rel="noreferrer" title="Ver recibo" className="text-primary hover:text-primary/80 shrink-0">
-                                  <Paperclip className="w-3 h-3" />
-                                </a>
-                              )}
+                              {e.receipt_url && <ExpenseReceiptLink reference={e.receipt_url} compact />}
                             </div>
                             {e.vendor && (
                               <p className="text-[10px] text-amber-400/80 mt-0.5 truncate">{e.vendor}</p>
@@ -589,11 +640,7 @@ export default function ExpensesPage() {
                           </div>
                           <div className="flex items-center gap-1.5">
                             <p className="text-xs text-muted-foreground truncate">{e.description || 'Sin descripción'}</p>
-                            {e.receipt_url && (
-                              <a href={e.receipt_url} target="_blank" rel="noreferrer" title="Ver recibo" className="text-primary shrink-0">
-                                <Paperclip className="w-3 h-3" />
-                              </a>
-                            )}
+                            {e.receipt_url && <ExpenseReceiptLink reference={e.receipt_url} compact />}
                           </div>
                           <p className="text-[10px] text-muted-foreground/60">
                             {formatDateAR(e.date)}
@@ -933,8 +980,9 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
   const [recurring, setRecurring] = useState(editItem?.recurring || false);
   const [recurringFrequency, setRecurringFrequency] = useState<string>(editItem?.recurring_frequency || 'monthly');
   const [submitting, setSubmitting] = useState(false);
-  const [receiptUrl, setReceiptUrl] = useState<string>(editItem?.receipt_url || '');
-  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [receiptReference, setReceiptReference] = useState<string>(editItem?.receipt_url || '');
+  const [pendingReceipt, setPendingReceipt] = useState<Blob | null>(null);
+  const [pendingReceiptName, setPendingReceiptName] = useState('');
   const { activeOrg } = useOrg();
   const [locations, setLocations] = useState<Array<{ id: string; name: string; is_main: boolean }>>([]);
   const [locationId, setLocationId] = useState<string>(editItem?.location_id || '');
@@ -974,24 +1022,16 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [description, vendor, category, editItem]);
 
-  const handleReceiptFile = async (file: File) => {
+  const handleReceiptFile = (file: File) => {
     if (!file) return;
-    setUploadingReceipt(true);
-    try {
-      const ext = file.name.split('.').pop() || 'jpg';
-      const path = `receipts/${userId}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: true });
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
-      setReceiptUrl(urlData.publicUrl);
-      toast.success('Recibo adjuntado');
-    } catch (err: any) {
-      toast.error('Error al subir recibo: ' + (err.message || err));
-    } finally {
-      setUploadingReceipt(false);
-      if (receiptInputRef.current) receiptInputRef.current.value = '';
-      if (receiptCamRef.current) receiptCamRef.current.value = '';
+    const validationError = validateExpenseReceipt(file);
+    if (validationError) {
+      toast.error(validationError);
+      return;
     }
+    setPendingReceipt(file);
+    setPendingReceiptName(file.name || 'comprobante');
+    toast.success('Comprobante listo para guardar');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1001,7 +1041,18 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
       return;
     }
     setSubmitting(true);
+    let uploadedReceipt = '';
     try {
+      if (!activeOrg?.id) throw new Error("No hay una organización activa");
+      if (pendingReceipt) {
+        uploadedReceipt = await uploadExpenseReceipt({
+          orgId: activeOrg.id,
+          userId,
+          file: pendingReceipt,
+        });
+      }
+      const nextReceiptReference = uploadedReceipt || receiptReference;
+
       // Calculate next_date based on frequency
       const startDate = new Date(date);
       let nextDate: Date | null = null;
@@ -1024,7 +1075,9 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
         recurring,
         recurring_frequency: recurring ? recurringFrequency : null,
         recurring_next_date: nextDate ? nextDate.toISOString().slice(0, 10) : null,
-        receipt_url: receiptUrl || null,
+        // El nombre histórico de la columna queda por compatibilidad. Los
+        // comprobantes privados persisten el path, nunca una URL firmada.
+        receipt_url: nextReceiptReference || null,
         location_id: locationId || null,
       };
       if (editItem) {
@@ -1036,8 +1089,22 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
         await logAudit(userId, 'create', 'expense', null, data);
         toast.success("Gasto registrado");
       }
+
+      const previousReceipt = String(editItem?.receipt_url || '');
+      if (previousReceipt && previousReceipt !== nextReceiptReference) {
+        void removeExpenseReceipt(previousReceipt).catch((cleanupError) => {
+          console.error("El gasto se guardó pero no se pudo retirar el comprobante anterior", cleanupError);
+        });
+      }
       onSave();
     } catch (err: any) {
+      if (uploadedReceipt) {
+        try {
+          await removeExpenseReceipt(uploadedReceipt);
+        } catch (cleanupError) {
+          console.error("No se pudo limpiar el comprobante tras fallar el gasto", cleanupError);
+        }
+      }
       toast.error(err.message || "Error al guardar");
     } finally {
       setSubmitting(false);
@@ -1047,7 +1114,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-2">
       {/* ── AI Receipt Scanner ── */}
-      {!editItem && (
+      {!editItem && !scannerOpen && (
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -1060,14 +1127,28 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
         </div>
       )}
 
-      {/* Receipt Scanner Dialog */}
-      <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
-        <DialogContent className="bg-card border-border/60 max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
+      {/* El formulario ya vive en un Dialog: el escáner se expande dentro del
+          mismo contexto y no crea un segundo focus trap anidado. */}
+      {!editItem && scannerOpen && (
+        <section
+          aria-label="Escanear comprobante"
+          className="rounded-xl border border-primary/25 bg-primary/[0.03] p-3 space-y-3"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-display text-sm font-semibold flex items-center gap-2">
               <Camera className="w-4 h-4 text-primary" />Escanear comprobante
-            </DialogTitle>
-          </DialogHeader>
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              aria-label="Cerrar escáner"
+              onClick={() => setScannerOpen(false)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
           <ReceiptScanner
             onExtracted={data => {
               if (data.amount != null) setAmount(String(data.amount));
@@ -1075,12 +1156,15 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
               if (data.date) setDate(data.date);
               if (data.category) setCategory(data.category);
               if (data.description) setDescription(data.description);
-              if (data.imageUrl) setReceiptUrl(data.imageUrl);
+              if (data.receiptFile) {
+                setPendingReceipt(data.receiptFile);
+                setPendingReceiptName('ticket-escaneado.jpg');
+              }
             }}
             onClose={() => setScannerOpen(false)}
           />
-        </DialogContent>
-      </Dialog>
+        </section>
+      )}
 
       <div>
         <label className="text-sm text-muted-foreground">Monto (ARS) *</label>
@@ -1185,34 +1269,48 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
       {/* Receipt upload */}
       <div className="space-y-2 pb-12">
         <label className="text-sm text-muted-foreground flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5" />Recibo / Comprobante</label>
-        {receiptUrl ? (
+        {(receiptReference || pendingReceipt) ? (
           <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-lg p-2">
-            <img src={receiptUrl} alt="recibo" className="w-12 h-12 object-cover rounded" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-emerald-400 font-medium">Recibo adjuntado</p>
-              <a href={receiptUrl} target="_blank" rel="noreferrer" className="text-[10px] text-primary flex items-center gap-1 hover:underline">
-                <ExternalLink className="w-3 h-3" />Ver original
-              </a>
+            <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Receipt className="w-5 h-5" />
             </div>
-            <button type="button" onClick={() => setReceiptUrl('')} className="text-muted-foreground hover:text-destructive transition-colors">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium truncate">
+                {pendingReceiptName || 'Comprobante guardado'}
+              </p>
+              {pendingReceipt ? (
+                <p className="text-[10px] text-muted-foreground">Se subirá al guardar el gasto</p>
+              ) : (
+                <ExpenseReceiptLink reference={receiptReference} />
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setReceiptReference('');
+                setPendingReceipt(null);
+                setPendingReceiptName('');
+              }}
+              aria-label="Quitar comprobante"
+              className="text-muted-foreground hover:text-destructive transition-colors"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>
         ) : (
           <div className="flex gap-2">
-            <button type="button" onClick={() => receiptInputRef.current?.click()} disabled={uploadingReceipt}
+            <button type="button" onClick={() => receiptInputRef.current?.click()} disabled={submitting}
               className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-50">
-              {uploadingReceipt ? <span className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" /> : <Paperclip className="w-3.5 h-3.5" />}
-              {uploadingReceipt ? 'Subiendo...' : 'Adjuntar archivo'}
+              <Paperclip className="w-3.5 h-3.5" />Adjuntar archivo
             </button>
-            <button type="button" onClick={() => receiptCamRef.current?.click()} disabled={uploadingReceipt}
+            <button type="button" onClick={() => receiptCamRef.current?.click()} disabled={submitting}
               className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors sm:hidden disabled:opacity-50">
               <Camera className="w-3.5 h-3.5" />Foto
             </button>
           </div>
         )}
-        <input ref={receiptInputRef} type="file" accept="image/*,application/pdf" onChange={e => { const f = e.target.files?.[0]; if (f) handleReceiptFile(f); }} className="hidden" />
-        <input ref={receiptCamRef} type="file" accept="image/*" capture="environment" onChange={e => { const f = e.target.files?.[0]; if (f) handleReceiptFile(f); }} className="hidden" />
+        <input ref={receiptInputRef} type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif" onChange={e => { const f = e.target.files?.[0]; if (f) handleReceiptFile(f); e.target.value = ''; }} className="hidden" />
+        <input ref={receiptCamRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" onChange={e => { const f = e.target.files?.[0]; if (f) handleReceiptFile(f); e.target.value = ''; }} className="hidden" />
       </div>
 
       <Button type="submit" disabled={submitting} className="w-full gradient-gold text-primary-foreground font-semibold">

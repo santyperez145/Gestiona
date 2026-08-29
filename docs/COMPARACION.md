@@ -401,7 +401,7 @@ necesita un SaaS de 2 organizaciones (2026-08-26). No es el cuello de botella.
 | **Observabilidad** | 🟡 Sentry en front, Merchant 360 y traza correlacionada del pago desde checkout hasta ledger, visible con RLS y sin PII. Faltan métricas/SLO, OpenTelemetry, alertas y health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ Deno para 70 Edge Functions + lint + typecheck + build, 1.936 tests en 184 archivos (2026-08-28), audit completo en 0 y 42 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
+| **CI** | ✅ Deno para 70 Edge Functions + lint + typecheck + build, 1.941 tests en 185 archivos (2026-08-29), audit completo en 0 y 43 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
 | **API pública / webhooks salientes** | 🔴 No hay | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
@@ -444,7 +444,9 @@ copian pantallas: se copian controles que reducen errores de operación.
 - ✅ **Supabase Storage:** los buckets privados fuerzan RLS también al descargar
   y permiten URL firmada temporal; los buckets aceptan límite de tamaño y tipos
   MIME ([Storage Buckets](https://supabase.com/docs/guides/storage/buckets/fundamentals),
-  consultado 2026-08-22). Por eso los originales de Finance no usan `getPublicUrl`.
+  revisado 2026-08-29). Por eso los originales de Finance y los comprobantes de
+  Gastos no usan `getPublicUrl`: persisten un path tenant-safe y crean una URL
+  de 60 segundos sólo después de que RLS valida el permiso actual.
 - ✅ **MercadoLibre:** sus notificaciones deben responder rápido, encolar el
   evento y consultar el recurso canónico por API en vez de confiar ciegamente en
   el payload ([notificaciones](https://developers.mercadolibre.com.ar/es_ar/notificaciones),

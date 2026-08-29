@@ -227,6 +227,15 @@ Orden:
 5. Compras/inventario: orden, recepción, Kardex, conteo y transferencia.
 6. Caja/finanzas: sesión, movimientos, conciliación y estados de resultado.
 
+- [x] Gastos deja de mostrar enlaces públicos directos: tabla desktop, cards
+  mobile y formulario comparten una acción de comprobante con estado de
+  preparación, error recuperable, URL firmada y tile claro/oscuro. El escáner
+  se expande dentro del formulario —sin Dialog/focus trap anidado—, entrega el
+  archivo a la misma autoridad y declara que se sube al guardar, sin una segunda
+  composición ni un upload huérfano. Playwright autenticado verificó en
+  localhost un solo Dialog, scanner inline, desktop/file inputs y 0 enlaces
+  públicos o errores de interacción (2026-08-29).
+
 **Salida:** las cinco tareas más frecuentes se completan en desktop y mobile sin
 perder contexto ni encontrar un patrón visual nuevo.
 

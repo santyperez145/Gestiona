@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.936 tests en 184 archivos pasan al 2026-08-28; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. Los 32 E2E públicos se repitieron contra el bundle local de producción; los 9 de panel y setup autenticado conservan su última evidencia con la identidad técnica. |
+| Calidad técnica | 1.941 tests en 185 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el nuevo recorrido de Gastos conserva 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -1598,6 +1598,24 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     intermedio quedó detenido en el splash y fue descartado. El resultado final
     pasó el entry de 185,76 a 150,45 KiB gzip y el PWA de 2.025,05 a 1.986,06
     KiB, con 32/32 recorridos públicos funcionales.
+44. ~~Comprobantes de gastos privados y operables~~ — cerrado el 2026-08-29:
+    la auditoría encontró que `expense-receipts` era público, el escáner usaba
+    un path incompatible con su propia policy y la carga manual esquivaba el
+    bucket guardando PDFs/tickets en `product-images`, público por necesidad del
+    storefront. Producción tenía 0 objetos, 0 paths heredados y 0 gastos con
+    comprobante, por lo que `20260828000170` fijó sin migración destructiva una
+    convención `org/actor/uuid`, bucket privado de 10 MiB, MIME acotados y RLS
+    por `expenses.create/view/edit/delete`. `receipt_url` conserva el nombre de
+    columna pero persiste el path; al abrir emite una URL firmada por 60 s y
+    vuelve a evaluar el permiso. El escáner se expande dentro del formulario sin
+    anidar focus traps, mantiene el blob local hasta guardar y el formulario
+    limpia el upload nuevo si falla el gasto y el anterior si un reemplazo
+    termina bien. Fixture real: miembro crea/lee, carpeta de otro
+    actor bloqueada, outsider con path conocido ve 0 y restos 0; bucket/ACL/libro
+    verificados y `db push --dry-run` vuelve a informar brecha 0. El recorrido
+    Playwright autenticado y de sólo lectura abre Gastos en localhost, confirma
+    un único Dialog/focus trap, el scanner inline, tres entradas de archivo, 0
+    enlaces públicos y 0 errores durante la interacción.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2086,10 +2104,10 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-28: **1.936 tests en 184 archivos**,
+- Build y suites locales del 2026-08-29: **1.941 tests en 185 archivos**,
   typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 70
-  funciones verificadas. Última evidencia: 42
-  E2E críticos contra la base real.
+  funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
+  panel y 1 setup autenticado—; el de Gastos es de sólo lectura.
 - docs/FINANCE_DOCUMENT_EXTRACTION.md: custodia, esquema estructurado,
   confianza, revisión append-only, gate de privacidad y operación.
 - docs/FINANCE_DOCUMENT_MATCHING.md: orden determinístico, aliases confirmados,

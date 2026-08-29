@@ -144,6 +144,37 @@ test.describe("clientes", () => {
   });
 });
 
+test.describe("gastos", () => {
+  test("el comprobante usa un solo modal y nunca expone una URL pública", async ({ page }) => {
+    const errors: string[] = [];
+    let observarInteraccion = false;
+    page.on("console", message => {
+      if (observarInteraccion && message.type() === "error") errors.push(message.text());
+    });
+    page.on("pageerror", error => {
+      if (observarInteraccion) errors.push(error.message);
+    });
+
+    await page.goto("/gastos");
+    await expect(page.getByRole("heading", { level: 1, name: "Gastos Operativos" })).toBeVisible();
+    // La sesión guardada puede renovarse durante el arranque. Esta guarda mide
+    // exclusivamente los errores que produzca la interacción del comprobante.
+    await page.waitForTimeout(750);
+    observarInteraccion = true;
+
+    await page.getByRole("button", { name: "Nuevo Gasto" }).first().click();
+    const formDialog = page.getByRole("dialog", { name: "Registrar Gasto" });
+    await expect(formDialog).toBeVisible();
+    await formDialog.getByRole("button", { name: "Escanear ticket con IA" }).click();
+
+    await expect(formDialog.getByRole("region", { name: "Escanear comprobante" })).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(1);
+    await expect(formDialog.locator('input[type="file"]')).toHaveCount(3);
+    await expect(page.locator('a[href*="/storage/v1/object/public/expense-receipts"]')).toHaveCount(0);
+    expect(errors, `errores en consola:\n${errors.join("\n")}`).toEqual([]);
+  });
+});
+
 test.describe("POS", () => {
   async function abrirPos(page: Page) {
     await page.goto("/caja");
