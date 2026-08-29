@@ -3,6 +3,10 @@
 // Register at: MP Developers → Tus aplicaciones → Webhooks → URL de notificación
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getMpCredentials } from "../_shared/mpToken.ts";
+import {
+  fetchMercadoPagoOrder,
+  reconcileMercadoPagoPosQrOrder,
+} from "../_shared/mercadoPagoOrders.ts";
 import { recordPaymentTransaction } from "../_shared/paymentSettlement.ts";
 import { providerAttemptState, recordPaymentAttempt } from "../_shared/paymentOrchestrator.ts";
 
@@ -365,6 +369,61 @@ Deno.serve(async (req) => {
       if (error) console.error("suscripcion_registrar_pago", error);
 
       return new Response(JSON.stringify({ ok: true, resultado: data }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // ── POS QR / Orders API ──────────────────────────────────────────────
+    // La notificación sólo trae el id de la order. Nunca se confía en un
+    // status del body: se verifica HMAC, se busca el tenant por la order
+    // durable y se consulta el estado real con el OAuth de ese comercio.
+    if (["order", "orders"].includes(type) && paymentId) {
+      const signature = req.headers.get("x-signature") || "";
+      const requestId = req.headers.get("x-request-id") || "";
+      const signedId = new URL(req.url).searchParams.get("data.id") || paymentId;
+      const secret = Deno.env.get("MP_WEBHOOK_SECRET") || "";
+      if (!secret) {
+        console.error("MP_WEBHOOK_SECRET no está configurado para Orders API");
+        return new Response(JSON.stringify({ ok: false, reason: "webhook secret not configured" }), {
+          status: 503, headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (!signature || !requestId
+        || !await verifyMpSignature(signedId, requestId, signature, secret)) {
+        console.warn(`Firma inválida/ausente para MP order ${paymentId}`);
+        return new Response(JSON.stringify({ ok: false, reason: "invalid signature" }), {
+          status: 401, headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: session, error: sessionError } = await admin
+        .from("pos_qr_sessions")
+        .select("id, org_id")
+        .eq("provider_order_id", paymentId)
+        .maybeSingle();
+      if (sessionError) throw sessionError;
+      if (!session?.id || !session.org_id) {
+        return new Response(JSON.stringify({ ok: true, reason: "order not managed by POS" }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const credentials = await getMpCredentials(admin, session.org_id);
+      if (!credentials) {
+        console.error(`Sin OAuth para reconciliar MP order ${paymentId}`);
+        return new Response(JSON.stringify({ ok: true, reason: "no mp token" }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      const order = await fetchMercadoPagoOrder(credentials.accessToken, paymentId);
+      const reconciled = await reconcileMercadoPagoPosQrOrder(
+        admin,
+        credentials.accessToken,
+        session.id,
+        order,
+      );
+      console.log(`MP POS QR order ${paymentId}: ${String(reconciled.state ?? "unknown")}`);
+      return new Response(JSON.stringify({ ok: true, orderId: paymentId, state: reconciled.state }), {
         headers: { "Content-Type": "application/json" },
       });
     }

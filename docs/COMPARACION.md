@@ -1,7 +1,7 @@
 # Gestiona contra la competencia — medido, no estimado
 
-**Fecha de corte de base: 2026-08-21; investigación competitiva y suite
-actualizadas el 2026-08-22.** Todo número nuestro sale de una consulta a la base
+**Fecha de corte de base: 2026-08-21; investigación competitiva de POS/pagos
+actualizada el 2026-08-29.** Todo número nuestro sale de una consulta a la base
 de producción o de un comando reproducible y lleva la fecha al lado. Todo dato
 de un competidor lleva fuente y fecha, o va marcado como no verificado.
 
@@ -92,11 +92,11 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | Triggers | **131** | ✅ catálogo de producción, 2026-08-22 |
 | Índices | **946** | ✅ catálogo de producción, 2026-08-22 |
 | Políticas RLS | **384** | ✅ catálogo de producción, 2026-08-22 |
-| Migraciones registradas | **489** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate`, 2026-08-29 |
+| Migraciones registradas | **492** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate`, 2026-08-29 |
 | Cron jobs | **25** | ⚠️ 22.254 corridas exitosas y **3 fallidas** en 7 días; las tres históricas corresponden a `expire-overdue-trials`, cuya recuperación posterior se documenta en la auditoría del 2026-08-28 |
-| Edge Functions | **71** | ✅ `npm run check:functions`, 2026-08-29 |
+| Edge Functions | **72** | ✅ `npm run check:functions`, 2026-08-29; incluye el checkout QR de POS |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **1.986** | ✅ `npm test -- --maxWorkers=1 --fileParallelism=false`, 192 archivos, 2026-08-29 |
+| Tests unitarios | **2.036** | ✅ `npm test`, 200 archivos, 2026-08-29 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -220,7 +220,7 @@ nunca emitió no es una ventaja, es una promesa.
 | | Gestiona | Tiendanube | Shopify |
 |---|---|---|---|
 | MercadoPago por OAuth | ✅ única autoridad; link exige `sales.create`, comisión por canal y referencia reconciliable | ✅ | ❓ |
-| QR dinámico acreditado antes de cerrar POS | 🔴 en ejecución; no se ofrece hasta tener estado e idempotencia server-side | ✅ Mercado Pago QR | ❓ |
+| QR dinámico acreditado antes de cerrar POS | 🟡 implementado con Order, reserva y cierre server-side; prueba reversible aprobada, cobro live pendiente | ✅ Mercado Pago QR | ❓ |
 | Comisión de plataforma sobre la venta | ✅ **cobró de verdad** (`application_fee` 5% en las compras de prueba de 2026-08-11). ⚠️ Hoy la regla está en **0,5% e inactiva** (medido 2026-08-25): no se cobra nada | ✅ ❓0,7%–2% por transacción según plan | ✅ |
 | Orquestador multi-proveedor con failover | 🟡 construido, **no enchufado al checkout** | ❓ | ✅ |
 | Medio de pago propio | 🔴 GestionaPay no existe | 🔴 | ✅ Shopify Payments |
@@ -230,6 +230,16 @@ nunca emitió no es una ventaja, es una promesa.
 el plan, **además** de lo que cobre la pasarela
 ([tiendanube.com/blog/precio-tiendanube](https://www.tiendanube.com/blog/precio-tiendanube/),
 consultado 2026-08-21).
+
+✅ **Benchmark QR actualizado el 2026-08-29.** Mercado Pago define una Order
+dinámica por transacción, `external_pos_id`, `X-Idempotency-Key`, vencimiento y
+consulta de la orden para conocer el estado; el QR dinámico es único para esa
+compra. Gestiona ya respeta ese contrato y agrega su propia reserva/cierre
+atómico contra el Business Core. No se marca ✅ de uso porque todavía falta una
+compra escaneada real y configurar el tópico Orders del webhook en la cuenta
+productiva. Fuentes oficiales: [Create Order](https://www.mercadopago.com.ar/developers/es/reference/in-person-payments/qr-code/orders/create-order/post),
+[procesar QR](https://www.mercadopago.com.ar/developers/es/docs/qr-code/payment-processing)
+y [crear Store/POS](https://www.mercadopago.com.ar/developers/es/docs/qr-code/create-store-and-pos).
 
 ⚠️ **Corrección de este documento (2026-08-25).** Una versión anterior decía que
 nuestra comisión base era del **5%** y que era entre 2,5× y 7× más cara que

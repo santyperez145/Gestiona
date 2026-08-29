@@ -22,7 +22,7 @@ describe("guardia de tipos de Edge Functions", () => {
     // imágenes que quedaron alojadas en el proyecto Supabase anterior.
     // El número está fijo a propósito: agregar una Edge Function tiene que ser
     // una decisión visible, no algo que entra sin que nadie lo note.
-    expect(count).toBe(71);
+    expect(count).toBe(72);
     expect(checker).toContain('readdirSync(functionsDir, { withFileTypes: true })');
     expect(checker).toContain('"check", "--no-lock", ...entries');
     expect(checker).not.toContain("mercadopago-webhook/index.ts");

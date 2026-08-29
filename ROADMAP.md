@@ -164,6 +164,7 @@ patrones de producto/UX y la matriz de ejecución viven en
 | ERP / operación | Contabilium, Xubio y Colppy ya combinan facturación argentina, compras, stock, caja/bancos, contabilidad e integraciones locales. | Menor tiempo de implementación y una verdad conectada a Commerce y Finance; la amplitud de módulos no es ventaja por sí sola. |
 | Commerce | Tiendanube y Empretienda fijan la paridad local: checkout, catálogo/importación, promociones, pagos, envíos, dominio, operación mobile y stock entre ventas online/presenciales; Tiendanube suma PDV, filtros/bulk y ecosistema. | Costo y margen del mismo Core que ejecuta la venta, con migración reconciliada y una operación más simple para el segundo comercio. |
 | Margen y rentabilidad | Shopify ya reporta profit por producto/orden/mercado y Odoo margen por línea/pedido; tener un reporte es paridad, no ventaja. | Cuatro fuentes persistidas —costo histórico, cobro, envío real e IVA— por venta/canal/operación, con mix, promoción y devoluciones. El POS ahora convierte cada parte del cobro en evidencia conciliable y bloquea el ticket mientras falte el arancel; la autoridad existe, pero su impacto todavía debe probarse con una decisión real. |
+| Cobro QR de mostrador | Mercado Pago Orders exige QR dinámico por operación, `external_pos_id`, idempotencia y consulta del estado real antes de entregar. | Gestiona reserva sin descontar stock, acredita desde el proveedor y recién entonces crea ticket, cobro, stock y margen del Business Core; reintentos/vencimiento no duplican ni venden. Falta certificar una compra escaneada y el webhook Orders en la cuenta real. |
 | Marketplace | Sincronización de catálogo, stock, órdenes y postventa. | Sistema neutral que decide canal por margen, capital y disponibilidad. |
 | Spend / Finance | Odoo/QuickBooks fijan OCR, revisión y matching. Mendel, Clara, Rindegastos y Concur agregan control preventivo, presupuestos/políticas, roles, reembolsos, captura mobile/offline e integración ERP. | Finance comparte proveedor, producto, compra, stock y ledger nativos. F3 demuestra documento → matching → borradores aprobados; F5 agrega política, centro de costo, presupuesto y operación por excepción. Tarjetas/custodia/viajes quedan fuera sin demanda, partner regulado y economics. |
 | IA | Asistencia dentro del flujo real. | Recomendación → aprobación → acción → resultado verificado. |
@@ -270,6 +271,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 | ARCA | Arquitectura, credenciales seguras y homologación. | Certificado/punto de venta productivos y factura real autorizada. |
 | Ledger | Modelo de partida doble y eventos. | Asientos producidos y reconciliados por operaciones reales. |
 | Payment orchestration | Estados, idempotencia, refund y fallback; matriz interna aprobada con cero restos. | Certificación real de proveedor, firma, timeout de red, rechazo y refund. |
+| QR Mercado Pago en POS | Orders API, Store/POS privado, QR dinámico, polling/webhook, reserva, cierre atómico e idempotencia probados con fixture reversible. | Configurar la notificación Orders en la aplicación de Mercado Pago y hacer un cobro escaneado real con settlement conciliado; la prueba interna no sustituye esa certificación. |
 | POS offline | Implementación disponible. | Prueba sostenida con varios comercios, reconexión y conflictos. |
 | Multi-organización | RLS y permisos avanzados. | Comercios externos y soporte repetible. |
 | Importación CSV/Excel | Lote auditable y reconciliado contra el Business Core. | Usarlo con un segundo comercio y medir tiempo, correcciones y abandono; todavía no prueba una migración completa de tienda, clientes, imágenes u órdenes. |
@@ -2225,12 +2227,47 @@ Finance Connect.
     producción vendió un fixture `ZZ` de ARS 10.000 con oferta ARS 9.500 y 10%
     en efectivo: cerró a ARS 9.000, registró ARS 500 de descuento incremental,
     creó el cobro aprobado por ARS 9.000, movió stock 10→9 una sola vez,
-    identificó el precio cliente obsoleto y dejó 0 restos. El QR dinámico de
-    Mercado Pago permanece fuera de este slice: no se expone como medio hasta
-    que acreditación, idempotencia y cierre de ticket sean una única máquina de
-    estados server-side. Puerta completa: typecheck, lint sin errores (138
+    identificó el precio cliente obsoleto y dejó 0 restos. El QR dinámico quedó
+    separado deliberadamente para que acreditación, idempotencia y cierre de
+    ticket fueran una única máquina de estados server-side (slice 69). Puerta
+    completa: typecheck, lint sin errores (138
     warnings conocidos), 198 archivos / 2.027 pruebas y build/PWA de
     producción.
+
+69. Cobro QR dinámico de Mercado Pago en POS — cerrado técnicamente el
+    2026-08-29; certificación live pendiente. Caja ofrece QR como medio único y
+    no como parte de un split: prepara el importe canónico en servidor, reserva
+    disponibilidad sin tocar stock, crea una Order dinámica de Mercado Pago con
+    `external_pos_id`, vencimiento de 15 minutos, idempotencia y comisión de
+    plataforma congelada, y muestra el QR con importe, cuenta regresiva y
+    estados accionables. El ticket, stock, cobro y margen nacen únicamente
+    después de que el proveedor responde `processed`; cerrar, reintentar o
+    vencer no fabrica ventas. El carrito se conserva hasta acreditar y una
+    falla posterior de catálogo ya no convierte una venta cobrada en error.
+
+    `20260829000041_pos_qr_mercadopago_orders` agrega la máquina privada
+    `pos_qr_sessions`, una reserva vinculada, RPC de usuario para preparar y RPC
+    sólo `service_role` para registrar/reconciliar proveedor. El total, items,
+    descuento por medio, permisos y stock se recalculan en el Business Core;
+    montos distintos pasan a revisión manual. La Edge Function
+    `mercadopago-pos-qr` usa el OAuth privado del comercio, recupera o crea
+    Store/POS mediante las APIs oficiales y consulta la Order para no confiar en
+    el navegador ni en el cuerpo del webhook. `mercadopago-webhook` suma el
+    tópico Orders con firma obligatoria y vuelve a consultar al proveedor.
+
+    Prueba reversible de producción: QR ARS 9.000, reserva activa sin venta,
+    acreditación → pago aprobado y stock 10→9 una sola vez, retry `completed`,
+    vencimiento sin ticket y 0 restos. `db push --dry-run` quedó `upToDate`.
+    Esto prueba autoridad interna, no una compra real: falta configurar el
+    tópico Orders en la aplicación de Mercado Pago, escanear/acreditar un QR
+    live y comprobar el settlement/arancel real. Contrato oficial consultado el
+    2026-08-29: [crear Order QR](https://www.mercadopago.com.ar/developers/es/reference/in-person-payments/qr-code/orders/create-order/post),
+    [procesamiento](https://www.mercadopago.com.ar/developers/es/docs/qr-code/payment-processing)
+    y [Store/POS](https://www.mercadopago.com.ar/developers/es/docs/qr-code/create-store-and-pos).
+    Puerta completa: typecheck, lint con 0 errores/139 warnings conocidos, 200
+    archivos/2.036 pruebas y build PWA; `check:functions` valida las 72 Edge
+    Functions. El chunk completo de POS quedó en 103,97 kB (28,90 kB gzip), sin
+    incorporar un SDK pesado al navegador.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

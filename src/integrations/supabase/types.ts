@@ -23558,6 +23558,12 @@ export type Database = {
           id: string
           last_error: string | null
           live_mode: boolean
+          mp_external_pos_id: string | null
+          mp_external_store_id: string | null
+          mp_pos_configured_at: string | null
+          mp_pos_id: string | null
+          mp_pos_status: string | null
+          mp_store_id: string | null
           nickname: string | null
           org_id: string
           provider: string
@@ -23575,6 +23581,12 @@ export type Database = {
           id?: string
           last_error?: string | null
           live_mode?: boolean
+          mp_external_pos_id?: string | null
+          mp_external_store_id?: string | null
+          mp_pos_configured_at?: string | null
+          mp_pos_id?: string | null
+          mp_pos_status?: string | null
+          mp_store_id?: string | null
           nickname?: string | null
           org_id: string
           provider: string
@@ -23592,6 +23604,12 @@ export type Database = {
           id?: string
           last_error?: string | null
           live_mode?: boolean
+          mp_external_pos_id?: string | null
+          mp_external_store_id?: string | null
+          mp_pos_configured_at?: string | null
+          mp_pos_id?: string | null
+          mp_pos_status?: string | null
+          mp_store_id?: string | null
           nickname?: string | null
           org_id?: string
           provider?: string
@@ -24380,6 +24398,113 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      pos_qr_sessions: {
+        Row: {
+          amount: number
+          client_key: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          expires_at: string
+          failure_reason: string | null
+          id: string
+          org_id: string
+          payload_hash: string
+          payment_attempt_id: string
+          payment_intent_id: string
+          platform_fee: number
+          provider_order_id: string | null
+          provider_payment_id: string | null
+          provider_status: string | null
+          provider_status_detail: string | null
+          qr_data: string | null
+          sale_transaction_id: string | null
+          sales_payload: Json
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          client_key: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string
+          expires_at?: string
+          failure_reason?: string | null
+          id?: string
+          org_id: string
+          payload_hash: string
+          payment_attempt_id: string
+          payment_intent_id: string
+          platform_fee?: number
+          provider_order_id?: string | null
+          provider_payment_id?: string | null
+          provider_status?: string | null
+          provider_status_detail?: string | null
+          qr_data?: string | null
+          sale_transaction_id?: string | null
+          sales_payload: Json
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_key?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          expires_at?: string
+          failure_reason?: string | null
+          id?: string
+          org_id?: string
+          payload_hash?: string
+          payment_attempt_id?: string
+          payment_intent_id?: string
+          platform_fee?: number
+          provider_order_id?: string | null
+          provider_payment_id?: string | null
+          provider_status?: string | null
+          provider_status_detail?: string | null
+          qr_data?: string | null
+          sale_transaction_id?: string | null
+          sales_payload?: Json
+          state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_qr_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_payment_attempt_id_fkey"
+            columns: ["payment_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "payment_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_payment_intent_id_fkey"
+            columns: ["payment_intent_id"]
+            isOneToOne: false
+            referencedRelation: "payment_intents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_sale_transaction_id_fkey"
+            columns: ["sale_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "sale_transactions"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -28749,6 +28874,7 @@ export type Database = {
           id: string
           order_id: string | null
           org_id: string
+          pos_qr_session_id: string | null
           product_id: string
           rating: number
           replied_at: string | null
@@ -28765,6 +28891,7 @@ export type Database = {
           id?: string
           order_id?: string | null
           org_id: string
+          pos_qr_session_id?: string | null
           product_id: string
           rating: number
           replied_at?: string | null
@@ -28781,6 +28908,7 @@ export type Database = {
           id?: string
           order_id?: string | null
           org_id?: string
+          pos_qr_session_id?: string | null
           product_id?: string
           rating?: number
           replied_at?: string | null
@@ -37101,6 +37229,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_pos_qr_session_id_fkey"
+            columns: ["pos_qr_session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_qr_sessions"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "stock_reservations_product_id_fkey"
@@ -46509,6 +46644,8 @@ export type Database = {
           nickname: string | null
           org_id: string | null
           provider: string | null
+          qr_pos_ready: boolean | null
+          mp_pos_status: string | null
           vigente: boolean | null
         }
         Insert: {
@@ -46522,6 +46659,8 @@ export type Database = {
           nickname?: string | null
           org_id?: string | null
           provider?: string | null
+          qr_pos_ready?: never
+          mp_pos_status?: string | null
           vigente?: never
         }
         Update: {
@@ -46535,6 +46674,8 @@ export type Database = {
           nickname?: string | null
           org_id?: string | null
           provider?: string | null
+          qr_pos_ready?: never
+          mp_pos_status?: string | null
           vigente?: never
         }
         Relationships: [
@@ -51827,6 +51968,53 @@ export type Database = {
       }
       platform_role: { Args: { _user_id?: string }; Returns: string }
       podar_invocaciones: { Args: { p_dias?: number }; Returns: number }
+      pos_qr_apply_provider: {
+        Args: {
+          p_fee?: number
+          p_gross?: number
+          p_net?: number
+          p_payment_id?: string
+          p_provider_order_id: string
+          p_raw?: Json
+          p_session_id: string
+          p_status: string
+          p_status_detail?: string
+        }
+        Returns: Json
+      }
+      pos_qr_provider_created: {
+        Args: {
+          p_provider_order_id: string
+          p_provider_status: string
+          p_qr_data: string
+          p_raw?: Json
+          p_session_id: string
+        }
+        Returns: Json
+      }
+      pos_qr_provider_failed: {
+        Args: { p_raw?: Json; p_reason: string; p_session_id: string }
+        Returns: Json
+      }
+      pos_qr_save_provider_pos: {
+        Args: {
+          p_external_pos_id: string
+          p_external_store_id: string
+          p_org_id: string
+          p_pos_id: string
+          p_status: string
+          p_store_id: string
+        }
+        Returns: undefined
+      }
+      pos_qr_session_prepare: {
+        Args: { p_client_key: string; p_org_id: string; p_sales: Json }
+        Returns: Json
+      }
+      pos_qr_session_response: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
       pos_payment_method_codes: {
         Args: { p_sale_method: string }
         Returns: {

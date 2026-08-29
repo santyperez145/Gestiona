@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { detalleDeEdgeFunction, mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 /**
  * El mensaje real de la Edge Function llega a la pantalla.
@@ -46,6 +46,14 @@ describe("mensajeDeEdgeFunction", () => {
     const msg = await mensajeDeEdgeFunction(httpError({ error: "el punto de venta no existe" }));
     expect(msg).toBe("el punto de venta no existe");
     expect(msg).not.toContain("non-2xx");
+  });
+
+  it("conserva el código estructurado de un no-2xx para elegir recuperación", async () => {
+    const detalle = await detalleDeEdgeFunction(httpError({
+      error: "Configurá la caja",
+      code: "POS_SETUP_REQUIRED",
+    }));
+    expect(detalle).toEqual({ message: "Configurá la caja", code: "POS_SETUP_REQUIRED" });
   });
 
   it("acepta `message` además de `error` en el cuerpo", async () => {

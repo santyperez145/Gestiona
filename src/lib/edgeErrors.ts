@@ -27,6 +27,12 @@
 interface CuerpoDeError {
   error?: unknown;
   message?: unknown;
+  code?: unknown;
+}
+
+export interface DetalleDeEdgeFunction {
+  message: string;
+  code: string;
 }
 
 function textoDe(valor: unknown): string {
@@ -46,13 +52,14 @@ function textoDe(valor: unknown): string {
  * Devuelve `""` cuando no hubo error, para que el llamador pueda usar el
  * resultado como condición.
  */
-export async function mensajeDeEdgeFunction(error: unknown, data?: unknown): Promise<string> {
+export async function detalleDeEdgeFunction(error: unknown, data?: unknown): Promise<DetalleDeEdgeFunction> {
   // 1. Respuesta 200 con el error adentro.
   const cuerpo = data as CuerpoDeError | null | undefined;
   const enData = textoDe(cuerpo?.error) || textoDe(cuerpo?.message);
-  if (enData) return enData;
+  const codigoEnData = textoDe(cuerpo?.code);
+  if (enData) return { message: enData, code: codigoEnData };
 
-  if (!error) return "";
+  if (!error) return { message: "", code: codigoEnData };
 
   // 2. El cuerpo del no-2xx.
   const ctx = (error as { context?: unknown }).context;
@@ -65,7 +72,9 @@ export async function mensajeDeEdgeFunction(error: unknown, data?: unknown): Pro
       const fuente = typeof resp.clone === "function" ? resp.clone() : resp;
       const json = (await fuente.json()) as CuerpoDeError;
       const enCuerpo = textoDe(json?.error) || textoDe(json?.message);
-      if (enCuerpo) return enCuerpo;
+      if (enCuerpo) {
+        return { message: enCuerpo, code: textoDe(json?.code) || codigoEnData };
+      }
     } catch {
       // Cuerpo vacío, no-JSON o ya consumido: se sigue al genérico. Tragarse
       // esto es correcto — el objetivo es mejorar el mensaje, no reemplazar
@@ -74,5 +83,12 @@ export async function mensajeDeEdgeFunction(error: unknown, data?: unknown): Pro
   }
 
   // 3. El genérico.
-  return textoDe((error as { message?: unknown }).message) || "Error desconocido";
+  return {
+    message: textoDe((error as { message?: unknown }).message) || "Error desconocido",
+    code: codigoEnData,
+  };
+}
+
+export async function mensajeDeEdgeFunction(error: unknown, data?: unknown): Promise<string> {
+  return (await detalleDeEdgeFunction(error, data)).message;
 }

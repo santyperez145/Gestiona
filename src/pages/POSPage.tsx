@@ -26,10 +26,19 @@ import { usePriceList } from "@/hooks/usePriceList";
 import { listaVigente, etiquetaDescuento } from "@/lib/priceListCalc";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { useVibration } from "@/hooks/useVibration";
-import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { detalleDeEdgeFunction, mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { plural } from "@/lib/plural";
 import { groupPosOfflineTickets, posOfflineAgeLabel, summarizePosOfflineQueue } from "@/lib/posOfflineQueue";
 import { posPaymentDiscountPercent, posPriceForPayment } from "@/lib/posPaymentDiscount";
+import { PosQrCheckoutDialog } from "@/components/pos/PosQrCheckoutDialog";
+import {
+  POS_QR_RETRYABLE_TERMINAL_STATES,
+  POS_QR_TERMINAL_STATES,
+  posQrFailureCopy,
+  type PosQrPhase,
+  type PosQrSession,
+  type PosQrSetupPayload,
+} from "@/lib/posQr";
 // fuse.js loaded dynamically to avoid Rollup TDZ (const kt) in production builds
 
 async function fireConfetti(opts: Record<string, unknown>) {
@@ -62,18 +71,29 @@ interface OnlineReservationRow {
   quantity: number;
 }
 
+interface QrCheckoutContext {
+  clientKey: string;
+  transactionLines: Record<string, unknown>[];
+  soldItems: CartItem[];
+  saleIds: string[];
+  session: PosQrSession | null;
+  phase: PosQrPhase;
+  error: string | null;
+}
+
 // El carrito ya usa este formato para una variante. Reutilizarlo para las
 // reservas evita confundir el stock de un sabor/tamaño con el del producto base.
 const reservationKey = (productId: string, variantId?: string | null) =>
   variantId ? `${productId}__${variantId}` : productId;
 
-type PayMethod = "efectivo" | "transferencia" | "debito" | "credito" | "mayorista" | "fiado";
+type PayMethod = "efectivo" | "transferencia" | "debito" | "credito" | "qr" | "mayorista" | "fiado";
 
 const PAY_METHODS: { value: PayMethod; label: string; icon: typeof Banknote; color: string }[] = [
   { value: "efectivo",      label: "Efectivo",      icon: Banknote,        color: "text-green-400" },
   { value: "transferencia", label: "Transferencia", icon: ArrowLeftRight,  color: "text-blue-400" },
   { value: "debito",        label: "Débito",        icon: CreditCard,      color: "text-primary" },
   { value: "credito",       label: "Crédito",       icon: CreditCard,      color: "text-yellow-400" },
+  { value: "qr",            label: "QR Mercado Pago", icon: QrCode,         color: "text-sky-500" },
   { value: "mayorista",     label: "Mayorista",     icon: Zap,             color: "text-purple-400" },
   { value: "fiado",         label: "Fiado / Deuda", icon: UserX,           color: "text-red-400" },
 ];
@@ -120,14 +140,16 @@ function PayMethodGrid({
   value,
   onChange,
   compact = false,
+  allowQr = true,
 }: {
   value: PayMethod;
   onChange: (m: PayMethod) => void;
   compact?: boolean;
+  allowQr?: boolean;
 }) {
   return (
     <div className="grid grid-cols-3 gap-1">
-      {PAY_METHODS.map((m) => {
+      {PAY_METHODS.filter((method) => allowQr || method.value !== "qr").map((m) => {
         const Icon = m.icon;
         const active = value === m.value;
         return (
@@ -448,8 +470,8 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
             </Button>
           </div>
 
-          {/* Mercado Pago link */}
-          {!mpLink ? (
+          {/* Una venta QR ya está acreditada: ofrecer otro link duplicaría el cobro. */}
+          {payMethod !== "qr" && (!mpLink ? (
             <Button
               variant="outline"
               size="sm"
@@ -472,7 +494,7 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
                 <Copy className="w-3.5 h-3.5" />
               </Button>
             </div>
-          )}
+          ))}
 
           {/* Email receipt */}
           {!emailSent ? (
@@ -855,6 +877,9 @@ export default function POSPage() {
   const [vipLoading, setVipLoading] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
+  const [qrCheckout, setQrCheckout] = useState<QrCheckoutContext | null>(null);
+  const qrPollBusyRef = useRef(false);
+  const qrCompletedRef = useRef<Set<string>>(new Set());
   const [receipt, setReceipt] = useState<{
     items: CartItem[]; total: number; cash: number;
     globalDiscountARS: number; couponDiscount: number; paymentMethodDiscountARS: number; note: string;
@@ -1635,6 +1660,278 @@ export default function POSPage() {
     setDiscountValue("");
   };
 
+  const finishOnlineSaleUi = async (
+    soldItems: CartItem[],
+    saleIds: string[],
+    methodLabel: string,
+    registeredTotal = cartTotal,
+  ) => {
+    if (!user || !activeOrg) return;
+    const orgId = activeOrg.id;
+
+    // Las promociones y la fidelidad son efectos posteriores al ticket. Un
+    // fallo no deshace una venta ya cobrada, pero tampoco se oculta.
+    const promoAgg: Record<string, { promo: Promotion; discount: number }> = {};
+    for (const item of cart) {
+      const bp = promoFor(item);
+      if (!bp) continue;
+      if (!promoAgg[bp.promo.id]) promoAgg[bp.promo.id] = { promo: bp.promo, discount: 0 };
+      promoAgg[bp.promo.id].discount += (bp.basePrice - bp.price) * item.quantity;
+    }
+    const usages = Object.values(promoAgg).map(({ promo, discount }) => ({
+      promotion_id: promo.id,
+      org_id: orgId,
+      customer_name: customer.trim() || null,
+      order_value: registeredTotal,
+      discount_applied: Math.round(discount),
+    }));
+    if (usages.length) {
+      const { error } = await supabase.from("promotion_usages").insert(usages);
+      if (error) console.error("[POS] No se pudieron registrar usos de promociones:", error);
+    }
+
+    if (customer.trim()) {
+      const loyaltyProductId = cart[0]?.productId.split("__")[0] ?? "";
+      awardLoyaltyPointsForSale(orgId, customer.trim(), registeredTotal, loyaltyProductId)
+        .catch((error) => console.error("[POS] No se pudieron asignar puntos:", error));
+    }
+
+    const largeThreshold = Number(settings?.large_sale_threshold_ars) || 50_000;
+    if (registeredTotal >= largeThreshold) {
+      const { error } = await supabase.from("notifications").insert({
+        user_id: user.id,
+        org_id: orgId,
+        type: "venta_grande",
+        title: `Venta grande: ${formatARS(registeredTotal)}`,
+        message: customer.trim() ? `Cliente: ${customer.trim()}` : "Venta sin nombre de cliente",
+        read: false,
+      });
+      if (error) console.error("[POS] No se pudo guardar la alerta de venta grande:", error);
+    }
+
+    try {
+      const updatedProducts = await getProductsDB(user.id);
+      setProducts(updatedProducts);
+      const lowStockAlert = Number(settings?.low_stock_threshold ?? 5);
+      cart.forEach((item) => {
+        const baseProductId = item.productId.split("__")[0];
+        const updated = updatedProducts.find((product: any) => product.id === baseProductId);
+        if (updated && updated.stock >= 0 && updated.stock <= lowStockAlert) {
+          toast.warning(`⚠️ Stock bajo: ${item.name} — quedan ${plural(updated.stock, "unidad", "unidades")}`, { duration: 6000 });
+        }
+      });
+    } catch (error) {
+      // La venta ya existe y, para QR, ya fue acreditada. Un refetch tardío no
+      // puede convertir ese resultado correcto en un falso fallo de cobro.
+      console.error("[POS] La venta cerró pero no se pudo refrescar el catálogo:", error);
+    }
+
+    if (customer.trim()) saveRecentCustomer(customer.trim());
+    setReceipt({
+      items: soldItems,
+      total: registeredTotal,
+      cash: Number(cashGiven) || 0,
+      globalDiscountARS,
+      couponDiscount,
+      paymentMethodDiscountARS,
+      note: posNote,
+    });
+    toast.success(`Venta de ${formatARS(registeredTotal)} acreditada`);
+    vibrateSuccess();
+
+    const turnoCount = turnoSales.length + 1;
+    if (registeredTotal >= largeThreshold) {
+      fireConfetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#FFD700", "#FFA500", "#FF6B6B", "#4ECDC4"] });
+    } else if (turnoCount % 10 === 0) {
+      fireConfetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
+    }
+    setTurnoSales((previous) => [...previous, {
+      items: soldItems,
+      total: registeredTotal,
+      method: methodLabel,
+      customer: customer.trim(),
+      ts: Date.now(),
+      saleIds,
+    }]);
+  };
+
+  const finalizeQrSale = async (checkout: QrCheckoutContext, session: PosQrSession) => {
+    if (!user || qrCompletedRef.current.has(session.session_id)) return;
+    qrCompletedRef.current.add(session.session_id);
+    setQrCheckout(null);
+
+    const auditResults = await Promise.allSettled(checkout.transactionLines.map((line) =>
+      logAudit(user.id, "create", "sale", String(line.id), {
+        product: line.product_name,
+        total: line.total_ars,
+        method: "qr:mercadopago",
+        source: "pos",
+        provider_order_id: session.provider_order_id,
+      })
+    ));
+    auditResults.forEach((result) => {
+      if (result.status === "rejected") console.error("[POS QR] No se pudo guardar auditoría:", result.reason);
+    });
+    const providerItems = session.items ?? [];
+    const soldItems = checkout.soldItems.map((item, index) => ({
+      ...item,
+      price: Number(providerItems[index]?.unit_price ?? item.price),
+    }));
+    await finishOnlineSaleUi(soldItems, checkout.saleIds, "QR Mercado Pago", Number(session.amount));
+  };
+
+  const requestQrOrder = async (checkout: QrCheckoutContext) => {
+    if (!activeOrg) return;
+    const preparing = { ...checkout, phase: "preparing" as const, error: null };
+    setQrCheckout(preparing);
+    const { data, error } = await supabase.functions.invoke("mercadopago-pos-qr", {
+      body: {
+        action: "create",
+        orgId: activeOrg.id,
+        clientKey: checkout.clientKey,
+        sales: checkout.transactionLines,
+      },
+    });
+    if (error || data?.error) {
+      const detail = await detalleDeEdgeFunction(error, data);
+      const message = detail.message || "No se pudo generar el QR";
+      if (detail.code === "POS_SETUP_REQUIRED") {
+        setQrCheckout({ ...checkout, phase: "setup", error: null });
+      } else {
+        console.error("[POS QR] create:", error || data);
+        setQrCheckout({ ...checkout, phase: "error", error: message });
+      }
+      return;
+    }
+    const session = data?.session as PosQrSession | undefined;
+    if (!session?.session_id) {
+      setQrCheckout({ ...checkout, phase: "error", error: "Mercado Pago no devolvió una sesión de cobro" });
+      return;
+    }
+    if (session.state === "completed") {
+      await finalizeQrSale({ ...checkout, session }, session);
+      return;
+    }
+    if (POS_QR_TERMINAL_STATES.has(session.state)) {
+      setQrCheckout({ ...checkout, session, phase: "error", error: posQrFailureCopy(session) });
+      return;
+    }
+    const next = { ...checkout, session, phase: "pending" as const, error: null };
+    setQrCheckout(next);
+  };
+
+  const retryQrOrder = async (checkout: QrCheckoutContext) => {
+    if (checkout.session?.state === "manual_review") {
+      toast.error("Revisá el movimiento en Mercado Pago antes de iniciar otro cobro");
+      return;
+    }
+    if (!checkout.session || !POS_QR_RETRYABLE_TERMINAL_STATES.has(checkout.session.state)) {
+      await requestQrOrder(checkout);
+      return;
+    }
+
+    // Una order terminal no puede revivir. El nuevo intento recibe identidad
+    // completa nueva; el carrito y sus precios vuelven a validarse en servidor.
+    const clientKey = crypto.randomUUID();
+    const transactionLines = checkout.transactionLines.map((line) => ({
+      ...line,
+      id: crypto.randomUUID(),
+      offline_transaction_id: clientKey,
+    }));
+    await requestQrOrder({
+      ...checkout,
+      clientKey,
+      transactionLines,
+      saleIds: transactionLines.map((line) => String(line.id)),
+      session: null,
+      phase: "preparing",
+      error: null,
+    });
+  };
+
+  const setupQrPos = async (payload: PosQrSetupPayload) => {
+    if (!activeOrg || !qrCheckout) return;
+    const checkout = qrCheckout;
+    setQrCheckout({ ...checkout, phase: "preparing", error: null });
+    const { data, error } = await supabase.functions.invoke("mercadopago-pos-qr", {
+      body: { action: "setup", orgId: activeOrg.id, ...payload },
+    });
+    if (error || data?.error || data?.qrPosReady !== true) {
+      const message = await mensajeDeEdgeFunction(error, data) || "No se pudo configurar la caja de Mercado Pago";
+      console.error("[POS QR] setup:", error || data);
+      setQrCheckout({ ...checkout, phase: "error", error: message });
+      return;
+    }
+    toast.success("Caja de Mercado Pago lista para cobrar");
+    await requestQrOrder(checkout);
+  };
+
+  const cancelQrCheckout = async (chooseAnother = false) => {
+    if (!qrCheckout) return;
+    const checkout = qrCheckout;
+    const sessionId = checkout.session?.session_id;
+    if (checkout.session?.state === "manual_review") {
+      setQrCheckout(null);
+      toast.warning("Cobro pendiente de revisión: verificá Mercado Pago antes de volver a cobrar");
+      return;
+    }
+    if (!sessionId || !checkout.session?.provider_order_id) {
+      setQrCheckout(null);
+      if (chooseAnother) setPayMethod("transferencia");
+      return;
+    }
+    setQrCheckout({ ...checkout, phase: "cancelling", error: null });
+    const { data, error } = await supabase.functions.invoke("mercadopago-pos-qr", {
+      body: { action: "cancel", sessionId },
+    });
+    const session = data?.session as PosQrSession | undefined;
+    if (session?.state === "completed") {
+      await finalizeQrSale({ ...checkout, session }, session);
+      return;
+    }
+    if (error || data?.error) {
+      const message = await mensajeDeEdgeFunction(error, data) || "No se pudo confirmar la cancelación";
+      console.error("[POS QR] cancel:", error || data);
+      setQrCheckout({ ...checkout, session: session ?? checkout.session, phase: "error", error: message });
+      return;
+    }
+    setQrCheckout(null);
+    if (chooseAnother) setPayMethod("transferencia");
+    toast.info("Cobro QR cancelado; no se registró la venta");
+  };
+
+  useEffect(() => {
+    if (!qrCheckout?.session?.session_id || qrCheckout.phase !== "pending"
+      || POS_QR_TERMINAL_STATES.has(qrCheckout.session.state)) return;
+    const checkout = qrCheckout;
+    const poll = async () => {
+      if (qrPollBusyRef.current) return;
+      qrPollBusyRef.current = true;
+      try {
+        const { data, error } = await supabase.functions.invoke("mercadopago-pos-qr", {
+          body: { action: "status", sessionId: checkout.session!.session_id },
+        });
+        if (error || data?.error) {
+          console.warn("[POS QR] estado transitorio no disponible:", error || data);
+          return;
+        }
+        const session = data?.session as PosQrSession | undefined;
+        if (!session?.session_id) return;
+        if (session.state === "completed") {
+          await finalizeQrSale({ ...checkout, session }, session);
+        } else if (POS_QR_TERMINAL_STATES.has(session.state)) {
+          setQrCheckout({ ...checkout, session, phase: "error", error: posQrFailureCopy(session) });
+        } else {
+          setQrCheckout({ ...checkout, session, phase: "pending", error: null });
+        }
+      } finally {
+        qrPollBusyRef.current = false;
+      }
+    };
+    const timer = window.setInterval(() => void poll(), 2_000);
+    return () => window.clearInterval(timer);
+  }, [qrCheckout]);
+
   // ── Confirm sale ──
   const confirmSale = async () => {
     if (!user || !activeOrg || !cart.length) return;
@@ -1658,6 +1955,10 @@ export default function POSPage() {
       if (splitAmt1 > cartTotal) { toast.error("El primer monto supera el total"); return; }
       if (splitMethod1 === splitMethod2) { toast.error("Los dos métodos deben ser diferentes"); return; }
     }
+    if (!splitMode && payMethod === "qr" && !isOnline) {
+      toast.error("El QR necesita conexión para confirmar la acreditación en Mercado Pago");
+      return;
+    }
 
     if (isOnline && !await checkSalesLimit()) return;
 
@@ -1676,6 +1977,7 @@ export default function POSPage() {
       const offlineTransactionId = crypto.randomUUID();
 
       for (const item of cart) {
+        const [baseProductId, variantId] = item.productId.split("__");
         const unitPrice = priceFor(item);
         const lineTotal = unitPrice * item.quantity;
         const proportion = cartTotal > 0 ? lineTotal / cartSubtotal : 0;
@@ -1705,7 +2007,8 @@ export default function POSPage() {
           id: txItemId,
           user_id: user.id,
           org_id: orgId,
-          product_id: item.productId,
+          product_id: baseProductId,
+          variant_id: variantId || null,
           product_name: item.name,
           quantity: item.quantity,
           unit_price_ars: finalUnitPrice,
@@ -1737,16 +2040,33 @@ export default function POSPage() {
         price: Number(transactionLines[index]?.unit_price_ars ?? item.price),
       }));
 
+      if (!splitMode && payMethod === "qr") {
+        const checkout: QrCheckoutContext = {
+          clientKey: offlineTransactionId,
+          transactionLines,
+          soldItems,
+          saleIds: txSaleIds,
+          session: null,
+          phase: "preparing",
+          error: null,
+        };
+        await requestQrOrder(checkout);
+        return;
+      }
+
       if (isOnline) {
         await addSalesDB(transactionLines, "pos");
-        for (const saleData of transactionLines) {
-          await logAudit(user.id, "create", "sale", saleData.id, {
+        const auditResults = await Promise.allSettled(transactionLines.map((saleData) =>
+          logAudit(user.id, "create", "sale", saleData.id, {
             product: saleData.product_name,
             total: saleData.total_ars,
             method: splitMode ? `split:${splitMethod1}+${splitMethod2}` : payMethod,
             source: "pos",
-          });
-        }
+          })
+        ));
+        auditResults.forEach((result) => {
+          if (result.status === "rejected") console.error("[POS] No se pudo guardar auditoría:", result.reason);
+        });
       } else {
         const pending = [...offlineSales, ...transactionLines];
         // Persistir antes de vaciar el carrito: si el navegador rechaza la
@@ -1762,31 +2082,6 @@ export default function POSPage() {
         setOfflineSales(pending);
       }
 
-      // Registrar usos de promociones auto-aplicadas (best-effort; el trigger
-      // increment_promotion_usage suma uses_count)
-      if (isOnline) {
-        const promoAgg: Record<string, { promo: Promotion; discount: number }> = {};
-        for (const item of cart) {
-          const bp = promoFor(item);
-          if (!bp) continue;
-          if (!promoAgg[bp.promo.id]) promoAgg[bp.promo.id] = { promo: bp.promo, discount: 0 };
-          promoAgg[bp.promo.id].discount += (bp.basePrice - bp.price) * item.quantity;
-        }
-        const usages = Object.values(promoAgg).map(({ promo, discount }) => ({
-          promotion_id: promo.id,
-          org_id: orgId,
-          customer_name: customer.trim() || null,
-          order_value: cartTotal,
-          discount_applied: Math.round(discount),
-        }));
-        if (usages.length) supabase.from("promotion_usages").insert(usages).then(() => {}, () => {});
-      }
-
-      // Award loyalty points (best-effort)
-      if (customer.trim()) {
-        awardLoyaltyPointsForSale(orgId, customer.trim(), cartTotal, cart[0]?.productId ?? "").catch(() => {});
-      }
-
       // `sale.created` ya quedó encolado dentro de la misma transacción que el
       // ticket. El navegador no tiene que disparar nada: cerrar esta pestaña no
       // puede perder la integración y la outbox conserva retry + evidencia.
@@ -1798,52 +2093,11 @@ export default function POSPage() {
         setReceipt({ items: soldItems, total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount, paymentMethodDiscountARS, note: posNote });
         return;
       }
-
-      const largeThreshold = Number(settings?.large_sale_threshold_ars) || 50_000;
-      if (cartTotal >= largeThreshold && user) {
-        supabase.from("notifications").insert({
-          user_id: user.id,
-          org_id: orgId,
-          type: "venta_grande",
-          title: `Venta grande: ${formatARS(cartTotal)}`,
-          message: customer.trim() ? `Cliente: ${customer.trim()}` : "Venta sin nombre de cliente",
-          read: false,
-        }).then(() => {}, () => {});
-      }
-
-      const updatedProducts = await getProductsDB(user.id);
-      setProducts(updatedProducts);
-
-      // Post-sale low-stock alerts
-      const lowStockAlert = Number(settings?.low_stock_threshold ?? 5);
-      cart.forEach(item => {
-        const updated = updatedProducts.find((p: any) => p.id === item.productId);
-        if (updated && updated.stock >= 0 && updated.stock <= lowStockAlert) {
-          toast.warning(`⚠️ Stock bajo: ${item.name} — quedan ${plural(updated.stock, "unidad", "unidades")}`, { duration: 6000 });
-        }
-      });
-
-      if (customer.trim()) saveRecentCustomer(customer.trim());
-      setReceipt({
-        items: soldItems,
-        total: cartTotal,
-        cash: Number(cashGiven) || 0,
-        globalDiscountARS,
-        couponDiscount,
-        paymentMethodDiscountARS,
-        note: posNote,
-      });
-      toast.success(`Venta de ${formatARS(cartTotal)} registrada`);
-      vibrateSuccess();
-      // Confetti: big sales or every 10th sale get extra celebration
-      const turnoCount = turnoSales.length + 1;
-      const isBigSale = cartTotal >= (Number(settings?.large_sale_threshold_ars) || 50_000);
-      if (isBigSale) {
-        fireConfetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#FFD700', '#FFA500', '#FF6B6B', '#4ECDC4'] });
-      } else if (turnoCount % 10 === 0) {
-        fireConfetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
-      }
-      setTurnoSales(prev => [...prev, { items: soldItems, total: cartTotal, method: splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod, customer: customer.trim(), ts: Date.now(), saleIds: txSaleIds }]);
+      await finishOnlineSaleUi(
+        soldItems,
+        txSaleIds,
+        splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod,
+      );
     } catch (e: any) {
       toast.error(e.message || "Error al registrar");
     } finally {
@@ -1859,6 +2113,7 @@ export default function POSPage() {
     cart.length === 0 ||
     submitting ||
     (!isOnline && !!offlineStorageError) ||
+    (!splitMode && payMethod === "qr" && !isOnline) ||
     (splitMode && splitAmt1 <= 0) ||
     (!splitMode && payMethod === "efectivo" && cashGiven !== "" && Number(cashGiven) < cartTotal);
   confirmDisabledRef.current = confirmDisabled;
@@ -2215,6 +2470,15 @@ export default function POSPage() {
           {!splitMode ? (
             <>
               <PayMethodGrid value={payMethod} onChange={setPayMethod} />
+              {payMethod === "qr" && (
+                <div className="rounded-[10px] border border-sky-500/20 bg-sky-500/10 p-2.5 text-[11px] leading-relaxed text-sky-700 dark:text-sky-200">
+                  <div className="flex gap-2">
+                    <QrCode className="mt-0.5 h-4 w-4 shrink-0" />
+                    <p>Generamos un QR único por venta. El ticket y el stock se cierran sólo cuando Mercado Pago acredita el importe.</p>
+                  </div>
+                  {!isOnline && <p className="mt-1 font-semibold text-destructive">Necesitás conexión para usar QR.</p>}
+                </div>
+              )}
               {/* Cash calculator */}
               {payMethod === "efectivo" && (
                 <div className="space-y-1 pb-12">
@@ -2243,7 +2507,7 @@ export default function POSPage() {
               {/* Method 1 */}
               <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
                 <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Método 1</span>
-                <PayMethodGrid value={splitMethod1} onChange={setSplitMethod1} />
+                <PayMethodGrid value={splitMethod1} onChange={setSplitMethod1} allowQr={false} />
                 <Input
                   type="number"
                   placeholder="Monto ($)"
@@ -2255,7 +2519,7 @@ export default function POSPage() {
               {/* Method 2 */}
               <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
                 <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Método 2</span>
-                <PayMethodGrid value={splitMethod2} onChange={setSplitMethod2} />
+                <PayMethodGrid value={splitMethod2} onChange={setSplitMethod2} allowQr={false} />
                 <div className={`h-8 flex items-center px-3 rounded-lg border text-sm font-mono ${
                   splitAmt2 > 0 ? "bg-primary/10 border-primary/30 text-primary" : "bg-card border-border text-muted-foreground"
                 }`}>
@@ -2523,9 +2787,9 @@ export default function POSPage() {
           disabled={confirmDisabled}
         >
           {submitting ? (
-            <><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />Registrando...</>
+            <><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />{payMethod === "qr" && !splitMode ? "Preparando QR..." : "Registrando..."}</>
           ) : (
-            <><CheckCircle2 className="w-5 h-5" />Confirmar venta <span className="ml-auto text-[10px] opacity-60 font-normal">F9</span></>
+            <>{payMethod === "qr" && !splitMode ? <QrCode className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}{payMethod === "qr" && !splitMode ? "Generar QR y cobrar" : "Confirmar venta"} <span className="ml-auto text-[10px] opacity-60 font-normal">F9</span></>
           )}
         </Button>
       </div>
@@ -2665,6 +2929,21 @@ export default function POSPage() {
             </DialogFooter>
           </DialogContent>
       </Dialog>
+
+      {/* Mercado Pago QR: mientras está abierto el carrito queda intacto. */}
+      {qrCheckout && (
+        <PosQrCheckoutDialog
+          phase={qrCheckout.phase}
+          session={qrCheckout.session}
+          amount={cartTotal}
+          businessName={config.businessName || activeOrg?.name || "Gestiona"}
+          error={qrCheckout.error}
+          onRetry={() => void retryQrOrder(qrCheckout)}
+          onCancel={() => void cancelQrCheckout(false)}
+          onChooseOtherMethod={() => void cancelQrCheckout(true)}
+          onSetup={(payload) => void setupQrPos(payload)}
+        />
+      )}
 
       {/* Receipt modal */}
       {receipt && (
