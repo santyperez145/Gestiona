@@ -31,7 +31,7 @@ no pudo probarse quedó abierto en vez de declararse sano por intuición.
 | Cron | 25 jobs activos; 22.155 éxitos y 3 fallas en 7 días. Las tres fueron `expire-overdue-trials` y sus últimas 12 corridas ya son exitosas | Resuelto, conservar señal |
 | Edge runtime | 215 invocaciones / 12 fallas en 24 h; 429 / 42 en 7 días; 0 huérfanas | Amarillo: `fetch-usd-rate` y cumpleaños no demostraron recuperación ese día |
 | Pagos | 2 pagos ARS 1 anteriores a la traza; sin pérdida actual y documentados como prueba histórica | Deuda histórica, no incidente actual |
-| Dependencias | 4 alertas productivas: 1 alta y 3 moderadas | Rojo hasta actualizar |
+| Dependencias | `npm audit` completo: 0 alertas productivas o de tooling; comando reproducible desde moderado | Verde; `xlsx` conserva su guarda separada por venir del CDN oficial |
 
 ## Hallazgo crítico cerrado en esta auditoría
 
@@ -65,19 +65,61 @@ y [bypass por backslash](https://github.com/advisories/GHSA-wrjc-x8rr-h8h6).
 
 No se aplicó `npm audit fix` a ciegas: proponía React Router 6.30.6, que elimina
 una alerta de `react-router-dom` pero sigue dentro del rango vulnerable de
-`react-router`. El siguiente slice debe subir a 7.18+, resolver las dos
-transitivas y pasar smoke de las 89 páginas, E2E público, typecheck, lint, tests
-y build.
+`react-router`.
+
+El slice posterior cerró la superficie completa:
+
+- React Router/DOM 7.18.3, DOMPurify 3.4.14 y nanoid 3.3.18;
+- Vite 8.2.2 + esbuild 0.28.2, `vite-plugin-pwa` 1.3.0 y el plugin React
+  estándar 6.1.1; el engine mínimo quedó en Node 20.19, que es el contrato de
+  Vite 8;
+- `npm run check:dependencies` audita producción **y tooling** desde severidad
+  moderada. Una vulnerabilidad del build también corre con acceso al repo y
+  secretos del deploy, por lo que el chequeo reproducible no usa `--omit=dev`;
+- 11 guardas fijan líneas mínimas, engine y el comando de auditoría para que una instalación
+  distraída no reabra los avisos;
+- la paleta Ctrl+K dejó de montarse dos veces y ahora tiene un único dueño lazy
+  en `AppLayout`, sin duplicar listeners globales;
+- Vitest y Vite comparten el plugin estándar, los alias usan
+  `import.meta.dirname`, y el selector CSS que Vite 8 detectó como inválido fue
+  reemplazado por una selección de token de clase válida;
+- la puerta completa detectó una regresión propia de la migración: Rolldown
+  absorbía recursivamente helpers compartidos dentro de PDF/charts y volvía a
+  precargarlos en Storefront. Utils/PDF/charts/xlsx desactivan esa captura;
+  React/Query/Radix/Supabase conservan su grafo para no generar ciclos de
+  ejecución. Un intento demasiado agresivo dejó la tienda en el splash y el
+  E2E lo rechazó antes del commit. La configuración final bajó el entry de
+  185,76 a 150,45 KiB gzip y el precache de 2.025,05 a 1.986,06 KiB, sin quitar
+  offline del POS ni romper la tienda.
+
+Evidencia: `npm audit` 0, 89/89 imports de páginas, 32/32 E2E públicos en
+desktop/mobile contra el bundle local de producción y build completo en 4,03 s
+en la medición final. El PWA precachea 18 entradas / 1.986,06 KiB. El primer E2E con dev server tuvo 1 retry
+por transformación fría (31 s, luego 3,1 s); la puerta ahora ejecuta
+`build + vite preview`; la repetición final terminó sin retries en 38,2 s.
+La puerta final completó typecheck, lint con 0 errores/140 warnings conocidos y
+1.936/1.936 tests en 184 archivos.
+
+⚠️ `vite-plugin-pwa` 1.3.0 —última versión instalada al corte— todavía pasa
+`inlineDynamicImports` al build del service worker y Vite 8 lo marca deprecado.
+El build termina y el SW se genera; es deuda upstream visible, no se parcheó
+`node_modules` ni se silenció el warning.
+
+⚠️ La credencial OAuth disponible en esta PC no tiene scope `workflow`:
+GitHub rechazó el intento de elevar el job bloqueante de `critical` a
+`moderate`. El workflow conserva el audit completo informativo y el repo expone
+`npm run check:dependencies`; elevar esa puerta en GitHub sigue pendiente de una
+credencial con permiso para editar Actions. El código y el deploy no quedaron
+bloqueados por esa limitación de transporte.
 
 ## Orden de continuación
 
-1. Dependencias productivas: cero high/moderate sin excepción documentada.
-2. Privatizar `expense-receipts` antes del primer archivo y entregar URLs
+1. Privatizar `expense-receipts` antes del primer archivo y entregar URLs
    firmadas, sin romper comprobantes existentes (hoy hay 0).
-3. Explicar y corregir las dos tareas Edge sin recuperación comprobada:
+2. Explicar y corregir las dos tareas Edge sin recuperación comprobada:
    cotización diaria y cumpleaños WhatsApp. No invocarlas a mano porque podrían
    enviar mensajes o duplicar acciones reales.
-4. Retirar del esquema las columnas de secretos heredadas sólo cuando todas sus
+3. Retirar del esquema las columnas de secretos heredadas sólo cuando todas sus
    lecturas estén probadas en cero y exista migración de salida reversible.
-5. Completar P1-04 con `payments.edit` para refund y prueba cross-branch cuando
+4. Completar P1-04 con `payments.edit` para refund y prueba cross-branch cuando
    existan dos ubicaciones reales aptas.

@@ -1,7 +1,7 @@
 ﻿import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
 import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Bell, Tag, Calendar, Layers, ArrowRightLeft, UserPlus, Trophy, Share2, ScanBarcode, Users2, Scale, Globe, Warehouse, LineChart, Shield, ChevronRight } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { lazy, Suspense, useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
@@ -24,7 +24,6 @@ import PlatformAnnouncementBanner from "@/components/shared/PlatformAnnouncement
 import OrgSwitcher from "@/components/shared/OrgSwitcher";
 import PageGuide from "@/components/shared/PageGuide";
 import PresenceAvatars from "@/components/shared/PresenceAvatars";
-import CommandPalette from "@/components/shared/CommandPalette";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import BrandLogo from "@/components/shared/BrandLogo";
 import { usePermissionsResolver } from "@/lib/permissionsContext";
@@ -32,6 +31,9 @@ import { moduleForRoute } from "@/lib/moduleMap";
 import { NAV_ITEMS, NAV_GROUPS, grupoDeRuta } from "@/lib/navigation";
 
 import { plural } from "@/lib/plural";
+
+const CommandPalette = lazy(() => import("@/components/shared/CommandPalette"));
+
 /**
  * La navegación vive en `src/lib/navigation.ts`.
  *
@@ -605,7 +607,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* ── Global command palette — Ctrl+K anywhere ──────────────── */}
-      <CommandPalette />
+      <Suspense fallback={null}>
+        <CommandPalette />
+      </Suspense>
     </div>
   );
 }

@@ -21,9 +21,9 @@ import { join } from "node:path";
  *     del propio Vite: un módulo virtual que no vive en `node_modules`, así
  *     que Rollup lo dejaba en el primer chunk que lo pidiera.
  *
- * 📌 Dos funciones de veinte líneas obligaban a bajar 833 KB. `manualChunks`
- * con forma de objeto no permite evitarlo: hace falta la forma de función, y
- * darles un chunk propio.
+ * 📌 Dos funciones de veinte líneas obligaban a bajar 833 KB. Con Vite 8,
+ * `codeSplitting.groups` debe desactivar la captura recursiva de dependencias:
+ * de lo contrario un grupo pesado vuelve a absorber esos helpers.
  *
  * ── Cómo se vuelve a medir ────────────────────────────────────────────────
  *
@@ -44,10 +44,14 @@ function sinComentarios(src: string): string {
 const cuerpo = sinComentarios(CONFIG);
 
 describe("el comprador no baja el panel", () => {
-  it("manualChunks es una función, no un objeto", () => {
-    // La forma de objeto no deja decidir dónde caen los módulos virtuales ni
-    // las utilidades compartidas, que es de donde vino el problema.
-    expect(cuerpo).toMatch(/manualChunks\s*\(\s*id\s*:/);
+  it("Vite 8 usa grupos de Rolldown sin captura recursiva", () => {
+    expect(cuerpo).toMatch(/rolldownOptions\s*:/);
+    expect(cuerpo).toMatch(/codeSplitting\s*:/);
+    expect(cuerpo).not.toMatch(/manualChunks\s*[:(]/);
+
+    const grupos = cuerpo.match(/includeDependenciesRecursively\s*:\s*false/g) ?? [];
+    expect(grupos, "utils, PDF, charts y xlsx deben conservar sus dependencias fuera del chunk pesado")
+      .toHaveLength(4);
   });
 
   it("el helper de import() de Vite tiene chunk propio", () => {
@@ -56,18 +60,14 @@ describe("el comprador no baja el panel", () => {
      * (`\0vite/preload-helper`) y ese filtro lo descartaría.
      */
     const i = cuerpo.indexOf("vite/preload-helper");
-    const j = cuerpo.indexOf('!id.includes("node_modules")');
     expect(i, "no se le asigna chunk al helper de Vite").toBeGreaterThan(-1);
-    expect(
-      i < j,
-      "el helper se chequea después del filtro de node_modules, así que nunca entra",
-    ).toBe(true);
+    expect(cuerpo).toMatch(/vite\/preload-helper[\s\S]{0,180}vendor-utils|vendor-utils[\s\S]{0,220}vite\/preload-helper/);
   });
 
   it("las utilidades chicas no viven dentro de un vendor pesado", () => {
     // `clsx` adentro de `vendor-charts` arrastraba 110 KB de gráficos a toda
     // página que use `cn()` — es decir, todas.
-    expect(cuerpo).toMatch(/clsx[\s\S]{0,90}vendor-utils/);
+    expect(cuerpo).toMatch(/vendor-utils[\s\S]{0,220}clsx|clsx[\s\S]{0,220}vendor-utils/);
   });
 
   it("si hay un build, el arranque no precarga PDF ni gráficos", () => {

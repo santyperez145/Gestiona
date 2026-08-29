@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.925 tests en 183 archivos pasan al 2026-08-28; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. 42 E2E críticos (32 públicos, 9 de panel y setup autenticado) conservan su última evidencia contra la base real. |
+| Calidad técnica | 1.936 tests en 184 archivos pasan al 2026-08-28; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. Los 32 E2E públicos se repitieron contra el bundle local de producción; los 9 de panel y setup autenticado conservan su última evidencia con la identidad técnica. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -1576,8 +1576,28 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     `service_role`, con segunda guarda interna; tres helpers de roles ya no se
     enumeran sin sesión y `audit_costo_expuesto` volvió a 0. Prueba real en los
     dos sentidos y 0 restos. La auditoría transversal queda registrada en
-    `docs/auditorias/2026-08-28_auditoria_transversal.md`; sus siguientes gates
-    son dependencias productivas vulnerables y fallas Edge recurrentes.
+    `docs/auditorias/2026-08-28_auditoria_transversal.md`; dependencias cerró en
+    el punto 43 y los gates abiertos pasan a Storage y fallas Edge recurrentes.
+43. ~~Dependencias y bundle sin vulnerabilidades conocidas~~ — cerrado el
+    2026-08-28: React Router 7.18.3, DOMPurify 3.4.14, nanoid 3.3.18 y Vite
+    8.2.2 retiraron cuatro alertas productivas y las dos del tooling; `npm audit`
+    completo queda en 0 y `check:dependencies` audita desde moderado sin excluir
+    devDependencies. Once guardas fijan versiones, engine y el comando. Elevar
+    el job bloqueante de GitHub de critical a moderate quedó pendiente porque
+    la credencial OAuth de esta PC no tiene scope `workflow`; el audit completo
+    informativo sigue presente. La migración descubrió y corrigió el
+    plugin obsoleto de Vitest, alias ESM, selectores CSS inválidos y dos montajes
+    simultáneos de Ctrl+K. Los 89 imports de páginas, 32 E2E públicos sin retry,
+    typecheck, tests y build quedaron verdes; Playwright ahora prueba
+    `build + vite preview`, el artefacto que realmente se deploya, y no la
+    compilación caliente del dev server. El warning deprecado del service worker
+    pertenece a `vite-plugin-pwa` 1.3.0 y queda visible hasta arreglo upstream.
+    La guarda de peso y el E2E además evitaron dos regresiones de Rolldown:
+    PDF/charts ya no capturan helpers ni se precargan en Storefront, pero los
+    grafos core sí permanecen recursivos para no crear ciclos. Un intento
+    intermedio quedó detenido en el splash y fue descartado. El resultado final
+    pasó el entry de 185,76 a 150,45 KiB gzip y el PWA de 2.025,05 a 1.986,06
+    KiB, con 32/32 recorridos públicos funcionales.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2066,7 +2086,7 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-28: **1.925 tests en 183 archivos**,
+- Build y suites locales del 2026-08-28: **1.936 tests en 184 archivos**,
   typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 70
   funciones verificadas. Última evidencia: 42
   E2E críticos contra la base real.

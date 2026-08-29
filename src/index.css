@@ -3351,9 +3351,9 @@
     background: hsl(var(--card) / 0.94);
   }
 
-  .light .workspace-page input.bg-muted,
-  .light .workspace-page textarea.bg-muted,
-  .light .workspace-page [role="combobox"].bg-muted {
+  .light .workspace-page input[class~="bg-muted"],
+  .light .workspace-page textarea[class~="bg-muted"],
+  .light .workspace-page [role="combobox"][class~="bg-muted"] {
     background: hsl(0 0% 100%);
   }
 

@@ -51,8 +51,6 @@ const FinanceOverviewPage     = lazy(() => import("@/pages/FinanceOverviewPage")
 const FinanceDocumentsPage    = lazy(() => import("@/pages/FinanceDocumentsPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 
-const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
-
 // ── Page-level loading fallback ─────────────────────────────────────────────
 function PageLoader() {
   return (
@@ -246,9 +244,6 @@ function ProtectedRoutes() {
     <MfaGate isAdmin={isAdmin} orgRequiresMfa={!!orgRequiresMfa}>
     <PermissionsProvider>
     <AppLayout>
-      <Suspense fallback={null}>
-        <CommandPalette />
-      </Suspense>
       <Suspense fallback={<PageLoader />}>
         <ModuleGuard>
         {/* Las rutas salen del Route Manifest, no de una lista a mano.

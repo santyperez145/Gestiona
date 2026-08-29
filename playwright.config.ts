@@ -6,8 +6,8 @@
  * dependencia, la config y **cero specs**. El E2E estaba andamiado y nunca
  * había corrido.
  *
- * Los tests corren contra el dev server local, no contra Vercel: hasta que no
- * se pushea, el sitio publicado tiene el código viejo. Y leen la base de
+ * Los tests corren contra el bundle de producción servido en local, no contra
+ * Vercel: hasta que no se pushea, el sitio publicado tiene el código viejo. Y leen la base de
  * producción, que es la única que hay — por eso los specs son **de sólo
  * lectura**. Si alguno necesita escribir, va con datos `ZZ` y limpieza, como
  * los bloques SQL de verificación.
@@ -81,7 +81,11 @@ export default defineConfig({
   // El opt-in local sólo se usa cuando quien corre la suite sabe qué servidor
   // está escuchando en E2E_PORT.
   webServer: process.env.E2E_BASE_URL ? undefined : {
-    command: `npm run dev -- --port ${PORT} --strictPort`,
+    // El dev server transforma módulos en la primera visita. Con cuatro
+    // browsers simultáneos una carga llegó a 31 s y agotó el timeout aunque el
+    // retry tardó 3 s. El bundle de producción es lo que realmente se deploya,
+    // elimina esa carrera y además hace que un error de build bloquee el E2E.
+    command: `npm run build && npm run preview -- --port ${PORT} --strictPort`,
     port: PORT,
     reuseExistingServer,
     timeout: 120_000,

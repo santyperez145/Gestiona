@@ -6,7 +6,9 @@ base vinculada; no crean ventas, órdenes, envíos ni comprobantes.
 
 ## Contrato del gate
 
-- Vite arranca en `4173` por defecto con `--strictPort`.
+- Vite construye el bundle de producción y lo sirve con `vite preview` en
+  `4173` por defecto y `--strictPort`. Probar el artefacto real evita que cuatro
+  browsers compitan por la transformación inicial del dev server.
 - Un proceso preexistente nunca se reutiliza salvo opt-in explícito con
   `E2E_REUSE_SERVER=true`.
 - CI exige `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,
@@ -17,6 +19,12 @@ base vinculada; no crean ventas, órdenes, envíos ni comprobantes.
 
 Esta separación evita dos falsos verdes que existían: levantar la app sin
 conexión a Supabase y saltear silenciosamente todo el panel.
+
+El 2026-08-28 también se retiró el dev server de esta puerta: 31/32 escenarios
+terminaron en el primer intento, pero el primero de mobile 375 px agotó 30 s
+durante la compilación en caliente y pasó en 3,1 s al reintentar. Un retry local
+no demuestra estabilidad y CI no reintenta; `build + preview` prueba el mismo
+tipo de bundle que llega a producción y transforma ese caso en una señal útil.
 
 ## Comandos
 

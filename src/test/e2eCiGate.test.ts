@@ -12,6 +12,8 @@ describe("puerta E2E de CI", () => {
   it("levanta un puerto propio estricto y no reutiliza procesos por defecto", () => {
     expect(config).toContain('process.env.E2E_PORT ?? "4173"');
     expect(config).toContain("--strictPort");
+    expect(config).toContain("npm run build && npm run preview");
+    expect(config).not.toContain("npm run dev --");
     expect(config).toContain('process.env.E2E_REUSE_SERVER === "true"');
     expect(config).toContain("reuseExistingServer,");
     expect(config).not.toContain("reuseExistingServer: true");
