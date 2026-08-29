@@ -1575,7 +1575,7 @@ export default function ProductsPage() {
                               <BadgeCalidad producto={calidadPorProducto.get(p.id) ?? p} />
                               {p.featured && <Star className="w-3 h-3 text-primary shrink-0" fill="currentColor" />}
                               {variantCounts[p.id] > 0 && (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 shrink-0 flex items-center gap-0.5" title={`${variantCounts[p.id]} sabores/variantes`}>
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 shrink-0 flex items-center gap-0.5" title={`${variantCounts[p.id]} variantes`}>
                                   <Layers className="w-2.5 h-2.5" />{variantCounts[p.id]}
                                 </span>
                               )}
@@ -1994,7 +1994,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Variants state
   const [variants, setVariants] = useState<any[]>([]);
-  const [variantType, setVariantType] = useState(product?.variant_type || 'sabor');
+  const [variantType, setVariantType] = useState(product?.variant_type || 'otro');
   const [newVariantName, setNewVariantName] = useState('');
   const [newVariantStock, setNewVariantStock] = useState('0');
   const [newVariantPrice, setNewVariantPrice] = useState('');
@@ -2135,11 +2135,10 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name]);
-  const VARIANT_TYPE_LABELS: Record<string, string> = {
-    sabor: 'Sabores', talle: 'Talles', color: 'Colores',
-    medida: 'Medidas', otro: 'Variantes',
-  };
-  const variantLabel = VARIANT_TYPE_LABELS[variantType] || 'Variantes';
+  // El tipo describe cada opción; el módulo siempre es transversal y se llama
+  // Variantes. Un comercio de indumentaria o electrónica no debería encontrar
+  // la ficha rotulada como "Sabores" por un default heredado de vapers.
+  const variantLabel = 'Variantes';
   const variantsNeedLocation = activeLocationCount > 1;
 
   useEffect(() => {
@@ -3209,14 +3208,14 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 setVariants([...variants, ...newVars]);
                 setBulkVariants('');
                 setShowBulkImport(false);
-                if (newVars.length > 0) toast.success(`${newVars.length} sabores agregados`);
+                if (newVars.length > 0) toast.success(newVars.length === 1 ? '1 variante agregada' : `${newVars.length} variantes agregadas`);
               }}>Agregar todos</Button>
             </div>
           )}
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_9rem_auto] sm:items-end">
             <div>
               <label htmlFor="product-variant-name" className="mb-1 block text-xs text-muted-foreground">Nombre</label>
-              <Input id="product-variant-name" value={newVariantName} onChange={e => setNewVariantName(e.target.value)} placeholder={`Nombre de ${variantLabel.toLowerCase()}`} className="bg-muted border-border text-xs" />
+              <Input id="product-variant-name" value={newVariantName} onChange={e => setNewVariantName(e.target.value)} placeholder="Nombre de la variante" className="bg-muted border-border text-xs" />
             </div>
             <div>
               <label htmlFor="product-variant-stock" className="mb-1 block text-xs text-muted-foreground">Stock</label>
@@ -3229,7 +3228,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
             <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => {
               if (!newVariantName.trim()) return;
               if (variants.some(v => v.variant_name.toLowerCase() === newVariantName.trim().toLowerCase())) {
-                toast.error('Ese sabor ya existe'); return;
+                toast.error('Esa variante ya existe'); return;
               }
               setVariants([...variants, { variant_name: newVariantName.trim(), stock: parseInt(newVariantStock) || 0, active: true, _new: true, price_override: parseFloat(newVariantPrice) || null }]);
               setNewVariantName(''); setNewVariantStock('0'); setNewVariantPrice('');

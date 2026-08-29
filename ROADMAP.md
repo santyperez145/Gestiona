@@ -2077,6 +2077,15 @@ Finance Connect.
     real, protección explícita de cambios sin guardar y medición de tarea antes
     de declarar el flujo adoptado.
 
+62. Lenguaje transversal de variantes — slice técnico cerrado el 2026-08-29.
+    La ficha dejó de titular el módulo como “Sabores” cuando el tipo elegido era
+    sabor: el encabezado canónico, el badge de catálogo, la carga masiva y sus
+    mensajes hablan de Variantes, mientras el selector conserva Sabor, Talle,
+    Color o Medida sólo como tipo de cada opción. Un producto nuevo parte de
+    `otro`, no de `sabor`; los vapers lo eligen por su subtipo y las variantes
+    existentes conservan su dato. La guarda visual bloquea el regreso del
+    rótulo heredado sin alterar stock, Kardex ni registros existentes.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

@@ -97,6 +97,11 @@ describe('contrato visual transversal de Gestión', () => {
     expect(products).toContain('className="z-20 shrink-0 border-t');
     expect(products).toContain('sm:grid-cols-[minmax(0,1fr)_7rem_9rem_auto]');
     expect(products).toContain('aria-label={`Eliminar ${v.variant_name}`}');
+    expect(products).toContain("const [variantType, setVariantType] = useState(product?.variant_type || 'otro')");
+    expect(products).toContain("const variantLabel = 'Variantes'");
+    expect(products).toContain("toast.error('Esa variante ya existe')");
+    expect(products).not.toContain("sabor: 'Sabores'");
+    expect(products).not.toContain('sabores/variantes');
     expect(products).toContain('<DialogHeader className="sr-only">\n            <DialogTitle>Importar catálogo</DialogTitle>');
     expect(products).not.toContain('className="bg-card border-border max-h-[90vh] overflow-y-auto">\n                  <DialogHeader><DialogTitle className="font-display">{editing');
 
