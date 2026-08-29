@@ -2043,9 +2043,27 @@ Finance Connect.
     ordenan en “Exportar y etiquetar” y “Administrar catálogo”, respetando rol y
     permisos. Los controles icon-only tienen nombre accesible, lista/grilla
     expone `aria-pressed` y los rótulos secundarios se compactan en mobile. La
-    guarda visual enumera cada acción para impedir pérdidas silenciosas. Falta
-    validar el bundle desplegado en desktop/360 y medir tiempo de hallazgo del
-    alta/importación antes de cerrar Productos end-to-end.
+    guarda visual enumera cada acción para impedir pérdidas silenciosas. El
+    bundle desplegado se validó con sesión real en desktop y 360 px: las once
+    acciones siguen disponibles, el encabezado no desborda y la consola queda
+    limpia. Falta medir tiempo de hallazgo del alta/importación antes de cerrar
+    Productos end-to-end.
+
+61. Editor, variantes e importación responsive de Productos — slice técnico
+    cerrado el 2026-08-29. La ficha extensa ya no se comprime dentro de un
+    modal angosto: alta y edición usan un workspace fullscreen sobre Dialog,
+    con cabecera contextual, scroll único, ancho de lectura y CTA sticky que
+    sigue alcanzable a 360 px. Los pares y cuartetos de campos colapsan a una o
+    dos columnas en mobile; variantes expone nombre, stock, precio propio y
+    eliminación con labels persistentes, targets completos y cards responsive.
+    El wizard Excel/CSV comparte el mismo workspace, mantiene progreso y cierre
+    visibles, apila acciones en teléfono y declara el scroll horizontal de sus
+    tablas comparativas. No cambia autoridad: precios/stock siguen validados
+    por servidor y Kardex. La guarda de contrato bloquea el regreso al modal
+    angosto y a acciones icon-only; la barrera local cerró typecheck, lint,
+    1.991/1.991 tests y build/PWA. Quedan prueba publicada del editor en los
+    cuatro viewports, importación autenticada con un archivo real y protección
+    explícita de cambios sin guardar antes de declarar el flujo adoptado.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

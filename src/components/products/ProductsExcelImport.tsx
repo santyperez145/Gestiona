@@ -227,7 +227,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   }
 
   if (!canImport) return (
-    <div className="space-y-4 py-2">
+    <div className="h-full space-y-4 overflow-y-auto p-5 sm:p-7">
       <Alert variant="warning"><ShieldCheck className="h-4 w-4 shrink-0" /><div>
         <AlertTitle>Importación reservada a owner o admin</AlertTitle>
         <AlertDescription>El lote puede cambiar costos, precios y stock. Pedile a un administrador que lo revise y apruebe.</AlertDescription>
@@ -237,17 +237,18 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   );
 
   return (
-    <div className="max-h-[86vh] space-y-4 overflow-y-auto pr-1">
-      <div className="flex items-start justify-between gap-3">
+    <div className="h-full overflow-y-auto overscroll-contain bg-card">
+      <div className="sticky top-0 z-20 flex items-start justify-between gap-3 border-b border-border/70 bg-card/95 px-4 py-4 pr-3 backdrop-blur sm:px-7">
         <div className="flex items-start gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
           <FileSpreadsheet className="h-5 w-5 text-primary" />
         </div><div><h3 className="font-semibold">Importar catálogo</h3><p className="text-xs text-muted-foreground">Excel o CSV · validación · aprobación · Kardex y reconciliación</p></div></div>
         <Button variant="ghost" size="sm" onClick={onClose} aria-label="Cerrar"><X className="h-4 w-4" /></Button>
       </div>
 
+      <div className="mx-auto max-w-6xl space-y-4 px-4 py-5 sm:px-7 sm:py-7">
       <div className="grid grid-cols-3 gap-2 text-[11px]">
         {[["1", "Archivo", step !== "upload"], ["2", "Validación", ["staged", "done"].includes(step)], ["3", "Aplicación", step === "done"]].map(([number, label, done]) => (
-          <div key={String(number)} className={`rounded-lg border px-3 py-2 ${done ? "border-emerald-500/30 bg-emerald-500/5" : "border-border"}`}>
+          <div key={String(number)} className={`rounded-lg border px-2 py-2 sm:px-3 ${done ? "border-emerald-500/30 bg-emerald-500/5" : "border-border"}`}>
             <b className="mr-1.5">{done ? "✓" : number}.</b>{label}
           </div>
         ))}
@@ -297,14 +298,15 @@ export default function ProductsExcelImport({ onClose, onImported }: {
             <SelectTrigger className="mt-1 h-9 w-full text-sm" aria-label="Sucursal que recibirá el stock importado"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="__general">{locations.length > 1 ? "Elegí una sucursal" : "Stock general"}</SelectItem>{locations.map(location => <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>)}</SelectContent>
           </Select></div>}
-        <div className="overflow-x-auto rounded-lg border border-border"><table className="w-full min-w-[760px] text-xs">
+        <p className="text-[11px] text-muted-foreground sm:hidden">Deslizá la vista previa horizontalmente para comparar todas las columnas.</p>
+        <div className="overflow-x-auto rounded-lg border border-border" tabIndex={0} aria-label="Vista previa de productos importados"><table className="w-full min-w-[760px] text-xs">
           <thead className="bg-muted/40 text-muted-foreground"><tr><th className="p-2 text-left">Fila</th><th className="p-2 text-left">Producto</th><th className="p-2 text-left">SKU</th><th className="p-2 text-right">Costo total</th><th className="p-2 text-right">Venta</th><th className="p-2 text-right">Stock</th><th className="p-2 text-left">Vista local</th></tr></thead>
           <tbody>{rows.slice(0, 100).map((row, index) => { const preview = previews[index]; return <tr key={`${index}-${row.name}`} className="border-t border-border/60">
             <td className="p-2 text-muted-foreground">{index + 1}</td><td className="max-w-[220px] truncate p-2 font-medium">{row.name || "Sin nombre"}</td><td className="p-2 font-mono">{String(row.sku || "—")}</td>
             <td className="p-2 text-right">USD {preview.totalCostUSD.toFixed(2)}</td><td className="p-2 text-right">{ars(preview.salePriceARS)}</td><td className="p-2 text-right">{preview.stock ?? "—"}</td>
             <td className="p-2">{preview.localIssues.length ? <span className="text-amber-500">{preview.localIssues.join(" · ")}</span> : <span className="text-emerald-500">Lista</span>}</td>
           </tr>; })}</tbody></table>{rows.length > 100 && <p className="border-t border-border p-2 text-center text-xs text-muted-foreground">Mostrando 100; el servidor validará las {rows.length}.</p>}</div>
-        <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={() => void prepare()} disabled={busy || (needsLocation && !locationId)}>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button variant="outline" className="w-full sm:w-auto" onClick={onClose}>Cancelar</Button><Button className="w-full sm:w-auto" onClick={() => void prepare()} disabled={busy || (needsLocation && !locationId)}>
           {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileCheck2 className="mr-2 h-4 w-4" />}Preparar y validar</Button></div>
       </div>}
 
@@ -312,7 +314,8 @@ export default function ProductsExcelImport({ onClose, onImported }: {
         <Alert variant={stage.invalid ? "warning" : "success"}>{stage.invalid ? <AlertCircle className="h-4 w-4 shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />}<div>
           <AlertTitle>{stage.invalid ? "Hay filas que no se aplicarán" : "Validación completa"}</AlertTitle><AlertDescription>El servidor revisó {stage.total} filas. Todavía no cambió ningún producto ni unidad.</AlertDescription></div></Alert>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5"><SummaryCard label="Total" value={stage.total} /><SummaryCard label="Válidas" value={stage.valid} tone="text-emerald-500" /><SummaryCard label="Nuevas" value={stage.creates} /><SummaryCard label="Actualizan" value={stage.updates} /><SummaryCard label="Inválidas" value={stage.invalid} tone={stage.invalid ? "text-destructive" : "text-emerald-500"} /></div>
-        <div className="max-h-[360px] overflow-auto rounded-lg border border-border"><table className="w-full min-w-[720px] text-xs"><thead className="sticky top-0 bg-muted text-muted-foreground"><tr><th className="p-2 text-left">Fila</th><th className="p-2 text-left">Acción</th><th className="p-2 text-left">Producto</th><th className="p-2 text-left">SKU</th><th className="p-2 text-left">Resultado del servidor</th></tr></thead>
+        <p className="text-[11px] text-muted-foreground sm:hidden">Deslizá el resultado horizontalmente para revisar cada validación.</p>
+        <div className="max-h-[360px] overflow-auto rounded-lg border border-border" tabIndex={0} aria-label="Resultado de validación del servidor"><table className="w-full min-w-[720px] text-xs"><thead className="sticky top-0 bg-muted text-muted-foreground"><tr><th className="p-2 text-left">Fila</th><th className="p-2 text-left">Acción</th><th className="p-2 text-left">Producto</th><th className="p-2 text-left">SKU</th><th className="p-2 text-left">Resultado del servidor</th></tr></thead>
           <tbody>{stagedRows.slice(0, 200).map(row => { const normalized = jsonObject(row.normalized); return <tr key={row.id} className="border-t border-border/60 align-top"><td className="p-2">{row.row_number}</td>
             <td className="p-2"><Badge variant={row.action === "invalid" ? "destructive" : row.action === "create" ? "default" : "secondary"}>{row.action === "create" ? "Crear" : row.action === "update" ? "Actualizar" : "Inválida"}</Badge></td>
             <td className="max-w-[220px] p-2 font-medium">{String(normalized.name || "Sin nombre")}</td><td className="p-2 font-mono">{String(normalized.sku || "—")}</td><td className="p-2">
@@ -320,7 +323,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
               {!row.validation_errors.length && !row.validation_warnings.length && <span className="text-emerald-500">Lista para aplicar</span>}</td></tr>; })}</tbody></table>
           {stagedRows.length > 200 && <p className="border-t border-border p-2 text-center text-xs text-muted-foreground">Mostrando 200 de {stagedRows.length}; el lote completo quedó validado.</p>}</div>
         {stage.invalid > 0 && <label className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm"><Checkbox className="mt-0.5" checked={skipInvalid} onCheckedChange={value => setSkipInvalid(value === true)} /><span><b>Omitir {stage.invalid} filas inválidas</b><span className="mt-1 block text-xs text-muted-foreground">Se aplicarán sólo las {stage.valid} válidas y el descarte quedará registrado.</span></span></label>}
-        <div className="flex flex-wrap justify-between gap-2"><Button variant="outline" onClick={reset}><ArrowLeft className="mr-2 h-4 w-4" />Corregir archivo</Button><Button onClick={() => void apply()} disabled={busy || !stage.valid || (stage.invalid > 0 && !skipInvalid)}>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between"><Button variant="outline" className="w-full sm:w-auto" onClick={reset}><ArrowLeft className="mr-2 h-4 w-4" />Corregir archivo</Button><Button className="w-full sm:w-auto" onClick={() => void apply()} disabled={busy || !stage.valid || (stage.invalid > 0 && !skipInvalid)}>
           {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}Aprobar {stage.valid} filas</Button></div>
       </div>}
 
@@ -328,8 +331,9 @@ export default function ProductsExcelImport({ onClose, onImported }: {
         <div><h4 className="text-xl font-semibold">Catálogo reconciliado</h4><p className="mt-1 text-sm text-muted-foreground">Cada fila válida terminó exactamente una vez.</p></div>
         <div className="mx-auto grid max-w-xl grid-cols-2 gap-2 sm:grid-cols-4"><SummaryCard label="Creados" value={result.created || 0} tone="text-emerald-500" /><SummaryCard label="Actualizados" value={result.updated || 0} /><SummaryCard label="Movimientos Kardex" value={result.stock_movements || 0} /><SummaryCard label="Omitidos" value={result.skipped || 0} tone={result.skipped ? "text-amber-500" : "text-foreground"} /></div>
         <Alert variant="success" className="text-left"><ShieldCheck className="h-4 w-4 shrink-0" /><div><AlertTitle>Aplicación atómica e idempotente</AlertTitle><AlertDescription>Reintentar el mismo lote no duplica productos ni movimientos de stock.</AlertDescription></div></Alert>
-        <div className="flex justify-center gap-2"><Button variant="outline" onClick={reset}><Upload className="mr-2 h-4 w-4" />Importar otro</Button><Button onClick={onClose}>Volver a Productos</Button></div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center"><Button variant="outline" className="w-full sm:w-auto" onClick={reset}><Upload className="mr-2 h-4 w-4" />Importar otro</Button><Button className="w-full sm:w-auto" onClick={onClose}>Volver a Productos</Button></div>
       </div>}
+      </div>
     </div>
   );
 }

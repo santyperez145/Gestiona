@@ -14,7 +14,7 @@ import { useCountdown } from "@/hooks/useCountdown";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale, Loader2, ExternalLink, RefreshCw, MoreHorizontal } from "lucide-react";
@@ -73,6 +73,7 @@ import {
 import { plural } from "@/lib/plural";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
+const FULLSCREEN_PRODUCT_WORKSPACE = "h-[100dvh] max-h-[100dvh] w-screen max-w-none overflow-hidden rounded-none border-0 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-6xl sm:rounded-[18px] sm:border";
 
 function productLoadErrorMessage(cause: unknown, fallback: string) {
   if (cause instanceof Error && cause.message.trim()) return cause.message;
@@ -945,9 +946,16 @@ export default function ProductsPage() {
                 <DialogTrigger asChild>
                   <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
                 </DialogTrigger>
-                <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
-                  <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
-                  <ProductForm product={editing} settings={settings} userId={user!.id} orgId={activeOrg?.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
+                <DialogContent size="full" className={FULLSCREEN_PRODUCT_WORKSPACE}>
+                  <DialogHeader className="mb-0 shrink-0 border-b border-border/70 bg-card/95 px-5 py-4 pr-14 backdrop-blur sm:px-7">
+                    <DialogTitle>{editing ? 'Editar producto' : 'Nuevo producto'}</DialogTitle>
+                    <DialogDescription>
+                      Identidad, costos, inventario, variantes y publicación comparten una sola ficha del Business Core.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                    <ProductForm product={editing} settings={settings} userId={user!.id} orgId={activeOrg?.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
+                  </div>
                 </DialogContent>
               </Dialog>
             ))}
@@ -1098,7 +1106,7 @@ export default function ProductsPage() {
 
       {/* Importación unificada: el servidor valida antes de tocar catálogo o stock. */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent className="bg-card border-border max-w-5xl">
+        <DialogContent size="full" hideClose className={FULLSCREEN_PRODUCT_WORKSPACE}>
           <ProductsExcelImport onClose={() => setImportOpen(false)} onImported={reload} />
         </DialogContent>
       </Dialog>
@@ -2424,7 +2432,12 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   };
 
   return (
-    <form onSubmit={handleSubmit} onPaste={handlePaste} className="space-y-4 pb-12">
+    <form
+      onSubmit={handleSubmit}
+      onPaste={handlePaste}
+      className="mx-auto max-w-5xl space-y-5 px-4 py-5 pb-0 sm:px-7 sm:py-7"
+      aria-label={product ? `Editar ${product.name}` : 'Crear producto'}
+    >
       {/* Image upload (multi) */}
       <div>
         <div className="flex items-center justify-between">
@@ -2544,7 +2557,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         onDetect={(code) => { setBarcode(code); setScanBarcodeOpen(false); }}
         title="Escanear código de barras del producto"
       />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div><label className="text-sm text-muted-foreground">Marca</label><Input value={brand} onChange={e => setBrand(e.target.value.toUpperCase())} className="bg-muted border-border uppercase" /></div>
         <div><label className="text-sm text-muted-foreground">Categoría</label>
           {/* Sale de `ecommerce_categories`, y deja crear una desde acá. Con las
@@ -2752,7 +2765,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
 
           {/* ── Ficha olfativa premium ─────────────────────────────── */}
           {/* Identidad */}
-          <div className="grid grid-cols-2 gap-2 pt-1">
+          <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2">
             <div>
               <p className="text-[10px] text-muted-foreground mb-1">Modelo</p>
               <Input value={modelo} onChange={e => setModelo(e.target.value)} placeholder="Ej: Khamrah" className="bg-muted border-border h-8 text-xs" />
@@ -2769,7 +2782,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               <p className="text-[10px] text-muted-foreground mb-1.5">Familia</p>
               <ChipSelect items={FAMILIAS_OLFATIVAS} selected={familiaOlfativa ? [familiaOlfativa] : []} onToggle={v => setFamiliaOlfativa(familiaOlfativa === v ? '' : v)} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <p className="text-[10px] text-muted-foreground mb-1.5">Duración</p>
                 <ChipSelect items={DURACIONES} selected={duracion ? [duracion] : []} onToggle={v => setDuracion(duracion === v ? '' : v)} />
@@ -2837,7 +2850,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div><label className="text-sm text-muted-foreground">Género</label>
           <Select value={gender} onValueChange={setGender}><SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="masculino">Masculino</SelectItem><SelectItem value="femenino">Femenino</SelectItem><SelectItem value="unisex">Unisex</SelectItem></SelectContent>
@@ -2909,7 +2922,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           </>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <div className="flex items-center justify-between">
             <label className="text-sm text-muted-foreground">Precio Venta ARS</label>
@@ -2982,7 +2995,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               return <span className={`text-[11px] font-bold ${clr}`}>Margen actual: {margin.toFixed(1)}%</span>;
             })()}
           </div>
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
             {([30, 40, 50, 60] as const).map(targetMargin => {
               const suggested = Math.round(totalCostARS / (1 - targetMargin / 100));
               const currentMargin = salePrice > 0 ? ((salePrice - totalCostARS) / salePrice) * 100 : -1;
@@ -3043,7 +3056,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           </p>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="text-sm text-muted-foreground">Descripción</label>
           <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Notas sobre el producto" className="bg-muted border-border" />
@@ -3059,7 +3072,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         )}
       </div>
       {/* Barcode & SKU */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="text-sm text-muted-foreground">Código de barras</label>
           <Input value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="EAN-13, UPC..." className="bg-muted border-border font-mono text-sm" />
@@ -3076,7 +3089,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           Los usa tu tienda online para cotizar el envío. Si los dejás vacíos, se cotiza
           con el peso estimado que configuraste en la tienda.
         </p>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Input type="number" min="0" step="0.01" value={weightKg} onChange={e => setWeightKg(e.target.value)}
             placeholder="Peso kg" className="bg-muted border-border text-sm" />
           <Input type="number" min="0" step="0.5" value={lengthCm} onChange={e => setLengthCm(e.target.value)}
@@ -3088,7 +3101,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         </div>
       </div>
       {/* Lot & Expiry */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="text-sm text-muted-foreground">N° de lote</label>
           <Input value={lotNumber} onChange={e => setLotNumber(e.target.value)} placeholder="Ej: LOT-2025-04" className="bg-muted border-border font-mono text-sm" />
@@ -3156,12 +3169,12 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         </button>
       </div>
       {showVariants && (
-        <div className="bg-muted/50 rounded-lg p-3 border border-border space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+        <div className="space-y-4 rounded-lg border border-border bg-muted/50 p-3 sm:p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
               <label className="text-sm font-medium flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-emerald-400" />{variantLabel}</label>
               <Select value={variantType} onValueChange={setVariantType}>
-                <SelectTrigger className="h-7 w-[92px] text-[10px]" aria-label="Tipo de variante"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-[112px] text-xs" aria-label="Tipo de variante"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="sabor">Sabor</SelectItem>
                   <SelectItem value="talle">Talle</SelectItem>
@@ -3171,14 +3184,15 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 </SelectContent>
               </Select>
             </div>
-            <button type="button" onClick={() => setShowBulkImport(!showBulkImport)} className="text-[10px] text-primary hover:underline">
+            <button type="button" onClick={() => setShowBulkImport(!showBulkImport)} className="min-h-9 rounded-md px-2 text-xs font-medium text-primary hover:bg-primary/10">
               {showBulkImport ? 'Cerrar' : 'Importar lista'}
             </button>
           </div>
           {showBulkImport && (
-            <div className="space-y-2 pb-12">
-              <Input value={bulkVariants} onChange={e => setBulkVariants(e.target.value)} placeholder="Menta, Frutilla, Uva Ice, Sandía..." className="bg-muted border-border text-xs" />
-              <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => {
+            <div className="space-y-2 rounded-lg border border-border/70 bg-card/70 p-3">
+              <label htmlFor="product-variant-bulk" className="block text-xs font-medium text-muted-foreground">Variantes separadas por coma</label>
+              <Input id="product-variant-bulk" value={bulkVariants} onChange={e => setBulkVariants(e.target.value)} placeholder="Menta, Frutilla, Uva Ice, Sandía..." className="bg-muted border-border text-xs" />
+              <Button type="button" variant="outline" size="sm" className="w-full text-xs sm:w-auto" onClick={() => {
                 const names = bulkVariants.split(',').map(n => n.trim()).filter(Boolean);
                 const existing = new Set(variants.map(v => v.variant_name.toLowerCase()));
                 const newVars = names.filter(n => !existing.has(n.toLowerCase())).map(n => ({
@@ -3191,43 +3205,53 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               }}>Agregar todos</Button>
             </div>
           )}
-          <div className="flex gap-2 flex-wrap">
-            <Input value={newVariantName} onChange={e => setNewVariantName(e.target.value)} placeholder="Nombre del sabor" className="bg-muted border-border text-xs flex-1 min-w-[120px]" />
-            <Input type="number" min="0" value={newVariantStock} onChange={e => setNewVariantStock(e.target.value)} className="bg-muted border-border text-xs w-16" placeholder="Stock" disabled={variantsNeedLocation} title={variantsNeedLocation ? "Cargá el stock por depósito desde Sucursales" : undefined} />
-            <Input type="number" min="0" step="0.01" value={newVariantPrice} onChange={e => setNewVariantPrice(e.target.value)} className="bg-muted border-border text-xs w-24" placeholder="Precio (opc)" />
-            <Button type="button" variant="outline" size="sm" onClick={() => {
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_9rem_auto] sm:items-end">
+            <div>
+              <label htmlFor="product-variant-name" className="mb-1 block text-xs text-muted-foreground">Nombre</label>
+              <Input id="product-variant-name" value={newVariantName} onChange={e => setNewVariantName(e.target.value)} placeholder={`Nombre de ${variantLabel.toLowerCase()}`} className="bg-muted border-border text-xs" />
+            </div>
+            <div>
+              <label htmlFor="product-variant-stock" className="mb-1 block text-xs text-muted-foreground">Stock</label>
+              <Input id="product-variant-stock" type="number" min="0" value={newVariantStock} onChange={e => setNewVariantStock(e.target.value)} className="bg-muted border-border text-xs" disabled={variantsNeedLocation} title={variantsNeedLocation ? "Cargá el stock por depósito desde Sucursales" : undefined} />
+            </div>
+            <div>
+              <label htmlFor="product-variant-price" className="mb-1 block text-xs text-muted-foreground">Precio propio</label>
+              <Input id="product-variant-price" type="number" min="0" step="0.01" value={newVariantPrice} onChange={e => setNewVariantPrice(e.target.value)} className="bg-muted border-border text-xs" placeholder="Opcional" />
+            </div>
+            <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => {
               if (!newVariantName.trim()) return;
               if (variants.some(v => v.variant_name.toLowerCase() === newVariantName.trim().toLowerCase())) {
                 toast.error('Ese sabor ya existe'); return;
               }
               setVariants([...variants, { variant_name: newVariantName.trim(), stock: parseInt(newVariantStock) || 0, active: true, _new: true, price_override: parseFloat(newVariantPrice) || null }]);
               setNewVariantName(''); setNewVariantStock('0'); setNewVariantPrice('');
-            }}><Plus className="w-3 h-3" /></Button>
+            }}><Plus className="mr-1.5 h-3.5 w-3.5" />Agregar</Button>
           </div>
           {variants.length > 0 && (
-            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+            <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
               {variants.map((v, i) => (
-                <div key={v.id || `new-${i}`} className="flex items-center gap-2 bg-card rounded p-2 border border-border flex-wrap">
-                  <span className="text-xs font-medium flex-1 truncate min-w-[80px]">{v.variant_name}</span>
-                  <div className="flex items-center gap-1">
+                <div key={v.id || `new-${i}`} className="grid gap-2 rounded-lg border border-border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_7rem_9rem_auto] sm:items-end">
+                  <div className="min-w-0 self-center">
+                    <span className="block text-[11px] text-muted-foreground sm:hidden">Variante</span>
+                    <span className="block truncate text-sm font-medium">{v.variant_name}</span>
+                  </div>
+                  <label className="block text-[11px] text-muted-foreground">Stock
                     <Input type="number" min="0" value={String(v.stock)} onChange={e => {
                       const updated = [...variants];
                       updated[i] = { ...updated[i], stock: parseInt(e.target.value) || 0 };
                       setVariants(updated);
-                    }} className="bg-muted border-border text-xs w-14 h-7" disabled={variantsNeedLocation} title={variantsNeedLocation ? "Ajustá este stock por depósito desde Sucursales" : undefined} />
-                    <span className="text-[10px] text-muted-foreground">uds</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-muted-foreground">$</span>
+                    }} className="mt-1 h-9 w-full bg-muted text-xs" disabled={variantsNeedLocation} title={variantsNeedLocation ? "Ajustá este stock por depósito desde Sucursales" : undefined} aria-label={`Stock de ${v.variant_name}`} />
+                  </label>
+                  <label className="block text-[11px] text-muted-foreground">Precio propio
                     <Input type="number" min="0" step="0.01" value={v.price_override != null ? String(v.price_override) : ''} placeholder="Precio propio" onChange={e => {
                       const updated = [...variants];
                       updated[i] = { ...updated[i], price_override: parseFloat(e.target.value) || null };
                       setVariants(updated);
-                    }} className="bg-muted border-border text-xs w-24 h-7" title="Precio propio de esta variante (sobreescribe el precio del producto)" />
-                  </div>
-                  <Button type="button" variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => {
+                    }} className="mt-1 h-9 w-full bg-muted text-xs" title="Precio propio de esta variante (sobreescribe el precio del producto)" aria-label={`Precio propio de ${v.variant_name}`} />
+                  </label>
+                  <Button type="button" variant="ghost" size="sm" className="h-9 w-full shrink-0 px-3 text-destructive sm:w-9 sm:p-0" aria-label={`Eliminar ${v.variant_name}`} onClick={() => {
                     setVariants(variants.filter((_, j) => j !== i));
-                  }}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+                  }}><Trash2 className="mr-1.5 h-3.5 w-3.5 sm:mr-0" /><span className="sm:sr-only">Eliminar</span></Button>
                 </div>
               ))}
               <p className="text-[10px] text-muted-foreground mt-1">
@@ -3269,7 +3293,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <Sparkles className="w-3 h-3 mr-1" />{generatingDesc ? 'Generando...' : 'Generar con IA'}
         </Button>
       )}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="flex items-center gap-2 bg-muted rounded-lg p-3 border border-border">
           <input type="checkbox" checked={featured} onChange={e => setFeatured(e.target.checked)} id="featured" className="rounded" />
           <label htmlFor="featured" className="text-sm flex items-center gap-1 cursor-pointer">
@@ -3308,7 +3332,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           </p>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="text-sm text-muted-foreground">Oferta hasta</label>
           <Input type="datetime-local" value={offerExpiresAt} onChange={e => setOfferExpiresAt(e.target.value)} className="bg-muted border-border text-xs" />
@@ -3444,7 +3468,14 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           productCategory={product.category}
         />
       )}
-      <Button type="submit" disabled={uploading} className="w-full gradient-gold text-primary-foreground font-semibold">{uploading ? 'Subiendo imagen...' : product ? 'Guardar' : 'Agregar'}</Button>
+      <div className="sticky bottom-0 z-20 -mx-4 mt-8 border-t border-border/70 bg-card/95 px-4 py-3 backdrop-blur sm:-mx-7 sm:flex sm:items-center sm:justify-between sm:px-7">
+        <p className="mb-2 text-xs text-muted-foreground sm:mb-0">
+          El guardado actualiza la ficha canónica; el stock se asienta por Kardex.
+        </p>
+        <Button type="submit" disabled={uploading} className="w-full min-w-44 gradient-gold text-primary-foreground font-semibold sm:w-auto">
+          {uploading ? 'Subiendo imagen...' : product ? 'Guardar cambios' : 'Crear producto'}
+        </Button>
+      </div>
     </form>
   );
 }
