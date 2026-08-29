@@ -521,6 +521,7 @@ export default function SettingsPage() {
     try {
       const num = (val: string, fallback: number) => { const n = parseFloat(val); return isNaN(n) ? fallback : n; };
       const int = (val: string, fallback: number) => { const n = parseInt(val); return isNaN(n) ? fallback : n; };
+      const paymentDiscount = (val: string) => Math.min(90, Math.max(0, num(val, 0)));
       await saveSettingsDB(user.id, {
         // ⚠️ Vacío guarda NULL, no 1695. Desde 20260826000030 la columna no
         // tiene DEFAULT y NULL significa "el comercio todavía no cargó la
@@ -543,10 +544,10 @@ export default function SettingsPage() {
         catalog_card_color: catalogCard,
         catalog_accent_color: catalogAccent,
         brand_palettes: brandPalettes,
-        discount_cash_percent: num(discountCash, 0),
-        discount_transfer_percent: num(discountTransfer, 0),
-        discount_debit_percent: num(discountDebit, 0),
-        discount_credit_percent: num(discountCredit, 0),
+        discount_cash_percent: paymentDiscount(discountCash),
+        discount_transfer_percent: paymentDiscount(discountTransfer),
+        discount_debit_percent: paymentDiscount(discountDebit),
+        discount_credit_percent: paymentDiscount(discountCredit),
         whatsapp_number: whatsappNumber || null,
         whatsapp_digest_enabled: whatsappDigestEnabled,
         whatsapp_birthday_enabled: whatsappBirthdayEnabled,
@@ -1294,16 +1295,16 @@ export default function SettingsPage() {
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-primary" />Descuentos por Medio de Pago
             </h2>
-            <p className="text-xs text-muted-foreground">Estos descuentos se aplican sobre el precio de venta al registrar una venta. Efectivo y transferencia usan el precio c/descuento del producto.</p>
+            <p className="text-xs text-muted-foreground">Caja cobra el menor entre la oferta vigente y el descuento de este medio calculado sobre lista. No se acumulan dos descuentos automáticos; en cobros divididos se conserva la oferta y no se mezclan porcentajes.</p>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-sm text-muted-foreground">Efectivo (%)</label>
-                <Input type="number" step="0.1" value={discountCash} onChange={e => setDiscountCash(e.target.value)} className="bg-muted border-border mt-1" /></div>
+                <Input type="number" min="0" max="90" step="0.1" value={discountCash} onChange={e => setDiscountCash(e.target.value)} className="bg-muted border-border mt-1" /></div>
               <div><label className="text-sm text-muted-foreground">Transferencia (%)</label>
-                <Input type="number" step="0.1" value={discountTransfer} onChange={e => setDiscountTransfer(e.target.value)} className="bg-muted border-border mt-1" /></div>
+                <Input type="number" min="0" max="90" step="0.1" value={discountTransfer} onChange={e => setDiscountTransfer(e.target.value)} className="bg-muted border-border mt-1" /></div>
               <div><label className="text-sm text-muted-foreground">Débito (%)</label>
-                <Input type="number" step="0.1" value={discountDebit} onChange={e => setDiscountDebit(e.target.value)} className="bg-muted border-border mt-1" /></div>
+                <Input type="number" min="0" max="90" step="0.1" value={discountDebit} onChange={e => setDiscountDebit(e.target.value)} className="bg-muted border-border mt-1" /></div>
               <div><label className="text-sm text-muted-foreground">Crédito (%)</label>
-                <Input type="number" step="0.1" value={discountCredit} onChange={e => setDiscountCredit(e.target.value)} className="bg-muted border-border mt-1" /></div>
+                <Input type="number" min="0" max="90" step="0.1" value={discountCredit} onChange={e => setDiscountCredit(e.target.value)} className="bg-muted border-border mt-1" /></div>
             </div>
           </div>
 

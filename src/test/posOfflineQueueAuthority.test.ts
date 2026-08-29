@@ -30,9 +30,11 @@ describe("contrato operativo de la cola offline del POS", () => {
   it("persiste una venta offline antes de limpiar o emitir el recibo", () => {
     const persist = pos.indexOf("localStorage.setItem(offlineKey, JSON.stringify(pending))");
     const state = pos.indexOf("setOfflineSales(pending)", persist);
-    const receipt = pos.indexOf("setReceipt({ items: [...cart]", persist);
+    const soldSnapshot = pos.indexOf("const soldItems = cart.map");
+    const receipt = pos.indexOf("setReceipt({ items: soldItems", persist);
 
     expect(persist).toBeGreaterThan(-1);
+    expect(soldSnapshot).toBeGreaterThan(-1);
     expect(state).toBeGreaterThan(persist);
     expect(receipt).toBeGreaterThan(state);
   });

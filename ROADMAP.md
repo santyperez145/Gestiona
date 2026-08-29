@@ -2206,6 +2206,32 @@ Finance Connect.
     Falta captura autenticada 360/768/1024/1440, cobro/devolución atómicos a
     nivel ticket y timeline antes de cerrar D3.
 
+68. Descuentos de POS con autoridad y evidencia — cerrado técnicamente el
+    2026-08-29. Caja mostraba porcentajes configurables para efectivo,
+    transferencia, débito y crédito, pero al vender ignoraba los cuatro y
+    decidía con un booleano heredado: efectivo/transferencia podían tomar el
+    precio de oferta, débito/crédito no, y ninguno aplicaba el porcentaje de
+    Ajustes. El POS ahora calcula el mejor beneficio entre oferta/promoción y
+    descuento del medio —sin acumularlos—, explica importe y porcentaje antes
+    de cobrar, conserva el precio realmente vendido en ticket/recibo y deja el
+    cobro dividido sin descuento automático ambiguo. Los porcentajes se validan
+    entre 0% y 90% también al guardar.
+
+    `20260829000040_pos_payment_method_discounts` lleva la misma regla a
+    `create_sales_transaction_v2`, exige `sales.create`, vuelve a calcular
+    contra producto/settings y persiste `payment_discount_percent` y
+    `payment_discount_ars`: un bundle viejo que intente mandar el precio de
+    lista ya no puede borrar el descuento vigente. La prueba reversible de
+    producción vendió un fixture `ZZ` de ARS 10.000 con oferta ARS 9.500 y 10%
+    en efectivo: cerró a ARS 9.000, registró ARS 500 de descuento incremental,
+    creó el cobro aprobado por ARS 9.000, movió stock 10→9 una sola vez,
+    identificó el precio cliente obsoleto y dejó 0 restos. El QR dinámico de
+    Mercado Pago permanece fuera de este slice: no se expone como medio hasta
+    que acreditación, idempotencia y cierre de ticket sean una única máquina de
+    estados server-side. Puerta completa: typecheck, lint sin errores (138
+    warnings conocidos), 198 archivos / 2.027 pruebas y build/PWA de
+    producción.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
@@ -2703,7 +2729,7 @@ fixture destructiva-cero probó el RPC real y producción sirve `public-api` v42
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **1.988 tests en 192 archivos**,
+- Build y suites locales del 2026-08-29: **2.027 tests en 198 archivos**,
   typecheck, lint sin errores (139 warnings de deuda conocida), build/PWA y 71
   funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
   panel y 1 setup autenticado—; el de Gastos es de sólo lectura.

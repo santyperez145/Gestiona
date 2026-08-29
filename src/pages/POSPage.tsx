@@ -29,6 +29,7 @@ import { useVibration } from "@/hooks/useVibration";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { plural } from "@/lib/plural";
 import { groupPosOfflineTickets, posOfflineAgeLabel, summarizePosOfflineQueue } from "@/lib/posOfflineQueue";
+import { posPaymentDiscountPercent, posPriceForPayment } from "@/lib/posPaymentDiscount";
 // fuse.js loaded dynamically to avoid Rollup TDZ (const kt) in production builds
 
 async function fireConfetti(opts: Record<string, unknown>) {
@@ -68,13 +69,13 @@ const reservationKey = (productId: string, variantId?: string | null) =>
 
 type PayMethod = "efectivo" | "transferencia" | "debito" | "credito" | "mayorista" | "fiado";
 
-const PAY_METHODS: { value: PayMethod; label: string; icon: typeof Banknote; usesDiscount: boolean; color: string }[] = [
-  { value: "efectivo",      label: "Efectivo",      icon: Banknote,        usesDiscount: true,  color: "text-green-400" },
-  { value: "transferencia", label: "Transferencia", icon: ArrowLeftRight,  usesDiscount: true,  color: "text-blue-400" },
-  { value: "debito",        label: "Débito",        icon: CreditCard,      usesDiscount: false, color: "text-primary" },
-  { value: "credito",       label: "Crédito",       icon: CreditCard,      usesDiscount: false, color: "text-yellow-400" },
-  { value: "mayorista",     label: "Mayorista",     icon: Zap,             usesDiscount: true,  color: "text-purple-400" },
-  { value: "fiado",         label: "Fiado / Deuda", icon: UserX,           usesDiscount: false, color: "text-red-400" },
+const PAY_METHODS: { value: PayMethod; label: string; icon: typeof Banknote; color: string }[] = [
+  { value: "efectivo",      label: "Efectivo",      icon: Banknote,        color: "text-green-400" },
+  { value: "transferencia", label: "Transferencia", icon: ArrowLeftRight,  color: "text-blue-400" },
+  { value: "debito",        label: "Débito",        icon: CreditCard,      color: "text-primary" },
+  { value: "credito",       label: "Crédito",       icon: CreditCard,      color: "text-yellow-400" },
+  { value: "mayorista",     label: "Mayorista",     icon: Zap,             color: "text-purple-400" },
+  { value: "fiado",         label: "Fiado / Deuda", icon: UserX,           color: "text-red-400" },
 ];
 
 
@@ -165,6 +166,7 @@ function buildReceiptText(
   businessName: string,
   globalDiscountARS: number,
   couponDiscount: number,
+  paymentMethodDiscountARS: number,
 ) {
   const lines = items.map(
     (it) => `• ${it.name} x${it.quantity} → ${formatARS(it.price * it.quantity)}`
@@ -184,6 +186,7 @@ function buildReceiptText(
     ...lines,
     "",
     couponDiscount > 0 ? `🏷️ Descuento cupón: -${formatARS(couponDiscount)}` : "",
+    paymentMethodDiscountARS > 0 ? `💳 Descuento por medio: -${formatARS(paymentMethodDiscountARS)}` : "",
     globalDiscountARS > 0 ? `🔖 Descuento adicional: -${formatARS(globalDiscountARS)}` : "",
     `💰 *Total: ${formatARS(total)}*`,
     paymentLine,
@@ -197,7 +200,7 @@ function buildReceiptText(
 // ─────────────────────────────────────────────────────────────
 function ReceiptModal({
   items, payMethod, splitMode, splitMethod1, splitMethod2, splitAmount1, splitAmount2,
-  customer, total, cashGiven, businessName, orgId, globalDiscountARS, couponDiscount,
+  customer, total, cashGiven, businessName, orgId, globalDiscountARS, couponDiscount, paymentMethodDiscountARS,
   note, onClose, onNewSale,
 }: {
   items: CartItem[]; payMethod: PayMethod;
@@ -205,7 +208,7 @@ function ReceiptModal({
   splitAmount1: number; splitAmount2: number;
   customer: string; total: number; cashGiven: number;
   businessName: string; orgId: string;
-  globalDiscountARS: number; couponDiscount: number;
+  globalDiscountARS: number; couponDiscount: number; paymentMethodDiscountARS: number;
   note?: string;
   onClose: () => void; onNewSale: () => void;
 }) {
@@ -248,7 +251,7 @@ function ReceiptModal({
   const receiptText = buildReceiptText(
     items, payMethod, splitMode, splitMethod1, splitMethod2,
     splitAmount1, splitAmount2, customer, total, cashGiven, businessName,
-    globalDiscountARS, couponDiscount,
+    globalDiscountARS, couponDiscount, paymentMethodDiscountARS,
   );
   const [mpLink, setMpLink] = useState("");
   const [mpLoading, setMpLoading] = useState(false);
@@ -265,6 +268,7 @@ function ReceiptModal({
 
     let discountRows = "";
     if (couponDiscount > 0) discountRows += `<tr><td colspan="2">Desc. cupón</td><td align="right" style="color:green">-${formatARS(couponDiscount)}</td></tr>`;
+    if (paymentMethodDiscountARS > 0) discountRows += `<tr><td colspan="2">Desc. medio de pago</td><td align="right" style="color:green">-${formatARS(paymentMethodDiscountARS)}</td></tr>`;
     if (globalDiscountARS > 0) discountRows += `<tr><td colspan="2">Desc. adicional</td><td align="right" style="color:green">-${formatARS(globalDiscountARS)}</td></tr>`;
 
     let paymentInfo = "";
@@ -377,6 +381,12 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
               <div className="flex justify-between text-xs text-emerald-400">
                 <span>Descuento cupón</span>
                 <span className="font-mono">-{formatARS(couponDiscount)}</span>
+              </div>
+            )}
+            {paymentMethodDiscountARS > 0 && (
+              <div className="flex justify-between text-xs text-emerald-500">
+                <span>Descuento por medio</span>
+                <span className="font-mono">-{formatARS(paymentMethodDiscountARS)}</span>
               </div>
             )}
             {globalDiscountARS > 0 && (
@@ -847,7 +857,7 @@ export default function POSPage() {
   const [submitting, setSubmitting] = useState(false);
   const [receipt, setReceipt] = useState<{
     items: CartItem[]; total: number; cash: number;
-    globalDiscountARS: number; couponDiscount: number; note: string;
+    globalDiscountARS: number; couponDiscount: number; paymentMethodDiscountARS: number; note: string;
   } | null>(null);
   const [showCart, setShowCart] = useState(false);
   const [loadingProds, setLoadingProds] = useState(true);
@@ -1414,27 +1424,41 @@ export default function POSPage() {
 
   // ── Cart calculations ──
   const effectivePayMethod = splitMode ? splitMethod1 : payMethod;
-  const usesDiscount = PAY_METHODS.find(m => m.value === effectivePayMethod)?.usesDiscount ?? false;
+  const paymentDiscountPercent = posPaymentDiscountPercent(
+    effectivePayMethod,
+    settings,
+    splitMode,
+  );
 
   // Mejor promoción auto-aplicable para un item (o null). Compite contra el
   // descuento manual del producto según el medio de pago.
   const promoFor = (item: CartItem): BestPromo | null => {
     if (item.customPrice != null && item.customPrice > 0) return null;
-    const baseDiscount = usesDiscount && item.discountPrice && item.discountPrice > 0 ? item.discountPrice : null;
+    const baseDiscount = item.discountPrice && item.discountPrice > 0 ? item.discountPrice : null;
     return bestPromoPrice(
       { id: item.productId, category: item.category, sale_price_ars: item.price, discount_price_ars: baseDiscount },
       activePromos,
     );
   };
 
-  const priceFor = (item: CartItem) => {
+  const priceBeforePaymentFor = (item: CartItem) => {
     if (item.customPrice != null && item.customPrice > 0) return item.customPrice;
-    const manual = usesDiscount && item.discountPrice && item.discountPrice > 0 ? item.discountPrice : item.price;
+    const manual = item.discountPrice && item.discountPrice > 0 ? item.discountPrice : item.price;
     const promo = promoFor(item);
     return promo ? promo.price : manual;
   };
 
+  const priceFor = (item: CartItem) => posPriceForPayment(
+    item.price,
+    priceBeforePaymentFor(item),
+    effectivePayMethod,
+    settings,
+    splitMode,
+  );
+
+  const cartBeforePaymentDiscount = cart.reduce((s, it) => s + priceBeforePaymentFor(it) * it.quantity, 0);
   const cartSubtotal = cart.reduce((s, it) => s + priceFor(it) * it.quantity, 0);
+  const paymentMethodDiscountARS = Math.max(0, cartBeforePaymentDiscount - cartSubtotal);
 
   // Category discount: sum per-item discounts based on configured category %
   const catDiscountARS = cart.reduce((s, it) => {
@@ -1685,7 +1709,7 @@ export default function POSPage() {
           product_name: item.name,
           quantity: item.quantity,
           unit_price_ars: finalUnitPrice,
-          discount_applied: usesDiscount && !!item.discountPrice,
+          discount_applied: finalUnitPrice + 0.01 < item.price,
           total_ars: adjustedTotal,
           cost_per_unit_usd: item.costUSD,
           profit_ars: profitARS,
@@ -1708,6 +1732,10 @@ export default function POSPage() {
 
         transactionLines.push(saleData);
       }
+      const soldItems = cart.map((item, index) => ({
+        ...item,
+        price: Number(transactionLines[index]?.unit_price_ars ?? item.price),
+      }));
 
       if (isOnline) {
         await addSalesDB(transactionLines, "pos");
@@ -1767,7 +1795,7 @@ export default function POSPage() {
       if (!isOnline) {
         toast.success(`Venta guardada offline — se sincronizará al reconectar`);
         clearCart();
-        setReceipt({ items: [...cart], total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount, note: posNote });
+        setReceipt({ items: soldItems, total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount, paymentMethodDiscountARS, note: posNote });
         return;
       }
 
@@ -1797,11 +1825,12 @@ export default function POSPage() {
 
       if (customer.trim()) saveRecentCustomer(customer.trim());
       setReceipt({
-        items: [...cart],
+        items: soldItems,
         total: cartTotal,
         cash: Number(cashGiven) || 0,
         globalDiscountARS,
         couponDiscount,
+        paymentMethodDiscountARS,
         note: posNote,
       });
       toast.success(`Venta de ${formatARS(cartTotal)} registrada`);
@@ -1814,7 +1843,7 @@ export default function POSPage() {
       } else if (turnoCount % 10 === 0) {
         fireConfetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
       }
-      setTurnoSales(prev => [...prev, { items: [...cart], total: cartTotal, method: splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod, customer: customer.trim(), ts: Date.now(), saleIds: txSaleIds }]);
+      setTurnoSales(prev => [...prev, { items: soldItems, total: cartTotal, method: splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod, customer: customer.trim(), ts: Date.now(), saleIds: txSaleIds }]);
     } catch (e: any) {
       toast.error(e.message || "Error al registrar");
     } finally {
@@ -2394,6 +2423,12 @@ export default function POSPage() {
               <span className="font-mono">{formatARS(cartSubtotal)}</span>
             </div>
           )}
+          {paymentMethodDiscountARS > 0 && (
+            <div className="flex items-center justify-between text-xs text-emerald-500">
+              <span>Desc. {PAY_METHODS.find(m => m.value === effectivePayMethod)?.label} ({paymentDiscountPercent}%)</span>
+              <span className="font-mono">-{formatARS(paymentMethodDiscountARS)}</span>
+            </div>
+          )}
           {catDiscountARS > 0 && (
             <div className="flex items-center justify-between text-xs text-emerald-400">
               <span>Desc. categoría</span>
@@ -2421,6 +2456,11 @@ export default function POSPage() {
               <span>{PAY_METHODS.find(m => m.value === splitMethod1)?.label}</span>
               <span className="font-mono">{formatARS(splitAmt1)}</span>
             </div>
+          )}
+          {splitMode && (
+            <p className="text-[10px] leading-relaxed text-muted-foreground pt-1">
+              El cobro dividido conserva las ofertas del producto, pero no combina descuentos automáticos de dos medios.
+            </p>
           )}
           {splitMode && splitAmt1 > 0 && (
             <div className="flex items-center justify-between text-[10px] text-muted-foreground">
@@ -2643,6 +2683,7 @@ export default function POSPage() {
           orgId={activeOrg?.id || ""}
           globalDiscountARS={receipt.globalDiscountARS}
           couponDiscount={receipt.couponDiscount}
+          paymentMethodDiscountARS={receipt.paymentMethodDiscountARS}
           note={receipt.note}
           onClose={() => setReceipt(null)}
           onNewSale={() => { setReceipt(null); clearCart(); }}
@@ -2926,8 +2967,9 @@ export default function POSPage() {
                   const onlineReserved = Number(onlineReservations[prod.id] ?? 0);
                   const discP = prod.discount_price_ars ? Number(prod.discount_price_ars) : null;
                   const price = Number(prod.sale_price_ars) || 0;
-                  const showDisc = usesDiscount && discP && discP > 0;
-                  const displayPrice = showDisc ? discP! : price;
+                  const currentPrice = discP && discP > 0 && discP < price ? discP : price;
+                  const displayPrice = posPriceForPayment(price, currentPrice, effectivePayMethod, settings, splitMode);
+                  const showDisc = displayPrice + 0.01 < price;
                   const outOfStock = prod.stock <= 0 && !prod.allow_negative_stock;
 
                   return (

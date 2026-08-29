@@ -186,6 +186,7 @@ consultadas el 2026-08-22.
 | | Gestiona | Tiendanube | Empretienda |
 |---|---|---|---|
 | POS de mostrador | ✅ PWA **con modo offline** | ✅ PDV, ✅ **no en su app móvil** | 🟡 carga manual de venta presencial/WhatsApp/redes |
+| Descuento automático por medio en POS | ✅ mejor beneficio, autoridad servidor y evidencia por línea | ❓ | ❓ |
 | Stock único entre canales | ✅ ledger de stock con triggers | ✅ | ✅ tienda + venta cargada manualmente |
 | Kardex auditable | ✅ `stock_movements`, única fuente | ❓ | ❓ |
 | Toma física auditada | ✅ `abrir/registrar/cerrar_conteo` | ❓ | ❓ |
@@ -219,6 +220,7 @@ nunca emitió no es una ventaja, es una promesa.
 | | Gestiona | Tiendanube | Shopify |
 |---|---|---|---|
 | MercadoPago por OAuth | ✅ única autoridad; link exige `sales.create`, comisión por canal y referencia reconciliable | ✅ | ❓ |
+| QR dinámico acreditado antes de cerrar POS | 🔴 en ejecución; no se ofrece hasta tener estado e idempotencia server-side | ✅ Mercado Pago QR | ❓ |
 | Comisión de plataforma sobre la venta | ✅ **cobró de verdad** (`application_fee` 5% en las compras de prueba de 2026-08-11). ⚠️ Hoy la regla está en **0,5% e inactiva** (medido 2026-08-25): no se cobra nada | ✅ ❓0,7%–2% por transacción según plan | ✅ |
 | Orquestador multi-proveedor con failover | 🟡 construido, **no enchufado al checkout** | ❓ | ✅ |
 | Medio de pago propio | 🔴 GestionaPay no existe | 🔴 | ✅ Shopify Payments |

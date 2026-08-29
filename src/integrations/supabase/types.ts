@@ -33539,6 +33539,8 @@ export type Database = {
           customer_name: string | null
           date: string
           discount_applied: boolean
+          payment_discount_ars: number
+          payment_discount_percent: number
           ecommerce_order_id: string | null
           first_installment_date: string | null
           global_discount_ars: number | null
@@ -33583,6 +33585,8 @@ export type Database = {
           customer_name?: string | null
           date?: string
           discount_applied?: boolean
+          payment_discount_ars?: number
+          payment_discount_percent?: number
           ecommerce_order_id?: string | null
           first_installment_date?: string | null
           global_discount_ars?: number | null
@@ -33627,6 +33631,8 @@ export type Database = {
           customer_name?: string | null
           date?: string
           discount_applied?: boolean
+          payment_discount_ars?: number
+          payment_discount_percent?: number
           ecommerce_order_id?: string | null
           first_installment_date?: string | null
           global_discount_ars?: number | null
