@@ -5,7 +5,9 @@ import { assertPublicWebhookUrl } from "../../supabase/functions/_shared/outboun
 
 const ROOT = process.cwd();
 const MIGRATION = readFileSync(resolve(ROOT, "supabase/migrations/20260828000220_los_webhooks_salen_firmados.sql"), "utf8");
+const OUTBOX_MIGRATION = readFileSync(resolve(ROOT, "supabase/migrations/20260829000010_sale_created_vive_en_el_outbox.sql"), "utf8");
 const EDGE = readFileSync(resolve(ROOT, "supabase/functions/send-webhook/index.ts"), "utf8");
+const OUTBOX_EDGE = readFileSync(resolve(ROOT, "supabase/functions/dispatch-outbound-webhook/index.ts"), "utf8");
 const DELIVERY = readFileSync(resolve(ROOT, "supabase/functions/_shared/outboundWebhook.ts"), "utf8");
 const PANEL = readFileSync(resolve(ROOT, "src/components/integrations/AdvancedWebhooksPanel.tsx"), "utf8");
 const INTEGRATIONS = readFileSync(resolve(ROOT, "src/pages/IntegrationsPage.tsx"), "utf8");
@@ -45,18 +47,35 @@ describe("webhooks salientes", () => {
     expect(DELIVERY).toContain('`t=${timestamp},v1=${signature}`');
     expect(DELIVERY).toContain('OUTBOUND_WEBHOOK_API_VERSION = "2026-08-29"');
     expect(DELIVERY).toContain('"X-Gestiona-Version": OUTBOUND_WEBHOOK_API_VERSION');
+    expect(DELIVERY).toContain('"X-Gestiona-Event-Id": eventId');
+    expect(DELIVERY).toContain("id: eventId");
+    expect(DELIVERY).toContain('input.event !== "test.ping" && !input.includeInactive');
     expect(DELIVERY).toContain('redirect: "manual"');
     expect(DELIVERY).not.toContain("|| orgId");
     expect(DELIVERY).not.toContain('redirect: "follow"');
   });
 
-  it("relee la venta de la base y exige organización y permiso explícitos", () => {
+  it("encola la venta en el commit y el navegador no puede duplicarla", () => {
+    expect(OUTBOX_MIGRATION).toContain("''subscription_id'', v_sub.id");
+    expect(OUTBOX_MIGRATION).toContain("'venta.registrada'");
+    expect(OUTBOX_MIGRATION).toContain("'dispatch-outbound-webhook'");
+    expect(OUTBOX_MIGRATION).toContain("'x-cron-secret', v_cron_secret");
+    expect(OUTBOX_MIGRATION).toContain("REVOKE INSERT, UPDATE, DELETE");
+    expect(OUTBOX_MIGRATION).toContain("ON TABLE public.event_subscriptions FROM authenticated");
+
+    expect(OUTBOX_EDGE).toContain("exigirCron(req");
+    expect(OUTBOX_EDGE).toContain('.from("domain_events")');
+    expect(OUTBOX_EDGE).toContain('.from("event_subscriptions")');
+    expect(OUTBOX_EDGE).toContain('.from("sales")');
+    expect(OUTBOX_EDGE).toContain('.eq("sale_transaction_id", transactionId)');
+    expect(OUTBOX_EDGE).toContain("eventId");
+    expect(OUTBOX_EDGE).toContain("attemptsAllowed: 1");
+
     expect(EDGE).toContain("requireUser");
-    expect(EDGE).toContain('p_module: "pos"');
-    expect(EDGE).toContain('.from("sales")');
-    expect(EDGE).toContain('.eq("org_id", orgId)');
-    expect(EDGE).toContain("saleIds");
-    expect(POS).toContain('body: { action: "dispatch", orgId, event: "sale.created", saleIds: txSaleIds }');
+    expect(EDGE).not.toContain('action?: "dispatch"');
+    expect(EDGE).not.toContain("saleIds");
+    expect(POS).not.toContain('functions.invoke("send-webhook"');
+    expect(POS).toContain("cerrar esta pestaña no");
     expect(POS).not.toContain("settings?.webhook_enabled");
   });
 

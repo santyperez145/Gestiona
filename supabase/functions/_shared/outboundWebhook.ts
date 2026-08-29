@@ -4,6 +4,7 @@
  * - un secret aleatorio por endpoint, leído sólo con service_role;
  * - HMAC-SHA256 sobre `timestamp.payload` para permitir rechazo de replay;
  * - HTTPS, sin credenciales, redirects ni destinos locales obvios;
+ * - un id de evento estable para deduplicar reintentos de la outbox;
  * - reintentos acotados y una fila de evidencia por entrega.
  *
  * La firma replica el patrón probado de Stripe (timestamp firmado) y GitHub
@@ -128,12 +129,16 @@ async function deliver(
   event: OutboundEvent,
   orgId: string,
   data: unknown,
+  sourceEventId?: string,
+  attemptsAllowedOverride?: number,
 ): Promise<{ result: WebhookDeliveryResult; payload: Record<string, unknown>; responseBody: string }> {
   const url = assertPublicWebhookUrl(config.url);
   const deliveryId = crypto.randomUUID();
+  const eventId = sourceEventId || deliveryId;
   const timestamp = Math.floor(Date.now() / 1_000);
   const payload = {
-    id: deliveryId,
+    id: eventId,
+    delivery_id: deliveryId,
     api_version: OUTBOUND_WEBHOOK_API_VERSION,
     event,
     org_id: orgId,
@@ -142,7 +147,9 @@ async function deliver(
   };
   const payloadString = JSON.stringify(payload);
   const signature = await hmacSha256(secret, `${timestamp}.${payloadString}`);
-  const attemptsAllowed = config.retry_on_fail ? 1 + Math.min(Math.max(config.max_retries, 0), 3) : 1;
+  const attemptsAllowed = attemptsAllowedOverride == null
+    ? (config.retry_on_fail ? 1 + Math.min(Math.max(config.max_retries, 0), 3) : 1)
+    : Math.min(Math.max(Math.trunc(attemptsAllowedOverride), 1), 4);
   const timeoutMs = Math.min(Math.max(config.timeout_seconds, 3), 15) * 1_000;
   const startedAt = Date.now();
   let status = 0;
@@ -163,6 +170,7 @@ async function deliver(
           "Content-Type": "application/json; charset=utf-8",
           "User-Agent": "Gestiona-Webhooks/1.0",
           "X-Gestiona-Event": event,
+          "X-Gestiona-Event-Id": eventId,
           "X-Gestiona-Org": orgId,
           "X-Gestiona-Delivery": deliveryId,
           "X-Gestiona-Version": OUTBOUND_WEBHOOK_API_VERSION,
@@ -220,6 +228,10 @@ export async function deliverOutboundEvent(
     data: unknown;
     webhookId?: string;
     includeInactive?: boolean;
+    /** Id durable de Domain Events. Se conserva en cada retry de la outbox. */
+    eventId?: string;
+    /** La outbox usa 1: su propio backoff es la única autoridad de retries. */
+    attemptsAllowed?: number;
   },
 ): Promise<WebhookDeliveryResult[]> {
   let query = admin
@@ -229,7 +241,12 @@ export async function deliverOutboundEvent(
 
   if (input.webhookId) query = query.eq("id", input.webhookId);
   if (!input.includeInactive) query = query.eq("active", true);
-  if (input.event !== "test.ping") query = query.contains("event_types", [input.event]);
+  // Un replay manual conserva el evento histórico aunque hoy el endpoint esté
+  // pausado o ya no lo tenga seleccionado. La outbox automática nunca pasa
+  // includeInactive, así que las entregas nuevas sí respetan el filtro actual.
+  if (input.event !== "test.ping" && !input.includeInactive) {
+    query = query.contains("event_types", [input.event]);
+  }
 
   const { data: configs, error: configError } = await query;
   if (configError) throw new Error(`No se pudieron leer los webhooks: ${configError.message}`);
@@ -260,11 +277,20 @@ export async function deliverOutboundEvent(
 
     let delivery: Awaited<ReturnType<typeof deliver>>;
     try {
-      delivery = await deliver(config, secretRow.secret, input.event, input.orgId, input.data);
+      delivery = await deliver(
+        config,
+        secretRow.secret,
+        input.event,
+        input.orgId,
+        input.data,
+        input.eventId,
+        input.attemptsAllowed,
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       delivery = {
         payload: {
+          id: input.eventId,
           event: input.event,
           org_id: input.orgId,
           data: input.data,

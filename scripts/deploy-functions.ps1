@@ -38,6 +38,8 @@ $noJwt = @(
     # Crons / tareas programadas
     # migrar-imagenes: mueve archivos del catalogo, exige el secreto de cron
     "migrar-imagenes",
+    # La outbox de Domain Events lo invoca con el mismo secreto de cron.
+    "dispatch-outbound-webhook",
     "check-alerts",
     "execute-automations",
     "run-automation-flows",

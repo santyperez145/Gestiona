@@ -1,9 +1,9 @@
 /**
- * Puerta autenticada para entregar webhooks salientes.
+ * Puerta autenticada para probar y reintentar webhooks salientes.
  *
- * El navegador nunca recibe el secret ni llama al endpoint del comercio. Para
- * `sale.created` sólo manda ids: precios, cantidades y cliente se vuelven a
- * leer de la base antes de firmar. Pruebas y reintentos requieren owner/admin.
+ * El navegador nunca recibe el secret ni llama al endpoint del comercio. Las
+ * ventas salen exclusivamente por la outbox transaccional; permitir además un
+ * dispatch manual duplicaría eventos. Pruebas y reintentos requieren owner/admin.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireUser } from "../_shared/requireUser.ts";
@@ -18,10 +18,8 @@ const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 
 type Body = {
-  action?: "dispatch" | "test" | "retry";
+  action?: "test" | "retry";
   orgId?: string;
-  event?: "sale.created";
-  saleIds?: string[];
   webhookId?: string;
   deliveryId?: string;
 };
@@ -39,22 +37,17 @@ Deno.serve(async (req) => {
   if (auth.response) return auth.response;
 
   const body = await req.json().catch(() => null) as Body | null;
-  const action = body?.action || "dispatch";
+  const action = body?.action;
   const orgId = typeof body?.orgId === "string" ? body.orgId : "";
-  if (!UUID.test(orgId) || !["dispatch", "test", "retry"].includes(action)) {
+  if (!UUID.test(orgId) || !action || !["test", "retry"].includes(action)) {
     return response({ error: "Organización y acción válidas son obligatorias" }, 400);
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  const authHeader = req.headers.get("Authorization") || "";
-  if (!supabaseUrl || !serviceRole || !anonKey) return response({ error: "Servicio no configurado" }, 503);
+  if (!supabaseUrl || !serviceRole) return response({ error: "Servicio no configurado" }, 503);
 
   const admin = createClient(supabaseUrl, serviceRole);
-  const authed = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
   const { data: membership, error: membershipError } = await admin
     .from("memberships")
     .select("role")
@@ -108,62 +101,23 @@ Deno.serve(async (req) => {
         return response({ error: "El evento legado no admite reintento" }, 409);
       }
 
-      const previousPayload = previous.payload as { data?: unknown } | null;
+      const previousPayload = previous.payload as { id?: unknown; data?: unknown } | null;
+      const previousEventId = typeof previousPayload?.id === "string" && UUID.test(previousPayload.id)
+        ? previousPayload.id
+        : undefined;
       const results = await deliverOutboundEvent(admin, {
         orgId,
         webhookId: previous.webhook_id,
         includeInactive: true,
+        eventId: previousEventId,
         event: previous.event,
         data: previousPayload?.data ?? {},
       });
+      if (!results.length) return response({ error: "Webhook inexistente" }, 404);
       return response({ delivered: results.every((result) => result.delivered), results });
     }
 
-    if (body?.event !== "sale.created") {
-      return response({ error: "El navegador sólo puede emitir ventas confirmadas" }, 400);
-    }
-    const { data: canCreate, error: permissionError } = await authed.rpc("has_permission", {
-      p_org_id: orgId,
-      p_module: "pos",
-      p_action: "create",
-    });
-    if (permissionError) {
-      console.error("send-webhook permission:", permissionError);
-      return response({ error: "No se pudo verificar el permiso de venta" }, 500);
-    }
-    if (!canCreate) return response({ error: "No tenés permiso para emitir eventos de venta" }, 403);
-
-    const saleIds = [...new Set(Array.isArray(body.saleIds) ? body.saleIds : [])]
-      .filter((id): id is string => typeof id === "string" && UUID.test(id))
-      .slice(0, 50);
-    if (!saleIds.length) return response({ error: "Faltan las ventas confirmadas" }, 400);
-
-    // No se acepta dinero ni datos personales desde el request. El servidor
-    // vuelve a leer sólo las columnas comerciales que el receptor necesita.
-    const { data: sales, error: salesError } = await admin
-      .from("sales")
-      .select("id, sale_transaction_id, product_id, product_name, quantity, unit_price_ars, total_ars, customer_id, customer_name, date, paid, payment_method, source, seller_name")
-      .eq("org_id", orgId)
-      .in("id", saleIds);
-    if (salesError) throw salesError;
-    if (!sales?.length || sales.length !== saleIds.length) {
-      return response({ error: "Una o más ventas no existen en la organización" }, 404);
-    }
-
-    const results = await deliverOutboundEvent(admin, {
-      orgId,
-      event: "sale.created",
-      data: {
-        transaction_id: sales[0].sale_transaction_id,
-        lines: sales,
-        total_ars: sales.reduce((sum, sale) => sum + Number(sale.total_ars || 0), 0),
-      },
-    });
-    return response({
-      skipped: results.length === 0,
-      delivered: results.length > 0 && results.every((result) => result.delivered),
-      results,
-    });
+    return response({ error: "Acción no soportada" }, 400);
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     console.error("send-webhook:", detail);

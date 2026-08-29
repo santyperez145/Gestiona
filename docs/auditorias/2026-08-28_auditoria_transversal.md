@@ -13,7 +13,7 @@ no pudo probarse quedó abierto en vez de declararse sano por intuición.
 - columnas con nombres de credenciales y presencia de secretos heredados;
 - buckets y objetos de Storage;
 - salud de pg_cron y respuesta real de Edge Functions;
-- compilación de las 70 Edge Functions;
+- compilación de las 71 Edge Functions;
 - enlaces y números documentales;
 - árbol de dependencias productivas y `npm audit --omit=dev`.
 
@@ -22,8 +22,8 @@ no pudo probarse quedó abierto en vez de declararse sano por intuición.
 | Superficie | Evidencia al 2026-08-28 | Estado |
 |---|---|---|
 | Git | remoto alineado, worktree limpio al iniciar | Verde |
-| Migraciones | 487 archivos / 487 registradas al cierre del 2026-08-29; `db push --dry-run` sin brecha | Verde |
-| Edge estática | 70 funciones pasan `npm run check:functions` | Verde |
+| Migraciones | 488 archivos / 488 registradas al cierre del 2026-08-29; `db push --dry-run` sin brecha | Verde |
+| Edge estática | 71 funciones pasan `npm run check:functions` | Verde |
 | Documentación | 63 enlaces internos en 39 documentos; backlog de 41 IDs reconciliado con el roadmap canónico | Verde |
 | RLS | 0 tablas públicas sin RLS; policies sin tenant, índices tenant, settings faltantes y stock negativo en 0 | Verde |
 | Secretos heredados | SMTP retiró siete columnas, API/MP/ML/Evolution otras ocho y webhooks seis entre `settings/webhook_configs`; 0 valores antes de cada retiro. Secret de endpoint ahora privado y one-time | Verde; queda auditar transportistas al activarlos |
@@ -231,7 +231,7 @@ y sólo agrega `back_urls` si `PUBLIC_BASE_URL` es HTTPS, como exige la
 [guía oficial de retorno](https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/configure-back-urls).
 No se creó un cobro real para probar: queda como gate operativo explícito.
 La puerta completa posterior pasó 1.969/1.969 tests en 190 archivos, typecheck,
-lint con 0 errores/140 warnings conocidas, build/PWA, las 70 Edge Functions,
+lint con 0 errores/140 warnings conocidas, build/PWA, las 71 Edge Functions,
 dependencias en 0 y los 63 enlaces internos.
 
 ## Dos paneles de webhooks y un secret predecible
@@ -248,9 +248,9 @@ clave, firmaba con el propio `org_id`. Las automatizaciones tenían otros dos
 `20260828000220` crea `webhook_signing_secrets` con RLS, cero policies y cero
 grants para roles cliente. Los RPC de owner/admin administran configuración,
 emiten una clave aleatoria por endpoint una sola vez y permiten rotarla; la UI
-sólo lee columnas saneadas. `send-webhook` exige usuario, `orgId` explícito y
-permiso: en ventas acepta ids y relee de `sales`, nunca dinero del request.
-Prueba y retry ocurren en servidor. El transporte compartido usa HTTPS, bloquea
+sólo lee columnas saneadas. Prueba y retry ocurren en `send-webhook`, pero el
+dispatch de ventas ya no está disponible al navegador. El transporte compartido
+usa HTTPS, bloquea
 destinos locales obvios, no sigue redirects, acota timeout/reintentos y firma
 `timestamp.payload` con HMAC-SHA256; el sobre y header llevan versión
 `2026-08-29`. Cada intento termina correlacionado al config con estado, HTTP,
@@ -258,13 +258,24 @@ latencia y cuerpo truncado. Las dos ejecuciones de automatización usan el mismo
 camino y el catálogo visible se redujo de 18 promesas a los dos eventos que hoy
 tienen emisor real.
 
-El fixture como owner creó la config, leyó sólo la superficie saneada, recibió
+El primer fixture como owner creó la config, leyó sólo la superficie saneada, recibió
 el secret one-time, fue rechazado al leer la tabla privada y al escribir tablas
 directas, rotó la clave, eliminó y dejó 0 configs ZZ, 0 huérfanos y 0 entregas.
-Las tres Edge quedaron ACTIVE; libro 487/487 y dry-run sin brecha. No se envió
-un webhook externo: faltan un receptor controlado y el outbox transaccional de
-`sale.created`, porque el POST actual ocurre después del commit del POS y cerrar
-la pestaña en ese intervalo puede perder el evento.
+Las tres Edge iniciales quedaron ACTIVE; libro 487/487 y dry-run sin brecha.
+
+`20260829000010` cerró la ventana de pérdida: cada config sincroniza una
+suscripción server-managed a `venta.registrada`, y el trigger del ticket crea el
+Domain Event y la fila de outbox en el mismo commit. El worker se identifica con
+el secreto de cron; `dispatch-outbound-webhook` revalida evento, suscripción y
+tenant, relee las líneas y delega retry/backoff/DLQ/replay a la cola. El sobre
+conserva `event_id` entre intentos y separa `delivery_id`. El POS ya no dispara
+una Edge y `send-webhook` no acepta dispatch manual, eliminando pérdida y
+duplicación. Los miembros quedaron sin INSERT/UPDATE/DELETE sobre
+`event_subscriptions`. Una fixture transaccional probó siete invariantes y 0
+restos; el preflight permitió retirar 12 descartados de fixtures sin líneas y
+confirmó 0 descartados con líneas. La nueva Edge quedó ACTIVE v1 y una llamada
+sin secreto respondió 401. No se envió un webhook externo: siguen pendientes el
+receptor controlado y la documentación pública del contrato.
 
 La misma traza mostró dos jobs activos sobre `automation_flows`:
 `execute-automations-daily` a las 05:00 AR y `run-automation-flows-daily` a las
@@ -283,7 +294,7 @@ y [OWASP exige validar protocolo/destino y no seguir redirects frente a SSRF](ht
 
 1. Confirmar la próxima corrida natural de cotización y cumpleaños en
    `edge_invocation_log`; no invocarlas a mano ni declarar recuperación antes.
-2. Completar el outbox transaccional de `sale.created`, documentar el contrato
-   y probar un receptor externo controlado; no crear más eventos sin emisor.
+2. Documentar el contrato de webhooks y probar un receptor externo controlado;
+   no crear más eventos sin emisor.
 3. P1-04 ya aplica `payments.edit` al refund; completar únicamente la prueba
    cross-branch cuando existan dos ubicaciones reales aptas.

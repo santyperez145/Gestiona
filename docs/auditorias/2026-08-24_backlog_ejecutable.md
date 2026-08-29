@@ -1017,21 +1017,23 @@ estática exige que el permiso ocurra antes de preparación y credenciales.
 ## P1-14 — Outgoing webhooks
 
 **Owner:** Platform API  
-**Estado:** parcial 2026-08-29. Suscripciones, filtro de eventos emitidos,
-secret one-time privado, HMAC-SHA256 con timestamp, versión, retry/backoff, log
-y retry manual están en producción. Falta probar un receptor externo, publicar
-el contrato y mover `sale.created` a outbox transaccional para no depender del
-último request del navegador.
+**Estado:** parcial 2026-08-29; transporte durable cerrado. Suscripciones,
+filtro, secret one-time privado, HMAC-SHA256 con timestamp, versión,
+retry/backoff, DLQ/replay, log y `sale.created` transaccional están en
+producción. El POS ya no emite desde el navegador y el evento conserva un id
+estable entre reintentos. Faltan probar un receptor externo controlado y
+publicar el contrato versionado.
 **Aceptación**
 
-- Subscriptions.
-- HMAC signatures.
-- Retry/backoff.
-- DLQ.
-- Replay.
-- Filtering.
-- Event versions.
-- Delivery logs.
+- [x] Subscriptions.
+- [x] HMAC signatures.
+- [x] Retry/backoff.
+- [x] DLQ.
+- [x] Replay.
+- [x] Filtering.
+- [x] Event versions.
+- [x] Delivery logs.
+- [ ] Receptor externo y contrato público reproducible.
 
 ---
 

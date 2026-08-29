@@ -161,6 +161,13 @@ Garantía: **al menos una vez**, con orden por agregado. Exactamente una vez no
 existe sobre HTTP; por eso cada entrega lleva `event_id` para que quien recibe
 descarte repetidos, igual que Stripe y MercadoPago.
 
+**Webhooks públicos (2026-08-29).** `sale.created` también recorre esta tubería:
+la configuración visible sincroniza una suscripción server-managed y
+`dispatch-outbound-webhook` relee la venta después del commit. El POS no hace un
+último request best-effort. La Edge intenta una vez y devuelve el resultado; la
+outbox es la única autoridad de backoff, descarte y replay. `event_id` permanece
+estable y `delivery_id` cambia por intento.
+
 **Correlación crítica (2026-08-21).** En pagos, el `correlation_id` nace en
 `payment_intents` y no en el navegador. `emitir_evento` lo hereda para el
 agregado pago; el trigger de la orden y el de la liquidación lo derivan por

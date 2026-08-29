@@ -1685,16 +1685,9 @@ export default function POSPage() {
         awardLoyaltyPointsForSale(orgId, customer.trim(), cartTotal, cart[0]?.productId ?? "").catch(() => {});
       }
 
-      // Outbound webhook: el navegador sólo manda ids de ventas ya
-      // confirmadas. La Edge Function vuelve a leer dinero, cliente y líneas
-      // desde la base antes de firmar; no confía en el carrito del cliente.
-      if (isOnline) {
-        void supabase.functions.invoke("send-webhook", {
-          body: { action: "dispatch", orgId, event: "sale.created", saleIds: txSaleIds },
-        }).then(({ error }) => {
-          if (error) console.error("POS: no se pudo emitir sale.created", error);
-        }).catch((error) => console.error("POS: no se pudo invocar send-webhook", error));
-      }
+      // `sale.created` ya quedó encolado dentro de la misma transacción que el
+      // ticket. El navegador no tiene que disparar nada: cerrar esta pestaña no
+      // puede perder la integración y la outbox conserva retry + evidencia.
 
       // Large sale notification (best-effort)
       if (!isOnline) {
