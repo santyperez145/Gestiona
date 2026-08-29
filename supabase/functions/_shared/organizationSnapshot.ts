@@ -106,8 +106,7 @@ export const EXCLUDED_CREDENTIAL_STORES = [
 ] as const;
 
 const SECRET_SETTINGS_COLUMNS = new Set([
-  "mp_access_token", "api_key", "mp_webhook_secret", "webhook_secret",
-  "evolution_api_key", "ml_access_token", "ml_refresh_token",
+  "webhook_secret",
 ]);
 
 // `settings` concentra configuración útil y secretos históricos en la misma

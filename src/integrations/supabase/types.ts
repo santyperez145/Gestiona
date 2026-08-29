@@ -35026,7 +35026,6 @@ export type Database = {
           afip_ta_expires_at: string | null
           afip_tipo_emisor: string | null
           ai_tone: string | null
-          api_key: string | null
           bank_alias: string | null
           bank_cbu: string | null
           bank_holder: string | null
@@ -35054,9 +35053,6 @@ export type Database = {
           discount_credit_percent: number
           discount_debit_percent: number
           discount_transfer_percent: number
-          evolution_api_key: string | null
-          evolution_api_url: string | null
-          evolution_instance: string | null
           exchange_rate: number | null
           expense_categories: Json
           expense_ratio_alert_percent: number
@@ -35074,14 +35070,10 @@ export type Database = {
           max_ai_discount_percent: number | null
           max_overstock_units: number | null
           mfa_required: boolean
-          ml_access_token: string | null
           ml_enabled: boolean | null
-          ml_refresh_token: string | null
           ml_user_id: string | null
           monthly_targets: Json | null
-          mp_access_token: string | null
           mp_enabled: boolean
-          mp_webhook_secret: string | null
           org_id: string
           overdue_check_window_hours: number
           pasero_commission_percent: number
@@ -35122,7 +35114,6 @@ export type Database = {
           afip_ta_expires_at?: string | null
           afip_tipo_emisor?: string | null
           ai_tone?: string | null
-          api_key?: string | null
           bank_alias?: string | null
           bank_cbu?: string | null
           bank_holder?: string | null
@@ -35150,9 +35141,6 @@ export type Database = {
           discount_credit_percent?: number
           discount_debit_percent?: number
           discount_transfer_percent?: number
-          evolution_api_key?: string | null
-          evolution_api_url?: string | null
-          evolution_instance?: string | null
           exchange_rate?: number | null
           expense_categories?: Json
           expense_ratio_alert_percent?: number
@@ -35170,14 +35158,10 @@ export type Database = {
           max_ai_discount_percent?: number | null
           max_overstock_units?: number | null
           mfa_required?: boolean
-          ml_access_token?: string | null
           ml_enabled?: boolean | null
-          ml_refresh_token?: string | null
           ml_user_id?: string | null
           monthly_targets?: Json | null
-          mp_access_token?: string | null
           mp_enabled?: boolean
-          mp_webhook_secret?: string | null
           org_id: string
           overdue_check_window_hours?: number
           pasero_commission_percent?: number
@@ -35218,7 +35202,6 @@ export type Database = {
           afip_ta_expires_at?: string | null
           afip_tipo_emisor?: string | null
           ai_tone?: string | null
-          api_key?: string | null
           bank_alias?: string | null
           bank_cbu?: string | null
           bank_holder?: string | null
@@ -35246,9 +35229,6 @@ export type Database = {
           discount_credit_percent?: number
           discount_debit_percent?: number
           discount_transfer_percent?: number
-          evolution_api_key?: string | null
-          evolution_api_url?: string | null
-          evolution_instance?: string | null
           exchange_rate?: number | null
           expense_categories?: Json
           expense_ratio_alert_percent?: number
@@ -35266,14 +35246,10 @@ export type Database = {
           max_ai_discount_percent?: number | null
           max_overstock_units?: number | null
           mfa_required?: boolean
-          ml_access_token?: string | null
           ml_enabled?: boolean | null
-          ml_refresh_token?: string | null
           ml_user_id?: string | null
           monthly_targets?: Json | null
-          mp_access_token?: string | null
           mp_enabled?: boolean
-          mp_webhook_secret?: string | null
           org_id?: string
           overdue_check_window_hours?: number
           pasero_commission_percent?: number

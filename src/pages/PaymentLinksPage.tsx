@@ -175,7 +175,9 @@ export default function PaymentLinksPage() {
               orgId: activeOrg.id,
               title: `Pago ${orgSettings.business_name} — ${customerName.trim()}`,
               total,
-              externalRef: `sale:${newLink.id}`,
+              // Debe coincidir con payment_links.external_ref: el webhook
+              // actualiza la fila por este valor, no por el id interno.
+              externalRef: newLink.external_ref,
             },
             headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
           });
@@ -210,12 +212,21 @@ export default function PaymentLinksPage() {
     }
     setGeneratingMP(link.id);
     try {
+      const externalRef = link.external_ref ?? `link:${link.id}`;
+      if (!link.external_ref) {
+        const { error: referenceError } = await supabase
+          .from("payment_links")
+          .update({ external_ref: externalRef })
+          .eq("org_id", activeOrg!.id)
+          .eq("id", link.id);
+        if (referenceError) throw referenceError;
+      }
       const { data: mpData, error } = await supabase.functions.invoke("mercadopago-link", {
         body: {
           orgId: activeOrg!.id,
           title: `Pago — ${link.customer_name}`,
           total: link.total_ars,
-          externalRef: `sale:${link.id}`,
+          externalRef,
         },
         headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
       });

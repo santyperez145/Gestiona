@@ -34,7 +34,7 @@ describe("Checkout Brick de tienda", () => {
     expect(storePay).toContain("recordPaymentAttempt(admin");
     expect(orchestrator).toContain('admin.rpc("pago_intento_preparar"');
     expect(storePay).toContain("application_fee: applicationFee");
-    expect(storePay).toContain('creds.source !== "oauth"');
+    expect(storePay).toContain("getMpCredentials(admin, store.org_id)");
     expect(storePay).toContain("recordPaymentTransaction(admin");
   });
 

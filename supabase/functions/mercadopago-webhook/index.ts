@@ -444,34 +444,25 @@ Deno.serve(async (req) => {
     let mpAccessToken = "";
 
     if (orgId) {
-      // Resuelve por la conexión OAuth y cae al token pegado a mano si el
-      // comercio todavía no migró.
+      // La conexión OAuth privada es la única autoridad de cobro.
       const creds = await getMpCredentials(admin, orgId);
       if (creds) mpAccessToken = creds.accessToken;
     }
 
-    // Sin org en la query, se prueban las cuentas conectadas hasta dar con la
-    // dueña del pago. Se miran primero las conexiones OAuth y después los
-    // tokens pegados a mano: con OAuth, settings.mp_access_token queda vacío y
-    // este camino se habría quedado ciego.
+    // Webhooks históricos pueden llegar sin org_id. Se prueban únicamente las
+    // conexiones OAuth privadas; las preferencias nuevas incluyen org_id en
+    // notification_url y no dependen de este camino de compatibilidad.
     if (!mpAccessToken && !orgId) {
-      const [{ data: conns }, { data: settingsList }] = await Promise.all([
-        admin.from("payment_connections")
-          .select("org_id, access_token")
-          .eq("provider", "mercadopago")
-          .not("access_token", "is", null)
-          .limit(50),
-        admin.from("settings")
-          .select("org_id, mp_access_token")
-          .eq("mp_enabled", true)
-          .not("mp_access_token", "is", null)
-          .limit(50),
-      ]);
+      const { data: conns, error: connectionsError } = await admin
+        .from("payment_connections")
+        .select("org_id, access_token")
+        .eq("provider", "mercadopago")
+        .not("access_token", "is", null)
+        .limit(50);
+      if (connectionsError) throw connectionsError;
 
-      const candidatos = [
-        ...(conns ?? []).map((c: any) => ({ org_id: c.org_id, token: c.access_token })),
-        ...(settingsList ?? []).map((s: any) => ({ org_id: s.org_id, token: s.mp_access_token })),
-      ];
+      const candidatos = (conns ?? [])
+        .map((c: any) => ({ org_id: c.org_id, token: c.access_token }));
 
       for (const c of candidatos) {
         try {

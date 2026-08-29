@@ -172,12 +172,7 @@ async function createRedirectPreference(
     }, 422);
   }
 
-  // `marketplace_fee` sólo existe para una cuenta conectada por OAuth. Con un
-  // token heredado MercadoPago rechaza la preferencia, por eso el checkout
-  // externo conserva compatibilidad y prioriza que el comercio pueda cobrar.
-  const marketplaceFee = creds.source === "oauth"
-    ? await marketplaceCommission(admin, store.org_id, order.total, "preference")
-    : 0;
+  const marketplaceFee = await marketplaceCommission(admin, store.org_id, order.total, "preference");
   const base = safeReturnBase(returnUrl) ?? safeReturnBase(Deno.env.get("PUBLIC_BASE_URL"));
   const backUrl = base
     ? `${base}/tienda/${encodeURIComponent(store.slug)}/orden/${encodeURIComponent(order.order_number)}`
@@ -239,9 +234,7 @@ async function createRedirectPreference(
 async function checkoutBrickConfig(admin: any, context: StoreOrderContext) {
   const { store, order } = context;
   const creds = await getMpCredentials(admin, store.org_id);
-  if (!creds || creds.source !== "oauth") {
-    // No se intenta adivinar una public key para tokens legados. El redirect
-    // sigue siendo funcional y no degrada la seguridad de cuentas existentes.
+  if (!creds) {
     return json({ error: "El pago con tarjeta todavía no está disponible para esta tienda." }, 422);
   }
 
@@ -305,9 +298,9 @@ async function processBrickPayment(
 
   const { store, order } = context;
   const creds = await getMpCredentials(admin, store.org_id);
-  // El Brick sólo se configura para OAuth. Revalidarlo al cobrar evita que una
-  // conexión revocada quede aceptando tokens con otro camino de credenciales.
-  if (!creds || creds.source !== "oauth") {
+  // Revalidar la conexión al cobrar evita que una cuenta revocada siga
+  // aceptando tokens generados antes de la desconexión.
+  if (!creds) {
     return json({ error: "La conexión de MercadoPago ya no está disponible." }, 422);
   }
 

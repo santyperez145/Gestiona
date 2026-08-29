@@ -1,11 +1,8 @@
 /**
  * ¿La organización puede cobrar online?
  *
- * Antes cada pantalla lo resolvía por su cuenta mirando
- * `settings.mp_access_token`, el token pegado a mano. Con la conexión por OAuth
- * esa columna quedó vacía, así que las tres respondían que no había forma de
- * cobrar mientras la cuenta estaba perfectamente conectada — y una de esas
- * respuestas alimenta el panel de "listo para vender" de la tienda.
+ * Antes cada pantalla lo resolvía por su cuenta mirando una credencial heredada
+ * de `settings`. La conexión OAuth es ahora la única autoridad.
  *
  * La verdad vive en `payment_connection_status`, una vista que dice si hay
  * conexión y con qué cuenta **sin exponer el token**. La tabla de abajo tiene
@@ -18,11 +15,9 @@ export interface EstadoDeCobro {
   connected: boolean;
   /** Nombre de la cuenta, para mostrar cuál está enganchada. */
   nickname: string | null;
-  /** `true` si viene del token pegado a mano y no de OAuth. */
-  legacy: boolean;
 }
 
-const SIN_CONEXION: EstadoDeCobro = { connected: false, nickname: null, legacy: false };
+const SIN_CONEXION: EstadoDeCobro = { connected: false, nickname: null };
 
 /**
  * No se traga los errores: si la vista todavía no existe (migración sin
@@ -54,6 +49,5 @@ export async function fetchPaymentStatus(orgId: string): Promise<EstadoDeCobro> 
   return {
     connected: !!fila?.connected,
     nickname: fila?.nickname ?? null,
-    legacy: false,
   };
 }

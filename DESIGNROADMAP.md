@@ -138,7 +138,7 @@ usa en material de producto o inversión.
 | CRM | Command center, segmentos, tabla y ficha 360. | Implementado | Tarea real y lectura mobile. |
 | Inventario/Compras | Lista/recepción bajo tokens v3; handoff direccionado y estados comunes, incluido dato parcial/offline. | Parcial | Composición completa lista/detalle/Kardex, migrar subflujos y validar responsive. |
 | Reportes/Intelligence | Primitives compartidos, alta densidad histórica. | Parcial | Simplificar filtros y priorizar decisión. |
-| Settings/Integraciones | Cabecera/navegación común y SMTP privado con estados completos. | Parcial | Converger los demás secretos, responsive y permisos de cada formulario. |
+| Settings/Integraciones | Cabecera/navegación común; SMTP privado con estados completos; Mercado Pago muestra sólo la conexión OAuth canónica, sin aviso ni lectura legacy. | Parcial | Converger webhooks/transportistas, responsive y permisos de cada formulario. |
 | Finance | Shell teal, Inbox, inspector, matching, tres borradores y estados comunes con refresh/stale/offline. | Parcial | Proveedor aprobado + prueba responsive con documentos reales. |
 | Platform | Rail/control plane violeta y Merchant 360. | Parcial | Cola, métricas y soporte mobile. |
 | Storefront | Marca configurable aislada del SaaS. | Parcial | Home, PDP, carrito y checkout completo. |
@@ -366,7 +366,7 @@ declara validado porque “se ve mejor”.
 | 13 | POS teclado/touch/offline | Pendiente | Cobro y recuperación medidos. |
 | 14 | Compras, recepción y Kardex | Parcial 2026-08-22 | Finance llega a la OC exacta, muestra contexto y abre la recepción idempotente; faltan Kardex integrado y matriz responsive. |
 | 15 | Reportes orientados a decisión | Pendiente | Menos filtros duplicados; acción clara. |
-| 16 | Settings e Integraciones | Parcial 2026-08-29 | SMTP propio usa estado saneado, prueba antes de persistir, owner/admin y revocación confirmada; faltan los demás formularios y matriz responsive. |
+| 16 | Settings e Integraciones | Parcial 2026-08-29 | SMTP propio usa estado saneado, prueba antes de persistir, owner/admin y revocación confirmada; Mercado Pago quedó en una única tarjeta OAuth sin warning legacy ni lectura de secretos. Faltan webhooks/transportistas y matriz responsive. |
 | 17 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos, aprobación y handoff a recepción usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
 | 18 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
 | 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |

@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.955 tests en 187 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
+| Calidad técnica | 1.961 tests en 188 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -1655,6 +1655,26 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     Google y Microsoft recomiendan OAuth y credenciales específicas; App
     Password queda documentada sólo como fallback con 2FA. Falta conectar un
     proveedor real y medir entrega/rebote antes de declarar operación validada.
+47. ~~Tokens heredados fuera de `settings` y links de cobro con autoridad~~ —
+    cerrado técnicamente el 2026-08-29. El catálogo productivo todavía exponía
+    ocho columnas históricas para API pública, Mercado Pago, MercadoLibre y
+    Evolution en una tabla que leen los miembros, aunque las ocho tenían 0
+    valores. `20260828000210` corta si aparece un valor, retira las columnas sin
+    `CASCADE`, elimina el trigger transitorio de Evolution y conserva como únicas
+    autoridades `api_keys`, `payment_connections`, `meli_connections` y
+    `evolution_connections`. Las tres tablas de conexión ahora tienen RLS, cero
+    policies y además cero grants para `anon/authenticated`; sus vistas saneadas
+    continúan visibles para el miembro correcto. El despliegue se hizo antes del
+    `DROP` en los diez consumidores y el libro quedó 486/486, dry-run sin brecha.
+    La revisión encontró dos fallas adicionales en `mercadopago-link`: una sesión
+    de cualquier tenant podía pedir una preferencia con el `orgId` de otro, y
+    `payment_links` mandaba a Mercado Pago una referencia distinta de la que el
+    webhook usa para marcarla pagada. Ahora exige usuario real + `sales.create`,
+    valida tenant/monto, usa sólo OAuth, incluye `notification_url`, conserva el
+    `external_ref` canónico y calcula `marketplace_fee` con la regla aprobada del
+    canal. No se creó una preferencia real durante la auditoría para no producir
+    un efecto externo: falta ejecutar y acreditar un link real controlado antes
+    de declarar el flujo validado operacionalmente.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2143,7 +2163,7 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **1.955 tests en 187 archivos**,
+- Build y suites locales del 2026-08-29: **1.961 tests en 188 archivos**,
   typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 70
   funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
   panel y 1 setup autenticado—; el de Gastos es de sólo lectura.

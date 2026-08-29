@@ -513,7 +513,12 @@ export default function PresupuestosPage() {
     if (mpLinks[q.id]) { navigator.clipboard.writeText(mpLinks[q.id]); toast.success("Link copiado"); return; }
     setMpLoading(q.id);
     const { data, error } = await supabase.functions.invoke("mercadopago-link", {
-      body: { orgId: activeOrg?.id, title: `Presupuesto ${q.quote_number} — ${q.customer_name}`, total: q.total },
+      body: {
+        orgId: activeOrg?.id,
+        title: `Presupuesto ${q.quote_number} — ${q.customer_name}`,
+        total: q.total,
+        externalRef: `quote:${q.id}`,
+      },
     });
     setMpLoading(null);
     if (error || data?.error) { toast.error(data?.error || "Error al generar link MP"); return; }

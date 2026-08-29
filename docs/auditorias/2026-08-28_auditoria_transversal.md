@@ -22,11 +22,11 @@ no pudo probarse quedó abierto en vez de declararse sano por intuición.
 | Superficie | Evidencia al 2026-08-28 | Estado |
 |---|---|---|
 | Git | remoto alineado, worktree limpio al iniciar | Verde |
-| Migraciones | 485 archivos / 485 registradas al cierre del 2026-08-29; `db push --dry-run` sin brecha | Verde |
+| Migraciones | 486 archivos / 486 registradas al cierre del 2026-08-29; `db push --dry-run` sin brecha | Verde |
 | Edge estática | 70 funciones pasan `npm run check:functions` | Verde |
 | Documentación | 61 enlaces internos en 39 documentos; 1 número sin fecha corregido | Verde |
 | RLS | 0 tablas públicas sin RLS; policies sin tenant, índices tenant, settings faltantes y stock negativo en 0 | Verde |
-| Secretos heredados | SMTP retiró siete columnas de `settings`; 0 valores en las demás credenciales antiguas medidas, 0 webhooks y 0 transportistas con secreto | Verde; continuar retiro por conexión, sin migraciones masivas |
+| Secretos heredados | SMTP retiró siete columnas y API/MP/ML/Evolution otras ocho de `settings`; 0 valores antes del retiro, 0 webhooks y 0 transportistas con secreto | Verde; queda mover el secreto activo de webhook saliente por su propio flujo |
 | Storage | 25 backups privados, 52 imágenes de producto y 2 de marketing; Finance y comprobantes privados. `expense-receipts` cerró antes del primer objeto | Verde: path por tenant, RLS por permiso y URL firmada de 60 s |
 | Cron | 25 jobs activos; 22.155 éxitos y 3 fallas en 7 días. Las tres fueron `expire-overdue-trials` y sus últimas 12 corridas ya son exitosas | Resuelto, conservar señal |
 | Edge runtime | Corte inicial: 215 invocaciones / 12 fallas en 24 h; 429 / 42 en 7 días; 0 huérfanas | Corregido y desplegado; falta observar la próxima corrida natural de cotización/cumpleaños |
@@ -202,11 +202,43 @@ rollback dejó 0 restos. Producción quedó con 0 conexiones, 0 columnas SMTP en
 `settings` y libro 485/485. No se simuló entregabilidad: sigue pendiente una
 conexión real, su correo de prueba y la observación de entrega/rebote.
 
+## Ocho columnas vacías seguían invitando a guardar tokens en `settings`
+
+La ausencia de valores no vuelve seguro un campo de credencial: mientras la
+columna exista, un cliente viejo o una implementación paralela puede volver a
+escribirla. El corte productivo del 2026-08-29 midió 0 valores en `api_key`, los
+tres campos históricos de Evolution, los dos tokens de MercadoLibre y los dos
+campos de Mercado Pago. `20260828000210` verifica esa precondición y elimina los
+ocho sin `CASCADE`; la API pública, MP, ML y Evolution conservan únicamente sus
+almacenes privados canónicos.
+
+La verificación posterior encontró que `payment_connections` y
+`meli_connections` tenían RLS y cero policies pero todavía grants de tabla para
+el navegador. No devolvían filas, pero dependían de una sola barrera. Se
+revocaron los grants: las tres conexiones de comercio quedaron con RLS, 0
+policies, `anon_lee=false` y `authenticated_lee=false`; las vistas saneadas
+siguen resolviendo el estado del tenant correcto. Producción conserva 1 conexión
+de pago, 0 de MercadoLibre y 0 de Evolution sin imprimir ninguna credencial.
+
+El consumidor más viejo, `mercadopago-link`, reveló dos fallas independientes:
+no comprobaba pertenencia al `orgId` y enviaba `sale:<id>` mientras
+`payment_links.external_ref` guardaba `link-<timestamp>`, por lo que el webhook
+nunca podía confirmar la fila. Ahora exige `sales.create`, toma el token OAuth
+privado, valida importe, calcula `marketplace_fee`, incluye `notification_url` y
+reutiliza la referencia canónica. Coincide con la API oficial de
+[crear preferencia](https://www.mercadopago.com.ar/developers/es/reference/online-payments/checkout-pro/preferences/create-preference/post)
+y sólo agrega `back_urls` si `PUBLIC_BASE_URL` es HTTPS, como exige la
+[guía oficial de retorno](https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/configure-back-urls).
+No se creó un cobro real para probar: queda como gate operativo explícito.
+La puerta completa posterior pasó 1.961/1.961 tests en 188 archivos, typecheck,
+lint con 0 errores/140 warnings conocidas, build/PWA, las 70 Edge Functions,
+dependencias en 0 y los 61 enlaces internos.
+
 ## Orden de continuación
 
 1. Confirmar la próxima corrida natural de cotización y cumpleaños en
    `edge_invocation_log`; no invocarlas a mano ni declarar recuperación antes.
-2. Repetir el patrón SMTP para cada secreto heredado restante: medir 0 o migrar,
-   desplegar consumidores, retirar columnas sin `CASCADE` y verificar roles.
+2. Llevar `settings.webhook_secret` al almacén privado canónico de webhooks,
+   con firma, rotación, vista saneada y compatibilidad de deploy medida.
 3. Completar P1-04 con `payments.edit` para refund y prueba cross-branch cuando
    existan dos ubicaciones reales aptas.

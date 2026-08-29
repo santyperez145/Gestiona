@@ -42,13 +42,6 @@ const COLUMNAS_PROHIBIDAS = [
 /** Dónde vive la UI de la organización. */
 const RAICES = ['src/pages', 'src/components'];
 
-/**
- * Excepción documentada: este panel **detecta** el token viejo para avisar que
- * conviene reconectar por OAuth. Es lo contrario de pedirlo — no hay campo de
- * carga, sólo una lectura para mostrar la advertencia.
- */
-const PERMITIDOS = ['PaymentConnectionsPanel.tsx'];
-
 function archivos(dir: string): string[] {
   const abs = resolve(process.cwd(), dir);
   const out: string[] = [];
@@ -73,7 +66,6 @@ describe('credenciales que ya tienen OAuth', () => {
 
     for (const raiz of RAICES) {
       for (const archivo of archivos(raiz)) {
-        if (PERMITIDOS.some(x => archivo.endsWith(x))) continue;
         const src = sinComentarios(readFileSync(archivo, 'utf8'));
         for (const col of COLUMNAS_PROHIBIDAS) {
           if (src.includes(col)) {

@@ -15,7 +15,7 @@ import { useOrg } from "@/lib/orgContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  CreditCard, Loader2, Unlink, RefreshCw, CheckCircle2, AlertTriangle, ExternalLink,
+  CreditCard, Loader2, Unlink, RefreshCw, CheckCircle2, ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
@@ -34,21 +34,16 @@ interface Estado {
 export default function PaymentConnectionsPanel() {
   const { activeOrg } = useOrg();
   const [mp, setMp] = useState<Estado | null>(null);
-  const [legacy, setLegacy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!activeOrg?.id) { setLoading(false); return; }
     setLoading(true);
-    const [cRes, sRes] = await Promise.all([
-      supabase.from("payment_connection_status").select("*")
-        .eq("org_id", activeOrg.id).eq("provider", "mercadopago").maybeSingle(),
-      supabase.from("settings").select("mp_access_token, mp_enabled")
-        .eq("org_id", activeOrg.id).maybeSingle(),
-    ]);
+    const cRes = await supabase.from("payment_connection_status").select("*")
+      .eq("org_id", activeOrg.id).eq("provider", "mercadopago").maybeSingle();
+    if (cRes.error) console.error("PaymentConnectionsPanel status:", cRes.error);
     setMp((cRes.data as unknown as Estado) ?? null);
-    setLegacy(!!(sRes.data?.mp_enabled && sRes.data?.mp_access_token));
     setLoading(false);
   }, [activeOrg?.id]);
 
@@ -145,18 +140,6 @@ export default function PaymentConnectionsPanel() {
       {mp?.last_error && (
         <div className="rounded-lg border border-destructive/25 bg-destructive/5 p-3">
           <p className="text-xs text-destructive">Último error: {mp.last_error}</p>
-        </div>
-      )}
-
-      {/* Aviso a quien todavía tiene el token pegado a mano */}
-      {!conectado && legacy && (
-        <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-3 flex gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-          <p className="text-xs text-muted-foreground">
-            Estás usando un Access Token cargado a mano. Sigue funcionando, pero
-            conviene conectar la cuenta: se renueva sola, no vence sin aviso y no
-            queda un secreto guardado en la configuración.
-          </p>
         </div>
       )}
 

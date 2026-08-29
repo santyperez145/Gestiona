@@ -34,8 +34,7 @@ const BACKUP_BUCKET = "backups";
 const RPO_HORAS = 36;
 const CURRENT_SNAPSHOT_VERSION = 3;
 const SECRET_SETTINGS_COLUMNS = new Set([
-  "mp_access_token", "api_key", "mp_webhook_secret", "webhook_secret",
-  "evolution_api_key", "ml_access_token", "ml_refresh_token",
+  "webhook_secret",
 ]);
 const EXCLUDED_CREDENTIAL_STORES = new Set([
   "afip_credentials", "payment_connections", "meli_connections", "api_keys",
