@@ -9,6 +9,9 @@ base vinculada; no crean ventas, órdenes, envíos ni comprobantes.
 - Vite construye el bundle de producción y lo sirve con `vite preview` en
   `4173` por defecto y `--strictPort`. Probar el artefacto real evita que cuatro
   browsers compitan por la transformación inicial del dev server.
+- El arranque del servidor tiene un margen de `180s` para completar `build +
+  preview`; el tiempo de compilar el bundle no se confunde con el timeout de una
+  interacción del navegador.
 - Un proceso preexistente nunca se reutiliza salvo opt-in explícito con
   `E2E_REUSE_SERVER=true`.
 - CI exige `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,

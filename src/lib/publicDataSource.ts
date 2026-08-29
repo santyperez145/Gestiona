@@ -39,7 +39,54 @@ const PRODUCT_COLUMNS_WITH_DECANTS =
 const STORE_PRODUCT_COLUMNS_WITH_DECANTS =
   `${STORE_PRODUCT_COLUMNS},decant_price_10ml,decant_price_5ml,decant_price_2_5ml`;
 
-interface PgError { code?: string; message?: string }
+export interface PgError { code?: string; message?: string; status?: number }
+
+const PUBLIC_READ_RETRY_DELAYS_MS = [150, 450] as const;
+
+/**
+ * A public read may be retried when the transport failed, not when Supabase
+ * answered with a permission, schema or validation error. Returning an empty
+ * catalog for a brief network interruption is worse than spending two short
+ * attempts to preserve the storefront.
+ */
+export function isTransientPublicError(error: PgError | null | undefined): boolean {
+  if (!error) return false;
+
+  const status = Number(error.status);
+  if (status === 408 || status === 425 || status === 429 || status >= 500) return true;
+
+  const code = String(error.code ?? "");
+  if (/^(ECONNRESET|ECONNREFUSED|ENETUNREACH|ETIMEDOUT|EAI_AGAIN)$/i.test(code)) return true;
+
+  return /failed to fetch|fetch failed|network|timed out|timeout|connection (?:reset|closed|refused)|temporarily unavailable|service unavailable/i
+    .test(error.message ?? "");
+}
+
+type PublicReadResult = { error?: PgError | null };
+
+/** Retries only idempotent public reads; callers must never use it for writes. */
+export async function retryPublicRead<T extends PublicReadResult>(
+  read: () => PromiseLike<T>,
+  options: { delaysMs?: readonly number[]; maxAttempts?: number } = {},
+): Promise<T> {
+  const delays = options.delaysMs ?? PUBLIC_READ_RETRY_DELAYS_MS;
+  const maxAttempts = Math.max(1, options.maxAttempts ?? delays.length + 1);
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      const result = await read();
+      if (!isTransientPublicError(result.error) || attempt === maxAttempts - 1) return result;
+    } catch (error) {
+      if (!isTransientPublicError(error as PgError) || attempt === maxAttempts - 1) throw error;
+    }
+
+    const delay = delays[Math.min(attempt, Math.max(0, delays.length - 1))] ?? 0;
+    if (delay > 0) await new Promise<void>(resolve => setTimeout(resolve, delay));
+  }
+
+  // maxAttempts is clamped to at least one, so this line is unreachable.
+  throw new Error("No se pudo completar la lectura pública");
+}
 
 /**
  * ¿El error es "esa relación no existe"? Sólo en ese caso se cae a la tabla:
@@ -99,12 +146,12 @@ export async function fetchStoreProducts(orgId: string): Promise<CatalogProduct[
   // `store_catalog_products` es igual a `catalog_products` pero sin exigir
   // stock. Si la migración todavía no está aplicada se cae a la vieja: la
   // tienda pierde los agotados, no los productos.
-  const view = await supabase
+  const view = await retryPublicRead(() => supabase
     .from('store_catalog_products')
     .select(STORE_PRODUCT_COLUMNS_WITH_DECANTS)
     .eq('org_id', orgId)
     .order('featured', { ascending: false })
-    .order('name');
+    .order('name'));
 
   if (!view.error) return (view.data ?? []) as unknown as CatalogProduct[];
   if (!isMissingRelation(view.error)) {
@@ -113,12 +160,12 @@ export async function fetchStoreProducts(orgId: string): Promise<CatalogProduct[
   }
 
   warnFallback('store_catalog_products');
-  const previa = await supabase
+  const previa = await retryPublicRead(() => supabase
     .from('catalog_products')
     .select(PRODUCT_COLUMNS_WITH_DECANTS)
     .eq('org_id', orgId)
     .order('featured', { ascending: false })
-    .order('name');
+    .order('name'));
   if (!previa.error) return (previa.data ?? []) as unknown as CatalogProduct[];
   if (!isMissingRelation(previa.error)) {
     console.error('[catálogo] error leyendo catalog_products:', previa.error.message);
@@ -126,13 +173,13 @@ export async function fetchStoreProducts(orgId: string): Promise<CatalogProduct[
   }
 
   warnFallback('catalog_products');
-  const raw = await supabase
+  const raw = await retryPublicRead(() => supabase
     .from('products')
     .select(PRODUCT_COLUMNS)
     .eq('org_id', orgId)
     .gt('sale_price_ars', 0)
     .order('featured', { ascending: false })
-    .order('name');
+    .order('name'));
 
   if (raw.error) {
     console.error('[catálogo] error leyendo products:', raw.error.message);
@@ -150,13 +197,13 @@ export async function fetchStoreProducts(orgId: string): Promise<CatalogProduct[
  * publicar la estructura de costos.
  */
 export async function fetchCatalogProducts(userId: string): Promise<CatalogProduct[]> {
-  const view = await supabase
+  const view = await retryPublicRead(() => supabase
     .from('catalog_products')
     .select(PRODUCT_COLUMNS_WITH_DECANTS)
     .eq('user_id', userId)
     .gt('stock', 0)
     .order('category')
-    .order('name');
+    .order('name'));
 
   if (!view.error) return (view.data ?? []) as unknown as CatalogProduct[];
   if (!isMissingRelation(view.error)) {
@@ -165,13 +212,13 @@ export async function fetchCatalogProducts(userId: string): Promise<CatalogProdu
   }
 
   warnFallback('catalog_products');
-  const raw = await supabase
+  const raw = await retryPublicRead(() => supabase
     .from('products')
     .select(PRODUCT_COLUMNS)
     .eq('user_id', userId)
     .gt('stock', 0)
     .order('category')
-    .order('name');
+    .order('name'));
 
   if (raw.error) {
     console.error('[catálogo] error leyendo products:', raw.error.message);
@@ -204,17 +251,17 @@ export interface CatalogSettings {
 export async function fetchCatalogSettings(userId: string): Promise<CatalogSettings | null> {
   const cols = 'exchange_rate,volume_discount_threshold,volume_discount_percent';
 
-  const view = await supabase
+  const view = await retryPublicRead(() => supabase
     .from('catalog_settings').select(cols).eq('user_id', userId)
-    .order('org_id', { ascending: true }).limit(1).maybeSingle();
+    .order('org_id', { ascending: true }).limit(1).maybeSingle());
 
   if (!view.error) return (view.data ?? null) as CatalogSettings | null;
   if (!isMissingRelation(view.error)) return null;
 
   warnFallback('catalog_settings');
-  const raw = await supabase
+  const raw = await retryPublicRead(() => supabase
     .from('settings').select(cols).eq('user_id', userId)
-    .order('created_at', { ascending: true }).limit(1).maybeSingle();
+    .order('created_at', { ascending: true }).limit(1).maybeSingle());
   return (raw.data ?? null) as CatalogSettings | null;
 }
 
@@ -233,7 +280,8 @@ const PAYMENT_LINK_COLUMNS =
  * hacía esta página hasta ayer.
  */
 export async function fetchPublicPaymentLink(linkId: string) {
-  const rpc = await supabase.rpc('get_public_payment_link', { p_id: linkId });
+  const rpc = await retryPublicRead(() =>
+    supabase.rpc('get_public_payment_link', { p_id: linkId }));
 
   if (!rpc.error) {
     const rows = rpc.data as unknown;
@@ -245,18 +293,18 @@ export async function fetchPublicPaymentLink(linkId: string) {
   }
 
   warnFallback('get_public_payment_link()');
-  const { data: linkRaw } = await supabase
-    .from('payment_links').select(PAYMENT_LINK_COLUMNS).eq('id', linkId).maybeSingle();
+  const { data: linkRaw } = await retryPublicRead(() => supabase
+    .from('payment_links').select(PAYMENT_LINK_COLUMNS).eq('id', linkId).maybeSingle());
   if (!linkRaw) return null;
   // La lista de columnas es dinámica, así que TS no puede inferir la forma.
   const link = linkRaw as unknown as Record<string, unknown> & { org_id: string };
 
   const [{ data: st }, { data: org }] = await Promise.all([
-    supabase.from('settings')
+    retryPublicRead(() => supabase.from('settings')
       .select('bank_cbu,bank_alias,bank_name,bank_holder,whatsapp_number,logo_url,business_name')
-      .eq('org_id', link.org_id).maybeSingle(),
-    supabase.from('organizations')
-      .select('name').eq('id', link.org_id).maybeSingle(),
+      .eq('org_id', link.org_id).maybeSingle()),
+    retryPublicRead(() => supabase.from('organizations')
+      .select('name').eq('id', link.org_id).maybeSingle()),
   ]);
 
   const s = (st ?? {}) as Record<string, string | null>;
@@ -304,12 +352,12 @@ export async function quoteStoreShipping(args: {
   postalCode: string | null;
   items: Array<{ product_id: string; quantity: number }>;
 }): Promise<Array<Record<string, unknown>> | null> {
-  const { data, error } = await supabase.rpc('quote_store_shipping', {
+  const { data, error } = await retryPublicRead(() => supabase.rpc('quote_store_shipping', {
     p_slug: args.slug,
     p_province: args.province,
     p_postal_code: args.postalCode,
     p_items: args.items,
-  });
+  }));
 
   if (!error) return (Array.isArray(data) ? data : []) as Array<Record<string, unknown>>;
   if (isMissingFunction(error)) {
@@ -376,7 +424,8 @@ export interface StoreVariant {
  * variantes" de "no puedo saberlo" y no oculte productos por error.
  */
 export async function fetchStoreVariants(slug: string): Promise<StoreVariant[] | null> {
-  const { data, error } = await supabase.rpc('get_store_variants', { p_slug: slug });
+  const { data, error } = await retryPublicRead(() =>
+    supabase.rpc('get_store_variants', { p_slug: slug }));
   if (!error) return (data ?? []) as unknown as StoreVariant[];
   if (isMissingFunction(error)) {
     warnFallback('get_store_variants');
@@ -389,16 +438,16 @@ export async function fetchStoreVariants(slug: string): Promise<StoreVariant[] |
 export async function fetchCatalogVariants(productId: string) {
   const cols = 'id,variant_name,stock,image_url';
 
-  const view = await supabase
+  const view = await retryPublicRead(() => supabase
     .from('catalog_product_variants').select(cols)
-    .eq('product_id', productId).order('variant_name');
+    .eq('product_id', productId).order('variant_name'));
 
   if (!view.error) return view.data ?? [];
   if (!isMissingRelation(view.error)) return [];
 
   warnFallback('catalog_product_variants');
-  const raw = await supabase
+  const raw = await retryPublicRead(() => supabase
     .from('product_variants').select(cols)
-    .eq('product_id', productId).order('variant_name');
+    .eq('product_id', productId).order('variant_name'));
   return raw.data ?? [];
 }

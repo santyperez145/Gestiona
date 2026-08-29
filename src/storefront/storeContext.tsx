@@ -11,7 +11,12 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { ahorroPorVolumen, type ReglaCantidad } from "@/lib/promo2x";
 import type { CategoriaTienda } from "@/lib/storeCategories";
-import { fetchStoreProducts, fetchStoreVariants, type StoreVariant } from "@/lib/publicDataSource";
+import {
+  fetchStoreProducts,
+  fetchStoreVariants,
+  retryPublicRead,
+  type StoreVariant,
+} from "@/lib/publicDataSource";
 
 export interface StoreInfo {
   org_id: string;
@@ -182,7 +187,14 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     setNotFound(false);
 
     (async () => {
-      const { data } = await supabase.rpc("get_store_by_slug", { p_slug: slug });
+      const storeResponse = await retryPublicRead(() =>
+        supabase.rpc("get_store_by_slug", { p_slug: slug }));
+      if (storeResponse.error) {
+        console.error("[tienda] error leyendo la tienda:", storeResponse.error.message);
+        if (!cancelled) { setNotFound(true); setLoading(false); }
+        return;
+      }
+      const { data } = storeResponse;
       const row = (Array.isArray(data) ? data[0] : data) as StoreInfo | undefined;
       if (cancelled) return;
 
@@ -198,13 +210,13 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         // migración todavía no esté aplicada — si no, la tienda se muestra
         // vacía aunque haya productos cargados.
         fetchStoreProducts(row.org_id),
-        supabase.rpc("get_store_perfume_details", { p_slug: slug }),
+        retryPublicRead(() => supabase.rpc("get_store_perfume_details", { p_slug: slug })),
         fetchStoreVariants(slug),
-        supabase.rpc("get_store_reviews", { p_slug: slug }),
-        supabase.rpc("get_store_pages", { p_slug: slug }),
-        supabase.rpc("get_store_banners", { p_slug: slug }),
-        supabase.rpc("get_store_categories", { p_slug: slug }),
-        supabase.rpc("get_store_quantity_discounts", { p_slug: slug }),
+        retryPublicRead(() => supabase.rpc("get_store_reviews", { p_slug: slug })),
+        retryPublicRead(() => supabase.rpc("get_store_pages", { p_slug: slug })),
+        retryPublicRead(() => supabase.rpc("get_store_banners", { p_slug: slug })),
+        retryPublicRead(() => supabase.rpc("get_store_categories", { p_slug: slug })),
+        retryPublicRead(() => supabase.rpc("get_store_quantity_discounts", { p_slug: slug })),
       ]);
       if (cancelled) return;
 

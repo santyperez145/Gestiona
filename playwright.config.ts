@@ -88,6 +88,8 @@ export default defineConfig({
     command: `npm run build && npm run preview -- --port ${PORT} --strictPort`,
     port: PORT,
     reuseExistingServer,
-    timeout: 120_000,
+    // El bundle + PWA tarda más bajo carga en Windows que el tiempo de una
+    // visita; este margen evita convertir un build lento en un falso rojo.
+    timeout: 180_000,
   },
 });

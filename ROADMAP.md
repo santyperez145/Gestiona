@@ -227,7 +227,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.983 tests en 192 archivos pasan al 2026-08-29 con `npm test -- --maxWorkers=1 --fileParallelism=false`; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 71 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
+| Calidad técnica | 1.986 tests en 192 archivos pasan al 2026-08-29 con `npm test -- --maxWorkers=1 --fileParallelism=false`; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 71 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -1903,6 +1903,20 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     audit 0, 489 migraciones y 70 enlaces internos en 43 documentos
     (2026-08-29).
 
+54. ~~Lecturas públicas resilientes ante interrupciones transitorias~~ — cerrado
+    técnicamente el 2026-08-29. `retryPublicRead` reintenta sólo fallas de red,
+    timeout, rate limit y respuestas 5xx en lecturas idempotentes del catálogo,
+    tienda, variantes, configuración, links de pago y cotización de envío. No
+    activa el fallback de migraciones ante permisos o esquemas faltantes, y no
+    se usa en mutaciones del checkout. La carga inicial de la tienda y sus
+    lecturas auxiliares comparten el mismo contrato. La suite quedó en
+    1.986/1.986 tests; el bundle local pasó catálogo/footer en Chromium y móvil
+    `4/4`, sin errores de consola. El primer E2E paralelo había demostrado el
+    síntoma real (`Failed to fetch` → catálogo vacío); la corrida enfocada con
+    un worker quedó estable después de la recuperación. La puerta de arranque
+    E2E también amplió `build + preview` a 180 segundos para no confundir un
+    build PWA lento con una pantalla rota.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
@@ -2400,7 +2414,7 @@ fixture destructiva-cero probó el RPC real y producción sirve `public-api` v42
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **1.983 tests en 192 archivos**,
+- Build y suites locales del 2026-08-29: **1.986 tests en 192 archivos**,
   typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 71
   funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
   panel y 1 setup autenticado—; el de Gastos es de sólo lectura.
