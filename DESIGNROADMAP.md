@@ -100,13 +100,15 @@ Medición del código al 2026-08-29:
   se abre sólo si el estado admite ingreso; 6 guardas cubren enlace manipulado,
   estados finales y preservación del RPC de stock;
 - `WorkspaceState` declara los 12 estados del estándar y D2.5 ya migra
-  Finance/Compras, Reportes/Intelligence y Dashboard: skeleton inicial, refresh
-  no bloqueante, primer uso, filtro vacío, error, offline, stale, parcial y
-  éxito. Reportes y Dashboard conservan la última lectura durante refresh,
-  identifican la fuente que falló y descartan respuestas de otra organización;
-  Auditoría y Sucursales adoptan el mismo contrato. Dashboard declara como
-  parcial el stock por sucursal que no pudo cargar. La guarda accesible mantiene
-  el comportamiento bajo prueba;
+  Finance/Compras, Reportes/Intelligence, Dashboard y Productos: skeleton
+  inicial, refresh no bloqueante, primer uso, filtro vacío, error, offline,
+  stale, parcial y éxito. Reportes, Dashboard y Productos conservan la última
+  lectura durante refresh, identifican la fuente que falló y descartan
+  respuestas de otra organización; Auditoría y Sucursales adoptan el mismo
+  contrato. Dashboard declara como parcial el stock por sucursal que no pudo
+  cargar y Productos separa catálogo/costos críticos de variantes, ventas y
+  ficha técnica auxiliares. La guarda accesible mantiene el comportamiento
+  bajo prueba;
 - D2.6 retiró 16 overlays manuales de 11 archivos del SaaS: altas/ediciones,
   detalle, resultado, ayuda, notificaciones y sesión usan ahora Dialog, Sheet o
   Popover con foco y cierre canónicos. Sólo quedan cuatro fullscreen técnicos
@@ -138,7 +140,7 @@ usa en material de producto o inversión.
 | Auth | Split editorial + formulario inequívoco. | Implementada | Error, recovery y registro en mobile. |
 | Business shell | Rail claro, topbar contextual, canvas v3. | Implementado | Captura autenticada 4 viewports. |
 | Dashboard | Seis vistas ejecutivas persistidas. | Implementado | Tiempo hasta detectar/anclar una acción. |
-| Productos | Catálogo/Operación, tabla y acciones existentes. | Parcial | Editor, importador y variantes responsive. |
+| Productos | Catálogo/Operación con carga, refresh, vacío, error, offline, stale y enriquecimientos parciales explícitos. | Parcial D2.5 2026-08-29 | Editor, importador y variantes responsive; matriz autenticada. |
 | Ventas/POS | Lista/Rendimiento; POS fullscreen deliberado. | Parcial | Cobro completo teclado/touch y error. |
 | CRM | Command center, segmentos, tabla y ficha 360. | Implementado | Tarea real y lectura mobile. |
 | Inventario/Compras | Lista/recepción bajo tokens v3; handoff direccionado y estados comunes, incluido dato parcial/offline. | Parcial | Composición completa lista/detalle/Kardex, migrar subflujos y validar responsive. |
@@ -217,9 +219,11 @@ y justifica tecnología; no copia un Figma ni instala por moda.
   importaciones estructuradas convergidas. Faltan documento/cámara,
   imagen/branding, combobox y menús.
 - [ ] D2.5 — **parcial 2026-08-29:** `WorkspaceState` cubre los 12 estados;
-  Finance/Compras, Reportes/Intelligence y Dashboard ya migraron carga, refresh,
-  vacíos, error, offline, stale, parcial y éxito. Falta adopción por riesgo en
-  el resto del SaaS y validación visual autenticada.
+  Finance/Compras, Reportes/Intelligence, Dashboard y Productos ya migraron
+  carga, refresh, vacíos, error, offline, stale, parcial y éxito. Productos
+  además protege el cambio de tenant y no convierte fallas de variantes,
+  movimiento o ficha técnica en catálogo vacío. Falta adopción por riesgo en el
+  resto del SaaS y validación visual autenticada.
 - [x] D2.6 — **cerrado en Gestión 2026-08-22:** 16 overlays manuales migrados a
   Dialog/Sheet/Popover; cuatro excepciones técnicas fullscreen enumeradas y una
   guarda recursiva impide sumar otra. Storefront se audita dentro de D5.
@@ -362,12 +366,12 @@ declara validado porque “se ve mejor”.
 | 3 | Selects de páginas de gestión | Hecho 2026-08-22 | 20 migrados; guarda en tests. |
 | 4 | Selects de componentes + decisión Storefront | Hecho 2026-08-22 | 10 migrados; SaaS en cero y 3 excepciones públicas bajo guarda. |
 | 5 | Estándar integral competitivo | Hecho 2026-08-22 | 17 referencias oficiales (7 globales, 4 Finance/spend y 6 argentinas), 4 Figma observados, arquetipos, overlays, segmentación, matriz de cobertura y puerta tecnológica bajo guarda CI. |
-| 6 | Estados unificados | Parcial 2026-08-29 | Contrato de 12 estados; Finance/Compras, Reportes/Intelligence y Dashboard migrados sin confundir vacío/error/parcial. Auditoría y Sucursales adoptan el contrato; faltan rutas restantes y matriz visual. |
+| 6 | Estados unificados | Parcial 2026-08-29 | Contrato de 12 estados; Finance/Compras, Reportes/Intelligence, Dashboard y Productos migrados sin confundir vacío/error/parcial ni mezclar tenants. Auditoría y Sucursales adoptan el contrato; faltan rutas restantes y matriz visual. |
 | 7 | Modales, sheets y drawers | Hecho en Gestión 2026-08-22 | 16 overlays de 11 archivos migrados; tamaños canónicos, focus trap y cierre accesible. Sólo rail mobile + 3 scanners fullscreen quedan bajo allowlist CI; Storefront pertenece a D5. |
 | 8 | Paginación canónica | Hecho en Gestión 2026-08-22 | Cinco listados comparten rango, responsive, límites y aria-live; cálculo puro cubierto y guarda evita controles locales. |
 | 9 | Fechas canónicas | Hecho en Gestión 2026-08-22 | 82 campos/46 archivos conservan semántica nativa bajo Input; 11 variantes manuales retiradas y regresión bloqueada. Uploaders clasificados aparte. |
 | 10 | Importadores estructurados canónicos | Hecho en Gestión 2026-08-22 | Catálogo, precios, Tiendanube, clientes y banco comparten FilePicker; extensión/MIME, drop, busy, error y misma selección cubiertos. |
-| 11 | Productos end-to-end | Pendiente | Desktop/mobile + editor/importación. |
+| 11 | Productos end-to-end | Parcial 2026-08-29 | El catálogo conserva lectura válida, identifica fallos críticos/auxiliares y diferencia primer uso de filtros vacíos bajo guarda; faltan desktop/mobile autenticado + editor/importación/variantes. |
 | 12 | Ventas y devolución | Parcial 2026-08-29 | La cola RMA ya distingue la acción de reintegro autorizada del estado de permiso y explica cómo solicitar `Pagos · Editar`; servidor y UI comparten la matriz. Faltan lista→detalle sin perder filtros, layout mobile y validación visual autenticada. |
 | 13 | POS teclado/touch/offline | Pendiente | Cobro y recuperación medidos. |
 | 14 | Compras, recepción y Kardex | Parcial 2026-08-22 | Finance llega a la OC exacta, muestra contexto y abre la recepción idempotente; faltan Kardex integrado y matriz responsive. |

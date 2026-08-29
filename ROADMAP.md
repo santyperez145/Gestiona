@@ -2017,6 +2017,23 @@ Finance Connect.
     1.988/1.988 tests al 2026-08-29; la matriz autenticada responsive y el tiempo
     a tarea siguen pendientes.
 
+59. Estados honestos D2.5 en Productos — slice técnico cerrado el 2026-08-29.
+    El catálogo ya no depende de un `Promise.all` que podía dejar la pantalla en
+    skeleton infinito ni trata errores de ventas o ficha técnica como arreglos
+    vacíos. Productos y ajustes de costos/precios son el conjunto crítico;
+    variantes, movimiento de 60 días y ficha de perfume son enriquecimientos
+    auxiliares que ahora generan estado parcial visible sin bloquear la carga.
+    Un refresh conserva la última lectura válida, los fallos críticos pasan a
+    error recuperable/stale, offline se distingue explícitamente y una respuesta
+    tardía no puede pintar datos de la organización anterior. El vacío inicial
+    respeta permisos y el vacío por filtros limpia todas las facetas en lugar de
+    sugerir un alta incorrecta. La guarda de
+    `src/test/workspaceState.test.tsx` suma el contrato de Productos; la barrera
+    local cerró typecheck, lint con 0 errores/138 warnings conocidos,
+    1.989/1.989 tests y build/PWA. Quedan la matriz autenticada
+    360/768/1024/1440, editor/importador/variantes responsive y medición de
+    tiempo a primera carga de producto.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

@@ -88,4 +88,19 @@ describe('contrato transversal de estados del workspace', () => {
     expect(dashboard).toContain('locationStockError');
     expect(dashboard).not.toContain('const [products, sales, purchases, debts, settings, expenses] = await Promise.all');
   });
+
+  it('Productos conserva el catálogo, separa enriquecimientos y protege el tenant', () => {
+    const products = source('src/pages/ProductsPage.tsx');
+    for (const kind of ['initial-loading', 'refreshing', 'error-recoverable', 'offline', 'stale', 'partial']) {
+      expect(products, `Productos no declara el estado ${kind}`).toContain(`kind="${kind}"`);
+    }
+    expect(products).toContain('kind={products.length === 0 ? "empty-first-use" : "empty-filtered"}');
+    expect(products).toContain('Promise.allSettled');
+    expect(products).toContain("console.error('[Productos] no se pudo actualizar el catálogo'");
+    expect(products).toContain('activeOrgIdRef.current !== orgId');
+    expect(products).toContain('Never render the previous organization');
+    expect(products).not.toContain('if (loading) return <TableSkeleton');
+    expect(products).not.toContain('(salesRes.data || [])');
+    expect(products).not.toContain('(perfumeRes.data || [])');
+  });
 });

@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import Fuse from "fuse.js";
+import { useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe, costoArsONull, faltaCotizacion } from "@/lib/exchangeRate";
@@ -16,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale, Loader2, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale, Loader2, ExternalLink, RefreshCw } from "lucide-react";
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { recommendSimilar } from "@/lib/perfumeMatch";
 import { normalizeText, literalFilter } from "@/lib/searchText";
@@ -44,8 +45,7 @@ import IdentityHealthPanel from "@/components/shared/IdentityHealthPanel";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import ProductsExcelImport from "@/components/products/ProductsExcelImport";
-import EmptyState from "@/components/shared/EmptyState";
-import { TableSkeleton } from "@/components/shared/PageSkeleton";
+import WorkspaceState from "@/components/shared/WorkspaceState";
 import { logAudit } from "@/lib/auditLog";
 import { useModulePermissions } from "@/lib/usePermissions";
 import { useAIProductSuggest } from "@/hooks/useAIProductSuggest";
@@ -60,10 +60,25 @@ import { BarcodePrintSheet } from "@/components/shared/BarcodeLabel";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { Switch } from "@/components/ui/switch";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 import { plural } from "@/lib/plural";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
+
+function productLoadErrorMessage(cause: unknown, fallback: string) {
+  if (cause instanceof Error && cause.message.trim()) return cause.message;
+  if (cause && typeof cause === 'object' && 'message' in cause) {
+    const message = String((cause as { message?: unknown }).message ?? '').trim();
+    if (message) return message;
+  }
+  return fallback;
+}
+
+function settledValue<T>(result: PromiseSettledResult<T>): T {
+  if (result.status === 'rejected') throw result.reason;
+  return result.value;
+}
 
 function exportPriceLabels(products: any[], businessName: string) {
   const items = products.filter(p => p.stock > 0 || true).slice(0, 80);
@@ -297,6 +312,7 @@ export default function ProductsPage() {
   const { user } = useAuth();
   const { activeOrg, activeRole } = useOrg();
   const { productLimit, plan } = useEntitlements();
+  const { online } = useNetworkStatus();
   const [identityParams, setIdentityParams] = useSearchParams();
   // Module-aware permissions: admins can grant/deny per-module via role_permissions
   // (falls back to role defaults if no DB rows exist)
@@ -341,6 +357,15 @@ export default function ProductsPage() {
   const facetCount = filterFamilia.length + filterNotas.length + filterEstacion.length + filterOcasion.length + filterGenderFacet.length + (filterMaxPrice ? 1 : 0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [partialWarning, setPartialWarning] = useState<string | null>(null);
+  const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
+  const hasLoadedDataRef = useRef(false);
+  const loadRequestRef = useRef(0);
+  const activeOrgIdRef = useRef<string | null>(activeOrg?.id ?? null);
+  const loadedOrgIdRef = useRef<string | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
   const [priceHistoryProduct, setPriceHistoryProduct] = useState<{ id: string; name: string } | null>(null);
@@ -368,45 +393,132 @@ export default function ProductsPage() {
   const [catOfferExpiry, setCatOfferExpiry] = useState('');
   const [catOfferSaving, setCatOfferSaving] = useState(false);
 
-  const reload = async () => {
-    if (!user) return;
-    const orgId = await import('@/lib/orgContext').then(m => m.getActiveOrgId());
+  const reload = useCallback(async () => {
+    if (!user?.id || !activeOrg?.id) return;
+    const orgId = activeOrg.id;
+    const request = ++loadRequestRef.current;
+    const hasVisibleData = hasLoadedDataRef.current && loadedOrgIdRef.current === orgId;
+    setLoading(!hasVisibleData);
+    setRefreshing(hasVisibleData);
+    setLoadError(null);
     const since60 = new Date(); since60.setDate(since60.getDate() - 60);
-    const [p, s, allVariants, salesRes, perfumeRes] = await Promise.all([
+    const results = await Promise.allSettled([
       getProductsDB(user.id),
       getSettingsDB(user.id),
       getVariantsByUserDB(user.id),
       supabase.from('sales')
         .select('product_id, quantity, date')
         .eq('org_id', orgId)
-        .gte('date', since60.toISOString().slice(0, 10)),
+        .gte('date', since60.toISOString().slice(0, 10))
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data ?? [];
+        }),
       supabase.from('product_perfume_details')
         .select('*')
-        .eq('org_id', orgId),
+        .eq('org_id', orgId)
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data ?? [];
+        }),
     ]);
-    setProducts(p); setSettings(s); setLoading(false);
-    const counts: Record<string, number> = {};
-    allVariants.forEach((v: any) => { counts[v.product_id] = (counts[v.product_id] || 0) + 1; });
-    setVariantCounts(counts);
-    const perfumeMap: Record<string, any> = {};
-    (perfumeRes.data || []).forEach((d: any) => { perfumeMap[d.product_id] = d; });
-    setPerfumeDetailsByProduct(perfumeMap);
-    // Calculate daily sales velocity per product (units/day over last 60 days)
-    const velocity: Record<string, number> = {};
-    const lastSale: Record<string, string> = {};
-    (salesRes.data || []).forEach((sale: any) => {
-      if (sale.product_id) {
-        velocity[sale.product_id] = (velocity[sale.product_id] || 0) + Number(sale.quantity || 1);
-        if (!lastSale[sale.product_id] || sale.date > lastSale[sale.product_id]) {
-          lastSale[sale.product_id] = sale.date;
+    if (request !== loadRequestRef.current || activeOrgIdRef.current !== orgId) return;
+
+    const [productsResult, settingsResult, variantsResult, salesResult, perfumeResult] = results;
+    const coreResults = [
+      ['productos', productsResult],
+      ['ajustes de costos y precios', settingsResult],
+    ] as const;
+    const failedCore = coreResults.filter(([, result]) => result.status === 'rejected');
+    if (failedCore.length > 0) {
+      const failedNames = failedCore.map(([name]) => name).join(', ');
+      const firstFailure = failedCore[0][1];
+      const detail = productLoadErrorMessage(
+        firstFailure.status === 'rejected' ? firstFailure.reason : null,
+        'La consulta no respondió.',
+      );
+      console.error('[Productos] no se pudo actualizar el catálogo', { failedNames, detail });
+      setLoadError(`No pudimos actualizar ${failedNames}. ${detail}`);
+      setRefreshing(false);
+      setLoading(false);
+      return;
+    }
+
+    setProducts(settledValue(productsResult));
+    setSettings(settledValue(settingsResult));
+    loadedOrgIdRef.current = orgId;
+    hasLoadedDataRef.current = true;
+    setHasLoadedData(true);
+    setLastLoadedAt(new Date());
+
+    const failedSupporting: string[] = [];
+    if (variantsResult.status === 'fulfilled') {
+      const counts: Record<string, number> = {};
+      variantsResult.value.forEach((variant: any) => {
+        counts[variant.product_id] = (counts[variant.product_id] || 0) + 1;
+      });
+      setVariantCounts(counts);
+    } else {
+      failedSupporting.push('variantes');
+      console.error('[Productos] no se pudieron actualizar las variantes', variantsResult.reason);
+    }
+
+    if (perfumeResult.status === 'fulfilled') {
+      const perfumeMap: Record<string, any> = {};
+      perfumeResult.value.forEach((detail: any) => { perfumeMap[detail.product_id] = detail; });
+      setPerfumeDetailsByProduct(perfumeMap);
+    } else {
+      failedSupporting.push('fichas de perfume');
+      console.error('[Productos] no se pudieron actualizar las fichas de perfume', perfumeResult.reason);
+    }
+
+    if (salesResult.status === 'fulfilled') {
+      // Calculate daily sales velocity per product (units/day over last 60 days).
+      const velocity: Record<string, number> = {};
+      const lastSale: Record<string, string> = {};
+      salesResult.value.forEach((sale: any) => {
+        if (sale.product_id) {
+          velocity[sale.product_id] = (velocity[sale.product_id] || 0) + Number(sale.quantity || 1);
+          if (!lastSale[sale.product_id] || sale.date > lastSale[sale.product_id]) {
+            lastSale[sale.product_id] = sale.date;
+          }
         }
-      }
-    });
-    Object.keys(velocity).forEach(id => { velocity[id] = velocity[id] / 60; });
-    setSalesVelocity(velocity);
-    setLastSaleDate(lastSale);
-  };
-  useEffect(() => { reload(); }, [user]);
+      });
+      Object.keys(velocity).forEach(id => { velocity[id] = velocity[id] / 60; });
+      setSalesVelocity(velocity);
+      setLastSaleDate(lastSale);
+    } else {
+      failedSupporting.push('movimiento de ventas');
+      console.error('[Productos] no se pudo actualizar el movimiento de ventas', salesResult.reason);
+    }
+
+    setPartialWarning(failedSupporting.length > 0
+      ? `El catálogo está disponible, pero faltan ${failedSupporting.join(', ')}. Los conteos, filtros o sugerencias relacionados pueden estar incompletos.`
+      : null);
+    setRefreshing(false);
+    setLoading(false);
+  }, [activeOrg?.id, user?.id]);
+
+  useEffect(() => {
+    // Never render the previous organization while the next tenant is loading.
+    activeOrgIdRef.current = activeOrg?.id ?? null;
+    loadedOrgIdRef.current = null;
+    hasLoadedDataRef.current = false;
+    setHasLoadedData(false);
+    setProducts([]);
+    setSettings(null);
+    setVariantCounts({});
+    setPerfumeDetailsByProduct({});
+    setSalesVelocity({});
+    setLastSaleDate({});
+    setLoadError(null);
+    setPartialWarning(null);
+    setLastLoadedAt(null);
+    setLoading(true);
+    setRefreshing(false);
+    void reload();
+    return () => { loadRequestRef.current += 1; };
+  }, [activeOrg?.id, reload]);
 
   useEffect(() => {
     const identityId = identityParams.get("identity");
@@ -689,7 +801,35 @@ export default function ProductsPage() {
     finally { setCatOfferSaving(false); }
   };
 
-  if (loading) return <TableSkeleton rows={8} cols={8} />;
+  const clearProductFilters = () => {
+    setSearch('');
+    setFilterCat('all');
+    setFilterStock('all');
+    setFilterExpiry('all');
+    setFilterTag('');
+    setFilterMovement('all');
+    setFilterMargin('all');
+    setFilterDiscount(false);
+    setFilterCalidad(null);
+    setFilterFamilia([]);
+    setFilterNotas([]);
+    setFilterEstacion([]);
+    setFilterOcasion([]);
+    setFilterGenderFacet([]);
+    setFilterMaxPrice('');
+    setPage(0);
+  };
+
+  const hasVisibleProducts = hasLoadedData && loadedOrgIdRef.current === activeOrg?.id;
+  if (!hasVisibleProducts) {
+    if (!online) {
+      return <WorkspaceState kind="offline" title="Productos sin conexión" description="No pudimos leer el catálogo. Volvé a conectarte para reintentar sin mostrar información incompleta." actionLabel="Reintentar" onAction={() => void reload()} />;
+    }
+    if (loadError) {
+      return <WorkspaceState kind="error-recoverable" title="No pudimos abrir Productos" description={loadError} actionLabel="Reintentar" onAction={() => void reload()} />;
+    }
+    return <WorkspaceState kind="initial-loading" title="Leyendo catálogo de productos" loadingRows={8} />;
+  }
 
   // ⚠️ Lo que no lleva stock no puede estar «sin stock». Un servicio —un corte
   // de pelo, una hora de consultoría— se vende y no se descuenta, así que se
@@ -717,6 +857,9 @@ export default function ProductsPage() {
         }
         actions={
           <div className="workspace-products-actions flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => void reload()} disabled={refreshing} title="Actualizar catálogo">
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />Actualizar
+            </Button>
             <div className="flex rounded-lg border border-border overflow-hidden h-9">
               <button onClick={() => setProductView('list')} className={`px-2.5 transition-colors ${productView === 'list' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`} title="Vista lista">
                 <List className="w-4 h-4" />
@@ -792,6 +935,33 @@ export default function ProductsPage() {
           </div>
         }
       />
+
+      {refreshing && (
+        <WorkspaceState kind="refreshing" layout="banner" title="Actualizando catálogo" description="Mantenemos visible la última lectura válida mientras consultamos productos y datos relacionados." />
+      )}
+      {!online && (
+        <WorkspaceState
+          kind="offline"
+          layout="banner"
+          title="Catálogo sin conexión"
+          description={`Seguís viendo la última lectura válida${lastLoadedAt ? ` de las ${lastLoadedAt.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : ''}. Los cambios requieren conexión.`}
+          actionLabel="Reintentar"
+          onAction={() => void reload()}
+        />
+      )}
+      {online && loadError && (
+        <WorkspaceState
+          kind="stale"
+          layout="banner"
+          title="No pudimos actualizar el catálogo"
+          description={`${loadError}${lastLoadedAt ? ` Seguís viendo la lectura de las ${lastLoadedAt.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}.` : ''}`}
+          actionLabel="Reintentar"
+          onAction={() => void reload()}
+        />
+      )}
+      {partialWarning && (
+        <WorkspaceState kind="partial" layout="banner" title="Catálogo con cobertura parcial" description={partialWarning} actionLabel="Reintentar datos faltantes" onAction={() => void reload()} />
+      )}
 
       {activeOrg?.id && (
         <ProductTypesManager
@@ -1238,7 +1408,20 @@ export default function ProductsPage() {
       </div>
 
       {!filtered.length ? (
-        <EmptyState icon={Package} title={products.length ? 'Sin resultados' : 'No hay productos aún'} description="Agregá tu primer producto para empezar." actionLabel="Nuevo Producto" onAction={() => setOpen(true)} />
+        <WorkspaceState
+          kind={products.length === 0 ? "empty-first-use" : "empty-filtered"}
+          icon={Package}
+          title={products.length === 0 ? 'Todavía no hay productos' : 'Ningún producto coincide'}
+          description={products.length === 0
+            ? (canCreate ? 'Creá el primer producto para activar catálogo, stock y rentabilidad por canal.' : 'Tu organización todavía no cargó productos.')
+            : 'Limpiá los filtros para volver a ver el catálogo completo.'}
+          actionLabel={products.length === 0
+            ? (canCreate && (productLimit === null || products.length < productLimit) ? 'Nuevo producto' : undefined)
+            : 'Limpiar filtros'}
+          onAction={products.length === 0
+            ? (canCreate && (productLimit === null || products.length < productLimit) ? () => setOpen(true) : undefined)
+            : clearProductFilters}
+        />
       ) : productView === 'grid' ? (
         <div className="workspace-products-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {filteredSorted.map((p: any) => (
