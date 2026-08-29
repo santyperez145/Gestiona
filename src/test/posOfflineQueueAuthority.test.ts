@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const pos = readFileSync(resolve(process.cwd(), "src/pages/POSPage.tsx"), "utf8");
+const panelE2e = readFileSync(resolve(process.cwd(), "e2e/panel.spec.ts"), "utf8");
 
 describe("contrato operativo de la cola offline del POS", () => {
   it("presenta tickets canónicos y no filas de venta como si fueran operaciones", () => {
@@ -41,5 +42,19 @@ describe("contrato operativo de la cola offline del POS", () => {
     expect(pos).toContain("(!isOnline && !!offlineStorageError)");
     expect(pos).toContain('role="alert"');
     expect(pos).toContain("La venta no se registró porque el dispositivo no pudo guardarla offline");
+  });
+
+  it("el drill E2E intercepta toda escritura y limpia el fixture local aun si falla", () => {
+    const route = panelE2e.indexOf('page.route("**/rest/v1/rpc/create_sales_transaction_v3"');
+    const seed = panelE2e.indexOf("window.localStorage.setItem", route);
+    const reconnect = panelE2e.indexOf("context.setOffline(false)", seed);
+    const cleanup = panelE2e.indexOf("window.localStorage.removeItem", reconnect);
+
+    expect(route).toBeGreaterThan(-1);
+    expect(seed).toBeGreaterThan(route);
+    expect(reconnect).toBeGreaterThan(seed);
+    expect(cleanup).toBeGreaterThan(reconnect);
+    expect(panelE2e).toContain('let phase: "hold" | "partial" = "hold"');
+    expect(panelE2e).toContain("await context.setOffline(true)");
   });
 });

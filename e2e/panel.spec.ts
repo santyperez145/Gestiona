@@ -243,4 +243,116 @@ test.describe("POS", () => {
     await expect(page.getByRole("button", { name: "Todo", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Árabe", exact: true })).toBeVisible();
   });
+
+  test("recupera dos tickets offline y deja visible una sincronización parcial sin escribir en producción", async ({ page, context }) => {
+    let phase: "hold" | "partial" = "hold";
+    let partialCalls = 0;
+
+    // Toda llamada de escritura queda interceptada antes de cargar la cola.
+    // El test jamás llega al RPC real ni inserta una venta de producción.
+    await page.route("**/rest/v1/rpc/create_sales_transaction_v3", async route => {
+      if (phase === "hold") {
+        await route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({ code: "POS_E2E_OFFLINE", message: "sin conexión simulada" }),
+        });
+        return;
+      }
+
+      partialCalls += 1;
+      if (partialCalls === 1) {
+        const body = route.request().postDataJSON() as { p_sales?: Array<{ id?: string }> };
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            transaction_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            sale_ids: (body.p_sales ?? []).map(line => line.id),
+            lines: body.p_sales?.length ?? 0,
+            reused: false,
+            coupon_recorded: false,
+            payment_evidence: { inserted: 0, parts: 0, pending: 0 },
+          }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ code: "POS_E2E_PARTIAL", message: "segundo ticket rechazado en la simulación" }),
+      });
+    });
+
+    await abrirPos(page);
+    const orgId = await page.getByTestId("pos-root").getAttribute("data-org-id");
+    expect(orgId, "el POS debe exponer su organización activa al contrato E2E").toBeTruthy();
+    const queueKey = `gestiona.pos.offline_sales.${orgId}`;
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const queue = [
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        org_id: orgId,
+        product_name: "ZZ Vista offline A",
+        quantity: 2,
+        total_ars: 2000,
+        date: twoHoursAgo,
+        offline_transaction_id: "10101010-1010-4010-8010-101010101010",
+        offline_origin: true,
+      },
+      {
+        id: "22222222-2222-4222-8222-222222222222",
+        org_id: orgId,
+        product_name: "ZZ Vista offline B",
+        quantity: 1,
+        total_ars: 1500,
+        date: twoHoursAgo,
+        offline_transaction_id: "10101010-1010-4010-8010-101010101010",
+        offline_origin: true,
+      },
+      {
+        id: "33333333-3333-4333-8333-333333333333",
+        org_id: orgId,
+        product_name: "ZZ Vista offline C",
+        quantity: 3,
+        total_ars: 6000,
+        date: twoHoursAgo,
+        offline_transaction_id: "20202020-2020-4020-8020-202020202020",
+        offline_origin: true,
+      },
+    ];
+
+    try {
+      await page.evaluate(
+        ({ key, value }) => window.localStorage.setItem(key, JSON.stringify(value)),
+        { key: queueKey, value: queue },
+      );
+      await page.reload();
+      await context.setOffline(true);
+
+      await expect(page.getByText("Sin conexión — el ticket se guarda en este dispositivo")).toBeVisible();
+      await expect(page.getByText(/2 tickets · 6 u\. · \$ 9\.500,00/)).toBeVisible();
+      await expect(page.getByText(/El cobro ocurre por fuera de Gestiona/)).toBeVisible();
+
+      phase = "partial";
+      await context.setOffline(false);
+
+      await expect(page.getByText(/1 ticket · 3 u\. · \$ 6\.000,00 pendiente/)).toBeVisible();
+      await expect(page.getByText(/1 ticket sigue pendiente/)).toBeVisible();
+      expect(partialCalls).toBe(2);
+
+      const remaining = await page.evaluate(key => {
+        const raw = window.localStorage.getItem(key);
+        return raw ? JSON.parse(raw) as Array<{ offline_transaction_id?: string }> : [];
+      }, queueKey);
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0]?.offline_transaction_id).toBe("20202020-2020-4020-8020-202020202020");
+    } finally {
+      // La página se vuelve a desconectar antes de retirar el fixture: así un
+      // fallo de aserción tampoco puede liberar la cola hacia producción.
+      await context.setOffline(true);
+      await page.evaluate(key => window.localStorage.removeItem(key), queueKey);
+    }
+  });
 });

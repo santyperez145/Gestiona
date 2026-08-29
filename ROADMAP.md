@@ -2154,9 +2154,19 @@ Finance Connect.
     1 padre, 2 renglones, stock −3, 2 deudas, cupón +1, payload conflictivo
     rechazado y 0 restos. `db push --linked --dry-run` quedó `upToDate=true`.
     La puerta completa del 2026-08-29 cerró con typecheck, lint sin errores,
-    195 archivos / 2008 tests y build PWA de producción.
-    Falta el drill E2E de navegador aislado desconexión → dos tickets →
-    reconexión parcial y medir tiempo/errores de cobro antes de cerrar D3.
+    195 archivos / 2009 tests y build PWA de producción.
+    El drill E2E de navegador ya siembra dos tickets/6 unidades/$9.500 sólo en
+    `localStorage`, intercepta **antes** toda llamada a v3, desconecta el
+    contexto y al reconectar deja que uno pase y otro falle: exige que la UI
+    conserve 1 ticket/3 unidades/$6.000, la causa y el retry. El `finally`
+    vuelve a cortar la red antes de limpiar el fixture, así ni una aserción rota
+    puede liberar una venta hacia producción. En esta PC quedó validado por
+    compilación/listado (13 specs de panel) y guarda estática; ejecutarlo exige
+    `E2E_USER`/`E2E_PASSWORD`, que no están en el entorno local. La sesión del
+    navegador publicada sí confirmó `/caja` y datos reales, pero Vercel todavía
+    servía el bundle anterior `index-CjoHBe1v.js`, por lo que no se marca como
+    validación visual del cambio. Falta ejecutar ese spec autenticado sobre el
+    bundle nuevo y medir tiempo/errores de cobro antes de cerrar D3.
 
 66. El espejo financiero dejó de fallar en silencio — cerrado el 2026-08-29.
     La auditoría del slice encontró que `recordFinancialMovement` enviaba

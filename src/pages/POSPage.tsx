@@ -2705,7 +2705,11 @@ export default function POSPage() {
           </DialogContent>
       </Dialog>
 
-      <div className={`h-[calc(100vh-4rem)] lg:h-screen flex flex-col ${posTheme === 'light' ? 'bg-white text-gray-900 [&_.bg-card]:bg-gray-50 [&_.bg-muted]:bg-gray-100 [&_.border-border]:border-gray-200 [&_.text-muted-foreground]:text-gray-500 [&_.text-foreground]:text-gray-900' : ''}`}>
+      <div
+        data-testid="pos-root"
+        data-org-id={activeOrg?.id}
+        className={`h-[calc(100vh-4rem)] lg:h-screen flex flex-col ${posTheme === 'light' ? 'bg-white text-gray-900 [&_.bg-card]:bg-gray-50 [&_.bg-muted]:bg-gray-100 [&_.border-border]:border-gray-200 [&_.text-muted-foreground]:text-gray-500 [&_.text-foreground]:text-gray-900' : ''}`}
+      >
         {/* Offline / sync banner */}
         {!isOnline && (
           <div role="status" aria-live="polite" className="shrink-0 flex flex-wrap items-center gap-2 bg-orange-500/10 border-b border-orange-500/30 px-3 py-2 text-xs text-orange-700 dark:text-orange-300 sm:px-4">
