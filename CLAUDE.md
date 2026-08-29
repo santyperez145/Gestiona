@@ -41,6 +41,19 @@ propio — gestión de gastos corporativos, al estilo Mendel. Entrar a Gestión 
 habilita Finance. El porqué, y cuándo justificaría otra aplicación física, en
 [docs/ADR_001_FINANCE_PRODUCT_SURFACE.md](docs/ADR_001_FINANCE_PRODUCT_SURFACE.md).
 
+⚠️ **Mendel es benchmark de trabajo, no permiso para copiar ni para prometer
+productos regulados.** Antes de diseñar o mover una pantalla de Finance leer
+[docs/FINANCE_MENDEL_BLUEPRINT.md](docs/FINANCE_MENDEL_BLUEPRINT.md) junto con
+[`docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md`](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
+El blueprint inventaría plataforma, gasto, políticas, presupuestos,
+aprobaciones, evidencia, reembolsos, viajes, integraciones, IA y MCP, y marca
+qué está en F3, qué queda en F5 y qué exige partner, regulación, economics o
+demanda. No se mueven rutas por semejanza visual: compras, recepción, stock,
+facturas emitidas, cobros y margen siguen siendo Business/Core; Finance los
+consume mediante enlaces o proyecciones. Cualquier ruta nueva debe entrar al
+`routeManifest`, declarar permiso/entitlement, conservar la autoridad del Core,
+tener estados completos y una prueba de tenant antes de implementarse.
+
 ⚠️ **Antes de tocar precios, datos de clientes o el panel de plataforma, leer
 [docs/LEGAL.md](docs/LEGAL.md).** Es el relevamiento contra la normativa
 argentina, requisito por requisito. El botón de arrepentimiento y el link a

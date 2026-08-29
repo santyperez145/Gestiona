@@ -186,6 +186,14 @@ integración contable/ERP ([plataforma](https://mendel.com/ar/producto/),
 [integraciones](https://mendel.com/ar/producto/integraciones/), verificadas el
 2026-08-22).
 
+El relevamiento ampliado del 2026-08-29 vive en
+[`docs/FINANCE_MENDEL_BLUEPRINT.md`](docs/FINANCE_MENDEL_BLUEPRINT.md). Cubre
+las superficies oficiales vigentes de plataforma, tarjetas propias y externas,
+reembolsos, recuperación de facturas, categorías, viajes, flotillas,
+beneficios, integraciones, Mendel AI y Mendel MCP. Esa cobertura se usa para
+verificar que F5 no omita trabajos ni roles, pero no convierte claims de
+marketing en evidencia de Gestiona y no adelanta capacidades reguladas.
+
 **Contrato de paridad Mendel-class:**
 
 | Capacidad objetivo | Comportamiento obligatorio en Gestiona Finance | Evidencia antes de declararla comparable |
@@ -1910,12 +1918,27 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     activa el fallback de migraciones ante permisos o esquemas faltantes, y no
     se usa en mutaciones del checkout. La carga inicial de la tienda y sus
     lecturas auxiliares comparten el mismo contrato. La suite quedó en
-    1.986/1.986 tests; el bundle local pasó catálogo/footer en Chromium y móvil
+    1.986/1.986 tests al 2026-08-29; el bundle local pasó catálogo/footer en Chromium y móvil
     `4/4`, sin errores de consola. El primer E2E paralelo había demostrado el
     síntoma real (`Failed to fetch` → catálogo vacío); la corrida enfocada con
     un worker quedó estable después de la recuperación. La puerta de arranque
     E2E también amplió `build + preview` a 180 segundos para no confundir un
     build PWA lento con una pantalla rota.
+
+55. ~~Blueprint exhaustivo de Finance Mendel-class~~ — discovery cerrado el
+    2026-08-29. El inventario oficial se convirtió en un contrato de cobertura
+    para plataforma, captura, documentos, matching, políticas, presupuestos,
+    aprobaciones, excepciones, reembolsos, medios de pago, AP, conciliación,
+    integraciones, viajes, flotillas, IA y MCP. También separa qué páginas
+    actuales permanecen en Business/Core (`compras`, recepción, productos,
+    stock, facturación emitida, cobros y margen) y qué vistas pueden converger
+    bajo Finance cuando exista el modelo F5. La futura navegación propone
+    tabs/colas/inspectores alineados a los kits Figma compartidos, sin duplicar
+    autoridad ni presentar como implementado lo que depende de adopción,
+    partner, regulación o economics. El siguiente paso no es agregar menús:
+    es procesar una factura real autorizada y cerrar la puerta F3; luego F5
+    avanza en orden hacia spend software-first, feed de tarjetas externas y
+    Finance Connect.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
