@@ -1310,7 +1310,7 @@ contratos técnicos; **externo** = requiere dueño/proveedor/operación real;
 | P1-01 | F1 · slice 10 / bitácora 39 | **Técnico** | Adopción real del Capability Catalog fuera de fixtures. |
 | P1-02 | F1 · slice 10 | **Parcial** | Perfil versionado y tres negocios externos distintos; no crear presets para entidades inexistentes. |
 | P1-03 | F1 · slice 10 / bitácora 40 | **Técnico** | Primer provisioning real y costo de intervención medido. |
-| P1-04 | F0–F1 · bitácora 41–42 | **Parcial** | Refund expresa `payments.edit` y prueba cross-branch con dos sucursales aptas. |
+| P1-04 | F0–F1 · bitácora 41–42/49 | **Técnico; prueba externa** | Refund ya expresa `payments.edit`; falta prueba cross-branch con dos sucursales aptas. |
 | P1-05 | F1 + F4 · slices 10/22 | **Parcial** | CSV/Excel está cerrado; faltan conectores priorizados, redirects y reconciliación de migración. |
 | P1-06 | F4 · slice 19 | **Pendiente** | Build/deploy/SLO del Storefront físicamente independientes. |
 | P1-07 | F4 · slice 21 | **Pendiente** | Dos stores de una organización sobre el mismo Core. |
@@ -1644,7 +1644,8 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     secretos. `afip_marcar_delegacion` dejó de aceptar anon por ACL y por guarda
     interna; sólo la Edge con `service_role` confirma después de consultar
     ARCA. Cross-role/cross-tenant, auditoría, ACL y 0 restos verificados. P1-04
-    continúa parcial por refund configurable y prueba cross-branch real.
+    continuó parcial entonces; refund se cerró en la bitácora 49 y sólo queda
+    la prueba cross-branch real.
 42. ~~Funciones internas realmente internas~~ — cerrado el 2026-08-28 después
     de medir ACL, no comentarios: seis RPC de precio, IA y observabilidad
     conservaban grants directos a anon/authenticated. Quedaron exclusivas de
@@ -1780,6 +1781,19 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     consultados el 2026-08-29. **P1-14 queda parcial:** falta receptor externo
     real, documentación pública del contrato y outbox transaccional para que
     cerrar el POS antes de invocar la Edge no pueda perder el evento.
+49. ~~Refund respeta la matriz P1-04~~ — cerrado técnicamente el 2026-08-29.
+    `refund-store-payment` dejó de decidir por una lista fija owner/admin: usa
+    el JWT real para exigir `payments.edit` antes de crear el cliente
+    `service_role`, preparar dinero o contactar Mercado Pago; quedó ACTIVE v12
+    con `verify_jwt=true`. La cola RMA sólo
+    ofrece ejecutar/reconciliar a quien tiene esa capacidad y, sin ella, muestra
+    el estado «Sin permiso para reintegrar» con la ruta de resolución. El
+    fixture productivo y destructivo-cero probó vendedor denegado, el mismo
+    vendedor habilitado, admin explícitamente revocado, cross-tenant bloqueado y
+    0 restos. No creó RMA ni llamó al proveedor. La prueba estática fija además
+    el orden permiso → preparación → credenciales. P1-04 queda técnicamente
+    cerrado en autoridad funcional; la prueba cross-branch con dos sucursales
+    reales continúa como evidencia externa, no como otra implementación.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

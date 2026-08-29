@@ -362,7 +362,7 @@ declara validado porque “se ve mejor”.
 | 9 | Fechas canónicas | Hecho en Gestión 2026-08-22 | 82 campos/46 archivos conservan semántica nativa bajo Input; 11 variantes manuales retiradas y regresión bloqueada. Uploaders clasificados aparte. |
 | 10 | Importadores estructurados canónicos | Hecho en Gestión 2026-08-22 | Catálogo, precios, Tiendanube, clientes y banco comparten FilePicker; extensión/MIME, drop, busy, error y misma selección cubiertos. |
 | 11 | Productos end-to-end | Pendiente | Desktop/mobile + editor/importación. |
-| 12 | Ventas y devolución | Pendiente | Lista→detalle→acción sin perder filtros. |
+| 12 | Ventas y devolución | Parcial 2026-08-29 | La cola RMA ya distingue la acción de reintegro autorizada del estado de permiso y explica cómo solicitar `Pagos · Editar`; servidor y UI comparten la matriz. Faltan lista→detalle sin perder filtros, layout mobile y validación visual autenticada. |
 | 13 | POS teclado/touch/offline | Pendiente | Cobro y recuperación medidos. |
 | 14 | Compras, recepción y Kardex | Parcial 2026-08-22 | Finance llega a la OC exacta, muestra contexto y abre la recepción idempotente; faltan Kardex integrado y matriz responsive. |
 | 15 | Reportes orientados a decisión | Pendiente | Menos filtros duplicados; acción clara. |

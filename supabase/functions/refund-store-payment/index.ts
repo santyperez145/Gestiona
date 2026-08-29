@@ -74,24 +74,26 @@ Deno.serve(async (req) => {
       return json({ error: "Operación de reintegro inválida" }, 400);
     }
 
-    const admin = createClient(
-      requireEnv("SUPABASE_URL"),
-      requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-    );
+    const supabaseUrl = requireEnv("SUPABASE_URL");
+    const userClient = createClient(supabaseUrl, requireEnv("SUPABASE_ANON_KEY"), {
+      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+    });
+    const { data: canRefund, error: permissionError } = await userClient.rpc("has_permission", {
+      p_org_id: orgId,
+      p_module: "payments",
+      p_action: "edit",
+    });
+    if (permissionError) {
+      console.error("refund-store-payment permission:", permissionError);
+      return json({ error: "No se pudo verificar el permiso de reintegro" }, 500);
+    }
+    if (canRefund !== true) {
+      return json({ error: "No tenés permiso para gestionar reintegros" }, 403);
+    }
 
-    const { data: membership, error: membershipError } = await admin
-      .from("memberships")
-      .select("role")
-      .eq("org_id", orgId)
-      .eq("user_id", auth.user.id)
-      .maybeSingle();
-    if (membershipError) {
-      console.error("refund-store-payment membership:", membershipError);
-      return json({ error: "No se pudo verificar el acceso a la organización" }, 500);
-    }
-    if (!membership || !["owner", "admin"].includes(membership.role)) {
-      return json({ error: "Sólo el dueño o un administrador puede ejecutar reintegros" }, 403);
-    }
+    // La service role ejecuta la parte privada sólo después de que el cliente
+    // autenticado pasó la matriz configurable de la organización.
+    const admin = createClient(supabaseUrl, requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
 
     const { data: prepared, error: prepareError } = action === "reconcile"
       ? await admin.rpc("pago_reintegro_estado", {

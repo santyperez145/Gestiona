@@ -13,12 +13,19 @@ describe("reintegros de MercadoPago", () => {
   const portal = read("src/components/sales/ReturnsPortalTab.tsx");
   const helper = read("src/lib/paymentRefunds.ts");
 
-  it("exige usuario real y dueño/admin antes de llamar al proveedor", () => {
+  it("exige usuario real y payments.edit antes de llamar al proveedor", () => {
     expect(fn).toContain("requireUser(req, corsHeaders)");
-    expect(fn).toContain('!["owner", "admin"].includes(membership.role)');
+    expect(fn).toContain('userClient.rpc("has_permission"');
+    expect(fn).toContain('p_module: "payments"');
+    expect(fn).toContain('p_action: "edit"');
+    expect(fn).toContain("if (permissionError)");
+    expect(fn).toContain("if (canRefund !== true)");
+    expect(fn).not.toContain('!["owner", "admin"].includes(membership.role)');
     expect(fn).toContain('admin.rpc("pago_reintegro_preparar"');
     expect(fn).toContain("p_org_id: orgId");
     expect(fn).toContain('getMpCredentials(admin, actualOrgId)');
+    expect(fn.indexOf('userClient.rpc("has_permission"')).toBeLessThan(fn.indexOf('admin.rpc("pago_reintegro_preparar"'));
+    expect(fn.indexOf('userClient.rpc("has_permission"')).toBeLessThan(fn.indexOf('getMpCredentials(admin, actualOrgId)'));
   });
 
   it("no acepta monto desde el navegador y manda la clave estable de idempotencia", () => {
@@ -53,6 +60,9 @@ describe("reintegros de MercadoPago", () => {
     expect(portal).toContain("Ejecutar reintegro");
     expect(portal).toContain("!needsProviderRefund");
     expect(portal).toContain('reconcileRefund(r)');
+    expect(portal).toContain('useModulePermissions("payments")');
+    expect(portal).toContain("paymentPermissions.canEdit");
+    expect(portal).toContain("Sin permiso para reintegrar");
     expect(portal).toContain('receiveStoreReturnRequest(request.id)');
     expect(helper).toContain('supabase.functions.invoke("refund-store-payment"');
     expect(helper).toContain('supabase.rpc("receive_store_return_request"');

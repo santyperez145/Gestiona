@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { receiveStoreReturnRequest, runStorePaymentRefund } from "@/lib/paymentRefunds";
+import { useModulePermissions } from "@/lib/usePermissions";
 
 import { plural } from "@/lib/plural";
 /* ─────────────────────────── types ─────────────────────────── */
@@ -64,6 +65,8 @@ type Tab = typeof TABS[number];
 export default function ReturnsPortalTab() {
   const { orgId } = useOrganization();
   const { user } = useAuth();
+  const paymentPermissions = useModulePermissions("payments");
+  const canRefund = !paymentPermissions.loading && paymentPermissions.canEdit;
   const [activeTab, setActiveTab] = usePersistedState<Tab>(
     orgViewKey("returns.tab", orgId),
     "Solicitudes",
@@ -176,6 +179,10 @@ export default function ReturnsPortalTab() {
 
   async function executeRefund(request: ReturnRequest) {
     if (!orgId || executingRefundId) return;
+    if (!canRefund) {
+      toast.error("No tenés permiso para gestionar reintegros");
+      return;
+    }
     setExecutingRefundId(request.id);
     try {
       const data = await runStorePaymentRefund({ orgId, returnRequestId: request.id });
@@ -194,6 +201,10 @@ export default function ReturnsPortalTab() {
 
   async function reconcileRefund(request: ReturnRequest) {
     if (!orgId || executingRefundId) return;
+    if (!canRefund) {
+      toast.error("No tenés permiso para gestionar reintegros");
+      return;
+    }
     setExecutingRefundId(request.id);
     try {
       const data = await runStorePaymentRefund({ orgId, returnRequestId: request.id, action: "reconcile" });
@@ -311,7 +322,7 @@ export default function ReturnsPortalTab() {
                                   <Button size="sm" variant="outline" className="text-red-400 border-red-400/30 hover:bg-red-400/10 text-xs" onClick={() => { setShowRejectDialog(r); setRejectReason(""); }}>Rechazar</Button>
                                 </>
                               )}
-                              {needsProviderRefund && refund?.status !== "refunded" && (
+                              {needsProviderRefund && refund?.status !== "refunded" && canRefund && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -322,6 +333,14 @@ export default function ReturnsPortalTab() {
                                   {refundBusy ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <DollarSign className="w-3 h-3 mr-1" />}
                                   {refundBusy ? "Procesando" : refundProcessing ? "Consultar estado" : refund?.status === "failed" ? "Reintentar" : "Ejecutar reintegro"}
                                 </Button>
+                              )}
+                              {needsProviderRefund && refund?.status !== "refunded" && !paymentPermissions.loading && !canRefund && (
+                                <span
+                                  className="max-w-40 text-[11px] leading-tight text-muted-foreground"
+                                  title="Pedile a un administrador el permiso Pagos · Editar"
+                                >
+                                  Sin permiso para reintegrar
+                                </span>
                               )}
                               {r.ecommerce_order_id && !r.received_at && ["approved", "processing", "resolved"].includes(r.status) && (
                                 <Button size="sm" variant="outline" className="text-xs text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => receiveReturn(r)}>

@@ -823,11 +823,21 @@ helpers heredados `platform_role`, `has_role` y `get_user_role`.
 authenticated ausente, service role operativo para consumo de IA,
 `audit_costo_expuesto = 0` y **0 restos**.
 
+### Quinta pasada: refund configurable (2026-08-29)
+
+`refund-store-payment` dejó de aceptar sólo owner/admin y ahora consulta
+`has_permission(org,'payments','edit')` con el JWT real antes de crear el
+cliente `service_role`, preparar el reintegro o leer credenciales de Mercado
+Pago. La UI usa la misma capacidad para mostrar la acción y diferencia el
+estado «sin permiso» de una devolución sin reintegro pendiente.
+
+**Evidencia real:** fixture transaccional sin RMA ni llamada al proveedor;
+vendedor denegado, el mismo vendedor habilitado por la matriz, administrador
+con override explícito denegado, cross-tenant denegado y **0 restos**. La guarda
+estática exige que el permiso ocurra antes de preparación y credenciales.
+
 ### Falta
 
-- Refund: la Edge exige `owner`/`admin` antes de llegar a RPCs que son sólo
-  `service_role`. Es más estricto que la matriz y no es un agujero, pero todavía
-  no expresa `payments.edit` como política funcional configurable.
 - `expire_batches`, `expire_stock_reservations`, `run_abc_analysis` y los dos
   contadores de plantillas siguen sin permiso. Ninguno fija precio, mueve stock
   ni saca plata.

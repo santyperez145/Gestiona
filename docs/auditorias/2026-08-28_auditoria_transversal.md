@@ -285,5 +285,5 @@ y [OWASP exige validar protocolo/destino y no seguir redirects frente a SSRF](ht
    `edge_invocation_log`; no invocarlas a mano ni declarar recuperación antes.
 2. Completar el outbox transaccional de `sale.created`, documentar el contrato
    y probar un receptor externo controlado; no crear más eventos sin emisor.
-3. Completar P1-04 con `payments.edit` para refund y prueba cross-branch cuando
-   existan dos ubicaciones reales aptas.
+3. P1-04 ya aplica `payments.edit` al refund; completar únicamente la prueba
+   cross-branch cuando existan dos ubicaciones reales aptas.
