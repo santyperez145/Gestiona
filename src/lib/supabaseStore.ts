@@ -17,9 +17,9 @@ async function orgIdFor(_userId?: string): Promise<string> {
 
 // ========= FINANCIAL MOVEMENTS (Ledger) =========
 /**
- * Records a financial movement into the ledger.
- * Fire-and-forget — never throws, so it can't break callers.
- * Call this after every sale, purchase, or expense insert.
+ * Espejo operativo heredado. El libro de partida doble es la autoridad; esta
+ * tabla alimenta vistas antiguas de caja. Sus vocabularios reales son
+ * `in|out`, un source acotado y un canal de cobro: no los nombres de pantalla.
  */
 export async function recordFinancialMovement(params: {
   orgId: string;
@@ -38,17 +38,33 @@ export async function recordFinancialMovement(params: {
   createdBy?: string | null;
   metadata?: Record<string, unknown>;
 }): Promise<void> {
-  try {
-    await supabase.from('financial_movements').insert({
+  const direction = params.direction === 'income' ? 'in' : 'out';
+  const sourceType = params.sourceType === 'purchase'
+    ? 'supplier_payment'
+    : params.sourceType === 'adjustment'
+      ? 'manual'
+      : params.sourceType;
+  const method = (params.paymentMethod ?? 'efectivo').toLowerCase();
+  const channel = ['efectivo', 'cash'].includes(method)
+    ? 'cash'
+    : ['transferencia', 'deposito'].includes(method)
+      ? 'bank'
+      : ['credito', 'debito', 'tarjeta', 'mercado_pago', 'mercadopago', 'qr', 'modo'].includes(method)
+        ? 'card'
+        : ['fiado', 'cuenta_corriente'].includes(method)
+          ? 'store_credit'
+          : 'other';
+
+  const { error } = await supabase.from('financial_movements').insert({
       org_id: params.orgId,
-      direction: params.direction,
-      source_type: params.sourceType,
+      direction,
+      source_type: sourceType,
       source_id: params.sourceId ?? null,
       amount_ars: params.amountArs,
       description: params.description,
       counterparty: params.counterparty ?? null,
       payment_method: params.paymentMethod ?? 'efectivo',
-      channel: params.channel ?? params.sourceType,
+      channel,
       affects_cash: params.affectsCash ?? true,
       affects_bank: params.affectsBank ?? false,
       cash_session_id: params.cashSessionId ?? null,
@@ -56,8 +72,10 @@ export async function recordFinancialMovement(params: {
       created_by: params.createdBy ?? null,
       metadata: (params.metadata ?? {}) as any,
     });
-  } catch {
-    // Silent — movement ledger is supplementary, never break primary flow
+  if (error) {
+    // La operacion principal ya puede estar confirmada, por eso deja evidencia
+    // sin presentar el espejo heredado como una transaccion atomica.
+    console.error('[financial_movements] No se pudo registrar el espejo operativo:', error);
   }
 }
 
@@ -347,7 +365,10 @@ export async function addSalesDB(sales: any[], source?: string) {
   // commit ya se aplicó.
   const args = {
     p_org_id: orgId,
-    p_sales: prepared.map(({ sale }) => sale),
+    p_sales: prepared.map(({ sale, attributedExchangeId }) => ({
+      ...sale,
+      influencer_exchange_id: attributedExchangeId,
+    })),
     p_source: transactionSource,
   };
 
@@ -371,61 +392,9 @@ export async function addSalesDB(sales: any[], source?: string) {
   }
   if (error) throw error;
 
-  const createdSaleIds = Array.isArray((data as { sale_ids?: unknown } | null)?.sale_ids)
-    ? (data as { sale_ids: unknown[] }).sale_ids.map(String)
-    : [];
-
-  // Estas escrituras complementan el ticket ya confirmado. El stock sigue
-  // siendo responsabilidad exclusiva del trigger de `sales` en la base.
-  for (const [index, entry] of prepared.entries()) {
-    const sale = { ...entry.sale, id: createdSaleIds[index] || entry.sale.id };
-    const { attributedExchangeId } = entry;
-    if (attributedExchangeId) {
-      const { data: ex } = await supabase
-        .from('influencer_exchanges')
-        .select('sales_generated_ars')
-        .eq('id', attributedExchangeId)
-        .single();
-      const prev = Number(ex?.sales_generated_ars || 0);
-      await supabase
-        .from('influencer_exchanges')
-        .update({ sales_generated_ars: prev + Number(sale.total_ars || 0) })
-        .eq('id', attributedExchangeId);
-    }
-
-    if (!sale.paid) {
-      await supabase.from('debts').insert({
-        user_id: sale.user_id,
-        org_id: orgId,
-        sale_id: sale.id,
-        customer_name: sale.customer_name || 'Sin nombre',
-        amount_ars: sale.total_ars,
-        paid_ars: 0,
-        remaining_ars: sale.total_ars,
-        description: `Venta de ${sale.quantity}x ${sale.product_name}`,
-        date: sale.date,
-        status: 'pending',
-      });
-    }
-
-    await recordFinancialMovement({
-      orgId,
-      direction: 'income',
-      sourceType: 'sale',
-      sourceId: sale.id ?? null,
-      amountArs: sale.total_ars ?? 0,
-      description: `Venta: ${sale.product_name ?? 'Producto'}`,
-      counterparty: sale.customer_name ?? null,
-      paymentMethod: sale.payment_method ?? 'efectivo',
-      channel: 'sale',
-      affectsCash: (sale.payment_method ?? 'efectivo') === 'efectivo',
-      affectsBank: ['transferencia', 'debito', 'credito'].includes(sale.payment_method ?? ''),
-      cashSessionId: sale.cash_session_id ?? null,
-      happenedAt: sale.date ? new Date(sale.date + 'T12:00:00').toISOString() : undefined,
-      createdBy: sale.user_id ?? null,
-      metadata: { quantity: sale.quantity, product_name: sale.product_name, paid: sale.paid },
-    });
-  }
+  // Deuda, uso de cupon y atribucion ya forman parte del mismo commit que el
+  // ticket. Hacerlos aca dejaba operaciones partidas si se cerraba la pestaña
+  // o se perdia la respuesta, y los repetia al sincronizar la cola offline.
 
   return data;
 }
@@ -659,15 +628,6 @@ export async function findExchangeByCode(code: string): Promise<any | null> {
   return data || null;
 }
 
-export async function attributeSaleToExchange(exchangeId: string, saleAmount: number) {
-  const { data } = await supabase.from('influencer_exchanges').select('sales_generated_ars').eq('id', exchangeId).single();
-  if (data) {
-    await supabase.from('influencer_exchanges').update({
-      sales_generated_ars: Number(data.sales_generated_ars || 0) + saleAmount,
-    }).eq('id', exchangeId);
-  }
-}
-
 // ========= SALES EDIT =========
 // `oldSale` queda en la firma para no tocar los seis llamadores: ya no se usa
 // para el stock, que lo reacomoda `trg_sale_stock_movement` en el UPDATE.
@@ -762,14 +722,18 @@ export async function validateCouponDB(userId: string, code: string) {
   if (data.max_uses && data.current_uses >= data.max_uses) return { valid: false, reason: 'Cupón agotado' };
   if (data.valid_from && new Date(data.valid_from) > new Date()) return { valid: false, reason: 'Cupón aún no vigente' };
   if (data.valid_until && new Date(data.valid_until) < new Date()) return { valid: false, reason: 'Cupón expirado' };
-  return { valid: true, coupon: data };
-}
-
-export async function incrementCouponUse(id: string) {
-  const { data } = await supabase.from('coupons').select('current_uses').eq('id', id).single();
-  if (data) {
-    await supabase.from('coupons').update({ current_uses: (data.current_uses || 0) + 1 }).eq('id', id);
-  }
+  const percentage = Number(data.discount_percent || 0);
+  const fixed = Number(data.discount_fixed_ars || 0);
+  return {
+    valid: true,
+    coupon: {
+      ...data,
+      // POS y Ventas consumen un modelo comun; la tabla historica conserva
+      // dos columnas. Esta normalizacion evita que un cupon valido calcule NaN.
+      discount_type: percentage > 0 ? 'percentage' : 'fixed',
+      discount_value: percentage > 0 ? percentage : fixed,
+    },
+  };
 }
 
 // ========= SELLER GOALS =========

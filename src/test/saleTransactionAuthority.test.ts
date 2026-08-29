@@ -63,7 +63,7 @@ describe("transacciones de venta y cupo de plan", () => {
   it("POS y Ventas agrupan el carrito, incluso cuando POS se sincroniza offline", () => {
     expect(pos).toContain('await addSalesDB(transactionLines, "pos")');
     expect(pos).toContain("offline_transaction_id");
-    expect(pos).toContain("await addSalesDB(lines, 'pos')");
+    expect(pos).toContain("await addSalesDB(ticket.lines, 'pos')");
     expect(salesPage).toContain("await addSalesDB(newSales.map(({ sale }) => sale), 'manual')");
     expect(planLimits).toContain("rpc('get_sales_plan_usage'");
     expect(planLimits).not.toContain(".from('sales')");

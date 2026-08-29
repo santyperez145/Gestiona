@@ -33418,6 +33418,7 @@ export type Database = {
       }
       sale_transactions: {
         Row: {
+          client_transaction_id: string | null
           correlation_id: string
           created_at: string
           created_by: string | null
@@ -33427,6 +33428,7 @@ export type Database = {
           source: string
         }
         Insert: {
+          client_transaction_id?: string | null
           correlation_id?: string
           created_at?: string
           created_by?: string | null
@@ -33436,6 +33438,7 @@ export type Database = {
           source?: string
         }
         Update: {
+          client_transaction_id?: string | null
           correlation_id?: string
           created_at?: string
           created_by?: string | null

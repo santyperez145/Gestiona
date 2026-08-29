@@ -5,7 +5,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getProductsDB, getSettingsDB, addSalesDB, deleteSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale, getVariantsByUserDB, recordMemberStockMovementDB } from "@/lib/supabaseStore";
+import { getProductsDB, getSettingsDB, addSalesDB, deleteSaleDB, formatARS, validateCouponDB, awardLoyaltyPointsForSale, getVariantsByUserDB, recordMemberStockMovementDB } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { loadActivePromotions, bestPromoPrice, type Promotion, type BestPromo } from "@/lib/promotions";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +28,7 @@ import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { useVibration } from "@/hooks/useVibration";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { plural } from "@/lib/plural";
+import { groupPosOfflineTickets, posOfflineAgeLabel, summarizePosOfflineQueue } from "@/lib/posOfflineQueue";
 // fuse.js loaded dynamically to avoid Rollup TDZ (const kt) in production builds
 
 async function fireConfetti(opts: Record<string, unknown>) {
@@ -938,6 +939,10 @@ export default function POSPage() {
   // ventas offline quedaban invisibles y nunca se sincronizaban.
   const [offlineSales, setOfflineSales] = useState<any[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [offlineSyncError, setOfflineSyncError] = useState<string | null>(null);
+  const [offlineStorageError, setOfflineStorageError] = useState<string | null>(null);
+  const [offlineClock, setOfflineClock] = useState(() => Date.now());
+  const autoSyncAttemptedRef = useRef(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -953,41 +958,92 @@ export default function POSPage() {
   // quedado bajo la clave vieja `...default` por el bug de inicialización.
   useEffect(() => {
     if (!activeOrg?.id) return;
+    autoSyncAttemptedRef.current = false;
+    setOfflineSyncError(null);
+    setOfflineStorageError(null);
     try {
       const own = JSON.parse(localStorage.getItem(offlineKey) || "[]");
       const legacyKey = "gestiona.pos.offline_sales.default";
       const legacy = JSON.parse(localStorage.getItem(legacyKey) || "[]");
-      const merged = [...own, ...legacy.filter((s: any) => s?.org_id === activeOrg.id)];
-      if (legacy.length) localStorage.removeItem(legacyKey);
-      if (merged.length !== own.length) localStorage.setItem(offlineKey, JSON.stringify(merged));
+      const ownIds = new Set(own.map((sale: any) => sale?.id).filter(Boolean));
+      const migrating = legacy.filter((sale: any) => sale?.org_id === activeOrg.id && !ownIds.has(sale?.id));
+      const untouchedLegacy = legacy.filter((sale: any) => sale?.org_id !== activeOrg.id);
+      const merged = [...own, ...migrating];
+      // Primero queda a salvo bajo la organización correcta; recién entonces
+      // se retira esa parte de la clave heredada. Las ventas de otra org no se
+      // borran al cambiar de workspace.
+      if (migrating.length) localStorage.setItem(offlineKey, JSON.stringify(merged));
+      if (legacy.length) {
+        if (untouchedLegacy.length) localStorage.setItem(legacyKey, JSON.stringify(untouchedLegacy));
+        else localStorage.removeItem(legacyKey);
+      }
       setOfflineSales(merged);
-    } catch { setOfflineSales([]); }
+      setOfflineStorageError(null);
+    } catch (error) {
+      console.error("[POS offline] No se pudo leer o migrar la cola local:", error);
+      setOfflineSales([]);
+      setOfflineStorageError("No pudimos leer la cola local de este dispositivo. No registres otra venta offline hasta revisar el almacenamiento del navegador.");
+    }
   }, [activeOrg?.id, offlineKey]);
 
+  useEffect(() => {
+    if (!offlineSales.length) return;
+    setOfflineClock(Date.now());
+    const timer = window.setInterval(() => setOfflineClock(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, [offlineSales.length]);
+
+  const offlineQueue = useMemo(
+    () => summarizePosOfflineQueue(offlineSales, offlineClock),
+    [offlineClock, offlineSales],
+  );
+  const offlineAge = posOfflineAgeLabel(offlineQueue.oldestAgeMinutes);
+
   const syncOfflineSales = async () => {
-    if (!offlineSales.length || !isOnline) return;
+    if (!offlineSales.length || !isOnline || syncing) return;
     setSyncing(true);
-    let synced = 0;
+    setOfflineSyncError(null);
+    let syncedTickets = 0;
+    let failedTickets = 0;
+    const errors: string[] = [];
     let remaining = [...offlineSales];
-    const transactions = new Map<string, any[]>();
-    for (const sale of offlineSales) {
-      // Las ventas viejas no tenían id de ticket local: se sincronizan como
-      // operaciones unitarias. Las nuevas conservan el carrito completo.
-      const key = sale.offline_transaction_id || sale.id;
-      transactions.set(key, [...(transactions.get(key) || []), sale]);
-    }
-    for (const lines of transactions.values()) {
+    const tickets = groupPosOfflineTickets(offlineSales);
+
+    for (const ticket of tickets) {
       try {
-        await addSalesDB(lines, 'pos');
-        const syncedIds = new Set(lines.map((sale) => sale.id));
-        remaining = remaining.filter((sale) => !syncedIds.has(sale.id));
-        synced += lines.length;
-      } catch { /* keep it in queue */ }
+        await addSalesDB(ticket.lines, 'pos');
+        const syncedLines = new Set(ticket.lines);
+        remaining = remaining.filter(sale => !syncedLines.has(sale));
+        syncedTickets += 1;
+      } catch (error) {
+        failedTickets += 1;
+        const detail = error instanceof Error ? error.message : "Error desconocido del servidor";
+        errors.push(detail);
+        console.error(`[POS offline] No se pudo sincronizar el ticket ${ticket.key}:`, error);
+      }
     }
-    setOfflineSales(remaining);
-    localStorage.setItem(offlineKey, JSON.stringify(remaining));
-    setSyncing(false);
-    if (synced > 0) toast.success(`${synced} venta${synced !== 1 ? "s" : ""} sincronizada${synced !== 1 ? "s" : ""} correctamente`);
+
+    try {
+      localStorage.setItem(offlineKey, JSON.stringify(remaining));
+      setOfflineSales(remaining);
+      setOfflineStorageError(null);
+    } catch (error) {
+      console.error("[POS offline] La cola sincronizada no pudo persistirse localmente:", error);
+      failedTickets = Math.max(failedTickets, 1);
+      errors.push("El navegador no pudo actualizar la cola local");
+      setOfflineStorageError("La venta llegó al servidor, pero el navegador no pudo actualizar su cola local. Reintentá la sincronización antes de seguir vendiendo offline.");
+    } finally {
+      setSyncing(false);
+    }
+
+    if (syncedTickets > 0) {
+      toast.success(`${syncedTickets} ticket${syncedTickets === 1 ? "" : "s"} sincronizado${syncedTickets === 1 ? "" : "s"}`);
+    }
+    if (failedTickets > 0) {
+      const detail = errors[0] || "El servidor no respondió";
+      setOfflineSyncError(`${failedTickets} ticket${failedTickets === 1 ? " sigue" : "s siguen"} pendiente${failedTickets === 1 ? "" : "s"}. ${detail}`);
+      toast.error("La sincronización quedó incompleta", { description: detail });
+    }
   };
 
   // Auto-sincronizar al recuperar señal: antes solo pasaba si el cajero
@@ -995,10 +1051,20 @@ export default function POSPage() {
   const syncRef = useRef(syncOfflineSales);
   syncRef.current = syncOfflineSales;
   useEffect(() => {
-    if (!isOnline || !offlineSales.length || syncing) return;
+    if (!isOnline) {
+      autoSyncAttemptedRef.current = false;
+      return;
+    }
+    if (!offlineSales.length) {
+      autoSyncAttemptedRef.current = false;
+      setOfflineSyncError(null);
+      return;
+    }
+    if (syncing || autoSyncAttemptedRef.current) return;
+    autoSyncAttemptedRef.current = true;
     const t = setTimeout(() => { syncRef.current(); }, 1500); // margen para que la red se estabilice
     return () => clearTimeout(t);
-  }, [isOnline, offlineSales.length, syncing]);
+  }, [activeOrg?.id, isOnline, offlineSales.length, syncing]);
 
   // Pending debt alert for selected customer
   // Price list — auto-applied when customer has one assigned
@@ -1637,6 +1703,7 @@ export default function POSPage() {
           notes: posNote.trim() || null,
           source: "pos",
           offline_transaction_id: offlineTransactionId,
+          offline_origin: !isOnline,
         };
 
         transactionLines.push(saleData);
@@ -1654,11 +1721,18 @@ export default function POSPage() {
         }
       } else {
         const pending = [...offlineSales, ...transactionLines];
+        // Persistir antes de vaciar el carrito: si el navegador rechaza la
+        // escritura local, no se muestra un ticket que en realidad se perdió.
+        try {
+          localStorage.setItem(offlineKey, JSON.stringify(pending));
+          setOfflineStorageError(null);
+        } catch (error) {
+          console.error("[POS offline] El ticket no pudo guardarse en este dispositivo:", error);
+          setOfflineStorageError("Este dispositivo no puede guardar la cola offline. La venta no fue registrada; recuperá almacenamiento o conexión antes de reintentar.");
+          throw new Error("La venta no se registró porque el dispositivo no pudo guardarla offline");
+        }
         setOfflineSales(pending);
-        localStorage.setItem(offlineKey, JSON.stringify(pending));
       }
-
-      if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
 
       // Registrar usos de promociones auto-aplicadas (best-effort; el trigger
       // increment_promotion_usage suma uses_count)
@@ -1755,6 +1829,7 @@ export default function POSPage() {
   const confirmDisabled =
     cart.length === 0 ||
     submitting ||
+    (!isOnline && !!offlineStorageError) ||
     (splitMode && splitAmt1 <= 0) ||
     (!splitMode && payMethod === "efectivo" && cashGiven !== "" && Number(cashGiven) < cartTotal);
   confirmDisabledRef.current = confirmDisabled;
@@ -2633,21 +2708,33 @@ export default function POSPage() {
       <div className={`h-[calc(100vh-4rem)] lg:h-screen flex flex-col ${posTheme === 'light' ? 'bg-white text-gray-900 [&_.bg-card]:bg-gray-50 [&_.bg-muted]:bg-gray-100 [&_.border-border]:border-gray-200 [&_.text-muted-foreground]:text-gray-500 [&_.text-foreground]:text-gray-900' : ''}`}>
         {/* Offline / sync banner */}
         {!isOnline && (
-          <div className="shrink-0 flex items-center gap-3 bg-orange-500/10 border-b border-orange-500/30 px-4 py-2 text-xs text-orange-400">
+          <div role="status" aria-live="polite" className="shrink-0 flex flex-wrap items-center gap-2 bg-orange-500/10 border-b border-orange-500/30 px-3 py-2 text-xs text-orange-700 dark:text-orange-300 sm:px-4">
             <WifiOff className="w-3.5 h-3.5 shrink-0" />
-            <span>Sin conexión — las ventas se guardan localmente y se sincronizan al reconectar</span>
-            {offlineSales.length > 0 && (
-              <span className="ml-auto font-medium">{offlineSales.length} pendiente{offlineSales.length !== 1 ? "s" : ""}</span>
-            )}
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">Sin conexión — el ticket se guarda en este dispositivo</p>
+              <p className="text-[10px] opacity-80">El cobro ocurre por fuera de Gestiona; el stock se descuenta al sincronizar.</p>
+            </div>
+            {offlineQueue.ticketCount > 0 && <span className="font-semibold">
+              {offlineQueue.ticketCount} ticket{offlineQueue.ticketCount === 1 ? "" : "s"} · {offlineQueue.units} u. · {formatARS(offlineQueue.totalARS)}{offlineAge ? ` · ${offlineAge}` : ""}
+            </span>}
           </div>
         )}
-        {isOnline && offlineSales.length > 0 && (
-          <div className="shrink-0 flex items-center gap-3 bg-blue-500/10 border-b border-blue-500/30 px-4 py-2 text-xs text-blue-400">
+        {isOnline && offlineQueue.ticketCount > 0 && (
+          <div role={offlineSyncError ? "alert" : "status"} aria-live={offlineSyncError ? "assertive" : "polite"} className={`shrink-0 flex flex-wrap items-center gap-2 border-b px-3 py-2 text-xs sm:px-4 ${offlineSyncError ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300" : "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300"}`}>
             <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${syncing ? "animate-spin" : ""}`} />
-            <span>{offlineSales.length} venta{offlineSales.length !== 1 ? "s" : ""} pendiente{offlineSales.length !== 1 ? "s" : ""} de sincronizar</span>
-            <Button size="sm" variant="outline" className="ml-auto h-6 text-[10px] border-blue-500/40 text-blue-400 hover:bg-blue-500/10" onClick={syncOfflineSales} disabled={syncing}>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">{offlineQueue.ticketCount} ticket{offlineQueue.ticketCount === 1 ? "" : "s"} · {offlineQueue.units} u. · {formatARS(offlineQueue.totalARS)} pendiente{offlineQueue.ticketCount === 1 ? "" : "s"}</p>
+              <p className="text-[10px] opacity-80">{offlineSyncError || `${offlineAge ? `${offlineAge} · ` : ""}la cola se reconcilia por ticket completo`}</p>
+            </div>
+            <Button size="sm" variant="outline" className="h-8 shrink-0 text-[10px]" onClick={syncOfflineSales} disabled={syncing}>
               {syncing ? "Sincronizando..." : "Sincronizar ahora"}
             </Button>
+          </div>
+        )}
+        {offlineStorageError && (
+          <div role="alert" className="shrink-0 flex items-start gap-2 border-b border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300 sm:px-4">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>{offlineStorageError}</span>
           </div>
         )}
         {/* Top bar */}

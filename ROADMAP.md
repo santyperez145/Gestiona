@@ -2113,6 +2113,62 @@ Finance Connect.
     que la capacidad se llame “Variantes” y jamás pulsa el RPC de preparación o
     aplicación, por lo que conserva el contrato E2E de sólo lectura.
 
+65. Cola offline honesta y operable en POS — slice técnico cerrado el
+    2026-08-29. La base persiste una línea por producto, pero el cajero vende
+    tickets: el banner confundía ambas cosas y mostraba tres “ventas” para un
+    carrito de tres productos; el toast de sincronización repetía el error. La
+    nueva autoridad pura agrupa por `offline_transaction_id`, conserva líneas
+    heredadas, y resume tickets, unidades, monto y antigüedad. Al reconectar,
+    cada ticket se aplica completo e idempotente; una falla parcial queda en la
+    cola con causa visible, log y retry manual, y una guarda evita el loop de
+    auto-sync cada 1,5 segundos que antes golpeaba al servidor indefinidamente.
+    La migración desde la clave `default` ya no borra ventas pendientes de otra
+    organización. El navegador persiste antes de limpiar el carrito o mostrar
+    el recibo; si `localStorage` falla, declara que la venta no se registró y
+    bloquea otra operación offline. La UI responsive explica además que
+    Gestiona registra el ticket, no captura una tarjeta sin conexión. La
+    comparación oficial revalidada distingue [Tiendanube
+    PDV](https://ayuda.tiendanube.com/pdv/que-es-punto-de-venta-de-tiendanube),
+    que unifica catálogo/stock/orden, de [Square
+    Offline](https://squareup.com/help/us/en/article/7777-process-card-payments-with-offline-mode),
+    que expone pendiente, riesgo, ventana y resultado sobre hardware propio.
+    Gestiona adopta la transparencia de estado sin prometer ese procesamiento.
+    La afirmación de idempotencia ya no depende del `id` que viajaba y se
+    descartaba: `sale_transactions.client_transaction_id` tiene unicidad por
+    organización, lock transaccional y comparación de renglones. El mismo
+    ticket devuelve `reused=true`; la misma clave con otro contenido falla.
+    Deuda, uso de cupón y atribución de canje pasaron de escrituras posteriores
+    del browser al mismo commit servidor, por lo que un timeout ya no duplica
+    stock, cupón ni ROI. El cupón se bloquea y consume una vez por ticket; el
+    modo online aplica vigencia, cupo, mínimo y límite por cliente, mientras el
+    aceptado offline conserva la política de riesgo explícita para no quedar
+    trabado al reconectar. `validateCouponDB` además traduce las columnas reales
+    `discount_percent`/`discount_fixed_ars` al contrato del POS: antes pedía
+    `discount_type`/`discount_value`, inexistentes en la tabla, y calculaba un
+    descuento `NaN`.
+
+    Guardas puras y de integración cubren agrupación, importes, edad, datos
+    inválidos, multi-organización, persistencia previa, autoridad y error
+    visible. `supabase/verificaciones/20260829_pos_offline_idempotente.sql`
+    ejecutó el RPC v3 dos veces como owner real dentro de una subtransacción:
+    1 padre, 2 renglones, stock −3, 2 deudas, cupón +1, payload conflictivo
+    rechazado y 0 restos. `db push --linked --dry-run` quedó `upToDate=true`.
+    La puerta completa del 2026-08-29 cerró con typecheck, lint sin errores,
+    195 archivos / 2008 tests y build PWA de producción.
+    Falta el drill E2E de navegador aislado desconexión → dos tickets →
+    reconexión parcial y medir tiempo/errores de cobro antes de cerrar D3.
+
+66. El espejo financiero dejó de fallar en silencio — cerrado el 2026-08-29.
+    La auditoría del slice encontró que `recordFinancialMovement` enviaba
+    `income|expense`, canales `sale|purchase|expense` y source `purchase`, pero
+    producción exige `in|out`, canales `cash|bank|card|store_credit|other` y un
+    catálogo de source acotado. Supabase devolvía el error en el objeto de
+    respuesta, el `try/catch` no lo veía y el comentario afirmaba que el
+    movimiento existía. El adaptador ahora traduce método, dirección y source
+    al contrato real y registra `console.error` si el espejo operativo falla.
+    Las ventas ya no dependen de ese espejo: el asiento canónico continúa desde
+    el evento del ticket en el ledger de partida doble.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

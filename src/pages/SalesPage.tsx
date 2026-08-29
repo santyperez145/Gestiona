@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getSalesDB, addSaleDB, addSalesDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, incrementCouponUse, getVariantsByUserDB, addSaleWithVariantDB, findExchangeByCode, attributeSaleToExchange } from "@/lib/supabaseStore";
+import { getSalesDB, addSaleDB, addSalesDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, getVariantsByUserDB, addSaleWithVariantDB, findExchangeByCode } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -1592,7 +1592,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       if (couponCode.trim().toUpperCase().startsWith('INF-')) {
         const exchange = await findExchangeByCode(couponCode);
         if (exchange) {
-          setCouponResult({ valid: true, coupon: { id: null, discount_type: 'influencer', influencer_exchange: exchange, description: `Canje: ${exchange.influencer_name}` } });
+          setCouponResult({ valid: true, coupon: { id: null, code: exchange.discount_code, discount_type: 'influencer', influencer_exchange: exchange, description: `Canje: ${exchange.influencer_name}` } });
           setValidatingCoupon(false);
           return;
         }
@@ -1694,11 +1694,8 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           await logAudit(userId, 'create', 'sale', sale.id, { product: calc.productLabel, total: calc.total, profit: calc.profitARS, paymentMethod });
           if (line.productId && !calc.isDecant && !line.variantId) await checkStockAfterSale(line.productId, calc.product.name);
         }
-        if (couponResult?.valid && couponResult.coupon?.id) await incrementCouponUse(couponResult.coupon.id);
-        // Auto-attribute to influencer exchange when INF- code used
+        // La atribucion queda en el mismo commit servidor que el ticket.
         if (couponResult?.valid && couponResult.coupon?.discount_type === 'influencer' && couponResult.coupon?.influencer_exchange) {
-          const totalSaleAmount = lineCalcs.reduce((sum, { calc }) => sum + (calc?.total ?? 0), 0);
-          await attributeSaleToExchange(couponResult.coupon.influencer_exchange.id, totalSaleAmount);
           toast.success(`✓ Venta atribuida a ${couponResult.coupon.influencer_exchange.influencer_name}`);
         }
         toast.success(`${lines.length === 1 ? 'Venta registrada' : `${plural(lines.length, "venta")} registradas`}`);
