@@ -364,6 +364,28 @@ al menos 12 meses de solapamiento y la versión saliente anunciará
 actual son unidades enteras. No hay CORS browser: una key live pertenece a un
 backend, no al JavaScript público de un integrador.
 
+### 4 sexies. Orbit: orquestación transversal propuesta, no otra autoridad
+
+📌 **Discovery 2026-08-29:** [Gestiona Orbit](INNOVATION_ORBIT_PLAYBOOKS.md)
+sería un módulo opcional de playbooks para convertir señales del Business Graph
+en decisiones repetibles. Consumiría `domain_events`, outbox y vistas/RPC
+agregados; no leería tablas ajenas desde la UI ni inventaría un ledger, stock,
+cliente, precio, documento o pago.
+
+Orbit sólo coordina. La acción final sigue perteneciendo a su dominio: compras
+prepara la orden, Inventory mueve stock, Payments reconcilia el cobro, Finance
+aprueba el gasto/documento y Commerce actualiza la orden/fulfillment. Cada run
+conserva versión, policy snapshot, scope, actor, idempotency key, pasos, retry,
+error y outcome. El preview es read-only; las acciones irreversibles quedan
+fuera del primer alcance.
+
+El primer runtime debe reutilizar PostgreSQL, Edge Functions, advisory locks,
+idempotencia y outbox. Temporal u otro runtime de durable execution sólo se
+evalúa si un benchmark real demuestra que los workflows largos o externos lo
+necesitan; no se agrega infraestructura por anticipación. Una capability
+`operations.playbooks` y sus permisos requieren un ADR, dependencia/conflicto
+en Capability Catalog, rollout, política de apagado y fixture con restos 0.
+
 ---
 
 ## 5. Lo que se adopta ahora y lo que espera

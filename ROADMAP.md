@@ -109,6 +109,8 @@ Gestiona Cloud
 │   Control Plane, soporte, riesgo, billing y operaciones
 ├── Gestiona Intelligence
 │   Hallazgos, agentes, acciones y resultados
+├── Gestiona Orbit (propuesto)
+│   Playbooks transversales, impacto, aprobaciones y outcomes
 └── Gestiona Pay / Ship / Developers
     Monetización transaccional, logística y ecosistema
 ~~~
@@ -120,6 +122,7 @@ Gestiona Cloud
 | **Finance** | Convertir documentos y gastos en obligaciones y controles auditables. | Facturas reales terminan en borradores correctos y aprobados. | Uso documental, conectores y workflows avanzados. |
 | **Platform** | Operar merchants, integraciones, soporte, riesgo e incidentes. | Menos intervención y menor tiempo de resolución por comercio. | Habilita escala y margen de toda la compañía. |
 | **Intelligence** | Detectar oportunidades y ejecutar acciones dentro de políticas. | AI Action Rate e impacto verificado, no contenido generado. | Incluido, por uso o premium según economics. |
+| **Orbit (propuesto)** | Coordinar señales y decisiones de varios dominios en playbooks simulables, auditables y medibles. | Tres playbooks read-only reducen tiempo a resolución sin aumentar alert fatigue. | Workflow avanzado por uso/plan, sólo si el piloto demuestra valor. |
 | **Pay / Ship** | Orquestar cobros y logística con recuperación y conciliación. | Margen neto y cumplimiento regulatorio demostrados. | Margen transaccional sin custodia no autorizada. |
 | **Developers / Apps** | Permitir que terceros amplíen la plataforma con límites. | Una app sirve a más de un merchant sin acceso a tablas. | Revenue share, partners y servicios. |
 
@@ -1224,6 +1227,36 @@ revertirse.
 **Métricas:** straight-through processing, exception rate, aprobación,
 conciliación, AP aging, anomalías confirmadas y horas evitadas verificables.
 
+### Innovación transversal — Gestiona Orbit / Playbooks
+
+**Objetivo:** convertir señales correlacionadas del Business Graph en decisiones
+repetibles que se puedan simular, aprobar, ejecutar y medir a través de
+Business, Commerce, Finance, Platform e Intelligence. Orbit no es Mendel ni un
+clon de un automatizador: su diferencial es explicar el contexto económico y
+operativo completo y delegar cada efecto al dominio que tiene la autoridad.
+
+**Estado:** discovery cerrado el 2026-08-29; implementación congelada hasta que
+F0/F1, F2 y la evidencia real de F3 habiliten un piloto. Contrato completo en
+[`docs/INNOVATION_ORBIT_PLAYBOOKS.md`](docs/INNOVATION_ORBIT_PLAYBOOKS.md).
+
+**Orden autorizado cuando abra el gate:**
+
+1. señales read-only con fuente, frescura, severidad, supresión y drill-down;
+2. `Impact Preview` contra población sintética/histórica sin escribir;
+3. acciones seguras: notificar, preparar borrador y solicitar aprobación;
+4. acciones reversibles y conectores con retries, DLQ, replay y health;
+5. IA asistida para proponer playbooks, sin autoeditar políticas ni saltar
+   permisos.
+
+**No incluye:** otro stock, ledger, proveedor, cliente, precio, documento,
+workflow de pago o permisos implícitos. No agrega un canvas o runtime durable
+hasta que un benchmark pruebe que mejoran tiempo de tarea y confiabilidad.
+
+**Salida:** un piloto con tres playbooks de dominios distintos reduce tiempo a
+resolución y alert fatigue, conserva `AI Action Rate` cuando interviene IA,
+permite pausar/reintentar y demuestra outcome económico/operativo con datos
+autorizados.
+
 ### F6 — Commerce diferencial
 
 **Objetivo:** superar paridad funcional con razones concretas para elegir
@@ -1526,7 +1559,7 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     cerrada y ampliada el 2026-08-22: 17 referencias oficiales —7 globales de
     operación, 4 de Finance/spend regional y 6 del ecosistema argentino— más 4
     Figma observados. El lineamiento separa evidencia/observación/decisión/
-    hipótesis; define anatomía, 11 arquetipos, overlays, filtros/vistas/
+    hipótesis; define anatomía, 12 arquetipos, overlays, filtros/vistas/
     segmentos/cohortes/colas, tablas/bulk, 12 estados, responsive, WCAG,
     performance, cobertura mínima por producto y una puerta 80/100 antes de
     adoptar tecnología. Una guarda en CI exige que ROADMAP, DESIGNROADMAP,
@@ -1938,7 +1971,19 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     partner, regulación o economics. El siguiente paso no es agregar menús:
     es procesar una factura real autorizada y cerrar la puerta F3; luego F5
     avanza en orden hacia spend software-first, feed de tarjetas externas y
-    Finance Connect.
+Finance Connect.
+
+56. ~~Orbit / Playbooks: innovación transversal~~ — discovery cerrado el
+    2026-08-29. La propuesta agrega un módulo de orquestación sobre eventos y
+    vistas del Business Graph: correlacionar stock/ventas/margen, rescatar
+    órdenes, clasificar riesgos de documentos, recuperar integraciones y
+    preparar acciones para clientes o soporte. Su diferencia frente a un
+    automatizador simple es `Impact Preview`, clase de riesgo, aprobación,
+    idempotencia, replay, kill switch y outcome económico. La experiencia suma
+    el arquetipo Workflow/Playbook al estándar competitivo. No se crea aún
+    `operations.playbooks`, no se agrega una librería de canvas y no se abre un
+    worker nuevo: O1 depende de F0/F1, una decisión de margen F2 y la primera
+    evidencia real de Finance F3.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

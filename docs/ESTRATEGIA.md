@@ -213,6 +213,21 @@ Tarjetas, custodia y viajes quedan fuera hasta tener demanda, socio regulado,
 economics y revisión legal. Contratos: [ADR 001](ADR_001_FINANCE_PRODUCT_SURFACE.md)
 y [borradores](FINANCE_DOCUMENT_DRAFTS.md).
 
+📌 **Orbit / Playbooks, 2026-08-29:** el estudio de automatización de
+[Shopify Flow](https://help.shopify.com/en/manual/shopify-flow/reference),
+[HubSpot Workflows](https://knowledge.hubspot.com/workflows/understand-your-workflow-details-page),
+[n8n](https://docs.n8n.io/workflows/executions/all-executions/) y
+[Temporal](https://docs.temporal.io/) abre una innovación transversal distinta
+de Spend Management. Gestiona puede unir señales de stock, ventas, margen,
+clientes, documentos, pagos, integraciones y soporte en un playbook que primero
+simula impacto, luego solicita aprobación y finalmente ejecuta una acción del
+dominio dueño, midiendo el outcome. Es una capa de coordinación, no un nuevo
+ledger ni un Zapier genérico: los primeros casos serían reposición rentable,
+rescate de orden, margen en riesgo, documento bloqueado e integración
+degradada. La propuesta y sus gates están en
+[INNOVATION_ORBIT_PLAYBOOKS.md](INNOVATION_ORBIT_PLAYBOOKS.md); permanece
+congelada hasta probar adopción F0–F3 y no habilita acciones irreversibles.
+
 ✅ **Benchmark económico agregado el 2026-08-21:** la comparación de pricing
 no se usa para decir “somos más baratos”. Se usa para probar que el costo total
 del merchant y la contribución de la plataforma cierran a la vez. Fórmulas,

@@ -50,6 +50,8 @@ Reglas:
 | Salesforce | ✅ [vistas de lista](https://help.salesforce.com/s/articleView?id=xcloud.basics_understanding_list_views_lex.htm&language=en_US&type=5), [vistas personalizadas](https://help.salesforce.com/s/articleView?id=xcloud.customviews_lex.htm&language=en_US&type=5), [Kanban](https://help.salesforce.com/s/articleView?id=kanban.htm&language=en_US&type=5) | Tabla/Kanban/split según tarea, vista fijada, búsqueda amplia y tablero con agrupación y resumen. | Tablero sólo para entidades con etapas reales; la tabla sigue siendo la autoridad para comparar. |
 | Stripe Dashboard | ✅ [búsqueda](https://docs.stripe.com/dashboard/search), [Workbench](https://docs.stripe.com/workbench/overview), [filtros](https://docs.stripe.com/connect/dashboard/filters) | Búsqueda global con operadores y URL compartible; inspector persistente de errores, eventos, webhooks y salud. | Command palette y Operation Inspector transversal con correlación, retry y auditoría, sin exponer secretos. |
 | Odoo | ✅ [tipos de vista](https://www.odoo.com/documentation/19.0/applications/studio/views.html), [dashboards](https://www.odoo.com/documentation/19.0/applications/productivity/dashboards.html), [filtros globales](https://www.odoo.com/documentation/19.0/applications/productivity/spreadsheet/work_with_data/global_filters.html) | Lista, Kanban, búsqueda, pivots y dashboards con filtros globales y drill-down al registro fuente. | Un mismo Business Core con representaciones por tarea; todo KPI puede explicar y abrir su población. |
+| Shopify Flow | ✅ [triggers, condiciones y acciones](https://help.shopify.com/en/manual/shopify-flow/reference), [editor](https://help.shopify.com/en/manual/shopify-flow/create/workflow-editor) | Automatizaciones visuales con ramas, datos dinámicos, schedules, loops y conectores. | Orbit/Playbooks: señales multi-dominio, preview de impacto, autoridad del Core, approval gates, retry y outcome; no un automatizador genérico. |
+| HubSpot Workflows | ✅ [historial y versiones](https://knowledge.hubspot.com/workflows/understand-your-workflow-details-page), [trazado por registro](https://knowledge.hubspot.com/workflows/review-a-records-workflow-paths-and-actions) | Performance, action logs, historial de enrollment, revisión de versiones y camino exacto de cada registro. | Cada run de Orbit muestra snapshot, evidencia, policy, entidad enlazada, error, retry y resultado, con retención/PII explícitas. |
 | QuickBooks Online | ✅ [receipts/bills](https://quickbooks.intuit.com/learn-support/en-us/help-article/import-transactions/upload-receipts-bills-quickbooks-online/L862MmZHn_US_en_US), [aprobaciones](https://quickbooks.intuit.com/learn-support/en-us/help-article/manage-workflows/set-use-bill-approval-payment-release-workflows/L1IOLL9hv_US_en_US), [gestión de bills](https://quickbooks.intuit.com/learn-support/en-us/help-article/pay-bills/review-manage-bills-quickbooks-online/L8VbbnAd2_US_en_US) | Cola `For review`, documento y datos lado a lado, match o creación, estado de aprobación y tarea asignada. | Finance Document Inbox, revisión humana versionada y borradores sin efecto hasta aprobación. |
 | Square | ✅ [reportes](https://squareup.com/help/us/en/article/5072-summaries-and-reports-from-the-online-dashboard), [colas de disputa](https://squareup.com/help/us/en/article/8361-view-dispute-reports) | Fecha/local/dispositivo como contexto; tarjetas de performance y lista accionable; “requiere respuesta”. | POS/reportes por ubicación y colas con severidad, dueño, vencimiento y próxima acción. |
 
@@ -319,6 +321,25 @@ Platform no imita el panel del comercio. Organiza trabajo de staff:
 Entrar a un tenant no reemplaza herramientas de plataforma ni otorga
 membership. Toda mutación sensible identifica actor, motivo, organización,
 antes/después, correlation id y resultado.
+
+### 5.12 Playbook / workflow operativo
+
+Para Orbit y cualquier automatización que coordine más de un dominio:
+
+- builder visual y representación tabular/legible equivalentes;
+- trigger, contexto, condición, guard, acción, espera y outcome distinguibles;
+- campos con fuente, tipo, frescura, cobertura y scope de organización;
+- preview de población, impacto, datos faltantes, permisos, riesgo y costo;
+- versión inmutable, owner, estado, aprobación de publicación y kill switch;
+- acciones clasificadas como `observe`, `notify`, `prepare`, `request_approval`,
+  `reversible`, `external` o `irreversible`;
+- ejecución con ruta exacta, snapshot de policy, duración, retry, error y
+  siguiente acción;
+- acciones masivas con alcance, límites, deduplicación y progreso explícitos;
+- no ejecutar efectos sobre dinero, stock, precio, documento o cliente desde el
+  canvas: el dominio dueño conserva la autoridad;
+- mobile con lista de pasos y detalle accesible, no canvas reducido hasta ser
+  ilegible.
 
 ## 6. Overlays: modal, sheet, drawer, popover y feedback
 
@@ -645,7 +666,7 @@ Esta matriz evita declarar “rediseño completo” porque el happy path se ve b
 | Commerce admin | Tiendas, catálogo/publicación, navegación/contenido, descuentos, envío, pagos, dominio, analítica, pedidos y readiness. |
 | Storefront | Home, PLP, búsqueda/filtro, PDP, carrito, checkout, pago, resultado, tracking, devolución, legales y contacto. |
 | Integraciones | Catálogo, connect/OAuth, estado, permisos, scopes, sync, logs sanitizados, retry, disconnect y consecuencias. |
-| Intelligence | Hallazgo, explicación, evidencia, simulación, policy, aprobación, ejecución, resultado, reversión y AI Action Rate. |
+| Intelligence / Orbit | Hallazgo, explicación, evidencia, simulación, policy, aprobación, ejecución, resultado, reversión, playbook versionado, runs, excepciones y AI Action Rate. |
 | Platform | Dashboard, merchants, Merchant 360, activation, support, health, queues, Finance access, billing/economics, flags, announcements y audit. |
 | Perfil/Settings | Organización, miembros/roles, sucursales, fiscal/legal, seguridad/MFA, notificaciones, import/export y eliminación/retención. |
 | Estados públicos | Invitación, pago, tracking, consentimiento, arrepentimiento, privacidad, términos, 404/403/500 y mantenimiento. |

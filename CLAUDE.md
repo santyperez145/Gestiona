@@ -54,6 +54,18 @@ consume mediante enlaces o proyecciones. Cualquier ruta nueva debe entrar al
 `routeManifest`, declarar permiso/entitlement, conservar la autoridad del Core,
 tener estados completos y una prueba de tenant antes de implementarse.
 
+📌 **Innovación transversal propuesta: Gestiona Orbit / Playbooks.** Orbit no
+es Mendel ni un clon de un automatizador: coordina señales de stock, ventas,
+clientes, margen, documentos, pagos, integraciones, soporte y Platform desde el
+Business Graph. Su contrato es señal → contexto → preview de impacto → policy →
+aprobación → acción idempotente → outcome. El discovery y las fases O0–O5 están
+en [docs/INNOVATION_ORBIT_PLAYBOOKS.md](docs/INNOVATION_ORBIT_PLAYBOOKS.md).
+No se agrega una ruta, capability, dependencia de canvas ni worker hasta que el
+roadmap autorice O1; los playbooks iniciales son read-only y `prepare`/
+`request_approval`. Orbit nunca escribe stock, dinero, precios, clientes o
+documentos por fuera de la autoridad del dominio, y no obtiene permisos nuevos
+por existir.
+
 ⚠️ **Antes de tocar precios, datos de clientes o el panel de plataforma, leer
 [docs/LEGAL.md](docs/LEGAL.md).** Es el relevamiento contra la normativa
 argentina, requisito por requisito. El botón de arrepentimiento y el link a
