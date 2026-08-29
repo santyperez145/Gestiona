@@ -953,7 +953,7 @@ export default function ProductsPage() {
                       Identidad, costos, inventario, variantes y publicación comparten una sola ficha del Business Core.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                  <div className="min-h-0 flex-1 overflow-hidden">
                     <ProductForm product={editing} settings={settings} userId={user!.id} orgId={activeOrg?.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
                   </div>
                 </DialogContent>
@@ -2435,9 +2435,11 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     <form
       onSubmit={handleSubmit}
       onPaste={handlePaste}
-      className="mx-auto max-w-5xl space-y-5 px-4 py-5 pb-0 sm:px-7 sm:py-7"
+      className="flex h-full min-h-0 flex-col"
       aria-label={product ? `Editar ${product.name}` : 'Crear producto'}
     >
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:px-7 sm:py-7">
       {/* Image upload (multi) */}
       <div>
         <div className="flex items-center justify-between">
@@ -3468,7 +3470,9 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           productCategory={product.category}
         />
       )}
-      <div className="sticky bottom-0 z-20 -mx-4 mt-8 border-t border-border/70 bg-card/95 px-4 py-3 backdrop-blur sm:-mx-7 sm:flex sm:items-center sm:justify-between sm:px-7">
+      </div>
+      </div>
+      <div className="z-20 shrink-0 border-t border-border/70 bg-card/95 px-4 py-3 backdrop-blur sm:flex sm:items-center sm:justify-between sm:px-7">
         <p className="mb-2 text-xs text-muted-foreground sm:mb-0">
           El guardado actualiza la ficha canónica; el stock se asienta por Kardex.
         </p>

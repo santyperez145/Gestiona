@@ -2052,7 +2052,8 @@ Finance Connect.
 61. Editor, variantes e importación responsive de Productos — slice técnico
     cerrado el 2026-08-29. La ficha extensa ya no se comprime dentro de un
     modal angosto: alta y edición usan un workspace fullscreen sobre Dialog,
-    con cabecera contextual, scroll único, ancho de lectura y CTA sticky que
+    con cabecera contextual, scroll único, ancho de lectura y footer persistente
+    cuyo CTA
     sigue alcanzable a 360 px. Los pares y cuartetos de campos colapsan a una o
     dos columnas en mobile; variantes expone nombre, stock, precio propio y
     eliminación con labels persistentes, targets completos y cards responsive.
@@ -2060,7 +2061,7 @@ Finance Connect.
     visibles, apila acciones en teléfono y declara el scroll horizontal de sus
     tablas comparativas. No cambia autoridad: precios/stock siguen validados
     por servidor y Kardex. La guarda de contrato bloquea el regreso al modal
-    angosto y a acciones icon-only; la barrera local cerró typecheck, lint,
+    angosto, al falso sticky y a acciones icon-only; la barrera local cerró typecheck, lint,
     1.991/1.991 tests y build/PWA. Quedan prueba publicada del editor en los
     cuatro viewports, importación autenticada con un archivo real y protección
     explícita de cambios sin guardar antes de declarar el flujo adoptado.

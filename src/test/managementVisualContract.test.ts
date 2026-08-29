@@ -91,9 +91,10 @@ describe('contrato visual transversal de Gestión', () => {
 
     expect(products).toContain('const FULLSCREEN_PRODUCT_WORKSPACE = "h-[100dvh] max-h-[100dvh]');
     expect(products.match(/<DialogContent size="full"/g)).toHaveLength(2);
+    expect(products).toContain('className="min-h-0 flex-1 overflow-hidden"');
     expect(products).toContain('className="min-h-0 flex-1 overflow-y-auto overscroll-contain"');
     expect(products).toContain("aria-label={product ? `Editar ${product.name}` : 'Crear producto'}");
-    expect(products).toContain('className="sticky bottom-0 z-20');
+    expect(products).toContain('className="z-20 shrink-0 border-t');
     expect(products).toContain('sm:grid-cols-[minmax(0,1fr)_7rem_9rem_auto]');
     expect(products).toContain('aria-label={`Eliminar ${v.variant_name}`}');
     expect(products).not.toContain('className="bg-card border-border max-h-[90vh] overflow-y-auto">\n                  <DialogHeader><DialogTitle className="font-display">{editing');
