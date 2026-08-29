@@ -104,6 +104,15 @@ describe("scopes: la key acota lo que puede hacer", () => {
     expect(migracion).toContain("La key necesita al menos un scope");
     expect(panel).toContain("una key sin scopes no puede hacer nada");
   });
+
+  it("el modal mobile no recorta la explicación de un permiso sensible", () => {
+    // En 390 px `stock:write` terminaba en «asiento de Kar…»: el scope seguía
+    // siendo seleccionable, pero la consecuencia quedaba escondida justo antes
+    // de emitir una credencial. La descripción debe envolver, no truncarse.
+    expect(panel).toContain('className="min-w-0 leading-snug"');
+    expect(panel).toContain('className="text-muted-foreground break-words"');
+    expect(panel).not.toContain('text-muted-foreground truncate">{SCOPE_DESC[s]}');
+  });
 });
 
 describe("escrituras y errores", () => {

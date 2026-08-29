@@ -270,10 +270,12 @@ export default function AdvancedApiKeysPanel() {
               <Label>Permisos (scopes)</Label>
               <div className="grid grid-cols-1 gap-1 mt-2 max-h-48 overflow-y-auto sm:grid-cols-2">
                 {ALL_SCOPES.map(s => (
-                  <label key={s} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 rounded px-2 py-1">
-                    <input type="checkbox" checked={keyForm.scopes.includes(s)} onChange={() => toggleScope(s)} className="rounded" />
-                    <span className="font-mono">{s}</span>
-                    <span className="text-muted-foreground truncate">{SCOPE_DESC[s]}</span>
+                  <label key={s} className="flex items-start gap-2 rounded px-2 py-1 text-xs cursor-pointer hover:bg-muted/50">
+                    <input type="checkbox" checked={keyForm.scopes.includes(s)} onChange={() => toggleScope(s)} className="mt-0.5 shrink-0 rounded" />
+                    <span className="min-w-0 leading-snug">
+                      <span className="font-mono">{s}</span>{" "}
+                      <span className="text-muted-foreground break-words">{SCOPE_DESC[s]}</span>
+                    </span>
                   </label>
                 ))}
               </div>

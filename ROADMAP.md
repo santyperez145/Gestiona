@@ -1875,6 +1875,22 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     final: 1.982/1.982 tests en 192 archivos, typecheck, lint 0/140,
     build/PWA, 71 Edge tipadas, audit 0, 489/489 migraciones, dos OpenAPI
     válidos y 70 enlaces internos en 42 documentos (2026-08-29).
+53. ~~API Keys validada con la sesión real del comercio~~ — cerrada el
+    2026-08-29. Esta PC no tiene `.env`, pero eso sólo bloquea la base desde
+    localhost: la sesión autenticada ya abierta permitió recorrer producción
+    como administrador de Exentry Imports sin transferir cookies ni secretos.
+    Se verificaron panel, vacío y modal en claro/oscuro y 360/768/1024/1440;
+    los ocho casos conservaron título, tab y CTA, sin overflow horizontal, y
+    la consola quedó en **0 warnings / 0 errors**. La captura mobile encontró
+    una deuda concreta que la compilación no veía: `stock:write` recortaba
+    «con asiento de Kardex», precisamente la consecuencia que debe entenderse
+    antes de emitir la key. El texto ahora envuelve completo y una guarda evita
+    devolverle `truncate`. Esto cierra la matriz de API Keys, no la de todas las
+    Integraciones ni la validación con otro comercio. Evidencia reproducible en
+    `docs/evidencias/2026-08-29_api_keys_visual.md`. Puerta final: 1.983/1.983
+    tests en 192 archivos, typecheck, lint 0/140, build/PWA, 71 Edge tipadas,
+    audit 0, 489 migraciones y 70 enlaces internos en 43 documentos
+    (2026-08-29).
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
