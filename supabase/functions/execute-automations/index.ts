@@ -356,7 +356,11 @@ Deno.serve(async (req) => {
                 flow_name: flow.name,
                 trigger_type: flow.trigger_type,
                 entity_count: matchedEntities.length,
-                entities: matchedEntities.slice(0, 50),
+                entities: matchedEntities.slice(0, 50).map((entity) => ({
+                  id: entity.id,
+                  label: entity.name,
+                  detail: entity.extra ?? null,
+                })),
               },
             });
             actionsTaken = deliveries.filter((delivery) => delivery.delivered).length;

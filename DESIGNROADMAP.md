@@ -138,7 +138,7 @@ usa en material de producto o inversión.
 | CRM | Command center, segmentos, tabla y ficha 360. | Implementado | Tarea real y lectura mobile. |
 | Inventario/Compras | Lista/recepción bajo tokens v3; handoff direccionado y estados comunes, incluido dato parcial/offline. | Parcial | Composición completa lista/detalle/Kardex, migrar subflujos y validar responsive. |
 | Reportes/Intelligence | Primitives compartidos, alta densidad histórica. | Parcial | Simplificar filtros y priorizar decisión. |
-| Settings/Integraciones | Cabecera/navegación común; SMTP privado; Mercado Pago OAuth canónico; webhooks en una sola superficie con secret one-time, health, prueba/retry server-side y entrega durable aunque se cierre el POS. | Parcial | Receptor externo, contrato visible, transportistas y matriz responsive/autenticada. |
+| Settings/Integraciones | Cabecera/navegación común; SMTP privado; Mercado Pago OAuth canónico; webhooks en una sola superficie con secret one-time, health, prueba/retry server-side, entrega durable, diálogo contractual y OpenAPI público certificado externamente. | Parcial | Transportistas y matriz responsive/autenticada; medir primera integración real. |
 | Finance | Shell teal, Inbox, inspector, matching, tres borradores y estados comunes con refresh/stale/offline. | Parcial | Proveedor aprobado + prueba responsive con documentos reales. |
 | Platform | Rail/control plane violeta y Merchant 360. | Parcial | Cola, métricas y soporte mobile. |
 | Storefront | Marca configurable aislada del SaaS. | Parcial | Home, PDP, carrito y checkout completo. |
@@ -347,7 +347,7 @@ prioritarios estables en los cuatro viewports.
 **Salida:** el rediseño demuestra menor tiempo/error y mayor confianza; no se
 declara validado porque “se ve mejor”.
 
-## 6. Próximos 26 slices de diseño
+## 6. Próximos 27 slices de diseño
 
 | # | Slice | Estado | Evidencia de cierre |
 |---:|---|---|---|
@@ -366,7 +366,7 @@ declara validado porque “se ve mejor”.
 | 13 | POS teclado/touch/offline | Pendiente | Cobro y recuperación medidos. |
 | 14 | Compras, recepción y Kardex | Parcial 2026-08-22 | Finance llega a la OC exacta, muestra contexto y abre la recepción idempotente; faltan Kardex integrado y matriz responsive. |
 | 15 | Reportes orientados a decisión | Pendiente | Menos filtros duplicados; acción clara. |
-| 16 | Settings e Integraciones | Parcial 2026-08-29 | SMTP propio usa estado saneado; Mercado Pago quedó en una única tarjeta OAuth. Webhooks retiró el formulario duplicado y los eventos fantasma: alta/edición/rotación/test/retry usan servidor, secret one-time, firma versionada, health y log por endpoint. Faltan transportistas y matriz responsive autenticada. |
+| 16 | Settings e Integraciones | Parcial 2026-08-29 | SMTP propio usa estado saneado; Mercado Pago quedó en una única tarjeta OAuth. Webhooks retiró duplicación/eventos fantasma y ahora suma alta/edición/rotación/test/retry server-side, secret one-time, firma versionada, health, log, diálogo de integración y OpenAPI público validado contra un receptor externo. Faltan transportistas y matriz responsive autenticada. |
 | 17 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos, aprobación y handoff a recepción usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
 | 18 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
 | 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
@@ -377,6 +377,7 @@ declara validado porque “se ve mejor”.
 | 24 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |
 | 25 | Investor demo mode con datos seguros | Pendiente tras validación | Narrativa reproducible, sin métricas falsas. |
 | 26 | Identidad oficial de Gestiona | Hecho 2026-08-23 | Símbolo RGBA canónico en 13 superficies, favicon/Apple/PWA; merchant aislado a Storefront/documentos; desktop y acceso móvil verificados en localhost. |
+| 27 | Contrato visible de webhooks | Hecho 2026-08-29 | Diálogo legible, código de firma, semántica de id/retry/orden, guía y OpenAPI 3.1; transporte sintético certificado contra HTTPS externo y receptor eliminado. |
 
 Máximo dos slices visuales activos. Un problema de seguridad, datos, stock,
 pagos o legal interrumpe esta secuencia y vuelve a `ROADMAP.md`.

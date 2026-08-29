@@ -305,7 +305,7 @@ async function executeAction(ctx: ActionContext): Promise<number> {
       return await actionCreatePurchaseOrder(org_id, subjects, action_config);
 
     case "webhook":
-      return await actionWebhook(org_id, trigger_type, subjects, action_config);
+      return await actionWebhook(org_id, flowId, trigger_type, subjects);
 
     default:
       return 0;
@@ -553,17 +553,21 @@ async function actionCreatePurchaseOrder(
 // ─────────────────────────────────────────────────────────────
 async function actionWebhook(
   orgId: string,
+  flowId: string,
   triggerType: string,
   subjects: Subject[],
-  _config: any,
 ): Promise<number> {
   const deliveries = await deliverOutboundEvent(supabase, {
     orgId,
     event: "automation.triggered",
     data: {
+      flow_id: flowId,
       trigger_type: triggerType,
-      subject_count: subjects.length,
-      subjects: subjects.slice(0, 50),
+      entity_count: subjects.length,
+      entities: subjects.slice(0, 50).map((subject) => ({
+        label: subject.label,
+        detail: subject.detail ?? null,
+      })),
     },
   });
   return deliveries.filter((delivery) => delivery.delivered).length;

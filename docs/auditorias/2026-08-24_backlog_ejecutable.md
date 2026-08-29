@@ -1017,12 +1017,13 @@ estática exige que el permiso ocurra antes de preparación y credenciales.
 ## P1-14 — Outgoing webhooks
 
 **Owner:** Platform API  
-**Estado:** parcial 2026-08-29; transporte durable cerrado. Suscripciones,
-filtro, secret one-time privado, HMAC-SHA256 con timestamp, versión,
-retry/backoff, DLQ/replay, log y `sale.created` transaccional están en
-producción. El POS ya no emite desde el navegador y el evento conserva un id
-estable entre reintentos. Faltan probar un receptor externo controlado y
-publicar el contrato versionado.
+**Estado:** cerrado técnicamente 2026-08-29. Suscripciones, filtro, secret
+one-time privado, HMAC-SHA256 con timestamp, versión, retry/backoff, DLQ/replay,
+log y `sale.created` transaccional están en producción. OpenAPI 3.1 y la guía
+del receptor son públicos; `npm run certify:webhooks` comprobó el request
+canónico contra HTTPS externo efímero con datos sintéticos y borrado 204. El
+evento conserva su id entre reintentos y ambos productores de automatizaciones
+comparten schema.
 **Aceptación**
 
 - [x] Subscriptions.
@@ -1033,7 +1034,7 @@ publicar el contrato versionado.
 - [x] Filtering.
 - [x] Event versions.
 - [x] Delivery logs.
-- [ ] Receptor externo y contrato público reproducible.
+- [x] Receptor externo y contrato público reproducible.
 
 ---
 

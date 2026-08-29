@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import {
   Webhook, Plus, Save, Trash2, Edit2, CheckCircle, XCircle,
   RefreshCw, Play, ChevronDown, ChevronUp, Shield, BarChart3, Info, Loader2, Link,
-  Copy, RotateCcw, Send,
+  Copy, RotateCcw, Send, FileJson, ExternalLink, Code2,
 } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,16 @@ const EVENTS = [
 ];
 
 const ALL_EVENTS = EVENTS.flatMap(g => g.events);
+const PUBLIC_WEBHOOK_CONTRACT = "/developer/webhooks/openapi.json";
+const HUMAN_WEBHOOK_GUIDE = "https://github.com/santyperez145/exentryimports/blob/main/docs/WEBHOOKS.md";
+const SIGNATURE_EXAMPLE = `const rawBody = await request.text();
+const { t, v1 } = Object.fromEntries(
+  request.headers.get("X-Gestiona-Signature")
+    .split(",").map(part => part.split("="))
+);
+const expected = createHmac("sha256", secret)
+  .update(t + "." + rawBody, "utf8").digest("hex");
+// Rechazá > 5 min y compará v1/expected en tiempo constante.`;
 
 interface WebhookConfig {
   id: string;
@@ -84,6 +94,7 @@ export default function AdvancedWebhooksPanel() {
   const [testing, setTesting] = useState<string | null>(null);
   const [retrying, setRetrying] = useState<string | null>(null);
   const [revealedSecret, setRevealedSecret] = useState("");
+  const [showContract, setShowContract] = useState(false);
 
   const load = async () => {
     if (!activeOrg?.id) return;
@@ -290,7 +301,10 @@ export default function AdvancedWebhooksPanel() {
           <p className="text-xs text-muted-foreground">Conectá con Zapier, Make, n8n o cualquier HTTP endpoint por tipo de evento</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowContract(true)} className="gap-2">
+            <FileJson className="w-3.5 h-3.5" /> Contrato
+          </Button>
+          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2" aria-label="Actualizar webhooks">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </Button>
           {isAdmin && (
@@ -315,6 +329,62 @@ export default function AdvancedWebhooksPanel() {
           servidor y se muestra una sola vez.
         </p>
       </div>
+
+      <Dialog open={showContract} onOpenChange={setShowContract}>
+        <DialogContent className="sm:max-w-3xl max-h-[88vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">OpenAPI 3.1</span>
+              <span className="inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">HMAC-SHA256</span>
+              <span className="font-mono text-[10px] text-muted-foreground">v2026-08-29</span>
+            </div>
+            <DialogTitle className="flex items-center gap-2"><FileJson className="w-5 h-5 text-primary" />Contrato OpenAPI de webhooks</DialogTitle>
+            <DialogDescription>
+              Una integración puede validar el payload sin leer el código de Gestiona ni adivinar qué cambia en un reintento.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded-xl border border-border/70 bg-card p-3">
+              <p className="text-xs font-semibold">Evento estable</p>
+              <p className="text-[11px] text-muted-foreground mt-1"><code>id</code> se conserva; deduplicá por él.</p>
+            </div>
+            <div className="rounded-xl border border-border/70 bg-card p-3">
+              <p className="text-xs font-semibold">Entrega auditable</p>
+              <p className="text-[11px] text-muted-foreground mt-1"><code>delivery_id</code> une el ciclo con su log.</p>
+            </div>
+            <div className="rounded-xl border border-border/70 bg-card p-3">
+              <p className="text-xs font-semibold">Entrega honesta</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Al menos una vez, sin orden garantizado.</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border/70 bg-muted/35 overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-border/60 px-3 py-2 text-xs font-semibold">
+              <Code2 className="w-3.5 h-3.5 text-primary" />Validación mínima en Node.js
+            </div>
+            <pre className="overflow-x-auto p-3 text-[11px] leading-relaxed text-foreground/80"><code>{SIGNATURE_EXAMPLE}</code></pre>
+          </div>
+
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 p-3 text-xs text-muted-foreground">
+            Validá la firma sobre el cuerpo crudo, rechazá timestamps de más de 5 minutos,
+            persistí <code>id</code> con unicidad, encolá el trabajo y respondé cualquier <code>2xx</code> rápido.
+          </div>
+
+          <DialogFooter className="sm:justify-between gap-2">
+            <Button variant="outline" asChild>
+              <a href={HUMAN_WEBHOOK_GUIDE} target="_blank" rel="noreferrer">
+                Guía de implementación <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </Button>
+            <Button asChild>
+              <a href={PUBLIC_WEBHOOK_CONTRACT} target="_blank" rel="noreferrer">
+                Abrir contrato JSON <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Sheet open={showForm} onOpenChange={setShowForm}>
         <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">

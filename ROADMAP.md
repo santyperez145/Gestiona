@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.969 tests en 190 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 71 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
+| Calidad técnica | 1.973 tests en 191 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 71 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -1320,7 +1320,7 @@ contratos técnicos; **externo** = requiere dueño/proveedor/operación real;
 | P1-11 | F4 · slice 22 + Design | **Parcial** | Themes existen; faltan draft/preview/publish/version/rollback y page contract. |
 | P1-12 | F4 · slice 22 | **Parcial** | JSON-LD/sitemap existen; faltan redirects, hreflang y reporte de migración SEO. |
 | P1-13 | F8 · Developer Platform | **Parcial** | API v1 ya tiene keys/scopes/rate limit/idempotencia; faltan OpenAPI, deprecation y contrato decimal. |
-| P1-14 | F8 · bitácoras 48/50 | **Parcial; transporte durable cerrado** | Outbox transaccional, DLQ/replay, filtro, firma e id estable ya están; faltan receptor externo controlado y contrato público. |
+| P1-14 | F8 · bitácoras 48/50/51 | **Cerrado técnicamente 2026-08-29** | Contrato OpenAPI público, receptor HTTPS externo certificado, outbox transaccional, DLQ/replay, filtro, firma e ids estables. Mantener compatibilidad y medir primera integración real. |
 | P2-01 | F2 · slices 11–12 | **Técnico** | Operación real con los cuatro costos y decisión del merchant. |
 | P2-02 | F2 · slice 13 | **Técnico** | Primer `impact_event` real maduro; fixtures no prueban valor creado. |
 | P2-03 | F2 · slice 13 | **Parcial** | Unificar simulación de precio/promoción/cuotas/compra/envío/mix, sin writes. |
@@ -1347,8 +1347,9 @@ La comparación resolvió cinco contradicciones concretas:
    convierte un fixture en segundo comercio.
 3. P2-01 y P2-02 tienen autoridad y Action Loop, pero siguen sin impacto real;
    para un inversor continúan abiertos hasta demostrar valor observado.
-4. P1-13/P1-14 son foundation de Developer Platform dentro de F8, aunque parte
-   de su seguridad se adelantó para no operar una API vulnerable.
+4. P1-13 sigue parcial; P1-14 quedó cerrado técnicamente como foundation de
+   Developer Platform. Su seguridad se adelantó para no operar una API
+   vulnerable, pero no habilita todavía un marketplace de apps sin demanda.
 5. Los seis “sprints inmediatos” del backlog eran la secuencia del 2026-08-24 y
    quedan sustituidos por los gates, portfolio y orden técnico de esta sección.
 
@@ -1779,7 +1780,8 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     [timestamp anti-replay de Stripe](https://docs.stripe.com/webhooks?lang=node)
     y [SSRF de OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html),
     consultados el 2026-08-29. La durabilidad que faltaba se cierra en la
-    bitácora 50; **P1-14 queda parcial sólo por evidencia/contrato externo**.
+    bitácoras 50–51; **P1-14 queda cerrado técnicamente y conserva como métrica
+    de adopción la primera integración real**.
 49. ~~Refund respeta la matriz P1-04~~ — cerrado técnicamente el 2026-08-29.
     `refund-store-payment` dejó de decidir por una lista fija owner/admin: usa
     el JWT real para exigir `payments.edit` antes de crear el cliente
@@ -1800,8 +1802,8 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     identidad del cron, valida evento/suscripción/tenant, relee las líneas y hace
     un único intento: backoff, máximo, DLQ y replay quedan en la outbox, no
     duplicados dentro de la Edge. El sobre y el header conservan un `event_id`
-    estable para que el receptor deduplique; `delivery_id` identifica cada
-    intento. El POS dejó de hacer fire-and-forget y `send-webhook` ya no acepta
+    estable para que el receptor deduplique; `delivery_id` identifica el ciclo
+    de entrega y su log. El POS dejó de hacer fire-and-forget y `send-webhook` ya no acepta
     dispatch manual, sólo prueba/retry owner-admin. Además se revocó la escritura
     directa de `event_subscriptions` a roles cliente y el worker falla cerrado si
     falta `BACKUP_CRON_SECRET`. La fixture productiva probó siete invariantes —RPC
@@ -1809,10 +1811,39 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     ACL y desactivación— con 0 restos. Se retiraron 12 descartados que apuntaban
     exclusivamente a tickets de fixture sin líneas; 0 descartados con líneas
     fueron tocados. La Edge quedó ACTIVE v1, sin JWT de gateway pero con secreto
-    de cron obligatorio; una llamada anónima devolvió 401. P1-14 conserva dos
-    gates honestos: receptor externo controlado y contrato público versionado.
+    de cron obligatorio; una llamada anónima devolvió 401. Los dos gates que
+    conservaba P1-14 —receptor externo controlado y contrato público
+    versionado— se cierran en la bitácora 51.
     Puerta final medida el 2026-08-29: 1.969/1.969 tests, 71 Edge tipadas,
     488/488 migraciones, build/PWA, dependencias en 0 y 63 enlaces internos.
+51. ~~Contrato y receptor externo de webhooks~~ — cerrado técnicamente el
+    2026-08-29. `/developer/webhooks/openapi.json` publica OpenAPI 3.1 con los
+    tres requests realmente entregables, schemas, headers, HMAC, versión y
+    semántica `at-least-once`/sin orden; `docs/WEBHOOKS.md` y un receptor Node
+    sin dependencias explican cuerpo crudo, tolerancia de 300 segundos,
+    comparación constante, deduplicación y respuesta asíncrona. El panel abre
+    el contrato y la guía en un diálogo accesible, sin pedir leer el repo para
+    integrar. Además, los dos productores de `automation.triggered` dejaron de
+    emitir formas distintas y comparten `flow_id`, `trigger_type`,
+    `entity_count` y `entities`, sin teléfono/email/metadata interna. El request
+    canónico se extrajo a una función pura usada por producción y por
+    `npm run certify:webhooks`. La corrida contra un token efímero de
+    Webhook.site confirmó POST, cuerpo exacto, HMAC y seis headers, recibió 200
+    y borró el receptor con 204; sólo viajó `test.ping` sintético. Evidencia en
+    `docs/evidencias/2026-08-29_webhook_externo.md`. Referencias oficiales:
+    [OpenAPI 3.1](https://spec.openapis.org/oas/v3.1.1.html#openapi-object),
+    [GitHub](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks),
+    [Stripe](https://docs.stripe.com/webhooks) y
+    [Webhook.site](https://docs.webhook.site/api/about.html), consultadas el
+    2026-08-29. P1-14 queda cerrado técnicamente; la primera integración de un
+    comercio es adopción, no otro contrato por implementar. El contrato pasó
+    Redocly con 0 errores/warnings, el artefacto local respondió 200
+    `application/json` con tres eventos y las Edge quedaron ACTIVE:
+    `send-webhook` v41 con JWT, `dispatch-outbound-webhook` v2,
+    `execute-automations` v46 y `run-automation-flows` v46 con auth propia; las
+    cuatro rechazaron llamada anónima con 401. Puerta final: 1.973/1.973 tests
+    en 191 archivos, lint 0/140, build/PWA, 71 Edge tipadas, audit 0, 488
+    migraciones y 68 enlaces internos en 41 documentos (2026-08-29).
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2301,8 +2332,8 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **1.969 tests en 190 archivos**,
-  typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 70
+- Build y suites locales del 2026-08-29: **1.973 tests en 191 archivos**,
+  typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 71
   funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
   panel y 1 setup autenticado—; el de Gastos es de sólo lectura.
 - docs/FINANCE_DOCUMENT_EXTRACTION.md: custodia, esquema estructurado,

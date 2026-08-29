@@ -37,7 +37,7 @@ describe("recuperación de un build obsoleto", () => {
     expect(shouldRecoverStaleBuild(Number.NaN, NOW)).toBe(true);
   });
 
-  it("mantiene cableada la recuperación temprana y evita el fallback HTML para assets", () => {
+  it("mantiene la recuperación temprana y evita fallback HTML para archivos estáticos", () => {
     const main = readFileSync(resolve(process.cwd(), "src/main.tsx"), "utf8");
     const vercel = JSON.parse(readFileSync(resolve(process.cwd(), "vercel.json"), "utf8")) as {
       rewrites: Array<{ source: string }>;
@@ -46,7 +46,10 @@ describe("recuperación de un build obsoleto", () => {
 
     expect(main).toContain('window.addEventListener("vite:preloadError"');
     expect(main).toContain("recoverFromStaleBuild()");
-    expect(vercel.rewrites.at(-1)?.source).toBe("/((?!api/|assets/).*)");
+    const fallbackSource = vercel.rewrites.at(-1)?.source ?? "";
+    expect(fallbackSource).toContain("api/");
+    expect(fallbackSource).toContain("assets/");
+    expect(fallbackSource).toContain("developer/");
     expect(vercel.headers).toEqual(expect.arrayContaining([
       expect.objectContaining({ source: "/sw.js" }),
       expect.objectContaining({ source: "/registerSW.js" }),

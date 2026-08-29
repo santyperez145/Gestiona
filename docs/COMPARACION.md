@@ -92,11 +92,11 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | Triggers | **131** | ✅ catálogo de producción, 2026-08-22 |
 | Índices | **946** | ✅ catálogo de producción, 2026-08-22 |
 | Políticas RLS | **384** | ✅ catálogo de producción, 2026-08-22 |
-| Migraciones registradas | **486** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate`, 2026-08-29 |
+| Migraciones registradas | **488** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate`, 2026-08-29 |
 | Cron jobs | **25** | ⚠️ 22.254 corridas exitosas y **3 fallidas** en 7 días; las tres históricas corresponden a `expire-overdue-trials`, cuya recuperación posterior se documenta en la auditoría del 2026-08-28 |
-| Edge Functions | **70** | ✅ `npm run check:functions`, 2026-08-29 |
+| Edge Functions | **71** | ✅ `npm run check:functions`, 2026-08-29 |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **1.969** | ✅ `npm test`, 190 archivos, 2026-08-29 |
+| Tests unitarios | **1.973** | ✅ `npm test`, 191 archivos, 2026-08-29 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -401,8 +401,8 @@ necesita un SaaS de 2 organizaciones (2026-08-26). No es el cuello de botella.
 | **Observabilidad** | 🟡 Sentry en front, Merchant 360 y traza correlacionada del pago desde checkout hasta ledger, visible con RLS y sin PII. Faltan métricas/SLO, OpenTelemetry, alertas y health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ Deno para 71 Edge Functions + lint + typecheck + build, 1.969 tests en 190 archivos (2026-08-29), audit completo en 0 y 43 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
-| **API pública / webhooks salientes** | 🟡 API v1 con keys hasheadas/scopes/idempotencia; webhooks versionados con HMAC, timestamp, filtro, outbox transaccional, id estable, retry, DLQ/replay y log. Faltan OpenAPI/contrato público y receptor real | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio |
+| **CI** | ✅ Deno para 71 Edge Functions + lint + typecheck + build, 1.973 tests en 191 archivos (2026-08-29), audit completo en 0 y 43 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
+| **API pública / webhooks salientes** | 🟡 API v1 con keys hasheadas/scopes/idempotencia, todavía sin su OpenAPI/deprecation/decimal contract. Webhooks sí cerraron OpenAPI 3.1 público, guía/receptor Node, HMAC, timestamp, filtro, outbox, id estable, retry, DLQ/replay, log y certificación contra HTTPS externo sintético | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio por API; webhooks cerrados |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
 | **SOC 2 / ISO 27001** | 🔴 | Requisito para vender a empresas | 🟢 Bajo hoy |

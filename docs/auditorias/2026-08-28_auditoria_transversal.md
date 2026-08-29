@@ -24,7 +24,7 @@ no pudo probarse quedó abierto en vez de declararse sano por intuición.
 | Git | remoto alineado, worktree limpio al iniciar | Verde |
 | Migraciones | 488 archivos / 488 registradas al cierre del 2026-08-29; `db push --dry-run` sin brecha | Verde |
 | Edge estática | 71 funciones pasan `npm run check:functions` | Verde |
-| Documentación | 63 enlaces internos en 39 documentos; backlog de 41 IDs reconciliado con el roadmap canónico | Verde |
+| Documentación | 68 enlaces internos en 41 documentos al 2026-08-29; backlog de 41 IDs reconciliado con el roadmap canónico | Verde |
 | RLS | 0 tablas públicas sin RLS; policies sin tenant, índices tenant, settings faltantes y stock negativo en 0 | Verde |
 | Secretos heredados | SMTP retiró siete columnas, API/MP/ML/Evolution otras ocho y webhooks seis entre `settings/webhook_configs`; 0 valores antes de cada retiro. Secret de endpoint ahora privado y one-time | Verde; queda auditar transportistas al activarlos |
 | Storage | 25 backups privados, 52 imágenes de producto y 2 de marketing; Finance y comprobantes privados. `expense-receipts` cerró antes del primer objeto | Verde: path por tenant, RLS por permiso y URL firmada de 60 s |
@@ -274,8 +274,16 @@ duplicación. Los miembros quedaron sin INSERT/UPDATE/DELETE sobre
 `event_subscriptions`. Una fixture transaccional probó siete invariantes y 0
 restos; el preflight permitió retirar 12 descartados de fixtures sin líneas y
 confirmó 0 descartados con líneas. La nueva Edge quedó ACTIVE v1 y una llamada
-sin secreto respondió 401. No se envió un webhook externo: siguen pendientes el
-receptor controlado y la documentación pública del contrato.
+sin secreto respondió 401.
+
+El 2026-08-29 se cerró también el contrato: OpenAPI 3.1 público describe los
+tres requests entregables, la guía y el receptor Node muestran validación del
+cuerpo crudo/deduplicación, y el panel los hace visibles antes de configurar.
+Los dos emisores de `automation.triggered` se normalizaron a un schema sin
+contactos internos. `npm run certify:webhooks` envió `test.ping` sintético con
+el builder productivo a Webhook.site, recuperó el request, recalculó HMAC,
+confirmó seis headers y borró el receptor con 204. Evidencia:
+[`2026-08-29_webhook_externo.md`](../evidencias/2026-08-29_webhook_externo.md).
 
 La misma traza mostró dos jobs activos sobre `automation_flows`:
 `execute-automations-daily` a las 05:00 AR y `run-automation-flows-daily` a las
@@ -287,14 +295,17 @@ de otro comercio y la consulta service-role ejecutaba sus flujos.
 
 El contrato sigue fuentes primarias consultadas el 2026-08-29:
 [GitHub recomienda secret de alta entropía, HMAC-SHA256 y comparación segura](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries),
-[Stripe firma el timestamp para limitar replay](https://docs.stripe.com/webhooks?lang=node)
+[Stripe firma el timestamp y documenta retry/falta de orden](https://docs.stripe.com/webhooks),
+[OpenAPI 3.1 modela webhooks iniciados por el proveedor](https://spec.openapis.org/oas/v3.1.1.html#openapi-object),
+[Webhook.site ofrece tokens y lectura de requests efímeros](https://docs.webhook.site/api/about.html)
 y [OWASP exige validar protocolo/destino y no seguir redirects frente a SSRF](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html).
 
 ## Orden de continuación
 
 1. Confirmar la próxima corrida natural de cotización y cumpleaños en
    `edge_invocation_log`; no invocarlas a mano ni declarar recuperación antes.
-2. Documentar el contrato de webhooks y probar un receptor externo controlado;
-   no crear más eventos sin emisor.
+2. P1-14 quedó cerrado con contrato público y receptor externo; mantener
+   compatibilidad y medir la primera integración real, sin inventar más eventos
+   sin emisor.
 3. P1-04 ya aplica `payments.edit` al refund; completar únicamente la prueba
    cross-branch cuando existan dos ubicaciones reales aptas.

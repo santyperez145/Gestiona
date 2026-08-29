@@ -19,7 +19,7 @@
       ],
       "destination": "/api/og?path=/tienda/:path*"
     },
-    { "source": "/((?!api/|assets/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|assets/|developer/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
@@ -54,6 +54,10 @@
     {
       "source": "/assets/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/developer/webhooks/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }]
     }
   ]
 }

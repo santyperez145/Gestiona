@@ -166,7 +166,17 @@ la configuración visible sincroniza una suscripción server-managed y
 `dispatch-outbound-webhook` relee la venta después del commit. El POS no hace un
 último request best-effort. La Edge intenta una vez y devuelve el resultado; la
 outbox es la única autoridad de backoff, descarte y replay. `event_id` permanece
-estable y `delivery_id` cambia por intento.
+estable y `delivery_id` identifica cada ciclo de entrega/log; cambia al
+reencolar o hacer replay, aunque retries de red inmediatos puedan compartirlo.
+
+El contrato ya no depende de leer ese código: OpenAPI 3.1 se sirve en
+`/developer/webhooks/openapi.json`, la guía humana vive en
+[`docs/WEBHOOKS.md`](WEBHOOKS.md) y ambos productores de
+`automation.triggered` comparten una sola forma sin datos de contacto. La misma
+función pura construye el request productivo y el vector de certificación. El
+2026-08-29 `npm run certify:webhooks` lo envió a un receptor HTTPS efímero
+externo, recalculó el HMAC sobre el cuerpo capturado y borró el destino; ver
+[`evidencia`](evidencias/2026-08-29_webhook_externo.md).
 
 **Correlación crítica (2026-08-21).** En pagos, el `correlation_id` nace en
 `payment_intents` y no en el navegador. `emitir_evento` lo hereda para el

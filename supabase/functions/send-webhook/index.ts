@@ -75,7 +75,6 @@ Deno.serve(async (req) => {
         event: "test.ping",
         data: {
           message: "Prueba firmada desde Gestiona",
-          requested_by: auth.user.email,
         },
       });
       if (!results.length) return response({ error: "Webhook inexistente" }, 404);

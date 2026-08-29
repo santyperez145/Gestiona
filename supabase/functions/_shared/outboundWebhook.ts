@@ -16,6 +16,7 @@ export const SUPPORTED_OUTBOUND_EVENTS = [
   "automation.triggered",
 ] as const;
 export const OUTBOUND_WEBHOOK_API_VERSION = "2026-08-29";
+export const OUTBOUND_WEBHOOK_MAX_CLOCK_SKEW_SECONDS = 300;
 
 export type OutboundEvent = typeof SUPPORTED_OUTBOUND_EVENTS[number] | "test.ping";
 
@@ -98,6 +99,63 @@ async function hmacSha256(secret: string, payload: string): Promise<string> {
     .join("");
 }
 
+export type SignedOutboundWebhookRequest = {
+  eventId: string;
+  deliveryId: string;
+  timestamp: number;
+  payload: Record<string, unknown>;
+  payloadString: string;
+  headers: Record<string, string>;
+};
+
+/**
+ * Construye el request firmado sin hacer I/O. Es el contrato ejecutable que
+ * comparten producción, los vectores de prueba y la certificación contra un
+ * receptor externo: si alguno deriva, la misma función deja de validar.
+ */
+export async function buildSignedOutboundWebhookRequest(input: {
+  secret: string;
+  event: OutboundEvent;
+  orgId: string;
+  data: unknown;
+  sourceEventId?: string;
+  deliveryId?: string;
+  now?: Date;
+}): Promise<SignedOutboundWebhookRequest> {
+  const deliveryId = input.deliveryId || crypto.randomUUID();
+  const eventId = input.sourceEventId || deliveryId;
+  const timestamp = Math.floor((input.now?.getTime() ?? Date.now()) / 1_000);
+  const payload = {
+    id: eventId,
+    delivery_id: deliveryId,
+    api_version: OUTBOUND_WEBHOOK_API_VERSION,
+    event: input.event,
+    org_id: input.orgId,
+    created_at: new Date(timestamp * 1_000).toISOString(),
+    data: input.data,
+  };
+  const payloadString = JSON.stringify(payload);
+  const signature = await hmacSha256(input.secret, `${timestamp}.${payloadString}`);
+
+  return {
+    eventId,
+    deliveryId,
+    timestamp,
+    payload,
+    payloadString,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "User-Agent": "Gestiona-Webhooks/1.0",
+      "X-Gestiona-Event": input.event,
+      "X-Gestiona-Event-Id": eventId,
+      "X-Gestiona-Org": input.orgId,
+      "X-Gestiona-Delivery": deliveryId,
+      "X-Gestiona-Version": OUTBOUND_WEBHOOK_API_VERSION,
+      "X-Gestiona-Signature": `t=${timestamp},v1=${signature}`,
+    },
+  };
+}
+
 async function responseSnippet(response: Response, maxBytes = 2_000): Promise<string> {
   if (!response.body) return "";
   const reader = response.body.getReader();
@@ -133,20 +191,13 @@ async function deliver(
   attemptsAllowedOverride?: number,
 ): Promise<{ result: WebhookDeliveryResult; payload: Record<string, unknown>; responseBody: string }> {
   const url = assertPublicWebhookUrl(config.url);
-  const deliveryId = crypto.randomUUID();
-  const eventId = sourceEventId || deliveryId;
-  const timestamp = Math.floor(Date.now() / 1_000);
-  const payload = {
-    id: eventId,
-    delivery_id: deliveryId,
-    api_version: OUTBOUND_WEBHOOK_API_VERSION,
+  const signed = await buildSignedOutboundWebhookRequest({
+    secret,
     event,
-    org_id: orgId,
-    created_at: new Date(timestamp * 1_000).toISOString(),
+    orgId,
     data,
-  };
-  const payloadString = JSON.stringify(payload);
-  const signature = await hmacSha256(secret, `${timestamp}.${payloadString}`);
+    sourceEventId,
+  });
   const attemptsAllowed = attemptsAllowedOverride == null
     ? (config.retry_on_fail ? 1 + Math.min(Math.max(config.max_retries, 0), 3) : 1)
     : Math.min(Math.max(Math.trunc(attemptsAllowedOverride), 1), 4);
@@ -166,29 +217,20 @@ async function deliver(
       const response = await fetch(url, {
         method: "POST",
         redirect: "manual",
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          "User-Agent": "Gestiona-Webhooks/1.0",
-          "X-Gestiona-Event": event,
-          "X-Gestiona-Event-Id": eventId,
-          "X-Gestiona-Org": orgId,
-          "X-Gestiona-Delivery": deliveryId,
-          "X-Gestiona-Version": OUTBOUND_WEBHOOK_API_VERSION,
-          "X-Gestiona-Signature": `t=${timestamp},v1=${signature}`,
-        },
-        body: payloadString,
+        headers: signed.headers,
+        body: signed.payloadString,
         signal: AbortSignal.timeout(timeoutMs),
       });
       status = response.status;
       responseBody = await responseSnippet(response);
       if (response.ok) {
         return {
-          payload,
+          payload: signed.payload,
           responseBody,
           result: {
             webhook_id: config.id,
             webhook_name: config.name,
-            delivery_id: deliveryId,
+            delivery_id: signed.deliveryId,
             delivered: true,
             status,
             attempts,
@@ -205,12 +247,12 @@ async function deliver(
   }
 
   return {
-    payload,
+    payload: signed.payload,
     responseBody,
     result: {
       webhook_id: config.id,
       webhook_name: config.name,
-      delivery_id: deliveryId,
+      delivery_id: signed.deliveryId,
       delivered: false,
       status,
       attempts,

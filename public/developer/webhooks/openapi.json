@@ -1,0 +1,301 @@
+{
+  "openapi": "3.1.1",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": {
+    "title": "Gestiona Outbound Webhooks",
+    "summary": "Contrato versionado de eventos salientes de Gestiona.",
+    "description": "Gestiona envía POST HTTPS firmados. La entrega es al menos una vez, no garantiza orden y conserva `id` entre reintentos. El receptor debe validar la firma sobre el cuerpo crudo, deduplicar por `id`, encolar su trabajo y responder 2xx rápidamente.",
+    "version": "2026-08-29",
+    "license": {
+      "name": "Propietario — uso sujeto al contrato de Gestiona",
+      "identifier": "LicenseRef-Gestiona-Proprietary"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://{receiverHost}/{receiverPath}",
+      "description": "En producción es la URL HTTPS configurada por el comercio.",
+      "variables": {
+        "receiverHost": {
+          "default": "hooks.tudominio.com",
+          "description": "Host público del receptor."
+        },
+        "receiverPath": {
+          "default": "gestiona",
+          "description": "Ruta que recibe los POST de Gestiona."
+        }
+      }
+    }
+  ],
+  "security": [
+    { "GestionaHmac": [] }
+  ],
+  "webhooks": {
+    "sale.created": {
+      "post": {
+        "operationId": "receiveSaleCreated",
+        "summary": "Una venta quedó confirmada en el Business Core.",
+        "parameters": [
+          { "$ref": "#/components/parameters/Event" },
+          { "$ref": "#/components/parameters/EventId" },
+          { "$ref": "#/components/parameters/Organization" },
+          { "$ref": "#/components/parameters/Delivery" },
+          { "$ref": "#/components/parameters/Version" },
+          { "$ref": "#/components/parameters/Signature" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SaleCreatedEvent" }
+            }
+          }
+        },
+        "responses": {
+          "2XX": { "description": "Entrega aceptada. Procesar de forma asíncrona." },
+          "default": { "description": "Entrega no aceptada. Gestiona puede reintentarla." }
+        }
+      }
+    },
+    "automation.triggered": {
+      "post": {
+        "operationId": "receiveAutomationTriggered",
+        "summary": "Una automatización configurada encontró entidades y llamó al endpoint.",
+        "parameters": [
+          { "$ref": "#/components/parameters/Event" },
+          { "$ref": "#/components/parameters/EventId" },
+          { "$ref": "#/components/parameters/Organization" },
+          { "$ref": "#/components/parameters/Delivery" },
+          { "$ref": "#/components/parameters/Version" },
+          { "$ref": "#/components/parameters/Signature" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AutomationTriggeredEvent" }
+            }
+          }
+        },
+        "responses": {
+          "2XX": { "description": "Entrega aceptada. Procesar de forma asíncrona." },
+          "default": { "description": "Entrega no aceptada. Gestiona puede reintentarla." }
+        }
+      }
+    },
+    "test.ping": {
+      "post": {
+        "operationId": "receiveTestPing",
+        "summary": "Prueba firmada iniciada desde Integraciones.",
+        "parameters": [
+          { "$ref": "#/components/parameters/Event" },
+          { "$ref": "#/components/parameters/EventId" },
+          { "$ref": "#/components/parameters/Organization" },
+          { "$ref": "#/components/parameters/Delivery" },
+          { "$ref": "#/components/parameters/Version" },
+          { "$ref": "#/components/parameters/Signature" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TestPingEvent" }
+            }
+          }
+        },
+        "responses": {
+          "2XX": { "description": "Prueba aceptada." },
+          "default": { "description": "Prueba rechazada o no procesada." }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "GestionaHmac": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Gestiona-Signature",
+        "description": "Firma HMAC-SHA256 del timestamp y cuerpo crudo. El secret se muestra una sola vez al crear o rotar el endpoint."
+      }
+    },
+    "parameters": {
+      "Event": {
+        "name": "X-Gestiona-Event",
+        "in": "header",
+        "required": true,
+        "description": "Tipo del evento. Debe coincidir con `event` en el cuerpo.",
+        "schema": {
+          "type": "string",
+          "enum": ["sale.created", "automation.triggered", "test.ping"]
+        }
+      },
+      "EventId": {
+        "name": "X-Gestiona-Event-Id",
+        "in": "header",
+        "required": true,
+        "description": "Identidad estable del evento. Se conserva en reintentos y es la clave de deduplicación.",
+        "schema": { "$ref": "#/components/schemas/Uuid" }
+      },
+      "Organization": {
+        "name": "X-Gestiona-Org",
+        "in": "header",
+        "required": true,
+        "description": "Organización que originó el evento.",
+        "schema": { "$ref": "#/components/schemas/Uuid" }
+      },
+      "Delivery": {
+        "name": "X-Gestiona-Delivery",
+        "in": "header",
+        "required": true,
+        "description": "Identidad del ciclo de entrega y su log. Los retries de red inmediatos pueden compartirla; un replay manual o un nuevo intento de outbox genera otra.",
+        "schema": { "$ref": "#/components/schemas/Uuid" }
+      },
+      "Version": {
+        "name": "X-Gestiona-Version",
+        "in": "header",
+        "required": true,
+        "description": "Versión inmutable del contrato del payload.",
+        "schema": { "type": "string", "const": "2026-08-29" }
+      },
+      "Signature": {
+        "name": "X-Gestiona-Signature",
+        "in": "header",
+        "required": true,
+        "description": "`t=<unix>,v1=<hex>`, donde v1 es HMAC-SHA256(secret, `t.cuerpo_crudo`). Rechazar timestamps con más de 300 segundos y comparar en tiempo constante.",
+        "schema": {
+          "type": "string",
+          "pattern": "^t=[0-9]{10,},v1=[a-f0-9]{64}$"
+        }
+      }
+    },
+    "schemas": {
+      "Uuid": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+      },
+      "SaleCreatedEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "delivery_id", "api_version", "event", "org_id", "created_at", "data"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/Uuid" },
+          "delivery_id": { "$ref": "#/components/schemas/Uuid" },
+          "api_version": { "type": "string", "const": "2026-08-29" },
+          "event": { "type": "string", "const": "sale.created" },
+          "org_id": { "$ref": "#/components/schemas/Uuid" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "data": { "$ref": "#/components/schemas/SaleCreatedData" }
+        }
+      },
+      "SaleCreatedData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["transaction_id", "occurred_at", "lines", "total_ars"],
+        "properties": {
+          "transaction_id": { "$ref": "#/components/schemas/Uuid" },
+          "occurred_at": { "type": "string", "format": "date-time" },
+          "lines": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/components/schemas/SaleLine" }
+          },
+          "total_ars": { "type": "number", "description": "Total nominal en pesos argentinos." }
+        }
+      },
+      "SaleLine": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "sale_transaction_id", "product_id", "product_name", "quantity", "unit_price_ars", "total_ars", "customer_id", "customer_name", "date", "paid", "payment_method", "source", "seller_name"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/Uuid" },
+          "sale_transaction_id": { "$ref": "#/components/schemas/Uuid" },
+          "product_id": { "oneOf": [{ "$ref": "#/components/schemas/Uuid" }, { "type": "null" }] },
+          "product_name": { "type": "string" },
+          "quantity": { "type": "number" },
+          "unit_price_ars": { "type": "number" },
+          "total_ars": { "type": "number" },
+          "customer_id": { "oneOf": [{ "$ref": "#/components/schemas/Uuid" }, { "type": "null" }] },
+          "customer_name": { "type": ["string", "null"] },
+          "date": { "type": "string" },
+          "paid": { "type": "boolean" },
+          "payment_method": { "type": ["string", "null"] },
+          "source": { "type": ["string", "null"] },
+          "seller_name": { "type": ["string", "null"] }
+        }
+      },
+      "AutomationTriggeredEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "delivery_id", "api_version", "event", "org_id", "created_at", "data"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/Uuid" },
+          "delivery_id": { "$ref": "#/components/schemas/Uuid" },
+          "api_version": { "type": "string", "const": "2026-08-29" },
+          "event": { "type": "string", "const": "automation.triggered" },
+          "org_id": { "$ref": "#/components/schemas/Uuid" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "data": { "$ref": "#/components/schemas/AutomationTriggeredData" }
+        }
+      },
+      "AutomationTriggeredData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["flow_id", "trigger_type", "entity_count", "entities"],
+        "properties": {
+          "flow_id": { "$ref": "#/components/schemas/Uuid" },
+          "flow_name": { "type": "string" },
+          "trigger_type": { "type": "string" },
+          "entity_count": { "type": "integer", "minimum": 0 },
+          "entities": {
+            "type": "array",
+            "maxItems": 50,
+            "items": { "$ref": "#/components/schemas/AutomationEntity" }
+          }
+        }
+      },
+      "AutomationEntity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "detail"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/Uuid" },
+          "label": { "type": "string" },
+          "detail": { "type": ["string", "null"] }
+        }
+      },
+      "TestPingEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "delivery_id", "api_version", "event", "org_id", "created_at", "data"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/Uuid" },
+          "delivery_id": { "$ref": "#/components/schemas/Uuid" },
+          "api_version": { "type": "string", "const": "2026-08-29" },
+          "event": { "type": "string", "const": "test.ping" },
+          "org_id": { "$ref": "#/components/schemas/Uuid" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "data": { "$ref": "#/components/schemas/TestPingData" }
+        }
+      },
+      "TestPingData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["message"],
+        "properties": {
+          "message": { "type": "string" }
+        }
+      }
+    }
+  },
+  "x-gestiona-delivery": {
+    "semantics": "at-least-once",
+    "ordering": "not-guaranteed",
+    "deduplicationKey": "id",
+    "deliveryKey": "delivery_id",
+    "maxClockSkewSeconds": 300,
+    "successStatus": "any-2xx",
+    "maximumAttempts": 4
+  }
+}
