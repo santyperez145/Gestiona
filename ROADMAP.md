@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.961 tests en 188 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
+| Calidad técnica | 1.967 tests en 189 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -1675,6 +1675,36 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     canal. No se creó una preferencia real durante la auditoría para no producir
     un efecto externo: falta ejecutar y acreditar un link real controlado antes
     de declarar el flujo validado operacionalmente.
+48. ~~Webhooks salientes privados, firmados y con una sola autoridad~~ — núcleo
+    técnico cerrado el 2026-08-29; operación externa todavía pendiente. Había
+    dos productos paralelos: el simple guardaba URL/secret en `settings` y el
+    avanzado devolvía `secret_value` con `select('*')`; además, “Probar” hacía
+    el POST desde el navegador y el backend firmaba con el `org_id` predecible
+    cuando faltaba clave. Producción tenía 0 configs, 0 entregas y 0 secrets.
+    `20260828000220` deja una sola suscripción por eventos reales, genera un
+    secret aleatorio por endpoint en `webhook_signing_secrets` (RLS, 0 policies,
+    0 grants cliente), lo muestra sólo al crear/rotar y retira seis columnas
+    heredadas de `settings/webhook_configs`. Config, rotación y baja pasan por
+    RPC owner/admin; historial queda read-only para miembros. Las entregas usan
+    HTTPS, no siguen redirects, bloquean destinos locales obvios, firman
+    `timestamp.payload` con HMAC-SHA256, incluyen versión `2026-08-29`, delivery
+    id, timeout, backoff y log correlacionado. POS manda sólo ids y el servidor
+    relee venta/dinero/cliente antes de firmar; las dos funciones de
+    automatización comparten el mismo transporte. La auditoría encontró además
+    **dos crons activos sobre la misma tabla**, a las 05:00 y 08:00 AR: una regla
+    podía actuar dos veces. `execute-automations` queda como única autoridad a
+    las 08:00; su rama humana exige `org_id` + `marketing.edit` y ya no puede
+    ejecutar flujos de otro tenant. La UI eliminó el formulario
+    duplicado y 16 eventos fantasma, agregó secreto one-time, rotación, prueba,
+    health, latencia, historial y retry. Verificación real: owner creó/leyó,
+    no leyó secret ni escribió tablas, rotó y borró; 0 restos/huérfanos. Tres
+    Edge activas, un solo cron y libro 487/487. El patrón sigue
+    [GitHub HMAC-SHA256](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries),
+    [timestamp anti-replay de Stripe](https://docs.stripe.com/webhooks?lang=node)
+    y [SSRF de OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html),
+    consultados el 2026-08-29. **P1-14 queda parcial:** falta receptor externo
+    real, documentación pública del contrato y outbox transaccional para que
+    cerrar el POS antes de invocar la Edge no pueda perder el evento.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2163,7 +2193,7 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **1.961 tests en 188 archivos**,
+- Build y suites locales del 2026-08-29: **1.967 tests en 189 archivos**,
   typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 70
   funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
   panel y 1 setup autenticado—; el de Gastos es de sólo lectura.

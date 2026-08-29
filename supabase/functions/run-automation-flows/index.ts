@@ -11,6 +11,7 @@ import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
+import { deliverOutboundEvent } from "../_shared/outboundWebhook.ts";
 
 import { exigirCron } from "../_shared/cronAuth.ts";
 const supabase = createClient(
@@ -556,32 +557,16 @@ async function actionWebhook(
   subjects: Subject[],
   _config: any,
 ): Promise<number> {
-  const { data: settings } = await supabase
-    .from("settings")
-    .select("webhook_url, webhook_enabled")
-    .eq("org_id", orgId)
-    .maybeSingle();
-
-  if (!settings?.webhook_enabled || !settings?.webhook_url) return 0;
-
-  const payload = {
-    event: `automation.${triggerType}`,
-    org_id: orgId,
-    timestamp: new Date().toISOString(),
-    data: { trigger: triggerType, count: subjects.length, subjects: subjects.slice(0, 50) },
-  };
-
-  try {
-    const res = await fetch(settings.webhook_url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Gestiona-Event": `automation.${triggerType}` },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(10_000),
-    });
-    return res.ok ? 1 : 0;
-  } catch {
-    return 0;
-  }
+  const deliveries = await deliverOutboundEvent(supabase, {
+    orgId,
+    event: "automation.triggered",
+    data: {
+      trigger_type: triggerType,
+      subject_count: subjects.length,
+      subjects: subjects.slice(0, 50),
+    },
+  });
+  return deliveries.filter((delivery) => delivery.delivered).length;
 }
 
 // ─────────────────────────────────────────────────────────────

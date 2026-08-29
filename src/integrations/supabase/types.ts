@@ -35097,10 +35097,6 @@ export type Database = {
           user_id: string
           volume_discount_percent: number | null
           volume_discount_threshold: number | null
-          webhook_enabled: boolean | null
-          webhook_events: string[] | null
-          webhook_secret: string | null
-          webhook_url: string | null
           whatsapp_birthday_enabled: boolean
           whatsapp_digest_enabled: boolean
           whatsapp_number: string | null
@@ -35185,10 +35181,6 @@ export type Database = {
           user_id: string
           volume_discount_percent?: number | null
           volume_discount_threshold?: number | null
-          webhook_enabled?: boolean | null
-          webhook_events?: string[] | null
-          webhook_secret?: string | null
-          webhook_url?: string | null
           whatsapp_birthday_enabled?: boolean
           whatsapp_digest_enabled?: boolean
           whatsapp_number?: string | null
@@ -35273,10 +35265,6 @@ export type Database = {
           user_id?: string
           volume_discount_percent?: number | null
           volume_discount_threshold?: number | null
-          webhook_enabled?: boolean | null
-          webhook_events?: string[] | null
-          webhook_secret?: string | null
-          webhook_url?: string | null
           whatsapp_birthday_enabled?: boolean
           whatsapp_digest_enabled?: boolean
           whatsapp_number?: string | null
@@ -41210,8 +41198,6 @@ export type Database = {
           name: string
           org_id: string
           retry_on_fail: boolean
-          secret_header: string | null
-          secret_value: string | null
           success_count: number
           timeout_seconds: number
           updated_at: string
@@ -41228,8 +41214,6 @@ export type Database = {
           name: string
           org_id: string
           retry_on_fail?: boolean
-          secret_header?: string | null
-          secret_value?: string | null
           success_count?: number
           timeout_seconds?: number
           updated_at?: string
@@ -41246,8 +41230,6 @@ export type Database = {
           name?: string
           org_id?: string
           retry_on_fail?: boolean
-          secret_header?: string | null
-          secret_value?: string | null
           success_count?: number
           timeout_seconds?: number
           updated_at?: string
@@ -41339,12 +41321,14 @@ export type Database = {
           created_at: string
           delivered: boolean
           delivered_at: string | null
+          duration_ms: number | null
           event: string
           id: string
           last_response_body: string | null
           last_response_status: number | null
           org_id: string
           payload: Json
+          webhook_id: string | null
           webhook_url: string
         }
         Insert: {
@@ -41352,12 +41336,14 @@ export type Database = {
           created_at?: string
           delivered?: boolean
           delivered_at?: string | null
+          duration_ms?: number | null
           event: string
           id?: string
           last_response_body?: string | null
           last_response_status?: number | null
           org_id: string
           payload?: Json
+          webhook_id?: string | null
           webhook_url: string
         }
         Update: {
@@ -41365,15 +41351,24 @@ export type Database = {
           created_at?: string
           delivered?: boolean
           delivered_at?: string | null
+          duration_ms?: number | null
           event?: string
           id?: string
           last_response_body?: string | null
           last_response_status?: number | null
           org_id?: string
           payload?: Json
+          webhook_id?: string | null
           webhook_url?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_configs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "webhook_deliveries_org_id_fkey"
             columns: ["org_id"]
@@ -41450,6 +41445,48 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      webhook_signing_secrets: {
+        Row: {
+          created_at: string
+          org_id: string
+          rotated_at: string
+          rotated_by: string | null
+          secret: string
+          webhook_id: string
+        }
+        Insert: {
+          created_at?: string
+          org_id: string
+          rotated_at?: string
+          rotated_by?: string | null
+          secret: string
+          webhook_id: string
+        }
+        Update: {
+          created_at?: string
+          org_id?: string
+          rotated_at?: string
+          rotated_by?: string | null
+          secret?: string
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_signing_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_signing_secrets_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: true
+            referencedRelation: "webhook_configs"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -52372,6 +52409,28 @@ export type Database = {
           p_org: string
         }
         Returns: Json
+      }
+      webhook_config_eliminar: {
+        Args: { p_org_id: string; p_webhook_id: string }
+        Returns: boolean
+      }
+      webhook_config_guardar: {
+        Args: {
+          p_active?: boolean
+          p_event_types: string[]
+          p_max_retries?: number
+          p_name: string
+          p_org_id: string
+          p_retry_on_fail?: boolean
+          p_timeout_seconds?: number
+          p_url: string
+          p_webhook_id: string | null
+        }
+        Returns: Json
+      }
+      webhook_secret_rotar: {
+        Args: { p_org_id: string; p_webhook_id: string }
+        Returns: string
       }
       z_nivel_servicio: { Args: { p_nivel: number }; Returns: number }
     }

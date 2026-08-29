@@ -102,16 +102,13 @@ export const SNAPSHOT_TABLES = [
 export const EXCLUDED_CREDENTIAL_STORES = [
   "afip_credentials", "payment_connections", "meli_connections", "api_keys", "org_api_keys",
   "evolution_connections", "oauth_states", "portal_sessions", "push_subscriptions", "webhook_configs",
-  "merchant_smtp_connections",
+  "merchant_smtp_connections", "webhook_signing_secrets",
 ] as const;
 
-const SECRET_SETTINGS_COLUMNS = new Set([
-  "webhook_secret",
-]);
+const SECRET_SETTINGS_COLUMNS = new Set<string>();
 
-// `settings` concentra configuración útil y secretos históricos en la misma
-// fila. La selección es positiva para que una columna secreta futura no se
-// filtre por accidente antes de que alguien actualice este contrato.
+// `settings` ya no conserva secretos, pero la selección sigue siendo positiva:
+// una columna futura no entra a un export hasta revisar su contrato.
 export const SETTINGS_SNAPSHOT_COLUMNS = [
   "id", "user_id", "org_id", "created_at", "updated_at", "business_name", "logo_url",
   "primary_color", "secondary_color", "industry_code", "exchange_rate", "customs_percent",

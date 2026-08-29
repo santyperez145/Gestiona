@@ -4,24 +4,21 @@ import { useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import MercadoLibrePanel from "@/components/integrations/MercadoLibrePanel";
 import PaymentConnectionsPanel from "@/components/integrations/PaymentConnectionsPanel";
-import { useAuth } from "@/lib/auth";
 import TiendanubeExcelImport from "@/components/integrations/TiendanubeExcelImport";
 import PlatformServicesPanel from "@/components/integrations/PlatformServicesPanel";
+import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   ShoppingBag, RefreshCw, Unplug, CheckCircle2, AlertCircle,
-  ExternalLink, Package, ShoppingCart, Loader2, Link2, Zap,
-  Eye, EyeOff, Save, Webhook, KeyRound, Copy, RotateCcw,
-  History, XCircle, Clock, Activity, WifiOff, ShieldCheck,
-  AlertTriangle, Send, MessageCircle, QrCode as QrCodeIcon,
-  Code2,
+  ExternalLink, Package, ShoppingCart, Loader2, Link2,
+  Save, Webhook, KeyRound,
+  XCircle, Activity, WifiOff, ShieldCheck,
+  MessageCircle, QrCode as QrCodeIcon,
   FileSpreadsheet,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
@@ -65,33 +62,8 @@ function fmtDate(d: string | null) {
 export default function IntegrationsPage() {
   usePageTitle("Integraciones & API");
   const { activeOrg } = useOrg();
-  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") || "conexiones";
-
-  // Mercado Pago settings
-  const [mpLoaded, setMpLoaded] = useState(false);
-
-  // MercadoLibre marketplace
-  const [mlUserId, setMlUserId] = useState("");
-
-
-  // API key
-
-  // Outbound webhooks
-  const [webhookUrl, setWebhookUrl] = useState("");
-  const [webhookEnabled, setWebhookEnabled] = useState(false);
-  const [webhookEvents, setWebhookEvents] = useState<string[]>(["sale.created", "stock.low", "debt.overdue"]);
-  const [webhookSecret, setWebhookSecret] = useState("");
-  const [webhookSecretVisible, setWebhookSecretVisible] = useState(false);
-  const [savingWebhook, setSavingWebhook] = useState(false);
-  const [testingWebhook, setTestingWebhook] = useState(false);
-
-  // Webhook delivery history + dead-letter queue
-  const [deliveries, setDeliveries] = useState<any[]>([]);
-  const [loadingDeliveries, setLoadingDeliveries] = useState(false);
-  const [showDeliveries, setShowDeliveries] = useState(false);
-  const [retryingDelivery, setRetryingDelivery] = useState<string | null>(null);
 
   // Integration health
   const [healthMap, setHealthMap] = useState<Record<string, IntegrationHealth>>({});
@@ -212,102 +184,13 @@ export default function IntegrationsPage() {
             () => setMpConectado(false));
   }, [activeOrg]);
 
-  const loadMpSettings = async () => {
-    if (!activeOrg) return;
-    const { data } = await supabase
-      .from("settings")
-      .select("webhook_url, webhook_enabled, webhook_events, webhook_secret, ml_user_id")
-      .eq("org_id", activeOrg.id)
-      .maybeSingle();
-    if (data) {
-      setWebhookUrl(data.webhook_url || "");
-      setWebhookEnabled(!!data.webhook_enabled);
-      setWebhookSecret(data.webhook_secret || "");
-      if (data.webhook_events) setWebhookEvents(data.webhook_events as string[]);
-      setMlUserId(data.ml_user_id || "");
-    }
-    setMpLoaded(true);
-  };
-
   // La generación de la key EN EL NAVEGADOR se eliminó el 2026-08-24: escribía
   // settings.api_key en texto plano — una tabla que todo miembro lee por RLS —
   // y era uno de tres sistemas de keys desconectados. La emisión vive en el
   // servidor (api_key_emitir) y la maneja el panel de API keys de abajo.
 
-  const handleSaveWebhook = async () => {
-    if (!activeOrg) return;
-    if (webhookEnabled && !webhookUrl.startsWith("http")) { toast.error("Ingresá una URL válida (http/https)"); return; }
-    setSavingWebhook(true);
-    const { error } = await supabase.from("settings").upsert({
-      org_id: activeOrg.id,
-      user_id: user!.id,
-      webhook_url: webhookUrl.trim() || null,
-      webhook_enabled: webhookEnabled,
-      webhook_events: webhookEvents,
-      webhook_secret: webhookSecret.trim() || null,
-    }, { onConflict: "org_id" });
-    setSavingWebhook(false);
-    if (error) toast.error("Error al guardar webhook");
-    else toast.success("Webhook guardado");
-  };
-
-  const handleGenerateWebhookSecret = () => {
-    const secret = "whsec_" + Array.from(crypto.getRandomValues(new Uint8Array(20)))
-      .map(b => b.toString(16).padStart(2, "0")).join("");
-    setWebhookSecret(secret);
-    setWebhookSecretVisible(true);
-  };
-
-  const loadDeliveries = async () => {
-    if (!activeOrg) return;
-    setLoadingDeliveries(true);
-    try {
-      const { data, error } = await supabase
-        .from("webhook_deliveries")
-        .select("*")
-        .eq("org_id", activeOrg.id)
-        .order("created_at", { ascending: false })
-        .limit(30);
-      if (!error) setDeliveries(data || []);
-    } catch {
-      // table may not exist yet — silent fail, empty list
-    }
-    setLoadingDeliveries(false);
-  };
-
-  const handleRetryDelivery = async (d: any) => {
-    setRetryingDelivery(d.id);
-    try {
-      const { error } = await supabase.functions.invoke("send-webhook", {
-        body: { event: d.event, data: d.payload?.data ?? d.payload ?? {} },
-      });
-      if (error) throw error;
-      toast.success("Reenvío solicitado — revisá el historial en un momento");
-      setTimeout(loadDeliveries, 2000); // refresh after edge fn processes
-    } catch {
-      toast.error("Error al reintentar el envío");
-    }
-    setRetryingDelivery(null);
-  };
-
-  const handleTestWebhook = async () => {
-    if (!webhookUrl.startsWith("http")) { toast.error("Configurá la URL primero"); return; }
-    setTestingWebhook(true);
-    try {
-      const { error } = await supabase.functions.invoke("send-webhook", {
-        body: { event: "test.ping", data: { message: "Webhook de prueba desde Gestiona", timestamp: new Date().toISOString() } },
-      });
-      if (error) throw error;
-      toast.success("Webhook de prueba enviado — revisá tu endpoint");
-    } catch { toast.error("Error al enviar prueba"); }
-    finally { setTestingWebhook(false); }
-  };
-
-
   useEffect(() => {
-    loadMpSettings();
     loadHealth();
-    loadDeliveries(); // load on mount so failed count badge shows immediately
   }, [activeOrg]);
 
   // Realtime: re-load health whenever a new integration_log is inserted
@@ -521,205 +404,10 @@ export default function IntegrationsPage() {
         </TabsContent>
 
         {/* ── WEBHOOKS TAB ─────────────────────────────────────────── */}
-        <TabsContent value="webhooks" className="space-y-6 mt-4">
-      {/* Outbound Webhooks */}
-      <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-purple-500/10">
-            <Webhook className="w-5 h-5 text-purple-400" />
+        <TabsContent value="webhooks" className="mt-4">
+          <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+            <AdvancedWebhooksPanel />
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold">Webhooks salientes</h3>
-              {deliveries.filter(d => !d.delivered).length > 0 && (
-                <Badge className="text-[10px] h-4 px-1.5 bg-red-500/15 text-red-400 border-red-500/20">
-                  {deliveries.filter(d => !d.delivered).length} fallidos
-                </Badge>
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground">Notificá Zapier, N8N o Make.com en tiempo real</p>
-          </div>
-        </div>
-
-        {/* Dead-letter queue alert */}
-        {deliveries.filter(d => !d.delivered).length > 0 && (
-          <div className="flex items-start gap-3 p-3 rounded-lg bg-red-500/5 border border-red-500/20">
-            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-red-400">
-                {deliveries.filter(d => !d.delivered).length} entrega{deliveries.filter(d => !d.delivered).length !== 1 ? "s" : ""} fallida{deliveries.filter(d => !d.delivered).length !== 1 ? "s" : ""}
-              </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Verificá que tu endpoint responda con HTTP 2xx. Podés reintentar individualmente desde el historial.
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
-              onClick={() => {
-                setShowDeliveries(true);
-                if (!deliveries.length) loadDeliveries();
-              }}
-            >
-              Ver historial
-            </Button>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium">Activar webhooks</p>
-            <p className="text-xs text-muted-foreground">Envía eventos a tu URL cuando ocurren acciones en Gestiona</p>
-          </div>
-          <Switch checked={webhookEnabled} onCheckedChange={setWebhookEnabled} />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">URL del endpoint</label>
-          <Input
-            value={webhookUrl}
-            onChange={e => setWebhookUrl(e.target.value)}
-            placeholder="https://hooks.zapier.com/hooks/catch/..."
-            className="bg-muted border-border font-mono text-xs"
-          />
-        </div>
-
-        <div className="space-y-2 pb-12">
-          <label className="text-xs font-medium text-muted-foreground">Eventos a enviar</label>
-          <div className="flex flex-wrap gap-2">
-            {["sale.created", "stock.low", "debt.overdue"].map(ev => (
-              <button
-                key={ev}
-                type="button"
-                onClick={() => setWebhookEvents(prev =>
-                  prev.includes(ev) ? prev.filter(e => e !== ev) : [...prev, ev]
-                )}
-                className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
-                  webhookEvents.includes(ev)
-                    ? "bg-primary/20 text-primary border-primary/30"
-                    : "bg-muted text-muted-foreground border-border"
-                }`}
-              >
-                {ev}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Payload: <code className="text-[10px]">event, org_id, timestamp, delivery_id, data</code>
-            {" · "}Firma: <code className="text-[10px]">X-Gestiona-Signature: sha256=...</code>
-          </p>
-        </div>
-
-        {/* Webhook secret for HMAC verification */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Secret para verificar firma (HMAC-SHA256)</label>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Input
-                type={webhookSecretVisible ? "text" : "password"}
-                value={webhookSecret}
-                onChange={e => setWebhookSecret(e.target.value)}
-                placeholder="whsec_... (opcional, se usa org_id si está vacío)"
-                className="bg-muted border-border pr-10 font-mono text-xs"
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                onClick={() => setWebhookSecretVisible(v => !v)}
-              >
-                {webhookSecretVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            <Button variant="outline" size="sm" className="shrink-0" onClick={handleGenerateWebhookSecret}>
-              <RotateCcw className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-          <p className="text-[10px] text-muted-foreground">
-            Verificá la firma en tu endpoint: <code>hmac_sha256(secret, request_body) === header['x-gestiona-signature'].replace('sha256=','')</code>
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleTestWebhook} disabled={testingWebhook || !webhookUrl}>
-            {testingWebhook ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Zap className="w-3.5 h-3.5 mr-1" />}
-            Enviar prueba
-          </Button>
-          <Button size="sm" onClick={handleSaveWebhook} disabled={savingWebhook} className="flex-1">
-            {savingWebhook ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Save className="w-3.5 h-3.5 mr-1" />}
-            Guardar
-          </Button>
-        </div>
-
-        {/* Webhook delivery history */}
-        <div className="border-t border-border pt-3">
-          <button
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => {
-              const next = !showDeliveries;
-              setShowDeliveries(next);
-              if (next && deliveries.length === 0) loadDeliveries();
-            }}
-          >
-            <History className="w-3.5 h-3.5" />
-            {showDeliveries ? "Ocultar historial" : "Ver historial de entregas"}
-            {deliveries.length > 0 && ` (${deliveries.length})`}
-            {loadingDeliveries && <Loader2 className="w-3 h-3 animate-spin" />}
-          </button>
-
-          {showDeliveries && (
-            <div className="mt-3 space-y-1.5 max-h-64 overflow-y-auto">
-              {deliveries.length === 0 && !loadingDeliveries && (
-                <p className="text-xs text-muted-foreground text-center py-4">Sin entregas registradas aún</p>
-              )}
-              {deliveries.map(d => (
-                <div key={d.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${
-                  d.delivered
-                    ? "bg-green-500/5 border-green-500/20"
-                    : "bg-red-500/5 border-red-500/20"
-                }`}>
-                  {d.delivered
-                    ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                    : <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />}
-                  <span className="font-mono text-muted-foreground shrink-0">{d.event}</span>
-                  <span className="flex-1 text-muted-foreground/60 text-[10px] truncate">
-                    {d.last_response_status ? `HTTP ${d.last_response_status}` : "Sin respuesta"}
-                    {d.attempt_count > 1 && ` (${d.attempt_count} intentos)`}
-                  </span>
-                  <span className="text-muted-foreground/50 shrink-0 hidden sm:inline">
-                    {new Date(d.created_at).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}
-                  </span>
-                  {!d.delivered && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-1.5 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10 shrink-0"
-                      onClick={() => handleRetryDelivery(d)}
-                      disabled={retryingDelivery === d.id}
-                      title="Reintentar envío"
-                    >
-                      {retryingDelivery === d.id
-                        ? <Loader2 className="w-3 h-3 animate-spin" />
-                        : <Send className="w-3 h-3" />}
-                    </Button>
-                  )}
-                </div>
-              ))}
-              {deliveries.length > 0 && (
-                <Button variant="ghost" size="sm" className="w-full h-7 text-xs" onClick={loadDeliveries} disabled={loadingDeliveries}>
-                  <RefreshCw className={`w-3 h-3 mr-1 ${loadingDeliveries ? "animate-spin" : ""}`} />
-                  Recargar
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Advanced per-event webhooks */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <AdvancedWebhooksPanel />
-      </div>
         </TabsContent>
       </Tabs>
     </div>

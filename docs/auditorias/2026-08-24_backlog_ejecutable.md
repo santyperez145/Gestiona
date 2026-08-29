@@ -999,6 +999,11 @@ authenticated ausente, service role operativo para consumo de IA,
 ## P1-14 — Outgoing webhooks
 
 **Owner:** Platform API  
+**Estado:** parcial 2026-08-29. Suscripciones, filtro de eventos emitidos,
+secret one-time privado, HMAC-SHA256 con timestamp, versión, retry/backoff, log
+y retry manual están en producción. Falta probar un receptor externo, publicar
+el contrato y mover `sale.created` a outbox transaccional para no depender del
+último request del navegador.
 **Aceptación**
 
 - Subscriptions.

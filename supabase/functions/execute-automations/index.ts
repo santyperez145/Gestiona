@@ -22,8 +22,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
+import { deliverOutboundEvent } from "../_shared/outboundWebhook.ts";
 
-import { exigirCronOUsuario } from "../_shared/cronAuth.ts";
+import { esLlamadaDeCron, exigirCronOUsuario } from "../_shared/cronAuth.ts";
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -31,21 +32,58 @@ const supabase = createClient(
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const FROM_EMAIL = Deno.env.get("FROM_EMAIL") ?? "noreply@gestiona.app";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+
+function json(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*" } });
+    return new Response("ok", { headers: corsHeaders });
   }
 
-
   // Sólo el cron de la base o una persona con sesión real.
-  const noEsCron = await exigirCronOUsuario(req, { "Access-Control-Allow-Origin": "*" });
+  const vieneDelCron = esLlamadaDeCron(req);
+  const noEsCron = await exigirCronOUsuario(req, corsHeaders);
   if (noEsCron) return noEsCron;
 
   // Optionally target a single org/flow (for "Run now" from UI)
   const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
   const targetOrgId: string | undefined = body.org_id;
   const targetFlowId: string | undefined = body.flow_id;
+
+  // La rama cron recorre todas las organizaciones. La rama humana nunca: debe
+  // declarar tenant y tener permiso de edición de Marketing. Antes, cualquier
+  // usuario con sesión podía mandar el org_id de otro comercio y ejecutar sus
+  // automatizaciones porque la consulta posterior usa service_role.
+  if (!vieneDelCron) {
+    if (!targetOrgId || !UUID.test(targetOrgId)) {
+      return json({ error: "La organización es obligatoria" }, 400);
+    }
+    const authClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: req.headers.get("Authorization") || "" } } },
+    );
+    const { data: allowed, error: permissionError } = await authClient.rpc("has_permission", {
+      p_org_id: targetOrgId,
+      p_module: "marketing",
+      p_action: "edit",
+    });
+    if (permissionError) {
+      console.error("execute-automations permission:", permissionError);
+      return json({ error: "No se pudo verificar el permiso" }, 500);
+    }
+    if (!allowed) return json({ error: "No tenés permiso para ejecutar automatizaciones" }, 403);
+  }
 
   try {
     // Load active flows
@@ -309,23 +347,25 @@ Deno.serve(async (req) => {
               }
             }
 
-          } else if (flow.action_type === "webhook" && ac.webhook_url) {
-            try {
-              await fetch(ac.webhook_url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  flow_id: flow.id,
-                  flow_name: flow.name,
-                  trigger: flow.trigger_type,
-                  entities: matchedEntities.slice(0, 20),
-                  fired_at: now.toISOString(),
-                }),
-              });
-              actionsTaken = 1;
-            } catch (webhookErr: any) {
+          } else if (flow.action_type === "webhook") {
+            const deliveries = await deliverOutboundEvent(supabase, {
+              orgId,
+              event: "automation.triggered",
+              data: {
+                flow_id: flow.id,
+                flow_name: flow.name,
+                trigger_type: flow.trigger_type,
+                entity_count: matchedEntities.length,
+                entities: matchedEntities.slice(0, 50),
+              },
+            });
+            actionsTaken = deliveries.filter((delivery) => delivery.delivered).length;
+            if (deliveries.length === 0) {
+              status = "skipped";
+              errorMessage = "No hay un webhook activo suscripto a automatizaciones";
+            } else if (actionsTaken !== deliveries.length) {
               status = "error";
-              errorMessage = webhookErr.message;
+              errorMessage = "Uno o más endpoints no confirmaron la entrega";
             }
           }
         }
@@ -357,12 +397,9 @@ Deno.serve(async (req) => {
       totalRuns++;
     }
 
-    return new Response(
-      JSON.stringify({ ok: true, flows_processed: totalRuns }),
-      { headers: { "Content-Type": "application/json" } }
-    );
+    return json({ ok: true, flows_processed: totalRuns });
   } catch (err: any) {
     console.error("execute-automations error:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    return json({ error: err.message }, 500);
   }
 });

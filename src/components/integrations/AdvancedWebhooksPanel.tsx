@@ -1,10 +1,9 @@
 /**
  * AdvancedWebhooksPanel — multi-event outbound webhooks with delivery log.
  *
- * Ported from the former standalone WebhooksPage (`/webhooks`, now redirected
- * to `/integraciones?tab=webhooks`). Uses the `webhook_configs` table — a
- * richer, event-catalog-driven system than the single simple webhook stored
- * on `settings` (also available on this page, in "Webhook simple").
+ * Es la única superficie de webhooks de la organización. La configuración se
+ * guarda mediante RPCs; el secret se genera en servidor, se muestra una vez y
+ * nunca vuelve en las lecturas normales.
  */
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,75 +12,29 @@ import { useUserRole } from "@/lib/useUserRole";
 import { toast } from "sonner";
 import {
   Webhook, Plus, Save, Trash2, Edit2, CheckCircle, XCircle,
-  RefreshCw, Play, ChevronDown, ChevronUp, Shield, BarChart3, Info, Loader2, Link, Clock,
+  RefreshCw, Play, ChevronDown, ChevronUp, Shield, BarChart3, Info, Loader2, Link,
+  Copy, RotateCcw, Send,
 } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { format, formatDistanceToNow } from "date-fns";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
 // ── Available events ─────────────────────────────────────────────────────────
 const EVENTS = [
   { group: 'Ventas', events: [
     { key: 'sale.created', label: 'Nueva venta' },
-    { key: 'sale.refunded', label: 'Venta devuelta' },
-    { key: 'invoice.generated', label: 'Factura generada' },
   ]},
-  { group: 'Clientes', events: [
-    { key: 'customer.created', label: 'Cliente creado' },
-    { key: 'customer.updated', label: 'Cliente actualizado' },
-    { key: 'customer.churn_risk', label: 'Riesgo de churn detectado' },
-  ]},
-  { group: 'Pipeline CRM', events: [
-    { key: 'deal.created', label: 'Deal creado' },
-    { key: 'deal.stage_changed', label: 'Deal cambió de etapa' },
-    { key: 'deal.won', label: 'Deal ganado' },
-    { key: 'deal.lost', label: 'Deal perdido' },
-  ]},
-  { group: 'Soporte', events: [
-    { key: 'ticket.created', label: 'Ticket creado' },
-    { key: 'ticket.sla_breach', label: 'SLA vencido' },
-    { key: 'ticket.resolved', label: 'Ticket resuelto' },
-  ]},
-  { group: 'Inventario', events: [
-    { key: 'stock.low', label: 'Stock bajo' },
-    { key: 'stock.depleted', label: 'Sin stock' },
-    { key: 'transfer.completed', label: 'Transferencia completada' },
-  ]},
-  { group: 'Pagos', events: [
-    { key: 'payment.received', label: 'Pago recibido' },
-    { key: 'debt.overdue', label: 'Deuda vencida' },
-    { key: 'installment.due', label: 'Cuota vence hoy' },
+  { group: 'Automatizaciones', events: [
+    { key: 'automation.triggered', label: 'Automatización ejecutada' },
   ]},
 ];
 
 const ALL_EVENTS = EVENTS.flatMap(g => g.events);
-
-const SAMPLE_PAYLOADS: Record<string, object> = {
-  'sale.created': {
-    event: 'sale.created', timestamp: new Date().toISOString(),
-    data: { id: 'sale_abc123', total_ars: 15000, customer: 'Juan García', items: 3, seller: 'María López' }
-  },
-  'customer.created': {
-    event: 'customer.created', timestamp: new Date().toISOString(),
-    data: { id: 'cust_xyz456', name: 'Carlos Rodríguez', email: 'carlos@example.com', phone: '+54 9 11 1234-5678' }
-  },
-  'deal.won': {
-    event: 'deal.won', timestamp: new Date().toISOString(),
-    data: { id: 'deal_789', title: 'Acuerdo Marco 2026', amount: 250000, customer: 'Empresa ABC', reason: 'Precio competitivo' }
-  },
-  'ticket.created': {
-    event: 'ticket.created', timestamp: new Date().toISOString(),
-    data: { id: 'SP-20260523-0042', title: 'Error en facturación', priority: 'high', customer: 'Pedro Gómez' }
-  },
-  'stock.low': {
-    event: 'stock.low', timestamp: new Date().toISOString(),
-    data: { product_id: 'prod_001', name: 'Perfume X', stock: 3, threshold: 5 }
-  },
-};
 
 interface WebhookConfig {
   id: string;
@@ -89,14 +42,12 @@ interface WebhookConfig {
   url: string;
   event_types: string[];
   active: boolean;
-  secret_header: string | null;
-  secret_value: string | null;
   retry_on_fail: boolean;
   max_retries: number;
   timeout_seconds: number;
-  last_triggered_at: string | null;
-  total_deliveries: number;
+  last_fired_at: string | null;
   success_count: number;
+  failure_count: number;
   created_at: string;
 }
 
@@ -109,14 +60,14 @@ interface Delivery {
   status: 'success' | 'failed';
   http_status: number | null;
   attempt: number;
+  duration_ms: number | null;
   delivered_at: string | null;
   created_at: string;
 }
 
 const emptyForm = () => ({
   name: '', url: 'https://', event_types: [] as string[],
-  active: true, secret_header: '', secret_value: '',
-  retry_on_fail: true, max_retries: '3', timeout_seconds: '10',
+  active: true, retry_on_fail: true, max_retries: '2', timeout_seconds: '10',
 });
 
 export default function AdvancedWebhooksPanel() {
@@ -131,7 +82,8 @@ export default function AdvancedWebhooksPanel() {
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
-  const [testEvent, setTestEvent] = useState('sale.created');
+  const [retrying, setRetrying] = useState<string | null>(null);
+  const [revealedSecret, setRevealedSecret] = useState("");
 
   const load = async () => {
     if (!activeOrg?.id) return;
@@ -139,29 +91,32 @@ export default function AdvancedWebhooksPanel() {
     try {
       const { data, error } = await supabase
         .from("webhook_configs")
-        .select("*")
+        .select("id, name, url, event_types, active, retry_on_fail, max_retries, timeout_seconds, last_fired_at, success_count, failure_count, created_at")
         .eq("org_id", activeOrg.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       setWebhooks((data ?? []) as unknown as WebhookConfig[]);
     } catch (e: any) {
+      console.error("webhooks: no se pudieron cargar las configuraciones", e);
       toast.error("Error: " + e.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadDeliveries = async (webhookId: string) => {
-    if (deliveries[webhookId]) return;
-    // `webhook_deliveries` no referencia el config: se correlaciona por URL.
-    const url = webhooks.find(w => w.id === webhookId)?.url;
-    if (!url) return;
-    const { data } = await supabase
+  const loadDeliveries = async (webhookId: string, force = false) => {
+    if (!force && deliveries[webhookId]) return;
+    const { data, error } = await supabase
       .from("webhook_deliveries")
-      .select("id, event, delivered, last_response_status, attempt_count, delivered_at, created_at")
-      .eq("webhook_url", url)
+      .select("id, event, delivered, last_response_status, attempt_count, duration_ms, delivered_at, created_at")
+      .eq("webhook_id", webhookId)
       .order("created_at", { ascending: false })
       .limit(20);
+    if (error) {
+      console.error("webhooks: no se pudo cargar el historial", error);
+      toast.error("No se pudo cargar el historial de entregas");
+      return;
+    }
     if (data) {
       setDeliveries(prev => ({
         ...prev,
@@ -171,6 +126,7 @@ export default function AdvancedWebhooksPanel() {
           status: d.delivered ? 'success' : 'failed',
           http_status: d.last_response_status,
           attempt: d.attempt_count,
+          duration_ms: d.duration_ms,
           delivered_at: d.delivered_at,
           created_at: d.created_at,
         })),
@@ -187,8 +143,6 @@ export default function AdvancedWebhooksPanel() {
       name: w.name, url: w.url,
       event_types: w.event_types,
       active: w.active,
-      secret_header: w.secret_header ?? '',
-      secret_value: w.secret_value ?? '',
       retry_on_fail: w.retry_on_fail,
       max_retries: w.max_retries.toString(),
       timeout_seconds: w.timeout_seconds.toString(),
@@ -198,33 +152,27 @@ export default function AdvancedWebhooksPanel() {
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error("El nombre es obligatorio"); return; }
-    if (!form.url.startsWith('http')) { toast.error("La URL debe comenzar con http:// o https://"); return; }
+    if (!form.url.startsWith('https://')) { toast.error("La URL debe comenzar con https://"); return; }
     if (form.event_types.length === 0) { toast.error("Seleccioná al menos un evento"); return; }
     if (!activeOrg?.id) return;
     setSaving(true);
     try {
-      const payload = {
-        name: form.name.trim(),
-        url: form.url.trim(),
-        event_types: form.event_types,
-        active: form.active,
-        secret_header: form.secret_header.trim() || null,
-        secret_value: form.secret_value.trim() || null,
-        retry_on_fail: form.retry_on_fail,
-        max_retries: parseInt(form.max_retries) || 3,
-        timeout_seconds: parseInt(form.timeout_seconds) || 10,
-      };
-      if (editing) {
-        const { error } = await supabase.from("webhook_configs").update(payload).eq("id", editing.id);
-        if (error) throw error;
-        toast.success("Webhook actualizado");
-      } else {
-        const { error } = await supabase.from("webhook_configs").insert({ ...payload, org_id: activeOrg.id });
-        if (error) throw error;
-        toast.success("Webhook creado");
-      }
+      const { data, error } = await supabase.rpc("webhook_config_guardar" as never, {
+        p_org_id: activeOrg.id,
+        p_webhook_id: editing?.id ?? null,
+        p_name: form.name.trim(),
+        p_url: form.url.trim(),
+        p_event_types: form.event_types,
+        p_active: form.active,
+        p_retry_on_fail: form.retry_on_fail,
+        p_max_retries: Number(form.max_retries),
+        p_timeout_seconds: Number(form.timeout_seconds),
+      } as never) as { data: { signing_secret?: string | null } | null; error: { message: string } | null };
+      if (error) throw error;
+      toast.success(editing ? "Webhook actualizado" : "Webhook creado y firmado");
       setShowForm(false);
-      load();
+      if (data?.signing_secret) setRevealedSecret(data.signing_secret);
+      await load();
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -233,66 +181,82 @@ export default function AdvancedWebhooksPanel() {
   };
 
   const deleteWebhook = async (id: string) => {
-    if (!confirm("¿Eliminar este webhook?")) return;
-    await supabase.from("webhook_configs").delete().eq("id", id);
-    load();
-    toast.success("Webhook eliminado");
+    if (!activeOrg?.id) return;
+    const { error } = await supabase.rpc("webhook_config_eliminar" as never, {
+      p_org_id: activeOrg.id,
+      p_webhook_id: id,
+    } as never);
+    if (error) { toast.error(error.message); return; }
+    await load();
+    toast.success("Webhook y secret eliminados");
   };
 
   const toggleActive = async (w: WebhookConfig) => {
-    await supabase.from("webhook_configs").update({ active: !w.active }).eq("id", w.id);
-    load();
+    if (!activeOrg?.id) return;
+    const { error } = await supabase.rpc("webhook_config_guardar" as never, {
+      p_org_id: activeOrg.id,
+      p_webhook_id: w.id,
+      p_name: w.name,
+      p_url: w.url,
+      p_event_types: w.event_types,
+      p_active: !w.active,
+      p_retry_on_fail: w.retry_on_fail,
+      p_max_retries: w.max_retries,
+      p_timeout_seconds: w.timeout_seconds,
+    } as never);
+    if (error) { toast.error(error.message); return; }
+    await load();
     toast.success(w.active ? "Webhook desactivado" : "Webhook activado");
   };
 
   const testWebhook = async (webhook: WebhookConfig) => {
     setTesting(webhook.id);
-    const payload = SAMPLE_PAYLOADS[testEvent] || { event: testEvent, timestamp: new Date().toISOString(), data: {} };
-    const start = Date.now();
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json', 'X-Gestiona-Event': testEvent };
-      if (webhook.secret_header && webhook.secret_value) {
-        headers[webhook.secret_header] = webhook.secret_value;
-      }
-      const res = await fetch(webhook.url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(webhook.timeout_seconds * 1000),
+      const { data, error } = await supabase.functions.invoke("send-webhook", {
+        body: { action: "test", orgId: activeOrg!.id, webhookId: webhook.id },
       });
-      const ms = Date.now() - start;
-      await supabase.from("webhook_deliveries").insert({
-        org_id: activeOrg!.id,
-        webhook_url: webhook.url,
-        event: testEvent,
-        payload: payload as any,
-        delivered: res.ok,
-        last_response_status: res.status,
-        attempt_count: 1,
-        delivered_at: res.ok ? new Date().toISOString() : null,
-      });
-      if (res.ok) {
-        toast.success(`✅ Test exitoso (${res.status}) en ${ms}ms`);
-      } else {
-        toast.error(`❌ HTTP ${res.status} en ${ms}ms`);
-      }
+      if (error) throw error;
+      const result = data?.results?.[0];
+      if (result?.delivered) toast.success(`Prueba confirmada en ${result.duration_ms} ms`);
+      else toast.error(result?.error || "El endpoint no confirmó la prueba");
       setDeliveries(prev => { const copy = { ...prev }; delete copy[webhook.id]; return copy; });
-      loadDeliveries(webhook.id);
-      load();
+      await loadDeliveries(webhook.id, true);
+      await load();
     } catch (e: any) {
-      const ms = Date.now() - start;
-      await supabase.from("webhook_deliveries").insert({
-        org_id: activeOrg!.id,
-        webhook_url: webhook.url,
-        event: testEvent,
-        payload: payload as any,
-        delivered: false,
-        attempt_count: 1,
-        last_response_body: String(e?.message ?? '').slice(0, 2000),
-      });
-      toast.error(`Error de conexión: ${e.message}`);
+      toast.error(`No se pudo completar la prueba: ${e.message}`);
     } finally {
       setTesting(null);
+    }
+  };
+
+  const rotateSecret = async (webhook: WebhookConfig) => {
+    if (!activeOrg?.id) return;
+    const { data, error } = await supabase.rpc("webhook_secret_rotar" as never, {
+      p_org_id: activeOrg.id,
+      p_webhook_id: webhook.id,
+    } as never) as { data: string | null; error: { message: string } | null };
+    if (error || !data) { toast.error(error?.message || "No se pudo rotar el secret"); return; }
+    setRevealedSecret(data);
+    toast.success("Secret rotado; el valor anterior dejó de firmar");
+  };
+
+  const retryDelivery = async (delivery: Delivery, webhookId: string) => {
+    if (!activeOrg?.id) return;
+    setRetrying(delivery.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-webhook", {
+        body: { action: "retry", orgId: activeOrg.id, deliveryId: delivery.id },
+      });
+      if (error) throw error;
+      if (data?.delivered) toast.success("Entrega confirmada");
+      else toast.error("El endpoint volvió a rechazar la entrega");
+      setDeliveries(prev => { const copy = { ...prev }; delete copy[webhookId]; return copy; });
+      await loadDeliveries(webhookId, true);
+      await load();
+    } catch (error: any) {
+      toast.error(error?.message || "No se pudo reintentar");
+    } finally {
+      setRetrying(null);
     }
   };
 
@@ -307,7 +271,7 @@ export default function AdvancedWebhooksPanel() {
 
   const kpis = useMemo(() => {
     const active = webhooks.filter(w => w.active).length;
-    const totalDeliveries = webhooks.reduce((s, w) => s + w.total_deliveries, 0);
+    const totalDeliveries = webhooks.reduce((s, w) => s + w.success_count + w.failure_count, 0);
     const totalSuccess = webhooks.reduce((s, w) => s + w.success_count, 0);
     const successRate = totalDeliveries > 0 ? Math.round((totalSuccess / totalDeliveries) * 100) : 0;
     return { active, totalDeliveries, successRate };
@@ -337,7 +301,7 @@ export default function AdvancedWebhooksPanel() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <KPICard label="Activos"          value={kpis.active}                      icon={Webhook}   color="purple" />
         <KPICard label="Entregas totales" value={kpis.totalDeliveries}             icon={BarChart3} color="blue" />
         <KPICard label="Tasa de éxito"    value={`${kpis.successRate}%`}           icon={CheckCircle} color={kpis.successRate >= 95 ? "success" : kpis.successRate >= 80 ? "warning" : "destructive"} />
@@ -346,9 +310,9 @@ export default function AdvancedWebhooksPanel() {
       <div className="flex items-start gap-3 p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/15 text-sm">
         <Info className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
         <p className="text-muted-foreground">
-          Los webhooks envían un HTTP POST a tu URL cuando ocurren eventos en Gestiona.
-          Usá Zapier (<code className="text-purple-300">zapier.com/hooks/catch</code>), Make,
-          n8n, o tu propio servidor para recibir y procesar los datos.
+          Cada endpoint recibe POST firmados con HMAC-SHA256, timestamp contra replay,
+          identificador de entrega y reintentos auditables. El secret se genera en el
+          servidor y se muestra una sola vez.
         </p>
       </div>
 
@@ -399,27 +363,21 @@ export default function AdvancedWebhooksPanel() {
               </div>
 
               <div className="space-y-2 border-t border-border/50 pt-3">
-                <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" />Seguridad (opcional)</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Nombre del header</label>
-                    <Input value={form.secret_header} onChange={e => setForm(f => ({ ...f, secret_header: e.target.value }))} className="bg-muted text-xs" placeholder="X-Gestiona-Secret" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Valor del secret</label>
-                    <Input value={form.secret_value} onChange={e => setForm(f => ({ ...f, secret_value: e.target.value }))} className="bg-muted text-xs" type="password" placeholder="tu-secret-aqui" />
-                  </div>
-                </div>
+                <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" />Firma administrada por Gestiona</p>
+                <p className="text-xs text-muted-foreground">
+                  La firma llega en <code>X-Gestiona-Signature: t=...,v1=...</code>. Validá el
+                  HMAC de <code>timestamp.cuerpo</code> y rechazá timestamps con más de 5 minutos.
+                </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Timeout (seg)</label>
-                  <Input type="number" value={form.timeout_seconds} onChange={e => setForm(f => ({ ...f, timeout_seconds: e.target.value }))} className="bg-muted" />
+                  <Input type="number" min={3} max={15} value={form.timeout_seconds} onChange={e => setForm(f => ({ ...f, timeout_seconds: e.target.value }))} className="bg-muted" />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Reintentos</label>
-                  <Input type="number" value={form.max_retries} onChange={e => setForm(f => ({ ...f, max_retries: e.target.value }))} className="bg-muted" />
+                  <Input type="number" min={0} max={3} value={form.max_retries} onChange={e => setForm(f => ({ ...f, max_retries: e.target.value }))} className="bg-muted" disabled={!form.retry_on_fail} />
                 </div>
                 <div className="flex flex-col justify-end">
                   <label className="flex items-center gap-2 cursor-pointer text-sm">
@@ -428,6 +386,10 @@ export default function AdvancedWebhooksPanel() {
                   </label>
                 </div>
               </div>
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="checkbox" checked={form.retry_on_fail} onChange={e => setForm(f => ({ ...f, retry_on_fail: e.target.checked }))} className="w-4 h-4 accent-primary" />
+                Reintentar cuando el endpoint no responda con HTTP 2xx
+              </label>
             </div>
             <SheetFooter>
               <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancelar</Button>
@@ -438,6 +400,27 @@ export default function AdvancedWebhooksPanel() {
             </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <Dialog open={!!revealedSecret} onOpenChange={(open) => { if (!open) setRevealedSecret(""); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Shield className="w-5 h-5 text-primary" />Guardá el secret ahora</DialogTitle>
+            <DialogDescription>
+              Por seguridad no se volverá a mostrar. Si se pierde, podés rotarlo y actualizar tu receptor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 font-mono text-xs break-all select-all">
+            {revealedSecret}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              void navigator.clipboard.writeText(revealedSecret);
+              toast.success("Secret copiado");
+            }}><Copy className="w-4 h-4 mr-2" />Copiar</Button>
+            <Button onClick={() => setRevealedSecret("")}>Ya lo guardé</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {loading ? (
         <div className="flex justify-center py-10">
@@ -453,8 +436,9 @@ export default function AdvancedWebhooksPanel() {
         <div className="space-y-3">
           {webhooks.map(webhook => {
             const isExpanded = expandedId === webhook.id;
-            const successRate = webhook.total_deliveries > 0
-              ? Math.round((webhook.success_count / webhook.total_deliveries) * 100)
+            const totalDeliveries = webhook.success_count + webhook.failure_count;
+            const successRate = totalDeliveries > 0
+              ? Math.round((webhook.success_count / totalDeliveries) * 100)
               : null;
             return (
               <div key={webhook.id} className={`bg-card border rounded-xl overflow-hidden transition-all ${webhook.active ? 'border-border' : 'border-border/40 opacity-60'}`}>
@@ -469,41 +453,40 @@ export default function AdvancedWebhooksPanel() {
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span className="font-mono text-[10px] truncate max-w-[200px]">{webhook.url}</span>
                       <span>{webhook.event_types.length} eventos</span>
-                      {webhook.total_deliveries > 0 && (
+                      {totalDeliveries > 0 && (
                         <span className={successRate !== null && successRate >= 95 ? 'text-emerald-400' : 'text-amber-400'}>
                           {successRate}% éxito
                         </span>
                       )}
-                      {webhook.last_triggered_at && (
-                        <span>{formatDistanceToNow(new Date(webhook.last_triggered_at), { locale: es, addSuffix: true })}</span>
+                      {webhook.last_fired_at && (
+                        <span>{formatDistanceToNow(new Date(webhook.last_fired_at), { locale: es, addSuffix: true })}</span>
                       )}
                     </div>
                   </button>
 
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Select value={testEvent} onValueChange={setTestEvent}>
-                      <SelectTrigger className="h-7 w-[132px] text-[10px]" aria-label="Evento para probar el webhook" onClick={event => event.stopPropagation()}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ALL_EVENTS.map(event => <SelectItem key={event.key} value={event.key}>{event.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Button size="sm" variant="outline" onClick={() => testWebhook(webhook)} disabled={testing === webhook.id} className="gap-1 text-xs h-7">
-                      {testing === webhook.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                      Test
-                    </Button>
-                    <button onClick={() => toggleActive(webhook)} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${webhook.active ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-muted-foreground hover:bg-muted/50'}`}>
-                      <Webhook className="w-3.5 h-3.5" />
-                    </button>
+                  <div className="flex items-center justify-end gap-1 shrink-0 flex-wrap">
                     {isAdmin && (
                       <>
+                        <Button size="sm" variant="outline" onClick={() => testWebhook(webhook)} disabled={testing === webhook.id} className="gap-1 text-xs h-8">
+                          {testing === webhook.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+                          Probar
+                        </Button>
+                        <button onClick={() => toggleActive(webhook)} aria-label={webhook.active ? "Desactivar webhook" : "Activar webhook"} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${webhook.active ? 'text-emerald-600 hover:bg-emerald-500/10' : 'text-muted-foreground hover:bg-muted/50'}`}>
+                          <Webhook className="w-3.5 h-3.5" />
+                        </button>
                         <button onClick={() => openEdit(webhook)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => deleteWebhook(webhook.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-destructive/50 hover:text-destructive hover:bg-destructive/8">
-                          <Trash2 className="w-3.5 h-3.5" />
+                        <button onClick={() => rotateSecret(webhook)} aria-label="Rotar secret" className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                          <RotateCcw className="w-3.5 h-3.5" />
                         </button>
+                        <ConfirmDialog
+                          title="¿Eliminar este webhook?"
+                          description="Se eliminarán el endpoint y su secret. El historial queda disponible para auditoría."
+                          confirmText="Eliminar webhook"
+                          onConfirm={() => deleteWebhook(webhook.id)}
+                          trigger={<button aria-label="Eliminar webhook" className="w-8 h-8 rounded-lg flex items-center justify-center text-destructive/70 hover:text-destructive hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5" /></button>}
+                        />
                       </>
                     )}
                     <button onClick={() => { setExpandedId(isExpanded ? null : webhook.id); if (!isExpanded) loadDeliveries(webhook.id); }} className="text-muted-foreground/40">
@@ -543,9 +526,16 @@ export default function AdvancedWebhooksPanel() {
                                 <span className={`${d.http_status < 300 ? 'text-emerald-400' : 'text-red-400'}`}>HTTP {d.http_status}</span>
                               )}
                               {d.attempt > 1 && <span className="text-muted-foreground">{d.attempt} intentos</span>}
+                              {d.duration_ms !== null && <span className="text-muted-foreground">{d.duration_ms} ms</span>}
                               <span className="text-muted-foreground/50">
                                 {formatDistanceToNow(new Date(d.created_at), { locale: es, addSuffix: true })}
                               </span>
+                              {isAdmin && d.status === 'failed' && (
+                                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => retryDelivery(d, webhook.id)} disabled={retrying === d.id}>
+                                  {retrying === d.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                                  <span className="sr-only">Reintentar entrega</span>
+                                </Button>
+                              )}
                             </div>
                           ))}
                         </div>

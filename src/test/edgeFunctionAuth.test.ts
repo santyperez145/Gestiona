@@ -66,7 +66,6 @@ const ALLOWED_WITHOUT_USER: Record<string, string> = {
   // Otros
   'send-push': 'invocada server-side',
   'drip-unsubscribe': 'link público de un solo uso',
-  'send-webhook': 'invocada server-side',
 };
 
 interface FnInfo {

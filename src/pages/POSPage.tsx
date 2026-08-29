@@ -1685,19 +1685,15 @@ export default function POSPage() {
         awardLoyaltyPointsForSale(orgId, customer.trim(), cartTotal, cart[0]?.productId ?? "").catch(() => {});
       }
 
-      // Outbound webhook: sale.created (best-effort)
-      if (settings?.webhook_enabled && settings?.webhook_url) {
-        supabase.functions.invoke("send-webhook", {
-          body: {
-            event: "sale.created",
-            data: {
-              customer: customer.trim() || null,
-              total_ars: cartTotal,
-              items: cart.map(i => ({ name: i.name, qty: i.quantity, price: priceFor(i) })),
-              payment_method: splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod,
-            },
-          },
-        }).catch(() => {});
+      // Outbound webhook: el navegador sólo manda ids de ventas ya
+      // confirmadas. La Edge Function vuelve a leer dinero, cliente y líneas
+      // desde la base antes de firmar; no confía en el carrito del cliente.
+      if (isOnline) {
+        void supabase.functions.invoke("send-webhook", {
+          body: { action: "dispatch", orgId, event: "sale.created", saleIds: txSaleIds },
+        }).then(({ error }) => {
+          if (error) console.error("POS: no se pudo emitir sale.created", error);
+        }).catch((error) => console.error("POS: no se pudo invocar send-webhook", error));
       }
 
       // Large sale notification (best-effort)

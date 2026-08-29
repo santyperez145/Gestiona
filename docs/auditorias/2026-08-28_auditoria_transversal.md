@@ -22,13 +22,13 @@ no pudo probarse quedó abierto en vez de declararse sano por intuición.
 | Superficie | Evidencia al 2026-08-28 | Estado |
 |---|---|---|
 | Git | remoto alineado, worktree limpio al iniciar | Verde |
-| Migraciones | 486 archivos / 486 registradas al cierre del 2026-08-29; `db push --dry-run` sin brecha | Verde |
+| Migraciones | 487 archivos / 487 registradas al cierre del 2026-08-29; `db push --dry-run` sin brecha | Verde |
 | Edge estática | 70 funciones pasan `npm run check:functions` | Verde |
 | Documentación | 61 enlaces internos en 39 documentos; 1 número sin fecha corregido | Verde |
 | RLS | 0 tablas públicas sin RLS; policies sin tenant, índices tenant, settings faltantes y stock negativo en 0 | Verde |
-| Secretos heredados | SMTP retiró siete columnas y API/MP/ML/Evolution otras ocho de `settings`; 0 valores antes del retiro, 0 webhooks y 0 transportistas con secreto | Verde; queda mover el secreto activo de webhook saliente por su propio flujo |
+| Secretos heredados | SMTP retiró siete columnas, API/MP/ML/Evolution otras ocho y webhooks seis entre `settings/webhook_configs`; 0 valores antes de cada retiro. Secret de endpoint ahora privado y one-time | Verde; queda auditar transportistas al activarlos |
 | Storage | 25 backups privados, 52 imágenes de producto y 2 de marketing; Finance y comprobantes privados. `expense-receipts` cerró antes del primer objeto | Verde: path por tenant, RLS por permiso y URL firmada de 60 s |
-| Cron | 25 jobs activos; 22.155 éxitos y 3 fallas en 7 días. Las tres fueron `expire-overdue-trials` y sus últimas 12 corridas ya son exitosas | Resuelto, conservar señal |
+| Cron | 25 jobs activos; 22.254 éxitos y 3 fallas en 7 días al cierre del 2026-08-29. Las tres fueron `expire-overdue-trials` y sus últimas 12 corridas ya son exitosas | Resuelto, conservar señal |
 | Edge runtime | Corte inicial: 215 invocaciones / 12 fallas en 24 h; 429 / 42 en 7 días; 0 huérfanas | Corregido y desplegado; falta observar la próxima corrida natural de cotización/cumpleaños |
 | Pagos | 2 pagos ARS 1 anteriores a la traza; sin pérdida actual y documentados como prueba histórica | Deuda histórica, no incidente actual |
 | Dependencias | `npm audit` completo: 0 alertas productivas o de tooling; comando reproducible desde moderado | Verde; `xlsx` conserva su guarda separada por venir del CDN oficial |
@@ -230,15 +230,60 @@ reutiliza la referencia canónica. Coincide con la API oficial de
 y sólo agrega `back_urls` si `PUBLIC_BASE_URL` es HTTPS, como exige la
 [guía oficial de retorno](https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/configure-back-urls).
 No se creó un cobro real para probar: queda como gate operativo explícito.
-La puerta completa posterior pasó 1.961/1.961 tests en 188 archivos, typecheck,
+La puerta completa posterior pasó 1.967/1.967 tests en 189 archivos, typecheck,
 lint con 0 errores/140 warnings conocidas, build/PWA, las 70 Edge Functions,
 dependencias en 0 y los 61 enlaces internos.
+
+## Dos paneles de webhooks y un secret predecible
+
+Integraciones ofrecía dos sistemas incompatibles. El primero escribía
+`settings.webhook_url/events/secret`, una fila visible para todos los miembros;
+el segundo leía `webhook_configs` con `select('*')`, incluida `secret_value`, y
+el botón de prueba hacía el POST desde el navegador. La Edge elegía además la
+primera membresía del usuario —incorrecto en multi-organización— y, si faltaba
+clave, firmaba con el propio `org_id`. Las automatizaciones tenían otros dos
+`fetch` sin firma. Producción permitió retirar la duplicación sin migrar uso:
+0 configs, 0 activas, 0 secrets y 0 entregas.
+
+`20260828000220` crea `webhook_signing_secrets` con RLS, cero policies y cero
+grants para roles cliente. Los RPC de owner/admin administran configuración,
+emiten una clave aleatoria por endpoint una sola vez y permiten rotarla; la UI
+sólo lee columnas saneadas. `send-webhook` exige usuario, `orgId` explícito y
+permiso: en ventas acepta ids y relee de `sales`, nunca dinero del request.
+Prueba y retry ocurren en servidor. El transporte compartido usa HTTPS, bloquea
+destinos locales obvios, no sigue redirects, acota timeout/reintentos y firma
+`timestamp.payload` con HMAC-SHA256; el sobre y header llevan versión
+`2026-08-29`. Cada intento termina correlacionado al config con estado, HTTP,
+latencia y cuerpo truncado. Las dos ejecuciones de automatización usan el mismo
+camino y el catálogo visible se redujo de 18 promesas a los dos eventos que hoy
+tienen emisor real.
+
+El fixture como owner creó la config, leyó sólo la superficie saneada, recibió
+el secret one-time, fue rechazado al leer la tabla privada y al escribir tablas
+directas, rotó la clave, eliminó y dejó 0 configs ZZ, 0 huérfanos y 0 entregas.
+Las tres Edge quedaron ACTIVE; libro 487/487 y dry-run sin brecha. No se envió
+un webhook externo: faltan un receptor controlado y el outbox transaccional de
+`sale.created`, porque el POST actual ocurre después del commit del POS y cerrar
+la pestaña en ese intervalo puede perder el evento.
+
+La misma traza mostró dos jobs activos sobre `automation_flows`:
+`execute-automations-daily` a las 05:00 AR y `run-automation-flows-daily` a las
+08:00 AR. Con una regla activa, ambos podían ejecutar el mismo efecto y emitir
+dos webhooks. Quedó un solo job, `execute-automations-daily`, a las 08:00 AR.
+La función sigue aceptando el cron global, pero su rama de botón ahora exige
+`org_id` válido y `marketing.edit`; antes una sesión real podía pasar el tenant
+de otro comercio y la consulta service-role ejecutaba sus flujos.
+
+El contrato sigue fuentes primarias consultadas el 2026-08-29:
+[GitHub recomienda secret de alta entropía, HMAC-SHA256 y comparación segura](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries),
+[Stripe firma el timestamp para limitar replay](https://docs.stripe.com/webhooks?lang=node)
+y [OWASP exige validar protocolo/destino y no seguir redirects frente a SSRF](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html).
 
 ## Orden de continuación
 
 1. Confirmar la próxima corrida natural de cotización y cumpleaños en
    `edge_invocation_log`; no invocarlas a mano ni declarar recuperación antes.
-2. Llevar `settings.webhook_secret` al almacén privado canónico de webhooks,
-   con firma, rotación, vista saneada y compatibilidad de deploy medida.
+2. Completar el outbox transaccional de `sale.created`, documentar el contrato
+   y probar un receptor externo controlado; no crear más eventos sin emisor.
 3. Completar P1-04 con `payments.edit` para refund y prueba cross-branch cuando
    existan dos ubicaciones reales aptas.
