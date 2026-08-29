@@ -96,7 +96,7 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | Cron jobs | **25** | ⚠️ 22.254 corridas exitosas y **3 fallidas** en 7 días; las tres históricas corresponden a `expire-overdue-trials`, cuya recuperación posterior se documenta en la auditoría del 2026-08-28 |
 | Edge Functions | **72** | ✅ `npm run check:functions`, 2026-08-29; incluye el checkout QR de POS |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **2.036** | ✅ `npm test`, 200 archivos, 2026-08-29 |
+| Tests unitarios | **2.037** | ✅ `npm test`, 200 archivos, 2026-08-29 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |

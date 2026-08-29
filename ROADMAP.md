@@ -2265,9 +2265,11 @@ Finance Connect.
     [procesamiento](https://www.mercadopago.com.ar/developers/es/docs/qr-code/payment-processing)
     y [Store/POS](https://www.mercadopago.com.ar/developers/es/docs/qr-code/create-store-and-pos).
     Puerta completa: typecheck, lint con 0 errores/139 warnings conocidos, 200
-    archivos/2.036 pruebas y build PWA; `check:functions` valida las 72 Edge
-    Functions. El chunk completo de POS quedó en 103,97 kB (28,90 kB gzip), sin
-    incorporar un SDK pesado al navegador.
+    archivos/2.037 pruebas y build PWA; `check:functions` valida las 72 Edge
+    Functions. El chunk completo de POS quedó en 104,11 kB (28,94 kB gzip), sin
+    incorporar un SDK pesado al navegador. La versión publicada se comprobó en
+    desktop y 360 px: QR está en ambos checkouts, no hay overflow ni errores de
+    consola y el sheet mobile ya expone nombres accesibles al abrir/cerrar.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

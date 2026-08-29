@@ -3128,6 +3128,8 @@ export default function POSPage() {
             size="sm"
             variant={showCart ? "default" : "outline"}
             className="lg:hidden h-9 relative shrink-0"
+            aria-label={showCart ? "Cerrar carrito" : "Abrir carrito"}
+            title={showCart ? "Cerrar carrito" : "Abrir carrito"}
             onClick={() => setShowCart(!showCart)}
           >
             <ShoppingCart className="w-4 h-4" />
@@ -3336,7 +3338,12 @@ export default function POSPage() {
           {showCart && (
             <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 h-[85vh] bg-card border-t border-border rounded-t-2xl shadow-2xl flex flex-col">
               <div className="flex justify-center pt-3 pb-1">
-                <button onClick={() => setShowCart(false)} className="text-muted-foreground">
+                <button
+                  onClick={() => setShowCart(false)}
+                  className="text-muted-foreground"
+                  aria-label="Cerrar carrito"
+                  title="Cerrar carrito"
+                >
                   <ChevronUp className="w-5 h-5" />
                 </button>
               </div>

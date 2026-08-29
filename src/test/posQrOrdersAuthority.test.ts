@@ -50,4 +50,9 @@ describe("autoridad de Mercado Pago QR en Caja", () => {
     expect(pos).toContain("await requestQrOrder(checkout);\n        return;");
     expect(directInsert).toBeGreaterThan(qrBranch);
   });
+
+  it("el checkout QR también es alcanzable desde el carrito mobile", () => {
+    expect(pos).toContain('aria-label={showCart ? "Cerrar carrito" : "Abrir carrito"}');
+    expect(pos).toContain('aria-label="Cerrar carrito"');
+  });
 });
