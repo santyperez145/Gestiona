@@ -76,4 +76,16 @@ describe('contrato transversal de estados del workspace', () => {
     expect(reports).not.toContain('getOrgMembersWithProfilesDB(user.id).catch(() => [])');
     expect(reports).toContain('Never render the previous organization');
   });
+
+  it('Dashboard conserva una lectura válida y explica fallos por fuente', () => {
+    const dashboard = source('src/pages/Dashboard.tsx');
+    for (const kind of ['initial-loading', 'refreshing', 'offline', 'stale', 'partial', 'error-recoverable']) {
+      expect(dashboard, `Dashboard no declara el estado ${kind}`).toContain(`kind="${kind}"`);
+    }
+    expect(dashboard).toContain('Promise.allSettled');
+    expect(dashboard).toContain("console.error('[Dashboard] no se pudo actualizar el conjunto principal'");
+    expect(dashboard).toContain('rawDataOrgIdRef.current === activeOrg.id');
+    expect(dashboard).toContain('locationStockError');
+    expect(dashboard).not.toContain('const [products, sales, purchases, debts, settings, expenses] = await Promise.all');
+  });
 });

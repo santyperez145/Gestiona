@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState, useMemo, useRef } from "react";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
+import { useCallback } from "react";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import FocoDelDia from "@/components/dashboard/FocoDelDia";
@@ -15,10 +16,10 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories, saveSettingsDB } from "@/lib/supabaseStore";
 import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard, Sparkles } from "lucide-react";
-import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
 import MetricCard from "@/components/shared/MetricCard";
 import PageHeader from "@/components/shared/PageHeader";
 import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
+import WorkspaceState from "@/components/shared/WorkspaceState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,26 @@ const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 5
 
 type ActivationRow = Database['public']['Views']['organization_activation_readiness']['Row'];
 
+type DashboardData = {
+  products: any[];
+  sales: any[];
+  purchases: any[];
+  debts: any[];
+  settings: any;
+  expenses: any[];
+};
+
+function dashboardErrorMessage(cause: unknown, fallback: string) {
+  if (cause instanceof Error && cause.message) return cause.message;
+  if (typeof cause === 'object' && cause && 'message' in cause && typeof cause.message === 'string') return cause.message;
+  return fallback;
+}
+
+function settledValue<T>(result: PromiseSettledResult<T>): T {
+  if (result.status === 'rejected') throw result.reason;
+  return result.value;
+}
+
 const DASHBOARD_SECTIONS = [
   { id: "dashboard-overview", label: "Resumen", icon: LayoutDashboard },
   { id: "dashboard-sales", label: "Rendimiento", icon: BarChart3 },
@@ -66,24 +87,15 @@ function DashboardDataError({ message, onRetry }: { message: string; onRetry: ()
         eyebrow="Gestiona / Datos del negocio"
         title="No pudimos cargar el dashboard"
         description="La sesión está activa, pero una de las fuentes del Business Core no respondió correctamente."
-        actions={(
-          <Button type="button" className="workspace-primary-action" onClick={onRetry}>
-            Reintentar
-          </Button>
-        )}
       />
-      <div className="workspace-dashboard-error__panel rounded-xl border border-destructive/25 bg-destructive/5 p-5 md:p-6">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-          <div className="min-w-0">
-            <h2 className="font-display text-sm font-bold text-foreground">Detalle de la carga</h2>
-            <p className="mt-1 break-words text-sm leading-relaxed text-muted-foreground">{message}</p>
-            <p className="mt-4 text-xs text-muted-foreground/80">
-              Si vuelve a aparecer, revisá la conectividad y la organización activa antes de modificar datos.
-            </p>
-          </div>
-        </div>
-      </div>
+      <WorkspaceState
+        kind="error-recoverable"
+        title="Detalle de la carga"
+        description={`${message} Si vuelve a aparecer, revisá la conectividad y la organización activa antes de modificar datos.`}
+        actionLabel="Reintentar"
+        onAction={onRetry}
+        className="workspace-dashboard-error__panel"
+      />
     </div>
   );
 }
@@ -414,8 +426,13 @@ export default function Dashboard() {
   const { activeOrg, activeRole } = useOrg();
   const { permission, notify } = useNotifications();
   const { online, offlineSince, connection } = useNetworkStatus();
-  const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any; expenses: any[] } | null>(null);
+  const [rawData, setRawData] = useState<DashboardData | null>(null);
+  const rawDataRef = useRef<DashboardData | null>(null);
+  const rawDataOrgIdRef = useRef<string | null>(null);
+  const loadRequestRef = useRef(0);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null);
   const [activationSignals, setActivationSignals] = useState<ActivationRow | null>(null);
   const [activationError, setActivationError] = useState<string | null>(null);
   const [changingActivationGoal, setChangingActivationGoal] = useState(false);
@@ -482,40 +499,111 @@ export default function Dashboard() {
   const { from: dateFrom, to: dateTo, inRange } = useDateRangeFilter();
   const { storeId } = useStoreFilter();
   const [locationStockMap, setLocationStockMap] = useState<Record<string, number> | null>(null);
+  const [locationStockError, setLocationStockError] = useState<string | null>(null);
+  const [locationStockReloadKey, setLocationStockReloadKey] = useState(0);
   useEffect(() => {
-    if (!storeId) { setLocationStockMap(null); return; }
+    let cancelled = false;
+    if (!storeId) {
+      setLocationStockMap(null);
+      setLocationStockError(null);
+      return () => { cancelled = true; };
+    }
+    setLocationStockError(null);
     supabase.from('location_stock').select('product_id, stock').eq('location_id', storeId)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error('[Dashboard] no se pudo leer stock por sucursal', error);
+          setLocationStockMap(null);
+          setLocationStockError(`No pudimos cargar el stock de la sucursal. ${dashboardErrorMessage(error, 'La consulta no respondió.')}`);
+          return;
+        }
         const map: Record<string, number> = {};
         (data || []).forEach((r: any) => { map[r.product_id] = r.stock; });
         setLocationStockMap(map);
       });
-  }, [storeId]);
+    return () => { cancelled = true; };
+  }, [locationStockReloadKey, storeId]);
+
+  const loadDashboard = useCallback(async () => {
+    if (!user?.id || !activeOrg?.id) return;
+    const request = ++loadRequestRef.current;
+    const hasVisibleData = rawDataOrgIdRef.current === activeOrg.id && Boolean(rawDataRef.current);
+    setLoading(!hasVisibleData);
+    setRefreshing(hasVisibleData);
+    if (!hasVisibleData) setDashboardError(null);
+
+    try {
+      await seedProductsForUser(user.id);
+      const results = await Promise.allSettled([
+        getProductsDB(user.id),
+        getSalesDB(user.id),
+        getPurchasesDB(user.id),
+        getDebtsDB(user.id),
+        getSettingsDB(user.id),
+        getExpensesDB(user.id),
+      ]);
+      if (request !== loadRequestRef.current) return;
+
+      const [productsResult, salesResult, purchasesResult, debtsResult, settingsResult, expensesResult] = results;
+      const sources = [
+        ['productos', productsResult],
+        ['ventas', salesResult],
+        ['compras', purchasesResult],
+        ['deudas', debtsResult],
+        ['ajustes', settingsResult],
+        ['gastos', expensesResult],
+      ] as const;
+      const failed = sources.filter(([, result]) => result.status === 'rejected');
+      if (failed.length > 0) {
+        const names = failed.map(([name]) => name).join(', ');
+        const firstFailure = failed[0][1];
+        const detail = dashboardErrorMessage(firstFailure.status === 'rejected' ? firstFailure.reason : null, 'La consulta no respondió.');
+        console.error('[Dashboard] no se pudo actualizar el conjunto principal', { names, detail });
+        setDashboardError(`No pudimos actualizar ${names}. ${detail}`);
+        return;
+      }
+
+      const nextData: DashboardData = {
+        products: settledValue(productsResult),
+        sales: settledValue(salesResult),
+        purchases: settledValue(purchasesResult),
+        debts: settledValue(debtsResult),
+        settings: settledValue(settingsResult),
+        expenses: settledValue(expensesResult),
+      };
+      rawDataRef.current = nextData;
+      rawDataOrgIdRef.current = activeOrg.id;
+      setRawData(nextData);
+      setDashboardError(null);
+      setLastLoadedAt(new Date());
+    } catch (cause) {
+      if (request !== loadRequestRef.current) return;
+      console.error('[Dashboard] no se pudo preparar la carga', cause);
+      setDashboardError(dashboardErrorMessage(cause, 'No se pudo conectar con los datos del negocio.'));
+    } finally {
+      if (request === loadRequestRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }
+  }, [activeOrg?.id, user?.id]);
 
   useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
+    if (!user?.id || !activeOrg?.id) {
+      loadRequestRef.current += 1;
+      rawDataRef.current = null;
+      rawDataOrgIdRef.current = null;
+      setRawData(null);
       setDashboardError(null);
-      try {
-        await seedProductsForUser(user.id);
-        const [products, sales, purchases, debts, settings, expenses] = await Promise.all([
-          getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id), getExpensesDB(user.id),
-        ]);
-        if (cancelled) return;
-        setRawData({ products, sales, purchases, debts, settings, expenses });
-      } catch (error) {
-        console.error("Error loading dashboard data", error);
-        if (cancelled) return;
-        setRawData(null);
-        setDashboardError(error instanceof Error ? error.message : "No se pudo conectar con los datos del negocio.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [user, reloadKey]);
+      setLoading(true);
+      setRefreshing(false);
+      setLastLoadedAt(null);
+      return;
+    }
+    void loadDashboard();
+    return () => { loadRequestRef.current += 1; };
+  }, [activeOrg?.id, loadDashboard, reloadKey, user?.id]);
 
   // Live dollar rates — shared hook with 15-min sessionStorage cache
   const { rates: liveExchangeRates, refresh: refreshRates } = useExchangeRates(true);
@@ -1290,8 +1378,15 @@ export default function Dashboard() {
     toast.success("Seguimiento marcado como completado");
   };
 
-  if (dashboardError) return <DashboardDataError message={dashboardError} onRetry={() => setReloadKey(value => value + 1)} />;
-  if (loading || !stats) return <DashboardSkeleton />;
+  const hasCurrentOrgData = Boolean(rawData && rawDataOrgIdRef.current === activeOrg?.id);
+  const dashboardErrorBelongsToCurrentScope = rawDataOrgIdRef.current === activeOrg?.id || rawDataOrgIdRef.current === null;
+  if (!hasCurrentOrgData || !stats) {
+    if (!online) {
+      return <WorkspaceState kind="offline" title="Dashboard sin conexión" description="No pudimos leer los datos del negocio. Volvé a conectarte para reintentar sin mostrar cifras incompletas." actionLabel="Reintentar" onAction={() => setReloadKey(value => value + 1)} />;
+    }
+    if (dashboardError && dashboardErrorBelongsToCurrentScope) return <DashboardDataError message={dashboardError} onRetry={() => setReloadKey(value => value + 1)} />;
+    return <WorkspaceState kind="initial-loading" title="Leyendo dashboard" loadingRows={7} />;
+  }
 
   const kpiCards = [
     { label: "Hoy", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${plural(liveTodaySales?.count ?? 0, "venta")}`; const pct = ((today - lw) / lw) * 100; return `${plural(liveTodaySales?.count ?? 0, "venta")} · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, tone: "green", live: true },
@@ -1360,14 +1455,42 @@ export default function Dashboard() {
 
   return (
     <div className="workspace-page workspace-dashboard pb-12">
-      {/* Offline/slow network banner */}
+      {/* Network and data health banners */}
       {!online && (
-        <div className="workspace-dashboard-network flex items-center gap-2.5 px-4 py-2.5 mb-4 rounded-xl border border-orange-500/30 bg-orange-500/8 text-sm text-orange-300">
-          <span className="inline-block w-2 h-2 rounded-full bg-orange-400 animate-pulse shrink-0" />
-          <span className="flex-1">
-            Sin conexión{offlineSince ? ` desde las ${offlineSince.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}` : ""} — Los datos pueden estar desactualizados.
-          </span>
-        </div>
+        <WorkspaceState
+          kind="offline"
+          layout="banner"
+          title="Sin conexión"
+          description={`Los datos visibles pueden estar desactualizados${offlineSince ? ` desde las ${offlineSince.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}` : ''}.`}
+        />
+      )}
+      {refreshing && online && (
+        <WorkspaceState
+          kind="refreshing"
+          layout="banner"
+          title="Actualizando dashboard"
+          description={lastLoadedAt ? `Mostrando la versión de ${lastLoadedAt.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} mientras llega la más reciente.` : 'Los datos actuales siguen visibles mientras llega la versión más reciente.'}
+        />
+      )}
+      {dashboardError && !refreshing && (
+        <WorkspaceState
+          kind="stale"
+          layout="banner"
+          title="El dashboard puede estar desactualizado"
+          description={dashboardError}
+          actionLabel="Reintentar"
+          onAction={() => setReloadKey(value => value + 1)}
+        />
+      )}
+      {locationStockError && storeId && (
+        <WorkspaceState
+          kind="partial"
+          layout="banner"
+          title="Vista parcial por sucursal"
+          description={`${locationStockError} Las métricas generales siguen visibles, pero el filtro de stock no está aplicado.`}
+          actionLabel="Reintentar"
+          onAction={() => setLocationStockReloadKey(value => value + 1)}
+        />
       )}
       {online && connection?.effectiveType && ["slow-2g", "2g"].includes(connection.effectiveType) && (
         <div className="workspace-dashboard-network flex items-center gap-2 px-4 py-2 mb-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-xs text-yellow-400">

@@ -238,7 +238,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.987 tests en 192 archivos pasan al 2026-08-29 con `npm test -- --maxWorkers=1 --fileParallelism=false`; typecheck, lint sin errores (139 warnings conocidos), build/PWA y 71 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
+| Calidad técnica | 1.988 tests en 192 archivos pasan al 2026-08-29 con `npm test -- --maxWorkers=1 --fileParallelism=false`; typecheck, lint sin errores (139 warnings conocidos), build/PWA y 71 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -1564,7 +1564,7 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     performance, cobertura mínima por producto y una puerta 80/100 antes de
     adoptar tecnología. Una guarda en CI exige que ROADMAP, DESIGNROADMAP,
     INTERFAZ y AGENTS sigan apuntando al estándar. D2.5 ya tiene contrato y
-    adopciones en Finance/Compras y Reportes/Intelligence; sigue su expansión por
+    adopciones en Finance/Compras, Reportes/Intelligence y Dashboard; sigue su expansión por
     riesgo. D2.6 ya
     cerró el inventario/migración de overlays de Gestión bajo guarda CI. El handoff F3 a la recepción ya quedó
     conectado y la evidencia end-to-end restante es externa, sin saltar a
@@ -1614,10 +1614,12 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     skeleton estructural, icono+texto+color, live regions y recuperación. Finance
     y Compras retiraron spinners/banners/vacíos locales y distinguen carga
     inicial, refresh no bloqueante, primer uso, filtro vacío, error recuperable,
-    offline, stale, parcial y éxito. Reportes/Intelligence se sumó el 2026-08-29:
-    carga las seis fuentes principales con `Promise.allSettled`, conserva la última
-    lectura durante refresh, registra el fallo exacto y separa miembros/vendedores
-    como cobertura parcial; Auditoría y Sucursales adoptan el mismo contrato.
+    offline, stale, parcial y éxito. Reportes/Intelligence se sumó el 2026-08-29;
+    Dashboard en el slice siguiente: Reportes y Dashboard cargan sus fuentes
+    principales con `Promise.allSettled`, conservan la última lectura durante
+    refresh, registran el fallo exacto y descartan respuestas de otra
+    organización; la cobertura opcional y el stock por sucursal se declaran
+    como parciales. Auditoría y Sucursales adoptan el mismo contrato.
     Compras conserva órdenes si sólo fallan proveedores/productos y lo declara
     parcial; Finance conserva documentos si falla un refresh. Escrituras de
     documento/OC/recepción quedan deshabilitadas offline. Se agregó una guarda de
@@ -2003,6 +2005,17 @@ Finance Connect.
     2026-08-29, typecheck, lint 0 errores/139 warnings y build/PWA. La matriz
     autenticada 360/768/1024/1440 y la medición de tiempo a tarea continúan
     pendientes.
+
+58. Estados honestos D2.5 en Dashboard — slice técnico cerrado el 2026-08-29.
+    La entrada operativa coordina productos, ventas, compras, deudas, ajustes y
+    gastos con `Promise.allSettled`; identifica la fuente que falló, conserva la
+    última lectura durante refresh y descarta respuestas posteriores al cambio
+    de organización. El filtro de stock por sucursal registra el error y muestra
+    una vista parcial en lugar de mezclar stock global con métricas filtradas.
+    La guarda de `src/test/workspaceState.test.tsx` cubre carga, refresh, error,
+    offline, stale, parcial y protección de tenant. La suite quedó en
+    1.988/1.988 tests al 2026-08-29; la matriz autenticada responsive y el tiempo
+    a tarea siguen pendientes.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2501,7 +2514,7 @@ fixture destructiva-cero probó el RPC real y producción sirve `public-api` v42
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **1.987 tests en 192 archivos**,
+- Build y suites locales del 2026-08-29: **1.988 tests en 192 archivos**,
   typecheck, lint sin errores (139 warnings de deuda conocida), build/PWA y 71
   funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
   panel y 1 setup autenticado—; el de Gastos es de sólo lectura.
