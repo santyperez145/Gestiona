@@ -60,6 +60,31 @@ describe('contrato visual transversal de Gestión', () => {
     }
   });
 
+  it('Productos jerarquiza la acción primaria sin perder herramientas avanzadas', () => {
+    const products = source('src/pages/ProductsPage.tsx');
+
+    expect(products).toContain('aria-label="Más acciones de productos"');
+    expect(products).toContain('<DropdownMenuLabel>Exportar y etiquetar</DropdownMenuLabel>');
+    expect(products).toContain('<DropdownMenuLabel>Administrar catálogo</DropdownMenuLabel>');
+    expect(products).toContain('aria-label="Vista lista" aria-pressed={productView === \'list\'}');
+    expect(products).toContain('aria-label="Vista grilla" aria-pressed={productView === \'grid\'}');
+    for (const action of [
+      'Exportar Excel',
+      'Lista de precios para imprimir',
+      'Etiquetas de precio',
+      'Etiquetas QR',
+      'Códigos de barras',
+      'Importar Excel/CSV',
+      'Tipos y atributos',
+      'Ajuste masivo de precios',
+      'Oferta por categoría',
+      'Completar pesos',
+      'Calculadora de rentabilidad',
+    ]) {
+      expect(products, `Productos perdió la acción ${action}`).toContain(action);
+    }
+  });
+
   it('el wrapper universal alcanza también a páginas que aún no declaran workspace-page', () => {
     const css = source('src/index.css');
 

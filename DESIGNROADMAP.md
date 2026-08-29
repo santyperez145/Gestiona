@@ -140,7 +140,7 @@ usa en material de producto o inversión.
 | Auth | Split editorial + formulario inequívoco. | Implementada | Error, recovery y registro en mobile. |
 | Business shell | Rail claro, topbar contextual, canvas v3. | Implementado | Captura autenticada 4 viewports. |
 | Dashboard | Seis vistas ejecutivas persistidas. | Implementado | Tiempo hasta detectar/anclar una acción. |
-| Productos | Catálogo/Operación con carga, refresh, vacío, error, offline, stale y enriquecimientos parciales explícitos. | Parcial D2.5 2026-08-29 | Editor, importador y variantes responsive; matriz autenticada. |
+| Productos | Catálogo/Operación con estados honestos y jerarquía de acciones: CTA de alta, vista/refresh y menú agrupado sin perder herramientas. | Parcial D2.5/D3 2026-08-29 | Editor, importador y variantes responsive; matriz autenticada del menú. |
 | Ventas/POS | Lista/Rendimiento; POS fullscreen deliberado. | Parcial | Cobro completo teclado/touch y error. |
 | CRM | Command center, segmentos, tabla y ficha 360. | Implementado | Tarea real y lectura mobile. |
 | Inventario/Compras | Lista/recepción bajo tokens v3; handoff direccionado y estados comunes, incluido dato parcial/offline. | Parcial | Composición completa lista/detalle/Kardex, migrar subflujos y validar responsive. |
@@ -243,6 +243,12 @@ Orden:
 5. Compras/inventario: orden, recepción, Kardex, conteo y transferencia.
 6. Caja/finanzas: sesión, movimientos, conciliación y estados de resultado.
 
+- [x] Productos deja de presentar trece botones con el mismo peso en el
+  encabezado: alta, refresh y selector de vista quedan como controles directos;
+  once herramientas de exportación, etiquetas y administración se agrupan en
+  un menú con secciones, permisos y nombres accesibles. Lista/grilla declara
+  `aria-pressed` y mobile reduce los rótulos secundarios sin esconder la acción
+  principal (2026-08-29).
 - [x] Gastos deja de mostrar enlaces públicos directos: tabla desktop, cards
   mobile y formulario comparten una acción de comprobante con estado de
   preparación, error recuperable, URL firmada y tile claro/oscuro. El escáner
@@ -371,7 +377,7 @@ declara validado porque “se ve mejor”.
 | 8 | Paginación canónica | Hecho en Gestión 2026-08-22 | Cinco listados comparten rango, responsive, límites y aria-live; cálculo puro cubierto y guarda evita controles locales. |
 | 9 | Fechas canónicas | Hecho en Gestión 2026-08-22 | 82 campos/46 archivos conservan semántica nativa bajo Input; 11 variantes manuales retiradas y regresión bloqueada. Uploaders clasificados aparte. |
 | 10 | Importadores estructurados canónicos | Hecho en Gestión 2026-08-22 | Catálogo, precios, Tiendanube, clientes y banco comparten FilePicker; extensión/MIME, drop, busy, error y misma selección cubiertos. |
-| 11 | Productos end-to-end | Parcial 2026-08-29 | El catálogo conserva lectura válida, identifica fallos críticos/auxiliares y diferencia primer uso de filtros vacíos bajo guarda; faltan desktop/mobile autenticado + editor/importación/variantes. |
+| 11 | Productos end-to-end | Parcial 2026-08-29 | El catálogo conserva lectura válida, identifica fallos críticos/auxiliares, diferencia primer uso/filtros vacíos y reduce trece CTA equivalentes a una jerarquía de cuatro controles + menú agrupado bajo guarda; faltan validación publicada desktop/mobile + editor/importación/variantes. |
 | 12 | Ventas y devolución | Parcial 2026-08-29 | La cola RMA ya distingue la acción de reintegro autorizada del estado de permiso y explica cómo solicitar `Pagos · Editar`; servidor y UI comparten la matriz. Faltan lista→detalle sin perder filtros, layout mobile y validación visual autenticada. |
 | 13 | POS teclado/touch/offline | Pendiente | Cobro y recuperación medidos. |
 | 14 | Compras, recepción y Kardex | Parcial 2026-08-22 | Finance llega a la OC exacta, muestra contexto y abre la recepción idempotente; faltan Kardex integrado y matriz responsive. |

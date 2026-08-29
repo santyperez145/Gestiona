@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale, Loader2, ExternalLink, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale, Loader2, ExternalLink, RefreshCw, MoreHorizontal } from "lucide-react";
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { recommendSimilar } from "@/lib/perfumeMatch";
 import { normalizeText, literalFilter } from "@/lib/searchText";
@@ -61,6 +61,14 @@ import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { Switch } from "@/components/ui/switch";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { plural } from "@/lib/plural";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
@@ -856,64 +864,75 @@ export default function ProductsPage() {
             : undefined
         }
         actions={
-          <div className="workspace-products-actions flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => void reload()} disabled={refreshing} title="Actualizar catálogo">
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />Actualizar
+          <div className="workspace-products-actions flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
+            <Button variant="outline" size="sm" onClick={() => void reload()} disabled={refreshing} title="Actualizar catálogo" aria-label="Actualizar catálogo">
+              <RefreshCw className={`w-4 h-4 sm:mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
             <div className="flex rounded-lg border border-border overflow-hidden h-9">
-              <button onClick={() => setProductView('list')} className={`px-2.5 transition-colors ${productView === 'list' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`} title="Vista lista">
+              <button type="button" aria-label="Vista lista" aria-pressed={productView === 'list'} onClick={() => setProductView('list')} className={`px-2.5 transition-colors ${productView === 'list' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`} title="Vista lista">
                 <List className="w-4 h-4" />
               </button>
-              <button onClick={() => setProductView('grid')} className={`px-2.5 transition-colors ${productView === 'grid' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`} title="Vista grilla">
+              <button type="button" aria-label="Vista grilla" aria-pressed={productView === 'grid'} onClick={() => setProductView('grid')} className={`px-2.5 transition-colors ${productView === 'grid' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`} title="Vista grilla">
                 <LayoutGrid className="w-4 h-4" />
               </button>
             </div>
-            <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
-              <FileSpreadsheet className="w-4 h-4 mr-2" />Excel
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => exportPriceListPDF(filtered, settings?.business_name || "Mi Negocio")} title="Exportar lista de precios para imprimir">
-              <FileText className="w-4 h-4 mr-2" />Lista precios
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => exportPriceLabels(filtered, settings?.business_name || "Mi Negocio")} title="Imprimir etiquetas de precio (55×32mm) para cada producto">
-              <Tag className="w-4 h-4 mr-2" />Etiquetas precio
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => exportQRLabels(filtered, settings?.business_name || "Mi Negocio")} title="Imprimir etiquetas QR por producto">
-              <QrCode className="w-4 h-4 mr-2" />Etiquetas QR
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setBarcodeOpen(true)} title="Imprimir etiquetas con código de barras">
-              <Layers className="w-4 h-4 mr-2" />Barcodes
-            </Button>
-            {(activeRole === 'owner' || activeRole === 'admin') && (
-              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} title="Importar Excel o CSV con validación y reconciliación">
-                <Upload className="w-4 h-4 mr-2" />Importar Excel/CSV
-              </Button>
-            )}
-            {canEdit && activeOrg?.id && (
-              <Button variant="outline" size="sm" onClick={() => setProductTypesOpen(true)} title="Configurar tipos y atributos del catálogo">
-                <Layers className="w-4 h-4 mr-2" />Tipos y atributos
-              </Button>
-            )}
-            {canEdit && (
-              <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="hidden md:flex">
-                <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
-              </Button>
-            )}
-            {canEdit && (
-              <Button variant="outline" size="sm" onClick={() => setCatOfferOpen(true)} title="Aplicar oferta a toda una categoría">
-                <Tag className="w-4 h-4 mr-2" />Oferta x categoría
-              </Button>
-            )}
-            {canEdit && (
-              <Button
-                variant="outline" size="sm" onClick={() => setPesosOpen(true)}
-                title="Estimar el peso a partir del contenido, para que el envío no se cotice con el valor por defecto"
-              >
-                <Scale className="w-4 h-4 mr-2" />Completar pesos
-              </Button>
-            )}
-            <Button variant="outline" size="sm" title="Calculadora de rentabilidad" onClick={() => { setCalcProduct(null); setCalcOpen(true); }}>
-              <Calculator className="w-4 h-4 mr-2" />Calculadora
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" aria-label="Más acciones de productos">
+                  <MoreHorizontal className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Más acciones</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel>Exportar y etiquetar</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => void exportProductsXLSX(filtered, settings)}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => exportPriceListPDF(filtered, settings?.business_name || "Mi Negocio")}>
+                  <FileText className="mr-2 h-4 w-4" />Lista de precios para imprimir
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => exportPriceLabels(filtered, settings?.business_name || "Mi Negocio")}>
+                  <Tag className="mr-2 h-4 w-4" />Etiquetas de precio
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => exportQRLabels(filtered, settings?.business_name || "Mi Negocio")}>
+                  <QrCode className="mr-2 h-4 w-4" />Etiquetas QR
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setBarcodeOpen(true)}>
+                  <Layers className="mr-2 h-4 w-4" />Códigos de barras
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Administrar catálogo</DropdownMenuLabel>
+                {(activeRole === 'owner' || activeRole === 'admin') && (
+                  <DropdownMenuItem onSelect={() => setImportOpen(true)}>
+                    <Upload className="mr-2 h-4 w-4" />Importar Excel/CSV
+                  </DropdownMenuItem>
+                )}
+                {canEdit && activeOrg?.id && (
+                  <DropdownMenuItem onSelect={() => setProductTypesOpen(true)}>
+                    <Layers className="mr-2 h-4 w-4" />Tipos y atributos
+                  </DropdownMenuItem>
+                )}
+                {canEdit && (
+                  <DropdownMenuItem onSelect={() => setBulkOpen(true)}>
+                    <TrendingUp className="mr-2 h-4 w-4" />Ajuste masivo de precios
+                  </DropdownMenuItem>
+                )}
+                {canEdit && (
+                  <DropdownMenuItem onSelect={() => setCatOfferOpen(true)}>
+                    <Tag className="mr-2 h-4 w-4" />Oferta por categoría
+                  </DropdownMenuItem>
+                )}
+                {canEdit && (
+                  <DropdownMenuItem onSelect={() => setPesosOpen(true)}>
+                    <Scale className="mr-2 h-4 w-4" />Completar pesos
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onSelect={() => { setCalcProduct(null); setCalcOpen(true); }}>
+                  <Calculator className="mr-2 h-4 w-4" />Calculadora de rentabilidad
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             {canCreate && (productLimit !== null && products.length >= productLimit ? (
               <Button
                 className="gradient-gold text-primary-foreground font-semibold shadow-gold"

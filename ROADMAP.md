@@ -2034,6 +2034,19 @@ Finance Connect.
     360/768/1024/1440, editor/importador/variantes responsive y medición de
     tiempo a primera carga de producto.
 
+60. Jerarquía operativa del encabezado de Productos — slice técnico cerrado el
+    2026-08-29. La revisión autenticada de producción mostró trece botones con
+    el mismo peso visual: exportaciones, etiquetas, configuración y alta
+    competían por atención antes de llegar al catálogo. Se conservan todas las
+    capacidades, pero el encabezado queda reducido a refresh, selector
+    lista/grilla, “Más acciones” y “Nuevo”; las once herramientas secundarias se
+    ordenan en “Exportar y etiquetar” y “Administrar catálogo”, respetando rol y
+    permisos. Los controles icon-only tienen nombre accesible, lista/grilla
+    expone `aria-pressed` y los rótulos secundarios se compactan en mobile. La
+    guarda visual enumera cada acción para impedir pérdidas silenciosas. Falta
+    validar el bundle desplegado en desktop/360 y medir tiempo de hallazgo del
+    alta/importación antes de cerrar Productos end-to-end.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
