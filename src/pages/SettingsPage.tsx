@@ -111,6 +111,20 @@ type StorefrontPalette = {
   secondary?: string;
 };
 
+type SmtpForm = {
+  host: string;
+  port: string;
+  user: string;
+  pass: string;
+  fromName: string;
+  fromEmail: string;
+  secure: boolean;
+};
+
+const DEFAULT_SMTP: SmtpForm = {
+  host: '', port: '587', user: '', pass: '', fromName: '', fromEmail: '', secure: false,
+};
+
 export default function SettingsPage() {
   usePageTitle("Ajustes");
   const { user, session } = useAuth();
@@ -280,57 +294,107 @@ export default function SettingsPage() {
     localStorage.setItem(waTemplateKey, JSON.stringify(next));
   };
 
-  // SMTP config — stored in DB settings table (server-side accessible for edge functions)
-  const DEFAULT_SMTP = { host: '', port: '587', user: '', pass: '', fromName: '', fromEmail: '', secure: false };
-  const [smtpConfig, setSmtpConfig] = useState<{ host: string; port: string; user: string; pass: string; fromName: string; fromEmail: string; secure: boolean }>(DEFAULT_SMTP);
+  // SMTP config — la clave entra por Edge y nunca vuelve al navegador.
+  const [smtpConfig, setSmtpConfig] = useState<SmtpForm>(DEFAULT_SMTP);
   const [smtpSaving, setSmtpSaving] = useState(false);
   const [smtpPassVisible, setSmtpPassVisible] = useState(false);
-  const [smtpTesting, setSmtpTesting] = useState(false);
+  const [smtpConfigured, setSmtpConfigured] = useState(false);
+  const [smtpStatusLoading, setSmtpStatusLoading] = useState(false);
+  const [smtpStatusError, setSmtpStatusError] = useState('');
   const setSmtp = (field: string, value: string | boolean) => {
     setSmtpConfig(prev => ({ ...prev, [field]: value }));
   };
-  const handleSmtpSave = async () => {
-    if (!user) return;
-    setSmtpSaving(true);
-    try {
-      await saveSettingsDB(user.id, {
-        smtp_host: smtpConfig.host || null,
-        smtp_port: parseInt(smtpConfig.port) || 587,
-        smtp_user: smtpConfig.user || null,
-        smtp_pass: smtpConfig.pass || null,
-        smtp_secure: smtpConfig.secure,
-        smtp_from_name: smtpConfig.fromName || null,
-        smtp_from_email: smtpConfig.fromEmail || null,
-      });
-      toast.success('Configuración SMTP guardada', { description: 'Las edge functions de email ya pueden usarla.' });
-    } catch (err: any) {
-      toast.error('Error al guardar SMTP: ' + err.message);
-    } finally {
-      setSmtpSaving(false);
-    }
-  };
-  const handleSmtpTest = async () => {
-    if (!smtpConfig.host || !smtpConfig.user) {
-      toast.error('Completá al menos el host y usuario SMTP');
+  const loadSmtpStatus = useCallback(async () => {
+    if (!orgForTemplates?.id) {
+      setSmtpConfigured(false);
+      setSmtpConfig(DEFAULT_SMTP);
       return;
     }
-    setSmtpTesting(true);
+    setSmtpStatusLoading(true);
+    setSmtpStatusError('');
+    // Cambiar de organización nunca deja host/remitente saneados del tenant
+    // anterior visibles o reutilizables mientras llega la nueva consulta.
+    setSmtpConfigured(false);
+    setSmtpConfig(DEFAULT_SMTP);
+    const { data, error } = await supabase
+      .from('merchant_smtp_connection_status')
+      .select('configured,host,port,username,secure,from_name,from_email,updated_at')
+      .eq('org_id', orgForTemplates.id)
+      .maybeSingle();
+    if (error) {
+      console.error('SettingsPage SMTP status:', error);
+      setSmtpStatusError('No se pudo leer el estado del correo.');
+    } else if (data) {
+      setSmtpConfigured(data.configured === true);
+      setSmtpConfig({
+        host: data.host || '',
+        port: String(data.port || 587),
+        user: data.username || '',
+        pass: '',
+        fromName: data.from_name || '',
+        fromEmail: data.from_email || '',
+        secure: data.secure === true,
+      });
+    } else {
+      setSmtpConfigured(false);
+      setSmtpConfig(DEFAULT_SMTP);
+    }
+    setSmtpStatusLoading(false);
+  }, [orgForTemplates?.id]);
+
+  useEffect(() => { void loadSmtpStatus(); }, [loadSmtpStatus]);
+
+  const handleSmtpSave = async () => {
+    if (!user || !orgForTemplates?.id) return;
+    if (!smtpConfig.host || !smtpConfig.user || !smtpConfig.fromEmail) {
+      toast.error('Completá host, usuario y email de origen');
+      return;
+    }
+    if (!smtpConfigured && smtpConfig.pass.length < 8) {
+      toast.error('Ingresá la credencial SMTP para conectar el correo');
+      return;
+    }
+    setSmtpSaving(true);
     try {
       const { data, error } = await supabase.functions.invoke('test-smtp', {
         body: {
+          action: 'save_and_test',
+          orgId: orgForTemplates.id,
           host: smtpConfig.host,
           port: parseInt(smtpConfig.port) || 587,
           user: smtpConfig.user,
           pass: smtpConfig.pass,
           secure: smtpConfig.secure,
+          fromName: smtpConfig.fromName,
+          fromEmail: smtpConfig.fromEmail,
         },
       });
       if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
-      toast.success('Conexión SMTP verificada ✓', { description: `${smtpConfig.host}:${smtpConfig.port}` });
+      setSmtpConfigured(true);
+      setSmtpConfig(prev => ({ ...prev, pass: '' }));
+      toast.success('Correo conectado', { description: `Te enviamos una prueba a ${user.email}.` });
     } catch (err: any) {
-      toast.error('Error SMTP: ' + err.message);
+      toast.error('No se pudo conectar el correo: ' + err.message);
     } finally {
-      setSmtpTesting(false);
+      setSmtpSaving(false);
+    }
+  };
+
+  const handleSmtpRevoke = async () => {
+    if (!orgForTemplates?.id) return;
+    setSmtpSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('test-smtp', {
+        body: { action: 'revoke', orgId: orgForTemplates.id },
+      });
+      if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
+      setSmtpConfigured(false);
+      setSmtpConfig(DEFAULT_SMTP);
+      toast.success('Correo propio desconectado');
+    } catch (err: any) {
+      toast.error('No se pudo desconectar: ' + err.message);
+    } finally {
+      setSmtpSaving(false);
     }
   };
 
@@ -422,18 +486,6 @@ export default function SettingsPage() {
       setDecantMargin10(String(s.decant_margin_10ml ?? 250));
       setDecantMargin5(String(s.decant_margin_5ml ?? 350));
       setDecantMargin2_5(String(s.decant_margin_2_5ml ?? 500));
-      // SMTP — loaded from DB (accessible by edge functions)
-      if (s.smtp_host) {
-        setSmtpConfig({
-          host: s.smtp_host || '',
-          port: String(s.smtp_port || 587),
-          user: s.smtp_user || '',
-          pass: s.smtp_pass || '',
-          fromName: s.smtp_from_name || '',
-          fromEmail: s.smtp_from_email || '',
-          secure: !!s.smtp_secure,
-        });
-      }
       setOrigRate(String(s.exchange_rate));
       setOrigCustoms(String(s.customs_percent));
       setOrigDiscount(String(s.default_discount_percent));
@@ -1079,15 +1131,33 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* SMTP Email Config */}
+          {/* SMTP propio: estado saneado + secreto administrado por Edge. */}
           <div id="settings-email" className="settings-panel settings-panel--messaging bg-card border border-blue-500/20 rounded-[10px] p-4 md:p-6 space-y-4">
-            <div>
-              <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
-                <Mail className="w-4 h-4 text-blue-400" />Email SMTP Propio
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Configurá tu servidor de correo para enviar quotes, recordatorios y alertas desde tu propio dominio.
-                Los datos se guardan solo en este dispositivo.
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-blue-400" />Correo saliente del comercio
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enviá campañas, facturas y avisos desde una casilla autorizada de tu organización.
+                </p>
+              </div>
+              <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${smtpConfigured ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-border bg-muted text-muted-foreground'}`}>
+                {smtpStatusLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : smtpConfigured ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                {smtpStatusLoading ? 'Consultando' : smtpConfigured ? 'Conectado' : 'Sin conectar'}
+              </span>
+            </div>
+
+            {smtpStatusError && (
+              <div role="alert" className="flex flex-col gap-2 rounded-[8px] border border-destructive/30 bg-destructive/5 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-destructive">{smtpStatusError}</p>
+                <Button type="button" size="sm" variant="outline" onClick={loadSmtpStatus}>Reintentar</Button>
+              </div>
+            )}
+
+            <div className="rounded-[8px] border border-blue-500/20 bg-blue-500/5 p-3">
+              <p className="text-xs text-muted-foreground">
+                Al guardar se envía una prueba a <strong className="text-foreground">{user?.email}</strong>. La credencial queda en almacenamiento privado del backend y nunca vuelve a esta pantalla.
               </p>
             </div>
 
@@ -1115,7 +1185,9 @@ export default function SettingsPage() {
                     <SelectItem value="25">25 (SMTP)</SelectItem>
                     <SelectItem value="465">465 (SSL)</SelectItem>
                     <SelectItem value="587">587 (TLS) — recomendado</SelectItem>
+                    <SelectItem value="2465">2465 (SSL alternativo)</SelectItem>
                     <SelectItem value="2525">2525 (alternativo)</SelectItem>
+                    <SelectItem value="2587">2587 (TLS alternativo)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1142,12 +1214,15 @@ export default function SettingsPage() {
                     type={smtpPassVisible ? 'text' : 'password'}
                     value={smtpConfig.pass}
                     onChange={e => setSmtp('pass', e.target.value)}
-                    placeholder="••••••••••••"
+                    placeholder={smtpConfigured ? 'Dejar vacía para conservar' : 'Credencial SMTP'}
+                    autoComplete="new-password"
+                    aria-label="Credencial SMTP"
                     className="bg-muted border-border text-sm pr-9"
                   />
                   <button
                     type="button"
                     onClick={() => setSmtpPassVisible(v => !v)}
+                    aria-label={smtpPassVisible ? 'Ocultar credencial' : 'Mostrar credencial'}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     {smtpPassVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -1189,27 +1264,28 @@ export default function SettingsPage() {
               <Button
                 onClick={handleSmtpSave}
                 size="sm"
-                disabled={smtpSaving}
+                disabled={smtpSaving || smtpStatusLoading}
                 className="gradient-gold text-primary-foreground font-semibold flex-1"
               >
-                {smtpSaving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
-                Guardar SMTP
+                {smtpSaving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />}
+                {smtpConfigured ? 'Probar y actualizar' : 'Probar y conectar'}
               </Button>
-              <Button
-                onClick={handleSmtpTest}
-                size="sm"
-                variant="outline"
-                disabled={smtpTesting}
-                className="gap-1.5"
-              >
-                {smtpTesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                Probar conexión
-              </Button>
+              {smtpConfigured && (
+                <ConfirmDialog
+                  title="Desconectar el correo propio"
+                  description="Las campañas y avisos volverán al proveedor de Plataforma cuando esté disponible. La credencial privada se elimina de esta organización."
+                  confirmText="Desconectar correo"
+                  onConfirm={handleSmtpRevoke}
+                  trigger={<Button type="button" size="sm" variant="outline" disabled={smtpSaving}>Desconectar</Button>}
+                />
+              )}
             </div>
 
-            <p className="text-[10px] text-muted-foreground">
-              Compatible con Gmail (App Password), Outlook, Brevo, Resend, y cualquier servidor SMTP estándar.
-              La contraseña nunca se envía a nuestros servidores.
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              Preferí una credencial específica del proveedor, no la contraseña de tu cuenta. Google recomienda OAuth y permite una App Password sólo con verificación en dos pasos; Microsoft recomienda OAuth para SMTP moderno.{' '}
+              <a className="inline-flex items-center gap-1 text-primary hover:underline" href="https://support.google.com/accounts/answer/185833?hl=es" target="_blank" rel="noreferrer">Guía de Google <ExternalLink className="h-3 w-3" /></a>
+              {' · '}
+              <a className="inline-flex items-center gap-1 text-primary hover:underline" href="https://learn.microsoft.com/es-es/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth" target="_blank" rel="noreferrer">Guía de Microsoft <ExternalLink className="h-3 w-3" /></a>
             </p>
           </div>
 

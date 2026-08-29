@@ -60,7 +60,7 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
     (async () => {
       const [{ data: cfg }, { data: tienda }] = await Promise.all([
         supabase.from("settings")
-          .select("afip_razon_social, afip_cuit, business_name, smtp_from_email")
+          .select("afip_razon_social, afip_cuit, business_name")
           .eq("org_id", orgId).maybeSingle(),
         // El nombre y los píxeles salen de la tienda, no del slug: escribir
         // "la tienda online de exentryimports" en un texto legal es feo y,
@@ -71,7 +71,7 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
       ]);
       const s = cfg as {
         afip_razon_social?: string | null; afip_cuit?: string | null;
-        business_name?: string | null; smtp_from_email?: string | null;
+        business_name?: string | null;
       } | null;
       const t = tienda as {
         name?: string | null; meta_pixel_id?: string | null; ga_measurement_id?: string | null;
@@ -82,7 +82,9 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
         usaPixeles: Boolean(t?.meta_pixel_id || t?.ga_measurement_id),
         razonSocial: s?.afip_razon_social || s?.business_name || "",
         cuit: s?.afip_cuit || "",
-        emailContacto: s?.smtp_from_email || "",
+        // El remitente técnico no necesariamente es el domicilio electrónico
+        // legal. No se adivina: si falta, el dueño lo declara en este paso.
+        emailContacto: "",
       }));
       setCargando(false);
     })();

@@ -10,7 +10,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
 import { requireUser } from "../_shared/requireUser.ts";
-import { parseSmtpConfig, sendEmail } from "../_shared/smtpSender.ts";
+import { remitenteDe } from "../_shared/remitente.ts";
+import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -124,21 +125,16 @@ Deno.serve(async (req) => {
       return json({ error: "No se pudo registrar el aviso" }, 500);
     }
 
-    const [{ data: store }, { data: settings }, { data: delivery }] = await Promise.all([
+    const [{ data: store }, { data: delivery }] = await Promise.all([
       admin.from("ecommerce_stores").select("name, slug, primary_color").eq("id", order.store_id).maybeSingle(),
-      admin.from("settings").select("smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_name, smtp_from_email, from_email").eq("org_id", order.org_id).maybeSingle(),
       admin.from("deliveries").select("carrier, external_tracking").eq("ecommerce_order_id", order.id).order("created_at").limit(1).maybeSingle(),
     ]);
     if (!store) return json({ error: "Tienda no encontrada" }, 404);
 
     const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
-    const smtp = parseSmtpConfig(settings as Record<string, unknown> | null);
-    const fromEmail = (settings as Record<string, unknown> | null)?.from_email
-      || (settings as Record<string, unknown> | null)?.smtp_from_email
-      || (settings as Record<string, unknown> | null)?.smtp_user
-      || Deno.env.get("FROM_EMAIL")
-      || "pedidos@resend.dev";
-    const result = await sendEmail(smtp, resendKey, `${store.name} <${fromEmail}>`, {
+    const smtp = await smtpDeOrganizacion(order.org_id);
+    const resendFrom = (await remitenteDe("pedidos")).from;
+    const result = await sendEmail(smtp, resendKey, resendFrom, {
       to: order.customer_email,
       subject: `${event === "shipped" ? "Tu pedido está en camino" : "Tu pedido fue entregado"} — ${order.order_number}`,
       html: emailHtml({

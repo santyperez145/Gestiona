@@ -106,7 +106,7 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | | Valor |
 |---|---|
 | Tablas sin RLS | ✅ **0** |
-| Tablas de credenciales con RLS y cero policies | ✅ **4 de 4** (`afip_credentials`, `afip_platform_credentials`, `payment_connections`, `meli_connections`) |
+| Tablas de credenciales con RLS y cero policies | ✅ **6 de 6** (`afip_credentials`, `afip_platform_credentials`, `payment_connections`, `meli_connections`, `evolution_connections`, `merchant_smtp_connections`), catálogo productivo 2026-08-29 |
 | Políticas `USING (true)` | ✅ **3**, y las tres son catálogos públicos a propósito: `plans` (pricing), `payment_providers` y `payment_provider_fees` |
 
 ⚠️ Ese último dato **corrige** `CLAUDE.md`, que dice que la lista *"debería estar
@@ -376,9 +376,9 @@ chicos no tiene.
   recalculan en Postgres. Un cliente comprometido no puede cambiar un precio.
 - ✅ **Multi-tenant por fila con RLS real**, 365 políticas, 0 tablas sin RLS.
   Verificado ejecutando como `anon` y `authenticated`, no como superusuario.
-- ✅ **Credenciales inalcanzables desde el navegador**: 4 tablas con RLS y cero
-  policies. La UI lee vistas `*_status` que dicen si está conectado, nunca el
-  token.
+- ✅ **Credenciales inalcanzables desde el navegador**: 6 tablas medidas con
+  RLS y cero policies. La UI lee vistas `*_status` que dicen si está conectado,
+  nunca el token ni la contraseña.
 - ✅ **Stock con ledger e idempotencia.** `record_stock_movement` es el único
   camino que toca `products.stock`. La vista `stock_negativo` está vacía.
 - ✅ **Outbox con eventos de dominio**: agregar un consumidor es una fila, no una
@@ -401,7 +401,7 @@ necesita un SaaS de 2 organizaciones (2026-08-26). No es el cuello de botella.
 | **Observabilidad** | 🟡 Sentry en front, Merchant 360 y traza correlacionada del pago desde checkout hasta ledger, visible con RLS y sin PII. Faltan métricas/SLO, OpenTelemetry, alertas y health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ Deno para 70 Edge Functions + lint + typecheck + build, 1.947 tests en 186 archivos (2026-08-29), audit completo en 0 y 43 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
+| **CI** | ✅ Deno para 70 Edge Functions + lint + typecheck + build, 1.955 tests en 187 archivos (2026-08-29), audit completo en 0 y 43 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
 | **API pública / webhooks salientes** | 🔴 No hay | API documentada, versionada, con rate limit y webhooks firmados | 🟠 Medio |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |
@@ -461,6 +461,15 @@ copian pantallas: se copian controles que reducen errores de operación.
   timeout, conserva la última fuente sana ante una falla parcial y actualiza
   sólo referencias; el tipo de cambio operativo sigue siendo decisión del
   comercio.
+- ✅ **Correo transaccional:** Google indica que las App Passwords requieren
+  verificación en dos pasos y no siempre están disponibles; Microsoft documenta
+  OAuth para SMTP AUTH, y Resend exige dominio verificado incluso cuando se usa
+  su interfaz SMTP ([Google App Passwords](https://support.google.com/accounts/answer/185833),
+  [Microsoft OAuth para SMTP](https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth),
+  [Resend SMTP](https://resend.com/docs/send-with-smtp), revisados 2026-08-29).
+  Gestiona prioriza OAuth/credencial específica del proveedor; si el comercio
+  usa SMTP, prueba antes de persistir, guarda el secreto sólo en backend y nunca
+  lo incluye en snapshots, respuestas ni vistas de estado.
 - ✅ **MercadoLibre:** sus notificaciones deben responder rápido, encolar el
   evento y consultar el recurso canónico por API en vez de confiar ciegamente en
   el payload ([notificaciones](https://developers.mercadolibre.com.ar/es_ar/notificaciones),

@@ -102,10 +102,11 @@ export const SNAPSHOT_TABLES = [
 export const EXCLUDED_CREDENTIAL_STORES = [
   "afip_credentials", "payment_connections", "meli_connections", "api_keys", "org_api_keys",
   "evolution_connections", "oauth_states", "portal_sessions", "push_subscriptions", "webhook_configs",
+  "merchant_smtp_connections",
 ] as const;
 
 const SECRET_SETTINGS_COLUMNS = new Set([
-  "mp_access_token", "api_key", "mp_webhook_secret", "webhook_secret", "smtp_pass",
+  "mp_access_token", "api_key", "mp_webhook_secret", "webhook_secret",
   "evolution_api_key", "ml_access_token", "ml_refresh_token",
 ]);
 

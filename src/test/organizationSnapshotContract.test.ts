@@ -8,6 +8,14 @@ const source = readFileSync(
 );
 
 describe("contrato portátil de snapshots", () => {
+  it("excluye el SMTP privado completo en vez de exportar una credencial", () => {
+    expect(source).toContain('"merchant_smtp_connections"');
+    expect(source).not.toMatch(/SECRET_SETTINGS_COLUMNS[\s\S]{0,300}"smtp_pass"/);
+
+    const restoreDrill = readFileSync(resolve(process.cwd(), "scripts/restore-drill.mjs"), "utf8");
+    expect(restoreDrill).toContain('"merchant_smtp_connections"');
+  });
+
   it("lleva las relaciones hijas operativas por el FK de su padre, nunca por una consulta global", () => {
     expect(source).toContain('bundle_items: { parentTable: "product_bundles", foreignKey: "bundle_id" }');
     expect(source).toContain('price_list_items: { parentTable: "price_lists", foreignKey: "price_list_id" }');

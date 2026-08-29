@@ -2,7 +2,7 @@
  * send-invoice-email — Sends an invoice by email with optional PDF attachment.
  *
  * Email provider priority:
- *   1. Own SMTP  — if smtp_host + smtp_user configured in org settings
+ *   1. Own SMTP  — if the organization connected its private credential
  *   2. Resend    — if RESEND_API_KEY env var is set
  *   3. Error     — no provider configured
  */
@@ -10,7 +10,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
-import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
+import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,16 +52,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Load SMTP config from org settings if orgId provided
-    let smtpCfg = null;
-    if (orgId) {
-      const { data: settings } = await admin
-        .from("settings")
-        .select("smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_name, smtp_from_email")
-        .eq("org_id", orgId)
-        .maybeSingle();
-      smtpCfg = parseSmtpConfig(settings as Record<string, unknown> | null);
-    }
+    const smtpCfg = orgId ? await smtpDeOrganizacion(orgId) : null;
 
     const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
     const resendFrom = (await remitenteDe("facturas")).from;

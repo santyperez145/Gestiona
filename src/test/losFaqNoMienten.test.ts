@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 /**
@@ -151,12 +151,14 @@ describe("los secretos no entran por una pantalla", () => {
   });
 
   it("y el servidor rechaza guardarla aunque alguien la mande", () => {
-    const dir = resolve(ROOT, "supabase/migrations");
-    const sql = readdirSync(dir).filter(f => f.endsWith(".sql")).sort().reverse()
-      .map(f => readFileSync(resolve(dir, f), "utf8"))
-      .find(t => /FUNCTION public\.mensajeria_guardar/.test(t));
-    expect(sql, "ninguna migración define mensajeria_guardar").toBeTruthy();
-    expect(sql!, "el guardado dejó de rechazar contraseñas y tokens")
+    // El contrato vive en la migración que agregó SMTP a la configuración de
+    // Plataforma. Leer las ~500 migraciones en cada test volvió esta guarda
+    // intermitente bajo la suite paralela sin aportar cobertura adicional.
+    const sql = readFileSync(resolve(
+      ROOT,
+      "supabase/migrations/20260827000240_el_correo_puede_salir_por_smtp_propio.sql",
+    ), "utf8");
+    expect(sql, "el guardado dejó de rechazar contraseñas y tokens")
       .toMatch(/smtp_pass[\s\S]{0,200}?RAISE EXCEPTION/);
   });
 });

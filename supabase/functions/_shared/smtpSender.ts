@@ -5,12 +5,13 @@
  * Repository: https://deno.land/x/denomailer
  *
  * Priority:
- *   1. Own SMTP (if smtp_host + smtp_user configured in org settings)
+ *   1. Own SMTP (if the organization has a private server-side connection)
  *   2. Resend API (if RESEND_API_KEY env var set)
  *   3. Error — no email provider configured
  */
 
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 export interface SmtpConfig {
   host: string;
@@ -234,18 +235,43 @@ export async function sendEmail(
 }
 
 /**
- * Load SMTP config from settings row (as returned by Supabase).
- * Returns null if SMTP is not fully configured.
+ * Carga la conexión privada de un comercio.
+ *
+ * `settings` no puede alojar secretos porque todo miembro del tenant lee su
+ * fila. Esta consulta usa service_role y la tabla subyacente tiene RLS sin una
+ * sola policy de navegador. La contraseña sólo existe dentro de la Edge que va
+ * a enviar el correo.
  */
-export function parseSmtpConfig(settings: Record<string, unknown> | null): SmtpConfig | null {
-  if (!settings?.smtp_host || !settings?.smtp_user) return null;
+export async function smtpDeOrganizacion(orgId: string): Promise<SmtpConfig | null> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceRole || !orgId) return null;
+
+  const admin = createClient(url, serviceRole);
+  const { data, error } = await admin
+    .from("merchant_smtp_connections")
+    .select("host,port,username,password,secure,from_name,from_email")
+    .eq("org_id", orgId)
+    .maybeSingle();
+
+  if (error) {
+    // Durante un deploy la Edge puede adelantarse a la migración. En ese único
+    // caso se conserva el fallback a Resend; cualquier otro error queda visible.
+    if (["42P01", "PGRST205"].includes(error.code || "")) {
+      console.warn("smtpDeOrganizacion: la tabla privada todavía no existe");
+      return null;
+    }
+    throw error;
+  }
+  if (!data) return null;
+
   return {
-    host: settings.smtp_host as string,
-    port: (settings.smtp_port as number) || 587,
-    user: settings.smtp_user as string,
-    pass: (settings.smtp_pass as string) || "",
-    secure: (settings.smtp_secure as boolean) || false,
-    fromName: (settings.smtp_from_name as string) || "",
-    fromEmail: (settings.smtp_from_email as string) || (settings.smtp_user as string),
+    host: data.host,
+    port: data.port || 587,
+    user: data.username,
+    pass: data.password,
+    secure: data.secure === true,
+    fromName: data.from_name || "",
+    fromEmail: data.from_email || data.username,
   };
 }

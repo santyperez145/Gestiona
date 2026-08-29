@@ -12,7 +12,8 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
-import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
+import { remitenteDe } from "../_shared/remitente.ts";
+import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -111,16 +112,14 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
-    const smtpCfg = parseSmtpConfig(settings as Record<string, unknown> | null);
+    const smtpCfg = await smtpDeOrganizacion(store.org_id);
     if (!smtpCfg?.host && !resendKey) {
       // Sin proveedor configurado no es un error del pedido: la compra ya se
       // hizo. Se informa y listo, para no romper el checkout.
       return json({ ok: false, reason: "sin proveedor de email configurado" });
     }
 
-    const fromEmail = (settings as any)?.from_email || (settings as any)?.smtp_user
-      || Deno.env.get("FROM_EMAIL") || "pedidos@resend.dev";
-    const resendFrom = `${store.name} <${fromEmail}>`;
+    const resendFrom = (await remitenteDe("pedidos")).from;
     const accent = store.primary_color || "#111111";
     const base = String(baseUrl || "").replace(/\/+$/, "");
     const orderUrl = `${base}/tienda/${store.slug}/orden/${order.order_number}`;

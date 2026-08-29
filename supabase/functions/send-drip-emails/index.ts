@@ -26,7 +26,8 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { sendEmail, parseSmtpConfig, type EmailPayload } from "../_shared/smtpSender.ts";
+import { remitenteDe } from "../_shared/remitente.ts";
+import { sendEmail, smtpDeOrganizacion, type EmailPayload } from "../_shared/smtpSender.ts";
 
 import { exigirCron } from "../_shared/cronAuth.ts";
 const SUPABASE_URL         = Deno.env.get("SUPABASE_URL")!;
@@ -113,6 +114,7 @@ Deno.serve(async (req) => {
     let skipped = 0;
     let failed = 0;
     const errors: string[] = [];
+    const resendFrom = (await remitenteDe("marketing")).from;
 
     for (const enrollment of due) {
       try {
@@ -155,16 +157,14 @@ Deno.serve(async (req) => {
 
         const step = steps[nextStepIdx];
 
-        // 2. Load org settings (SMTP + business name)
+        // 2. Load public business identity and private SMTP independently.
         const { data: settings } = await sb
           .from("settings")
-          .select("*")
+          .select("business_name")
           .eq("org_id", enrollment.org_id)
           .maybeSingle();
-        const smtpCfg = settings ? parseSmtpConfig(settings) : null;
+        const smtpCfg = await smtpDeOrganizacion(enrollment.org_id);
         const businessName: string = settings?.business_name || seq.name || "Gestiona";
-        const fromEmail: string = settings?.from_email || settings?.smtp_user || "noreply@gestiona.app";
-        const fromAddress = `${businessName} <${fromEmail}>`;
 
         // 3. Generate unsubscribe token
         const unsubToken = generateToken();
@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
           // For now we include them as a fallback via a metadata tag on Resend.
         };
 
-        const result = await sendEmail(smtpCfg, RESEND_API_KEY, fromAddress, payload, {
+        const result = await sendEmail(smtpCfg, RESEND_API_KEY, resendFrom, payload, {
           drip_enrollment_id: enrollment.id,
           drip_step_id: step.id,
           drip_sequence_id: seq.id,

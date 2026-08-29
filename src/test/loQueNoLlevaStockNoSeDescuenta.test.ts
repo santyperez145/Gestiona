@@ -26,6 +26,12 @@ import { resolve } from "node:path";
 
 const ROOT = resolve(__dirname, "../..");
 const MIGRACIONES = resolve(ROOT, "supabase/migrations");
+// El catálogo se lee una vez. Tres barridos completos independientes hacían
+// timeout bajo la suite paralela aunque cada aserción fuera determinista.
+const MIGRATION_SOURCES = readdirSync(MIGRACIONES)
+  .filter(f => f.endsWith(".sql"))
+  .sort()
+  .map(archivo => ({ archivo, texto: readFileSync(resolve(MIGRACIONES, archivo), "utf8") }));
 
 /**
  * La última migración que define la función, y **sólo el cuerpo de la
@@ -36,10 +42,9 @@ const MIGRACIONES = resolve(ROOT, "supabase/migrations");
  * de adentro de la función pasaba igual. Se probó en rojo y por eso se acotó.
  */
 function ultimaDefinicion(fn: string): { archivo: string; texto: string } | null {
-  const archivos = readdirSync(MIGRACIONES).filter(f => f.endsWith(".sql")).sort();
   const re = new RegExp(`CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+(?:public\\.)?${fn}\\s*\\(`, "i");
-  for (let i = archivos.length - 1; i >= 0; i--) {
-    const completo = readFileSync(resolve(MIGRACIONES, archivos[i]), "utf8");
+  for (let i = MIGRATION_SOURCES.length - 1; i >= 0; i--) {
+    const { archivo, texto: completo } = MIGRATION_SOURCES[i];
     const m = re.exec(completo);
     if (!m) continue;
     // Del CREATE hasta el cierre del cuerpo (`$function$` de cierre).
@@ -47,7 +52,7 @@ function ultimaDefinicion(fn: string): { archivo: string; texto: string } | null
     const abre = completo.indexOf("$function$", desde);
     const cierra = abre === -1 ? -1 : completo.indexOf("$function$", abre + 10);
     const texto = completo.slice(desde, cierra === -1 ? undefined : cierra);
-    return { archivo: archivos[i], texto };
+    return { archivo, texto };
   }
   return null;
 }
@@ -88,12 +93,11 @@ describe("lo que no lleva stock no se descuenta", () => {
     // `run_abc_analysis` clasifica por VENTAS, y un servicio se vende: sin el
     // filtro aparecía como «quebrado» pidiendo comprar unidades de algo que no
     // se compra.
-    const archivos = readdirSync(MIGRACIONES).filter(f => f.endsWith(".sql")).sort();
     let ultima: { archivo: string; texto: string } | null = null;
-    for (let i = archivos.length - 1; i >= 0; i--) {
-      const texto = readFileSync(resolve(MIGRACIONES, archivos[i]), "utf8");
+    for (let i = MIGRATION_SOURCES.length - 1; i >= 0; i--) {
+      const { archivo, texto } = MIGRATION_SOURCES[i];
       if (/CREATE\s+OR\s+REPLACE\s+VIEW\s+public\.stock_a_reponer/i.test(texto)) {
-        ultima = { archivo: archivos[i], texto };
+        ultima = { archivo, texto };
         break;
       }
     }
@@ -118,9 +122,8 @@ describe("lo que no lleva stock no se descuenta", () => {
     // —se prepara— pero la harina, la bebida y el descartable sí. Un preset
     // que marcara todo como «sin stock» le rompe el inventario al día
     // siguiente, y es el error fácil de cometer al agregar el rubro.
-    const archivos = readdirSync(MIGRACIONES).filter(f => f.endsWith(".sql")).sort();
-    const preset = archivos
-      .map(f => readFileSync(resolve(MIGRACIONES, f), "utf8"))
+    const preset = MIGRATION_SOURCES
+      .map(({ texto }) => texto)
       .find(t => t.includes("'gastronomia'") && t.includes("industry_presets"));
     expect(preset, "ningún preset de gastronomía").toBeTruthy();
 

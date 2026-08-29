@@ -113,6 +113,12 @@ Medición del código al 2026-08-22:
   Los 16 inputs de archivo quedan clasificados en importación, documento/cámara
   e imagen/branding; los 5 estructurados ya comparten `FilePicker` con
   dropzone/botón, validación, busy y error accesible;
+- Settings/Mensajería ya muestra el SMTP propio como una conexión, no como una
+  contraseña persistente: estado consultando/conectado/sin conectar, error con
+  retry, prueba explícita al email de la sesión, actualización sin devolver la
+  clave y desconexión confirmada. La ayuda enlaza las guías oficiales de Google
+  y Microsoft y el comercio ya no puede confundir “guardar” con “conexión
+  verificada”;
 - la validación visual autenticada desktop/mobile sigue pendiente de una sesión
   de prueba disponible en esta PC.
 
@@ -132,7 +138,7 @@ usa en material de producto o inversión.
 | CRM | Command center, segmentos, tabla y ficha 360. | Implementado | Tarea real y lectura mobile. |
 | Inventario/Compras | Lista/recepción bajo tokens v3; handoff direccionado y estados comunes, incluido dato parcial/offline. | Parcial | Composición completa lista/detalle/Kardex, migrar subflujos y validar responsive. |
 | Reportes/Intelligence | Primitives compartidos, alta densidad histórica. | Parcial | Simplificar filtros y priorizar decisión. |
-| Settings/Integraciones | Cabecera y navegación común. | Parcial | Formularios, secretos y permisos. |
+| Settings/Integraciones | Cabecera/navegación común y SMTP privado con estados completos. | Parcial | Converger los demás secretos, responsive y permisos de cada formulario. |
 | Finance | Shell teal, Inbox, inspector, matching, tres borradores y estados comunes con refresh/stale/offline. | Parcial | Proveedor aprobado + prueba responsive con documentos reales. |
 | Platform | Rail/control plane violeta y Merchant 360. | Parcial | Cola, métricas y soporte mobile. |
 | Storefront | Marca configurable aislada del SaaS. | Parcial | Home, PDP, carrito y checkout completo. |
@@ -360,7 +366,7 @@ declara validado porque “se ve mejor”.
 | 13 | POS teclado/touch/offline | Pendiente | Cobro y recuperación medidos. |
 | 14 | Compras, recepción y Kardex | Parcial 2026-08-22 | Finance llega a la OC exacta, muestra contexto y abre la recepción idempotente; faltan Kardex integrado y matriz responsive. |
 | 15 | Reportes orientados a decisión | Pendiente | Menos filtros duplicados; acción clara. |
-| 16 | Settings e Integraciones | Pendiente | Secretos, permisos y estados consistentes. |
+| 16 | Settings e Integraciones | Parcial 2026-08-29 | SMTP propio usa estado saneado, prueba antes de persistir, owner/admin y revocación confirmada; faltan los demás formularios y matriz responsive. |
 | 17 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos, aprobación y handoff a recepción usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
 | 18 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
 | 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |

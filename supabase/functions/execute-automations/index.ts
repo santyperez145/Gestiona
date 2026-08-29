@@ -20,7 +20,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { enviarWhatsApp } from "../_shared/whatsapp.ts";
-import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
+import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
 import { exigirCronOUsuario } from "../_shared/cronAuth.ts";
@@ -252,13 +252,7 @@ Deno.serve(async (req) => {
               .filter((u: any) => adminIds.includes(u.id) && u.email)
               .map((u: any) => u.email as string);
 
-            // Load SMTP config for this org
-            const { data: orgSettings } = await supabase
-              .from("settings")
-              .select("smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_name, smtp_from_email")
-              .eq("org_id", orgId)
-              .maybeSingle();
-            const smtpCfg = parseSmtpConfig(orgSettings as Record<string, unknown> | null);
+            const smtpCfg = await smtpDeOrganizacion(orgId);
 
             for (const email of adminEmails) {
               await sendEmail(

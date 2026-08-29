@@ -18,7 +18,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { remitenteDe } from "../_shared/remitente.ts";
-import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
+import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -75,13 +75,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ── Load org SMTP config ─────────────────────────────────
-    const { data: settings } = await admin
-      .from("settings")
-      .select("smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_name, smtp_from_email")
-      .eq("org_id", orgId)
-      .maybeSingle();
-    const smtpCfg = parseSmtpConfig(settings as Record<string, unknown> | null);
+    const smtpCfg = await smtpDeOrganizacion(orgId);
     const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
 
     if (!smtpCfg && !resendKey) {

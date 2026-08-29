@@ -11,7 +11,8 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
-import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
+import { remitenteDe } from "../_shared/remitente.ts";
+import { sendEmail, smtpDeOrganizacion, type SmtpConfig } from "../_shared/smtpSender.ts";
 
 import { exigirCron } from "../_shared/cronAuth.ts";
 const corsHeaders = {
@@ -44,21 +45,19 @@ Deno.serve(async (req) => {
     }
 
     const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
-    const cacheSettings = new Map<string, Record<string, unknown>>();
+    const cacheSmtp = new Map<string, SmtpConfig | null>();
+    const resendFrom = (await remitenteDe("marketing")).from;
     let enviados = 0;
     const errores: string[] = [];
 
     for (const a of avisos as Record<string, string | number>[]) {
       try {
         const orgId = String(a.org_id);
-        let settings = cacheSettings.get(orgId);
-        if (!settings) {
-          const { data } = await admin.from("settings").select("*").eq("org_id", orgId).maybeSingle();
-          settings = (data ?? {}) as Record<string, unknown>;
-          cacheSettings.set(orgId, settings);
+        let smtpCfg = cacheSmtp.get(orgId);
+        if (smtpCfg === undefined) {
+          smtpCfg = await smtpDeOrganizacion(orgId);
+          cacheSmtp.set(orgId, smtpCfg);
         }
-
-        const smtpCfg = parseSmtpConfig(settings);
         if (!smtpCfg?.host && !resendKey) continue;   // ese comercio no puede enviar
 
         const nombre = a.variant_name
@@ -69,10 +68,7 @@ Deno.serve(async (req) => {
         // hoy y volver la semana que viene cuando ya no está.
         const quedan = Number(a.stock) || 0;
 
-        const from = (settings?.from_email as string) || (settings?.smtp_user as string)
-          || Deno.env.get("FROM_EMAIL") || "pedidos@resend.dev";
-
-        const res = await sendEmail(smtpCfg, resendKey, `${a.store_name} <${from}>`, {
+        const res = await sendEmail(smtpCfg, resendKey, resendFrom, {
           to: String(a.email),
           subject: `Volvió ${nombre}`,
           html: `

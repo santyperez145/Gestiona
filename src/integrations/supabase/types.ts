@@ -21227,6 +21227,126 @@ export type Database = {
           },
         ]
       }
+      merchant_smtp_connections: {
+        Row: {
+          created_at: string
+          from_email: string
+          from_name: string | null
+          host: string
+          org_id: string
+          password: string
+          port: number
+          secure: boolean
+          updated_at: string
+          updated_by: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          from_email: string
+          from_name?: string | null
+          host: string
+          org_id: string
+          password: string
+          port: number
+          secure?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string
+          from_email?: string
+          from_name?: string | null
+          host?: string
+          org_id?: string
+          password?: string
+          port?: number
+          secure?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       multi_currency_transactions: {
         Row: {
           base_amount: number
@@ -34971,13 +35091,6 @@ export type Database = {
           referral_bonus_points: number | null
           referral_enabled: boolean | null
           secondary_color: string | null
-          smtp_from_email: string | null
-          smtp_from_name: string | null
-          smtp_host: string | null
-          smtp_pass: string | null
-          smtp_port: number
-          smtp_secure: boolean
-          smtp_user: string | null
           stock_dormido_days: number | null
           tax_enabled: boolean
           tax_iibb_percent: number
@@ -35074,13 +35187,6 @@ export type Database = {
           referral_bonus_points?: number | null
           referral_enabled?: boolean | null
           secondary_color?: string | null
-          smtp_from_email?: string | null
-          smtp_from_name?: string | null
-          smtp_host?: string | null
-          smtp_pass?: string | null
-          smtp_port?: number
-          smtp_secure?: boolean
-          smtp_user?: string | null
           stock_dormido_days?: number | null
           tax_enabled?: boolean
           tax_iibb_percent?: number
@@ -35177,13 +35283,6 @@ export type Database = {
           referral_bonus_points?: number | null
           referral_enabled?: boolean | null
           secondary_color?: string | null
-          smtp_from_email?: string | null
-          smtp_from_name?: string | null
-          smtp_host?: string | null
-          smtp_pass?: string | null
-          smtp_port?: number
-          smtp_secure?: boolean
-          smtp_user?: string | null
           stock_dormido_days?: number | null
           tax_enabled?: boolean
           tax_iibb_percent?: number
@@ -45472,6 +45571,120 @@ export type Database = {
           },
           {
             foreignKeyName: "meli_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      merchant_smtp_connection_status: {
+        Row: {
+          configured: boolean | null
+          from_email: string | null
+          from_name: string | null
+          host: string | null
+          org_id: string | null
+          port: number | null
+          secure: boolean | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          configured?: never
+          from_email?: string | null
+          from_name?: string | null
+          host?: string | null
+          org_id?: string | null
+          port?: number | null
+          secure?: boolean | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          configured?: never
+          from_email?: string | null
+          from_name?: string | null
+          host?: string | null
+          org_id?: string | null
+          port?: number | null
+          secure?: boolean | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "merchant_smtp_connections_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "platform_org_stock_accuracy"

@@ -22,11 +22,11 @@ no pudo probarse quedó abierto en vez de declararse sano por intuición.
 | Superficie | Evidencia al 2026-08-28 | Estado |
 |---|---|---|
 | Git | remoto alineado, worktree limpio al iniciar | Verde |
-| Migraciones | 481 archivos / 481 registradas; `db push --dry-run` sin brecha | Verde |
+| Migraciones | 485 archivos / 485 registradas al cierre del 2026-08-29; `db push --dry-run` sin brecha | Verde |
 | Edge estática | 70 funciones pasan `npm run check:functions` | Verde |
 | Documentación | 61 enlaces internos en 39 documentos; 1 número sin fecha corregido | Verde |
 | RLS | 0 tablas públicas sin RLS; policies sin tenant, índices tenant, settings faltantes y stock negativo en 0 | Verde |
-| Secretos heredados | 0 valores en las siete columnas de credenciales antiguas de `settings`; 0 webhooks y 0 transportistas con secreto | Verde hoy; falta retirar columnas muertas |
+| Secretos heredados | SMTP retiró siete columnas de `settings`; 0 valores en las demás credenciales antiguas medidas, 0 webhooks y 0 transportistas con secreto | Verde; continuar retiro por conexión, sin migraciones masivas |
 | Storage | 25 backups privados, 52 imágenes de producto y 2 de marketing; Finance y comprobantes privados. `expense-receipts` cerró antes del primer objeto | Verde: path por tenant, RLS por permiso y URL firmada de 60 s |
 | Cron | 25 jobs activos; 22.155 éxitos y 3 fallas en 7 días. Las tres fueron `expire-overdue-trials` y sus últimas 12 corridas ya son exitosas | Resuelto, conservar señal |
 | Edge runtime | Corte inicial: 215 invocaciones / 12 fallas en 24 h; 429 / 42 en 7 días; 0 huérfanas | Corregido y desplegado; falta observar la próxima corrida natural de cotización/cumpleaños |
@@ -98,7 +98,7 @@ en la medición final. El PWA precachea 18 entradas / 1.986,06 KiB. El primer E2
 por transformación fría (31 s, luego 3,1 s); la puerta ahora ejecuta
 `build + vite preview`; la repetición final terminó sin retries en 38,2 s.
 La puerta final completó typecheck, lint con 0 errores/140 warnings conocidos y
-1.947/1.947 tests en 186 archivos al cierre de la recuperación de tareas programadas (2026-08-29).
+1.955/1.955 tests en 187 archivos al cierre del SMTP privado (2026-08-29).
 
 ⚠️ `vite-plugin-pwa` 1.3.0 —última versión instalada al corte— todavía pasa
 `inlineDynamicImports` al build del service worker y Vite 8 lo marca deprecado.
@@ -174,11 +174,39 @@ a producción: Gastos abre un único Dialog, expande el scanner dentro de ese
 focus trap, conserva las tres entradas de archivo esperadas y renderiza 0 URLs
 públicas; la interacción terminó sin errores de consola o página.
 
+## SMTP: la contraseña sí llegaba al servidor, y a todos los miembros
+
+Configuración decía que la clave SMTP no salía del dispositivo, pero ejecutaba
+un `UPDATE settings.smtp_pass`. Como `settings` tiene SELECT para los miembros,
+RLS protegía el tenant pero no la columna: un empleado del comercio podía leer
+la contraseña. Antes de migrar se midieron 0 configuraciones reales.
+
+`20260828000190/200` crean `merchant_smtp_connections` con RLS, cero policies y
+acceso exclusivo de `service_role`; una vista tenant-safe expone host, remitente
+y estado, nunca la contraseña. Dueño/admin guarda o revoca por `test-smtp`, que
+prueba primero contra el email autenticado y conserva una clave existente sólo
+dentro del backend. Once emisores leen el mismo helper privado y Resend conserva
+el fallback. Las siete columnas SMTP salieron de `settings` sin `CASCADE`, y la
+tabla completa quedó excluida de snapshots y restore drill.
+
+La primera puerta completa encontró una lectura residual en el generador de
+páginas legales. No se reemplazó con la dirección SMTP saneada: el remitente
+técnico puede no ser el contacto legal, por lo que ese dato vuelve a pedirse al
+dueño. La misma corrida mostró falsos timeouts por decenas de workers leyendo
+el mismo árbol; Vitest quedó limitado a cuatro workers y 1.955/1.955 pruebas
+pasaron con el timeout estricto original de 5 s.
+
+La prueba productiva usó una credencial `ZZ` transaccional sin abrir red: el
+miembro vio el estado, no pudo leer la tabla, un outsider obtuvo 0 filas y el
+rollback dejó 0 restos. Producción quedó con 0 conexiones, 0 columnas SMTP en
+`settings` y libro 485/485. No se simuló entregabilidad: sigue pendiente una
+conexión real, su correo de prueba y la observación de entrega/rebote.
+
 ## Orden de continuación
 
 1. Confirmar la próxima corrida natural de cotización y cumpleaños en
    `edge_invocation_log`; no invocarlas a mano ni declarar recuperación antes.
-2. Retirar del esquema las columnas de secretos heredadas sólo cuando todas sus
-   lecturas estén probadas en cero y exista migración de salida reversible.
+2. Repetir el patrón SMTP para cada secreto heredado restante: medir 0 o migrar,
+   desplegar consumidores, retirar columnas sin `CASCADE` y verificar roles.
 3. Completar P1-04 con `payments.edit` para refund y prueba cross-branch cuando
    existan dos ubicaciones reales aptas.

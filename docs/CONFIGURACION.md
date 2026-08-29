@@ -61,8 +61,12 @@ Sin `ANTHROPIC_API_KEY`, las funciones de IA generativa responden con error;
 `predict-sales` sigue disponible con una estimación estadística explícita. Sin
 `RESEND_API_KEY`, los crons de email corren pero no envían nada.
 
-> Alternativa a Resend: cargar un SMTP propio en Configuración → Email. Las
-> funciones intentan SMTP primero y caen a Resend.
+> Alternativa a Resend: conectar un SMTP propio en Configuración → Mensajería.
+> La prueba llega al email de la sesión antes de guardar. Sólo owner/admin puede
+> administrarlo; la credencial vive en una tabla privada de backend y nunca
+> vuelve a la pantalla, a un snapshot ni a `settings`. Las funciones intentan
+> SMTP primero y caen a Resend. Preferí OAuth o una credencial específica del
+> proveedor; no uses la contraseña normal de la cuenta.
 
 ### Según lo que uses
 

@@ -13,7 +13,8 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
-import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
+import { remitenteDe } from "../_shared/remitente.ts";
+import { sendEmail, smtpDeOrganizacion, type SmtpConfig } from "../_shared/smtpSender.ts";
 
 import { exigirCron } from "../_shared/cronAuth.ts";
 const corsHeaders = {
@@ -58,19 +59,16 @@ Deno.serve(async (req) => {
     let enviados = 0;
     const errores: string[] = [];
 
-    // Config por organización: cada comercio puede tener su propio SMTP.
-    const cacheSettings = new Map<string, any>();
+    const cacheSmtp = new Map<string, SmtpConfig | null>();
+    const resendFrom = (await remitenteDe("marketing")).from;
 
     for (const c of carritos as any[]) {
       try {
-        let settings = cacheSettings.get(c.org_id);
-        if (!settings) {
-          const { data } = await admin.from("settings").select("*").eq("org_id", c.org_id).maybeSingle();
-          settings = data ?? {};
-          cacheSettings.set(c.org_id, settings);
+        let smtpCfg = cacheSmtp.get(c.org_id);
+        if (smtpCfg === undefined) {
+          smtpCfg = await smtpDeOrganizacion(c.org_id);
+          cacheSmtp.set(c.org_id, smtpCfg);
         }
-
-        const smtpCfg = parseSmtpConfig(settings);
         if (!smtpCfg?.host && !resendKey) continue;   // ese comercio no puede enviar
 
         const items = (c.items ?? []) as Item[];
@@ -88,10 +86,7 @@ Deno.serve(async (req) => {
           ? `${baseUrl}/tienda/${c.store_slug}/carrito/${c.recovery_token}`
           : "";
 
-        const from = settings?.from_email || settings?.smtp_user
-          || Deno.env.get("FROM_EMAIL") || "pedidos@resend.dev";
-
-        const res = await sendEmail(smtpCfg, resendKey, `${c.store_name} <${from}>`, {
+        const res = await sendEmail(smtpCfg, resendKey, resendFrom, {
           to: c.customer_email,
           subject: `Te quedó algo en el carrito 🛒`,
           html: `

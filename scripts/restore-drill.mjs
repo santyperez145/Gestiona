@@ -35,12 +35,12 @@ const RPO_HORAS = 36;
 const CURRENT_SNAPSHOT_VERSION = 3;
 const SECRET_SETTINGS_COLUMNS = new Set([
   "mp_access_token", "api_key", "mp_webhook_secret", "webhook_secret",
-  "smtp_pass", "evolution_api_key", "ml_access_token", "ml_refresh_token",
+  "evolution_api_key", "ml_access_token", "ml_refresh_token",
 ]);
 const EXCLUDED_CREDENTIAL_STORES = new Set([
   "afip_credentials", "payment_connections", "meli_connections", "api_keys",
   "org_api_keys", "evolution_connections", "oauth_states", "portal_sessions",
-  "push_subscriptions", "webhook_configs",
+  "push_subscriptions", "webhook_configs", "merchant_smtp_connections",
 ]);
 
 function fail(message) {

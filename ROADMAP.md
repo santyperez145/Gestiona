@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.947 tests en 186 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el nuevo recorrido de Gastos conserva 0 escrituras. |
+| Calidad técnica | 1.955 tests en 187 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -1634,6 +1634,27 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     y 0 restos. No se invocó ninguna Edge manualmente. Falta confirmar el
     próximo resultado natural en `edge_invocation_log` antes de declarar la
     recuperación operativa cerrada.
+46. ~~SMTP propio sin contraseña visible para empleados~~ — cerrado
+    técnicamente el 2026-08-29. Ajustes afirmaba que la clave no llegaba al
+    servidor pero escribía `settings.smtp_pass`, una fila que cualquier miembro
+    de la organización puede leer. Producción tenía 0 configuraciones, por lo
+    que `20260828000190/200` migraron defensivamente, crearon
+    `merchant_smtp_connections` con RLS y cero policies y retiraron las siete
+    columnas `smtp_*` sin `CASCADE`. La pantalla sólo consulta una vista de
+    estado saneada; dueño/admin prueba contra su propio email y guarda o revoca
+    mediante Edge, sin que la contraseña vuelva al navegador. Once emisores
+    comparten un único helper service-role y conservan Resend como fallback.
+    La guarda de columnas encontró además que el generador legal seguía pidiendo
+    `smtp_from_email`: se retiró porque un remitente técnico no es el domicilio
+    electrónico legal y ese dato debe declararlo el dueño. Vitest limita ahora
+    su paralelismo a cuatro workers; evita falsos rojos de I/O en guardas que
+    recorren el repo sin ampliar el timeout ni esconder cuelgues.
+    Snapshot y restore drill excluyen la tabla privada. Verificación productiva:
+    miembro ve estado pero no secreto, outsider ve 0, 0 conexiones reales,
+    libro 485/485 y 0 restos; no se envió un correo de prueba a una cuenta real.
+    Google y Microsoft recomiendan OAuth y credenciales específicas; App
+    Password queda documentada sólo como fallback con 2FA. Falta conectar un
+    proveedor real y medir entrega/rebote antes de declarar operación validada.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2122,7 +2143,7 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **1.947 tests en 186 archivos**,
+- Build y suites locales del 2026-08-29: **1.955 tests en 187 archivos**,
   typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 70
   funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
   panel y 1 setup autenticado—; el de Gastos es de sólo lectura.

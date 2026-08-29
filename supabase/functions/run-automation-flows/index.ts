@@ -9,7 +9,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { remitenteDe } from "../_shared/remitente.ts";
-import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
+import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
 import { exigirCron } from "../_shared/cronAuth.ts";
@@ -394,13 +394,7 @@ async function actionEmail(
 
   if (!recipients.length) return 0;
 
-  // Load SMTP config for org
-  const { data: orgSettings } = await supabase
-    .from("settings")
-    .select("smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_name, smtp_from_email")
-    .eq("org_id", orgId)
-    .maybeSingle();
-  const smtpCfg = parseSmtpConfig(orgSettings as Record<string, unknown> | null);
+  const smtpCfg = await smtpDeOrganizacion(orgId);
   const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
 
   if (!smtpCfg && !resendKey) {
