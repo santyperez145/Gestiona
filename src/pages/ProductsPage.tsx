@@ -73,7 +73,7 @@ import {
 import { plural } from "@/lib/plural";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
-const FULLSCREEN_PRODUCT_WORKSPACE = "h-[100dvh] max-h-[100dvh] w-screen max-w-none overflow-hidden rounded-none border-0 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-6xl sm:rounded-[18px] sm:border";
+const FULLSCREEN_PRODUCT_WORKSPACE = "flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col overflow-hidden rounded-none border-0 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-6xl sm:rounded-[18px] sm:border";
 
 function productLoadErrorMessage(cause: unknown, fallback: string) {
   if (cause instanceof Error && cause.message.trim()) return cause.message;

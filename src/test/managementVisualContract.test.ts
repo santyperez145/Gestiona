@@ -89,7 +89,7 @@ describe('contrato visual transversal de Gestión', () => {
     const products = source('src/pages/ProductsPage.tsx');
     const importer = source('src/components/products/ProductsExcelImport.tsx');
 
-    expect(products).toContain('const FULLSCREEN_PRODUCT_WORKSPACE = "h-[100dvh] max-h-[100dvh]');
+    expect(products).toContain('const FULLSCREEN_PRODUCT_WORKSPACE = "flex h-[100dvh] max-h-[100dvh]');
     expect(products.match(/<DialogContent size="full"/g)).toHaveLength(2);
     expect(products).toContain('className="min-h-0 flex-1 overflow-hidden"');
     expect(products).toContain('className="min-h-0 flex-1 overflow-y-auto overscroll-contain"');
