@@ -223,7 +223,7 @@ usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 1.967 tests en 189 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
+| Calidad técnica | 1.969 tests en 190 archivos pasan al 2026-08-29; typecheck, lint sin errores (140 warnings conocidos), build/PWA y 70 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -908,7 +908,7 @@ incluidos estados ambiguos y recuperación.
   proyecto para declarar RTO/RPO contractual.
 - Correlation ID desde checkout hasta proveedor, webhook, orden y ledger.
 - Trazas básicas y runbooks para pagos, ARCA, cron e integraciones críticas.
-- E2E críticos como puerta bloqueante de CI: 32 recorridos públicos y 8 de
+- E2E críticos como puerta bloqueante de CI: 32 recorridos públicos y 10 de
   panel, más setup autenticado obligatorio, todos de sólo lectura.
 - Revisión legal/económica de comisión, billing y tratamiento de datos.
 - Procedimiento único de migración, verificación y rollback.
@@ -1281,27 +1281,102 @@ directo a tablas ni excepciones internas.
 **Salida:** cada país o segmento pasa su propia matriz legal, fiscal, seguridad,
 soporte y unit economics antes de recibir tráfico comercial.
 
-## 7. Los próximos 25 slices
+### Matriz canónica del backlog de auditoría
+
+El backlog del 2026-08-24 conserva el diagnóstico, criterios de aceptación y
+evidencia de cada hallazgo. Desde el 2026-08-29 **no define prioridad ni estado
+por separado**: sus 41 IDs están absorbidos acá. Si una etiqueta del documento
+de auditoría contradice esta matriz, manda esta matriz y el gate de fase. Esto
+evita llamar “completo” a un fixture técnico cuando todavía falta la prueba que
+importa a producto o inversión.
+
+Leyenda: **cerrado** = criterio técnico y resultado demostrados; **técnico** =
+implementación probada, outcome externo pendiente; **parcial** = quedan
+contratos técnicos; **externo** = requiere dueño/proveedor/operación real;
+**congelado** = no se autoriza antes de su gate.
+
+| Auditoría | Absorbido en | Estado canónico 2026-08-29 | Evidencia que todavía falta |
+|---|---|---|---|
+| P0-01 | F0 · contratos/DoD | **Cerrado** | Mantener conteos, migraciones y documentación fechados. |
+| P0-02 | F0 · slice 1 | **Técnico + externo** | Primer CAE productivo reconciliado. |
+| P0-03 | F0 · slice 3 | **Técnico + externo** | Conteo físico y segundo conteo de control. |
+| P0-04 | F0 · slice 5 | **Técnico; live externo** | Los 16 escenarios pasan en drill; falta evidence pack contra Mercado Pago real. |
+| P0-05 | F0 · infraestructura | **Externo** | Supabase/Vercel staging, secretos y cuentas sandbox separados. |
+| P0-06 | F0 · slice 4 | **Parcial** | Restore integral de proyecto y repetición contractual de RTO/RPO. |
+| P0-07 | F0 · slice 6 | **Parcial** | Exporter OpenTelemetry, SLO y alertas externas; correlación/P95 internos ya existen. |
+| P0-08 | F0 · slice 7 | **Parcial por P0-05** | Los 43 E2E definidos bloquean; los flujos con escritura esperan staging. |
+| P0-09 | F0 · slice 8 | **Técnico; decisión externa** | Costos reales, contrato y pricing aprobados; comisión sigue inactiva por defecto. |
+| P0-10 | F1 · slices 9–10 | **Técnico + externo** | Segundo comercio completa primera venta/pago/factura/cierre sin SQL. |
+| P1-01 | F1 · slice 10 / bitácora 39 | **Técnico** | Adopción real del Capability Catalog fuera de fixtures. |
+| P1-02 | F1 · slice 10 | **Parcial** | Perfil versionado y tres negocios externos distintos; no crear presets para entidades inexistentes. |
+| P1-03 | F1 · slice 10 / bitácora 40 | **Técnico** | Primer provisioning real y costo de intervención medido. |
+| P1-04 | F0–F1 · bitácora 41–42 | **Parcial** | Refund expresa `payments.edit` y prueba cross-branch con dos sucursales aptas. |
+| P1-05 | F1 + F4 · slices 10/22 | **Parcial** | CSV/Excel está cerrado; faltan conectores priorizados, redirects y reconciliación de migración. |
+| P1-06 | F4 · slice 19 | **Pendiente** | Build/deploy/SLO del Storefront físicamente independientes. |
+| P1-07 | F4 · slice 21 | **Pendiente** | Dos stores de una organización sobre el mismo Core. |
+| P1-08 | F4 · slice 20 | **Pendiente** | Carrito server-side, multidevice e idempotente. |
+| P1-09 | F4 · slice 20 | **Pendiente** | State machines separadas y concurrencia/partial flows probados. |
+| P1-10 | F4 · slice 22 | **Pendiente** | Dominio, SSL, canonical, redirects, health y takeover prevention. |
+| P1-11 | F4 · slice 22 + Design | **Parcial** | Themes existen; faltan draft/preview/publish/version/rollback y page contract. |
+| P1-12 | F4 · slice 22 | **Parcial** | JSON-LD/sitemap existen; faltan redirects, hreflang y reporte de migración SEO. |
+| P1-13 | F8 · Developer Platform | **Parcial** | API v1 ya tiene keys/scopes/rate limit/idempotencia; faltan OpenAPI, deprecation y contrato decimal. |
+| P1-14 | F8 · bitácora 48 | **Parcial** | Receptor externo, contrato público, DLQ/replay y outbox transaccional. |
+| P2-01 | F2 · slices 11–12 | **Técnico** | Operación real con los cuatro costos y decisión del merchant. |
+| P2-02 | F2 · slice 13 | **Técnico** | Primer `impact_event` real maduro; fixtures no prueban valor creado. |
+| P2-03 | F2 · slice 13 | **Parcial** | Unificar simulación de precio/promoción/cuotas/compra/envío/mix, sin writes. |
+| P2-04 | F3 · slice 16 | **Parcial** | Provider/model registry, fallback, redaction y evals; costo/cupo ya se mide. |
+| P2-05 | F3 · slices 15–16 | **Externo** | Scanner, DPA, región/retención, modelo aprobado y benchmark. |
+| P2-06 | F5 · slice 23 | **Congelado hasta adopción F3** | Email/WhatsApp inbound con routing, consentimiento y custodia. |
+| P2-07 | F5 · slice 23 | **Congelado hasta adopción F3** | PO vs recepción vs factura, tolerancias y cola de discrepancias. |
+| P2-08 | F5 · slice 23 | **Parcial/congelado** | Pagos ya concilian; falta reconciliación Finance end-to-end y piloto. |
+| P2-09 | F6 · slice 24 | **Congelado hasta F4/demanda** | Contrato SearchProvider y benchmark con volumen real. |
+| P2-10 | F6 · slice 24 | **Parcial/congelado** | Listas/volumen existen; faltan company/buyer/terms/credit/approval B2B. |
+| P3-01 | F7 · slice 25 | **Congelado por TPV** | Segundo proveedor con failover y conciliación neutral. |
+| P3-02 | F7 · slice 25 | **Congelado por volumen** | Quote/label/cancel/track y unit economics positivos. |
+| P3-03 | F8 · slice 25 | **Congelado por API estable** | Identidad OAuth, scopes, install/revoke y auditoría. |
+| P3-04 | F8 · slice 25 | **Congelado por demanda** | Tres integraciones externas activas antes del sandbox/portal. |
+| P3-05 | F8 · slice 25 | **Congelado por escala** | 50 merchants activos y demanda repetida. |
+| P3-06 | F9 | **Congelado por pipeline** | SSO/SCIM/SLA/compliance sólo ante oportunidad empresarial real. |
+| P3-07 | F7 · slice 25 | **Congelado por regulación** | Partner, legal, BCRA/compliance, riesgo, capital y volumen. |
+
+La comparación resolvió cinco contradicciones concretas:
+
+1. P0-04 y P0-09 estaban verdes por implementación interna, pero F0 conserva
+   correctamente abiertos proveedor/evidence pack y economics aprobados.
+2. P1-01 y P1-03 están cerrados técnicamente, no adoptados: producción no
+   convierte un fixture en segundo comercio.
+3. P2-01 y P2-02 tienen autoridad y Action Loop, pero siguen sin impacto real;
+   para un inversor continúan abiertos hasta demostrar valor observado.
+4. P1-13/P1-14 son foundation de Developer Platform dentro de F8, aunque parte
+   de su seguridad se adelantó para no operar una API vulnerable.
+5. Los seis “sprints inmediatos” del backlog eran la secuencia del 2026-08-24 y
+   quedan sustituidos por los gates, portfolio y orden técnico de esta sección.
+
+## 7. Portfolio de slices y bitácora de ejecución
 
 Máximo tres epics activos; por defecto se toma un slice de producto a la vez.
 Los bloqueos externos no autorizan saltar a la fase más atractiva: se avanza en
 la siguiente tarea técnica que reduzca el mismo gate.
 
-| # | Slice | Fase | Estado 2026-08-22 | Evidencia de cierre |
+La tabla de 25 slices es el portfolio canónico. La lista numerada posterior es
+la bitácora acumulativa de cortes ejecutados; su número no es una prioridad y
+por eso puede crecer por encima de 25.
+
+| # | Slice | Fase | Estado canónico 2026-08-29 | Evidencia de cierre |
 |---:|---|---|---|---|
 | 1 | ARCA producción | F0 | Bloqueado externamente; homologación completa | Factura productiva autorizada y reconciliada. |
 | 2 | Legal publish | F0 | Bloqueado externamente | Identidad, privacidad y términos revisados/publicados. |
 | 3 | Conteo físico | F0 | Bloqueado externamente | Ajustes trazables; stock y Kardex reconciliados. |
 | 4 | Restore drill | F0 | **Cerrado 2026-08-21:** v3, 147 tablas / 63 filas, RTO técnico 937,22 ms, cero restos | Repetición trimestral; reconstrucción completa queda como nivel siguiente. |
-| 5 | Payment test matrix | F0 | **Interna cerrada 2026-08-21:** 8 escenarios, 2 bugs corregidos, traza completa y cero restos. Certificación live bloqueada externamente | Pago/rechazo/webhook/timeout/refund reales reconciliados sin intervención de base. |
+| 5 | Payment test matrix | F0 | **Interna cerrada:** 16 escenarios al 2026-08-26, incluidos firma, orden fuera de secuencia, refund ambiguo/exacto, retry, reversión y conciliación; certificación live bloqueada externamente | Pago/rechazo/webhook/timeout/refund reales reconciliados sin intervención de base. |
 | 6 | Correlation IDs y trazas críticas | F0 | **Cerrado para pagos 2026-08-21:** una correlación server-side une intent, attempt, metadata del proveedor, eventos, orden, settlement y ledger; timeline RLS sin PII | Matriz exige las 5 etapas y la UI reconstruye la operación desde Costos de cobro. Extender por riesgo, no como plataforma genérica. |
-| 7 | E2E bloqueante | F0 | **Cerrado 2026-08-21:** 41 pruebas reales; tienda desktop/móvil y panel autenticado bloquean CI. El primer run posterior detectó usuarios Presence duplicados durante reconexión y forzó su deduplicación; además corrigió reutilización de puerto y 6 fallas ocultas iniciales. | GitHub Actions exige las 5 variables, no permite skips de auth y conserva specs de sólo lectura. |
+| 7 | E2E bloqueante | F0 | **Cerrado para los 43 recorridos definidos al 2026-08-29:** tienda desktop/móvil y panel autenticado bloquean CI. Ampliar signup/refund/ARCA/Finance con escritura depende de P0-05. | GitHub Actions exige las 5 variables, no permite skips de auth y conserva specs de sólo lectura. |
 | 8 | Comisión, billing y unit economics | F0 | **En curso:** aprobación segura + workbench de merchant/platform economics, impuesto, leakage, contribución y break-even entregados el 2026-08-21. Benchmark oficial: Tiendanube 0% con Pago Nube o 2%/1%/0,7% con proveedor externo, más su arancel. La muestra real sigue siendo 1 merchant y 2 pagos de ARS 1; faltan costos medidos, contrato y decisión | Contratos, costos, margen y pricing aprobados; ninguna comisión se activa por edición accidental y el escenario aprobado conserva contribución positiva bajo estrés. |
 | 9 | Segundo comercio | F1 | **Gate técnico cerrado; pendiente comercial:** alta Platform ahora es atómica/idempotente, bloquea owners vinculados y envía acceso sin revelar sesión | Primera venta sin cambios manuales de base. |
 | 10 | Onboarding universal, Business Profiler, importación, cohortes y soporte consentido | F1 | **Infraestructura cerrada 2026-08-22:** alta segura, objetivo POS/online, ocho hitos server-side, 7 perfiles declarativos, onboarding atómico, importador reconciliado, cohortes maduras y diagnóstico Support con consentimiento/expiración. Sólo faltan merchants externos | Segundo y tercer merchant reciben acceso, eligen perfil, completan hitos, importan sin SQL y reciben ayuda medible sin impersonación; la cohorte produce conversión/costo sin historia falsa. |
 | 11 | Margin facts canónicos | F2 | **Cerrado 2026-08-22:** 34/34 líneas visibles; cuatro componentes con fuente, asignación exacta, cobertura y RLS; Analytics y Merchant 360 consumen la autoridad | Cobertura y fuentes reconciliadas por operación. Base inicial: 0 completas y 2,9% promedio; no se reconstruyó historia inexistente. |
 | 12 | Margen SKU/orden/canal/pago/promoción | F2 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** producto × canal y operación usan hechos canónicos. Venta v3 conserva total descontado + baseline y crea partes de cobro; split parcial bloquea, conciliación real calcula neto/asiento/auditoría. Fixture: ARS 2.700, mix 1.200/1.500, fee 121, asiento balanceado, cobertura 100%, outsider/restos 0 | Registrar y conciliar una venta POS real nueva; validar que el merchant usa la explicación sin doble conteo. |
-| 13 | Pricing proposal e impact outcome | F2 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** aprobación server-side, baseline canónica, costo revalidado, medición no causal, reversión con guard, auditoría y RLS. Fixture 3.000→2.700 con cobertura 100%, conflicto protegido y restos 0. Producción: 0/25 aplicadas | Merchant aplica una propuesta real; ventana madura con 100% de cobertura y decide mantener/revertir usando el resultado. |
+| 13 | Simulation, pricing proposal e impact outcome | F2 | **Price Action Loop técnico cerrado; Simulation Engine parcial:** aprobación server-side, baseline, reversión y outcome observado están probados. Falta un contrato único y read-only que cubra precio, promoción, cuotas, compra, envío y mix de canal. Producción: 0/25 propuestas aplicadas | Merchant simula y aplica una propuesta real; ventana madura con 100% de cobertura y decide mantener/revertir usando el resultado. |
 | 14 | Finance ADR, shell y acceso por producto | F3 | **Gate técnico cerrado; evidencia real pendiente (2026-08-22):** `/finance`, chrome propio, sesión/org compartidas, entitlement ≠ permiso ≠ flag, solicitud y aprobación auditada. Snapshot prueba que no duplica el Core. Fixture owner/platform/outsider/anon y restos 0; producción 0/4 habilitadas | Un comercio solicita/recibe acceso y navega Finance con su rol real; medir solicitud → habilitación. |
 | 15 | Document storage seguro, versiones e inspección | F3 | **Gate técnico cerrado 2026-08-22; scanner externo bloqueado** | Original privado, intención server-side, hash recalculado, magic bytes/tamaño, leases, cuarentena, deduplicación y auditoría. `ready_for_extraction` exige scanner privado limpio; secrets ausentes al corte. |
 | 16 | Extracción estructurada y confidence | F3 | **Gate técnico cerrado 2026-08-22; proveedor/modelo bloqueados por privacidad y benchmark** | Original limpio → ids → descarga/hash privado → esquema forzado → validación/confianza → revisión append-only. Fixture con roles reales, dos revisiones, cero efectos y cero restos. |
@@ -1322,7 +1397,7 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
 1. ~~restore drill de datos~~ — cerrado el 2026-08-21;
 2. ~~payment test matrix interna~~ — cerrada; certificación live espera una operación controlada;
 3. ~~correlation IDs y trazas de pagos~~ — cerrado el 2026-08-21;
-4. ~~E2E bloqueante~~ — cerrado el 2026-08-21 con 41 pruebas y credenciales técnicas rotadas;
+4. ~~E2E bloqueante~~ — cerrado para los 43 recorridos definidos al 2026-08-29 y credenciales técnicas rotadas;
 5. ~~modelo auditable de economics de comisión~~ — entregado el 2026-08-21; faltan costos medidos, contrato y decisión;
 6. ~~ruta universal a la primera venta~~ — cerrada el 2026-08-21 con ocho hitos y permisos verificados;
 7. ~~importación CSV/Excel con staging, preview, validación y reconciliación~~ — cerrada el 2026-08-21; prueba real 1 válida + 1 inválida, Kardex único, retry idempotente y cero restos;
@@ -2193,7 +2268,7 @@ base64.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **1.967 tests en 189 archivos**,
+- Build y suites locales del 2026-08-29: **1.969 tests en 190 archivos**,
   typecheck, lint sin errores (140 warnings de deuda conocida), build/PWA y 70
   funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
   panel y 1 setup autenticado—; el de Gastos es de sólo lectura.

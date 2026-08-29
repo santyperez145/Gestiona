@@ -24,7 +24,7 @@ no pudo probarse quedó abierto en vez de declararse sano por intuición.
 | Git | remoto alineado, worktree limpio al iniciar | Verde |
 | Migraciones | 487 archivos / 487 registradas al cierre del 2026-08-29; `db push --dry-run` sin brecha | Verde |
 | Edge estática | 70 funciones pasan `npm run check:functions` | Verde |
-| Documentación | 61 enlaces internos en 39 documentos; 1 número sin fecha corregido | Verde |
+| Documentación | 63 enlaces internos en 39 documentos; backlog de 41 IDs reconciliado con el roadmap canónico | Verde |
 | RLS | 0 tablas públicas sin RLS; policies sin tenant, índices tenant, settings faltantes y stock negativo en 0 | Verde |
 | Secretos heredados | SMTP retiró siete columnas, API/MP/ML/Evolution otras ocho y webhooks seis entre `settings/webhook_configs`; 0 valores antes de cada retiro. Secret de endpoint ahora privado y one-time | Verde; queda auditar transportistas al activarlos |
 | Storage | 25 backups privados, 52 imágenes de producto y 2 de marketing; Finance y comprobantes privados. `expense-receipts` cerró antes del primer objeto | Verde: path por tenant, RLS por permiso y URL firmada de 60 s |
@@ -230,9 +230,9 @@ reutiliza la referencia canónica. Coincide con la API oficial de
 y sólo agrega `back_urls` si `PUBLIC_BASE_URL` es HTTPS, como exige la
 [guía oficial de retorno](https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/configure-back-urls).
 No se creó un cobro real para probar: queda como gate operativo explícito.
-La puerta completa posterior pasó 1.967/1.967 tests en 189 archivos, typecheck,
+La puerta completa posterior pasó 1.969/1.969 tests en 190 archivos, typecheck,
 lint con 0 errores/140 warnings conocidas, build/PWA, las 70 Edge Functions,
-dependencias en 0 y los 61 enlaces internos.
+dependencias en 0 y los 63 enlaces internos.
 
 ## Dos paneles de webhooks y un secret predecible
 

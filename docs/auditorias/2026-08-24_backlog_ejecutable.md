@@ -3,6 +3,14 @@
 **Corte:** 24 de agosto de 2026  
 **Regla operativa:** máximo tres epics activos simultáneamente: una foundation, un producto y una prueba externa.
 
+> **Reconciliado el 2026-08-29.** Este archivo conserva diagnóstico, criterios
+> de aceptación y evidencia por ID; ya no es una segunda cola de producto.
+> Prioridad, estado y orden vigentes viven únicamente en la **Matriz canónica
+> del backlog de auditoría** de [ROADMAP.md](../../ROADMAP.md). Los 41 IDs
+> P0-01…P3-07 están mapeados allí a una fase/slice y una evidencia pendiente.
+> Las etiquetas históricas de estos títulos describen el corte en que fueron
+> escritas y no prevalecen sobre el roadmap.
+
 ---
 
 ## Convenciones
@@ -161,7 +169,7 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-04 — Matriz externa de pagos — 🟢 16 escenarios (2026-08-26)
+## P0-04 — Matriz externa de pagos — 🟢 técnico; certificación live abierta (2026-08-29)
 
 > **Hecho:** `npm run drill:payments` cubre aprobado, rechazado, timeout, retry,
 > webhook duplicado, webhook fuera de orden, refund, refund timeout, refund
@@ -398,7 +406,7 @@ Toda entrega debe contemplar, cuando corresponda:
 
 ---
 
-## P0-09 — Economics gate — 🟢 completo (verificado 2026-08-26)
+## P0-09 — Economics gate — 🟢 técnico; contrato y costos reales abiertos (2026-08-29)
 
 > Comisión **inactiva por defecto**, regla versionada con
 > proponente/aprobador/términos/tratamiento fiscal, simulador en Plataforma →
@@ -605,7 +613,7 @@ fácil al agregar el rubro. Hay un test que lo vigila.
 
 ---
 
-## P1-02 — Business Profiler universal (criterio original)
+### Criterio original absorbido en P1-02
 
 **Owner:** Product/Frontend  
 **Objetivo:** eliminar sesgo a productos/perfumes.
@@ -976,7 +984,7 @@ authenticated ausente, service role operativo para consumo de IA,
 
 # P1 — Developer Platform hardening
 
-## P1-13 — API v1
+## P1-13 — API v1 — 🟡 contrato privado operativo; OpenAPI/deprecation pendientes (2026-08-29)
 
 **Owner:** Platform API  
 **Objetivo:** convertir prototipo en contrato.
@@ -1260,7 +1268,12 @@ el contrato y mover `sale.created` a outbox transaccional para no depender del
 
 ---
 
-# Secuencia inmediata recomendada
+# Secuencia original del 2026-08-24 — sustituida
+
+Estos sprints se conservan para explicar el orden que originó la auditoría. No
+son una cola ejecutable vigente: varios puntos ya cerraron técnicamente y otros
+dependen del dueño. El orden actual se toma de los gates, la matriz de 41 IDs y
+el portfolio de slices de [ROADMAP.md](../../ROADMAP.md).
 
 ## Sprint 1
 
