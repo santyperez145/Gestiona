@@ -2062,7 +2062,9 @@ Finance Connect.
     editor como para el importador; la misma pasada encontró que el título
     visible del wizard no estaba conectado al contrato accesible de Radix. El
     `DialogTitle` semántico ya acompaña al encabezado visual y queda bajo
-    guarda; falta revalidar la consola del build publicado. Los pares y
+    guarda. Revalidado sobre el build publicado: el diálogo expone
+    `aria-labelledby` a “Importar catálogo”, conserva cero overflow a 360 px y
+    no agregó errores de consola. Los pares y
     cuartetos de campos colapsan a una o
     dos columnas en mobile; variantes expone nombre, stock, precio propio y
     eliminación con labels persistentes, targets completos y cards responsive.
