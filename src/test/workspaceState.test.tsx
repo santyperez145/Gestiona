@@ -64,4 +64,16 @@ describe('contrato transversal de estados del workspace', () => {
     expect(purchases).toContain('Las órdenes están disponibles, pero faltan');
     expect(purchases).toContain('initialLoadFailed');
   });
+
+  it('Reportes distingue carga, refresh, errores y cobertura parcial en sus sub-vistas', () => {
+    const reports = source('src/pages/ReportsPage.tsx');
+    for (const kind of ['initial-loading', 'refreshing', 'error-recoverable', 'offline', 'stale', 'partial']) {
+      expect(reports, `Reportes no declara el estado ${kind}`).toContain(`kind="${kind}"`);
+    }
+    expect(reports).toContain('kind={logs.length === 0 ? "empty-first-use" : "empty-filtered"}');
+    expect(reports).toContain('Promise.allSettled');
+    expect(reports).toContain('console.error(\'[Reportes]');
+    expect(reports).not.toContain('getOrgMembersWithProfilesDB(user.id).catch(() => [])');
+    expect(reports).toContain('Never render the previous organization');
+  });
 });

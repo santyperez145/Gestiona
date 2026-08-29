@@ -1,6 +1,6 @@
 # Gestiona — roadmap de diseño
 
-**Corte:** 2026-08-22  
+**Corte:** 2026-08-29
 **Estado:** documento rector exclusivo del rediseño de producto.  
 **Documento de producto:** [ROADMAP.md](ROADMAP.md).
 
@@ -81,7 +81,7 @@ El rediseño se considera completo cuando:
 
 ## 3. Línea de base medible
 
-Medición del código al 2026-08-22:
+Medición del código al 2026-08-29:
 
 - 97 módulos de página en `src/pages`;
 - 82 usan `PageHeader`; las excepciones restantes son públicas, onboarding o
@@ -100,8 +100,12 @@ Medición del código al 2026-08-22:
   se abre sólo si el estado admite ingreso; 6 guardas cubren enlace manipulado,
   estados finales y preservación del RPC de stock;
 - `WorkspaceState` declara los 12 estados del estándar y D2.5 ya migra
-  Finance/Compras: skeleton inicial, refresh no bloqueante, primer uso, filtro
-  vacío, error, offline, stale, parcial y éxito bajo 6 guardas accesibles;
+  Finance/Compras y Reportes/Intelligence: skeleton inicial, refresh no
+  bloqueante, primer uso, filtro vacío, error, offline, stale, parcial y éxito.
+  Reportes conserva la última lectura durante refresh, identifica la fuente que
+  falló, separa la cobertura opcional de miembros y descarta respuestas de otra
+  organización; Auditoría y Sucursales adoptan el mismo contrato. La guarda
+  accesible mantiene el comportamiento bajo prueba;
 - D2.6 retiró 16 overlays manuales de 11 archivos del SaaS: altas/ediciones,
   detalle, resultado, ayuda, notificaciones y sesión usan ahora Dialog, Sheet o
   Popover con foco y cierre canónicos. Sólo quedan cuatro fullscreen técnicos
@@ -211,9 +215,10 @@ y justifica tecnología; no copia un Figma ni instala por moda.
   temporales manuales; uploaders clasificados en tres familias y las 5
   importaciones estructuradas convergidas. Faltan documento/cámara,
   imagen/branding, combobox y menús.
-- [ ] D2.5 — **parcial 2026-08-22:** `WorkspaceState` cubre los 12 estados;
-  Finance/Compras ya migraron carga, refresh, vacíos, error, offline, stale,
-  parcial y éxito. Falta adopción por riesgo en el resto del SaaS.
+- [ ] D2.5 — **parcial 2026-08-29:** `WorkspaceState` cubre los 12 estados;
+  Finance/Compras y Reportes/Intelligence ya migraron carga, refresh, vacíos,
+  error, offline, stale, parcial y éxito. Falta adopción por riesgo en el resto
+  del SaaS y validación visual autenticada.
 - [x] D2.6 — **cerrado en Gestión 2026-08-22:** 16 overlays manuales migrados a
   Dialog/Sheet/Popover; cuatro excepciones técnicas fullscreen enumeradas y una
   guarda recursiva impide sumar otra. Storefront se audita dentro de D5.
@@ -356,7 +361,7 @@ declara validado porque “se ve mejor”.
 | 3 | Selects de páginas de gestión | Hecho 2026-08-22 | 20 migrados; guarda en tests. |
 | 4 | Selects de componentes + decisión Storefront | Hecho 2026-08-22 | 10 migrados; SaaS en cero y 3 excepciones públicas bajo guarda. |
 | 5 | Estándar integral competitivo | Hecho 2026-08-22 | 17 referencias oficiales (7 globales, 4 Finance/spend y 6 argentinas), 4 Figma observados, arquetipos, overlays, segmentación, matriz de cobertura y puerta tecnológica bajo guarda CI. |
-| 6 | Estados unificados | Parcial 2026-08-22 | Contrato de 12 estados + 6 guardas; Finance/Compras migrados sin confundir vacío/error/parcial. Faltan rutas restantes y matriz visual. |
+| 6 | Estados unificados | Parcial 2026-08-29 | Contrato de 12 estados; Finance/Compras y Reportes/Intelligence migrados sin confundir vacío/error/parcial. Auditoría y Sucursales adoptan el contrato; faltan rutas restantes y matriz visual. |
 | 7 | Modales, sheets y drawers | Hecho en Gestión 2026-08-22 | 16 overlays de 11 archivos migrados; tamaños canónicos, focus trap y cierre accesible. Sólo rail mobile + 3 scanners fullscreen quedan bajo allowlist CI; Storefront pertenece a D5. |
 | 8 | Paginación canónica | Hecho en Gestión 2026-08-22 | Cinco listados comparten rango, responsive, límites y aria-live; cálculo puro cubierto y guarda evita controles locales. |
 | 9 | Fechas canónicas | Hecho en Gestión 2026-08-22 | 82 campos/46 archivos conservan semántica nativa bajo Input; 11 variantes manuales retiradas y regresión bloqueada. Uploaders clasificados aparte. |

@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe } from "@/lib/exchangeRate";
 import { calcPnLMargins } from "@/lib/businessCalc";
@@ -23,8 +24,21 @@ import autoTable from "jspdf-autotable";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import DataPagination from "@/components/shared/DataPagination";
+import WorkspaceState from "@/components/shared/WorkspaceState";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 import { plural } from "@/lib/plural";
+
+function reportErrorMessage(cause: unknown, fallback: string) {
+  if (cause instanceof Error && cause.message) return cause.message;
+  if (typeof cause === "object" && cause && "message" in cause && typeof cause.message === "string") return cause.message;
+  return fallback;
+}
+
+function settledValue<T>(result: PromiseSettledResult<T>): T {
+  if (result.status === 'rejected') throw result.reason;
+  return result.value;
+}
 function exportCSV(filename: string, headers: string[], rows: string[][]) {
   const bom = '\uFEFF';
   const csv = bom + [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
@@ -65,16 +79,25 @@ export default function ReportsPage() {
   usePageTitle("Reportes");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const { online } = useNetworkStatus();
   const [reportsTab, setReportsTab] = usePersistedState(
     orgViewKey("reports.tab", activeOrg?.id),
     "overview",
   );
   const [data, setData] = useState<any>(null);
+  const dataRef = useRef<any>(null);
+  const loadRequest = useRef(0);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [partialWarning, setPartialWarning] = useState<string | null>(null);
+  const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null);
   const [period, setPeriod] = usePersistedState<PeriodKey>(
     orgViewKey("reports.period", activeOrg?.id),
     "current_month",
   );
   const [members, setMembers] = useState<any[]>([]);
+  const membersRef = useRef<any[]>([]);
   const { saveFile: fsSaveFile, supported: fsSupported } = useFileSystemAccess();
 
   // Enhanced CSV save: uses File System Access API (native "Save As" dialog) when available,
@@ -93,17 +116,84 @@ export default function ReportsPage() {
     }
   };
 
+  const loadReports = useCallback(async () => {
+    if (!user?.id || !activeOrg?.id) return;
+    const request = ++loadRequest.current;
+    const hasVisibleData = Boolean(dataRef.current);
+    setLoading(!hasVisibleData);
+    setRefreshing(hasVisibleData);
+    if (!hasVisibleData) setLoadError(null);
+
+    const results = await Promise.allSettled([
+      getProductsDB(user.id),
+      getSalesDB(user.id),
+      getPurchasesDB(user.id),
+      getDebtsDB(user.id),
+      getSettingsDB(user.id),
+      getExpensesDB(user.id),
+      getOrgMembersWithProfilesDB(user.id),
+    ]);
+    if (request !== loadRequest.current) return;
+
+    const [productsResult, salesResult, purchasesResult, debtsResult, settingsResult, expensesResult, membersResult] = results;
+    const coreResults = [
+      ['productos', productsResult],
+      ['ventas', salesResult],
+      ['compras', purchasesResult],
+      ['deudas', debtsResult],
+      ['ajustes', settingsResult],
+      ['gastos', expensesResult],
+    ] as const;
+    const failedCore = coreResults.filter(([, result]) => result.status === 'rejected');
+
+    if (failedCore.length > 0) {
+      const failedNames = failedCore.map(([name]) => name).join(', ');
+      const firstFailure = failedCore[0][1];
+      const detail = reportErrorMessage(firstFailure.status === 'rejected' ? firstFailure.reason : null, 'La consulta no respondió.');
+      console.error('[Reportes] no se pudo actualizar el conjunto principal', { failedNames, detail });
+      setLoadError(`No pudimos actualizar ${failedNames}. ${detail}`);
+      setRefreshing(false);
+      setLoading(false);
+      return;
+    }
+
+    const nextData = {
+      products: settledValue(productsResult),
+      sales: settledValue(salesResult),
+      purchases: settledValue(purchasesResult),
+      debts: settledValue(debtsResult),
+      settings: settledValue(settingsResult),
+      expenses: settledValue(expensesResult),
+    };
+    dataRef.current = nextData;
+    setData(nextData);
+    setLoadError(null);
+    setLastLoadedAt(new Date());
+    if (membersResult.status === 'fulfilled') {
+      membersRef.current = membersResult.value;
+      setMembers(membersResult.value);
+      setPartialWarning(null);
+    } else {
+      console.error('[Reportes] no se pudo actualizar vendedores y miembros', membersResult.reason);
+      setMembers(membersRef.current);
+      setPartialWarning('Las métricas generales están actualizadas, pero no pudimos cargar los nombres y roles de vendedores.');
+    }
+    setRefreshing(false);
+    setLoading(false);
+  }, [activeOrg?.id, user?.id]);
+
   useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const [products, sales, purchases, debts, settings, expenses, orgMembers] = await Promise.all([
-        getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id), getExpensesDB(user.id),
-        getOrgMembersWithProfilesDB(user.id).catch(() => []),
-      ]);
-      setData({ products, sales, purchases, debts, settings, expenses });
-      setMembers(orgMembers);
-    })();
-  }, [user]);
+    // Never render the previous organization while the next tenant is loading.
+    dataRef.current = null;
+    membersRef.current = [];
+    setData(null);
+    setMembers([]);
+    setLoadError(null);
+    setPartialWarning(null);
+    setLastLoadedAt(null);
+    void loadReports();
+    return () => { loadRequest.current += 1; };
+  }, [loadReports]);
 
   const filtered = useMemo(() => {
     if (!data) return null;
@@ -131,7 +221,15 @@ export default function ReportsPage() {
     };
   }, [data, period]);
 
-  if (!data || !filtered) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  if (!data || !filtered) {
+    if (!online) {
+      return <WorkspaceState kind="offline" title="Reportes sin conexión" description="No pudimos leer los datos del negocio. Volvé a conectarte para reintentar sin mostrar cifras incompletas." actionLabel="Reintentar" onAction={() => void loadReports()} />;
+    }
+    if (loadError) {
+      return <WorkspaceState kind="error-recoverable" title="No pudimos abrir Reportes" description={loadError} actionLabel="Reintentar" onAction={() => void loadReports()} />;
+    }
+    return <WorkspaceState kind="initial-loading" title="Leyendo reportes" loadingRows={6} />;
+  }
 
   const { products, sales, purchases, debts, settings, expenses } = data;
   const totalSalesARS = sales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
@@ -478,6 +576,43 @@ export default function ReportsPage() {
           </div>
         }
       />
+
+      {!online && (
+        <WorkspaceState
+          kind="offline"
+          layout="banner"
+          title="Sin conexión"
+          description="Los reportes visibles pueden estar desactualizados. Las cifras nuevas se habilitan al recuperar la conexión."
+        />
+      )}
+      {refreshing && online && (
+        <WorkspaceState
+          kind="refreshing"
+          layout="banner"
+          title="Actualizando reportes"
+          description={lastLoadedAt ? `Mostrando la versión de ${lastLoadedAt.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} mientras llega la más reciente.` : 'Los datos actuales siguen visibles mientras llega la versión más reciente.'}
+        />
+      )}
+      {loadError && !refreshing && data && (
+        <WorkspaceState
+          kind="stale"
+          layout="banner"
+          title="No pudimos actualizar todos los reportes"
+          description={`${loadError} Las cifras visibles pueden estar desactualizadas.`}
+          actionLabel="Reintentar"
+          onAction={() => void loadReports()}
+        />
+      )}
+      {partialWarning && (
+        <WorkspaceState
+          kind="partial"
+          layout="banner"
+          title="Datos de vendedores incompletos"
+          description={partialWarning}
+          actionLabel="Reintentar"
+          onAction={() => void loadReports()}
+        />
+      )}
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1801,25 +1936,48 @@ function AuditTab() {
   const { activeOrg } = useOrg();
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [loadedOrgId, setLoadedOrgId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('all');
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 50;
 
-  useEffect(() => {
-    if (!activeOrg) return;
-    setLoading(true);
-    (async () => {
-      const { data } = await supabase
+  const loadLogs = useCallback(async () => {
+    if (!activeOrg?.id) return;
+    const hadData = loaded && loadedOrgId === activeOrg.id;
+    setLoading(!hadData);
+    setRefreshing(hadData);
+    try {
+      const { data, error } = await supabase
         .from('audit_logs')
         .select('id, action, entity_type, entity_id, details, created_at, user_id')
         .eq('org_id', activeOrg.id)
         .order('created_at', { ascending: false })
         .limit(500);
+      if (error) throw error;
       setLogs(data || []);
+      setLoaded(true);
+      setLoadedOrgId(activeOrg.id);
+      setLoadError(null);
+    } catch (cause) {
+      console.error('[Reportes/Auditoría] no se pudo leer el log', cause);
+      setLoadError(reportErrorMessage(cause, 'No se pudo leer el log de auditoría.'));
+    } finally {
       setLoading(false);
-    })();
-  }, [activeOrg]);
+      setRefreshing(false);
+    }
+  }, [activeOrg?.id, loaded, loadedOrgId]);
+
+  useEffect(() => {
+    setLogs([]);
+    setLoadError(null);
+    setLoaded(false);
+    setLoadedOrgId(null);
+    void loadLogs();
+  }, [activeOrg?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
     let rows = logs;
@@ -1867,14 +2025,24 @@ function AuditTab() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground text-sm">Cargando log de auditoría…</div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-12">
-          <Shield className="w-10 h-10 mx-auto mb-3 text-muted-foreground/20" />
-          <p className="text-muted-foreground text-sm">Sin registros de auditoría para este filtro</p>
-        </div>
+        <WorkspaceState kind="initial-loading" title="Leyendo auditoría" loadingRows={5} />
+      ) : loadError && logs.length === 0 ? (
+        <WorkspaceState kind="error-recoverable" title="No pudimos abrir la auditoría" description={loadError} actionLabel="Reintentar" onAction={() => void loadLogs()} />
       ) : (
         <>
+          {refreshing && <WorkspaceState kind="refreshing" layout="banner" title="Actualizando auditoría" description="Los registros actuales siguen visibles mientras llega la versión más reciente." />}
+          {loadError && logs.length > 0 && <WorkspaceState kind="stale" layout="banner" title="La auditoría puede estar desactualizada" description={loadError} actionLabel="Reintentar" onAction={() => void loadLogs()} />}
+          {filtered.length === 0 ? (
+            <WorkspaceState
+              kind={logs.length === 0 ? "empty-first-use" : "empty-filtered"}
+              icon={Shield}
+              title={logs.length === 0 ? "Todavía no hay registros" : "Ningún registro coincide"}
+              description={logs.length === 0 ? "Las acciones sensibles y los cambios relevantes aparecerán acá." : "La búsqueda o la acción seleccionada dejaron la vista sin resultados."}
+              actionLabel={logs.length > 0 ? "Limpiar filtros" : undefined}
+              onAction={logs.length > 0 ? () => { setSearch(''); setActionFilter('all'); setPage(0); } : undefined}
+            />
+          ) : (
+            <>
           <div className="overflow-x-auto rounded-[10px] border border-border/60">
             <table className="w-full text-xs">
               <thead>
@@ -1917,6 +2085,8 @@ function AuditTab() {
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
           />
+            </>
+          )}
         </>
       )}
     </div>
@@ -2956,23 +3126,67 @@ function SucursalesTab({ sales }: { sales: any[] }) {
   const [locationStock, setLocationStock] = useState<any[]>([]);
   const [transfers, setTransfers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [loadedOrgId, setLoadedOrgId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [partialWarning, setPartialWarning] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!activeOrg) return;
-    (async () => {
-      setLoading(true);
-      const [{ data: locs }, { data: ls }, { data: tr }] = await Promise.all([
+  const loadLocations = useCallback(async () => {
+    if (!activeOrg?.id) return;
+    const hadData = loaded && loadedOrgId === activeOrg.id;
+    setLoading(!hadData);
+    setRefreshing(hadData);
+    try {
+      const results = await Promise.allSettled([
         supabase.from("locations").select("id, name, address, is_main, active").eq("org_id", activeOrg.id).eq("active", true).order("is_main", { ascending: false }),
         supabase.from("location_stock").select("location_id, product_id, stock").eq("org_id", activeOrg.id),
         supabase.from("stock_transfers").select("id, from_location_id, to_location_id, product_id, quantity, created_at, notes").eq("org_id", activeOrg.id).order("created_at", { ascending: false }).limit(20),
       ]);
-      setLocations(locs || []);
-      setLocationStock(ls || []);
-      setTransfers(tr || []);
+      const [locationsResult, stockResult, transfersResult] = results;
+      const failed = results.filter(result => result.status === 'rejected' || (result.status === 'fulfilled' && result.value.error));
+      const resultLabels = ['ubicaciones', 'stock por sucursal', 'transferencias'];
+      const failedLabels = results.flatMap((result, index) => (
+        result.status === 'rejected' || (result.status === 'fulfilled' && result.value.error)
+          ? [resultLabels[index]]
+          : []
+      ));
+      if (locationsResult.status === 'rejected' || (locationsResult.status === 'fulfilled' && locationsResult.value.error)) {
+        const cause = locationsResult.status === 'rejected' ? locationsResult.reason : locationsResult.value.error;
+        throw new Error(`No pudimos leer ubicaciones. ${reportErrorMessage(cause, 'La consulta no respondió.')}`);
+      }
+      if (stockResult.status === 'fulfilled' && !stockResult.value.error) setLocationStock(stockResult.value.data || []);
+      if (transfersResult.status === 'fulfilled' && !transfersResult.value.error) setTransfers(transfersResult.value.data || []);
+      setLocations(locationsResult.value.data || []);
+      setLoaded(true);
+      setLoadedOrgId(activeOrg.id);
+      setLoadError(null);
+      if (failed.length > 0) {
+        console.error('[Reportes/Sucursales] datos auxiliares incompletos', { failedLabels });
+        setPartialWarning(`Las ubicaciones están actualizadas, pero faltan ${failedLabels.filter(label => label !== 'ubicaciones').join(' y ')}.`);
+      } else {
+        setPartialWarning(null);
+      }
+    } catch (cause) {
+      console.error('[Reportes/Sucursales] no se pudo leer la vista', cause);
+      setLoadError(reportErrorMessage(cause, 'No se pudieron leer los datos de sucursales.'));
+    } finally {
       setLoading(false);
-    })();
-  }, [activeOrg?.id]);
+      setRefreshing(false);
+    }
+  }, [activeOrg?.id, loaded, loadedOrgId]);
+
+  useEffect(() => {
+    setLocations([]);
+    setLocationStock([]);
+    setTransfers([]);
+    setLoaded(false);
+    setLoadedOrgId(null);
+    setLoadError(null);
+    setPartialWarning(null);
+    void loadLocations();
+  }, [activeOrg?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Seller-based sales summary (proxy for per-branch performance)
   const sellerSummary = useMemo(() => {
@@ -2999,23 +3213,28 @@ function SucursalesTab({ sales }: { sales: any[] }) {
     });
   }, [locations, locationStock]);
 
-  if (loading) return <div className="py-16 text-center text-muted-foreground">Cargando datos de sucursales…</div>;
+  if (loading) return <WorkspaceState kind="initial-loading" title="Leyendo sucursales" loadingRows={4} />;
+
+  if (loadError && !locations.length) {
+    return <WorkspaceState kind="error-recoverable" title="No pudimos abrir sucursales" description={loadError} actionLabel="Reintentar" onAction={() => void loadLocations()} />;
+  }
 
   if (!locations.length) return (
-    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-4">
-      <MapPin className="w-12 h-12 opacity-20" />
-      <div className="text-center">
-        <p className="font-medium">No tenés sucursales configuradas</p>
-        <p className="text-sm mt-1">Creá tus ubicaciones para ver stock y comparativas por local.</p>
-      </div>
-      <Button size="sm" variant="outline" onClick={() => navigate('/locations')}>
-        Ir a Ubicaciones →
-      </Button>
-    </div>
+    <WorkspaceState
+      kind="empty-first-use"
+      icon={MapPin}
+      title="No tenés sucursales configuradas"
+      description="Creá tus ubicaciones para ver stock y comparativas por local."
+      actionLabel="Ir a Ubicaciones"
+      onAction={() => navigate('/locations')}
+    />
   );
 
   return (
     <div className="space-y-6 pb-12">
+      {refreshing && <WorkspaceState kind="refreshing" layout="banner" title="Actualizando sucursales" description="El stock y las transferencias actuales siguen visibles mientras llega la versión más reciente." />}
+      {loadError && <WorkspaceState kind="stale" layout="banner" title="Los datos pueden estar desactualizados" description={loadError} actionLabel="Reintentar" onAction={() => void loadLocations()} />}
+      {partialWarning && <WorkspaceState kind="partial" layout="banner" title="Vista parcial de sucursales" description={partialWarning} actionLabel="Reintentar" onAction={() => void loadLocations()} />}
       {/* Location stock overview */}
       <div>
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -4384,4 +4603,3 @@ function ForecastTab({ sales }: { sales: any[] }) {
     </div>
   );
 }
-
