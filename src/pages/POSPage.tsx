@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
@@ -79,6 +80,8 @@ interface QrCheckoutContext {
   session: PosQrSession | null;
   phase: PosQrPhase;
   error: string | null;
+  /** Sesión encontrada al volver a Caja: jamás debe vaciar el carrito actual. */
+  recovered?: boolean;
 }
 
 // El carrito ya usa este formato para una variante. Reutilizarlo para las
@@ -878,6 +881,7 @@ export default function POSPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [qrCheckout, setQrCheckout] = useState<QrCheckoutContext | null>(null);
+  const [qrRecoverySessions, setQrRecoverySessions] = useState<PosQrSession[]>([]);
   const qrPollBusyRef = useRef(false);
   const qrCompletedRef = useRef<Set<string>>(new Set());
   const [receipt, setReceipt] = useState<{
@@ -1755,10 +1759,38 @@ export default function POSPage() {
     }]);
   };
 
+  const acknowledgeQrSession = async (sessionId: string): Promise<boolean> => {
+    const { data, error } = await supabase.functions.invoke("mercadopago-pos-qr", {
+      body: { action: "acknowledge", sessionId },
+    });
+    if (error || data?.error) {
+      console.error("[POS QR] No se pudo reconocer el cierre recuperado:", error || data);
+      return false;
+    }
+    return true;
+  };
+
   const finalizeQrSale = async (checkout: QrCheckoutContext, session: PosQrSession) => {
     if (!user || qrCompletedRef.current.has(session.session_id)) return;
     qrCompletedRef.current.add(session.session_id);
     setQrCheckout(null);
+
+    if (checkout.recovered) {
+      // El ticket, pago y stock ya cerraron en servidor. No se reutiliza el
+      // carrito que el cajero pudo haber empezado después de volver a Caja.
+      try {
+        setProducts(await getProductsDB(user.id));
+      } catch (error) {
+        console.error("[POS QR] Venta recuperada, pero el catálogo no pudo refrescarse:", error);
+      }
+      setQrRecoverySessions((previous) => {
+        const withoutSession = previous.filter((item) => item.session_id !== session.session_id);
+        return [session, ...withoutSession];
+      });
+      toast.success(`Venta QR de ${formatARS(Number(session.amount))} recuperada`);
+      vibrateSuccess();
+      return;
+    }
 
     const auditResults = await Promise.allSettled(checkout.transactionLines.map((line) =>
       logAudit(user.id, "create", "sale", String(line.id), {
@@ -1778,6 +1810,9 @@ export default function POSPage() {
       price: Number(providerItems[index]?.unit_price ?? item.price),
     }));
     await finishOnlineSaleUi(soldItems, checkout.saleIds, "QR Mercado Pago", Number(session.amount));
+    if (await acknowledgeQrSession(session.session_id)) {
+      setQrRecoverySessions((previous) => previous.filter((item) => item.session_id !== session.session_id));
+    }
   };
 
   const requestQrOrder = async (checkout: QrCheckoutContext) => {
@@ -1820,9 +1855,48 @@ export default function POSPage() {
     setQrCheckout(next);
   };
 
+  const resumeRecoveredQr = async (session: PosQrSession) => {
+    const checkout: QrCheckoutContext = {
+      clientKey: "",
+      transactionLines: [],
+      soldItems: [],
+      saleIds: [],
+      session,
+      phase: "preparing",
+      error: null,
+      recovered: true,
+    };
+    setQrCheckout(checkout);
+    const { data, error } = await supabase.functions.invoke("mercadopago-pos-qr", {
+      body: { action: "resume", sessionId: session.session_id },
+    });
+    if (error || data?.error) {
+      const message = await mensajeDeEdgeFunction(error, data) || "No se pudo retomar el cobro QR";
+      console.error("[POS QR] resume:", error || data);
+      setQrCheckout({ ...checkout, phase: "error", error: message });
+      return;
+    }
+    const resumed = data?.session as PosQrSession | undefined;
+    if (!resumed?.session_id) {
+      setQrCheckout({ ...checkout, phase: "error", error: "Mercado Pago no devolvió el cobro pendiente" });
+      return;
+    }
+    if (resumed.state === "completed") {
+      await finalizeQrSale({ ...checkout, session: resumed }, resumed);
+    } else if (POS_QR_TERMINAL_STATES.has(resumed.state)) {
+      setQrCheckout({ ...checkout, session: resumed, phase: "error", error: posQrFailureCopy(resumed) });
+    } else {
+      setQrCheckout({ ...checkout, session: resumed, phase: "pending", error: null });
+    }
+  };
+
   const retryQrOrder = async (checkout: QrCheckoutContext) => {
     if (checkout.session?.state === "manual_review") {
       toast.error("Revisá el movimiento en Mercado Pago antes de iniciar otro cobro");
+      return;
+    }
+    if (checkout.recovered && checkout.session) {
+      await resumeRecoveredQr(checkout.session);
       return;
     }
     if (!checkout.session || !POS_QR_RETRYABLE_TERMINAL_STATES.has(checkout.session.state)) {
@@ -1875,9 +1949,9 @@ export default function POSPage() {
       toast.warning("Cobro pendiente de revisión: verificá Mercado Pago antes de volver a cobrar");
       return;
     }
-    if (!sessionId || !checkout.session?.provider_order_id) {
+    if (!sessionId) {
       setQrCheckout(null);
-      if (chooseAnother) setPayMethod("transferencia");
+      if (chooseAnother && !checkout.recovered) setPayMethod("transferencia");
       return;
     }
     setQrCheckout({ ...checkout, phase: "cancelling", error: null });
@@ -1896,7 +1970,8 @@ export default function POSPage() {
       return;
     }
     setQrCheckout(null);
-    if (chooseAnother) setPayMethod("transferencia");
+    setQrRecoverySessions((previous) => previous.filter((item) => item.session_id !== sessionId));
+    if (chooseAnother && !checkout.recovered) setPayMethod("transferencia");
     toast.info("Cobro QR cancelado; no se registró la venta");
   };
 
@@ -1931,6 +2006,65 @@ export default function POSPage() {
     const timer = window.setInterval(() => void poll(), 2_000);
     return () => window.clearInterval(timer);
   }, [qrCheckout]);
+
+  useEffect(() => {
+    if (!activeOrg?.id || !isOnline) {
+      setQrRecoverySessions([]);
+      return;
+    }
+    let cancelled = false;
+    const recover = async () => {
+      const { data, error } = await supabase.functions.invoke("mercadopago-pos-qr", {
+        body: { action: "recover", orgId: activeOrg.id },
+      });
+      if (cancelled) return;
+      if (error || data?.error) {
+        console.error("[POS QR] No se pudieron recuperar cobros previos:", error || data);
+        toast.warning("No se pudo verificar si quedó un cobro QR pendiente", { duration: 6_000 });
+        return;
+      }
+      const sessions = Array.isArray(data?.sessions)
+        ? data.sessions.filter((session: PosQrSession) => Boolean(session?.session_id))
+        : [];
+      setQrRecoverySessions(sessions);
+    };
+    void recover();
+    return () => { cancelled = true; };
+  }, [activeOrg?.id, isOnline]);
+
+  const qrRecoverySession = qrRecoverySessions.find((session) => session.state === "completed")
+    ?? qrRecoverySessions.find((session) => !POS_QR_TERMINAL_STATES.has(session.state))
+    ?? null;
+
+  const dismissRecoveredQr = async (session: PosQrSession) => {
+    if (!await acknowledgeQrSession(session.session_id)) {
+      toast.error("No se pudo guardar la confirmación; la venta seguirá visible");
+      return;
+    }
+    setQrRecoverySessions((previous) => previous.filter((item) => item.session_id !== session.session_id));
+  };
+
+  const cancelRecoveredQr = async (session: PosQrSession) => {
+    const { data, error } = await supabase.functions.invoke("mercadopago-pos-qr", {
+      body: { action: "cancel", sessionId: session.session_id },
+    });
+    const reconciled = data?.session as PosQrSession | undefined;
+    if (reconciled?.state === "completed") {
+      const checkout: QrCheckoutContext = {
+        clientKey: "", transactionLines: [], soldItems: [], saleIds: [],
+        session: reconciled, phase: "pending", error: null, recovered: true,
+      };
+      await finalizeQrSale(checkout, reconciled);
+      return;
+    }
+    if (error || data?.error) {
+      console.error("[POS QR] No se pudo cancelar el intento recuperado:", error || data);
+      toast.error(await mensajeDeEdgeFunction(error, data) || "No se pudo cancelar el QR pendiente");
+      return;
+    }
+    setQrRecoverySessions((previous) => previous.filter((item) => item.session_id !== session.session_id));
+    toast.info("Intento QR cancelado y reserva liberada");
+  };
 
   // ── Confirm sale ──
   const confirmSale = async () => {
@@ -2935,7 +3069,7 @@ export default function POSPage() {
         <PosQrCheckoutDialog
           phase={qrCheckout.phase}
           session={qrCheckout.session}
-          amount={cartTotal}
+          amount={Number(qrCheckout.session?.amount ?? cartTotal)}
           businessName={config.businessName || activeOrg?.name || "Gestiona"}
           error={qrCheckout.error}
           onRetry={() => void retryQrOrder(qrCheckout)}
@@ -3059,6 +3193,53 @@ export default function POSPage() {
           <div role="alert" className="shrink-0 flex items-start gap-2 border-b border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300 sm:px-4">
             <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>{offlineStorageError}</span>
+          </div>
+        )}
+        {qrRecoverySession && (
+          <div
+            role="status"
+            aria-live="polite"
+            className={`shrink-0 flex flex-wrap items-center gap-3 border-b px-3 py-2.5 text-xs sm:px-4 ${
+              qrRecoverySession.state === "completed"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
+                : "border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-200"
+            }`}
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/70 shadow-sm dark:bg-black/15">
+              {qrRecoverySession.state === "completed"
+                ? <CheckCircle2 className="h-4 w-4" />
+                : <QrCode className="h-4 w-4" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">
+                {qrRecoverySession.state === "completed" ? "Venta QR recuperada" : "Cobro QR pendiente recuperado"}
+                {` · ${formatARS(Number(qrRecoverySession.amount))}`}
+              </p>
+              <p className="text-[10px] opacity-80">
+                {qrRecoverySession.state === "completed"
+                  ? "Mercado Pago acreditó y Gestiona cerró ticket, pago y stock aunque Caja no estuviera abierta."
+                  : "El carrito actual no se modifica. Retomá el mismo intento para evitar un cobro duplicado."}
+              </p>
+            </div>
+            {qrRecoverySession.state === "completed" ? (
+              <div className="flex shrink-0 gap-2">
+                <Button size="sm" variant="outline" className="h-8 bg-background/80 text-[11px]" asChild>
+                  <Link to="/ventas">Ver ventas</Link>
+                </Button>
+                <Button size="sm" className="h-8 text-[11px]" onClick={() => void dismissRecoveredQr(qrRecoverySession)}>
+                  Entendido
+                </Button>
+              </div>
+            ) : (
+              <div className="flex shrink-0 gap-2">
+                <Button size="sm" variant="outline" className="h-8 bg-background/80 text-[11px]" onClick={() => void cancelRecoveredQr(qrRecoverySession)}>
+                  Cancelar intento
+                </Button>
+                <Button size="sm" className="h-8 gap-1.5 text-[11px]" onClick={() => void resumeRecoveredQr(qrRecoverySession)}>
+                  <RefreshCw className="h-3 w-3" /> Retomar QR
+                </Button>
+              </div>
+            )}
           </div>
         )}
         {/* Top bar */}

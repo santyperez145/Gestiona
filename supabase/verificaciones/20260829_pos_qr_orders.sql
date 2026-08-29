@@ -17,10 +17,16 @@ DECLARE
   v_user uuid;
   v_client_key uuid := gen_random_uuid();
   v_cancel_key uuid := gen_random_uuid();
+  v_abandon_key uuid := gen_random_uuid();
+  v_orphan_key uuid := gen_random_uuid();
   v_session uuid;
   v_cancel_session uuid;
+  v_abandon_session uuid;
+  v_orphan_session uuid;
   v_sale_id uuid := gen_random_uuid();
   v_cancel_sale_id uuid := gen_random_uuid();
+  v_abandon_sale_id uuid := gen_random_uuid();
+  v_orphan_sale_id uuid := gen_random_uuid();
   v_response jsonb;
   v_transaction uuid;
   v_amount numeric;
@@ -183,13 +189,78 @@ BEGIN
   ASSERT NOT EXISTS (SELECT 1 FROM public.sales WHERE id = v_cancel_sale_id),
     'el QR vencido creó una venta';
 
+  -- Cerrar la pestaña antes de recibir la Order no puede dejar una reserva
+  -- activa. Cancelar el intento lo resuelve en todas las tablas y no vende.
+  v_response := public.pos_qr_session_prepare(
+    v_org,
+    jsonb_build_array(jsonb_build_object(
+      'id', v_abandon_sale_id,
+      'product_id', v_product,
+      'product_name', 'ZZ QR cancelado antes de Order',
+      'quantity', 1,
+      'unit_price_ars', 9000,
+      'paid', true,
+      'payment_method', 'qr',
+      'source', 'pos'
+    )),
+    v_abandon_key
+  );
+  v_abandon_session := (v_response->>'session_id')::uuid;
+  v_response := public.pos_qr_cancel_uncreated(v_abandon_session);
+  ASSERT v_response->>'state' = 'cancelled', 'cancelar sin Order no cerró la sesión';
+  ASSERT (SELECT status FROM public.stock_reservations
+          WHERE pos_qr_session_id = v_abandon_session) = 'cancelled',
+    'cancelar sin Order no liberó la reserva';
+  ASSERT NOT EXISTS (SELECT 1 FROM public.sales WHERE id = v_abandon_sale_id),
+    'cancelar sin Order fabricó una venta';
+
+  -- Una respuesta ambigua se conserva durante el vencimiento y 30 minutos
+  -- extra. Después ya no puede cobrarse y el reconciliador la expira.
+  v_response := public.pos_qr_session_prepare(
+    v_org,
+    jsonb_build_array(jsonb_build_object(
+      'id', v_orphan_sale_id,
+      'product_id', v_product,
+      'product_name', 'ZZ QR huérfano',
+      'quantity', 1,
+      'unit_price_ars', 9000,
+      'paid', true,
+      'payment_method', 'qr',
+      'source', 'pos'
+    )),
+    v_orphan_key
+  );
+  v_orphan_session := (v_response->>'session_id')::uuid;
+  UPDATE public.pos_qr_sessions
+  SET expires_at = now() - interval '31 minutes'
+  WHERE id = v_orphan_session;
+  ASSERT public.pos_qr_expire_orphans() >= 1,
+    'el reconciliador no encontró el intento huérfano';
+  ASSERT (SELECT state FROM public.pos_qr_sessions WHERE id = v_orphan_session) = 'expired',
+    'el intento huérfano no venció';
+  ASSERT (SELECT status FROM public.stock_reservations
+          WHERE pos_qr_session_id = v_orphan_session) = 'expired',
+    'el intento huérfano no liberó la reserva';
+  ASSERT NOT EXISTS (SELECT 1 FROM public.sales WHERE id = v_orphan_sale_id),
+    'expirar el intento huérfano fabricó una venta';
+
+  UPDATE public.pos_qr_sessions
+  SET cashier_acknowledged_at = now()
+  WHERE id = v_session AND state = 'completed';
+  ASSERT (SELECT cashier_acknowledged_at IS NOT NULL
+          FROM public.pos_qr_sessions WHERE id = v_session),
+    'Caja no puede persistir el reconocimiento del cierre';
+
   INSERT INTO zz_pos_qr_proof VALUES
     ('total_qr', v_amount::text),
     ('comision_plataforma', v_platform_fee::text),
     ('ticket', v_transaction::text),
     ('stock_final', v_stock::text),
     ('pago', v_payment.provider || ':' || v_payment.status || ':' || v_payment.gross_amount),
-    ('retry_idempotente', v_retry_state);
+    ('retry_idempotente', v_retry_state),
+    ('cancelacion_sin_order', 'cancelled'),
+    ('huerfano_vencido', 'expired'),
+    ('cierre_reconocido', 'si');
 
   -- payment_intents no tiene FK a organizations en el esquema histórico; se
   -- limpian explícitamente para que la prueba también detecte restos reales.

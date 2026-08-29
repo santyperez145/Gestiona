@@ -88,15 +88,15 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | Tablas base | **308** | ✅ catálogo de producción, 2026-08-22 |
 | Relaciones con `org_id` | **340** | ✅ `information_schema.columns`, incluye vistas, 2026-08-22 |
 | Vistas | **77** | ✅ catálogo de producción, 2026-08-22 |
-| Funciones y procedimientos | **427** | ✅ catálogo de producción, 2026-08-22 |
+| Funciones y procedimientos | **490** | ✅ catálogo de producción, 2026-08-29 |
 | Triggers | **131** | ✅ catálogo de producción, 2026-08-22 |
 | Índices | **946** | ✅ catálogo de producción, 2026-08-22 |
 | Políticas RLS | **384** | ✅ catálogo de producción, 2026-08-22 |
-| Migraciones registradas | **492** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate`, 2026-08-29 |
-| Cron jobs | **25** | ⚠️ 22.254 corridas exitosas y **3 fallidas** en 7 días; las tres históricas corresponden a `expire-overdue-trials`, cuya recuperación posterior se documenta en la auditoría del 2026-08-28 |
+| Migraciones registradas | **493** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate`, 2026-08-29 |
+| Cron jobs | **26** | ⚠️ 22.503 corridas exitosas y **3 fallidas** en 7 días; se agregó reconciliación QR por minuto. Las tres fallas históricas corresponden a `expire-overdue-trials`, cuya recuperación posterior se documenta en la auditoría del 2026-08-28 |
 | Edge Functions | **72** | ✅ `npm run check:functions`, 2026-08-29; incluye el checkout QR de POS |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **2.037** | ✅ `npm test`, 200 archivos, 2026-08-29 |
+| Tests unitarios | **2.039** | ✅ `npm test`, 200 archivos, 2026-08-29 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -220,7 +220,7 @@ nunca emitió no es una ventaja, es una promesa.
 | | Gestiona | Tiendanube | Shopify |
 |---|---|---|---|
 | MercadoPago por OAuth | ✅ única autoridad; link exige `sales.create`, comisión por canal y referencia reconciliable | ✅ | ❓ |
-| QR dinámico acreditado antes de cerrar POS | 🟡 implementado con Order, reserva y cierre server-side; prueba reversible aprobada, cobro live pendiente | ✅ Mercado Pago QR | ❓ |
+| QR dinámico acreditado antes de cerrar POS | 🟡 implementado con Order, reserva y cierre server-side; polling, webhook y cron autenticado reconcilian aun con Caja cerrada, y la UI recupera el intento/venta sin tocar el carrito nuevo. Prueba reversible aprobada; cobro live pendiente | ✅ Mercado Pago QR | ❓ |
 | Comisión de plataforma sobre la venta | ✅ **cobró de verdad** (`application_fee` 5% en las compras de prueba de 2026-08-11). ⚠️ Hoy la regla está en **0,5% e inactiva** (medido 2026-08-25): no se cobra nada | ✅ ❓0,7%–2% por transacción según plan | ✅ |
 | Orquestador multi-proveedor con failover | 🟡 construido, **no enchufado al checkout** | ❓ | ✅ |
 | Medio de pago propio | 🔴 GestionaPay no existe | 🔴 | ✅ Shopify Payments |
@@ -235,7 +235,11 @@ consultado 2026-08-21).
 dinámica por transacción, `external_pos_id`, `X-Idempotency-Key`, vencimiento y
 consulta de la orden para conocer el estado; el QR dinámico es único para esa
 compra. Gestiona ya respeta ese contrato y agrega su propia reserva/cierre
-atómico contra el Business Core. No se marca ✅ de uso porque todavía falta una
+atómico contra el Business Core. Desde el slice 70, la consulta no depende de
+una pestaña: un cron autenticado vuelve a consultar Orders cada minuto y Caja
+muestra cobros pendientes o ventas cerradas hasta que el cajero las reconoce.
+Eso es resiliencia propia sobre el mismo contrato de Mercado Pago, no una
+capacidad que se atribuya al competidor sin evidencia. No se marca ✅ de uso porque todavía falta una
 compra escaneada real y configurar el tópico Orders del webhook en la cuenta
 productiva. Fuentes oficiales: [Create Order](https://www.mercadopago.com.ar/developers/es/reference/in-person-payments/qr-code/orders/create-order/post),
 [procesar QR](https://www.mercadopago.com.ar/developers/es/docs/qr-code/payment-processing)

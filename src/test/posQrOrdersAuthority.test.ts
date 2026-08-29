@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
 const migration = readFileSync(resolve(root, "supabase/migrations/20260829000041_pos_qr_mercadopago_orders.sql"), "utf8");
+const recoveryMigration = readFileSync(resolve(root, "supabase/migrations/20260829000042_pos_qr_se_recupera_solo.sql"), "utf8");
 const edge = readFileSync(resolve(root, "supabase/functions/mercadopago-pos-qr/index.ts"), "utf8");
 const webhook = readFileSync(resolve(root, "supabase/functions/mercadopago-webhook/index.ts"), "utf8");
 const pos = readFileSync(resolve(root, "src/pages/POSPage.tsx"), "utf8");
@@ -54,5 +55,25 @@ describe("autoridad de Mercado Pago QR en Caja", () => {
   it("el checkout QR también es alcanzable desde el carrito mobile", () => {
     expect(pos).toContain('aria-label={showCart ? "Cerrar carrito" : "Abrir carrito"}');
     expect(pos).toContain('aria-label="Cerrar carrito"');
+  });
+
+  it("reconcilia aunque Caja se cierre y no expone el cron al navegador", () => {
+    expect(recoveryMigration).toContain("reconcile-pos-qr-orders");
+    expect(recoveryMigration).toContain("public.invoke_edge_function('mercadopago-pos-qr')");
+    expect(recoveryMigration).toContain("pos_qr_expire_orphans");
+    expect(recoveryMigration).toContain("cashier_acknowledged_at");
+    expect(recoveryMigration).toContain("FROM PUBLIC, anon, authenticated");
+    expect(edge).toContain("exigirCron(req, corsHeaders)");
+    expect(edge).toContain('mode: "cron-reconcile"');
+    expect(edge).toContain('action === "recover"');
+    expect(edge).toContain('action === "resume"');
+  });
+
+  it("al recuperar una venta no mezcla ni vacía el carrito actual", () => {
+    expect(pos).toContain("checkout.recovered");
+    expect(pos).toContain("El carrito actual no se modifica");
+    expect(pos).toContain('action: "acknowledge"');
+    expect(pos).toContain('action: "recover"');
+    expect(pos).toContain('action: "resume"');
   });
 });

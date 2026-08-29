@@ -271,7 +271,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 | ARCA | Arquitectura, credenciales seguras y homologación. | Certificado/punto de venta productivos y factura real autorizada. |
 | Ledger | Modelo de partida doble y eventos. | Asientos producidos y reconciliados por operaciones reales. |
 | Payment orchestration | Estados, idempotencia, refund y fallback; matriz interna aprobada con cero restos. | Certificación real de proveedor, firma, timeout de red, rechazo y refund. |
-| QR Mercado Pago en POS | Orders API, Store/POS privado, QR dinámico, polling/webhook, reserva, cierre atómico e idempotencia probados con fixture reversible. | Configurar la notificación Orders en la aplicación de Mercado Pago y hacer un cobro escaneado real con settlement conciliado; la prueba interna no sustituye esa certificación. |
+| QR Mercado Pago en POS | Orders API, Store/POS privado, QR dinámico, polling/webhook, reserva, cierre atómico e idempotencia probados con fixture reversible. El cierre ya no depende de una pestaña: cron autenticado reconcilia Orders cada minuto y Caja recupera intentos/ventas sin mezclar el carrito nuevo. | Configurar la notificación Orders en la aplicación de Mercado Pago y hacer un cobro escaneado real con settlement conciliado; la prueba interna y el cron de respaldo no sustituyen esa certificación. |
 | POS offline | Implementación disponible. | Prueba sostenida con varios comercios, reconexión y conflictos. |
 | Multi-organización | RLS y permisos avanzados. | Comercios externos y soporte repetible. |
 | Importación CSV/Excel | Lote auditable y reconciliado contra el Business Core. | Usarlo con un segundo comercio y medir tiempo, correcciones y abandono; todavía no prueba una migración completa de tienda, clientes, imágenes u órdenes. |
@@ -2270,6 +2270,40 @@ Finance Connect.
     incorporar un SDK pesado al navegador. La versión publicada se comprobó en
     desktop y 360 px: QR está en ambos checkouts, no hay overflow ni errores de
     consola y el sheet mobile ya expone nombres accesibles al abrir/cerrar.
+
+70. Recuperación durable del QR — cerrada técnicamente el 2026-08-29;
+    acreditación live pendiente. Una venta QR ya no depende de que el
+    navegador, el diálogo o la computadora permanezcan abiertos. La migración
+    `20260829000042_pos_qr_se_recupera_solo` programa cada minuto
+    `mercadopago-pos-qr` mediante `invoke_edge_function`, cuyo secreto de cron
+    se valida antes de leer tenants o credenciales. La Edge consulta Orders
+    persistidas en lotes acotados y vuelve a pasar cada estado por el mismo
+    reconciliador idempotente que usan el polling y el webhook. Un intento sin
+    Order conocida conserva su identidad durante el vencimiento más 30 minutos
+    —para no convertir una respuesta ambigua en rechazo— y después expira
+    payment intent, attempt y reserva sin fabricar ticket.
+
+    Al volver a Caja, `recover` devuelve sólo sesiones del mismo usuario y
+    organización. Un QR abierto puede retomarse con la misma clave idempotente
+    o cancelarse liberando la reserva; una acreditación ocurrida con Caja
+    cerrada aparece como “Venta QR recuperada”, enlaza a Ventas y queda visible
+    hasta reconocimiento explícito. Ese flujo usa importe/items de la sesión
+    server-side y nunca vacía, audita ni atribuye el carrito que el cajero pudo
+    empezar después. La marca `cashier_acknowledged_at` sólo confirma que la UI
+    mostró el resultado; no cambia dinero, stock ni estado financiero.
+
+    Evidencia productiva: fixture reversible ARS 9.000 con acreditación
+    idempotente, cancelación antes de Order, expiración huérfana, reconocimiento,
+    stock 10→9 y `0` restos. El cron quedó activo `* * * * *`; sus primeras dos
+    respuestas reales fueron HTTP 200 en 0,058–0,059 s y producción conservó
+    `0` sesiones QR reales. `db push --dry-run` devolvió `upToDate` y
+    `check:functions` validó las 72 Edge Functions. Sigue faltando configurar
+    el tópico Orders en Mercado Pago y certificar un pago escaneado con arancel
+    real: la redundancia reduce riesgo operativo, no reemplaza al proveedor ni
+    demuestra adopción. Puerta completa: typecheck, lint con 0 errores/139
+    warnings conocidos, 200 archivos / 2.039 pruebas y build/PWA. El chunk de
+    POS quedó en 108,52 kB (29,96 kB gzip): la recuperación agregó estado y UI,
+    no un SDK de proveedor al navegador.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

@@ -24404,6 +24404,7 @@ export type Database = {
       pos_qr_sessions: {
         Row: {
           amount: number
+          cashier_acknowledged_at: string | null
           client_key: string
           completed_at: string | null
           created_at: string
@@ -24429,6 +24430,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          cashier_acknowledged_at?: string | null
           client_key: string
           completed_at?: string | null
           created_at?: string
@@ -24454,6 +24456,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          cashier_acknowledged_at?: string | null
           client_key?: string
           completed_at?: string | null
           created_at?: string
@@ -51982,6 +51985,11 @@ export type Database = {
         }
         Returns: Json
       }
+      pos_qr_cancel_uncreated: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
+      pos_qr_expire_orphans: { Args: never; Returns: number }
       pos_qr_provider_created: {
         Args: {
           p_provider_order_id: string

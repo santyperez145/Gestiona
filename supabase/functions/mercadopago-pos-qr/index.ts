@@ -15,6 +15,7 @@ import {
   reconcileMercadoPagoPosQrOrder,
   type JsonRecord,
 } from "../_shared/mercadoPagoOrders.ts";
+import { exigirCron } from "../_shared/cronAuth.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 
 const MP_API = "https://api.mercadopago.com";
@@ -23,7 +24,7 @@ const TERMINAL_STATES = new Set(["completed", "cancelled", "expired", "failed", 
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
@@ -92,6 +93,87 @@ async function readVisibleSession(
   if (error) throw error;
   const value = asRecord(data);
   return value.session_id ? value : null;
+}
+
+async function readAdminSession(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
+  sessionId: string,
+): Promise<JsonRecord | null> {
+  const { data, error } = await admin.rpc("pos_qr_session_response", {
+    p_session_id: sessionId,
+  });
+  if (error) throw error;
+  const value = asRecord(data);
+  return value.session_id ? value : null;
+}
+
+/**
+ * Red de seguridad del webhook: vuelve a consultar Orders abiertas aunque Caja
+ * haya cerrado. Sólo toma sesiones con id de proveedor persistido; un intento
+ * ambiguo sin Order se recupera con acción humana usando la misma idempotencia.
+ */
+async function reconcileOpenOrders(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
+): Promise<Response> {
+  const { data: expiredOrphans, error: expireError } = await admin.rpc("pos_qr_expire_orphans");
+  if (expireError) throw expireError;
+
+  const { data, error } = await admin
+    .from("pos_qr_sessions")
+    .select("id,org_id,state,provider_order_id")
+    .in("state", ["pending", "accredited", "finalizing"])
+    .not("provider_order_id", "is", null)
+    .order("updated_at", { ascending: true })
+    .limit(25);
+  if (error) throw error;
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    org_id: string;
+    state: string;
+    provider_order_id: string;
+  }>;
+  const credentialsByOrg = new Map<string, Awaited<ReturnType<typeof getMpCredentials>>>();
+  const result = {
+    examined: rows.length,
+    completed: 0,
+    stillOpen: 0,
+    terminal: 0,
+    errors: 0,
+    expiredOrphans: Number(expiredOrphans ?? 0),
+    truncated: rows.length === 25,
+  };
+
+  const reconcileOne = async (row: typeof rows[number]) => {
+    try {
+      let credentials = credentialsByOrg.get(row.org_id);
+      if (credentials === undefined) {
+        credentials = await getMpCredentials(admin, row.org_id);
+        credentialsByOrg.set(row.org_id, credentials);
+      }
+      if (!credentials) throw new Error("Mercado Pago no está conectado para la organización");
+      const order = await fetchMercadoPagoOrder(credentials.accessToken, row.provider_order_id);
+      const session = await reconcileMercadoPagoPosQrOrder(
+        admin, credentials.accessToken, row.id, order,
+      );
+      if (session.state === "completed") result.completed += 1;
+      else if (TERMINAL_STATES.has(String(session.state))) result.terminal += 1;
+      else result.stillOpen += 1;
+    } catch (reconcileError) {
+      result.errors += 1;
+      console.error(`mercadopago-pos-qr cron session ${row.id}:`, reconcileError);
+    }
+  };
+
+  // Lotes pequeños: evita serializar 25 timeouts y también una ráfaga amplia
+  // contra Mercado Pago cuando hay varias cajas operando a la vez.
+  for (let start = 0; start < rows.length; start += 5) {
+    await Promise.all(rows.slice(start, start + 5).map(reconcileOne));
+  }
+
+  return json({ ok: result.errors === 0, mode: "cron-reconcile", ...result });
 }
 
 function amountText(value: unknown): string {
@@ -348,18 +430,27 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método no permitido" }, 405);
 
-  const auth = await requireUser(req, corsHeaders);
-  if (auth.response) return auth.response;
-
   try {
     const body = asRecord(await req.json().catch(() => ({})));
     const action = cleanText(body.action, 30) ?? "create";
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const anonKey = requireEnv("SUPABASE_ANON_KEY");
+    const admin = createClient(supabaseUrl, requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+
+    // El cron de Postgres no tiene usuario. Un action escrito por el navegador
+    // no alcanza: la cabecera privada del vault es obligatoria y se valida
+    // antes de consultar credenciales o tocar sesiones de cualquier tenant.
+    if (action === "cron-reconcile" || req.headers.has("x-cron-secret")) {
+      const cronGate = exigirCron(req, corsHeaders);
+      if (cronGate) return cronGate;
+      return await reconcileOpenOrders(admin);
+    }
+
+    const auth = await requireUser(req, corsHeaders);
+    if (auth.response) return auth.response;
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
     });
-    const admin = createClient(supabaseUrl, requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
 
     if (action === "create" || action === "setup") {
       const orgId = cleanText(body.orgId, 80);
@@ -419,7 +510,82 @@ Deno.serve(async (req) => {
       return await createOrder(admin, credentials.accessToken, externalPosId, session);
     }
 
-    if (action === "status" || action === "cancel") {
+    if (action === "recover") {
+      const orgId = cleanText(body.orgId, 80);
+      if (!orgId || !UUID_RE.test(orgId)) return json({ error: "Organización inválida" }, 400);
+      if (!await permission(userClient, orgId, "sales", "create")) {
+        return json({ error: "No tenés permiso para recuperar cobros de esta caja" }, 403);
+      }
+
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1_000).toISOString();
+      const { data: candidates, error: candidatesError } = await admin
+        .from("pos_qr_sessions")
+        .select("id,state,provider_order_id,created_at")
+        .eq("org_id", orgId)
+        .eq("created_by", auth.user.id)
+        .gte("created_at", since)
+        .or("state.in.(preparing,pending,accredited,finalizing),and(state.eq.completed,cashier_acknowledged_at.is.null)")
+        .order("created_at", { ascending: false })
+        .limit(12);
+      if (candidatesError) throw candidatesError;
+
+      let credentials: Awaited<ReturnType<typeof getMpCredentials>> | undefined;
+      const sessions: JsonRecord[] = [];
+      for (const rawCandidate of candidates ?? []) {
+        const candidate = asRecord(rawCandidate);
+        const sessionId = String(candidate.id);
+        const state = String(candidate.state);
+        const providerOrderId = cleanText(candidate.provider_order_id, 180);
+        let session: JsonRecord | null = null;
+
+        if (providerOrderId && !TERMINAL_STATES.has(state)) {
+          try {
+            credentials ??= await getMpCredentials(admin, orgId);
+            if (credentials) {
+              const order = await fetchMercadoPagoOrder(credentials.accessToken, providerOrderId);
+              session = await reconcileMercadoPagoPosQrOrder(
+                admin, credentials.accessToken, sessionId, order,
+              );
+            }
+          } catch (recoveryError) {
+            // La sesión no desaparece si Mercado Pago está transitoriamente
+            // caído: Caja la muestra y permite reintentar sin duplicar cobro.
+            console.error(`mercadopago-pos-qr recover session ${sessionId}:`, recoveryError);
+          }
+        }
+        session ??= await readAdminSession(admin, sessionId);
+        if (session && (
+          session.state === "completed"
+          || !TERMINAL_STATES.has(String(session.state))
+        )) sessions.push(session);
+      }
+
+      return json({ ok: true, sessions });
+    }
+
+    if (action === "acknowledge") {
+      const sessionId = cleanText(body.sessionId, 80);
+      if (!sessionId || !UUID_RE.test(sessionId)) return json({ error: "Sesión QR inválida" }, 400);
+      const session = await readVisibleSession(userClient, sessionId);
+      if (!session) return json({ error: "Sesión QR inexistente" }, 404);
+      const orgId = String(session.org_id);
+      if (!await permission(userClient, orgId, "sales", "create")) {
+        return json({ error: "No tenés permiso para reconocer este cobro" }, 403);
+      }
+      if (session.state !== "completed") {
+        return json({ error: "Sólo se puede reconocer una venta QR completada" }, 409);
+      }
+      const { error } = await admin
+        .from("pos_qr_sessions")
+        .update({ cashier_acknowledged_at: new Date().toISOString() })
+        .eq("id", sessionId)
+        .eq("org_id", orgId)
+        .is("cashier_acknowledged_at", null);
+      if (error) throw error;
+      return json({ ok: true });
+    }
+
+    if (action === "status" || action === "cancel" || action === "resume") {
       const sessionId = cleanText(body.sessionId, 80);
       if (!sessionId || !UUID_RE.test(sessionId)) return json({ error: "Sesión QR inválida" }, 400);
       const session = await readVisibleSession(userClient, sessionId);
@@ -428,11 +594,40 @@ Deno.serve(async (req) => {
       if (!await permission(userClient, orgId, "sales", "create")) {
         return json({ error: "No tenés permiso para operar este cobro" }, 403);
       }
+      const providerOrderId = cleanText(session.provider_order_id, 180);
+      if (TERMINAL_STATES.has(String(session.state))) {
+        return json({ ok: session.state === "completed", session });
+      }
+
+      if (!providerOrderId && action === "cancel") {
+        const { data: cancelled, error: cancelError } = await admin.rpc("pos_qr_cancel_uncreated", {
+          p_session_id: sessionId,
+        });
+        if (cancelError) throw cancelError;
+        return json({ ok: true, session: asRecord(cancelled) });
+      }
+
       const credentials = await getMpCredentials(admin, orgId);
       if (!credentials) return json({ error: "Mercado Pago ya no está conectado", code: "MP_NOT_CONNECTED" }, 422);
-      const providerOrderId = cleanText(session.provider_order_id, 180);
-      if (!providerOrderId || TERMINAL_STATES.has(String(session.state))) {
-        return json({ ok: session.state === "completed", session });
+
+      if (!providerOrderId && action === "resume") {
+        const { data: connectionData, error: connectionError } = await admin
+          .from("payment_connections")
+          .select("mp_external_pos_id,mp_pos_status")
+          .eq("org_id", orgId)
+          .eq("provider", "mercadopago")
+          .maybeSingle();
+        if (connectionError) throw connectionError;
+        const connection = asRecord(connectionData);
+        const externalPosId = cleanText(connection.mp_external_pos_id, 40);
+        if (!externalPosId || connection.mp_pos_status !== "active") {
+          return json({ error: "La caja de Mercado Pago ya no está activa", code: "POS_SETUP_REQUIRED" }, 422);
+        }
+        return await createOrder(admin, credentials.accessToken, externalPosId, session);
+      }
+
+      if (!providerOrderId) {
+        return json({ ok: false, session });
       }
 
       let order: JsonRecord;
