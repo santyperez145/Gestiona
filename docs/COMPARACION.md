@@ -487,6 +487,15 @@ copian pantallas: se copian controles que reducen errores de operación.
   `extract → staging → normalize → validate → preview → import → reconcile`, no
   una importación que pisa datos en silencio, y fija la paridad de operación de
   órdenes para D3/D5.
+- ✅ **Shopify y Square en operación de órdenes:** Shopify conserva vistas de
+  pedidos con búsqueda, filtros, columnas y orden, y permite inspeccionar un
+  pedido sin abandonar la población; Square reúne órdenes de POS, web y socios,
+  filtrables por estado, origen y pago, con detalle y actividad
+  ([Shopify Orders](https://help.shopify.com/en/manual/fulfillment/managing-orders/viewing-orders/searching-orders),
+  [Square Order Manager](https://squareup.com/help/us/en/article/6923-pickup-orders-on-square-point-of-sale),
+  consultados 2026-08-29). Gestiona adopta el patrón como inspector de ticket
+  con selección en URL, lista/filtros intactos y margen registrado visible; no
+  copia sus estados ni presenta una línea como si fuera todo el ticket.
 - ✅ **Empretienda:** comunica importación masiva, alertas de stock, medios de
   pago, envíos y administración móvil; su ayuda confirma productos
   digitales/mayoristas y venta manual con el mismo stock

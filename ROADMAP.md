@@ -2179,6 +2179,33 @@ Finance Connect.
     Las ventas ya no dependen de ese espejo: el asiento canónico continúa desde
     el evento del ticket en el ledger de partida doble.
 
+67. Ventas conserva el trabajo al inspeccionar un ticket — cerrado técnicamente
+    el 2026-08-29; validación visual autenticada pendiente. La lista ya no obliga
+    a editar o salir para entender una operación: tabla y cards abren un Sheet
+    lateral que en 360 px ocupa todo el viewport, mientras `?sale=<id>` conserva
+    la selección en Back/Forward sin borrar búsqueda, filtros, agrupación ni
+    página. El resumen se arma sobre **todas** las ventas tenant-scoped, nunca
+    sobre la población filtrada: `sale_transaction_id` reúne las líneas del
+    ticket y una venta heredada sin padre permanece aislada. Expone total,
+    unidades, costo/ganancia registrados, canal, cobro, factura, devolución,
+    cliente, vendedor y cada producto; si hay devolución no presenta el margen
+    como una verdad final y dirige a Rendimiento. Un deep link inexistente no
+    consulta otra organización ni inventa vacío: explica borrado/permisos.
+    Además, las acciones de tabla dejaron de depender sólo del hover.
+    Siete pruebas cubren sumas, cobro parcial, factura, devolución —incluido el
+    legado sin cantidad inventada—, legacy de ticket, números inválidos y
+    contrato URL/mobile. Comparativa oficial revisada el
+    2026-08-29: [Shopify Orders](https://help.shopify.com/en/manual/fulfillment/managing-orders/viewing-orders/searching-orders)
+    conserva vistas/filtros al inspeccionar pedidos; [Square Order Manager](https://squareup.com/help/us/en/article/6923-pickup-orders-on-square-point-of-sale)
+    reúne canales, estados, origen/pago y actividad; [Tiendanube Ventas](https://ayuda.tiendanube.com/es_AR/123288-mis-ventas/como-buscar-y-filtrar-mis-ventas)
+    fija la paridad regional de búsqueda, filtros, exportación y bulk. Gestiona
+    adopta orientación operativa, pero suma el ticket y su margen del mismo Core.
+    Puerta completa: typecheck, lint con 0 errores/138 warnings conocidos, 196
+    archivos/2.016 pruebas y build PWA; el chunk de Ventas mide 83,55 kB
+    (21,25 kB gzip) sin dependencia nueva.
+    Falta captura autenticada 360/768/1024/1440, cobro/devolución atómicos a
+    nivel ticket y timeline antes de cerrar D3.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

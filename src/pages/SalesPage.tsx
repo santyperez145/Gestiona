@@ -11,10 +11,11 @@ import { getSalesDB, addSaleDB, addSalesDB, deleteSaleDB, updateSaleDB, getProdu
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronUp, ChevronDown, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown, Share2, MessageCircle, CheckCircle2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronUp, ChevronDown, Edit, Eye, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown, Share2, MessageCircle, CheckCircle2 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import { checkStockAfterSale } from "@/lib/stockNotifications";
@@ -28,6 +29,7 @@ import DataPagination from "@/components/shared/DataPagination";
 import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import KPICard from "@/components/shared/KPICard";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
+import { buildSaleTicketDetail, type SaleTicketDetail } from "@/lib/saleTicketDetail";
 
 import { plural } from "@/lib/plural";
 const PAGE_SIZE = 20;
@@ -64,6 +66,197 @@ function createLineItem(): SaleLineItem {
   return { id: crypto.randomUUID(), productId: '', variantId: '', quantity: 1, decantSize: 'full', customPrice: '' };
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  manual: "Carga manual",
+  pos: "Punto de venta",
+  tienda_online: "Tienda online",
+  ecommerce: "Tienda online",
+  mercadolibre: "Mercado Libre",
+  tiendanube: "Tiendanube",
+  whatsapp: "WhatsApp",
+};
+
+function labelPaymentMethod(method: string): string {
+  return PAYMENT_METHODS.find(item => item.value === method)?.label || method;
+}
+
+function labelSource(source: string): string {
+  return SOURCE_LABELS[source] || source.replaceAll("_", " ");
+}
+
+function SaleTicketInspector({
+  open,
+  detail,
+  requestedId,
+  onClose,
+  onAnalyze,
+}: {
+  open: boolean;
+  detail: SaleTicketDetail | null;
+  requestedId: string | null;
+  onClose: () => void;
+  onAnalyze: () => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={nextOpen => { if (!nextOpen) onClose(); }}>
+      <SheetContent
+        side="right"
+        data-testid="sale-ticket-inspector"
+        className="flex w-full flex-col p-0 sm:max-w-2xl"
+      >
+        {detail ? (
+          <>
+            <SheetHeader className="mb-0 border-b border-border/60 px-5 pb-4 pt-5 pr-12 sm:px-6 sm:pt-6">
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                  detail.allPaid
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
+                    : detail.partiallyPaid
+                      ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                      : "bg-destructive/10 text-destructive"
+                }`}>
+                  {detail.allPaid ? "Cobrado" : detail.partiallyPaid ? "Cobro parcial" : "Pendiente de cobro"}
+                </span>
+                {detail.invoicedLines > 0 && (
+                  <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-[11px] font-semibold text-blue-700 dark:text-blue-300">
+                    {detail.invoicedLines === detail.lines.length ? "Facturado" : `${detail.invoicedLines}/${detail.lines.length} líneas facturadas`}
+                  </span>
+                )}
+                {detail.hasReturn && (
+                  <span className="rounded-full bg-orange-500/10 px-2.5 py-1 text-[11px] font-semibold text-orange-700 dark:text-orange-300">
+                    {detail.returnedUnits > 0
+                      ? `${detail.returnedUnits} u. devuelta${detail.returnedUnits !== 1 ? "s" : ""}`
+                      : "Con devolución"}
+                  </span>
+                )}
+              </div>
+              <SheetTitle>Ticket #{detail.code}</SheetTitle>
+              <SheetDescription>
+                {detail.date ? formatDateAR(detail.date) : "Fecha no disponible"}
+                {detail.customerName ? ` · ${detail.customerName}` : " · Sin cliente asociado"}
+                {` · ${detail.lines.length} ${detail.lines.length === 1 ? "línea" : "líneas"}`}
+              </SheetDescription>
+            </SheetHeader>
+
+            <ScrollArea className="min-h-0 flex-1">
+              <div className="space-y-5 px-5 py-5 sm:px-6">
+                <section aria-labelledby="ticket-summary-title">
+                  <h3 id="ticket-summary-title" className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Resumen del ticket
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div className="rounded-lg border border-border/60 bg-card p-3">
+                      <p className="text-[11px] text-muted-foreground">Total</p>
+                      <p className="mt-1 font-mono text-base font-bold text-foreground">{formatARS(detail.totalArs)}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-card p-3">
+                      <p className="text-[11px] text-muted-foreground">Unidades</p>
+                      <p className="mt-1 font-mono text-base font-bold text-foreground">{detail.units}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-card p-3">
+                      <p className="text-[11px] text-muted-foreground">Costo registrado</p>
+                      <p className="mt-1 font-mono text-base font-bold text-foreground">{formatARS(detail.costArs)}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-card p-3">
+                      <p className="text-[11px] text-muted-foreground">Ganancia registrada</p>
+                      <p className={`mt-1 font-mono text-base font-bold ${detail.profitArs >= 0 ? "text-emerald-600 dark:text-emerald-300" : "text-destructive"}`}>
+                        {formatARS(detail.profitArs)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {detail.marginPercent === null ? "Margen no calculable" : `${detail.marginPercent.toFixed(1)}% del ticket`}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                    Importes leídos de las líneas canónicas de Ventas. Si existe una devolución, el estado queda visible y el margen debe revisarse en Rendimiento.
+                  </p>
+                </section>
+
+                <section aria-labelledby="ticket-context-title">
+                  <h3 id="ticket-context-title" className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Contexto
+                  </h3>
+                  <dl className="grid grid-cols-1 gap-x-4 gap-y-3 rounded-lg border border-border/60 bg-muted/20 p-4 text-sm sm:grid-cols-2">
+                    <div>
+                      <dt className="text-[11px] text-muted-foreground">Canal</dt>
+                      <dd className="mt-0.5 font-medium capitalize">{detail.sources.length ? detail.sources.map(labelSource).join(" + ") : "Sin fuente declarada"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[11px] text-muted-foreground">Medio de pago</dt>
+                      <dd className="mt-0.5 font-medium">{detail.paymentMethods.length ? detail.paymentMethods.map(labelPaymentMethod).join(" + ") : "Sin método declarado"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[11px] text-muted-foreground">Cliente</dt>
+                      <dd className="mt-0.5 font-medium">{detail.customerName || "Venta sin cliente asociado"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[11px] text-muted-foreground">Vendedor</dt>
+                      <dd className="mt-0.5 font-medium">{detail.sellerNames.join(", ") || "Sin vendedor declarado"}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section aria-labelledby="ticket-lines-title">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <h3 id="ticket-lines-title" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Productos
+                    </h3>
+                    <span className="text-[11px] text-muted-foreground">{detail.lines.length} {detail.lines.length === 1 ? "línea" : "líneas"}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {detail.lines.map(line => (
+                      <article key={line.id} className="rounded-lg border border-border/60 bg-card p-3.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-foreground">{line.product_name || "Producto sin nombre"}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {Number(line.quantity || 0)} × {formatARS(Number(line.unit_price_ars || 0))}
+                            </p>
+                          </div>
+                          <p className="shrink-0 font-mono text-sm font-bold">{formatARS(Number(line.total_ars || 0))}</p>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {line.discount_applied && <span className="rounded bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-medium text-orange-700 dark:text-orange-300">Descuento</span>}
+                          {line.coupon_code && <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">Cupón {line.coupon_code}</span>}
+                          {line.invoice_id && <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">Facturada</span>}
+                          {line.returned && <span className="rounded bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-medium text-orange-700 dark:text-orange-300">Devuelta</span>}
+                          {!line.paid && <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium text-destructive">Pendiente</span>}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            </ScrollArea>
+
+            <div className="flex flex-col-reverse gap-2 border-t border-border/60 bg-popover px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+              <Button variant="outline" onClick={onClose}>Cerrar</Button>
+              <Button onClick={onAnalyze} className="gradient-gold text-primary-foreground">Analizar rendimiento</Button>
+            </div>
+          </>
+        ) : (
+          <div className="flex h-full flex-col">
+            <SheetHeader className="border-b border-border/60 px-5 pb-4 pt-5 pr-12 sm:px-6 sm:pt-6">
+              <SheetTitle>Venta no disponible</SheetTitle>
+              <SheetDescription>El registro solicitado no forma parte de la lectura autorizada actual.</SheetDescription>
+            </SheetHeader>
+            <div className="flex flex-1 items-center justify-center p-6 text-center">
+              <div className="max-w-sm rounded-lg border border-border/60 bg-muted/20 p-5">
+                <p className="text-sm font-medium">No se pudo abrir el detalle.</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Puede haber sido eliminado, pertenecer a otra organización o ya no estar disponible con tus permisos.
+                </p>
+                {requestedId && <p className="mt-3 font-mono text-[10px] text-muted-foreground">ID …{requestedId.slice(-8)}</p>}
+                <Button variant="outline" className="mt-4" onClick={onClose}>Volver a Ventas</Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export default function SalesPage() {
   usePageTitle("Ventas");
   const { user } = useAuth();
@@ -73,6 +266,7 @@ export default function SalesPage() {
   // If vendedor, only show their own sales
   const sellerFilter = !isAdmin ? (localStorage.getItem('gestiona.pos.seller') || null) : null;
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [sales, setSales] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
@@ -163,6 +357,23 @@ export default function SalesPage() {
   const [filterHasNote, setFilterHasNote] = usePersistedState(orgViewKey("sales.note-filter", activeOrg?.id), false);
   const [commPct, setCommPct] = useState(5);
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
+  const selectedSaleId = searchParams.get("sale");
+  const saleTicketDetail = useMemo(
+    () => buildSaleTicketDetail(sales, selectedSaleId),
+    [sales, selectedSaleId],
+  );
+
+  const openSaleDetail = (saleId: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("sale", saleId);
+    setSearchParams(next);
+  };
+
+  const closeSaleDetail = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("sale");
+    setSearchParams(next, { replace: true });
+  };
 
   const filtered = sales.filter(s => {
     // Vendedor can only see their own sales (if seller name is set in localStorage)
@@ -648,6 +859,17 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
 
   return (
     <div className="workspace-page workspace-sales space-y-6 pb-12">
+      <SaleTicketInspector
+        open={Boolean(selectedSaleId)}
+        detail={saleTicketDetail}
+        requestedId={selectedSaleId}
+        onClose={closeSaleDetail}
+        onAnalyze={() => {
+          closeSaleDetail();
+          setSalesWorkspaceTab("performance");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
       <PageHeader
         icon={ShoppingCart}
         title="Ventas"
@@ -1252,7 +1474,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                   <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cant.</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Ganancia</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado</th>
-                  {isAdmin && <th className="px-4 py-3"></th>}
+                  <th className="px-4 py-3"><span className="sr-only">Acciones</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -1310,7 +1532,16 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-1 opacity-100 xl:opacity-0 xl:group-hover:opacity-100 xl:focus-within:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] gap-1"
+                          aria-label={`Ver detalle de ${s.product_name || "la venta"}`}
+                          onClick={() => openSaleDetail(s.id)}
+                        >
+                          <Eye className="w-3.5 h-3.5" />Ver
+                        </Button>
                         {!s.paid && (
                           <Button
                             variant="ghost"
@@ -1385,7 +1616,16 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                     <span className="font-medium">{formatARS(Number(s.total_ars))}</span>
                     <span className={Number(s.profit_ars) > 0 ? 'text-emerald-400' : 'text-destructive'}>{formatARS(Number(s.profit_ars))}</span>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex flex-wrap justify-end gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2.5 text-xs gap-1.5"
+                      aria-label={`Ver detalle de ${s.product_name || "la venta"}`}
+                      onClick={() => openSaleDetail(s.id)}
+                    >
+                      <Eye className="w-3.5 h-3.5" />Detalle
+                    </Button>
                     {!s.paid && (
                       <Button
                         variant="ghost"
