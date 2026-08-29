@@ -331,6 +331,8 @@ export default function ProductsPage() {
   const [salesVelocity, setSalesVelocity] = useState<Record<string, number>>({}); // units sold per day per product
   const [lastSaleDate, setLastSaleDate] = useState<Record<string, string>>({}); // last sale date per product id
   const [open, setOpen] = useState(false);
+  const [productFormDirty, setProductFormDirty] = useState(false);
+  const [discardProductChangesOpen, setDiscardProductChangesOpen] = useState(false);
   const [productTypesOpen, setProductTypesOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -354,6 +356,25 @@ export default function ProductsPage() {
   // Filtro por lo que le falta a la ficha. Sin esto, el panel de calidad es
   // una lista de reproches que no lleva a ningún lado.
   const [filterCalidad, setFilterCalidad] = useState<ImpactoId | null>(null);
+
+  const closeProductEditor = useCallback(() => {
+    setOpen(false);
+    setEditing(null);
+    setProductFormDirty(false);
+    setDiscardProductChangesOpen(false);
+  }, []);
+
+  const handleProductEditorOpenChange = useCallback((nextOpen: boolean) => {
+    if (nextOpen) {
+      setOpen(true);
+      return;
+    }
+    if (productFormDirty) {
+      setDiscardProductChangesOpen(true);
+      return;
+    }
+    closeProductEditor();
+  }, [closeProductEditor, productFormDirty]);
   // Las categorías de la organización, para los filtros y la oferta masiva. El
   // formulario usa `<CategorySelect>`, que además deja crear.
   const { opciones: opcionesCategoria, categorias: categoriasOrg } = useOrgCategories(activeOrg?.id);
@@ -942,7 +963,7 @@ export default function ProductsPage() {
                 <Plus className="w-4 h-4 mr-2" />Nuevo
               </Button>
             ) : (
-              <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
+              <Dialog open={open} onOpenChange={handleProductEditorOpenChange}>
                 <DialogTrigger asChild>
                   <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
                 </DialogTrigger>
@@ -954,11 +975,27 @@ export default function ProductsPage() {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="min-h-0 flex-1 overflow-hidden">
-                    <ProductForm product={editing} settings={settings} userId={user!.id} orgId={activeOrg?.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
+                    <ProductForm
+                      product={editing}
+                      settings={settings}
+                      userId={user!.id}
+                      orgId={activeOrg?.id}
+                      onDirtyChange={setProductFormDirty}
+                      onSave={() => { closeProductEditor(); reload(); }}
+                    />
                   </div>
                 </DialogContent>
               </Dialog>
             ))}
+            <ConfirmDialog
+              open={discardProductChangesOpen}
+              onOpenChange={setDiscardProductChangesOpen}
+              title="¿Descartar los cambios del producto?"
+              description="Los datos que completaste en esta ficha todavía no se guardaron. Podés seguir editando o descartarlos y volver al catálogo."
+              confirmText="Descartar cambios"
+              cancelText="Seguir editando"
+              onConfirm={closeProductEditor}
+            />
           </div>
         }
       />
@@ -1909,7 +1946,14 @@ function ChipSelect({ items, selected, onToggle }: { items: TaxItem[]; selected:
   );
 }
 
-function ProductForm({ product, settings, userId, orgId, onSave }: { product: any; settings: any; userId: string; orgId?: string; onSave: () => void }) {
+function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }: {
+  product: any;
+  settings: any;
+  userId: string;
+  orgId?: string;
+  onDirtyChange: (dirty: boolean) => void;
+  onSave: () => void;
+}) {
   const [name, setName] = useState(product?.name || '');
   const [brand, setBrand] = useState(product?.brand || '');
   const [category, setCategory] = useState(product?.category || '');
@@ -2023,6 +2067,30 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
    * diga lo contrario.
    */
   const [manejaStock, setManejaStock] = useState(product?.maneja_stock !== false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const markDirty = useCallback(() => {
+    setHasUnsavedChanges(true);
+    onDirtyChange(true);
+  }, [onDirtyChange]);
+
+  const markClean = useCallback(() => {
+    setHasUnsavedChanges(false);
+    onDirtyChange(false);
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    onDirtyChange(false);
+  }, [onDirtyChange, product?.id]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -2195,6 +2263,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       valid.push({ url: URL.createObjectURL(f), file: f });
     }
     if (valid.length === 0) return;
+    markDirty();
     setImageItems(prev => [...prev, ...valid].slice(0, 8));
   };
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2204,11 +2273,13 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
   const removeImageAt = (idx: number) => {
+    markDirty();
     setImageItems(prev => prev.filter((_, i) => i !== idx));
   };
   const moveImage = (from: number, to: number) => {
+    if (to < 0 || to >= imageItems.length) return;
+    markDirty();
     setImageItems(prev => {
-      if (to < 0 || to >= prev.length) return prev;
       const next = [...prev];
       const [it] = next.splice(from, 1);
       next.splice(to, 0, it);
@@ -2429,6 +2500,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       }
       toast.success(product ? "Producto actualizado" : "Producto agregado");
       broadcastSync({ type: "product_saved", name: data.name, action: product ? "update" : "create" });
+      markClean();
       onSave();
     } catch (err: any) {
       console.error('Error guardando producto:', err);
@@ -2440,6 +2512,8 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     <form
       onSubmit={handleSubmit}
       onPaste={handlePaste}
+      onInputCapture={markDirty}
+      onChangeCapture={markDirty}
       className="flex h-full min-h-0 flex-col"
       aria-label={product ? `Editar ${product.name}` : 'Crear producto'}
     >
@@ -2527,6 +2601,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 variant="ghost"
                 className="h-6 text-[10px] px-2 text-primary hover:bg-primary/10"
                 onClick={() => {
+                  markDirty();
                   if (aiResult.category) setCategory(aiResult.category);
                   if (aiResult.description && !description) setDescription(aiResult.description);
                   if (aiResult.brand && !brand) setBrand(aiResult.brand.toUpperCase());
@@ -2561,7 +2636,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       <BarcodeScanModal
         open={scanBarcodeOpen}
         onClose={() => setScanBarcodeOpen(false)}
-        onDetect={(code) => { setBarcode(code); setScanBarcodeOpen(false); }}
+        onDetect={(code) => { markDirty(); setBarcode(code); setScanBarcodeOpen(false); }}
         title="Escanear código de barras del producto"
       />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -2572,7 +2647,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               en la tienda y no podía asignársela a ningún producto. */}
           <CategorySelect
             value={category}
-            onChange={setCategory}
+            onChange={value => { markDirty(); setCategory(value); }}
             orgId={orgId}
             className="bg-muted border-border"
           />
@@ -2587,6 +2662,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <Layers className="w-4 h-4 text-primary shrink-0" />
         </div>
         <Select value={productTypeId || "none"} onValueChange={value => {
+          markDirty();
           const id = value === "none" ? "" : value;
           setProductTypeId(id);
           // El tipo trae el default: un «Servicio» no se stockea, un «Insumo»
@@ -2621,6 +2697,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                   <button key={t} type="button"
                     className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all ${vaperSubtype === key ? 'bg-emerald-500/30 border-emerald-500 text-emerald-400' : 'border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400'}`}
                     onClick={() => {
+                      markDirty();
                       setVaperSubtype(key);
                       if (key === 'desechable') { setContentMl(''); setVariantType('sabor'); }
                       else if (key === 'pod') { setContentMl('2'); setVariantType('sabor'); }
@@ -2643,6 +2720,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                     <button key={p} type="button"
                       className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400 transition-all"
                       onClick={() => {
+                        markDirty();
                         const suffix = `${p} PUFFS`;
                         setName(prev => {
                           const base = prev.replace(/\d+ PUFFS/g, '').trim();
@@ -2659,7 +2737,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                   {['Sin nicotina', '20mg Salt', '50mg Salt', '3mg', '6mg'].map(nic => (
                     <button key={nic} type="button"
                       className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400 transition-all"
-                      onClick={() => setDescription(prev => prev ? `${prev} · ${nic}` : nic)}
+                      onClick={() => { markDirty(); setDescription(prev => prev ? `${prev} · ${nic}` : nic); }}
                     >{nic}</button>
                   ))}
                 </div>
@@ -2675,7 +2753,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 {['1.8', '2', '2.5', '3', '5', '8', '10'].map(ml => (
                   <button key={ml} type="button"
                     className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400 transition-all"
-                    onClick={() => setContentMl(ml)}
+                    onClick={() => { markDirty(); setContentMl(ml); }}
                   >{ml}ml</button>
                 ))}
               </div>
@@ -2692,6 +2770,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                     <button key={ml} type="button"
                       className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all ${contentMl === ml ? 'bg-emerald-500/30 border-emerald-500 text-emerald-400' : 'border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400'}`}
                       onClick={() => {
+                        markDirty();
                         setContentMl(ml);
                         setName(prev => {
                           const base = prev.replace(/\d+ML/g, '').trim();
@@ -2708,7 +2787,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                   {['0mg', '3mg', '6mg', '12mg', '18mg', '20mg Sal', '25mg Sal', '50mg Sal'].map(nic => (
                     <button key={nic} type="button"
                       className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400 transition-all"
-                      onClick={() => setDescription(prev => prev ? `${prev} · ${nic}` : nic)}
+                      onClick={() => { markDirty(); setDescription(prev => prev ? `${prev} · ${nic}` : nic); }}
                     >{nic}</button>
                   ))}
                 </div>
@@ -2724,7 +2803,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 {['40W', '60W', '80W', '100W', '160W', '220W'].map(w => (
                   <button key={w} type="button"
                     className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400 transition-all"
-                    onClick={() => setName(prev => prev ? `${prev} ${w}` : w)}
+                    onClick={() => { markDirty(); setName(prev => prev ? `${prev} ${w}` : w); }}
                   >{w}</button>
                 ))}
               </div>
@@ -2748,6 +2827,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 <button key={ml} type="button"
                   className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all ${contentMl === ml ? 'bg-primary/20 border-primary text-primary' : 'border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary'}`}
                   onClick={() => {
+                    markDirty();
                     setContentMl(ml);
                     setName(prev => {
                       const base = prev.replace(/\d+ML/g, '').trim();
@@ -2764,7 +2844,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               {(['masculino', 'femenino', 'unisex'] as const).map(g => (
                 <button key={g} type="button"
                   className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all capitalize ${gender === g ? 'bg-primary/20 border-primary text-primary' : 'border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary'}`}
-                  onClick={() => setGender(g)}
+                  onClick={() => { markDirty(); setGender(g); }}
                 >{g}</button>
               ))}
             </div>
@@ -2787,16 +2867,16 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <FichaSection label="Perfil olfativo">
             <div>
               <p className="text-[10px] text-muted-foreground mb-1.5">Familia</p>
-              <ChipSelect items={FAMILIAS_OLFATIVAS} selected={familiaOlfativa ? [familiaOlfativa] : []} onToggle={v => setFamiliaOlfativa(familiaOlfativa === v ? '' : v)} />
+              <ChipSelect items={FAMILIAS_OLFATIVAS} selected={familiaOlfativa ? [familiaOlfativa] : []} onToggle={v => { markDirty(); setFamiliaOlfativa(familiaOlfativa === v ? '' : v); }} />
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <p className="text-[10px] text-muted-foreground mb-1.5">Duración</p>
-                <ChipSelect items={DURACIONES} selected={duracion ? [duracion] : []} onToggle={v => setDuracion(duracion === v ? '' : v)} />
+                <ChipSelect items={DURACIONES} selected={duracion ? [duracion] : []} onToggle={v => { markDirty(); setDuracion(duracion === v ? '' : v); }} />
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground mb-1.5">Proyección</p>
-                <ChipSelect items={PROYECCIONES} selected={proyeccion ? [proyeccion] : []} onToggle={v => setProyeccion(proyeccion === v ? '' : v)} />
+                <ChipSelect items={PROYECCIONES} selected={proyeccion ? [proyeccion] : []} onToggle={v => { markDirty(); setProyeccion(proyeccion === v ? '' : v); }} />
               </div>
             </div>
           </FichaSection>
@@ -2805,15 +2885,15 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <FichaSection label="Pirámide de notas">
             <div>
               <p className="text-[10px] text-muted-foreground mb-1.5">Salida</p>
-              <ChipSelect items={NOTAS_COMUNES} selected={notasSalida} onToggle={v => toggleFrom(notasSalida, setNotasSalida, v)} />
+              <ChipSelect items={NOTAS_COMUNES} selected={notasSalida} onToggle={v => { markDirty(); toggleFrom(notasSalida, setNotasSalida, v); }} />
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground mb-1.5">Corazón</p>
-              <ChipSelect items={NOTAS_COMUNES} selected={notasCorazon} onToggle={v => toggleFrom(notasCorazon, setNotasCorazon, v)} />
+              <ChipSelect items={NOTAS_COMUNES} selected={notasCorazon} onToggle={v => { markDirty(); toggleFrom(notasCorazon, setNotasCorazon, v); }} />
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground mb-1.5">Fondo</p>
-              <ChipSelect items={NOTAS_COMUNES} selected={notasFondo} onToggle={v => toggleFrom(notasFondo, setNotasFondo, v)} />
+              <ChipSelect items={NOTAS_COMUNES} selected={notasFondo} onToggle={v => { markDirty(); toggleFrom(notasFondo, setNotasFondo, v); }} />
             </div>
           </FichaSection>
 
@@ -2821,11 +2901,11 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <FichaSection label="Uso ideal">
             <div>
               <p className="text-[10px] text-muted-foreground mb-1.5">Estación</p>
-              <ChipSelect items={ESTACIONES} selected={estacion} onToggle={v => toggleFrom(estacion, setEstacion, v)} />
+              <ChipSelect items={ESTACIONES} selected={estacion} onToggle={v => { markDirty(); toggleFrom(estacion, setEstacion, v); }} />
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground mb-1.5">Ocasión</p>
-              <ChipSelect items={OCASIONES} selected={ocasion} onToggle={v => toggleFrom(ocasion, setOcasion, v)} />
+              <ChipSelect items={OCASIONES} selected={ocasion} onToggle={v => { markDirty(); toggleFrom(ocasion, setOcasion, v); }} />
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground mb-1">Edad recomendada</p>
@@ -2847,6 +2927,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 <button key={t} type="button"
                   className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-yellow-500/40 hover:text-yellow-400 transition-all"
                   onClick={() => {
+                    markDirty();
                     setName(prev => prev ? prev : t.toUpperCase());
                     setVariantType('color');
                   }}
@@ -2859,7 +2940,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div><label className="text-sm text-muted-foreground">Género</label>
-          <Select value={gender} onValueChange={setGender}><SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+          <Select value={gender} onValueChange={value => { markDirty(); setGender(value); }}><SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="masculino">Masculino</SelectItem><SelectItem value="femenino">Femenino</SelectItem><SelectItem value="unisex">Unisex</SelectItem></SelectContent>
           </Select>
         </div>
@@ -2869,7 +2950,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
             {/* Un servicio no se descuenta: el interruptor va PEGADO al campo
                 que deja de tener sentido, no escondido en otra pestaña. */}
             <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
-              <Switch checked={!manejaStock} onCheckedChange={v => setManejaStock(!v)} />
+              <Switch checked={!manejaStock} onCheckedChange={v => { markDirty(); setManejaStock(!v); }} />
               No lleva stock
             </label>
           </div>
@@ -2892,12 +2973,12 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <div className="flex rounded-md border border-border overflow-hidden text-[10px]">
             <button
               type="button"
-              onClick={() => { setCostCurrency('ARS'); setManualSalePrice(false); setManualDiscountPrice(false); }}
+              onClick={() => { markDirty(); setCostCurrency('ARS'); setManualSalePrice(false); setManualDiscountPrice(false); }}
               className={`px-2 py-0.5 transition-colors ${enPesos ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
             >Pesos</button>
             <button
               type="button"
-              onClick={() => { setCostCurrency('USD'); setManualSalePrice(false); setManualDiscountPrice(false); }}
+              onClick={() => { markDirty(); setCostCurrency('USD'); setManualSalePrice(false); setManualDiscountPrice(false); }}
               className={`px-2 py-0.5 transition-colors ${!enPesos ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
             >USD</button>
           </div>
@@ -2934,7 +3015,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <div className="flex items-center justify-between">
             <label className="text-sm text-muted-foreground">Precio Venta ARS</label>
             {manualSalePrice && cost > 0 && (
-              <button type="button" onClick={() => setManualSalePrice(false)} className="text-[10px] text-primary hover:underline">Auto</button>
+              <button type="button" onClick={() => { markDirty(); setManualSalePrice(false); }} className="text-[10px] text-primary hover:underline">Auto</button>
             )}
           </div>
           <Input type="number" min="0" value={salePriceARS} onChange={e => { setSalePriceARS(e.target.value); setManualSalePrice(true); }} className="bg-muted border-border" />
@@ -2943,7 +3024,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <div className="flex items-center justify-between">
             <label className="text-sm text-muted-foreground">Precio c/Desc. ARS</label>
             {manualDiscountPrice && currentSaleForDiscount > 0 && (
-              <button type="button" onClick={() => setManualDiscountPrice(false)} className="text-[10px] text-primary hover:underline">Auto</button>
+              <button type="button" onClick={() => { markDirty(); setManualDiscountPrice(false); }} className="text-[10px] text-primary hover:underline">Auto</button>
             )}
           </div>
           <Input type="number" min="0" value={discountPriceARS} onChange={e => { setDiscountPriceARS(e.target.value); setManualDiscountPrice(true); }} placeholder="Auto-calculado" className="bg-muted border-border" />
@@ -2975,7 +3056,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       {suppliers.length > 0 && (
         <div>
           <label className="text-sm text-muted-foreground">Proveedor</label>
-          <Select value={supplierId || 'none'} onValueChange={v => setSupplierId(v === 'none' ? '' : v)}>
+          <Select value={supplierId || 'none'} onValueChange={v => { markDirty(); setSupplierId(v === 'none' ? '' : v); }}>
             <SelectTrigger className="bg-muted border-border">
               <SelectValue placeholder="Sin proveedor" />
             </SelectTrigger>
@@ -3011,7 +3092,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 <button
                   key={targetMargin}
                   type="button"
-                  onClick={() => { setSalePriceARS(suggested.toString()); setManualSalePrice(true); }}
+                  onClick={() => { markDirty(); setSalePriceARS(suggested.toString()); setManualSalePrice(true); }}
                   className={`text-center rounded-lg border py-1.5 px-1 transition-all hover:scale-105 ${
                     active
                       ? "border-blue-500/60 bg-blue-500/20 text-blue-300"
@@ -3029,14 +3110,14 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               <button
                 type="button"
                 className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded border border-border/40 hover:border-border/70 transition-colors"
-                onClick={() => { setSalePriceARS(String(Math.ceil(salePrice / 100) * 100)); setManualSalePrice(true); }}
+                onClick={() => { markDirty(); setSalePriceARS(String(Math.ceil(salePrice / 100) * 100)); setManualSalePrice(true); }}
               >
                 Redondear ↑ {formatARS(Math.ceil(salePrice / 100) * 100)}
               </button>
               <button
                 type="button"
                 className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded border border-border/40 hover:border-border/70 transition-colors"
-                onClick={() => { setSalePriceARS(String(Math.ceil(salePrice / 500) * 500)); setManualSalePrice(true); }}
+                onClick={() => { markDirty(); setSalePriceARS(String(Math.ceil(salePrice / 500) * 500)); setManualSalePrice(true); }}
               >
                 Múltiplo 500 → {formatARS(Math.ceil(salePrice / 500) * 500)}
               </button>
@@ -3125,7 +3206,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           {tags.map(t => (
             <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary/15 text-primary border border-primary/20">
               {t}
-              <button type="button" onClick={() => setTags(tags.filter(x => x !== t))} className="hover:text-destructive ml-0.5">×</button>
+              <button type="button" onClick={() => { markDirty(); setTags(tags.filter(x => x !== t)); }} className="hover:text-destructive ml-0.5">×</button>
             </span>
           ))}
         </div>
@@ -3146,13 +3227,13 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           />
           <Button type="button" variant="outline" size="sm" onClick={() => {
             const t = tagInput.trim().toLowerCase().replace(/[^a-z0-9áéíóúüñ-]/g, '');
-            if (t && !tags.includes(t)) setTags([...tags, t]);
+            if (t && !tags.includes(t)) { markDirty(); setTags([...tags, t]); }
             setTagInput('');
           }}><Plus className="w-3.5 h-3.5" /></Button>
         </div>
         <div className="flex gap-1.5 mt-2 flex-wrap">
           {['nuevo', 'oferta', 'importado', 'exclusivo', 'temporada', 'agotándose'].filter(s => !tags.includes(s)).map(s => (
-            <button key={s} type="button" onClick={() => setTags([...tags, s])}
+            <button key={s} type="button" onClick={() => { markDirty(); setTags([...tags, s]); }}
               className="px-2 py-0.5 rounded-full text-[10px] bg-muted border border-border hover:border-primary/40 text-muted-foreground">
               + {s}
             </button>
@@ -3180,7 +3261,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <label className="text-sm font-medium flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-emerald-400" />{variantLabel}</label>
-              <Select value={variantType} onValueChange={setVariantType}>
+              <Select value={variantType} onValueChange={value => { markDirty(); setVariantType(value); }}>
                 <SelectTrigger className="h-9 w-[112px] text-xs" aria-label="Tipo de variante"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="sabor">Sabor</SelectItem>
@@ -3205,6 +3286,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 const newVars = names.filter(n => !existing.has(n.toLowerCase())).map(n => ({
                   variant_name: n, stock: 0, active: true, _new: true, price_override: null,
                 }));
+                if (newVars.length > 0) markDirty();
                 setVariants([...variants, ...newVars]);
                 setBulkVariants('');
                 setShowBulkImport(false);
@@ -3230,6 +3312,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               if (variants.some(v => v.variant_name.toLowerCase() === newVariantName.trim().toLowerCase())) {
                 toast.error('Esa variante ya existe'); return;
               }
+              markDirty();
               setVariants([...variants, { variant_name: newVariantName.trim(), stock: parseInt(newVariantStock) || 0, active: true, _new: true, price_override: parseFloat(newVariantPrice) || null }]);
               setNewVariantName(''); setNewVariantStock('0'); setNewVariantPrice('');
             }}><Plus className="mr-1.5 h-3.5 w-3.5" />Agregar</Button>
@@ -3257,6 +3340,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                     }} className="mt-1 h-9 w-full bg-muted text-xs" title="Precio propio de esta variante (sobreescribe el precio del producto)" aria-label={`Precio propio de ${v.variant_name}`} />
                   </label>
                   <Button type="button" variant="ghost" size="sm" className="h-9 w-full shrink-0 px-3 text-destructive sm:w-9 sm:p-0" aria-label={`Eliminar ${v.variant_name}`} onClick={() => {
+                    markDirty();
                     setVariants(variants.filter((_, j) => j !== i));
                   }}><Trash2 className="mr-1.5 h-3.5 w-3.5 sm:mr-0" /><span className="sm:sr-only">Eliminar</span></Button>
                 </div>
@@ -3283,6 +3367,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               });
               if (error) throw error;
               if (data?.description) {
+                markDirty();
                 setDescription(data.description);
                 // Prefill de campos estructurados si la IA los devolvió
                 if (data.familia_olfativa) setFamiliaOlfativa(data.familia_olfativa);
@@ -3321,7 +3406,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <label className="text-sm text-muted-foreground">Descuento por transferencia/efectivo</label>
           <Select
             value={offerStacks === null ? 'tienda' : offerStacks ? 'suma' : 'incluido'}
-            onValueChange={v => setOfferStacks(v === 'tienda' ? null : v === 'suma')}
+            onValueChange={v => { markDirty(); setOfferStacks(v === 'tienda' ? null : v === 'suma'); }}
           >
             <SelectTrigger className="bg-muted border-border text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -3392,7 +3477,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                   </label>
                 )}
                 {definition.data_type === "select" && (
-                  <Select value={String(displayValue)} onValueChange={setValue}>
+                  <Select value={String(displayValue)} onValueChange={value => { markDirty(); setValue(value); }}>
                     <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccioná..." /></SelectTrigger>
                     <SelectContent>{definition.options.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent>
                   </Select>
@@ -3452,7 +3537,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               {def.field_type === 'select' && def.options && (
                 <Select
                   value={customFieldValues[def.field_key] ?? ""}
-                  onValueChange={v => setCustomFieldValues(vals => ({ ...vals, [def.field_key]: v }))}
+                  onValueChange={v => { markDirty(); setCustomFieldValues(vals => ({ ...vals, [def.field_key]: v })); }}
                 >
                   <SelectTrigger className="bg-muted border-border">
                     <SelectValue placeholder="Seleccioná..." />

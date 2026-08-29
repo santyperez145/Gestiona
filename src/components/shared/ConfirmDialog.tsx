@@ -5,7 +5,9 @@ import {
 import { ReactNode } from "react";
 
 interface ConfirmDialogProps {
-  trigger: ReactNode;
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   title?: string;
   description?: string;
   confirmText?: string;
@@ -15,12 +17,12 @@ interface ConfirmDialogProps {
 }
 
 export default function ConfirmDialog({
-  trigger, title = "¿Estás seguro?", description = "Esta acción no se puede deshacer.",
+  trigger, open, onOpenChange, title = "¿Estás seguro?", description = "Esta acción no se puede deshacer.",
   confirmText = "Confirmar", cancelText = "Cancelar", variant = "destructive", onConfirm,
 }: ConfirmDialogProps) {
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      {trigger ? <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger> : null}
       <AlertDialogContent className="bg-card border-border/60">
         <AlertDialogHeader>
           <AlertDialogTitle className="font-display">{title}</AlertDialogTitle>

@@ -2074,8 +2074,8 @@ Finance Connect.
     por servidor y Kardex. La guarda de contrato bloquea el regreso al modal
     angosto, al falso sticky, al contenedor sin columna y a acciones icon-only; la barrera local cerró typecheck, lint,
     1.991/1.991 tests y build/PWA. Quedan importación autenticada con un archivo
-    real, protección explícita de cambios sin guardar y medición de tarea antes
-    de declarar el flujo adoptado.
+    real, validación publicada de la protección de borradores y medición de
+    tarea antes de declarar el flujo adoptado.
 
 62. Lenguaje transversal de variantes — slice técnico cerrado el 2026-08-29.
     La ficha dejó de titular el módulo como “Sabores” cuando el tipo elegido era
@@ -2085,6 +2085,18 @@ Finance Connect.
     `otro`, no de `sabor`; los vapers lo eligen por su subtipo y las variantes
     existentes conservan su dato. La guarda visual bloquea el regreso del
     rótulo heredado sin alterar stock, Kardex ni registros existentes.
+
+63. Protección explícita de cambios sin guardar — slice técnico cerrado el
+    2026-08-29. Cerrar la ficha por X, Escape o click exterior ya no descarta
+    silenciosamente el trabajo: si hubo una edición abre una confirmación
+    controlada con “Seguir editando” como salida segura y “Descartar cambios”
+    como acción destructiva explícita. Inputs, selects Radix, switches, chips,
+    imágenes, sugerencias, tags y variantes marcan el borrador; recargar o
+    cerrar la pestaña activa además `beforeunload`. El guard se limpia sólo al
+    guardar o descartar, no por abrir paneles auxiliares. `ConfirmDialog` admite
+    ahora uso controlado sin obligar a un trigger visible, manteniendo
+    compatibles sus usos anteriores. Falta revalidar el build publicado con
+    teclado y teléfono antes de contar la protección como evidencia adoptada.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

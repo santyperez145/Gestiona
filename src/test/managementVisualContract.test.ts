@@ -112,6 +112,22 @@ describe('contrato visual transversal de Gestión', () => {
     expect(importer).not.toContain('max-h-[86vh]');
   });
 
+  it('Productos no descarta una ficha editada sin confirmación explícita', () => {
+    const products = source('src/pages/ProductsPage.tsx');
+    const confirmation = source('src/components/shared/ConfirmDialog.tsx');
+
+    expect(products).toContain('const [productFormDirty, setProductFormDirty] = useState(false)');
+    expect(products).toContain('onOpenChange={handleProductEditorOpenChange}');
+    expect(products).toContain('onInputCapture={markDirty}');
+    expect(products).toContain("window.addEventListener('beforeunload', warnBeforeUnload)");
+    expect(products).toContain('title="¿Descartar los cambios del producto?"');
+    expect(products).toContain('confirmText="Descartar cambios"');
+    expect(products).toContain('cancelText="Seguir editando"');
+    expect(products).toContain('onChange={value => { markDirty(); setCategory(value); }}');
+    expect(confirmation).toContain('trigger?: ReactNode');
+    expect(confirmation).toContain('<AlertDialog open={open} onOpenChange={onOpenChange}>');
+  });
+
   it('el wrapper universal alcanza también a páginas que aún no declaran workspace-page', () => {
     const css = source('src/index.css');
 
