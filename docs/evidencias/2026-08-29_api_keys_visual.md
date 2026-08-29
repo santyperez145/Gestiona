@@ -40,22 +40,30 @@ que `SCOPE_DESC` no vuelva a recibir `truncate`.
 
 ## Estado de deploy
 
-El commit `76a3c4a` se pusheó a `main`, pero el status check oficial de GitHub
-devolvió Vercel `failure` con `Deployment rate limited — retry in 24 hours`.
-Una navegación nueva con cache-buster confirmó que producción seguía sirviendo
-`assets/index-EniERmOG.js`; al reabrir el modal a 360 px, el DOM todavía tenía
-`text-muted-foreground truncate` y no la nueva clase de wrapping.
+El commit `76a3c4a` se pusheó a `main`, pero su primer status check oficial de
+GitHub devolvió Vercel `failure` con `Deployment rate limited — retry in 24
+hours`. Una navegación con cache-buster confirmó entonces que producción seguía
+sirviendo `assets/index-EniERmOG.js` y la clase `truncate`; el roadmap quedó en
+curso en vez de presentar el cambio como productivo.
 
-Por eso esta evidencia separa dos hechos: la matriz de la versión actualmente
-publicada está hecha y el fix está construido/testeado en `main`, pero falta la
-verificación post-deploy. No se presenta el cambio visual como productivo hasta
-que Vercel acepte un build y el DOM publicado muestre `min-w-0 leading-snug`.
+El deploy siguiente terminó en `success`. Producción pasó a servir
+`assets/index-CBuC_8gZ.js` y se repitió el diálogo con la misma sesión:
+
+- 360 px claro: `break-words`, `min-w-0 leading-snug`, texto completo y sin
+  overflow horizontal;
+- 360 px oscuro: mismo texto completo y sin overflow;
+- 1440 px oscuro: siete scopes con wrapping habilitado, diálogo de 512 px y sin
+  overflow;
+- consola post-deploy: **0 warnings y 0 errors**.
+
+La sesión volvió finalmente a `/marketing`, tema claro y sin override temporal
+de viewport.
 
 ## Alcance honesto
 
 La prueba demuestra composición, responsive, temas, contenido autenticado,
-foco básico del diálogo y ausencia de errores visibles para API Keys en el
-bundle anterior. No creó una credencial —hacerlo habría modificado acceso
-persistente— y no reemplaza la comprobación post-deploy, una prueba de tarea con
-otro comercio ni la matriz de Conexiones/Webhooks y transportistas que permanece
-en el slice 16 de `DESIGNROADMAP.md`.
+foco básico del diálogo y ausencia de errores visibles para API Keys, incluido
+el bundle corregido. No creó una credencial —hacerlo habría modificado acceso
+persistente— y no reemplaza una prueba de tarea con otro comercio ni la matriz
+de Conexiones/Webhooks y transportistas que permanece en el slice 16 de
+`DESIGNROADMAP.md`.

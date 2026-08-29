@@ -1875,7 +1875,7 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     final: 1.982/1.982 tests en 192 archivos, typecheck, lint 0/140,
     build/PWA, 71 Edge tipadas, audit 0, 489/489 migraciones, dos OpenAPI
     válidos y 70 enlaces internos en 42 documentos (2026-08-29).
-53. **API Keys validada con la sesión real del comercio** — en curso el
+53. ~~API Keys validada con la sesión real del comercio~~ — cerrada el
     2026-08-29. Esta PC no tiene `.env`, pero eso sólo bloquea la base desde
     localhost: la sesión autenticada ya abierta permitió recorrer producción
     como administrador de Exentry Imports sin transferir cookies ni secretos.
@@ -1885,13 +1885,15 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     una deuda concreta que la compilación no veía: `stock:write` recortaba
     «con asiento de Kardex», precisamente la consecuencia que debe entenderse
     antes de emitir la key. En `main` el texto ya envuelve completo y una guarda
-    evita devolverle `truncate`; el fix está versionado como `76a3c4a`,
-    pero GitHub recibió estado Vercel `failure`: `Deployment rate limited —
-    retry in 24 hours`; una navegación sin caché confirmó que producción todavía
-    sirve `assets/index-EniERmOG.js` y la clase vieja. No se cierra ni se fuerza
-    otro hosting: falta que Vercel acepte el deploy y repetir modal 360 px +
-    consola sobre el bundle nuevo. Esto tampoco cierra la matriz de todas las
-    Integraciones ni la validación con otro comercio. Evidencia reproducible en
+    evita devolverle `truncate`; el fix está versionado como `76a3c4a`. El
+    primer deploy fue rate-limited y producción conservó el bundle anterior;
+    se documentó como pendiente en vez de presentarlo como listo. Vercel aceptó
+    el siguiente commit y completó el deploy: producción carga ahora
+    `assets/index-CBuC_8gZ.js`, el DOM usa `break-words` +
+    `min-w-0 leading-snug`, el texto entra dentro de la fila en claro/oscuro a
+    360 px, desktop conserva diálogo de 512 px y la consola volvió a **0/0**.
+    Esto cierra API Keys, no la matriz de todas las Integraciones ni la
+    validación con otro comercio. Evidencia reproducible en
     `docs/evidencias/2026-08-29_api_keys_visual.md`. Puerta final: 1.983/1.983
     tests en 192 archivos, typecheck, lint 0/140, build/PWA, 71 Edge tipadas,
     audit 0, 489 migraciones y 70 enlaces internos en 43 documentos
