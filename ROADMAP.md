@@ -2057,7 +2057,13 @@ Finance Connect.
     que el contenedor fullscreen todavía no establecía una columna flex: el
     formulario crecía por fuera del viewport y el supuesto footer fijo quedaba
     debajo del pliegue. El workspace ahora declara esa geometría de forma
-    explícita y la guarda de contrato la protege. Los pares y cuartetos de campos colapsan a una o
+    explícita y la guarda de contrato la protege. La matriz publicada
+    360/768/1024/1440 cerró geometría, scroll interno y overflow tanto para el
+    editor como para el importador; la misma pasada encontró que el título
+    visible del wizard no estaba conectado al contrato accesible de Radix. El
+    `DialogTitle` semántico ya acompaña al encabezado visual y queda bajo
+    guarda; falta revalidar la consola del build publicado. Los pares y
+    cuartetos de campos colapsan a una o
     dos columnas en mobile; variantes expone nombre, stock, precio propio y
     eliminación con labels persistentes, targets completos y cards responsive.
     El wizard Excel/CSV comparte el mismo workspace, mantiene progreso y cierre
@@ -2065,9 +2071,9 @@ Finance Connect.
     tablas comparativas. No cambia autoridad: precios/stock siguen validados
     por servidor y Kardex. La guarda de contrato bloquea el regreso al modal
     angosto, al falso sticky, al contenedor sin columna y a acciones icon-only; la barrera local cerró typecheck, lint,
-    1.991/1.991 tests y build/PWA. Quedan prueba publicada del editor en los
-    cuatro viewports, importación autenticada con un archivo real y protección
-    explícita de cambios sin guardar antes de declarar el flujo adoptado.
+    1.991/1.991 tests y build/PWA. Quedan importación autenticada con un archivo
+    real, protección explícita de cambios sin guardar y medición de tarea antes
+    de declarar el flujo adoptado.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

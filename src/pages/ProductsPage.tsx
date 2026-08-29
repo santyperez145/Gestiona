@@ -1107,6 +1107,12 @@ export default function ProductsPage() {
       {/* Importación unificada: el servidor valida antes de tocar catálogo o stock. */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent size="full" hideClose className={FULLSCREEN_PRODUCT_WORKSPACE}>
+          <DialogHeader className="sr-only">
+            <DialogTitle>Importar catálogo</DialogTitle>
+            <DialogDescription>
+              Cargá un archivo Excel o CSV, revisá la validación y aprobá los cambios antes de aplicarlos.
+            </DialogDescription>
+          </DialogHeader>
           <ProductsExcelImport onClose={() => setImportOpen(false)} onImported={reload} />
         </DialogContent>
       </Dialog>
