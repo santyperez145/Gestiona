@@ -244,7 +244,10 @@ test.describe("POS", () => {
     await page.getByRole("link", { name: /Gestionar turno/ }).first().click();
     await expect(page).toHaveURL(/\/caja\/turno\?location=/);
     await expect(page.getByRole("heading", { name: "Apertura & Cierre de Caja" })).toBeVisible();
-    await expect(page.getByRole("combobox", { name: "Sucursal de la sesión de caja" })).toBeVisible();
+    await expect(
+      page.getByRole("combobox", { name: "Sucursal de la sesión de caja" })
+        .or(page.getByRole("link", { name: "Configurar sucursal" })),
+    ).toBeVisible();
     expect(errors, `errores en consola:\n${errors.join("\n")}`).toEqual([]);
   });
 

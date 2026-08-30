@@ -29,6 +29,7 @@ import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { useVibration } from "@/hooks/useVibration";
 import { detalleDeEdgeFunction, mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { plural } from "@/lib/plural";
+import { useUserRole } from "@/lib/useUserRole";
 import { groupPosOfflineTickets, posOfflineAgeLabel, summarizePosOfflineQueue } from "@/lib/posOfflineQueue";
 import { posPaymentDiscountPercent, posPriceForPayment } from "@/lib/posPaymentDiscount";
 import { PosQrCheckoutDialog } from "@/components/pos/PosQrCheckoutDialog";
@@ -752,6 +753,7 @@ export default function POSPage() {
   useWakeLock({ active: true });
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const { isAdmin } = useUserRole();
   const { nombre: nombreCategoria } = useOrgCategoryNames(activeOrg?.id);
   const config = useBusinessConfig();
   const { checkSalesLimit } = usePlanLimits();
@@ -2480,7 +2482,7 @@ export default function POSPage() {
       {/* Customer + Payment */}
       <div className="px-4 py-3 border-t border-border space-y-3">
         {/* Location selector — only when org has locations configured */}
-        {locations.length > 0 && (
+        {locations.length > 0 ? (
           <div className="space-y-2">
             <div className="relative">
               <Store className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none z-10" />
@@ -2518,6 +2520,20 @@ export default function POSPage() {
                 </span>
                 <span className="font-semibold">Gestionar turno</span>
               </Link>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+            <p className="font-semibold">Caja todavía no tiene una sucursal</p>
+            <p className="mt-0.5 text-amber-700/90 dark:text-amber-200/80">
+              La venta puede continuar, pero quedará sin turno hasta definir el punto de venta.
+            </p>
+            {isAdmin ? (
+              <Button variant="outline" size="sm" className="mt-2 h-8 bg-background" asChild>
+                <Link to="/sucursales">Configurar sucursal</Link>
+              </Button>
+            ) : (
+              <p className="mt-2 font-medium">Pedile a un administrador que configure una sucursal.</p>
             )}
           </div>
         )}

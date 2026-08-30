@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useUserRole } from "@/lib/useUserRole";
 import {
   Banknote, Lock, Unlock, Clock, TrendingUp, TrendingDown,
   CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, RotateCcw,
@@ -193,6 +194,7 @@ export default function CashSessionPage() {
   usePageTitle("Sesión de Caja");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const { isAdmin } = useUserRole();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [sessions, setSessions] = useState<CashSession[]>([]);
@@ -415,8 +417,12 @@ export default function CashSessionPage() {
                 ))}
               </SelectContent>
             </Select>
+          ) : isAdmin ? (
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/sucursales">Configurar sucursal</Link>
+            </Button>
           ) : (
-            <Badge variant="destructive">Sin sucursales activas</Badge>
+            <Badge variant="secondary">Pedile a un administrador que configure una sucursal</Badge>
           )}
         </div>
       </div>

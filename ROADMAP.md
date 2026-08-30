@@ -2402,10 +2402,20 @@ Finance Connect.
     --linked --dry-run` quedó `upToDate=true`. Puerta completa: typecheck, lint
     0 errores/139 warnings conocidos, 204 archivos/2.056 pruebas, build/PWA,
     72 Edge Functions, auditoría de dependencias sin vulnerabilidades, enlaces
-    internos y 46 E2E listados. Los chunks quedan en 110,24 kB para POS y 28,69
+    internos y 46 E2E listados. Los chunks quedan en 111,00 kB para POS y 28,92
     kB para Turno, sin dependencia nueva. Falta operar y cerrar un turno real,
     validar la superficie publicada en 360/768/1024/1440 y medir diferencia,
     tiempo de cierre y ventas sin turno antes de declarar adopción.
+
+    La primera validación publicada encontró una brecha de activación que el
+    fixture no podía mostrar: las 2 organizaciones productivas tenían 0
+    sucursales, por lo que la nueva sesión era correcta pero no iniciable. No se
+    inventó un local ni un domicilio mediante backfill. Caja y Turno ahora
+    explican que la venta seguirá “sin turno” y, para owner/admin, enlazan a
+    **Configurar sucursal**; un vendedor recibe la instrucción de pedírselo a un
+    administrador. El E2E de sólo lectura acepta los dos estados válidos —selector
+    configurado o CTA de activación— y deja de exigir datos que producción no
+    tiene.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

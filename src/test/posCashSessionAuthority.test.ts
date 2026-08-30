@@ -36,6 +36,8 @@ describe("turno autoritativo del POS", () => {
     expect(pos).toContain("Gestionar turno");
     expect(sessionPage).toContain("pos_cash_session_open");
     expect(sessionPage).toContain("pos_cash_session_close");
+    expect(sessionPage).toContain('to="/sucursales"');
+    expect(pos).toContain("Caja todavía no tiene una sucursal");
     expect(sessionPage).not.toContain('.from("cash_sessions").insert');
     expect(sessionPage).not.toContain('.from("cash_sessions").update');
   });
