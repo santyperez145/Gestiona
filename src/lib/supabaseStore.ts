@@ -3,7 +3,7 @@ import { getActiveOrgId, requireActiveOrgId } from './orgContext';
 import type { Database } from '@/integrations/supabase/types';
 import { resolveSaleAttribution } from './businessCalc';
 import { nombreDeCategoria } from './storeCategories';
-type SettingsInsert = Database['public']['Tables']['settings']['Insert'];
+type SettingsUpdate = Database['public']['Tables']['settings']['Update'];
 
 /** Get the active org id, falling back to looking it up by user (for legacy callers). */
 async function orgIdFor(_userId?: string): Promise<string> {
@@ -493,10 +493,16 @@ export async function getSettingsDB(userId: string) {
 
 export async function saveSettingsDB(userId: string, settings: Record<string, any>) {
   const orgId = await orgIdFor(userId);
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('settings')
-    .upsert({ org_id: orgId, user_id: userId, ...settings } as SettingsInsert, { onConflict: 'org_id' });
+    .update(settings as SettingsUpdate)
+    .eq('org_id', orgId)
+    .select('id')
+    .maybeSingle();
   if (error) throw error;
+  if (!data) {
+    throw new Error('No se encontró la configuración de esta organización o no tenés permiso para modificarla.');
+  }
 }
 
 // ========= MARKETING =========

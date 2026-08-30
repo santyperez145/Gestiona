@@ -239,7 +239,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 2.044 tests en 201 archivos pasan al 2026-08-29; typecheck, lint sin errores (139 warnings conocidos), build/PWA y 72 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
+| Calidad técnica | 2.048 tests en 202 archivos pasan al 2026-08-29; typecheck, lint sin errores (139 warnings conocidos), build/PWA y 72 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
@@ -2333,6 +2333,31 @@ Finance Connect.
     201 archivos / 2.044 pruebas, build/PWA y 72 Edge Functions; el chunk POS
     bajó a 108,09 kB (29,82 kB gzip) al retirar lógica duplicada.
 
+72. Ajustes de descuentos del POS realmente guardables — cerrado técnicamente
+    el 2026-08-29. La pestaña **Precios** mostraba efectivo, transferencia,
+    débito y crédito, pero el único `Guardar Configuración` pertenecía al panel
+    **Finanzas** y el layout lo ocultaba al cambiar de pestaña. El usuario podía
+    editar porcentajes y no tenía ninguna acción alcanzable para persistirlos.
+    La sección ahora termina con `Guardar precios y descuentos`, explica que
+    afecta la próxima venta y escribe únicamente descuentos, mayorista y
+    márgenes de presentaciones: no confirma por accidente cambios invisibles de
+    Tienda, Mensajería o Impuestos. Los cuatro controles tienen nombre
+    accesible y comparten la explicación de la regla de mejor beneficio.
+
+    `saveSettingsDB` dejó de hacer `upsert` con `user_id` del operador —eso
+    reasignaba el campo “quien creó” de una configuración que es por
+    organización— y ahora actualiza la fila `org_id`, exige que PostgREST
+    devuelva exactamente la configuración visible y diferencia falta de
+    permiso/fila de un éxito. La normalización común acepta coma decimal,
+    conserva 0–90% igual que la autoridad server-side de Caja y evita umbrales
+    o márgenes negativos. Verificación reversible productiva como rol
+    `authenticated` owner/admin: una fila 10→10,1 dentro de transacción y
+    `ROLLBACK` 10→10, con 0 cambios persistidos. Puerta completa: typecheck,
+    lint con 0 errores/139 warnings conocidos, 202 archivos / 2.048 pruebas,
+    build/PWA y 72 Edge Functions. Falta revalidar el CTA publicado en
+    360/768/1024/1440 después del deploy; la tasa elegida sigue siendo decisión
+    comercial/legal del dueño, no una recomendación automática de Gestiona.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
@@ -2830,7 +2855,7 @@ fixture destructiva-cero probó el RPC real y producción sirve `public-api` v42
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **2.044 tests en 201 archivos**,
+- Build y suites locales del 2026-08-29: **2.048 tests en 202 archivos**,
   typecheck, lint sin errores (139 warnings de deuda conocida), build/PWA y 72
   funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
   panel y 1 setup autenticado—; el de Gastos es de sólo lectura.

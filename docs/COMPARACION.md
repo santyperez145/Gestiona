@@ -96,7 +96,7 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | Cron jobs | **26** | ⚠️ 22.503 corridas exitosas y **3 fallidas** en 7 días; se agregó reconciliación QR por minuto. Las tres fallas históricas corresponden a `expire-overdue-trials`, cuya recuperación posterior se documenta en la auditoría del 2026-08-28 |
 | Edge Functions | **72** | ✅ `npm run check:functions`, 2026-08-29; incluye el checkout QR de POS |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **2.044** | ✅ `npm test`, 201 archivos, 2026-08-29 |
+| Tests unitarios | **2.048** | ✅ `npm test`, 202 archivos, 2026-08-29 |
 | Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -186,7 +186,7 @@ consultadas el 2026-08-22.
 | | Gestiona | Tiendanube | Empretienda |
 |---|---|---|---|
 | POS de mostrador | ✅ PWA **con modo offline** | ✅ PDV, ✅ **no en su app móvil** | 🟡 carga manual de venta presencial/WhatsApp/redes |
-| Descuento automático por medio en POS | ✅ mejor beneficio, autoridad servidor y evidencia por línea | ❓ | ❓ |
+| Descuento automático por medio en POS | ✅ mejor beneficio, autoridad servidor, evidencia por línea y configuración persistible desde su propia sección | ❓ | ❓ |
 | Fidelidad/alerta grande por ticket | ✅ una vez por `sale_transaction`, idempotente y recalculable al anular | ❓ | ❓ |
 | Stock único entre canales | ✅ ledger de stock con triggers | ✅ | ✅ tienda + venta cargada manualmente |
 | Kardex auditable | ✅ `stock_movements`, única fuente | ❓ | ❓ |
@@ -422,7 +422,7 @@ necesita un SaaS de 2 organizaciones (2026-08-26). No es el cuello de botella.
 | **Observabilidad** | 🟡 Sentry en front, Merchant 360 y traza correlacionada del pago desde checkout hasta ledger, visible con RLS y sin PII. Faltan métricas/SLO, OpenTelemetry, alertas y health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ Deno para 72 Edge Functions + lint + typecheck + build, 2.044 tests en 201 archivos (2026-08-29), audit completo en 0 y 43 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
+| **CI** | ✅ Deno para 72 Edge Functions + lint + typecheck + build, 2.048 tests en 202 archivos (2026-08-29), audit completo en 0 y 43 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
 | **API pública / webhooks salientes** | ✅ Contrato técnico cerrado: API OpenAPI 3.1, `/v1`, scopes sin filtración, cupo durable, venta atómica/idempotente, ARS 2/USD 4, lifecycle y CORS server-to-server; webhooks con guía/receptor Node, HMAC, timestamp, filtro, outbox, id estable, retry, DLQ/replay, log y certificación HTTPS externa sintética. ⚠️ 0 keys/apps reales | API documentada, versionada, con rate limit y webhooks firmados | 🟢 Base técnica; adopción externa pendiente |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |

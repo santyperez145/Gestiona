@@ -42,6 +42,7 @@ import {
   type OrganizationBackup,
 } from "@/lib/orgBackups";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { buildPricingSettingsUpdate } from "@/lib/settingsPricing";
 
 import { plural } from "@/lib/plural";
 // ─── SystemInfoSection ────────────────────────────────────────────────────────
@@ -520,8 +521,17 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       const num = (val: string, fallback: number) => { const n = parseFloat(val); return isNaN(n) ? fallback : n; };
-      const int = (val: string, fallback: number) => { const n = parseInt(val); return isNaN(n) ? fallback : n; };
-      const paymentDiscount = (val: string) => Math.min(90, Math.max(0, num(val, 0)));
+      const pricingSettings = buildPricingSettingsUpdate({
+        discountCash,
+        discountTransfer,
+        discountDebit,
+        discountCredit,
+        volumeThreshold,
+        volumeDiscount,
+        decantMargin10,
+        decantMargin5,
+        decantMargin2_5,
+      });
       await saveSettingsDB(user.id, {
         // ⚠️ Vacío guarda NULL, no 1695. Desde 20260826000030 la columna no
         // tiene DEFAULT y NULL significa "el comercio todavía no cargó la
@@ -544,10 +554,7 @@ export default function SettingsPage() {
         catalog_card_color: catalogCard,
         catalog_accent_color: catalogAccent,
         brand_palettes: brandPalettes,
-        discount_cash_percent: paymentDiscount(discountCash),
-        discount_transfer_percent: paymentDiscount(discountTransfer),
-        discount_debit_percent: paymentDiscount(discountDebit),
-        discount_credit_percent: paymentDiscount(discountCredit),
+        ...pricingSettings,
         whatsapp_number: whatsappNumber || null,
         whatsapp_digest_enabled: whatsappDigestEnabled,
         whatsapp_birthday_enabled: whatsappBirthdayEnabled,
@@ -555,11 +562,6 @@ export default function SettingsPage() {
         bank_alias: bankAlias || null,
         bank_name: bankName || null,
         bank_holder: bankHolder || null,
-        volume_discount_threshold: int(volumeThreshold, 3),
-        volume_discount_percent: num(volumeDiscount, 10),
-        decant_margin_10ml: num(decantMargin10, 250),
-        decant_margin_5ml: num(decantMargin5, 350),
-        decant_margin_2_5ml: num(decantMargin2_5, 500),
       });
       await logAudit(user.id, 'settings_change', 'settings', undefined, { exchangeRate, customsPercent, businessName, taxEnabled });
       toast.success("Configuración guardada correctamente");
@@ -580,7 +582,48 @@ export default function SettingsPage() {
       setOrigDiscount(defaultDiscountPercent);
       setOrigCategoryPricing(JSON.stringify(categoryPricing));
     } catch (err: any) {
+      console.error('[SettingsPage] No se pudo guardar la configuración', err);
       toast.error("Error al guardar: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePricing = async () => {
+    if (!user) return;
+    setSaving(true);
+    const pricingSettings = buildPricingSettingsUpdate({
+      discountCash,
+      discountTransfer,
+      discountDebit,
+      discountCredit,
+      volumeThreshold,
+      volumeDiscount,
+      decantMargin10,
+      decantMargin5,
+      decantMargin2_5,
+    });
+
+    try {
+      await saveSettingsDB(user.id, pricingSettings);
+      await logAudit(
+        user.id,
+        'settings_change',
+        'settings',
+        undefined,
+        { section: 'pricing', ...pricingSettings },
+        {
+          entityLabel: 'Precios y descuentos',
+          newValues: { ...pricingSettings },
+          tags: ['settings', 'pricing', 'pos'],
+        },
+      );
+      toast.success('Precios y descuentos guardados', {
+        description: 'Caja usará estos valores desde la próxima venta.',
+      });
+    } catch (err: any) {
+      console.error('[SettingsPage] No se pudieron guardar los precios y descuentos', err);
+      toast.error('No se pudieron guardar los precios y descuentos: ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -1295,16 +1338,16 @@ export default function SettingsPage() {
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-primary" />Descuentos por Medio de Pago
             </h2>
-            <p className="text-xs text-muted-foreground">Caja cobra el menor entre la oferta vigente y el descuento de este medio calculado sobre lista. No se acumulan dos descuentos automáticos; en cobros divididos se conserva la oferta y no se mezclan porcentajes.</p>
+            <p id="pos-payment-discount-help" className="text-xs text-muted-foreground">Caja cobra el menor entre la oferta vigente y el descuento de este medio calculado sobre lista. No se acumulan dos descuentos automáticos; en cobros divididos se conserva la oferta y no se mezclan porcentajes.</p>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-sm text-muted-foreground">Efectivo (%)</label>
-                <Input type="number" min="0" max="90" step="0.1" value={discountCash} onChange={e => setDiscountCash(e.target.value)} className="bg-muted border-border mt-1" /></div>
-              <div><label className="text-sm text-muted-foreground">Transferencia (%)</label>
-                <Input type="number" min="0" max="90" step="0.1" value={discountTransfer} onChange={e => setDiscountTransfer(e.target.value)} className="bg-muted border-border mt-1" /></div>
-              <div><label className="text-sm text-muted-foreground">Débito (%)</label>
-                <Input type="number" min="0" max="90" step="0.1" value={discountDebit} onChange={e => setDiscountDebit(e.target.value)} className="bg-muted border-border mt-1" /></div>
-              <div><label className="text-sm text-muted-foreground">Crédito (%)</label>
-                <Input type="number" min="0" max="90" step="0.1" value={discountCredit} onChange={e => setDiscountCredit(e.target.value)} className="bg-muted border-border mt-1" /></div>
+              <div><label htmlFor="discount-cash-percent" className="text-sm text-muted-foreground">Efectivo (%)</label>
+                <Input id="discount-cash-percent" aria-describedby="pos-payment-discount-help" type="number" min="0" max="90" step="0.1" value={discountCash} onChange={e => setDiscountCash(e.target.value)} className="bg-muted border-border mt-1" /></div>
+              <div><label htmlFor="discount-transfer-percent" className="text-sm text-muted-foreground">Transferencia (%)</label>
+                <Input id="discount-transfer-percent" aria-describedby="pos-payment-discount-help" type="number" min="0" max="90" step="0.1" value={discountTransfer} onChange={e => setDiscountTransfer(e.target.value)} className="bg-muted border-border mt-1" /></div>
+              <div><label htmlFor="discount-debit-percent" className="text-sm text-muted-foreground">Débito (%)</label>
+                <Input id="discount-debit-percent" aria-describedby="pos-payment-discount-help" type="number" min="0" max="90" step="0.1" value={discountDebit} onChange={e => setDiscountDebit(e.target.value)} className="bg-muted border-border mt-1" /></div>
+              <div><label htmlFor="discount-credit-percent" className="text-sm text-muted-foreground">Crédito (%)</label>
+                <Input id="discount-credit-percent" aria-describedby="pos-payment-discount-help" type="number" min="0" max="90" step="0.1" value={discountCredit} onChange={e => setDiscountCredit(e.target.value)} className="bg-muted border-border mt-1" /></div>
             </div>
           </div>
 
@@ -1336,6 +1379,17 @@ export default function SettingsPage() {
               <div><label className="text-sm text-muted-foreground">2.5ml (%)</label>
                 <Input type="number" value={decantMargin2_5} onChange={e => setDecantMargin2_5(e.target.value)} className="bg-muted border-border mt-1" /></div>
             </div>
+          </div>
+
+          <div className="settings-panel settings-panel--pricing flex flex-col gap-3 rounded-[10px] border border-primary/20 bg-primary/[0.04] p-4 md:flex-row md:items-center md:justify-between md:p-5">
+            <div>
+              <p className="text-sm font-semibold">Aplicar la configuración en Caja</p>
+              <p className="text-xs text-muted-foreground">Guarda únicamente esta sección, sin modificar los ajustes ocultos de otras pestañas.</p>
+            </div>
+            <Button onClick={handleSavePricing} disabled={saving} className="gradient-gold min-h-11 w-full shrink-0 font-semibold text-primary-foreground shadow-gold md:w-auto">
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {saving ? 'Guardando...' : 'Guardar precios y descuentos'}
+            </Button>
           </div>
         </div>
 

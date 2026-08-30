@@ -8,6 +8,7 @@ const migration = readFileSync(
 );
 const pos = readFileSync(resolve("src/pages/POSPage.tsx"), "utf8");
 const settings = readFileSync(resolve("src/pages/SettingsPage.tsx"), "utf8");
+const store = readFileSync(resolve("src/lib/supabaseStore.ts"), "utf8");
 
 describe("autoridad del descuento por medio de pago en Caja", () => {
   it("lee las cuatro configuraciones del tenant en servidor", () => {
@@ -40,7 +41,25 @@ describe("autoridad del descuento por medio de pago en Caja", () => {
   });
 
   it("Ajustes acota el porcentaje igual que la base", () => {
-    expect(settings).toContain("Math.min(90, Math.max(0, num(val, 0)))");
+    expect(settings).toContain("buildPricingSettingsUpdate({");
     expect(settings.match(/max="90"/g)?.length).toBe(4);
+  });
+
+  it("la sección Precios conserva una acción de guardado alcanzable y rotulada", () => {
+    expect(settings).toContain("onClick={handleSavePricing}");
+    expect(settings).toContain("Guardar precios y descuentos");
+    expect(settings.match(/htmlFor="discount-[^"]+-percent"/g)?.length).toBe(4);
+  });
+
+  it("actualiza la fila existente de la organización y no reasigna su creador", () => {
+    const saveSettings = store.slice(
+      store.indexOf("export async function saveSettingsDB"),
+      store.indexOf("// ========= MARKETING ========="),
+    );
+    expect(saveSettings).toContain(".update(settings as SettingsUpdate)");
+    expect(saveSettings).toContain(".eq('org_id', orgId)");
+    expect(saveSettings).toContain(".select('id')");
+    expect(saveSettings).not.toContain(".upsert(");
+    expect(saveSettings).not.toContain("user_id: userId");
   });
 });
