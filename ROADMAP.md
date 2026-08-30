@@ -2581,6 +2581,14 @@ Finance Connect.
     exactitud/costo y E2E autenticado con revisión humana. Evidencia:
     [`docs/evidencias/2026-08-30_escaner_comprobantes_gastos.md`](docs/evidencias/2026-08-30_escaner_comprobantes_gastos.md).
 
+    `26e6a36` quedó publicado con el mismo chunk local
+    `ExpensesPage-BkjzogkU.js`. La sesión real abrió Gastos → Nuevo Gasto →
+    Escanear comprobante en 360/768/1024/1440: raíz, diálogo y scanner
+    conservaron `scrollWidth = clientWidth`, el disclosure estuvo visible en
+    las cuatro medidas y no aparecieron logs nuevos. La política publicada
+    muestra fecha 30 de agosto, ausencia de anonimización automática y camino
+    manual. Se cerró sin subir archivo ni guardar gasto.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

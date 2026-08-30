@@ -70,6 +70,25 @@ Health ahora muestran el flag sin exponer ningún valor.
   más las guardas existentes de autenticación, autoridad de plan, secretos y
   privacidad del bucket.
 
+## Evidencia publicada autenticada
+
+El commit `26e6a36` llegó a producción con el mismo chunk generado localmente,
+`ExpensesPage-BkjzogkU.js`. Una sesión real de administrador abrió **Gastos →
+Nuevo Gasto → Escanear comprobante** sin seleccionar archivo ni registrar datos.
+
+| Ancho | Diálogo | Scanner | Resultado |
+|---:|---:|---:|---|
+| 360 px | 336 px, x=12…348 | 286 px, x=37…323 | sin overflow; disclosure visible |
+| 768 px | 448 px, x=160…608 | 350 px, x=209…559 | sin overflow; disclosure visible |
+| 1024 px | 448 px, x=288…736 | 350 px, x=337…687 | sin overflow; disclosure visible |
+| 1440 px | 448 px, x=496…944 | 350 px, x=545…895 | sin overflow; disclosure visible |
+
+En las cuatro medidas la raíz cumplió `scrollWidth = clientWidth` y diálogo/
+scanner también conservaron su ancho interno; hubo 0 errores o warnings nuevos
+desde cada navegación. `/privacidad` publicó la fecha 30 de agosto de 2026, la
+ausencia de anonimización automática y la opción de no usar IA. La prueba dejó
+el formulario cerrado y realizó 0 escrituras.
+
 ## Gate externo pendiente
 
 Antes de habilitar documentos reales: aprobar DPA, región, subencargados,
