@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       activation_interventions: {
@@ -34639,6 +34664,13 @@ export type Database = {
           org_id: string
           payment_transaction_id: string | null
           provider: string
+          provider_attempt_count: number
+          provider_idempotency_key: string | null
+          provider_last_attempt_at: string | null
+          provider_refund_id: string | null
+          provider_requested_at: string | null
+          provider_requested_by: string | null
+          provider_status: string | null
           raw: Json | null
           return_transaction_id: string
           sale_method: string
@@ -34658,6 +34690,13 @@ export type Database = {
           org_id: string
           payment_transaction_id?: string | null
           provider: string
+          provider_attempt_count?: number
+          provider_idempotency_key?: string | null
+          provider_last_attempt_at?: string | null
+          provider_refund_id?: string | null
+          provider_requested_at?: string | null
+          provider_requested_by?: string | null
+          provider_status?: string | null
           raw?: Json | null
           return_transaction_id: string
           sale_method: string
@@ -34677,6 +34716,13 @@ export type Database = {
           org_id?: string
           payment_transaction_id?: string | null
           provider?: string
+          provider_attempt_count?: number
+          provider_idempotency_key?: string | null
+          provider_last_attempt_at?: string | null
+          provider_refund_id?: string | null
+          provider_requested_at?: string | null
+          provider_requested_by?: string | null
+          provider_status?: string | null
           raw?: Json | null
           return_transaction_id?: string
           sale_method?: string
@@ -53377,6 +53423,25 @@ export type Database = {
         }
         Returns: Json
       }
+      pos_mp_refund_observe: {
+        Args: {
+          p_external_refund_id: string
+          p_failure_reason: string
+          p_provider_status: string
+          p_raw: Json
+          p_refund_id: string
+        }
+        Returns: Json
+      }
+      pos_mp_refund_prepare: {
+        Args: {
+          p_increment_attempt: boolean
+          p_org_id: string
+          p_refund_id: string
+          p_requested_by: string
+        }
+        Returns: Json
+      }
       pos_payment_discount_pct: {
         Args: { p_method: string; p_org_id: string }
         Returns: number
@@ -54215,6 +54280,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "viewer"],

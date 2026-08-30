@@ -85,18 +85,18 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 
 | | Valor | Comentario |
 |---|---:|---|
-| Tablas base | **326** | ✅ catálogo de producción, 2026-08-29 |
-| Relaciones con `org_id` | **340** | ✅ `information_schema.columns`, incluye vistas, 2026-08-22 |
-| Vistas | **110** | ✅ catálogo de producción, 2026-08-29 |
-| Funciones y procedimientos | **496** | ✅ catálogo de producción, 2026-08-29 |
-| Triggers | **147** | ✅ catálogo de producción, 2026-08-29 |
-| Índices | **1.008** | ✅ catálogo de producción, 2026-08-29 |
-| Políticas RLS | **396** | ✅ catálogo de producción, 2026-08-29 |
-| Migraciones registradas | **495** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate`, 2026-08-29 |
+| Tablas base | **328** | ✅ catálogo de producción, 2026-08-30 |
+| Relaciones con `org_id` | **376** | ✅ `information_schema.columns`, incluye vistas, 2026-08-30 |
+| Vistas | **111** | ✅ catálogo de producción, 2026-08-30 |
+| Funciones y procedimientos | **503** | ✅ catálogo de producción, 2026-08-30 |
+| Triggers | **148** | ✅ catálogo de producción, 2026-08-30 |
+| Índices | **1.021** | ✅ catálogo de producción, 2026-08-30 |
+| Políticas RLS | **398** | ✅ catálogo de producción, 2026-08-30 |
+| Migraciones registradas | **497** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate`, 2026-08-30 |
 | Cron jobs | **26** | ⚠️ 22.503 corridas exitosas y **3 fallidas** en 7 días; se agregó reconciliación QR por minuto. Las tres fallas históricas corresponden a `expire-overdue-trials`, cuya recuperación posterior se documenta en la auditoría del 2026-08-28 |
-| Edge Functions | **72** | ✅ `npm run check:functions`, 2026-08-29; incluye el checkout QR de POS |
+| Edge Functions | **73 versionadas / 74 activas** | 🟡 `npm run check:functions` valida las 73 del repo; Supabase lista además `extract-receipt`, desplegada sin fuente en `main`. Incluye checkout QR y reintegro Mercado Pago de POS; reconciliar o retirar la deriva antes de lanzar |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **2.056** | ✅ `npm test`, 204 archivos, 2026-08-29 |
+| Tests unitarios | **2.072** | ✅ `npm test`, 207 archivos, 2026-08-30 |
 | Recorridos E2E | **46** | ✅ `playwright test --list`: 32 públicos, 13 de panel y 1 setup; el nuevo turno es sólo lectura |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -187,7 +187,7 @@ consultadas el 2026-08-22.
 |---|---|---|---|
 | POS de mostrador | ✅ PWA **con modo offline** | ✅ PDV, ✅ **no en su app móvil** | 🟡 carga manual de venta presencial/WhatsApp/redes |
 | Turno de caja por sucursal | 🟡 autoridad server-side por organización/ubicación; apertura/cierre por RPC, fondo, ticket único, vendedor, devoluciones, efectivo esperado y diferencia. Fixture productivo aprobado; **0 turnos reales**, por lo que falta adopción | ❓ | ❓ |
-| Devolución POS total/parcial | 🟡 ticket y cobro original autoritativos; stock/caja/ledger en un commit, efectivo inmediato y reintegro externo pendiente hasta evidencia. Fixture aprobada; **0 devoluciones reales** y refund Mercado Pago live pendiente | ✅ Shopify POS: motivo, reposición, límite/medio original | ❓ |
+| Devolución POS total/parcial | 🟡 ticket y cobro original autoritativos; stock/caja/ledger en un commit y efectivo inmediato. Mercado Pago deriva Order/Payment/monto server-side, ejecuta o consulta con idempotencia estable y conserva la deuda ante rechazo/timeout. Fixtures aprobadas; **0 devoluciones reales** y refund live todavía sin certificar | ✅ Shopify POS: motivo, reposición, límite/medio original | ❓ |
 | Descuento automático por medio en POS | ✅ mejor beneficio, autoridad servidor, evidencia por línea y configuración persistible desde su propia sección | ❓ | ❓ |
 | Fidelidad/alerta grande por ticket | ✅ una vez por `sale_transaction`, idempotente y recalculable al anular | ❓ | ❓ |
 | Stock único entre canales | ✅ ledger de stock con triggers | ✅ | ✅ tienda + venta cargada manualmente |
@@ -220,8 +220,11 @@ incluye los reembolsos de efectivo en el cálculo de la sesión. Gestiona adopta
 esa paridad y agrega una obligación contable visible para toda parte externa no
 confirmada. [Mercado Pago](https://www.mercadopago.com.ar/developers/es/docs/sales-processing/cancellations-and-refunds)
 documenta cancelaciones/reembolsos y su [endpoint de refund de Orders](https://www.mercadopago.com.ar/developers/es/reference/online-payments/checkout-api/refund-order/post)
-exige una clave de idempotencia. La integración live sigue 🔴 hasta ejecutar el
-refund, consultar su estado y conciliarlo; una fixture SQL no sustituye al
+exige una clave de idempotencia. Gestiona ya implementa ambos caminos
+server-side —Orders para el QR moderno y Payments para cobros heredados—,
+reintento/reconsulta y cierre sólo ante confirmación positiva; rechazo, timeout
+o respuesta ambigua conservan el pasivo. La certificación live sigue 🔴 hasta
+ejecutar y conciliar una devolución real: una fixture SQL no sustituye al
 proveedor.
 
 ### 3.3 Fiscal y legal argentino
@@ -446,7 +449,7 @@ necesita un SaaS de 2 organizaciones (2026-08-26). No es el cuello de botella.
 | **Observabilidad** | 🟡 Sentry en front, Merchant 360 y traza correlacionada del pago desde checkout hasta ledger, visible con RLS y sin PII. Faltan métricas/SLO, OpenTelemetry, alertas y health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ Deno para 72 Edge Functions + lint + typecheck + build, 2.056 tests en 204 archivos (2026-08-29), audit completo en 0 y 46 E2E críticos definidos (32 públicos, 13 panel, 1 setup) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
+| **CI** | ✅ Deno para 73 Edge Functions + lint + typecheck + build, 2.072 tests en 207 archivos (2026-08-30), audit completo en 0 y 46 E2E críticos definidos (32 públicos, 13 panel, 1 setup) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
 | **API pública / webhooks salientes** | ✅ Contrato técnico cerrado: API OpenAPI 3.1, `/v1`, scopes sin filtración, cupo durable, venta atómica/idempotente, ARS 2/USD 4, lifecycle y CORS server-to-server; webhooks con guía/receptor Node, HMAC, timestamp, filtro, outbox, id estable, retry, DLQ/replay, log y certificación HTTPS externa sintética. ⚠️ 0 keys/apps reales | API documentada, versionada, con rate limit y webhooks firmados | 🟢 Base técnica; adopción externa pendiente |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |

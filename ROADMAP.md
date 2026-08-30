@@ -165,7 +165,7 @@ patrones de producto/UX y la matriz de ejecución viven en
 | Commerce | Tiendanube y Empretienda fijan la paridad local: checkout, catálogo/importación, promociones, pagos, envíos, dominio, operación mobile y stock entre ventas online/presenciales; Tiendanube suma PDV, filtros/bulk y ecosistema. | Costo y margen del mismo Core que ejecuta la venta, con migración reconciliada y una operación más simple para el segundo comercio. |
 | Margen y rentabilidad | Shopify ya reporta profit por producto/orden/mercado y Odoo margen por línea/pedido; tener un reporte es paridad, no ventaja. | Cuatro fuentes persistidas —costo histórico, cobro, envío real e IVA— por venta/canal/operación, con mix, promoción y devoluciones. El POS ahora convierte cada parte del cobro en evidencia conciliable y bloquea el ticket mientras falte el arancel; la autoridad existe, pero su impacto todavía debe probarse con una decisión real. |
 | Cobro QR de mostrador | Mercado Pago Orders exige QR dinámico por operación, `external_pos_id`, idempotencia y consulta del estado real antes de entregar. | Gestiona reserva sin descontar stock, acredita desde el proveedor y recién entonces crea ticket, cobro, stock y margen del Business Core; reintentos/vencimiento no duplican ni venden. Falta certificar una compra escaneada y el webhook Orders en la cuenta real. |
-| Devolución de mostrador | Shopify POS fija devolución total/parcial, motivo, reposición y límite por el medio original; Square incluye el reembolso de efectivo en la sesión de caja. | Gestiona revierte ticket, stock, resultado y caja en una transacción; cada parte queda limitada por el cobro original y el dinero externo nace como deuda hasta tener evidencia. La nota interna no se presenta como fiscal. Falta automatizar y certificar el refund live de Mercado Pago. |
+| Devolución de mostrador | Shopify POS fija devolución total/parcial, motivo, reposición y límite por el medio original; Square incluye el reembolso de efectivo en la sesión de caja; Mercado Pago exige refund total/parcial server-side e idempotencia. | Gestiona revierte ticket, stock, resultado y caja en una transacción; cada parte queda limitada por el cobro original y el dinero externo nace como deuda hasta tener evidencia. Para Mercado Pago deriva Order/Payment/monto desde el ticket, ejecuta o reconcilia con clave estable y sólo cancela el pasivo ante confirmación positiva. La nota interna no se presenta como fiscal. Falta certificar dinero live, no automatizarlo. |
 | Marketplace | Sincronización de catálogo, stock, órdenes y postventa. | Sistema neutral que decide canal por margen, capital y disponibilidad. |
 | Spend / Finance | Odoo/QuickBooks fijan OCR, revisión y matching. Mendel, Clara, Rindegastos y Concur agregan control preventivo, presupuestos/políticas, roles, reembolsos, captura mobile/offline e integración ERP. | Finance comparte proveedor, producto, compra, stock y ledger nativos. F3 demuestra documento → matching → borradores aprobados; F5 agrega política, centro de costo, presupuesto y operación por excepción. Tarjetas/custodia/viajes quedan fuera sin demanda, partner regulado y economics. |
 | IA | Asistencia dentro del flujo real. | Recomendación → aprobación → acción → resultado verificado. |
@@ -240,11 +240,11 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 2.064 tests en 206 archivos pasan al 2026-08-30; typecheck, lint sin errores (139 warnings conocidos), build/PWA, auditoría npm sin vulnerabilidades y 72 Edge Functions verdes. Hay 46 E2E críticos listados: 32 públicos, 13 de panel y 1 setup autenticado; los recorridos de Gastos, importación y turno conservan 0 escrituras. |
+| Calidad técnica | 2.072 tests en 207 archivos pasan al 2026-08-30; typecheck, lint sin errores (139 warnings conocidos), build/PWA, auditoría npm sin vulnerabilidades y 73 Edge Functions versionadas verdes. Supabase lista 74 activas: `extract-receipt` está desplegada sin fuente en `main` y debe reconstruirse o retirarse antes del lanzamiento. Hay 46 E2E críticos listados: 32 públicos, 13 de panel y 1 setup autenticado; los recorridos de Gastos, importación y turno conservan 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Turno POS | `20260829000044` vuelve autoritativa la caja por organización/ubicación: apertura/cierre por RPC, efectivo esperado server-side, un vínculo por ticket y una entrada por medio, vendedor, devolución y diferencia. Fixture reversible: 2 líneas → 1 ticket/entrada, ARS 10.000, esperado ARS 20.000, diferencia −ARS 100, outsider bloqueado y 0 restos. Base productiva al 2026-08-29: 0 sesiones y 0 movimientos reales; es confiabilidad técnica, todavía no uso. |
-| Devolución POS | `20260829000045` agrupa cabecera, líneas y reintegros por ticket. El servidor deriva cantidades/importes, limita cada parte al cobro original, exige caja abierta para efectivo y deja transferencias/tarjetas/QR en `pending_external`; stock, caja, obligación, ledger, auditoría y evento comparten commit. Fixture reversible: venta ARS 10.000 con split 50/50, devolución parcial ARS 5.000, stock 8→9, caja esperada ARS 12.500, retry idempotente, outsider/exceso bloqueados, dos asientos balanceados, pasivo 0 tras confirmación y 0 restos. Base productiva: 0 devoluciones reales; falta refund live del proveedor y nota de crédito productiva. |
+| Devolución POS | `20260829000045` agrupa cabecera, líneas y reintegros por ticket; `20260830000010` conecta la parte Mercado Pago a Orders/Payments API con IDs y monto server-side, `X-Idempotency-Key` estable, execute/reconcile, permiso `payments.edit` y deuda visible ante timeout/rechazo. Fixture inicial: stock 8→9, caja ARS 12.500, retry/outsider/exceso/ledger/0 restos. Fixture MP: modo Orders, 2 intentos con misma clave, rechazo conserva ARS 5.000 pendientes, confirmación deja pasivo 0 y restos 0. Edge `refund-pos-payment` está ACTIVE y rechaza sin JWT; base productiva: 0 cuentas MP conectadas, 0 QR completados y 0 devoluciones reales, por lo que falta certificación live y nota de crédito productiva. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
 | Ledger | 10 eventos de ledger de dominio; 0 asientos contables operativos reales. |
 | Margen canónico | `20260822000004/5/6` conserva 34/34 líneas y reconstruye 34 operaciones / ARS 1.143.696 sin diferencia. Exige costo + cobro + envío real + IVA, registra fuente, mix y bloqueos. La próxima venta POS crea partes de cobro atómicas: efectivo/transferencia prueban cero; tarjeta espera liquidación real y luego calcula neto + asiento + auditoría. Además persiste ingreso posterior a descuento y precio de referencia. Base histórica: 0 completas, 0% explicable, 2,9% cobertura, 0 liquidaciones POS y 0/34 baselines; no se inventó backfill. |
@@ -274,7 +274,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 | ARCA | Arquitectura, credenciales seguras y homologación. | Certificado/punto de venta productivos y factura real autorizada. |
 | Ledger | Modelo de partida doble y eventos. | Asientos producidos y reconciliados por operaciones reales. |
 | Payment orchestration | Estados, idempotencia, refund y fallback; matriz interna aprobada con cero restos. | Certificación real de proveedor, firma, timeout de red, rechazo y refund. |
-| Devolución POS | Operación interna atómica por ticket, reintegro por cobro original, caja/stock/ledger y evidencia externa. | Ejecutar una devolución real, automatizar Mercado Pago con idempotencia del proveedor y conciliar una nota de crédito productiva cuando exista CAE. |
+| Devolución POS | Operación interna atómica por ticket, reintegro por cobro original, caja/stock/ledger y evidencia externa. Mercado Pago ya tiene ejecución/reconsulta server-side por Orders/Payments API, idempotencia estable y cierre únicamente ante evidencia positiva. | Conectar una cuenta productiva, cobrar y devolver un QR real —incluidos timeout/rechazo— y conciliar una nota de crédito productiva cuando exista CAE. |
 | QR Mercado Pago en POS | Orders API, Store/POS privado, QR dinámico, polling/webhook, reserva, cierre atómico e idempotencia probados con fixture reversible. El cierre ya no depende de una pestaña: cron autenticado reconcilia Orders cada minuto y Caja recupera intentos/ventas sin mezclar el carrito nuevo. Fidelidad y alerta de venta grande también nacen una vez por ticket en servidor, incluso si acredita con Caja cerrada. | Configurar la notificación Orders en la aplicación de Mercado Pago y hacer un cobro escaneado real con settlement conciliado; la prueba interna y el cron de respaldo no sustituyen esa certificación. |
 | POS offline | Implementación disponible. | Prueba sostenida con varios comercios, reconexión y conflictos. |
 | Multi-organización | RLS y permisos avanzados. | Comercios externos y soporte repetible. |
@@ -2080,7 +2080,7 @@ Finance Connect.
     tablas comparativas. No cambia autoridad: precios/stock siguen validados
     por servidor y Kardex. La guarda de contrato bloquea el regreso al modal
     angosto, al falso sticky, al contenedor sin columna y a acciones icon-only; la barrera local cerró typecheck, lint,
-    1.991/1.991 tests y build/PWA. La importación autenticada con archivo real
+    1.991/1.991 tests y build/PWA, medidos el 2026-08-29. La importación autenticada con archivo real
     quedó demostrada en el slice 64. Quedan validación publicada de la
     protección de borradores y medición de tarea antes de declarar el flujo
     adoptado.
@@ -2207,7 +2207,7 @@ Finance Connect.
     reúne canales, estados, origen/pago y actividad; [Tiendanube Ventas](https://ayuda.tiendanube.com/es_AR/123288-mis-ventas/como-buscar-y-filtrar-mis-ventas)
     fija la paridad regional de búsqueda, filtros, exportación y bulk. Gestiona
     adopta orientación operativa, pero suma el ticket y su margen del mismo Core.
-    Puerta completa: typecheck, lint con 0 errores/138 warnings conocidos, 196
+    Puerta completa medida el 2026-08-29: typecheck, lint con 0 errores/138 warnings conocidos, 196
     archivos/2.016 pruebas y build PWA; el chunk de Ventas mide 83,55 kB
     (21,25 kB gzip) sin dependencia nueva.
     Falta captura autenticada 360/768/1024/1440, cobro/devolución atómicos a
@@ -2269,7 +2269,7 @@ Finance Connect.
     2026-08-29: [crear Order QR](https://www.mercadopago.com.ar/developers/es/reference/in-person-payments/qr-code/orders/create-order/post),
     [procesamiento](https://www.mercadopago.com.ar/developers/es/docs/qr-code/payment-processing)
     y [Store/POS](https://www.mercadopago.com.ar/developers/es/docs/qr-code/create-store-and-pos).
-    Puerta completa: typecheck, lint con 0 errores/139 warnings conocidos, 200
+    Puerta completa medida el 2026-08-29: typecheck, lint con 0 errores/139 warnings conocidos, 200
     archivos/2.037 pruebas y build PWA; `check:functions` valida las 72 Edge
     Functions. El chunk completo de POS quedó en 104,11 kB (28,94 kB gzip), sin
     incorporar un SDK pesado al navegador. La versión publicada se comprobó en
@@ -2302,7 +2302,7 @@ Finance Connect.
     stock 10→9 y `0` restos. El cron quedó activo `* * * * *`; sus primeras dos
     respuestas reales fueron HTTP 200 en 0,058–0,059 s y producción conservó
     `0` sesiones QR reales. `db push --dry-run` devolvió `upToDate` y
-    `check:functions` validó las 72 Edge Functions. Sigue faltando configurar
+    `check:functions` validó las 72 Edge Functions el 2026-08-29. Sigue faltando configurar
     el tópico Orders en Mercado Pago y certificar un pago escaneado con arancel
     real: la redundancia reduce riesgo operativo, no reemplaza al proveedor ni
     demuestra adopción. Puerta completa: typecheck, lint con 0 errores/139
@@ -2334,7 +2334,7 @@ Finance Connect.
     0 restos `ZZ`. El primer intento del gate expuso que el comercio nuevo trae
     10% de descuento efectivo por defecto; se aisló a 0 en la prueba en vez de
     adaptar una expectativa falsa. Producción quedó en 494 migraciones, 492
-    funciones y libro `upToDate`. Puerta completa: typecheck, lint 0/139,
+    funciones y libro `upToDate`, medidos el 2026-08-29. Puerta completa: typecheck, lint 0/139,
     201 archivos / 2.044 pruebas, build/PWA y 72 Edge Functions; el chunk POS
     bajó a 108,09 kB (29,82 kB gzip) al retirar lógica duplicada.
 
@@ -2357,7 +2357,7 @@ Finance Connect.
     conserva 0–90% igual que la autoridad server-side de Caja y evita umbrales
     o márgenes negativos. Verificación reversible productiva como rol
     `authenticated` owner/admin: una fila 10→10,1 dentro de transacción y
-    `ROLLBACK` 10→10, con 0 cambios persistidos. Puerta completa: typecheck,
+    `ROLLBACK` 10→10, con 0 cambios persistidos. Puerta completa medida el 2026-08-29: typecheck,
     lint con 0 errores/139 warnings conocidos, 202 archivos / 2.048 pruebas,
     build/PWA y 72 Edge Functions. Vercel publicó `5252e20` en 25 s y una sesión
     real de administrador confirmó el CTA, los cuatro nombres accesibles y el
@@ -2405,7 +2405,7 @@ Finance Connect.
     La prueba reversible con rol real abrió, enlazó dos líneas como un ticket de
     ARS 10.000, produjo una sola entrada, calculó ARS 20.000 esperados, cerró con
     diferencia −ARS 100, bloqueó otra organización y dejó 0 restos. `db push
-    --linked --dry-run` quedó `upToDate=true`. Puerta completa: typecheck, lint
+    --linked --dry-run` quedó `upToDate=true`. Puerta completa medida el 2026-08-29: typecheck, lint
     0 errores/139 warnings conocidos, 204 archivos/2.056 pruebas, build/PWA,
     72 Edge Functions, auditoría de dependencias sin vulnerabilidades, enlaces
     internos y 46 E2E listados. Los chunks quedan en 111,00 kB para POS y 28,92
@@ -2478,7 +2478,7 @@ Finance Connect.
     huérfanos y las tres tablas del libro ahora tienen FK `ON DELETE CASCADE`;
     organizaciones activas quedaron intactas y el libro sigue inmutable.
 
-    Puerta local completa: typecheck, lint 0 errores/139 warnings conocidos,
+    Puerta local completa medida el 2026-08-30 antes del slice 75: typecheck, lint 0 errores/139 warnings conocidos,
     206 archivos/2.064 pruebas, build/PWA, 72 Edge Functions, auditoría npm sin
     vulnerabilidades, enlaces internos y libro de migraciones `upToDate=true`.
     `dae7a0e` quedó publicado y `Ready`; la sesión vigente confirmó H1, CTA,
@@ -2487,6 +2487,57 @@ Finance Connect.
     [`docs/evidencias/2026-08-30_devolucion_pos_visual.md`](docs/evidencias/2026-08-30_devolucion_pos_visual.md).
     Falta operar una devolución real y automatizar el refund de Mercado Pago
     con consulta posterior antes de marcar adopción.
+
+75. Reintegro Mercado Pago autoritativo para la devolución POS — cerrado
+    técnicamente el 2026-08-30; certificación con dinero real pendiente.
+    `20260830000010_pos_refund_mercadopago` agrega una identidad idempotente y
+    observación del proveedor a cada parte externa sin abrir escrituras al
+    cliente. `pos_mp_refund_prepare` bloquea y deriva organización, importe,
+    Order/Payment y camino de API desde el cobro original; el navegador sólo
+    puede indicar organización, devolución y acción. `pos_mp_refund_observe`
+    conserva `pending_external` ante rechazo o ambigüedad: un error del
+    proveedor no borra la deuda ni deja reutilizar el saldo para devolver dos
+    veces.
+
+    La Edge Function `refund-pos-payment` exige usuario real y permiso
+    `payments.edit`, obtiene OAuth desde la conexión privada, soporta Orders
+    para el QR actual y Payments para cobros anteriores, y usa
+    `X-Idempotency-Key: pos-refund:<uuid>` tanto al ejecutar como al
+    reconciliar. Timeout, `409` o `5xx` no disparan otro reintegro ciego; sólo
+    `processed` en Orders o `approved` en Payments, con importe exacto, llaman
+    al cierre contable existente. La UI intenta el reintegro al terminar la
+    devolución cuando el rol puede, y en el detalle ofrece **Reintegrar**,
+    **Reintentar** o **Verificar estado** con una explicación explícita de que
+    la devolución física ya existe aunque el dinero siga pendiente.
+
+    Benchmark oficial consultado el 2026-08-30: Mercado Pago documenta
+    reembolsos hasta 180 días con saldo suficiente en
+    [Cancelaciones y devoluciones](https://www.mercadopago.com.ar/developers/es/docs/sales-processing/cancellations-and-refunds),
+    exige autorización e idempotencia en el
+    [refund de Payments](https://www.mercadopago.com.ar/developers/es/reference/online-payments/checkout-pro/create-refund/post)
+    y en el
+    [refund de Orders](https://www.mercadopago.com.ar/developers/es/reference/online-payments/checkout-api/refund-order/post),
+    y recomienda Webhooks sobre IPN para cambios de estado. Gestiona adopta el
+    contrato y agrega pasivo/conciliación propios; no atribuye al proveedor una
+    disponibilidad que todavía no observó.
+
+    La migración quedó aplicada y el libro vuelve `upToDate=true`. La fixture
+    productiva reversible preparó modo Orders dos veces con la misma clave,
+    registró un rechazo que mantuvo ARS 5.000 pendientes y luego una
+    confirmación que llevó el pasivo a ARS 0, con refund ID persistido y 0
+    restos. La función está ACTIVE, `verify_jwt=true`, pasa Deno y una llamada
+    anónima devuelve 401. La línea base real explica el límite de la evidencia:
+    **0 conexiones Mercado Pago, 0 QR completados, 0 devoluciones POS y 0
+    refunds**. Para cerrar el gate falta conectar una cuenta, cobrar y devolver
+    total/parcial, observar rechazo/timeout y conciliar la nota de crédito ARCA
+    cuando la venta tenga CAE.
+
+    La auditoría de publicación del 2026-08-30 distinguió 73 funciones versionadas y aprobadas
+    por Deno de 74 activas en Supabase: `extract-receipt` está desplegada pero no
+    existe en `main`. No se la borró porque podría tener consumidores externos
+    o trabajo paralelo no sincronizado. Queda como P0 de release: recuperar la
+    fuente exacta y someterla a las guardas, o probar que no tiene tráfico y
+    retirarla de forma controlada.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2985,8 +3036,8 @@ fixture destructiva-cero probó el RPC real y producción sirve `public-api` v42
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-30: **2.064 tests en 206 archivos**,
-  typecheck, lint sin errores (139 warnings de deuda conocida), build/PWA y 72
+- Build y suites locales del 2026-08-30: **2.072 tests en 207 archivos**,
+  typecheck, lint sin errores (139 warnings de deuda conocida), build/PWA y 73
   funciones verificadas. Última evidencia: 46 E2E críticos —32 públicos, 13 de
   panel y 1 setup autenticado—; Gastos, importación y turno son de sólo lectura.
 - docs/FINANCE_DOCUMENT_EXTRACTION.md: custodia, esquema estructurado,

@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useOrg } from "@/lib/orgContext";
 import { formatARS } from "@/lib/supabaseStore";
+import { runPosPaymentRefund, type PosPaymentRefundAction } from "@/lib/posPaymentRefund";
+import { useModulePermissions } from "@/lib/usePermissions";
 import {
   allocateSalesReturnRefund,
   salesReturnLineAmount,
@@ -56,6 +58,7 @@ export default function DevolucionesPage() {
   usePageTitle("Devoluciones");
   const navigate = useNavigate();
   const { activeOrg } = useOrg();
+  const paymentPermissions = useModulePermissions("payments");
 
   const [pageTab, setPageTab] = useState<"standard" | "rma">("standard");
   const [operations, setOperations] = useState<ReturnOperation[]>([]);
@@ -83,6 +86,10 @@ export default function DevolucionesPage() {
   const [refundToConfirm, setRefundToConfirm] = useState<ReturnRefund | null>(null);
   const [externalReference, setExternalReference] = useState("");
   const [confirmingRefund, setConfirmingRefund] = useState(false);
+  const [providerRefundAction, setProviderRefundAction] = useState<{
+    refundId: string;
+    action: PosPaymentRefundAction;
+  } | null>(null);
 
   const load = async () => {
     if (!activeOrg) return;
@@ -225,7 +232,15 @@ export default function DevolucionesPage() {
       toast.error("No se registró la devolución", { description: error.message });
       return;
     }
-    const result = data as unknown as { status: string; reused: boolean };
+    const result = data as unknown as {
+      status: string;
+      reused: boolean;
+      refunds?: Array<{
+        refund_id: string;
+        execution_mode: string;
+        status: string;
+      }>;
+    };
     if (result.status === "completed") {
       toast.success(result.reused ? "La devolución ya estaba registrada" : "Devolución y reintegro completados");
     } else {
@@ -234,6 +249,52 @@ export default function DevolucionesPage() {
       });
     }
     setOpen(false); resetForm(); await load();
+
+    const providerRefunds = (result.refunds ?? []).filter((refund) =>
+      refund.execution_mode === "mercadopago_api" && refund.status === "pending_external");
+    if (providerRefunds.length > 0 && paymentPermissions.canEdit) {
+      for (const refund of providerRefunds) {
+        await operateProviderRefund(refund.refund_id, "execute");
+      }
+    } else if (providerRefunds.length > 0 && !paymentPermissions.loading) {
+      toast.info("El reintegro espera aprobación", {
+        description: "Un usuario con permiso Pagos · Editar debe ejecutarlo desde el detalle.",
+      });
+    }
+  };
+
+  const operateProviderRefund = async (
+    refundId: string,
+    action: PosPaymentRefundAction,
+  ) => {
+    if (!activeOrg || providerRefundAction) return;
+    if (!paymentPermissions.canEdit) {
+      toast.error("Sin permiso para operar reintegros", {
+        description: "Pedile a un administrador que habilite Pagos · Editar.",
+      });
+      return;
+    }
+    setProviderRefundAction({ refundId, action });
+    try {
+      const result = await runPosPaymentRefund({ orgId: activeOrg.id, refundId, action });
+      if (result.status === "completed") {
+        toast.success("Mercado Pago confirmó el reintegro", {
+          description: "La obligación, la caja operativa y el libro quedaron conciliados.",
+        });
+      } else {
+        toast.warning("El reintegro sigue en verificación", {
+          description: result.message || "Gestiona todavía no tiene confirmación positiva del proveedor.",
+        });
+      }
+    } catch (error) {
+      console.error("[Devoluciones] No se pudo operar el reintegro Mercado Pago:", error);
+      toast.error("La devolución quedó registrada; el dinero sigue pendiente", {
+        description: error instanceof Error ? error.message : "No se pudo consultar Mercado Pago",
+      });
+    } finally {
+      setProviderRefundAction(null);
+      await load();
+    }
   };
 
   const confirmExternalRefund = async () => {
@@ -333,7 +394,35 @@ export default function DevolucionesPage() {
                 <button type="button" onClick={() => setExpandedId(expanded ? null : operation.id)} className="rounded-lg p-2 text-muted-foreground hover:bg-muted" aria-label={expanded ? "Contraer devolución" : "Ver detalle de devolución"}>{expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button>
               </div>
               {expanded && <div className="space-y-4 border-t border-border/70 bg-muted/[0.12] p-4 sm:p-5">
-                <div className="grid gap-3 md:grid-cols-2">{parts.map((refund) => <div key={refund.id} className="rounded-xl border border-border/70 bg-card p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold">{salesReturnPaymentLabel(refund.sale_method)}</p><p className="mt-0.5 text-xs text-muted-foreground">{refund.execution_mode === "cash" ? "Egreso en caja" : refund.execution_mode === "mercadopago_api" ? "Validación con Mercado Pago" : "Confirmación externa manual"}</p></div><p className="font-bold">{formatARS(refund.amount)}</p></div><div className="mt-3 flex items-center justify-between gap-2"><Badge variant="outline" className={refund.status === "completed" ? "border-emerald-500/20 text-emerald-700" : "border-amber-500/20 text-amber-700"}>{refund.status === "completed" ? "Completado" : "Pendiente"}</Badge>{refund.external_reference && <span className="truncate text-xs text-muted-foreground">Ref. {refund.external_reference}</span>}{refund.status === "pending_external" && refund.execution_mode === "manual_external" && <Button size="sm" variant="outline" onClick={() => { setRefundToConfirm(refund); setExternalReference(""); }}>Confirmar pago</Button>}</div>{refund.status === "pending_external" && refund.execution_mode === "mercadopago_api" && <p className="mt-2 text-xs text-amber-700">No puede cerrarse a mano: debe confirmarlo el proveedor.</p>}</div>)}</div>
+                <div className="grid gap-3 md:grid-cols-2">{parts.map((refund) => {
+                  const providerBusy = providerRefundAction?.refundId === refund.id;
+                  return <div key={refund.id} className="rounded-xl border border-border/70 bg-card p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div><p className="text-sm font-semibold">{salesReturnPaymentLabel(refund.sale_method)}</p><p className="mt-0.5 text-xs text-muted-foreground">{refund.execution_mode === "cash" ? "Egreso en caja" : refund.execution_mode === "mercadopago_api" ? "Validación con Mercado Pago" : "Confirmación externa manual"}</p></div>
+                      <p className="font-bold">{formatARS(refund.amount)}</p>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <Badge variant="outline" className={refund.status === "completed" ? "border-emerald-500/20 text-emerald-700" : "border-amber-500/20 text-amber-700"}>{refund.status === "completed" ? "Completado" : "Pendiente"}</Badge>
+                      {refund.external_reference && <span className="truncate text-xs text-muted-foreground">Ref. {refund.external_reference}</span>}
+                      {refund.status === "pending_external" && refund.execution_mode === "manual_external" && <Button size="sm" variant="outline" onClick={() => { setRefundToConfirm(refund); setExternalReference(""); }}>Confirmar pago</Button>}
+                    </div>
+                    {refund.status === "pending_external" && refund.execution_mode === "mercadopago_api" && <div className="mt-3 space-y-2 border-t border-border/60 pt-3">
+                      <p className="text-xs text-amber-700 dark:text-amber-300">El dinero sigue pendiente hasta que Mercado Pago lo confirme. Gestiona nunca permite cerrarlo a mano.</p>
+                      {refund.failure_reason && <p className="rounded-lg bg-destructive/5 px-2.5 py-2 text-xs text-destructive">{refund.failure_reason}</p>}
+                      {!paymentPermissions.loading && !paymentPermissions.canEdit && <p className="text-xs text-muted-foreground">Requiere permiso Pagos · Editar.</p>}
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" disabled={providerBusy || paymentPermissions.loading || !paymentPermissions.canEdit} onClick={() => void operateProviderRefund(refund.id, "execute")}>
+                          {providerBusy && providerRefundAction?.action === "execute" ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <CircleDollarSign className="mr-2 h-3.5 w-3.5" />}
+                          {numeric(refund.provider_attempt_count) > 0 ? "Reintentar" : "Reintegrar"}
+                        </Button>
+                        {numeric(refund.provider_attempt_count) > 0 && <Button size="sm" variant="outline" disabled={providerBusy || !paymentPermissions.canEdit} onClick={() => void operateProviderRefund(refund.id, "reconcile")}>
+                          {providerBusy && providerRefundAction?.action === "reconcile" ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-2 h-3.5 w-3.5" />}
+                          Verificar estado
+                        </Button>}
+                      </div>
+                    </div>}
+                  </div>;
+                })}</div>
                 <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => printInternalReceipt(operation)}><FileText className="mr-2 h-4 w-4" /> Comprobante interno</Button>{operation.credit_note_required && <Button size="sm" variant="outline" onClick={() => navigate("/facturas")}><ReceiptText className="mr-2 h-4 w-4" /> Emitir nota de crédito ARCA</Button>}</div>
                 <p className="text-xs text-muted-foreground">ID auditable: {operation.id} · {operation.restock ? "Stock repuesto" : "Sin reposición de stock"}</p>
               </div>}

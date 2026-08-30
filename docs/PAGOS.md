@@ -73,6 +73,8 @@ salir a producción.
 ```bash
 npx supabase functions deploy mp-connect
 npx supabase functions deploy store-pay
+npx supabase functions deploy mercadopago-pos-qr
+npx supabase functions deploy refund-pos-payment
 npx supabase functions deploy mercadopago-webhook
 ```
 
@@ -172,6 +174,33 @@ firmado, timeout/reconsulta y refund deben repetirse con una cuenta y medio de
 prueba reales. Eso mueve dinero y requiere una operación explícita del dueño;
 la matriz interna no se presenta como evidencia de disponibilidad de
 MercadoPago.
+
+## Reintegro de una venta POS
+
+`refund-pos-payment` es el único camino que contacta a Mercado Pago desde una
+devolución de mostrador. El navegador envía organización, devolución y acción;
+el servidor deriva el importe restante, la Order o Payment original y el dueño
+de la credencial desde datos ya persistidos. La UI no puede elegir el importe
+ni sustituir identificadores del proveedor.
+
+- Orders API cubre los cobros QR actuales; Payments API conserva compatibilidad
+  con cobros anteriores.
+- `X-Idempotency-Key` es estable por parte de reintegro, por lo que un retry no
+  crea una devolución distinta.
+- Ejecutar y verificar estado son acciones separadas. Ante timeout, `409`,
+  rechazo o respuesta dudosa, el estado local sigue `pending_external` y el
+  pasivo `2.1.04 Reintegros a clientes` permanece visible.
+- Sólo `processed` en Orders o `approved` en Payments, con el importe exacto,
+  permite completar la parte y cancelar el pasivo.
+- La Edge Function exige sesión real y `payments.edit`; sus RPC auxiliares son
+  internos y `sales_return_refunds` no admite actualización directa del
+  cliente.
+
+La fixture reversible del 2026-08-30 probó modo Orders, dos intentos con la
+misma clave, rechazo que conserva ARS 5.000 pendientes, confirmación que lleva
+el pasivo a cero y cero restos. La línea base productiva del mismo día tiene
+**0 cuentas Mercado Pago conectadas, 0 QR completados y 0 devoluciones POS**:
+el contrato está desplegado, pero falta certificarlo con dinero y cuenta reales.
 
 ## Trazabilidad de una operación
 
