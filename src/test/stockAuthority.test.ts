@@ -39,12 +39,15 @@ describe("autoridad de stock", () => {
     const invoices = readFileSync(resolve(ROOT, "src/pages/InvoicesPage.tsx"), "utf8");
     const pos = readFileSync(resolve(ROOT, "src/pages/POSPage.tsx"), "utf8");
     const returns = readFileSync(resolve(ROOT, "src/pages/DevolucionesPage.tsx"), "utf8");
+    const returnAuthority = readFileSync(resolve(ROOT,
+      "supabase/migrations/20260829000045_devolucion_pos_transaccional.sql"), "utf8");
     const publicApi = readFileSync(resolve(ROOT, "supabase/functions/public-api/index.ts"), "utf8");
 
     expect(purchases).toContain("trg_purchase_stock_movement");
     expect(invoices).toContain("recordMemberStockMovementDB");
     expect(pos).toContain("recordMemberStockMovementDB");
-    expect(returns).toContain("recordMemberStockMovementDB");
+    expect(returns).toContain('supabase.rpc("create_sales_return_v1"');
+    expect(returnAuthority).toContain("PERFORM public.record_stock_movement(");
     expect(publicApi).toContain('rpc("adjust_stock"');
   });
 

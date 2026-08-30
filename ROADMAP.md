@@ -165,6 +165,7 @@ patrones de producto/UX y la matriz de ejecución viven en
 | Commerce | Tiendanube y Empretienda fijan la paridad local: checkout, catálogo/importación, promociones, pagos, envíos, dominio, operación mobile y stock entre ventas online/presenciales; Tiendanube suma PDV, filtros/bulk y ecosistema. | Costo y margen del mismo Core que ejecuta la venta, con migración reconciliada y una operación más simple para el segundo comercio. |
 | Margen y rentabilidad | Shopify ya reporta profit por producto/orden/mercado y Odoo margen por línea/pedido; tener un reporte es paridad, no ventaja. | Cuatro fuentes persistidas —costo histórico, cobro, envío real e IVA— por venta/canal/operación, con mix, promoción y devoluciones. El POS ahora convierte cada parte del cobro en evidencia conciliable y bloquea el ticket mientras falte el arancel; la autoridad existe, pero su impacto todavía debe probarse con una decisión real. |
 | Cobro QR de mostrador | Mercado Pago Orders exige QR dinámico por operación, `external_pos_id`, idempotencia y consulta del estado real antes de entregar. | Gestiona reserva sin descontar stock, acredita desde el proveedor y recién entonces crea ticket, cobro, stock y margen del Business Core; reintentos/vencimiento no duplican ni venden. Falta certificar una compra escaneada y el webhook Orders en la cuenta real. |
+| Devolución de mostrador | Shopify POS fija devolución total/parcial, motivo, reposición y límite por el medio original; Square incluye el reembolso de efectivo en la sesión de caja. | Gestiona revierte ticket, stock, resultado y caja en una transacción; cada parte queda limitada por el cobro original y el dinero externo nace como deuda hasta tener evidencia. La nota interna no se presenta como fiscal. Falta automatizar y certificar el refund live de Mercado Pago. |
 | Marketplace | Sincronización de catálogo, stock, órdenes y postventa. | Sistema neutral que decide canal por margen, capital y disponibilidad. |
 | Spend / Finance | Odoo/QuickBooks fijan OCR, revisión y matching. Mendel, Clara, Rindegastos y Concur agregan control preventivo, presupuestos/políticas, roles, reembolsos, captura mobile/offline e integración ERP. | Finance comparte proveedor, producto, compra, stock y ledger nativos. F3 demuestra documento → matching → borradores aprobados; F5 agrega política, centro de costo, presupuesto y operación por excepción. Tarjetas/custodia/viajes quedan fuera sin demanda, partner regulado y economics. |
 | IA | Asistencia dentro del flujo real. | Recomendación → aprobación → acción → resultado verificado. |
@@ -239,10 +240,11 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 2.056 tests en 204 archivos pasan al 2026-08-29; typecheck, lint sin errores (139 warnings conocidos), build/PWA, auditoría npm sin vulnerabilidades y 72 Edge Functions verdes. Hay 46 E2E críticos listados: 32 públicos, 13 de panel y 1 setup autenticado; los recorridos de Gastos, importación y turno conservan 0 escrituras. |
+| Calidad técnica | 2.064 tests en 206 archivos pasan al 2026-08-30; typecheck, lint sin errores (139 warnings conocidos), build/PWA, auditoría npm sin vulnerabilidades y 72 Edge Functions verdes. Hay 46 E2E críticos listados: 32 públicos, 13 de panel y 1 setup autenticado; los recorridos de Gastos, importación y turno conservan 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Turno POS | `20260829000044` vuelve autoritativa la caja por organización/ubicación: apertura/cierre por RPC, efectivo esperado server-side, un vínculo por ticket y una entrada por medio, vendedor, devolución y diferencia. Fixture reversible: 2 líneas → 1 ticket/entrada, ARS 10.000, esperado ARS 20.000, diferencia −ARS 100, outsider bloqueado y 0 restos. Base productiva al 2026-08-29: 0 sesiones y 0 movimientos reales; es confiabilidad técnica, todavía no uso. |
+| Devolución POS | `20260829000045` agrupa cabecera, líneas y reintegros por ticket. El servidor deriva cantidades/importes, limita cada parte al cobro original, exige caja abierta para efectivo y deja transferencias/tarjetas/QR en `pending_external`; stock, caja, obligación, ledger, auditoría y evento comparten commit. Fixture reversible: venta ARS 10.000 con split 50/50, devolución parcial ARS 5.000, stock 8→9, caja esperada ARS 12.500, retry idempotente, outsider/exceso bloqueados, dos asientos balanceados, pasivo 0 tras confirmación y 0 restos. Base productiva: 0 devoluciones reales; falta refund live del proveedor y nota de crédito productiva. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
 | Ledger | 10 eventos de ledger de dominio; 0 asientos contables operativos reales. |
 | Margen canónico | `20260822000004/5/6` conserva 34/34 líneas y reconstruye 34 operaciones / ARS 1.143.696 sin diferencia. Exige costo + cobro + envío real + IVA, registra fuente, mix y bloqueos. La próxima venta POS crea partes de cobro atómicas: efectivo/transferencia prueban cero; tarjeta espera liquidación real y luego calcula neto + asiento + auditoría. Además persiste ingreso posterior a descuento y precio de referencia. Base histórica: 0 completas, 0% explicable, 2,9% cobertura, 0 liquidaciones POS y 0/34 baselines; no se inventó backfill. |
@@ -272,6 +274,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 | ARCA | Arquitectura, credenciales seguras y homologación. | Certificado/punto de venta productivos y factura real autorizada. |
 | Ledger | Modelo de partida doble y eventos. | Asientos producidos y reconciliados por operaciones reales. |
 | Payment orchestration | Estados, idempotencia, refund y fallback; matriz interna aprobada con cero restos. | Certificación real de proveedor, firma, timeout de red, rechazo y refund. |
+| Devolución POS | Operación interna atómica por ticket, reintegro por cobro original, caja/stock/ledger y evidencia externa. | Ejecutar una devolución real, automatizar Mercado Pago con idempotencia del proveedor y conciliar una nota de crédito productiva cuando exista CAE. |
 | QR Mercado Pago en POS | Orders API, Store/POS privado, QR dinámico, polling/webhook, reserva, cierre atómico e idempotencia probados con fixture reversible. El cierre ya no depende de una pestaña: cron autenticado reconcilia Orders cada minuto y Caja recupera intentos/ventas sin mezclar el carrito nuevo. Fidelidad y alerta de venta grande también nacen una vez por ticket en servidor, incluso si acredita con Caja cerrada. | Configurar la notificación Orders en la aplicación de Mercado Pago y hacer un cobro escaneado real con settlement conciliado; la prueba interna y el cron de respaldo no sustituyen esa certificación. |
 | POS offline | Implementación disponible. | Prueba sostenida con varios comercios, reconexión y conflictos. |
 | Multi-organización | RLS y permisos avanzados. | Comercios externos y soporte repetible. |
@@ -296,6 +299,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 | Pesos, fotos, descripciones y tarifario | Cotización y conversión representativas. | Comercio, con carga asistida. |
 | Contrato/credenciales de transportista | Etiqueta y tracking probados contra operación real. | Comercio / correo. |
 | Medio de pago de prueba y ventana controlada | Certificación live de aprobación, rechazo, webhook, timeout y refund. | Dueño / operación. |
+| Credenciales Mercado Pago productivas + pago reembolsable | Ejecutar y observar un refund total/parcial, la consulta posterior y su conciliación sin confirmación manual. | Dueño / operación / proveedor. |
 | Cuenta comercial MercadoLibre | Publicación e importación reales. | Comercio. |
 | Segundo comercio | Validación externa del onboarding y soporte. | Comercial / founder-led sales. |
 | ~~Reparar el costo de las 34 ventas y backfillear el ledger~~ **hecho el 2026-08-26**, con la instrucción del dueño («necesito que termines todo eso») sobre el plan explícito asentar→conciliar→cambiar lectores. Costo desde `total_ars − profit_ars` (histórico congelado, no recalculado); 48 asientos; conciliación **exacta** contra la fuente operativa y Deudores neteado a $0. Detalle abajo, en «El resultado financiero tenía cuatro calculadoras». | Que el ledger pueda ser la autoridad del P&L. | ~~Dueño~~ Ejecutado con su instrucción; revisar los números en `/pl-dashboard` y `/libro` sigue siendo suyo. |
@@ -2378,9 +2382,11 @@ Finance Connect.
     y crea una entrada por ticket/medio desde la evidencia de cobro. Abrir y
     cerrar son RPC idempotentes con `pos.create`/`pos.edit`, auditoría y cálculo
     server-side del efectivo esperado; el rol autenticado perdió INSERT/UPDATE/
-    DELETE directo sobre sesiones. La devolución busca la sesión abierta de la
-    ubicación original y queda como `refund_out`; los errores de conciliación
-    dejan log y aviso visible.
+    DELETE directo sobre sesiones. La devolución de ese slice todavía buscaba
+    la sesión abierta desde el navegador y podía dejar un `refund_out` sin
+    conciliar; el slice 74 reemplaza ese comportamiento por una única operación
+    PostgreSQL. Se conserva acá como hallazgo histórico, no como arquitectura
+    vigente.
 
     El POS muestra sucursal y estado real sin bloquear la venta durante la
     adopción: si no hay sesión declara que el ticket quedará “sin turno”. La
@@ -2425,6 +2431,59 @@ Finance Connect.
     correctamente a Login, por lo que no se presenta como pasada; la matriz sí
     se completó con la sesión vigente del navegador integrado. Evidencia:
     [`docs/evidencias/2026-08-29_turno_caja_visual.md`](docs/evidencias/2026-08-29_turno_caja_visual.md).
+
+74. Devolución POS transaccional por ticket y cobro original — cerrada
+    técnicamente el 2026-08-30; live externo pendiente. La pantalla anterior
+    insertaba `returns`, reponía stock, marcaba la venta y recién después
+    intentaba escribir Caja. Si el último paso fallaba, mostraba un warning y
+    dejaba una operación partida; además permitía borrar el registro sin
+    compensar stock/dinero, ofrecía un “crédito en tienda” sin ledger de saldo
+    y generaba un HTML llamado nota de crédito que nunca había hablado con
+    ARCA.
+
+    `20260829000045_devolucion_pos_transaccional` vuelve al servidor autoridad:
+    bloquea ticket/renglones, calcula cantidad e importe restante, limita cada
+    reintegro al cobro original y usa `client_return_id` + fingerprint para que
+    el retry idéntico reutilice y uno alterado falle. Efectivo requiere la caja
+    abierta de la sucursal y sale en el mismo commit; transferencia, tarjeta y
+    QR nacen `pending_external` contra `2.1.04 Reintegros a clientes`. Sólo una
+    referencia verificable cancela el pasivo; Mercado Pago no admite cierre
+    humano cuando la evidencia debe venir de su API. Stock, devolución, estado
+    de venta, caja, ledger, auditoría y evento quedan atómicos. Actualizar sólo
+    `returned_quantity` dejó de disparar dos movimientos Kardex falsos.
+
+    La UI adopta un workflow claro de tres partes: buscar ticket cobrado,
+    elegir unidades y revisar cómo se reparte el monto sobre los cobros
+    originales. Muestra completo/pendiente, caja faltante, topes, reposición,
+    referencia externa y CTA fiscal. Se retiraron eliminación, carga libre de
+    producto/monto y crédito ficticio. “Comprobante interno” lleva la leyenda
+    explícita de que no reemplaza un comprobante autorizado por ARCA; si la
+    venta tenía CAE, la operación exige continuar en Facturación.
+
+    Benchmark oficial consultado el 2026-08-30: [Shopify POS](https://help.shopify.com/en/manual/sell-in-person/shopify-pos/order-management/complete-refund-orders?locale=en)
+    documenta devolución parcial/total, motivo, reposición y devolución hasta
+    el monto del medio original; [Square](https://squareup.com/help/us/en/article/8344-start-and-end-a-cash-drawer-session)
+    incluye reembolsos de efectivo en la sesión; [Mercado Pago](https://www.mercadopago.com.ar/developers/es/docs/sales-processing/cancellations-and-refunds)
+    separa cancelación de refund y su [Order API](https://www.mercadopago.com.ar/developers/es/reference/online-payments/checkout-api/refund-order/post)
+    exige idempotencia. Gestiona alcanza la paridad interna y agrega el ledger
+    del pendiente, pero no declara refund Mercado Pago live hasta certificarlo.
+
+    La fixture productiva reversible abrió caja ARS 10.000, vendió 2 unidades
+    por ARS 10.000 con split ARS 5.000 efectivo + ARS 5.000 transferencia y
+    devolvió una por ARS 5.000: stock 10→8→9, efectivo esperado ARS 12.500, una
+    línea, dos partes, retry reutilizado, contenido alterado/exceso/outsider
+    bloqueados, dos asientos balanceados, pasivo pendiente cancelado y 0
+    restos. El test descubrió además 175 cuentas, 7 asientos y 16 partidas de
+    antiguas fixtures cuyo tenant ya no existía: se eliminaron únicamente esos
+    huérfanos y las tres tablas del libro ahora tienen FK `ON DELETE CASCADE`;
+    organizaciones activas quedaron intactas y el libro sigue inmutable.
+
+    Puerta local completa: typecheck, lint 0 errores/139 warnings conocidos,
+    206 archivos/2.064 pruebas, build/PWA, 72 Edge Functions, auditoría npm sin
+    vulnerabilidades, enlaces internos y libro de migraciones `upToDate=true`.
+    Falta publicar, validar 360/768/1024/1440 con sesión vigente, operar una
+    devolución real y automatizar el refund de Mercado Pago con consulta
+    posterior antes de marcar adopción.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -2923,7 +2982,7 @@ fixture destructiva-cero probó el RPC real y producción sirve `public-api` v42
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **2.056 tests en 204 archivos**,
+- Build y suites locales del 2026-08-30: **2.064 tests en 206 archivos**,
   typecheck, lint sin errores (139 warnings de deuda conocida), build/PWA y 72
   funciones verificadas. Última evidencia: 46 E2E críticos —32 públicos, 13 de
   panel y 1 setup autenticado—; Gastos, importación y turno son de sólo lectura.

@@ -187,6 +187,7 @@ consultadas el 2026-08-22.
 |---|---|---|---|
 | POS de mostrador | ✅ PWA **con modo offline** | ✅ PDV, ✅ **no en su app móvil** | 🟡 carga manual de venta presencial/WhatsApp/redes |
 | Turno de caja por sucursal | 🟡 autoridad server-side por organización/ubicación; apertura/cierre por RPC, fondo, ticket único, vendedor, devoluciones, efectivo esperado y diferencia. Fixture productivo aprobado; **0 turnos reales**, por lo que falta adopción | ❓ | ❓ |
+| Devolución POS total/parcial | 🟡 ticket y cobro original autoritativos; stock/caja/ledger en un commit, efectivo inmediato y reintegro externo pendiente hasta evidencia. Fixture aprobada; **0 devoluciones reales** y refund Mercado Pago live pendiente | ✅ Shopify POS: motivo, reposición, límite/medio original | ❓ |
 | Descuento automático por medio en POS | ✅ mejor beneficio, autoridad servidor, evidencia por línea y configuración persistible desde su propia sección | ❓ | ❓ |
 | Fidelidad/alerta grande por ticket | ✅ una vez por `sale_transaction`, idempotente y recalculable al anular | ❓ | ❓ |
 | Stock único entre canales | ✅ ledger de stock con triggers | ✅ | ✅ tienda + venta cargada manualmente |
@@ -209,6 +210,19 @@ traduce ese patrón al Business Core: un ticket con varias líneas o split cuent
 una vez, la venta se enlaza atómicamente a la sesión abierta de su sucursal y el
 cliente no puede escribir apertura/cierre directamente. Eso es paridad técnica,
 no una ventaja probada mientras no existan turnos reales operados y cerrados.
+
+✅ **Benchmark de devoluciones actualizado el 2026-08-30.**
+[Shopify POS](https://help.shopify.com/en/manual/sell-in-person/shopify-pos/order-management/complete-refund-orders?locale=en)
+permite devolución total/parcial, motivo, reposición y distribución hasta el
+monto disponible de cada pago original; los medios personalizados sólo vuelven
+al mismo medio. [Square](https://squareup.com/help/us/en/article/8344-start-and-end-a-cash-drawer-session)
+incluye los reembolsos de efectivo en el cálculo de la sesión. Gestiona adopta
+esa paridad y agrega una obligación contable visible para toda parte externa no
+confirmada. [Mercado Pago](https://www.mercadopago.com.ar/developers/es/docs/sales-processing/cancellations-and-refunds)
+documenta cancelaciones/reembolsos y su [endpoint de refund de Orders](https://www.mercadopago.com.ar/developers/es/reference/online-payments/checkout-api/refund-order/post)
+exige una clave de idempotencia. La integración live sigue 🔴 hasta ejecutar el
+refund, consultar su estado y conciliarlo; una fixture SQL no sustituye al
+proveedor.
 
 ### 3.3 Fiscal y legal argentino
 

@@ -5,7 +5,8 @@ normativa argentina aplicable, para que un abogado o un contador lo valide. Cada
 punto dice **qué exige la norma**, **qué hay hoy en el código** y **qué falta**,
 con el estado medido contra la base cuando se pudo.
 
-Última revisión: 2026-08-21 (AFIP emite en homologación).
+Última revisión técnica: 2026-08-30 (ARCA emite en homologación; devolución
+POS distingue comprobante interno de nota de crédito fiscal).
 
 ---
 
@@ -114,6 +115,7 @@ el art. 37 de la 25.065 más abajo.
 | Requisito | Estado |
 |---|---|
 | **Factura electrónica por cada venta** (RG 4291) | 🟡 **El circuito emite.** Sesión 114: certificado de homologación cargado y CAE obtenido de punta a punta desde el panel — **CAE 86330773876924**, Factura C 00000002. Emitir destapó tres bugs que lo bloqueaban por completo y que ninguna lectura del código había encontrado: faltaba el envoltorio `<FeCAEReq>`, faltaba `CondicionIVAReceptorId` (RG 5.616) y una Factura C no puede llevar IVA discriminado. **Falta producción**, que necesita otro certificado y el punto de venta dado de alta como *Web Services*. |
+| **Nota de crédito por devolución de una venta con CAE** | 🟡 La devolución POS detecta el comprobante autorizado, marca `credit_note_required` y deriva a Facturación. El documento imprimible se llama **Comprobante interno** y declara que no reemplaza ARCA. Existe el circuito técnico A→3, B→8 y C→13, pero falta emitir y conciliar una nota de crédito con CAE productivo; registrar stock o reintegrar dinero no cumple por sí solo la obligación fiscal. |
 | **IVA discriminado según condición del comprador** | ✅ La tasa varía por producto (A8) y la condición del receptor se modeló con los códigos de ARCA. Desde la **RG 5.616** ese campo es obligatorio en el comprobante: sin él WSFE rechaza con error 10246, y se descubrió emitiendo. Va en `invoices.condicion_iva_receptor`, default 5 (consumidor final). |
 | **Libro IVA Ventas** | 🟠 Existe `/impuestos` y el libro mayor; no está atado a los comprobantes electrónicos porque todavía no hay. |
 | **Conservación de comprobantes** | 🟠 Las órdenes se guardan, los comprobantes no existen. |
@@ -131,6 +133,26 @@ Ordenado por **riesgo dividido esfuerzo**, no por lo que sería más lindo hacer
 5. **Consentimiento de marketing con fecha y origen** (L4) — una columna y un checkbox en el checkout, sin marcar por defecto.
 6. **Consultar a un profesional por el descuento según medio de pago** (L3) y por el contrato de tratamiento de datos (L5).
 7. **AFIP de punta a punta** — es el más grande y el más caro de postergar, pero necesita un certificado de homologación que se pide afuera.
+
+## 6. Puertas de lanzamiento, homologación y protección
+
+Ninguna columna “técnica” equivale a una aprobación del organismo, del
+proveedor o de un profesional. Para lanzar de forma competitiva, cada fila debe
+tener responsable, fecha y evidencia archivada:
+
+| Puerta | Estado 2026-08-30 | Evidencia de cierre |
+|---|---|---|
+| ARCA productivo | 🔴 Externo | Certificado y punto de venta Web Services productivos; factura y nota de crédito autorizadas, consultadas y conciliadas. |
+| Mercado Pago productivo | 🟠 Técnico sin certificación live completa | OAuth/app/webhooks productivos; aprobación, rechazo, timeout, QR escaneado y refund total/parcial con idempotencia y consulta posterior. |
+| Defensa del consumidor | 🟡 Parcial | Identidad legal real, términos/política publicados, botón de arrepentimiento, canal de reclamo y devolución ensayada por el comercio. |
+| Datos personales | 🔴 Externo + operativo | DPA plataforma–comercio, registro/criterio AAIP validado, proveedores/subencargados documentados, procedimiento de acceso/borrado e incident response probado. |
+| Marca y activos | 🔴 Externo | Búsqueda y estrategia marcaria con profesional, solicitud/registro que corresponda y licencias/cesiones archivadas para logo, fuentes, Figma y contenido. |
+| Continuidad y seguridad | 🟡 Parcial | Restore completo con RTO/RPO, plan de incidentes, responsable de guardia, rotación de secretos, pruebas de abuso y evidencia de vulnerabilidades críticas en cero. |
+| Rubros regulados | 🔴 Fuera del software | Revisión por catálogo/jurisdicción —por ejemplo ANMAT, aduana o habilitación municipal— antes de permitir que el merchant publique productos alcanzados. |
+
+Estas puertas quedan también en `ROADMAP.md`. Se pueden preparar y medir desde
+Gestiona, pero no se cierran con un test, una simulación ni una etiqueta en la
+interfaz.
 
 ---
 

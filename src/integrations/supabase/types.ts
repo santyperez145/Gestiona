@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       activation_interventions: {
@@ -5079,6 +5054,7 @@ export type Database = {
           payment_method: string | null
           reference_id: string | null
           reference_type: string | null
+          return_transaction_id: string | null
           sale_transaction_id: string | null
           seller_name: string | null
           session_id: string | null
@@ -5094,6 +5070,7 @@ export type Database = {
           payment_method?: string | null
           reference_id?: string | null
           reference_type?: string | null
+          return_transaction_id?: string | null
           sale_transaction_id?: string | null
           seller_name?: string | null
           session_id?: string | null
@@ -5109,6 +5086,7 @@ export type Database = {
           payment_method?: string | null
           reference_id?: string | null
           reference_type?: string | null
+          return_transaction_id?: string | null
           sale_transaction_id?: string | null
           seller_name?: string | null
           session_id?: string | null
@@ -5190,6 +5168,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_entries_return_transaction_id_fkey"
+            columns: ["return_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "sales_return_operations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_entries_return_transaction_id_fkey"
+            columns: ["return_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "sales_return_transactions"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "cash_entries_sale_transaction_id_fkey"
@@ -18702,7 +18694,85 @@ export type Database = {
           org_id?: string
           tipo?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
       }
       ledger_entries: {
         Row: {
@@ -18762,6 +18832,83 @@ export type Database = {
             referencedRelation: "ledger_entries"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
         ]
       }
       ledger_lines: {
@@ -18819,6 +18966,83 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ledger_entries"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
           },
         ]
       }
@@ -33157,6 +33381,7 @@ export type Database = {
       returns: {
         Row: {
           amount_ars: number
+          cost_amount_ars: number
           created_at: string
           ecommerce_order_id: string | null
           id: string
@@ -33168,12 +33393,15 @@ export type Database = {
           reason: string | null
           refund_method: string
           return_request_id: string | null
+          return_transaction_id: string | null
           sale_id: string | null
+          tax_amount_ars: number
           user_id: string | null
           variant_id: string | null
         }
         Insert: {
           amount_ars?: number
+          cost_amount_ars?: number
           created_at?: string
           ecommerce_order_id?: string | null
           id?: string
@@ -33185,12 +33413,15 @@ export type Database = {
           reason?: string | null
           refund_method?: string
           return_request_id?: string | null
+          return_transaction_id?: string | null
           sale_id?: string | null
+          tax_amount_ars?: number
           user_id?: string | null
           variant_id?: string | null
         }
         Update: {
           amount_ars?: number
+          cost_amount_ars?: number
           created_at?: string
           ecommerce_order_id?: string | null
           id?: string
@@ -33202,7 +33433,9 @@ export type Database = {
           reason?: string | null
           refund_method?: string
           return_request_id?: string | null
+          return_transaction_id?: string | null
           sale_id?: string | null
+          tax_amount_ars?: number
           user_id?: string | null
           variant_id?: string | null
         }
@@ -33387,6 +33620,20 @@ export type Database = {
             columns: ["return_request_id"]
             isOneToOne: false
             referencedRelation: "return_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_return_transaction_id_fkey"
+            columns: ["return_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "sales_return_operations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_return_transaction_id_fkey"
+            columns: ["return_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "sales_return_transactions"
             referencedColumns: ["id"]
           },
           {
@@ -34375,6 +34622,415 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "store_catalog_products"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_return_refunds: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          execution_mode: string
+          external_reference: string | null
+          failure_reason: string | null
+          id: string
+          method: string
+          org_id: string
+          payment_transaction_id: string | null
+          provider: string
+          raw: Json | null
+          return_transaction_id: string
+          sale_method: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          execution_mode: string
+          external_reference?: string | null
+          failure_reason?: string | null
+          id?: string
+          method: string
+          org_id: string
+          payment_transaction_id?: string | null
+          provider: string
+          raw?: Json | null
+          return_transaction_id: string
+          sale_method: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          execution_mode?: string
+          external_reference?: string | null
+          failure_reason?: string | null
+          id?: string
+          method?: string
+          org_id?: string
+          payment_transaction_id?: string | null
+          provider?: string
+          raw?: Json | null
+          return_transaction_id?: string
+          sale_method?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_return_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "comisiones_cobradas"
+            referencedColumns: ["transaccion_id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "payment_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "platform_gross_profit_por_pago"
+            referencedColumns: ["transaccion_id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["pago_id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_return_transaction_id_fkey"
+            columns: ["return_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "sales_return_operations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_refunds_return_transaction_id_fkey"
+            columns: ["return_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "sales_return_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_return_transactions: {
+        Row: {
+          cash_session_id: string | null
+          client_return_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          credit_note_required: boolean
+          currency: string
+          id: string
+          legacy_sale_id: string | null
+          notes: string | null
+          org_id: string
+          reason: string
+          refund_amount: number
+          request_fingerprint: string
+          restock: boolean
+          sale_transaction_id: string | null
+          status: string
+        }
+        Insert: {
+          cash_session_id?: string | null
+          client_return_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          credit_note_required?: boolean
+          currency?: string
+          id?: string
+          legacy_sale_id?: string | null
+          notes?: string | null
+          org_id: string
+          reason: string
+          refund_amount: number
+          request_fingerprint: string
+          restock?: boolean
+          sale_transaction_id?: string | null
+          status?: string
+        }
+        Update: {
+          cash_session_id?: string | null
+          client_return_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          credit_note_required?: boolean
+          currency?: string
+          id?: string
+          legacy_sale_id?: string | null
+          notes?: string | null
+          org_id?: string
+          reason?: string
+          refund_amount?: number
+          request_fingerprint?: string
+          restock?: boolean
+          sale_transaction_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_return_transactions_cash_session_id_fkey"
+            columns: ["cash_session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_session_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_cash_session_id_fkey"
+            columns: ["cash_session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "_sale_margin_facts_effective"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "_sale_margin_facts_source"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_margin_facts"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "store_order_margin_facts"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["venta_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "ventas_con_cobro_sin_clasificar"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_sale_transaction_id_fkey"
+            columns: ["sale_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "sale_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_sale_transaction_id_fkey"
+            columns: ["sale_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "ventas_sin_asentar"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -45815,7 +46471,85 @@ export type Database = {
           total_haber: number | null
           ultimo_asiento: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
       }
       ledger_saldos: {
         Row: {
@@ -45830,7 +46564,85 @@ export type Database = {
           total_debe: number | null
           total_haber: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
       }
       meli_connection_status: {
         Row: {
@@ -48642,6 +49454,201 @@ export type Database = {
           },
         ]
       }
+      sales_return_operations: {
+        Row: {
+          cash_session_id: string | null
+          completed_amount: number | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          credit_note_required: boolean | null
+          currency: string | null
+          id: string | null
+          legacy_sale_id: string | null
+          line_count: number | null
+          notes: string | null
+          org_id: string | null
+          payment_summary: string | null
+          pending_amount: number | null
+          product_names: string | null
+          reason: string | null
+          refund_amount: number | null
+          restock: boolean | null
+          sale_transaction_id: string | null
+          status: string | null
+          units: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_return_transactions_cash_session_id_fkey"
+            columns: ["cash_session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_session_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_cash_session_id_fkey"
+            columns: ["cash_session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "_sale_margin_facts_effective"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "_sale_margin_facts_source"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_margin_facts"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "store_order_margin_facts"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "traza_de_pago"
+            referencedColumns: ["venta_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_legacy_sale_id_fkey"
+            columns: ["legacy_sale_id"]
+            isOneToOne: false
+            referencedRelation: "ventas_con_cobro_sin_clasificar"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_sale_transaction_id_fkey"
+            columns: ["sale_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "sale_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_return_transactions_sale_transaction_id_fkey"
+            columns: ["sale_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "ventas_sin_asentar"
+            referencedColumns: ["transaction_id"]
+          },
+        ]
+      }
       sales_sin_cliente: {
         Row: {
           customer_name: string | null
@@ -50545,7 +51552,85 @@ export type Database = {
           saldo_disponible: number | null
           segun_el_libro: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
       }
       wallet_movimientos: {
         Row: {
@@ -50564,7 +51649,85 @@ export type Database = {
           referencia_id: string | null
           referencia_tipo: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ledger_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+        ]
       }
     }
     Functions: {
@@ -50935,6 +52098,19 @@ export type Database = {
       }
       costo_unitario_ars: {
         Args: { p_org: string; p_product_id: string; p_variant_id?: string }
+        Returns: Json
+      }
+      create_sales_return_v1: {
+        Args: {
+          p_client_return_id?: string
+          p_lines: Json
+          p_notes?: string
+          p_org_id: string
+          p_reason: string
+          p_refund_allocations: Json
+          p_restock?: boolean
+          p_sale_id: string
+        }
         Returns: Json
       }
       create_sales_transaction: {
@@ -52277,6 +53453,10 @@ export type Database = {
         Args: { p_carrier?: string; p_order_id: string; p_weight_kg?: number }
         Returns: Json
       }
+      preview_sales_return: {
+        Args: { p_org_id: string; p_sale_id: string }
+        Returns: Json
+      }
       price_change_window_metrics: {
         Args: {
           p_org_id: string
@@ -52610,6 +53790,15 @@ export type Database = {
           zona: string
         }[]
       }
+      sales_return_refund_complete: {
+        Args: {
+          p_external_reference: string
+          p_raw?: Json
+          p_refund_id: string
+        }
+        Returns: Json
+      }
+      sales_return_response: { Args: { p_return_id: string }; Returns: Json }
       save_afip_config: {
         Args: {
           p_cuit: string
@@ -53026,9 +54215,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "viewer"],
