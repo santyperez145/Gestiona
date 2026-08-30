@@ -38,7 +38,17 @@ export interface EmailPayload {
 export interface SendResult {
   ok: boolean;
   provider: "smtp" | "resend" | "none";
+  messageId?: string;
   error?: string;
+}
+
+export interface EmailDeliveryOptions {
+  /**
+   * Identidad estable del evento, no del intento. Resend conserva el resultado
+   * durante 24 h; el ledger de la aplicación sigue siendo la autoridad durable
+   * y también protege el camino SMTP.
+   */
+  idempotencyKey?: string;
 }
 
 /** Send via own SMTP server using denomailer (pure Deno). */
@@ -92,7 +102,8 @@ async function sendViaResend(
   from: string,
   payload: EmailPayload,
   metadata?: Record<string, string>,
-): Promise<void> {
+  idempotencyKey?: string,
+): Promise<string | undefined> {
   const recipients = Array.isArray(payload.to) ? payload.to : [payload.to];
 
   const body: Record<string, unknown> = {
@@ -111,12 +122,15 @@ async function sendViaResend(
     }));
   }
 
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  };
+  if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(body),
   });
 
@@ -124,6 +138,9 @@ async function sendViaResend(
     const err = await res.json().catch(() => ({})) as Record<string, unknown>;
     throw new Error((err.message as string) || `Resend HTTP ${res.status}`);
   }
+
+  const sent = await res.json().catch(() => ({})) as Record<string, unknown>;
+  return typeof sent.id === "string" ? sent.id : undefined;
 }
 
 /**
@@ -135,6 +152,7 @@ async function sendViaResend(
  * @param resendFrom   - "from" address for Resend (e.g. "Gestiona <noreply@gestiona.app>")
  * @param payload      - Email content
  * @param metadata     - Optional Resend webhook metadata
+ * @param options      - Delivery controls such as a stable idempotency key
  */
 /**
  * Traduce los rechazos que tienen una causa concreta y accionable.
@@ -171,6 +189,7 @@ export async function sendEmail(
   resendFrom: string,
   payload: EmailPayload,
   metadata?: Record<string, string>,
+  options?: EmailDeliveryOptions,
 ): Promise<SendResult> {
   /**
    * ⚠️ El error del SMTP ya no se pierde.
@@ -202,8 +221,14 @@ export async function sendEmail(
   // 2. Try Resend
   if (resendApiKey) {
     try {
-      await sendViaResend(resendApiKey, resendFrom, payload, metadata);
-      return { ok: true, provider: "resend" };
+      const messageId = await sendViaResend(
+        resendApiKey,
+        resendFrom,
+        payload,
+        metadata,
+        options?.idempotencyKey,
+      );
+      return { ok: true, provider: "resend", messageId };
     } catch (e) {
       console.error("Resend send failed:", e);
       // Si el envío elegido era el SMTP, el motivo útil es el suyo: Resend

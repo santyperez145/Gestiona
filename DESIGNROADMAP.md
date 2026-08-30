@@ -149,7 +149,7 @@ usa en material de producto o inversión.
 | Settings/Integraciones | Cabecera/navegación común; SMTP privado; Mercado Pago OAuth canónico; webhooks en una sola superficie con secret one-time, health, prueba/retry server-side, entrega durable, diálogo contractual y OpenAPI público certificado externamente. | Parcial | Transportistas y matriz responsive/autenticada; medir primera integración real. |
 | Finance | Shell teal, Inbox, inspector, matching, tres borradores y estados comunes con refresh/stale/offline. | Parcial | Proveedor aprobado + prueba responsive con documentos reales. |
 | Platform | Rail/control plane violeta y Merchant 360. | Parcial | Cola, métricas y soporte mobile. |
-| Storefront | Marca configurable aislada del SaaS; imágenes rotas degradan a fallbacks propios. El resultado de compra separa carga, acceso verificado y recuperación por email sin revelar si un número existe; pago y emails comparten la misma capacidad server-side. | Parcial D5 2026-08-30 | D5.1 y D5.2 publicados. Recuperación pasó 360/768/1024/1440 sin overflow, PII ni logs; falta compra completa en sandbox/real y performance. |
+| Storefront | Marca configurable aislada del SaaS; imágenes rotas degradan a fallbacks propios. El resultado de compra separa carga, acceso verificado y recuperación por email sin revelar si un número existe; pago y emails comparten la misma capacidad server-side. La comunicación transaccional distingue creación, pago y despacho y responde retries/dobles clicks como éxito deduplicado, no como otra entrega. | Parcial D5 2026-08-30 | D5.1 y D5.2 publicados; D5.3 cerrado localmente y pendiente de rollout. Recuperación pasó 360/768/1024/1440 sin overflow, PII ni logs; falta compra completa en sandbox/real y performance. |
 | Estados públicos | Pago, tracking, legales, invitación. | Parcial | Sistema público y accesibilidad. |
 
 ## 5. Fases ejecutables
@@ -377,6 +377,15 @@ están en producción. El estado neutral pasó 360/768/1024/1440 con ancho del
 documento igual al viewport, CTA de 44 px, PII ausente y consola limpia; una
 prueba sintética fallida mantuvo el mismo mensaje sin revelar existencia.
 
+D5.3 cierra el estado invisible que sostiene esa pantalla: checkout, pago y
+webhooks pueden repetir una notificación sin que el comprador vea dos
+confirmaciones ni el comercio dos ventas. Orden + audiencia + evento forman la
+identidad; un claim atómico devuelve `duplicate`/`inProgress`, el proveedor se
+llama fuera de la transacción y un token de worker cierra el resultado. Resend
+recibe una segunda clave idempotente; SMTP queda cubierto por el ledger durable
+sin prometer exactly-once fuera del control de Gestiona. No agrega chrome ni
+otra pantalla: vuelve confiable el feedback transaccional del recorrido D5.
+
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto, variantes, stock y confianza;
 - carrito y checkout responsive;
@@ -444,7 +453,7 @@ declara validado porque “se ve mejor”.
 | 18 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
 | 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
 | 20 | Storefront home/PLP/PDP | Parcial D5 2026-08-30 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias; Gestión expone el recurso roto y bloquea reactivarlo. 3 pruebas y puerta completa pasan; publicación certificada en tienda/Banners a 360/768/1024/1440, sin overflow ni logs propios. Falta performance y flujo completo. |
-| 21 | Carrito/checkout/pago | Parcial D5.2 publicado 2026-08-30 | Resultado protegido por capacidad, cuenta o recuperación número + email; token en sesión/fragmento y validación repetida en pago/emails. Recuperación certificada en cuatro viewports; faltan red lenta y compra completa sandbox/real. |
+| 21 | Carrito/checkout/pago | Parcial D5.2 publicado / D5.3 local 2026-08-30 | Resultado protegido por capacidad, cuenta o recuperación número + email; token en sesión/fragmento y validación repetida en pago/emails. Creación, pago y despacho ya comparten identidad de comunicación con claim atómico, retry y segunda barrera Resend; falta rollout D5.3. Recuperación certificada en cuatro viewports; faltan red lenta y compra completa sandbox/real. |
 | 22 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
 | 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
 | 24 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |

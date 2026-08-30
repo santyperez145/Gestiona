@@ -240,7 +240,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 2.089 tests en 211 archivos pasan al 2026-08-30; typecheck, lint sin errores (139 warnings conocidos), build/PWA, auditoría npm sin vulnerabilidades y 74 Edge Functions versionadas/verificadas, iguales a las 74 activas en Supabase. La deriva de `extract-receipt` quedó cerrada sin habilitar transferencia documental: falta proveedor/DPA, `ANTHROPIC_API_KEY`, flag explícito y prueba con comprobantes autorizados. Hay 46 E2E críticos listados: 32 públicos, 13 de panel y 1 setup autenticado; los recorridos de Gastos, importación y turno conservan 0 escrituras. |
+| Calidad técnica | 2.102 tests en 213 archivos pasan al 2026-08-30; typecheck, lint sin errores (139 warnings conocidos), build/PWA, auditoría npm sin vulnerabilidades y 74 Edge Functions versionadas/verificadas, iguales a las 74 activas en Supabase. La deriva de `extract-receipt` quedó cerrada sin habilitar transferencia documental: falta proveedor/DPA, `ANTHROPIC_API_KEY`, flag explícito y prueba con comprobantes autorizados. Hay 46 E2E críticos listados: 32 públicos, 13 de panel y 1 setup autenticado; los recorridos de Gastos, importación y turno conservan 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Turno POS | `20260829000044` vuelve autoritativa la caja por organización/ubicación: apertura/cierre por RPC, efectivo esperado server-side, un vínculo por ticket y una entrada por medio, vendedor, devolución y diferencia. Fixture reversible: 2 líneas → 1 ticket/entrada, ARS 10.000, esperado ARS 20.000, diferencia −ARS 100, outsider bloqueado y 0 restos. Base productiva al 2026-08-29: 0 sesiones y 0 movimientos reales; es confiabilidad técnica, todavía no uso. |
@@ -2749,6 +2749,46 @@ Finance Connect.
     Evidencia:
     [`docs/evidencias/2026-08-30_store_order_access_control.md`](docs/evidencias/2026-08-30_store_order_access_control.md).
 
+80. Storefront D5.3: una venta no puede convertirse en spam por retry — P0 de
+    confiabilidad y costo cerrado localmente el 2026-08-30; publicación
+    pendiente de este commit. Checkout, `store-pay` y el webhook de Mercado
+    Pago pueden informar la misma orden, mientras dos operadores pueden repetir
+    el aviso de despacho. La confirmación inicial no tenía deduplicación y el
+    aviso logístico hacía `SELECT` seguido de `INSERT/UPDATE`: una restricción
+    única evitaba dos filas, pero no dos llamadas concurrentes al proveedor.
+
+    `20260830000021` convierte el log privado en un ledger para orden +
+    audiencia + evento (`order_created`, `payment_confirmed`, `shipped`,
+    `delivered`). Un RPC toma el evento con lock, token y lease de 30–900
+    segundos; otro worker recibe `duplicate` o `inProgress`. La red ocurre
+    **fuera** de esa transacción y `finish` sólo acepta el token del intento
+    vigente. El aviso al comercio nace una vez al crear la orden; el comprador
+    recibe creación y, si corresponde, confirmación de pago como eventos
+    distintos. Fallos y workers caídos se reintentan con contador auditable.
+
+    Resend recibe además una `Idempotency-Key` estable y su `messageId` se guarda
+    sólo en el ledger. La [documentación oficial](https://resend.com/docs/dashboard/emails/idempotency-keys)
+    mantiene esa barrera 24 horas; el ledger propio permanece como autoridad
+    durable y protege también SMTP. No se afirma exactly-once sobre SMTP: ante
+    una caída exacta después de aceptar el correo y antes de registrar el
+    resultado, ningún protocolo genérico puede demostrarlo. La arquitectura
+    reduce esa ventana sin fingir una garantía del proveedor. Los futuros
+    [webhooks de entrega](https://resend.com/docs/webhooks/introduction) deberán
+    deduplicar `svix-id` porque Resend declara entrega al menos una vez.
+
+    La fixture ejecutó la migración completa dentro de `BEGIN/ROLLBACK` sobre
+    una orden existente y un destinatario sintético: primer claim sí,
+    simultáneo bloqueado, token ajeno bloqueado, cierre sí, reintento enviado
+    deduplicado, lease vencido recuperado como intento 2, worker viejo bloqueado
+    y tabla/RPC inaccesibles para `anon`/`authenticated`. No llamó a un
+    proveedor, no imprimió PII y no dejó filas. Puerta completa: typecheck, lint
+    0 errores/139 warnings conocidos, **2.102/2.102 pruebas en 213 archivos**,
+    build/PWA (18 entradas, 2.018,70 KiB), 74 Edge Functions, `npm audit` 0,
+    85 enlaces internos en 53 documentos y conteos 74/499. Falta aplicar/registrar migración,
+    desplegar las dos Edges y repetir el contrato productivo sin enviar correo.
+    Evidencia:
+    [`docs/evidencias/2026-08-30_store_order_email_idempotency.md`](docs/evidencias/2026-08-30_store_order_email_idempotency.md).
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
@@ -3246,7 +3286,7 @@ fixture destructiva-cero probó el RPC real y producción sirve `public-api` v42
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-30: **2.089 tests en 211 archivos**,
+- Build y suites locales del 2026-08-30: **2.102 tests en 213 archivos**,
   typecheck, lint sin errores (139 warnings de deuda conocida), build/PWA y 74
   funciones verificadas. Última evidencia: 46 E2E críticos —32 públicos, 13 de
   panel y 1 setup autenticado—; Gastos, importación y turno son de sólo lectura.

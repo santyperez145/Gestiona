@@ -137,7 +137,7 @@ export default function OrderShipmentDialog({
   const avisarEstado = async (event: "shipped" | "delivered") => {
     if (!order || !canEditEcommerce) return;
     const { data, error } = await supabase.functions.invoke("store-order-status-email", {
-      body: { orderId: order.id, event, baseUrl: window.location.origin },
+      body: { orderId: order.id, event },
     });
     const message = (data as { error?: string } | null)?.error;
     if (error || message) {

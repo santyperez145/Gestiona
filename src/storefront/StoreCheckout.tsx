@@ -397,7 +397,6 @@ export default function StoreCheckout() {
         slug: store!.slug,
         orderNumber,
         accessToken,
-        baseUrl: window.location.origin,
       },
     }).catch((emailError) => {
       console.error("No se pudo solicitar el email transaccional del pedido", emailError);

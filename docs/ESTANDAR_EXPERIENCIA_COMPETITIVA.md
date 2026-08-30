@@ -329,6 +329,25 @@ y la [prevención de IDOR de OWASP](https://cheatsheetseries.owasp.org/cheatshee
 - pago, reintento y comunicaciones vuelven a validar la capacidad en servidor:
   ocultar el detalle en React no es control de acceso.
 
+Contrato de entrega transaccional, revalidado el 2026-08-30 contra la
+[idempotencia oficial de Resend](https://resend.com/docs/dashboard/emails/idempotency-keys)
+y su contrato de [webhooks al menos una vez](https://resend.com/docs/webhooks/introduction):
+
+- cada comunicación se identifica por orden, audiencia y evento semántico
+  (`order_created`, `payment_confirmed`, `shipped`, `delivered`), no por request;
+- un claim SQL atómico reserva el evento y entrega un token al worker; otro
+  worker recibe duplicado/en curso sin llamar al proveedor;
+- el proveedor se invoca fuera de la transacción y el resultado sólo lo puede
+  cerrar el token vigente; un lease acotado recupera workers caídos;
+- Resend recibe además una `Idempotency-Key` estable y conserva su segunda
+  barrera durante 24 horas. El ledger privado de Gestiona es la barrera durable
+  y también cubre SMTP, donde no se promete exactly-once del proveedor;
+- un aviso enviado se responde como éxito deduplicado; uno fallido puede
+  reintentarse y conserva intento, proveedor, id saneado y error privado;
+- destinatario, error e identificador de proveedor nunca salen al navegador.
+  Si se consumen webhooks de entrega, `svix-id` se deduplica antes de mutar el
+  ledger porque el transporte es al menos una vez.
+
 Contrato de medios públicos, revalidado el 2026-08-30 contra la documentación
 oficial de [imágenes de temas de Shopify](https://help.shopify.com/en/manual/online-store/images/theme-images),
 su [editor con preview](https://help.shopify.com/en/manual/online-store/themes/customizing-themes/theme-editor),

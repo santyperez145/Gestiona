@@ -10,6 +10,10 @@ const edge = readFileSync(
   resolve(process.cwd(), "supabase/functions/store-order-status-email/index.ts"),
   "utf8",
 );
+const deliveryMigration = readFileSync(
+  resolve(process.cwd(), "supabase/migrations/20260830000021_store_order_email_idempotency.sql"),
+  "utf8",
+);
 
 describe("avisos de estado de órdenes de tienda", () => {
   it("deja el cambio de estado en un RPC autenticado y hacia adelante", () => {
@@ -32,10 +36,13 @@ describe("avisos de estado de órdenes de tienda", () => {
 
   it("protege el gasto de email y hace cada aviso idempotente", () => {
     expect(migration).toContain("CREATE TABLE IF NOT EXISTS public.store_order_status_email_log");
-    expect(migration).toContain("UNIQUE (ecommerce_order_id, event)");
     expect(migration).toContain("REVOKE ALL ON TABLE public.store_order_status_email_log FROM PUBLIC, anon, authenticated");
+    expect(deliveryMigration).toContain("CREATE OR REPLACE FUNCTION public.claim_store_order_email");
+    expect(deliveryMigration).toContain("FOR UPDATE");
+    expect(deliveryMigration).toContain("ecommerce_order_id, audience, event");
     expect(edge).toContain("requireUser(req, corsHeaders)");
-    expect(edge).toContain("existing?.status === \"sent\"");
+    expect(edge).toContain("claimStoreOrderEmail(admin");
+    expect(edge).toContain("finishStoreOrderEmail(admin, claim, result)");
     expect(edge).toContain('userClient.rpc("has_permission"');
   });
 });

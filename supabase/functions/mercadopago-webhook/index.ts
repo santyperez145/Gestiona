@@ -600,7 +600,6 @@ Deno.serve(async (req) => {
                   slug,
                   orderNumber: ord.order_number,
                   accessToken: ord.public_access_token,
-                  baseUrl: Deno.env.get("PUBLIC_BASE_URL") ?? "",
                 },
               });
             }

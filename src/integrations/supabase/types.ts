@@ -38684,39 +38684,51 @@ export type Database = {
       }
       store_order_status_email_log: {
         Row: {
+          audience: string
           attempt_count: number
+          claim_token: string | null
+          claimed_at: string | null
           created_at: string
           ecommerce_order_id: string
           event: string
           id: string
           last_error: string | null
           provider: string | null
+          provider_message_id: string | null
           recipient_email: string
           sent_at: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          audience?: string
           attempt_count?: number
+          claim_token?: string | null
+          claimed_at?: string | null
           created_at?: string
           ecommerce_order_id: string
           event: string
           id?: string
           last_error?: string | null
           provider?: string | null
+          provider_message_id?: string | null
           recipient_email: string
           sent_at?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          audience?: string
           attempt_count?: number
+          claim_token?: string | null
+          claimed_at?: string | null
           created_at?: string
           ecommerce_order_id?: string
           event?: string
           id?: string
           last_error?: string | null
           provider?: string | null
+          provider_message_id?: string | null
           recipient_email?: string
           sent_at?: string | null
           status?: string
@@ -52059,6 +52071,16 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_store_order_email: {
+        Args: {
+          p_audience: string
+          p_event: string
+          p_lease_seconds?: number
+          p_order_id: string
+          p_recipient_email: string
+        }
+        Returns: Json
+      }
       complete_business_onboarding: {
         Args: {
           p_business_name: string
@@ -52318,6 +52340,17 @@ export type Database = {
       }
       feature_flag_habilitada: {
         Args: { p_default?: boolean; p_flag_key: string; p_org_id?: string }
+        Returns: boolean
+      }
+      finish_store_order_email: {
+        Args: {
+          p_claim_token: string
+          p_delivery_id: string
+          p_error?: string | null
+          p_provider?: string | null
+          p_provider_message_id?: string | null
+          p_success: boolean
+        }
         Returns: boolean
       }
       finance_core_snapshot: {

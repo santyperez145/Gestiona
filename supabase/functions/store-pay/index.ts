@@ -285,7 +285,6 @@ async function notifyPaidStoreOrder(admin: any, context: StoreOrderContext) {
         slug: context.store.slug,
         orderNumber: context.order.order_number,
         accessToken: context.order.public_access_token,
-        baseUrl: Deno.env.get("PUBLIC_BASE_URL") ?? "",
       },
     });
   } catch (e) {

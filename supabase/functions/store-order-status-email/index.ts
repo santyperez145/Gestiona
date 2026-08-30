@@ -4,14 +4,19 @@
  * No es pública: a diferencia de la confirmación inicial, sólo personal de la
  * organización puede cambiar el estado. `requireUser` es esencial porque
  * RESEND_API_KEY representa crédito real y la anon key del storefront es
- * pública. La idempotencia vive en `store_order_status_email_log`: un doble
- * click, una recarga o un reintento no llena la casilla del comprador.
+ * pública. La idempotencia vive en un claim SQL atómico: un doble click, una
+ * recarga, un reintento o dos instancias simultáneas no llenan la casilla del
+ * comprador.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
+import {
+  claimStoreOrderEmail,
+  finishStoreOrderEmail,
+} from "../_shared/storeOrderEmailDelivery.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -99,32 +104,6 @@ Deno.serve(async (req) => {
     });
     if (!canEdit) return json({ error: "No tenés permiso para avisar sobre esta orden" }, 403);
 
-    const { data: existing } = await admin
-      .from("store_order_status_email_log")
-      .select("id, status, attempt_count")
-      .eq("ecommerce_order_id", order.id)
-      .eq("event", event)
-      .maybeSingle();
-    if (existing?.status === "sent") return json({ ok: true, duplicate: true });
-
-    const attempts = Number(existing?.attempt_count ?? 0) + 1;
-    const logPayload = {
-      ecommerce_order_id: order.id,
-      event,
-      recipient_email: order.customer_email,
-      status: "pending",
-      attempt_count: attempts,
-      last_error: null,
-      updated_at: new Date().toISOString(),
-    };
-    const { error: logError } = existing
-      ? await admin.from("store_order_status_email_log").update(logPayload).eq("id", existing.id)
-      : await admin.from("store_order_status_email_log").insert(logPayload);
-    if (logError) {
-      console.error("store-order-status-email log:", logError.message);
-      return json({ error: "No se pudo registrar el aviso" }, 500);
-    }
-
     const [{ data: store }, { data: delivery }] = await Promise.all([
       admin.from("ecommerce_stores").select("name, slug, primary_color").eq("id", order.store_id).maybeSingle(),
       admin.from("deliveries").select("carrier, external_tracking").eq("ecommerce_order_id", order.id).order("created_at").limit(1).maybeSingle(),
@@ -134,6 +113,20 @@ Deno.serve(async (req) => {
     const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
     const smtp = await smtpDeOrganizacion(order.org_id);
     const resendFrom = (await remitenteDe("pedidos")).from;
+    const claim = await claimStoreOrderEmail(admin, {
+      orderId: order.id,
+      audience: "buyer",
+      event,
+      recipientEmail: order.customer_email,
+    });
+    if (!claim.claimed) {
+      return json({
+        ok: true,
+        duplicate: claim.duplicate,
+        inProgress: claim.inProgress,
+      });
+    }
+
     const result = await sendEmail(smtp, resendKey, resendFrom, {
       to: order.customer_email,
       subject: `${event === "shipped" ? "Tu pedido está en camino" : "Tu pedido fue entregado"} — ${order.order_number}`,
@@ -148,15 +141,12 @@ Deno.serve(async (req) => {
           ? `${baseUrl}/tienda/${store.slug}/orden/${order.order_number}#access=${encodeURIComponent(order.public_access_token)}`
           : undefined,
       }),
-    });
-
-    const saved = result.ok
-      ? { status: "sent", provider: result.provider, last_error: null, sent_at: new Date().toISOString(), updated_at: new Date().toISOString() }
-      : { status: "failed", provider: result.provider, last_error: result.error ?? "No se pudo enviar el email", updated_at: new Date().toISOString() };
-    await admin.from("store_order_status_email_log")
-      .update(saved)
-      .eq("ecommerce_order_id", order.id)
-      .eq("event", event);
+    }, {
+      order_id: order.id,
+      audience: "buyer",
+      event,
+    }, { idempotencyKey: claim.idempotencyKey });
+    await finishStoreOrderEmail(admin, claim, result);
 
     if (!result.ok) return json({ error: result.error ?? "No se pudo enviar el aviso" }, 502);
     return json({ ok: true, provider: result.provider });

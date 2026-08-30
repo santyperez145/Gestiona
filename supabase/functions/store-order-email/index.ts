@@ -13,6 +13,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
+import {
+  claimStoreOrderEmail,
+  finishStoreOrderEmail,
+} from "../_shared/storeOrderEmailDelivery.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -134,21 +138,42 @@ Deno.serve(async (req) => {
     // ── Al comprador ─────────────────────────────────────────────────────
     if (order.customer_email) {
       const pagado = order.payment_status === "paid";
-      results.comprador = await sendEmail(smtpCfg, resendKey, resendFrom, {
-        to: order.customer_email,
-        subject: `${pagado ? "Pago confirmado" : "Recibimos tu pedido"} — ${order.order_number}`,
-        html: layout({
-          accent, storeName: store.name,
-          title: pagado ? "¡Pago confirmado!" : "¡Gracias por tu compra!",
-          intro: pagado
-            ? "Ya estamos preparando tu envío. Te avisamos cuando salga."
-            : "Recibimos tu pedido. Te escribimos para coordinar el pago y la entrega.",
-          order, itemsRows: rows,
-          ctaUrl: base ? orderUrl : undefined,
-          ctaLabel: "Ver mi pedido",
-          footer: `Guardá este número: <strong>${esc(order.order_number)}</strong><br>${esc(store.name)}`,
-        }),
+      const buyerEvent = pagado ? "payment_confirmed" : "order_created";
+      const claim = await claimStoreOrderEmail(admin, {
+        orderId: order.id,
+        audience: "buyer",
+        event: buyerEvent,
+        recipientEmail: order.customer_email,
       });
+      if (claim.claimed) {
+        const result = await sendEmail(smtpCfg, resendKey, resendFrom, {
+          to: order.customer_email,
+          subject: `${pagado ? "Pago confirmado" : "Recibimos tu pedido"} — ${order.order_number}`,
+          html: layout({
+            accent, storeName: store.name,
+            title: pagado ? "¡Pago confirmado!" : "¡Gracias por tu compra!",
+            intro: pagado
+              ? "Ya estamos preparando tu envío. Te avisamos cuando salga."
+              : "Recibimos tu pedido. Te escribimos para coordinar el pago y la entrega.",
+            order, itemsRows: rows,
+            ctaUrl: base ? orderUrl : undefined,
+            ctaLabel: "Ver mi pedido",
+            footer: `Guardá este número: <strong>${esc(order.order_number)}</strong><br>${esc(store.name)}`,
+          }),
+        }, {
+          order_id: order.id,
+          audience: "buyer",
+          event: buyerEvent,
+        }, { idempotencyKey: claim.idempotencyKey });
+        await finishStoreOrderEmail(admin, claim, result);
+        results.comprador = result;
+      } else {
+        results.comprador = {
+          ok: true,
+          duplicate: claim.duplicate,
+          inProgress: claim.inProgress,
+        };
+      }
     }
 
     // ── Al dueño ─────────────────────────────────────────────────────────
@@ -175,19 +200,39 @@ Deno.serve(async (req) => {
         order.customer_phone,
       ].filter(Boolean).map(esc).join(" · ");
 
-      results.dueno = await sendEmail(smtpCfg, resendKey, resendFrom, {
-        to: ownerEmail,
-        subject: `Nueva venta ${money(order.total)} — ${order.order_number}`,
-        html: layout({
-          accent, storeName: store.name,
-          title: "Entró un pedido nuevo",
-          intro: `<strong>${contacto}</strong><br>Medio de pago: ${esc(order.payment_method)} · Estado: ${esc(order.payment_status)}`,
-          order, itemsRows: rows,
-          ctaUrl: base ? `${base}/tienda-online` : undefined,
-          ctaLabel: "Ver en el panel",
-          footer: "Aviso automático de tu tienda online.",
-        }),
+      const claim = await claimStoreOrderEmail(admin, {
+        orderId: order.id,
+        audience: "merchant",
+        event: "order_created",
+        recipientEmail: ownerEmail,
       });
+      if (claim.claimed) {
+        const result = await sendEmail(smtpCfg, resendKey, resendFrom, {
+          to: ownerEmail,
+          subject: `Nueva venta ${money(order.total)} — ${order.order_number}`,
+          html: layout({
+            accent, storeName: store.name,
+            title: "Entró un pedido nuevo",
+            intro: `<strong>${contacto}</strong><br>Medio de pago: ${esc(order.payment_method)} · Estado: ${esc(order.payment_status)}`,
+            order, itemsRows: rows,
+            ctaUrl: base ? `${base}/tienda-online` : undefined,
+            ctaLabel: "Ver en el panel",
+            footer: "Aviso automático de tu tienda online.",
+          }),
+        }, {
+          order_id: order.id,
+          audience: "merchant",
+          event: "order_created",
+        }, { idempotencyKey: claim.idempotencyKey });
+        await finishStoreOrderEmail(admin, claim, result);
+        results.dueno = result;
+      } else {
+        results.dueno = {
+          ok: true,
+          duplicate: claim.duplicate,
+          inProgress: claim.inProgress,
+        };
+      }
     }
 
     return json({ ok: true, ...results });
