@@ -2354,9 +2354,13 @@ Finance Connect.
     `authenticated` owner/admin: una fila 10→10,1 dentro de transacción y
     `ROLLBACK` 10→10, con 0 cambios persistidos. Puerta completa: typecheck,
     lint con 0 errores/139 warnings conocidos, 202 archivos / 2.048 pruebas,
-    build/PWA y 72 Edge Functions. Falta revalidar el CTA publicado en
-    360/768/1024/1440 después del deploy; la tasa elegida sigue siendo decisión
-    comercial/legal del dueño, no una recomendación automática de Gestiona.
+    build/PWA y 72 Edge Functions. Vercel publicó `5252e20` en 25 s y una sesión
+    real de administrador confirmó el CTA, los cuatro nombres accesibles y el
+    guardado completo: quedó una auditoría `settings_change/pricing` y los
+    valores comerciales siguieron 10% / 5% / 0% / 0%. No se alteró una tasa
+    real para probar. Queda ampliar la matriz visual de Ajustes a
+    360/768/1024/1440; la tasa elegida sigue siendo decisión comercial/legal
+    del dueño, no una recomendación automática de Gestiona.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
