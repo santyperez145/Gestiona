@@ -17,12 +17,12 @@ describe("guardia de tipos de Edge Functions", () => {
       .filter((entry) => existsSync(resolve(functionsDir, entry.name, "index.ts")))
       .length;
 
-    // 70 al 2026-08-28 (`ls supabase/functions | wc -l`, sin los `_shared`).
-    // La última es `migrar-imagenes`, que trae al proyecto actual las 37
-    // imágenes que quedaron alojadas en el proyecto Supabase anterior.
+    // 74 al 2026-08-30 (`Get-ChildItem supabase/functions -Directory`, sin
+    // `_shared`). `extract-receipt` cierra la última deriva: estaba ACTIVE en
+    // Supabase pero su fuente no existía en `main`.
     // El número está fijo a propósito: agregar una Edge Function tiene que ser
     // una decisión visible, no algo que entra sin que nadie lo note.
-    expect(count).toBe(73);
+    expect(count).toBe(74);
     expect(checker).toContain('readdirSync(functionsDir, { withFileTypes: true })');
     expect(checker).toContain('"check", "--no-lock", ...entries');
     expect(checker).not.toContain("mercadopago-webhook/index.ts");

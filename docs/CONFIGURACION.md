@@ -1,6 +1,6 @@
 # Qué falta configurar
 
-Estado al 2026-08-21. Lo que **no** esté acá, ya funciona sin tocar nada.
+Estado al 2026-08-30. Lo que **no** esté acá, ya funciona sin tocar nada.
 
 ## Resumen
 
@@ -11,7 +11,7 @@ Estado al 2026-08-21. Lo que **no** esté acá, ya funciona sin tocar nada.
 | Tienda online `/tienda/:slug` | ✅ Funciona |
 | Catálogo público `/catalogo/:userId` | ✅ Funciona |
 | Notificaciones push | ✅ VAPID cargado |
-| **IA** (chat, descripciones, insights, OCR) | ⚠️ Falta `ANTHROPIC_API_KEY` para IA generativa; `predict-sales` conserva un respaldo estadístico |
+| **IA** (chat, descripciones, insights, OCR) | ⚠️ Falta `ANTHROPIC_API_KEY` para IA generativa; el comprobante de Gastos exige además aprobación legal y `EXPENSE_RECEIPT_EXTRACTION_ENABLED=true`. `predict-sales` conserva un respaldo estadístico |
 | **Emails** (campañas, secuencias, facturas) | 🟠 `RESEND_API_KEY` está puesta, pero la cuenta de Resend está en modo de prueba: **sólo envía a la casilla del dueño**. Verificado el 2026-08-27 contra la API. Falta verificar un dominio en resend.com/domains y poner `RESEND_FROM`. |
 | **WhatsApp automático** | ⚠️ Requiere una conexión Evolution por comercio o una configuración global de plataforma |
 | **Cobros con tarjeta** | ❌ Falta Stripe |
@@ -46,13 +46,14 @@ Desde el Dashboard (Edge Functions → Secrets) o por CLI:
 npx supabase secrets set NOMBRE=valor
 ```
 
-Hoy solo están los `SUPABASE_*` (automáticos) y los `VAPID_*`.
+El diagnóstico de Plataforma muestra presencia/ausencia sin devolver valores.
+No se copian secretos a este documento ni al navegador.
 
 ### Prioridad alta
 
 | Secreto | Para qué | Dónde se saca |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Chat con IA, descripciones automáticas, insights, copy de Instagram, OCR de facturas, recomendador | [console.anthropic.com](https://console.anthropic.com) |
+| `ANTHROPIC_API_KEY` | Chat con IA, descripciones automáticas, insights, copy de Instagram, OCR asistido y recomendador | [console.anthropic.com](https://console.anthropic.com) |
 | `RESEND_API_KEY` | **Todos** los emails: campañas, secuencias, facturas, órdenes a proveedores | [resend.com](https://resend.com) |
 | `FROM_EMAIL` | Remitente de esos emails (dominio verificado en Resend) | — |
 | `PUBLIC_BASE_URL` | Links dentro de los emails (desuscripción, ver factura) | tu dominio |
@@ -60,6 +61,12 @@ Hoy solo están los `SUPABASE_*` (automáticos) y los `VAPID_*`.
 Sin `ANTHROPIC_API_KEY`, las funciones de IA generativa responden con error;
 `predict-sales` sigue disponible con una estimación estadística explícita. Sin
 `RESEND_API_KEY`, los crons de email corren pero no envían nada.
+
+> `EXPENSE_RECEIPT_EXTRACTION_ENABLED=true` no es una credencial sino una
+> aprobación operativa separada. Se carga **sólo después** de firmar/validar el
+> tratamiento documental con el proveedor (DPA, región, subencargados,
+> entrenamiento, retención y borrado) y medir exactitud/costo con comprobantes
+> autorizados. Tener IA general configurada no habilita este flujo.
 
 > Alternativa a Resend: conectar un SMTP propio en Configuración → Mensajería.
 > La prueba llega al email de la sesión antes de guardar. Sólo owner/admin puede

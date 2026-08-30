@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Shield } from 'lucide-react';
 import BrandLogo from '@/components/shared/BrandLogo';
 
-const LAST_UPDATED = '6 de mayo de 2026';
+const LAST_UPDATED = '30 de agosto de 2026';
 const COMPANY = 'Gestiona';
 const EMAIL = 'privacidad@gestiona.app';
 
@@ -71,10 +71,17 @@ export default function PrivacyPage() {
             <li><strong>Supabase</strong> — base de datos e infraestructura.</li>
             <li><strong>Stripe</strong> — procesamiento de pagos.</li>
             <li><strong>Resend</strong> — envío de emails transaccionales.</li>
-            <li><strong>Anthropic</strong> — funciones de inteligencia artificial (datos anonimizados).</li>
+            <li>
+              <strong>Anthropic</strong> — funciones opcionales de inteligencia artificial. Sólo recibe el contenido que
+              elegís procesar al ejecutar una de esas funciones; puede incluir datos del negocio o un documento y no se
+              anonimiza automáticamente.
+            </li>
             <li><strong>Sentry</strong> — monitoreo de errores (sin datos personales sensibles).</li>
           </ul>
-          <p>Todos los proveedores tienen políticas de privacidad propias y cumplen estándares de seguridad internacionales.</p>
+          <p>
+            Podés no usar las funciones de inteligencia artificial y completar esas tareas manualmente. Cuando las usás,
+            el contenido se envía para responder esa solicitud concreta bajo los términos y medidas del proveedor.
+          </p>
         </Section>
 
         <Section title="7. Cookies">

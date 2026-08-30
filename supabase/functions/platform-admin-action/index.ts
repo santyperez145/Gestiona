@@ -775,7 +775,7 @@ Deno.serve(async (req) => {
         // Inyectados por Supabase
         "SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY",
         // IA
-        "ANTHROPIC_API_KEY",
+        "ANTHROPIC_API_KEY", "EXPENSE_RECEIPT_EXTRACTION_ENABLED",
         // Correo
         "RESEND_API_KEY", "FROM_EMAIL", "SMTP_PASSWORD", "RESEND_WEBHOOK_SECRET",
         // Cobros y suscripciones

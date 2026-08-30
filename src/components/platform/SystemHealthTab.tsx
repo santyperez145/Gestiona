@@ -48,6 +48,7 @@ const DESCRIPCIONES: Record<string, Omit<SecretStatus, "configured" | "name">> =
   SUPABASE_SERVICE_ROLE_KEY: { required: true,  category: "core",  description: "Inyectado automáticamente por Supabase" },
 
   ANTHROPIC_API_KEY:         { required: true,  category: "ai",    description: "Sin esta clave TODA la IA responde error: copiloto, descripciones, análisis y recomendaciones" },
+  EXPENSE_RECEIPT_EXTRACTION_ENABLED: { required: false, category: "ai", description: "Habilita comprobantes de Gastos sólo después de aprobar proveedor, privacidad y revisión humana" },
 
   RESEND_API_KEY:            { required: false, category: "email", description: "Envío por Resend. Alternativa: SMTP propio" },
   FROM_EMAIL:                { required: false, category: "email", description: "Remitente verificado en Resend" },

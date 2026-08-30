@@ -1,24 +1,19 @@
 /**
- * ReceiptScanner — Camera-based receipt capture with AI extraction.
+ * ReceiptScanner — captura un comprobante y propone datos para el gasto.
  *
- * Captures a photo of a paper receipt and calls the AI endpoint to extract
- * amount, vendor, category, and date. The blob remains local until the parent
- * expense form is submitted, so closing the dialog never leaves an orphan in
- * Storage.
- *
- * Uses:
- *   - MediaDevices.getUserMedia() for camera access
- *   - HTMLCanvasElement for frame capture
- *   - Anthropic Claude via the existing AI endpoint for OCR+extraction
- *
- * Falls back to file upload if camera is unavailable.
+ * La imagen se conserva local hasta que la persona confirma el formulario: si
+ * cierra o la extracción falla, no quedan objetos huérfanos en Storage. Sólo al
+ * tocar «Extraer datos» se envía a `extract-receipt`; monto, proveedor, fecha y
+ * categoría siguen siendo sugerencias que se revisan antes de registrar.
  */
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Camera, Upload, X, Loader2, CheckCircle2, RotateCcw, ScanLine } from "lucide-react";
+import { Camera, Upload, X, Loader2, CheckCircle2, RotateCcw, ScanLine, AlertTriangle, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { comprimirImagen, validarImagen, PRESETS } from "@/lib/imageUpload";
 
 interface ExtractedReceipt {
   amount: number | null;
@@ -32,9 +27,25 @@ interface ExtractedReceipt {
 interface ReceiptScannerProps {
   onExtracted: (data: ExtractedReceipt) => void;
   onClose: () => void;
+  /** Organización contra la que el servidor valida membresía y plan. */
+  orgId?: string;
+  /** Slugs reales del comercio; el modelo no puede inventar una categoría. */
+  categorias: string[];
 }
 
-export default function ReceiptScanner({ onExtracted, onClose }: ReceiptScannerProps) {
+const TIPOS_EXTRAIBLES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+/** Base64 sin el prefijo `data:`. */
+function leerBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+    reader.onerror = () => reject(reader.error ?? new Error("No se pudo leer el comprobante"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+export default function ReceiptScanner({ onExtracted, onClose, orgId, categorias }: ReceiptScannerProps) {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -61,9 +72,9 @@ export default function ReceiptScanner({ onExtracted, onClose }: ReceiptScannerP
         await videoRef.current.play();
       }
       setMode("camera");
-    } catch (e: any) {
+    } catch (e) {
       setError("No se pudo acceder a la cámara. Probá subiendo una imagen.");
-      console.error(e);
+      console.error("ReceiptScanner.startCamera:", e);
     }
   }, []);
 
@@ -94,98 +105,84 @@ export default function ReceiptScanner({ onExtracted, onClose }: ReceiptScannerP
     setCapturedDataUrl(null);
     setCapturedBlob(null);
     setResult(null);
-    startCamera();
+    setError(null);
+    void startCamera();
   }, [startCamera]);
 
   // ── File upload fallback ─────────────────────────────────────────────────────
 
-  const handleFile = useCallback((file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Solo se aceptan imágenes");
+  const handleFile = useCallback(async (file: File) => {
+    const check = validarImagen(file);
+    if (!check.ok) {
+      toast.error(check.motivo);
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setCapturedDataUrl(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-    setCapturedBlob(file);
+    setError(null);
+
+    // La documentación oficial recomienda reducir imágenes grandes antes de
+    // visión: baja latencia y costo sin mejorar menos la lectura del ticket.
+    const comprimida = await comprimirImagen(file, PRESETS.producto);
+    if (!TIPOS_EXTRAIBLES.has(comprimida.type)) {
+      toast.error("La extracción admite JPG, PNG, WebP o GIF. Podés adjuntar este archivo y completar el gasto manualmente.");
+      return;
+    }
+
+    setCapturedBlob(comprimida);
+    setCapturedDataUrl(`data:${comprimida.type};base64,${await leerBase64(comprimida)}`);
     setMode("preview");
   }, []);
 
   // ── AI extraction ────────────────────────────────────────────────────────────
 
   const processReceipt = useCallback(async () => {
-    if (!capturedBlob || !user) return;
+    if (!capturedBlob) return;
+    if (!user) {
+      setError("Necesitás iniciar sesión para extraer datos del comprobante.");
+      return;
+    }
+    if (!orgId) {
+      setError("No hay una organización activa para registrar este gasto.");
+      return;
+    }
     setMode("processing");
     setError(null);
 
     try {
-      // Call AI to extract receipt data
-      const base64 = capturedDataUrl?.split(",")[1] ?? "";
-
-      const { data: aiData, error: aiError } = await supabase.functions.invoke("ai-chat", {
-        body: {
-          messages: [{
-            role: "user",
-            content: [
-              {
-                type: "image",
-                source: { type: "base64", media_type: "image/jpeg", data: base64 },
-              },
-              {
-                type: "text",
-                text: `Analizá este comprobante/ticket de caja y extraé la siguiente información en JSON:
-{
-  "amount": <número con el monto total en pesos, sin símbolo>,
-  "vendor": "<nombre del comercio/proveedor>",
-  "date": "<fecha en formato YYYY-MM-DD, o null si no se ve>",
-  "category": "<una de: mercaderia, servicios, alquiler, transporte, sueldos, publicidad, impuestos, mantenimiento, otro>",
-  "description": "<descripción breve de qué se compró>"
-}
-Respondé ÚNICAMENTE con el JSON, sin texto adicional.`,
-              },
-            ],
-          }],
-        },
+      const mediaType = capturedBlob.type || "image/jpeg";
+      const fileBase64 = await leerBase64(capturedBlob);
+      const { data, error: invokeError } = await supabase.functions.invoke("extract-receipt", {
+        body: { fileBase64, mediaType, orgId, categorias },
       });
 
-      let extracted: ExtractedReceipt = {
-        amount: null,
-        vendor: null,
-        date: null,
-        category: null,
-        description: null,
-        receiptFile: capturedBlob,
-      };
-
-      if (!aiError && aiData?.content) {
-        try {
-          const raw = typeof aiData.content === "string" ? aiData.content : JSON.stringify(aiData.content);
-          const jsonMatch = raw.match(/\{[\s\S]+\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            extracted = {
-              amount: parsed.amount ? Number(parsed.amount) : null,
-              vendor: parsed.vendor || null,
-              date: parsed.date || null,
-              category: parsed.category || null,
-              description: parsed.description || null,
-              receiptFile: capturedBlob,
-            };
-          }
-        } catch {
-          // JSON parse failed — return partial
-        }
+      const motivo = await mensajeDeEdgeFunction(invokeError, data);
+      if (motivo) {
+        console.error("ReceiptScanner.extract-receipt:", motivo, invokeError);
+        setError(motivo);
+        setMode("preview");
+        return;
       }
 
+      const extracted: ExtractedReceipt = {
+        amount: typeof data?.amount === "number" ? data.amount : null,
+        vendor: typeof data?.vendor === "string" ? data.vendor : null,
+        date: typeof data?.date === "string" ? data.date : null,
+        category: typeof data?.category === "string" ? data.category : null,
+        description: typeof data?.description === "string" ? data.description : null,
+        receiptFile: capturedBlob,
+      };
+      if (extracted.amount == null && !extracted.vendor && !extracted.date && !extracted.description) {
+        setError("No se pudo leer ningún dato. Probá con más luz, sin reflejos y más cerca.");
+        setMode("preview");
+        return;
+      }
       setResult(extracted);
       setMode("done");
-    } catch (e: any) {
-      setError("Error al procesar el comprobante. Podés ingresarlo manualmente.");
+    } catch (e) {
+      console.error("ReceiptScanner.processReceipt:", e);
+      setError(e instanceof Error ? e.message : "No se pudo procesar el comprobante. Podés ingresarlo manualmente.");
       setMode("preview");
     }
-  }, [capturedBlob, capturedDataUrl, user]);
+  }, [capturedBlob, user, orgId, categorias]);
 
   // ── Cleanup ─────────────────────────────────────────────────────────────────
 
@@ -201,12 +198,16 @@ Respondé ÚNICAMENTE con el JSON, sin texto adicional.`,
       {/* Hidden canvas for capture */}
       <canvas ref={canvasRef} className="hidden" />
 
+      {error && (
+        <div role="alert" className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
       {/* ── Idle: choose camera or upload ── */}
       {mode === "idle" && (
         <div className="space-y-3">
-          {error && (
-            <div className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</div>
-          )}
           <div className="grid grid-cols-2 gap-3">
             <Button
               variant="outline"
@@ -231,11 +232,12 @@ Respondé ÚNICAMENTE con el JSON, sin texto adicional.`,
             accept="image/*"
             capture="environment"
             className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+            onChange={e => { const f = e.target.files?.[0]; if (f) void handleFile(f); e.target.value = ""; }}
           />
-          <p className="text-[11px] text-muted-foreground/60 text-center">
-            La IA extrae automáticamente monto, proveedor y categoría del ticket
-          </p>
+          <div className="flex items-start gap-2 rounded-lg bg-muted/45 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <p>Al extraer, la imagen se envía a Anthropic para sugerir datos. No se guarda hasta registrar el gasto y siempre tenés que revisarlos.</p>
+          </div>
         </div>
       )}
 
@@ -294,7 +296,7 @@ Respondé ÚNICAMENTE con el JSON, sin texto adicional.`,
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
             <CheckCircle2 className="w-4 h-4" />
-            Datos extraídos correctamente
+            Sugerencias listas para revisar
           </div>
 
           <div className="rounded-lg bg-muted/30 border border-border/40 divide-y divide-border/30">
@@ -313,7 +315,7 @@ Respondé ÚNICAMENTE con el JSON, sin texto adicional.`,
           </div>
 
           <div className="flex gap-3">
-            <Button variant="outline" size="sm" className="flex-1" onClick={() => { setMode("idle"); setResult(null); }}>
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => { setMode("idle"); setResult(null); setError(null); }}>
               <RotateCcw className="w-4 h-4 mr-1" />Reintentar
             </Button>
             <Button
@@ -321,7 +323,7 @@ Respondé ÚNICAMENTE con el JSON, sin texto adicional.`,
               className="flex-1 gradient-gold text-primary-foreground font-semibold"
               onClick={() => { onExtracted(result); handleClose(); }}
             >
-              <CheckCircle2 className="w-4 h-4 mr-1" />Usar estos datos
+              <CheckCircle2 className="w-4 h-4 mr-1" />Aplicar sugerencias
             </Button>
           </div>
         </div>

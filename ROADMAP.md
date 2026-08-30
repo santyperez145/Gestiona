@@ -240,7 +240,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 2.072 tests en 207 archivos pasan al 2026-08-30; typecheck, lint sin errores (139 warnings conocidos), build/PWA, auditoría npm sin vulnerabilidades y 73 Edge Functions versionadas verdes. Supabase lista 74 activas: `extract-receipt` está desplegada sin fuente en `main` y debe reconstruirse o retirarse antes del lanzamiento. Hay 46 E2E críticos listados: 32 públicos, 13 de panel y 1 setup autenticado; los recorridos de Gastos, importación y turno conservan 0 escrituras. |
+| Calidad técnica | 2.078 tests en 208 archivos pasan al 2026-08-30; typecheck, lint sin errores (139 warnings conocidos), build/PWA, auditoría npm sin vulnerabilidades y 74 Edge Functions versionadas/verificadas, iguales a las 74 activas en Supabase. La deriva de `extract-receipt` quedó cerrada sin habilitar transferencia documental: falta proveedor/DPA, `ANTHROPIC_API_KEY`, flag explícito y prueba con comprobantes autorizados. Hay 46 E2E críticos listados: 32 públicos, 13 de panel y 1 setup autenticado; los recorridos de Gastos, importación y turno conservan 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Turno POS | `20260829000044` vuelve autoritativa la caja por organización/ubicación: apertura/cierre por RPC, efectivo esperado server-side, un vínculo por ticket y una entrada por medio, vendedor, devolución y diferencia. Fixture reversible: 2 líneas → 1 ticket/entrada, ARS 10.000, esperado ARS 20.000, diferencia −ARS 100, outsider bloqueado y 0 restos. Base productiva al 2026-08-29: 0 sesiones y 0 movimientos reales; es confiabilidad técnica, todavía no uso. |
@@ -2532,12 +2532,11 @@ Finance Connect.
     total/parcial, observar rechazo/timeout y conciliar la nota de crédito ARCA
     cuando la venta tenga CAE.
 
-    La auditoría de publicación del 2026-08-30 distinguió 73 funciones versionadas y aprobadas
-    por Deno de 74 activas en Supabase: `extract-receipt` está desplegada pero no
-    existe en `main`. No se la borró porque podría tener consumidores externos
-    o trabajo paralelo no sincronizado. Queda como P0 de release: recuperar la
-    fuente exacta y someterla a las guardas, o probar que no tiene tráfico y
-    retirarla de forma controlada.
+    La auditoría de publicación del 2026-08-30 distinguió inicialmente 73
+    funciones versionadas y aprobadas por Deno de 74 activas en Supabase:
+    `extract-receipt` estaba desplegada pero no existía en `main`. El slice 76
+    recuperó la fuente exacta y cerró esa deriva; este párrafo queda como el
+    hallazgo que originó el trabajo, no como estado vigente.
 
     `1ec3c3c` quedó publicado y Vercel informó `Ready` en 26 s. La sesión real
     de administrador revalidó H1, CTA, estado vacío y modal; 360/768/1024/1440
@@ -2545,6 +2544,42 @@ Finance Connect.
     errores ni warnings nuevos desde el reload. No se creó ninguna operación.
     Evidencia:
     [`docs/evidencias/2026-08-30_pos_refund_mercadopago.md`](docs/evidencias/2026-08-30_pos_refund_mercadopago.md).
+
+76. Escáner de comprobantes de Gastos reconstruible, revisable y privado —
+    cerrado técnicamente el 2026-08-30; proveedor documental pendiente. El
+    scanner enviaba una estructura multimodal a `ai-chat`, cuyo contrato real
+    es conversacional/SSE, intentaba interpretar otra respuesta y ocultaba el
+    fallo detrás de un resultado vacío. Además Supabase ejecutaba
+    `extract-receipt` versión 2 sin que su fuente existiera en `main`: el
+    deployment no era reproducible.
+
+    Se recuperó la fuente desplegada y se separó el caso de uso en una Edge
+    Function propia. El servidor exige persona, membresía del tenant, beneficio
+    y cupo de IA, flag documental independiente, clave, MIME/tamaño/base64 y
+    rate limit antes de llamar al proveedor. Usa salida estructurada, no acepta
+    una categoría fuera de las reales de la organización, sanea monto/fecha y
+    devuelve `reviewRequired`; sólo descuenta uso después de una respuesta. El
+    browser ya no inventa prompts ni traga errores: muestra el motivo real y
+    conserva el camino manual.
+
+    El diseño adopta la paridad “captura → sugerencias → revisión → registro” de
+    QuickBooks sin copiar su interfaz ni confundir OCR con autoridad contable.
+    La imagen queda local durante la captura/extracción, el archivo privado sólo
+    se sube al confirmar el gasto y cerrar el diálogo no deja huérfanos. La UI y
+    la política de privacidad declaran que, al extraer, el documento puede ir a
+    Anthropic y no se anonimiza automáticamente.
+
+    `extract-receipt` quedó ACTIVE versión 3 y `platform-admin-action` versión
+    48, ambas con `verify_jwt=true`; la llamada anónima devuelve 401 y CORS `*`.
+    La fuente ahora completa, al 2026-08-30, 74/74 funciones y Deno las valida.
+    La puerta local del 2026-08-30 pasa typecheck, lint 0 errores/139 warnings,
+    2.078 tests en 208 archivos,
+    build/PWA y `check:functions`. **No se certifica extracción real:**
+    `ANTHROPIC_API_KEY` y `EXPENSE_RECEIPT_EXTRACTION_ENABLED` están ausentes,
+    por lo que ningún comprobante sale al proveedor. Antes de habilitar hacen
+    falta DPA/región/subencargados/retención aprobados, benchmark autorizado de
+    exactitud/costo y E2E autenticado con revisión humana. Evidencia:
+    [`docs/evidencias/2026-08-30_escaner_comprobantes_gastos.md`](docs/evidencias/2026-08-30_escaner_comprobantes_gastos.md).
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
@@ -3043,8 +3078,8 @@ fixture destructiva-cero probó el RPC real y producción sirve `public-api` v42
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-30: **2.072 tests en 207 archivos**,
-  typecheck, lint sin errores (139 warnings de deuda conocida), build/PWA y 73
+- Build y suites locales del 2026-08-30: **2.078 tests en 208 archivos**,
+  typecheck, lint sin errores (139 warnings de deuda conocida), build/PWA y 74
   funciones verificadas. Última evidencia: 46 E2E críticos —32 públicos, 13 de
   panel y 1 setup autenticado—; Gastos, importación y turno son de sólo lectura.
 - docs/FINANCE_DOCUMENT_EXTRACTION.md: custodia, esquema estructurado,

@@ -94,9 +94,9 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 | Políticas RLS | **398** | ✅ catálogo de producción, 2026-08-30 |
 | Migraciones registradas | **497** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate`, 2026-08-30 |
 | Cron jobs | **26** | ⚠️ 22.503 corridas exitosas y **3 fallidas** en 7 días; se agregó reconciliación QR por minuto. Las tres fallas históricas corresponden a `expire-overdue-trials`, cuya recuperación posterior se documenta en la auditoría del 2026-08-28 |
-| Edge Functions | **73 versionadas / 74 activas** | 🟡 `npm run check:functions` valida las 73 del repo; Supabase lista además `extract-receipt`, desplegada sin fuente en `main`. Incluye checkout QR y reintegro Mercado Pago de POS; reconciliar o retirar la deriva antes de lanzar |
+| Edge Functions | **74 versionadas / 74 activas** | ✅ `npm run check:functions` valida todo el repo; la fuente recuperada de `extract-receipt` cerró la deriva y quedó detrás de plan + flag documental + proveedor, todavía apagada para comprobantes reales |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **2.072** | ✅ `npm test`, 207 archivos, 2026-08-30 |
+| Tests unitarios | **2.078** | ✅ `npm test`, 208 archivos, 2026-08-30 |
 | Recorridos E2E | **46** | ✅ `playwright test --list`: 32 públicos, 13 de panel y 1 setup; el nuevo turno es sólo lectura |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
@@ -324,6 +324,14 @@ Conclusión: OCR, revisión, matching y aprobaciones son **paridad**, no un clai
 defendible. Gestiona estaba atrás: su OCR sólo prellenaba Compras y ni siquiera
 tenía cadena de custodia.
 
+✅ **Gastos alcanza la paridad de revisión, no la de operación live.** Su
+captura ya separa documento, sugerencias y registro: el archivo permanece local
+hasta confirmar, la salida está estructurada, la categoría pertenece al tenant
+y la persona ve “Sugerencias listas para revisar” antes de aplicar. Un error no
+se convierte en un formulario vacío y el camino manual sigue disponible. Esto
+resuelve el patrón de producto; no prueba exactitud OCR ni habilita documentos
+reales mientras falten DPA/proveedor, clave y flag explícito.
+
 ✅ **Primer límite cerrado.** `/finance` tiene chrome propio, misma identidad y
 organización, y exige entitlement de producto + `finance.view`; ninguno se
 reemplaza por un feature flag. El comercio solicita, Platform aprueba y cada
@@ -449,7 +457,7 @@ necesita un SaaS de 2 organizaciones (2026-08-26). No es el cuello de botella.
 | **Observabilidad** | 🟡 Sentry en front, Merchant 360 y traza correlacionada del pago desde checkout hasta ledger, visible con RLS y sin PII. Faltan métricas/SLO, OpenTelemetry, alertas y health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ Deno para 73 Edge Functions + lint + typecheck + build, 2.072 tests en 207 archivos (2026-08-30), audit completo en 0 y 46 E2E críticos definidos (32 públicos, 13 panel, 1 setup) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
+| **CI** | ✅ Deno para 74 Edge Functions + lint + typecheck + build, 2.078 tests en 208 archivos (2026-08-30), audit completo en 0 y 46 E2E críticos definidos (32 públicos, 13 panel, 1 setup) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
 | **API pública / webhooks salientes** | ✅ Contrato técnico cerrado: API OpenAPI 3.1, `/v1`, scopes sin filtración, cupo durable, venta atómica/idempotente, ARS 2/USD 4, lifecycle y CORS server-to-server; webhooks con guía/receptor Node, HMAC, timestamp, filtro, outbox, id estable, retry, DLQ/replay, log y certificación HTTPS externa sintética. ⚠️ 0 keys/apps reales | API documentada, versionada, con rate limit y webhooks firmados | 🟢 Base técnica; adopción externa pendiente |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |

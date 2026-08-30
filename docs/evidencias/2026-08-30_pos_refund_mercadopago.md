@@ -25,7 +25,9 @@ POS y 0 refunds.
   llamada anónima devolvió HTTP 401.
 - `npm run check:functions` validó las 73 Edge Functions versionadas. Supabase
   lista 74 activas porque `extract-receipt` está desplegada sin fuente en
-  `main`; esa deriva permanece abierta y explícita en el roadmap de release.
+  `main`; esa fue la deriva observada durante este corte. Más tarde el slice 76
+  la cerró y dejó 74/74, según
+  [`2026-08-30_escaner_comprobantes_gastos.md`](2026-08-30_escaner_comprobantes_gastos.md).
 
 ## Evidencia publicada autenticada
 

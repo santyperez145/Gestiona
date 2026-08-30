@@ -1150,6 +1150,8 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
             </Button>
           </div>
           <ReceiptScanner
+            orgId={activeOrg?.id}
+            categorias={categories.map((item) => item.value)}
             onExtracted={data => {
               if (data.amount != null) setAmount(String(data.amount));
               if (data.vendor) setVendor(data.vendor);

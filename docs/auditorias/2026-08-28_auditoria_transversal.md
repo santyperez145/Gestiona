@@ -174,6 +174,14 @@ a producción: Gastos abre un único Dialog, expande el scanner dentro de ese
 focus trap, conserva las tres entradas de archivo esperadas y renderiza 0 URLs
 públicas; la interacción terminó sin errores de consola o página.
 
+**Cierre incorporado al ROADMAP, slice 76 (2026-08-30).** Esta auditoría no
+había detectado que el scanner enviaba el documento al contrato SSE de
+`ai-chat`, ni que la `extract-receipt` activa no tenía fuente en `main`. Ambos
+puntos quedaron cerrados: 74/74 funciones versionadas/activas, Edge dedicada,
+tenant/plan/flag/revisión humana, error visible y archivo local hasta confirmar.
+La operación real sigue bloqueada con seguridad porque faltan DPA/proveedor,
+clave, flag y benchmark autorizado; no se reetiqueta como validada.
+
 ## SMTP: la contraseña sí llegaba al servidor, y a todos los miembros
 
 Configuración decía que la clave SMTP no salía del dispositivo, pero ejecutaba
