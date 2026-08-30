@@ -66,6 +66,7 @@ el art. 37 de la 25.065 más abajo.
 | **No vender lo que no se tiene** | ✅ Desde A2 el stock se reserva entre la orden y el pago. Antes dos compradores podían pagar la última unidad. |
 | **Plazo de entrega informado** | ✅ La cotización devuelve `days_min`/`days_max`. |
 | **Seguimiento del envío** | ✅ Con número de orden + email, sin cuenta. |
+| **Privacidad del detalle del pedido** | 🟡 Corte técnico preparado el 2026-08-30: el número correlativo deja de autorizar el RPC, el pago y el email; una capacidad UUID por pedido, la cuenta compradora o número + email limitado habilitan el detalle. Falta aplicar la migración/Edges y repetir la prueba anónima productiva antes de marcarlo ✅. |
 
 ---
 

@@ -312,6 +312,23 @@ Prioridades:
 6. mobile, autofill, teclado adecuado e imágenes optimizadas;
 7. no exponer costo, margen, tokens ni datos de otra organización.
 
+Contrato de acceso al resultado y seguimiento, revalidado el 2026-08-30 contra
+la [página de estado de pedidos de Shopify](https://shopify.dev/docs/apps/build/customer-accounts/order-status-page),
+el [seguimiento de Tiendanube](https://ayuda.tiendanube.com/es_AR/123288-mis-ventas/como-puede-mi-cliente-conocer-el-estado-de-su-compra)
+y la [prevención de IDOR de OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html):
+
+- el número correlativo identifica el pedido, pero nunca autoriza a leerlo ni a
+  iniciar un pago o un email;
+- una cuenta compradora autenticada sólo accede a sus órdenes;
+- un enlace transaccional usa una capacidad opaca limitada al pedido, ubicada
+  en el fragmento para no viajar en el request HTTP ni en el `Referer`;
+- un enlace histórico sin capacidad exige número + email, limita intentos y no
+  revela cuál de ambos datos fue incorrecto;
+- sin autenticación sólo se podría mostrar información pública redactada; en
+  Gestiona se deniega todo el detalle hasta verificar;
+- pago, reintento y comunicaciones vuelven a validar la capacidad en servidor:
+  ocultar el detalle en React no es control de acceso.
+
 Contrato de medios públicos, revalidado el 2026-08-30 contra la documentación
 oficial de [imágenes de temas de Shopify](https://help.shopify.com/en/manual/online-store/images/theme-images),
 su [editor con preview](https://help.shopify.com/en/manual/online-store/themes/customizing-themes/theme-editor),

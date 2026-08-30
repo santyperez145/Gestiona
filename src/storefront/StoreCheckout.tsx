@@ -5,7 +5,8 @@ import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
 import { Loader2, ShoppingBag, Lock, Tag, Truck } from "lucide-react";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
-import { quoteStoreShipping, createStoreOrder } from "@/lib/publicDataSource";
+import { quoteStoreShipping, createStoreOrder, getStoreOrderSecure } from "@/lib/publicDataSource";
+import { orderAccessFragment, saveOrderAccessToken } from "./orderAccess";
 import { trackBeginCheckout } from "./tracking";
 import { precioConMedioDePago, porcentajeDe, nombreMedio } from "@/lib/paymentDiscount";
 import { normalizarEmail } from "@/lib/couponRules";
@@ -351,6 +352,16 @@ export default function StoreCheckout() {
     }
 
     const orderNumber = (data as any)?.order_number;
+    const access = orderNumber
+      ? await getStoreOrderSecure({
+          slug: store!.slug,
+          orderNumber,
+          email: form.email,
+        })
+      : { data: null, error: null, legacy: false };
+    const accessToken = orderNumber
+      ? saveOrderAccessToken(store!.slug, orderNumber, access.data?.access_token)
+      : null;
 
     // El consentimiento es opcional y se registra después de crear la orden
     // para poder dejar como evidencia el número de pedido. Si este RPC todavía
@@ -382,8 +393,15 @@ export default function StoreCheckout() {
     // Avisos por email, best-effort: si falla el envío la compra ya está hecha
     // y no tiene sentido frenar al comprador por eso.
     supabase.functions.invoke("store-order-email", {
-      body: { slug: store!.slug, orderNumber, baseUrl: window.location.origin },
-    }).catch(() => {});
+      body: {
+        slug: store!.slug,
+        orderNumber,
+        accessToken,
+        baseUrl: window.location.origin,
+      },
+    }).catch((emailError) => {
+      console.error("No se pudo solicitar el email transaccional del pedido", emailError);
+    });
 
     // Con MercadoPago se manda al checkout externo; el webhook confirma el
     // pago y de ahí vuelve a la página del pedido. Si falla la generación del
@@ -392,7 +410,7 @@ export default function StoreCheckout() {
     if (form.metodo === "mercadopago") {
       setEnviando(true);
       const { data: pay, error: payErr } = await supabase.functions.invoke("store-pay", {
-        body: { slug: store!.slug, orderNumber, returnUrl: window.location.origin },
+        body: { slug: store!.slug, orderNumber, accessToken, returnUrl: window.location.origin },
       });
       setEnviando(false);
       const url = (pay as any)?.url;
@@ -404,7 +422,7 @@ export default function StoreCheckout() {
 
     // La compra se cerró: la próxima es una compra nueva, con clave nueva.
     claveIdem.current = null;
-    navigate(`${base}/orden/${orderNumber}`, { replace: true });
+    navigate(`${base}/orden/${orderNumber}${orderAccessFragment(accessToken)}`, { replace: true });
   };
 
   const input = "w-full px-3 py-2 text-sm border bg-transparent outline-none focus:ring-1";

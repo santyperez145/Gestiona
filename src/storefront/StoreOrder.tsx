@@ -3,31 +3,24 @@ import { Link, useParams } from "react-router-dom";
 import OrderTracking from "./OrderTracking";
 import StorePaymentBrick, { type StorePaymentBrickConfig } from "./StorePaymentBrick";
 import { supabase } from "@/integrations/supabase/client";
+import { getStoreOrderSecure, type StoreOrderAccessRow } from "@/lib/publicDataSource";
 import { useStore } from "./storeContext";
 import { trackPurchase } from "./tracking";
 import { canRetryStorePayment, isStorePaymentReversed } from "@/lib/storeOrderPayment";
-import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle } from "lucide-react";
+import { consumeOrderAccessFragment, readOrderAccessToken, saveOrderAccessToken } from "./orderAccess";
+import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle, ShieldCheck } from "lucide-react";
 
-interface Order {
-  order_number: string;
-  customer_name: string;
-  customer_email: string;
-  items: { name: string; quantity: number; unit_price: number; total: number }[];
-  subtotal: number;
-  shipping_cost: number;
-  total: number;
-  payment_method: string;
-  payment_status: string;
-  fulfillment_status: string;
-  shipping_address: Record<string, string>;
-  created_at: string;
-}
+type Order = StoreOrderAccessRow;
 
 export default function StoreOrder() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
   const { store, fmt } = useStore();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [emailVerificacion, setEmailVerificacion] = useState("");
+  const [verificando, setVerificando] = useState(false);
+  const [accesoError, setAccesoError] = useState<string | null>(null);
   const [pagando, setPagando] = useState(false);
   const [preparandoTarjeta, setPreparandoTarjeta] = useState(false);
   const [pagoError, setPagoError] = useState<string | null>(null);
@@ -38,16 +31,27 @@ export default function StoreOrder() {
   const base = `/tienda/${store?.slug ?? ""}`;
   const pedidoPendiente = order?.payment_status === "pending";
 
-  const cargar = useCallback(async () => {
+  const cargar = useCallback(async (email?: string) => {
     if (!store?.slug || !orderNumber) return null;
-    const { data } = await supabase.rpc("get_store_order", {
-      p_slug: store.slug, p_order_number: orderNumber,
+    const token = accessToken
+      ?? consumeOrderAccessFragment(store.slug, orderNumber)
+      ?? readOrderAccessToken(store.slug, orderNumber);
+    const result = await getStoreOrderSecure({
+      slug: store.slug,
+      orderNumber,
+      accessToken: token,
+      email,
     });
-    const row = (Array.isArray(data) ? data[0] : data) as Order | undefined;
-    setOrder(row ?? null);
+    const row = result.data;
+    if (row?.access_token) {
+      const saved = saveOrderAccessToken(store.slug, orderNumber, row.access_token);
+      if (saved && saved !== accessToken) setAccessToken(saved);
+    }
+    setOrder(row);
+    setAccesoError(result.error ? "No pudimos verificar el acceso. Probá de nuevo." : null);
     setLoading(false);
-    return row ?? null;
-  }, [store?.slug, orderNumber]);
+    return row;
+  }, [store?.slug, orderNumber, accessToken]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -111,7 +115,7 @@ export default function StoreOrder() {
     setPagando(true);
     setPagoError(null);
     const { data } = await supabase.functions.invoke("store-pay", {
-      body: { action: "redirect", slug: store.slug, orderNumber: order.order_number, returnUrl: window.location.origin },
+      body: { action: "redirect", slug: store.slug, orderNumber: order.order_number, accessToken, returnUrl: window.location.origin },
     });
     setPagando(false);
     const url = (data as any)?.url;
@@ -125,7 +129,7 @@ export default function StoreOrder() {
     setPagoError(null);
     setPagoAviso(null);
     const { data, error } = await supabase.functions.invoke("store-pay", {
-      body: { action: "brick-config", slug: store.slug, orderNumber: order.order_number },
+      body: { action: "brick-config", slug: store.slug, orderNumber: order.order_number, accessToken },
     });
     setPreparandoTarjeta(false);
     const config = data as Partial<StorePaymentBrickConfig> & { error?: string; fallback?: string } | null;
@@ -162,14 +166,53 @@ export default function StoreOrder() {
 
   if (!order) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-24 text-center">
-        <p className="font-medium">No encontramos ese pedido</p>
-        <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
-          Revisá el número o escribinos y lo buscamos nosotros.
-        </p>
-        <Link to={base} className="inline-block mt-5 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
-          Volver a la tienda
-        </Link>
+      <div className="max-w-md mx-auto px-4 py-20">
+        <div
+          className="border p-6 text-center"
+          style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
+        >
+          <ShieldCheck className="w-10 h-10 mx-auto mb-3" style={{ color: "hsl(var(--st-accent))" }} />
+          <h1 className="text-xl font-bold">Verificá tu pedido</h1>
+          <p className="text-sm mt-2" style={{ color: "hsl(var(--st-muted))" }}>
+            Para proteger tus datos, ingresá el email que usaste al comprar.
+          </p>
+          <form
+            className="mt-5 text-left"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              setVerificando(true);
+              setAccesoError(null);
+              const found = await cargar(emailVerificacion.trim());
+              setVerificando(false);
+              if (!found) setAccesoError("No pudimos verificar esos datos. Revisalos o escribile a la tienda.");
+            }}
+          >
+            <label htmlFor="order-email" className="text-xs font-medium">Email de la compra</label>
+            <input
+              id="order-email"
+              type="email"
+              autoComplete="email"
+              required
+              value={emailVerificacion}
+              onChange={(event) => setEmailVerificacion(event.target.value)}
+              className="w-full mt-1 px-3 py-2.5 text-sm border bg-transparent outline-none focus:ring-1"
+              style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+            />
+            <button
+              type="submit"
+              disabled={verificando}
+              className="w-full mt-3 min-h-11 px-4 py-2.5 text-sm font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
+              style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+            >
+              {verificando && <Loader2 className="w-4 h-4 animate-spin" />}
+              Ver mi pedido
+            </button>
+          </form>
+          {accesoError && <p className="text-xs text-red-600 mt-3" role="alert">{accesoError}</p>}
+          <Link to={base} className="inline-block mt-5 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
+            Volver a la tienda
+          </Link>
+        </div>
       </div>
     );
   }
@@ -236,6 +279,7 @@ export default function StoreOrder() {
               <StorePaymentBrick
                 slug={store?.slug ?? ""}
                 orderNumber={order.order_number}
+                accessToken={accessToken}
                 config={brickConfig}
                 onResult={pagoEmbebidoTerminado}
               />

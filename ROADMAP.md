@@ -2697,6 +2697,44 @@ Finance Connect.
     del dominio ni del bundle de Gestiona. Evidencia:
     [`docs/evidencias/2026-08-30_storefront_media_resilience.md`](docs/evidencias/2026-08-30_storefront_media_resilience.md).
 
+79. Storefront D5.2: el número de pedido deja de ser una credencial — P0 de
+    privacidad reproducido en producción y corte preparado localmente el
+    2026-08-30. Ejecutando como rol `anon`, una llamada con slug y un número
+    correlativo existente devolvió 1 fila, `exposes_email=true` y
+    `exposes_address=true`; la comprobación imprimió sólo booleanos, no PII, y
+    terminó en `ROLLBACK`. El mismo identificador también alcanzaba
+    `store-pay` y `store-order-email` mediante clientes `service_role`.
+
+    Cada orden recibe ahora un UUID único/no nulo. El nuevo RPC exige esa
+    capacidad, la sesión del comprador dueño de la orden o número + email con
+    ocho intentos cada diez minutos; el RPC anterior se revoca y elimina. El
+    checkout recupera la capacidad con el email recién validado, la conserva
+    en `sessionStorage` y los emails la ubican en `#access`: el fragmento no
+    viaja en el request HTTP ni en el `Referer` y se limpia al abrir. Enlaces
+    históricos muestran un estado de verificación neutral. Pago, Brick,
+    reintentos y correos comparan otra vez la capacidad en servidor; el
+    `baseUrl` de los emails deja de venir del browser.
+
+    La traducción sigue el estado preautenticado por token de
+    [Shopify](https://shopify.dev/docs/apps/build/customer-accounts/order-status-page),
+    el seguimiento comunicado por
+    [Tiendanube](https://ayuda.tiendanube.com/es_AR/123288-mis-ventas/como-puede-mi-cliente-conocer-el-estado-de-su-compra)
+    y la regla de [OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html):
+    un id opaco ayuda, pero no reemplaza autorización. El cliente conserva un
+    fallback al RPC viejo **sólo** si falta la firma nueva, para desplegarlo
+    antes del corte de base; después de crearla no vuelve a ejecutarse.
+
+    Estado al primer commit: SQL completo ejecutado dentro de una transacción
+    revertida (`old_removed=true`, `secure_created=true`, `missing_tokens=0`),
+    typecheck, lint 0 errores/139 warnings conocidos, **2.096/2.096 pruebas en
+    212 archivos**, build/PWA (18 entradas, 2.018,70 KiB), 74 Edge Functions,
+    `npm audit` sin vulnerabilidades, 84 enlaces internos y conteos 74/498.
+    Falta desplegar el cliente, aplicar `20260830000020`, publicar las tres
+    Edge Functions, demostrar `anon + número = 0`, token correcto = 1,
+    token incorrecto = 0 sin imprimir PII, y validar la experiencia publicada.
+    Evidencia:
+    [`docs/evidencias/2026-08-30_store_order_access_control.md`](docs/evidencias/2026-08-30_store_order_access_control.md).
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

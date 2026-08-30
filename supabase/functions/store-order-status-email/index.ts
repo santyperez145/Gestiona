@@ -71,13 +71,13 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const orderId = typeof body.orderId === "string" ? body.orderId : "";
     const event = body.event === "shipped" || body.event === "delivered" ? body.event as Event : null;
-    const baseUrl = typeof body.baseUrl === "string" ? body.baseUrl.replace(/\/+$/, "") : "";
+    const baseUrl = String(Deno.env.get("PUBLIC_BASE_URL") ?? "").replace(/\/+$/, "");
     if (!orderId || !event) return json({ error: "Faltan la orden o el evento de envío" }, 400);
 
     const admin = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
     const { data: order, error: orderError } = await admin
       .from("ecommerce_orders")
-      .select("id, org_id, store_id, order_number, customer_email, fulfillment_status, tracking_number")
+      .select("id, org_id, store_id, order_number, customer_email, fulfillment_status, tracking_number, public_access_token")
       .eq("id", orderId)
       .maybeSingle();
     if (orderError || !order) return json({ error: "Orden no encontrada" }, 404);
@@ -144,7 +144,9 @@ Deno.serve(async (req) => {
         event,
         carrier: delivery?.carrier,
         tracking: delivery?.external_tracking || order.tracking_number,
-        orderUrl: baseUrl ? `${baseUrl}/tienda/${store.slug}/orden/${order.order_number}` : undefined,
+        orderUrl: baseUrl
+          ? `${baseUrl}/tienda/${store.slug}/orden/${order.order_number}#access=${encodeURIComponent(order.public_access_token)}`
+          : undefined,
       }),
     });
 

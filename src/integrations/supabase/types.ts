@@ -11259,6 +11259,7 @@ export type Database = {
           payment_reversal_reason: string | null
           payment_reversed_at: string | null
           payment_status: string
+          public_access_token: string
           shipped_at: string | null
           shipping_address: Json
           shipping_cost: number
@@ -11312,6 +11313,7 @@ export type Database = {
           payment_reversal_reason?: string | null
           payment_reversed_at?: string | null
           payment_status?: string
+          public_access_token?: string
           shipped_at?: string | null
           shipping_address?: Json
           shipping_cost?: number
@@ -11365,6 +11367,7 @@ export type Database = {
           payment_reversal_reason?: string | null
           payment_reversed_at?: string | null
           payment_status?: string
+          public_access_token?: string
           shipped_at?: string | null
           shipping_address?: Json
           shipping_cost?: number
@@ -52802,9 +52805,15 @@ export type Database = {
           sort_order: number
         }[]
       }
-      get_store_order: {
-        Args: { p_order_number: string; p_slug: string }
+      get_store_order_secure: {
+        Args: {
+          p_access_token?: string
+          p_email?: string
+          p_order_number: string
+          p_slug: string
+        }
         Returns: {
+          access_token: string
           created_at: string
           customer_email: string
           customer_name: string

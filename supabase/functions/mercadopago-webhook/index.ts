@@ -590,7 +590,7 @@ Deno.serve(async (req) => {
           try {
             const { data: ord } = await admin
               .from("ecommerce_orders")
-              .select("order_number, ecommerce_stores(slug)")
+              .select("order_number, public_access_token, ecommerce_stores(slug)")
               .eq("id", orderId)
               .maybeSingle();
             const slug = (ord as any)?.ecommerce_stores?.slug;
@@ -599,6 +599,7 @@ Deno.serve(async (req) => {
                 body: {
                   slug,
                   orderNumber: ord.order_number,
+                  accessToken: ord.public_access_token,
                   baseUrl: Deno.env.get("PUBLIC_BASE_URL") ?? "",
                 },
               });

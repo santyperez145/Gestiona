@@ -11,6 +11,7 @@ export interface StorePaymentBrickConfig {
 interface StorePaymentBrickProps {
   slug: string;
   orderNumber: string;
+  accessToken: string | null;
   config: StorePaymentBrickConfig;
   onResult: (status: string) => void;
 }
@@ -22,7 +23,7 @@ const newAttemptKey = () => crypto.randomUUID();
  * MercadoPago tokeniza el dato sensible y el backend sólo recibe ese token
  * efímero, vuelve a leer la orden y crea el pago con el importe autoritativo.
  */
-export default function StorePaymentBrick({ slug, orderNumber, config, onResult }: StorePaymentBrickProps) {
+export default function StorePaymentBrick({ slug, orderNumber, accessToken, config, onResult }: StorePaymentBrickProps) {
   const [sdkReady, setSdkReady] = useState(false);
   const [brickError, setBrickError] = useState<string | null>(null);
   const attemptKey = useRef(newAttemptKey());
@@ -75,6 +76,7 @@ export default function StorePaymentBrick({ slug, orderNumber, config, onResult 
               action: "brick-payment",
               slug,
               orderNumber,
+              accessToken,
               formData,
               attemptKey: attemptKey.current,
             },

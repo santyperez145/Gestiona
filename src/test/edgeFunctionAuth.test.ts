@@ -55,8 +55,8 @@ const ALLOWED_WITHOUT_USER: Record<string, string> = {
   'resend-webhook': 'webhook firmado',
   'meli-webhook': 'webhook: revalida la orden oficial con OAuth del vendedor',
   // Storefront: el comprador no tiene sesión; validan todo server-side
-  'store-order-email': 'storefront público',
-  'store-pay': 'storefront público',
+  'store-order-email': 'storefront con capacidad opaca por pedido',
+  'store-pay': 'storefront con capacidad opaca por pedido',
   'shipping-quote': 'storefront público',
   // Devuelve el listado de cuotas y nada más: la clave del comercio se usa
   // para preguntarle a MercadoPago y nunca sale en la respuesta. El org se

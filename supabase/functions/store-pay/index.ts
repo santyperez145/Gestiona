@@ -1,10 +1,10 @@
 /**
  * store-pay — inicia y procesa los cobros de una orden pública de tienda.
  *
- * El navegador sólo identifica la orden y, para Checkout Bricks, entrega un
- * token efímero de tarjeta. El total, la comisión, el mail del pagador y la
- * referencia de la orden se reconstruyen acá desde la base: nunca se aceptan
- * precios, productos ni credenciales desde una superficie anónima.
+ * El navegador acredita acceso con una capacidad opaca por pedido y, para
+ * Checkout Bricks, entrega un token efímero de tarjeta. El total, la comisión,
+ * el mail del pagador y la referencia se reconstruyen acá desde la base: nunca
+ * se aceptan precios, productos ni credenciales desde una superficie anónima.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
@@ -38,6 +38,7 @@ type StoreOrderContext = {
     customer_email: string;
     payment_method: string | null;
     payment_status: string;
+    public_access_token: string;
   };
 };
 
@@ -80,11 +81,14 @@ async function getStoreOrder(
   admin: any,
   slugInput: unknown,
   orderNumberInput: unknown,
+  accessTokenInput: unknown,
 ): Promise<{ context?: StoreOrderContext; response?: Response }> {
   const slug = text(slugInput, 120);
   const orderNumber = text(orderNumberInput, 120);
-  if (!slug || !orderNumber) {
-    return { response: json({ error: "slug y orderNumber son requeridos" }, 400) };
+  const accessToken = text(accessTokenInput, 80);
+  const validAccessToken = accessToken && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(accessToken);
+  if (!slug || !orderNumber || !validAccessToken) {
+    return { response: json({ error: "Pedido no encontrado o acceso inválido" }, 404) };
   }
 
   const { data: store } = await admin
@@ -96,11 +100,13 @@ async function getStoreOrder(
 
   const { data: order } = await admin
     .from("ecommerce_orders")
-    .select("id, order_number, total, items, customer_name, customer_email, payment_method, payment_status")
+    .select("id, order_number, total, items, customer_name, customer_email, payment_method, payment_status, public_access_token")
     .eq("store_id", store.id)
     .eq("order_number", orderNumber)
     .maybeSingle();
-  if (!order) return { response: json({ error: "Pedido no encontrado" }, 404) };
+  if (!order || order.public_access_token !== accessToken) {
+    return { response: json({ error: "Pedido no encontrado o acceso inválido" }, 404) };
+  }
   if (order.payment_status === "paid") {
     return { response: json({ error: "Este pedido ya está pago" }, 409) };
   }
@@ -278,6 +284,7 @@ async function notifyPaidStoreOrder(admin: any, context: StoreOrderContext) {
       body: {
         slug: context.store.slug,
         orderNumber: context.order.order_number,
+        accessToken: context.order.public_access_token,
         baseUrl: Deno.env.get("PUBLIC_BASE_URL") ?? "",
       },
     });
@@ -477,7 +484,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
     const admin = createClient(supabaseUrl, serviceKey);
-    const result = await getStoreOrder(admin, body.slug, body.orderNumber);
+    const result = await getStoreOrder(admin, body.slug, body.orderNumber, body.accessToken);
     if (result.response) return result.response;
     const context = result.context!;
 

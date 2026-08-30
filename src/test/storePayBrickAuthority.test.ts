@@ -20,7 +20,7 @@ describe("Checkout Brick de tienda", () => {
 
   it("relee la orden y cobra su total autoritativo, no el total del formulario", () => {
     expect(storePay).toContain('action === "brick-payment"');
-    expect(storePay).toContain("getStoreOrder(admin, body.slug, body.orderNumber)");
+    expect(storePay).toContain("getStoreOrder(admin, body.slug, body.orderNumber, body.accessToken)");
     expect(storePay).toMatch(/transaction_amount:\s*order\.total/);
     expect(storePay).not.toMatch(/transaction_amount:\s*(?:form|body|input)\./);
     expect(storePay).toContain("payment?.external_reference !== externalReference");

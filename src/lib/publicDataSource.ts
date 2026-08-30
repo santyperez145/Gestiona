@@ -403,6 +403,69 @@ export async function createStoreOrder(params: Record<string, unknown>) {
   return supabase.rpc('create_store_order', sinOpcion as OrderArgs);
 }
 
+export interface StoreOrderAccessRow {
+  order_number: string;
+  customer_name: string;
+  customer_email: string;
+  items: Array<{ name: string; quantity: number; unit_price: number; total: number; product_id?: string }>;
+  subtotal: number;
+  shipping_cost: number;
+  total: number;
+  payment_method: string;
+  payment_status: string;
+  fulfillment_status: string;
+  shipping_address: Record<string, string>;
+  created_at: string;
+  access_token: string | null;
+}
+
+/**
+ * Lee un pedido sólo con una capacidad, la cuenta compradora o numero + email.
+ * El fallback existe exclusivamente para desplegar el cliente antes del corte
+ * de base; desaparece de la ejecución apenas existe el RPC seguro.
+ */
+export async function getStoreOrderSecure(args: {
+  slug: string;
+  orderNumber: string;
+  accessToken?: string | null;
+  email?: string | null;
+}): Promise<{ data: StoreOrderAccessRow | null; error: PgError | null; legacy: boolean }> {
+  const secure = await retryPublicRead(() => supabase.rpc(
+    'get_store_order_secure' as never,
+    {
+      p_slug: args.slug,
+      p_order_number: args.orderNumber,
+      p_access_token: args.accessToken ?? null,
+      p_email: args.email ?? null,
+    } as never,
+  ) as unknown as PromiseLike<{ data: unknown; error: PgError | null }>);
+
+  if (!secure.error) {
+    const row = Array.isArray(secure.data) ? secure.data[0] : secure.data;
+    return { data: (row as StoreOrderAccessRow | undefined) ?? null, error: null, legacy: false };
+  }
+  if (!isMissingFunction(secure.error)) {
+    console.error('[pedido] error verificando acceso:', secure.error.message);
+    return { data: null, error: secure.error, legacy: false };
+  }
+
+  console.warn('[pedido] get_store_order_secure() todavía no existe; usando el contrato anterior sólo durante el despliegue.');
+  const legacy = await retryPublicRead(() => supabase.rpc(
+    'get_store_order' as never,
+    { p_slug: args.slug, p_order_number: args.orderNumber } as never,
+  ) as unknown as PromiseLike<{ data: unknown; error: PgError | null }>);
+  if (legacy.error) {
+    console.error('[pedido] error en fallback:', legacy.error.message);
+    return { data: null, error: legacy.error, legacy: true };
+  }
+  const row = Array.isArray(legacy.data) ? legacy.data[0] : legacy.data;
+  return {
+    data: row ? { ...(row as Omit<StoreOrderAccessRow, 'access_token'>), access_token: null } : null,
+    error: null,
+    legacy: true,
+  };
+}
+
 /** Variantes de un producto publicado. */
 export interface StoreVariant {
   id: string;

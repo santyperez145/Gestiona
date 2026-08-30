@@ -149,7 +149,7 @@ usa en material de producto o inversión.
 | Settings/Integraciones | Cabecera/navegación común; SMTP privado; Mercado Pago OAuth canónico; webhooks en una sola superficie con secret one-time, health, prueba/retry server-side, entrega durable, diálogo contractual y OpenAPI público certificado externamente. | Parcial | Transportistas y matriz responsive/autenticada; medir primera integración real. |
 | Finance | Shell teal, Inbox, inspector, matching, tres borradores y estados comunes con refresh/stale/offline. | Parcial | Proveedor aprobado + prueba responsive con documentos reales. |
 | Platform | Rail/control plane violeta y Merchant 360. | Parcial | Cola, métricas y soporte mobile. |
-| Storefront | Marca configurable aislada del SaaS; imágenes rotas de banners, catálogo, PDP, búsqueda, logo y carrito degradan a fallbacks propios sin ícono nativo. Gestión señala el banner inválido y no permite reactivarlo. | Parcial D5 2026-08-30 | D5.1 publicado: tienda y Banners pasaron 360/768/1024/1440 sin overflow, CTA/alerta visibles y 0 logs propios. Faltan home/PLP/PDP/carrito/checkout completos. |
+| Storefront | Marca configurable aislada del SaaS; imágenes rotas degradan a fallbacks propios. El resultado de compra separa carga, acceso verificado y recuperación por email sin revelar si un número existe; pago y emails comparten la misma capacidad server-side. | Parcial D5 2026-08-30 | D5.1 publicado. D5.2 preparado localmente: falta corte productivo, matriz 360/768/1024/1440 y compra real/sandbox sin mutar datos. |
 | Estados públicos | Pago, tracking, legales, invitación. | Parcial | Sistema público y accesibilidad. |
 
 ## 5. Fases ejecutables
@@ -367,6 +367,14 @@ quedó `Ready` y tienda + Banners pasaron 360/768/1024/1440 sin overflow, con
 CTA/alerta visibles y 0 logs propios; quedan el resto del recorrido y el
 reemplazo del activo por el comercio.
 
+D5.2 interrumpe la secuencia visual por privacidad: la auditoría reprodujo que
+un visitante anónimo podía obtener una orden correlativa con email y domicilio.
+El rediseño del resultado agrega estado de verificación por email para enlaces
+históricos, conserva acceso directo por capacidad opaca en enlaces nuevos y no
+revela si falló número, email o token. El control vive también en RPC, pago y
+email; la pantalla no finge seguridad. Está preparado localmente y continúa
+abierto hasta completar el corte productivo y la matriz visual.
+
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto, variantes, stock y confianza;
 - carrito y checkout responsive;
@@ -434,7 +442,7 @@ declara validado porque “se ve mejor”.
 | 18 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
 | 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
 | 20 | Storefront home/PLP/PDP | Parcial D5 2026-08-30 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias; Gestión expone el recurso roto y bloquea reactivarlo. 3 pruebas y puerta completa pasan; publicación certificada en tienda/Banners a 360/768/1024/1440, sin overflow ni logs propios. Falta performance y flujo completo. |
-| 21 | Carrito/checkout/pago | Pendiente | Compra completa 360 px/red lenta. |
+| 21 | Carrito/checkout/pago | Parcial D5.2 2026-08-30 | Resultado protegido por capacidad, cuenta o recuperación número + email; token en sesión/fragmento y validación repetida en pago/emails. Pendiente corte productivo, matriz responsive, red lenta y compra completa. |
 | 22 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
 | 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
 | 24 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |

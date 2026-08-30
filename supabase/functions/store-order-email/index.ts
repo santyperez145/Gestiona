@@ -5,10 +5,9 @@
  *   - al comprador: confirmación con el detalle y el número de pedido
  *   - al dueño: aviso de que entró una venta, con los datos de contacto
  *
- * Es pública porque la dispara el checkout de un visitante anónimo, pero no
- * recibe contenido del cliente: solo un slug y un número de pedido. Todo lo
- * que se manda sale de la base. Así nadie puede usar la función para enviar
- * correos arbitrarios desde tu dominio.
+ * Es pública porque la dispara el checkout de un visitante anónimo, pero exige
+ * la capacidad opaca del pedido. Las llamadas internas se autentican con la
+ * service role. Todo el contenido y la URL pública salen del servidor.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
@@ -85,9 +84,10 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = requireEnv("SUPABASE_URL");
-    const admin = createClient(supabaseUrl, requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+    const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const admin = createClient(supabaseUrl, serviceKey);
 
-    const { slug, orderNumber, baseUrl } = await req.json();
+    const { slug, orderNumber, accessToken } = await req.json();
     if (!slug || !orderNumber) return json({ error: "slug y orderNumber son requeridos" }, 400);
 
     const { data: store } = await admin
@@ -99,11 +99,15 @@ Deno.serve(async (req) => {
 
     const { data: order } = await admin
       .from("ecommerce_orders")
-      .select("*")
+      .select("id, order_number, customer_name, customer_email, customer_phone, items, subtotal, shipping_cost, total, payment_method, payment_status, shipping_address, public_access_token")
       .eq("store_id", store.id)
       .eq("order_number", orderNumber)
       .maybeSingle();
-    if (!order) return json({ error: "Pedido no encontrado" }, 404);
+    const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+    const internal = bearer === serviceKey;
+    if (!order || (!internal && order.public_access_token !== accessToken)) {
+      return json({ error: "Pedido no encontrado o acceso inválido" }, 404);
+    }
 
     const { data: settings } = await admin
       .from("settings")
@@ -121,8 +125,8 @@ Deno.serve(async (req) => {
 
     const resendFrom = (await remitenteDe("pedidos")).from;
     const accent = store.primary_color || "#111111";
-    const base = String(baseUrl || "").replace(/\/+$/, "");
-    const orderUrl = `${base}/tienda/${store.slug}/orden/${order.order_number}`;
+    const base = String(Deno.env.get("PUBLIC_BASE_URL") || "").replace(/\/+$/, "");
+    const orderUrl = `${base}/tienda/${store.slug}/orden/${order.order_number}#access=${encodeURIComponent(order.public_access_token)}`;
     const rows = itemsHtml((order.items ?? []) as Item[], accent);
 
     const results: Record<string, unknown> = {};
