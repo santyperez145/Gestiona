@@ -2649,8 +2649,11 @@ Finance Connect.
     parcialmente fuera del contenedor por el metadato lateral. El componente
     compartido `WorkspaceViewTabs` ahora desplaza horizontalmente cada tab
     activa con `block/inline: nearest`; una guarda evita perder esa conducta.
-    Falta revalidar este ajuste después del siguiente deploy antes de cerrar la
-    evidencia visual.
+    `d9a583e` quedó Ready en Production en 27 s. La repetición publicada dejó la
+    tab activa completamente visible en las cuatro medidas —incluido el
+    desplazamiento 100/950 px medido a 1440—, mantuvo
+    `scrollWidth = clientWidth` y no produjo logs nuevos. La evidencia visual
+    queda cerrada; el E2E del proveedor y el outcome comercial siguen abiertos.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

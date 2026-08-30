@@ -1,9 +1,8 @@
 # Evidencia — Business Copilot del Dashboard
 
 **Fecha:** 2026-08-30  
-**Estado:** implementación, Edge Function y cliente `7836b50` publicados;
-respuesta del proveedor y revalidación del ajuste final de tabs pendientes al
-crear este corte.
+**Estado:** implementación, Edge Function y clientes `7836b50`/`d9a583e`
+publicados y matriz visual cerrada; respuesta del proveedor pendiente.
 
 ## Hallazgo productivo
 
@@ -110,8 +109,24 @@ La matriz encontró además que a 1440 la tab activa Inteligencia medía 155 px,
 pero su extremo derecho quedaba fuera de los 850 px visibles del tablist. No era
 overflow de página: el metadato lateral comprimía el carril y la tab activa no
 se desplazaba. `WorkspaceViewTabs` ahora aplica `scrollIntoView` con
-`block/inline: nearest`; la revalidación publicada de ese ajuste se agrega tras
-el próximo deploy.
+`block/inline: nearest`.
+
+## Revalidación del ajuste publicado
+
+`d9a583e` quedó **Ready / Production** en 27 s y asociado al dominio principal.
+Después de alternar Resumen → Inteligencia en cada ancho:
+
+| Viewport solicitado | Ancho real documento/cliente | Tab activa visible | Logs nuevos |
+|---:|---:|---|---:|
+| 360 | 356 / 356 | Sí | 0 |
+| 768 | 764 / 764 | Sí | 0 |
+| 1024 | 1020 / 1020 | Sí | 0 |
+| 1440 | 1436 / 1436 | Sí | 0 |
+
+A 1440 el tablist conservó 850 px visibles sobre 950 px de contenido y se
+desplazó exactamente 100 px: la tab Inteligencia quedó entre 982,44 y 1.137,80,
+dentro del límite derecho 1.137,88. La prueba no escribió datos, cambió el plan
+ni llamó manualmente al proveedor.
 
 ## Lo que no se certifica
 
