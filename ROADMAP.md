@@ -2729,9 +2729,23 @@ Finance Connect.
     typecheck, lint 0 errores/139 warnings conocidos, **2.096/2.096 pruebas en
     212 archivos**, build/PWA (18 entradas, 2.018,70 KiB), 74 Edge Functions,
     `npm audit` sin vulnerabilidades, 84 enlaces internos y conteos 74/498.
-    Falta desplegar el cliente, aplicar `20260830000020`, publicar las tres
-    Edge Functions, demostrar `anon + número = 0`, token correcto = 1,
-    token incorrecto = 0 sin imprimir PII, y validar la experiencia publicada.
+    `c543249` quedó `Ready / Production`; después se aplicó y registró
+    `20260830000020`, y el dry-run final quedó `upToDate=true`. `store-pay` v40,
+    `store-order-email` v34 y `store-order-status-email` v17 están ACTIVE. Sin
+    imprimir PII, el rol `anon` demostró contrato viejo ausente, número solo 0,
+    token incorrecto 0, token correcto 1 y número + email correcto 1. Las
+    fronteras publicadas respondieron pago sin token 404, pago con token válido
+    409 por estado final de esa orden —por lo tanto superó acceso sin iniciar
+    proveedor—, email sin token 404 y aviso de estado sin sesión 401. No se
+    envió email, no se creó preferencia y no se modificó ninguna orden.
+
+    El estado neutral publicado pasó 360/768/1024/1440 con
+    `scrollWidth = clientWidth`, encabezado visible, input de 42 px, CTA de
+    44 px y PII ausente. Un email sintético inválido mostró el mismo alerta de
+    verificación; consola 0 warnings/errors. Dos sesiones ya autenticadas como
+    comprador conservaron el detalle completo, que es el estado autorizado.
+    Falta una compra sandbox/real de punta a punta; no se usa el pedido
+    productivo para mutar ni enviar comunicaciones.
     Evidencia:
     [`docs/evidencias/2026-08-30_store_order_access_control.md`](docs/evidencias/2026-08-30_store_order_access_control.md).
 

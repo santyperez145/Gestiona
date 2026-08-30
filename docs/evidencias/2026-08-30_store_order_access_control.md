@@ -2,8 +2,8 @@
 
 **Fecha:** 2026-08-30  
 **Riesgo:** P0 privacidad / broken object-level authorization  
-**Estado inicial:** reproducción productiva confirmada; corte preparado,
-pendiente de despliegue al crear este documento.
+**Estado final del slice:** corte productivo confirmado; compra completa con
+proveedor real/sandbox permanece pendiente.
 
 ## Hallazgo sin exponer datos
 
@@ -66,7 +66,49 @@ demuestra que el número identificaba y autorizaba a la vez. `store-pay` y
 - conteos: 74 funciones / 498 migraciones;
 - migración completa en transacción revertida: `old_removed=true`,
   `secure_created=true`, `missing_tokens=0`;
-- base/Edges/cliente productivos: pendientes en este corte.
+- cliente `c543249`: `Ready / Production` y alias principal actualizado;
+- migración aplicada/registrada; dry-run final `upToDate=true`;
+- `store-pay` v40 ACTIVE (`verify_jwt=false`, capacidad obligatoria);
+- `store-order-email` v34 ACTIVE (`verify_jwt=false`, capacidad o service role);
+- `store-order-status-email` v17 ACTIVE (`verify_jwt=true` + usuario real).
+
+## Evidencia productiva del cierre
+
+La repetición con `SET LOCAL ROLE anon` devolvió sólo conteos:
+
+```text
+old_contract_removed = true
+number_only          = 0
+wrong_token          = 0
+correct_token        = 1
+correct_email        = 1
+```
+
+Las fronteras Edge se probaron sin imprimir ni registrar la capacidad:
+
+```text
+store-pay sin token          = 404
+store-pay con token erróneo  = 404
+store-pay con token correcto = 409 (orden ya final; acceso aceptado, sin proveedor)
+store-order-email sin token  = 404
+status-email sin sesión      = 401
+```
+
+No se envió email, no se creó preferencia/cobro y no se modificó una orden. En
+el cliente publicado, un identificador sintético mostró **Verificá tu pedido**,
+label explícito, CTA y mensaje neutral ante email sintético inválido. La matriz:
+
+| Viewport | client/scroll | Input | CTA | PII visible | Consola |
+|---:|---:|---:|---:|---|---|
+| 360 | 356 / 356 | 42 px | 44 px | No | 0 |
+| 768 | 764 / 764 | 42 px | 44 px | No | 0 |
+| 1024 | 1020 / 1020 | 42 px | 44 px | No | 0 |
+| 1440 | 1436 / 1436 | 42 px | 44 px | No | 0 |
+
+Las sesiones ya autenticadas como comprador conservaron el detalle completo,
+confirmando que el corte separa el estado autorizado del neutral. Queda abierto
+el recorrido de compra completo con un proveedor sandbox/real; no se presenta
+esta validación de lectura como certificación de Mercado Pago.
 
 Una prueba técnica no equivale a cumplimiento integral de Ley 25.326, contrato
 de tratamiento, registro AAIP ni revisión profesional. Este slice cierra un
