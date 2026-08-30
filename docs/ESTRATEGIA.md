@@ -109,6 +109,18 @@ Por eso aparece como **AI Action Rate** en el bloque G del ROADMAP. Si no se
 mide si el comercio hizo algo con la recomendación, es una demo de IA, no un
 copiloto de negocio.
 
+✅ **Patrón competitivo reverificado el 2026-08-30.**
+[Shopify Sidekick](https://help.shopify.com/en/manual/ai-powered-tools/sidekick)
+usa el contexto de la tienda y
+[Sidekick Pulse](https://help.shopify.com/en/manual/ai-powered-tools/sidekick/pulse)
+investiga datos para proponer tareas accionables, pero no modifica el comercio
+sin aprobación. [QuickBooks Intuit Intelligence](https://quickbooks.intuit.com/learn-support/en-us/help-article/intuit-assist/introducing-intuit-intelligence/L189976Da_US_en_US)
+combina IA con inteligencia de negocio y tareas sobre los datos de la compañía.
+La traducción propia es: contexto tenant server-side, evidencia, CTA revisable
+y outcome. Enviar cifras desde React o montar una predicción oculta no alcanza
+ese estándar y además abre manipulación/costo; el slice 77 cierra esas dos
+fallas en el Dashboard. Impacto y adopción continúan sin verificar.
+
 ### 2.5 Lo que ya está y no hay que rehacer
 
 ✅ **Medido.** El análisis externo recomendaba construir un "stock engine" único

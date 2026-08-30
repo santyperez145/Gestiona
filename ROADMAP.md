@@ -1,6 +1,6 @@
 # Gestiona Cloud — Visión y roadmap ejecutivo
 
-**Corte editorial:** 2026-08-29
+**Corte editorial:** 2026-08-30
 **Datos operativos:** 2026-08-22 salvo cuando una fila indique una fecha más
 reciente. La separación evita presentar una medición técnica nueva como si
 fuera tracción o adopción de negocio.
@@ -168,7 +168,7 @@ patrones de producto/UX y la matriz de ejecución viven en
 | Devolución de mostrador | Shopify POS fija devolución total/parcial, motivo, reposición y límite por el medio original; Square incluye el reembolso de efectivo en la sesión de caja; Mercado Pago exige refund total/parcial server-side e idempotencia. | Gestiona revierte ticket, stock, resultado y caja en una transacción; cada parte queda limitada por el cobro original y el dinero externo nace como deuda hasta tener evidencia. Para Mercado Pago deriva Order/Payment/monto desde el ticket, ejecuta o reconcilia con clave estable y sólo cancela el pasivo ante confirmación positiva. La nota interna no se presenta como fiscal. Falta certificar dinero live, no automatizarlo. |
 | Marketplace | Sincronización de catálogo, stock, órdenes y postventa. | Sistema neutral que decide canal por margen, capital y disponibilidad. |
 | Spend / Finance | Odoo/QuickBooks fijan OCR, revisión y matching. Mendel, Clara, Rindegastos y Concur agregan control preventivo, presupuestos/políticas, roles, reembolsos, captura mobile/offline e integración ERP. | Finance comparte proveedor, producto, compra, stock y ledger nativos. F3 demuestra documento → matching → borradores aprobados; F5 agrega política, centro de costo, presupuesto y operación por excepción. Tarjetas/custodia/viajes quedan fuera sin demanda, partner regulado y economics. |
-| IA | Asistencia dentro del flujo real. | Recomendación → aprobación → acción → resultado verificado. |
+| IA | Shopify Sidekick Pulse y QuickBooks Intuit Intelligence usan contexto de la empresa, priorización proactiva y tareas dentro del flujo; el patrón competitivo no es un chat suelto. | Contexto reconstruido server-side bajo RLS → recomendación explicable → revisión/aprobación → acción → resultado verificado. El Dashboard ya evita costo oculto y datos manipulables; falta instrumentar la acción y su outcome para que sea Business Copilot completo. |
 | Plataforma | Health, replay, incidentes, soporte y billing. | Evidencia por merchant sin exponer secretos ni datos crudos. |
 | Monetización | Precio y costo total de cobro transparentes. | Merchant economics y platform economics separados; contribución y break-even auditables antes de activar pricing. |
 | Ecosistema | API, OAuth, scopes, webhooks y sandbox. | Extensiones sobre contratos estables del Business Graph. |
@@ -2588,6 +2588,57 @@ Finance Connect.
     las cuatro medidas y no aparecieron logs nuevos. La política publicada
     muestra fecha 30 de agosto, ausencia de anonimización automática y camino
     manual. Se cerró sin subir archivo ni guardar gasto.
+
+77. Business Copilot del Dashboard con contexto server-side y costo explícito —
+    cerrado técnicamente el 2026-08-30; respuesta real del proveedor pendiente.
+    La observación publicada encontró un fallo que no aparecía en build ni en
+    tests: al entrar al Dashboard, las seis vistas quedaban montadas aunque sólo
+    una fuera visible. `AIProactiveWidget` y `AIPrediction` invocaban IA en
+    segundo plano; una organización cancelada generaba
+    «Tu suscripción está cancelada» en consola en cada carga. El Briefing tenía
+    otro problema: armaba un prompt con cifras del browser y llamaba al contrato
+    SSE anterior de `ai-chat` usando `{messages,stream}`, sin `orgId`, mientras
+    la función actual espera `{message,history,orgId,model}` y emite otro evento.
+    No podía producir un briefing correcto.
+
+    El Dashboard ahora lee `org_entitlements` antes de montar una superficie
+    automática: Pulso sólo existe en Resumen y Proyección sólo en Inteligencia;
+    plan cancelado/impago/pausado o sin IA muestra una ruta accionable a
+    **Mi plan**, no un botón que falla. Los accesos manuales al Copilot comparten
+    la misma decisión visual, pero la autoridad sigue en `exigirBeneficio`.
+    Error y retry son visibles; el refresh conserva el último resultado y
+    declara que no pudo actualizarlo. El encabezado del pulso dejó además el
+    `button` anidado inválido y separa expandir de regenerar con nombres
+    accesibles.
+
+    `ai-analysis` agrega `daily_briefing`, valida UUID, membresía y suspensión
+    antes del plan, y para `daily_pulse`/`daily_briefing` ignora por contrato
+    cualquier `data` del cliente. Productos, ventas, gastos, deudas y nombre del
+    negocio se releen con el JWT del miembro y RLS; sólo entonces se calcula el
+    resumen que recibe el prompt. El servidor devuelve al modal la misma
+    evidencia agregada que usó para narrar, por lo que texto y cifras no pueden
+    divergir por un filtro local. Se minimiza PII: no se seleccionan ni envían
+    nombres/ids de clientes. El cache es por organización, fecha y versión.
+
+    Benchmark oficial consultado el 2026-08-30: [Shopify Sidekick](https://help.shopify.com/en/manual/ai-powered-tools/sidekick)
+    trabaja con el contexto de la tienda y
+    [Sidekick Pulse](https://help.shopify.com/en/manual/ai-powered-tools/sidekick/pulse)
+    investiga datos para proponer hasta cinco tareas; no cambia la tienda sin
+    aprobación. [QuickBooks Intuit Intelligence](https://quickbooks.intuit.com/learn-support/en-us/help-article/intuit-assist/introducing-intuit-intelligence/L189976Da_US_en_US)
+    combina IA/BI con datos de la compañía, insights y trabajo de varios pasos.
+    Gestiona adopta contexto + tarea + revisión y agrega tenant/plan/costo como
+    barreras explícitas; no copia composición ni atribuye impacto todavía.
+
+    La puerta local pasa typecheck, lint 0 errores/139 warnings conocidos,
+    **2.083 tests en 209 archivos**, build/PWA (18 entradas, 2.018,63 KiB),
+    74 Edge Functions, `npm audit` sin vulnerabilidades, 82 enlaces internos y
+    conteos 74/497. Cinco guardas nuevas fijan plan/vista, payload mínimo,
+    orden membresía→plan→contexto, minimización de PII y error recuperable.
+    `ANTHROPIC_API_KEY` continúa ausente al corte: no se presenta una respuesta
+    del modelo como certificada y no se envió información al proveedor. Falta
+    DPA/retención/subencargados aprobados, clave, un E2E de organización activa
+    y medir recomendación→acción→resultado. `ai-analysis` quedó ACTIVE versión
+    43, `verify_jwt=true`, CORS `*`; una llamada anónima devuelve 401.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

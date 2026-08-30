@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import { exigirBeneficio, registrarConsumoIA } from "../_shared/entitlements.ts";
 import {
@@ -17,6 +17,143 @@ const corsHeaders = {
 };
 
 const client = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
+
+type ClienteAutenticado = SupabaseClient<any, "public", any>;
+
+const TIPOS_CON_CONTEXTO_DEL_SERVIDOR = new Set(["daily_pulse", "daily_briefing"]);
+
+const fechaArgentina = (date: Date) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+
+const fechaDeRegistro = (value: string) => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value.slice(0, 10) : fechaArgentina(date);
+};
+
+/**
+ * Contexto mínimo y auditable para el pulso diario.
+ *
+ * El navegador sólo manda `type` + `orgId`. Los nombres, montos, márgenes y
+ * deudas salen de PostgreSQL con el JWT del miembro: RLS sigue siendo la
+ * frontera multi-tenant y nadie puede reemplazar esos datos en el request para
+ * hacerle analizar al proveedor otra organización (o instrucciones propias).
+ */
+async function cargarContextoDiario(sb: ClienteAutenticado, orgId: string) {
+  const desde = new Date(Date.now() - 31 * 86_400_000).toISOString();
+  const [productsRes, salesRes, expensesRes, debtsRes, settingsRes] = await Promise.all([
+    sb.from("products")
+      .select("name,stock,low_stock_threshold,sale_price_ars,profit_per_unit_ars")
+      .eq("org_id", orgId)
+      .eq("is_active", true)
+      .order("stock", { ascending: true })
+      .limit(50),
+    sb.from("sales")
+      .select("product_name,quantity,total_ars,profit_ars,date")
+      .eq("org_id", orgId)
+      .gte("date", desde)
+      .order("date", { ascending: false })
+      .limit(120),
+    sb.from("expenses")
+      .select("category,amount_ars,date")
+      .eq("org_id", orgId)
+      .gte("date", desde)
+      .order("date", { ascending: false })
+      .limit(40),
+    sb.from("debts")
+      .select("remaining_ars,status,due_date")
+      .eq("org_id", orgId)
+      .neq("status", "paid")
+      .order("remaining_ars", { ascending: false })
+      .limit(50),
+    sb.from("settings")
+      .select("business_name")
+      .eq("org_id", orgId)
+      .maybeSingle(),
+  ]);
+
+  const fallos = [
+    ["productos", productsRes.error],
+    ["ventas", salesRes.error],
+    ["gastos", expensesRes.error],
+    ["deudas", debtsRes.error],
+    ["ajustes", settingsRes.error],
+  ].filter(([, error]) => error);
+
+  if (fallos.length) {
+    console.error("ai-analysis no pudo construir el contexto diario", fallos);
+    throw new Error("No pudimos leer los datos del negocio para el análisis. Probá de nuevo en un momento.");
+  }
+
+  const products = (productsRes.data ?? []).map((product) => ({
+    name: product.name,
+    stock: Number(product.stock) || 0,
+    low_stock_threshold: Number(product.low_stock_threshold ?? 3),
+    sale_price_ars: Number(product.sale_price_ars) || 0,
+    margin_pct: Number(product.sale_price_ars) > 0
+      ? Math.round((Number(product.profit_per_unit_ars) / Number(product.sale_price_ars)) * 100)
+      : 0,
+  }));
+  const sales = (salesRes.data ?? []).map((sale) => ({
+    product: String(sale.product_name || ""),
+    quantity: Number(sale.quantity) || 0,
+    total_ars: Number(sale.total_ars) || 0,
+    profit_ars: Number(sale.profit_ars) || 0,
+    date: sale.date,
+  }));
+  const expenses = (expensesRes.data ?? []).map((expense) => ({
+    category: expense.category,
+    amount_ars: Number(expense.amount_ars) || 0,
+    date: expense.date,
+  }));
+  const debts = (debtsRes.data ?? []).map((debt) => ({
+    remaining_ars: Number(debt.remaining_ars) || 0,
+    status: debt.status,
+    due_date: debt.due_date,
+  }));
+
+  const hoy = fechaArgentina(new Date());
+  const ayer = fechaArgentina(new Date(Date.now() - 86_400_000));
+  const salesYesterday = sales.filter((sale) => fechaDeRegistro(String(sale.date)) === ayer);
+  const productUnits = new Map<string, number>();
+  for (const sale of salesYesterday) {
+    if (!sale.product) continue;
+    productUnits.set(sale.product, (productUnits.get(sale.product) ?? 0) + sale.quantity);
+  }
+  const topProduct = [...productUnits.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  const pendingDebtsARS = debts.reduce((sum, debt) => sum + debt.remaining_ars, 0);
+
+  return {
+    pulse: {
+      period: "últimos 31 días",
+      products,
+      sales,
+      expenses,
+      debts,
+      kpis: {
+        totalSalesARS: sales.reduce((sum, sale) => sum + sale.total_ars, 0),
+        grossProfitARS: sales.reduce((sum, sale) => sum + sale.profit_ars, 0),
+        pendingDebts: debts.length,
+        totalDebtsARS: pendingDebtsARS,
+      },
+    },
+    briefing: {
+      businessName: settingsRes.data?.business_name || "tu negocio",
+      date: hoy,
+      salesCount: salesYesterday.length,
+      totalSalesARS: salesYesterday.reduce((sum, sale) => sum + sale.total_ars, 0),
+      topProduct,
+      lowStockCount: products.filter((product) => product.stock <= product.low_stock_threshold).length,
+      pendingDebtsCount: debts.length,
+      pendingDebtsARS,
+    },
+  };
+}
 
 const PROMPTS: Record<
   string,
@@ -90,6 +227,20 @@ Devolvé EXACTAMENTE 4 líneas, una por sugerencia, con este formato:
 
 Sin título, sin introducción, sin cierre, sin numerar y sin ningún texto fuera de esas 4 líneas.
 Cada sugerencia entra en un renglón: máximo 140 caracteres.`,
+  }),
+
+  daily_briefing: (data, perfil) => ({
+    system: `${personaDe("un analista operativo de negocios", perfil)} Le hablás al dueño.
+
+${reglasDelAnalisis(perfil)}
+- El briefing resume el día anterior y prioriza una acción para hoy.
+- No prometas resultados ni presentes una estimación como hecho.
+- Si no hubo actividad o faltan datos, decilo con claridad.`,
+    user: `Generá un briefing breve de hasta 5 oraciones usando únicamente este resumen calculado por el servidor:
+
+${JSON.stringify(data, null, 1)}
+
+Incluí: saludo con el nombre del negocio, balance del día anterior, una alerta sólo si corresponde y una acción concreta para hoy. Sin títulos ni listas.`,
   }),
 
   restock_analysis: (data, perfil) => ({
@@ -219,9 +370,39 @@ serve(async (req) => {
   }
 
   try {
-    const { type, data, orgId } = await req.json();
+    const { type, data: clientData, orgId } = await req.json();
     const builder = PROMPTS[type];
-    if (!builder) throw new Error(`Invalid analysis type: ${type}`);
+    if (!builder) {
+      return new Response(JSON.stringify({ error: "Tipo de análisis no válido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (typeof orgId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orgId)) {
+      return new Response(JSON.stringify({ error: "La organización no es válida" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // `org_entitlements` también protege por membresía, pero esta comprobación
+    // explícita separa "no pertenecés" de "tu plan no lo cubre" y evita hacer
+    // cualquier consulta de negocio para un tenant ajeno.
+    const { data: membership, error: membershipError } = await sb
+      .from("memberships")
+      .select("id,suspendido_por_plan")
+      .eq("org_id", orgId)
+      .eq("user_id", userRes.user.id)
+      .maybeSingle();
+    if (membershipError) {
+      console.error("ai-analysis no pudo verificar la membresía", membershipError);
+      return new Response(JSON.stringify({ error: "No pudimos verificar tu acceso. Probá de nuevo en un momento." }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!membership || membership.suspendido_por_plan) {
+      return new Response(JSON.stringify({ error: "No tenés acceso a esta organización" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // El plan cubre la IA, o acá se corta. Ser un usuario real no es tener el
     // beneficio: cada llamada quema crédito de Anthropic.
@@ -252,7 +433,18 @@ serve(async (req) => {
     // para cualquier comercio, en lugar de salir con un rubro inventado.
     const perfil = await leerPerfilDelComercio(req, orgId);
 
-    const { system, user } = builder(data || {}, perfil);
+    // Los copilotos útiles trabajan con el grafo real del negocio. Para las
+    // superficies automáticas del Dashboard, ese contexto jamás viene del
+    // browser: se reconstruye bajo RLS después de validar membresía y plan.
+    let analysisData = (clientData || {}) as Record<string, unknown>;
+    let sourceSummary: Record<string, unknown> | undefined;
+    if (TIPOS_CON_CONTEXTO_DEL_SERVIDOR.has(type)) {
+      const context = await cargarContextoDiario(sb, orgId);
+      analysisData = type === "daily_briefing" ? context.briefing : context.pulse;
+      if (type === "daily_briefing") sourceSummary = context.briefing;
+    }
+
+    const { system, user } = builder(analysisData, perfil);
 
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -278,7 +470,7 @@ serve(async (req) => {
     const content =
       response.content[0]?.type === "text" ? response.content[0].text : "Sin respuesta";
 
-    return new Response(JSON.stringify({ content }), {
+    return new Response(JSON.stringify({ content, ...(sourceSummary ? { summary: sourceSummary } : {}) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

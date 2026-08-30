@@ -44,6 +44,7 @@ import { toast } from "sonner";
 import { evaluateActivationReadiness, type ActivationGoal } from "@/lib/activationReadiness";
 import { isMissingRelation } from "@/lib/publicDataSource";
 import { dashboardViewKey, isDashboardViewId } from "@/lib/dashboardViews";
+import { useEntitlements } from "@/lib/useEntitlements";
 
 import { plural } from "@/lib/plural";
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
@@ -424,6 +425,11 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { activeOrg, activeRole } = useOrg();
+  const {
+    loading: entitlementsLoading,
+    canUseAI,
+    motivoDeCorte,
+  } = useEntitlements();
   const { permission, notify } = useNotifications();
   const { online, offlineSince, connection } = useNetworkStatus();
   const [rawData, setRawData] = useState<DashboardData | null>(null);
@@ -445,6 +451,21 @@ export default function Dashboard() {
     ? activeDashboardSection
     : "dashboard-overview";
   const visibleDashboardViewKey = dashboardViewKey(visibleDashboardSection);
+  const motivoIA = motivoDeCorte === "cancelado"
+    ? "La suscripción está cancelada. Reactivala desde Mi plan."
+    : motivoDeCorte === "impago"
+      ? "Hay un pago pendiente. Regularizalo desde Mi plan."
+      : motivoDeCorte === "pausado"
+        ? "La suscripción está pausada. Reanudala desde Mi plan."
+        : "Tu plan actual no incluye IA. Podés activarla desde Mi plan.";
+  const abrirCopilot = useCallback((prefill: string) => {
+    if (!canUseAI) {
+      navigate("/mi-plan");
+      return;
+    }
+    sessionStorage.setItem("gestiona.ai_prefill", prefill);
+    navigate("/ia?vista=asistente");
+  }, [canUseAI, navigate]);
 
   // Legacy dashboard links use hashes. Keep them working after the content
   // became tabbed, and never let a stale localStorage value hide every view.
@@ -1714,24 +1735,45 @@ export default function Dashboard() {
             {a.label}
           </Link>
         ))}
-        <button
-          onClick={() => setBriefingOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors text-xs text-primary font-medium"
-          title="Ver briefing matutino del negocio"
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          Briefing
-        </button>
-        <button
-          onClick={() => {
-            sessionStorage.setItem("gestiona.ai_prefill", "Dame un insight del día: qué vendí hoy, qué productos destacaron y qué debería priorizar ahora");
-            navigate("/ia?vista=asistente");
-          }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors text-xs text-primary font-medium"
-        >
-          <Zap className="w-3.5 h-3.5" />
-          Insight del día
-        </button>
+        {entitlementsLoading ? (
+          <button
+            type="button"
+            disabled
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground opacity-70"
+          >
+            <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+            Verificando IA
+          </button>
+        ) : canUseAI ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setBriefingOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+              title="Ver briefing matutino del negocio"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Briefing
+            </button>
+            <button
+              type="button"
+              onClick={() => abrirCopilot("Dame un insight del día: qué vendí hoy, qué productos destacaron y qué debería priorizar ahora")}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+            >
+              <Zap className="h-3.5 w-3.5" />
+              Insight del día
+            </button>
+          </>
+        ) : (
+          <Link
+            to="/mi-plan"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+            title={motivoIA}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Activar IA
+          </Link>
+        )}
         <button
           onClick={() => { setGeneratingSummary(true); setTimeout(generateMonthlySummary, 100); }}
           disabled={generatingSummary}
@@ -1750,8 +1792,13 @@ export default function Dashboard() {
             <p className="text-xs text-foreground leading-relaxed">{monthlySummary}</p>
           </div>
           <div className="flex flex-col gap-1 shrink-0">
-            <button onClick={() => { sessionStorage.setItem("gestiona.ai_prefill", `Analizá este resumen y dame 3 recomendaciones concretas: ${monthlySummary}`); navigate("/ia?vista=asistente"); }}
-              className="text-[10px] text-primary hover:underline whitespace-nowrap">Analizar con IA</button>
+            <button
+              type="button"
+              onClick={() => abrirCopilot(`Analizá este resumen y dame 3 recomendaciones concretas: ${monthlySummary}`)}
+              disabled={entitlementsLoading}
+              title={!entitlementsLoading && !canUseAI ? motivoIA : undefined}
+              className="text-[10px] text-primary hover:underline whitespace-nowrap disabled:opacity-50"
+            >{canUseAI ? "Analizar con IA" : "Activar IA"}</button>
             <button onClick={() => { setMonthlySummaryDismissed(true); localStorage.setItem(monthlySummaryKey + '.dismissed', '1'); }}
               className="text-[10px] text-muted-foreground hover:text-foreground">Cerrar</button>
           </div>
@@ -1793,9 +1840,12 @@ export default function Dashboard() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Top producto</p>
               <p className="text-sm font-semibold truncate">{weeklyComparison.topProd || "—"}</p>
               <button
-                onClick={() => { sessionStorage.setItem("gestiona.ai_prefill", `Comparativa semanal: esta semana ${formatARS(weeklyComparison.thisTotal)} (${weeklyComparison.thisUnits} uds), semana anterior ${formatARS(weeklyComparison.lastTotal)} (${weeklyComparison.lastUnits} uds). Variación ${weeklyComparison.diff.toFixed(1)}%. Dame 2 acciones concretas.`); navigate("/ia?vista=asistente"); }}
-                className="text-[10px] text-primary hover:underline"
-              >Analizar con IA →</button>
+                type="button"
+                onClick={() => abrirCopilot(`Comparativa semanal: esta semana ${formatARS(weeklyComparison.thisTotal)} (${weeklyComparison.thisUnits} uds), semana anterior ${formatARS(weeklyComparison.lastTotal)} (${weeklyComparison.lastUnits} uds). Variación ${weeklyComparison.diff.toFixed(1)}%. Dame 2 acciones concretas.`)}
+                disabled={entitlementsLoading}
+                title={!entitlementsLoading && !canUseAI ? motivoIA : undefined}
+                className="text-[10px] text-primary hover:underline disabled:opacity-50"
+              >{canUseAI ? "Analizar con IA →" : "Activar IA →"}</button>
             </div>
           </div>
           {/* Mini progress bar */}
@@ -1946,17 +1996,9 @@ export default function Dashboard() {
       />}
 
       {/* AI Proactive Suggestions */}
-      {orgForTasks && <AIProactiveWidget
+      {visibleDashboardSection === "dashboard-overview" && orgForTasks && !entitlementsLoading && canUseAI && <AIProactiveWidget
         orgId={orgForTasks.id}
-        stats={{
-          products: stats.products,
-          rawSales: stats.rawSales,
-          rawExpenses: stats.rawExpenses,
-          totalSalesARS: stats.totalSalesARS,
-          grossProfitARS: stats.grossProfitARS,
-          pendingDebts: stats.pendingDebts,
-          totalDebtsARS: stats.totalDebtsARS,
-        }}
+        hasBusinessData={stats.products.length > 0 || stats.rawSales.length > 0}
       />}
 
       {/* At-risk customers widget */}
@@ -3325,14 +3367,16 @@ export default function Dashboard() {
             })}
           </div>
           <button
+            type="button"
             onClick={() => {
               const list = stats.restockSuggestions.map((r: any) => `${r.name} (${r.stock}u, ${r.daysOfStock !== Infinity ? r.daysOfStock + 'd restantes' : 'sin datos'}, sugerir ${r.suggestedOrder}u)`).join('\n');
-              sessionStorage.setItem("gestiona.ai_prefill", `Tengo estos productos con stock crítico:\n${list}\n\n¿Qué priorizo comprar primero y por qué?`);
-              navigate("/ia?vista=asistente");
+              abrirCopilot(`Tengo estos productos con stock crítico:\n${list}\n\n¿Qué priorizo comprar primero y por qué?`);
             }}
-            className="mt-3 text-xs text-primary hover:underline flex items-center gap-1"
+            disabled={entitlementsLoading}
+            title={!entitlementsLoading && !canUseAI ? motivoIA : undefined}
+            className="mt-3 text-xs text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
           >
-            <Zap className="w-3.5 h-3.5" />Consultar prioridad con IA
+            <Zap className="w-3.5 h-3.5" />{canUseAI ? "Consultar prioridad con IA" : "Activar IA"}
           </button>
         </div>
       )}
@@ -3360,7 +3404,19 @@ export default function Dashboard() {
           sales={stats.rawSales} expenses={stats.rawExpenses} debts={stats.rawDebts}
           products={stats.products} settings={stats.rawSettings}
         />
-        <AIPrediction sales={stats.rawSales} />
+        {visibleDashboardSection === "dashboard-intelligence" && !entitlementsLoading && canUseAI ? (
+          <AIPrediction sales={stats.rawSales} />
+        ) : (
+          <div className="rounded-xl border border-border/60 bg-card p-5 shadow-card">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Proyección inteligente</p>
+            <p className="mt-3 text-sm text-foreground/85">{entitlementsLoading ? "Verificando el acceso a IA…" : motivoIA}</p>
+            {!entitlementsLoading && (
+              <Link to="/mi-plan" className="mt-3 inline-flex text-xs font-medium text-primary hover:underline">
+                Ver planes y activar IA →
+              </Link>
+            )}
+          </div>
+        )}
       </div>
 
       {/* MoM Growth + Top Customers */}
@@ -3518,31 +3574,11 @@ export default function Dashboard() {
       </div>
 
       {/* Daily Briefing Modal */}
-      {briefingOpen && user && stats && (
+      {briefingOpen && user && stats && activeOrg && canUseAI && (
         <DailyBriefingModal
           open={briefingOpen}
           onClose={() => setBriefingOpen(false)}
-          userId={user.id}
-          briefingData={(() => {
-            const today = new Date().toISOString().slice(0, 10);
-            const yday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-            const ydaySales = (stats.rawSales || []).filter((s: any) => String(s.date).slice(0, 10) === yday);
-            const topProductsMap: Record<string, number> = {};
-            ydaySales.forEach((s: any) => { if (s.product_name) topProductsMap[s.product_name] = (topProductsMap[s.product_name] || 0) + Number(s.quantity || 1); });
-            const topProduct = Object.entries(topProductsMap).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-            const lowStockCount = (stats.products || []).filter((p: any) => p.stock <= (p.low_stock_threshold ?? 3)).length;
-            const unpaidDebts = (stats.rawDebts || []).filter((d: any) => d.status !== 'paid');
-            return {
-              salesCount: ydaySales.length,
-              totalSalesARS: ydaySales.reduce((s: number, v: any) => s + Number(v.total_ars || 0), 0),
-              topProduct,
-              lowStockCount,
-              pendingDebtsARS: unpaidDebts.reduce((s: number, d: any) => s + Number(d.remaining_ars || 0), 0),
-              pendingDebtsCount: unpaidDebts.length,
-              businessName: stats.rawSettings?.business_name || "tu negocio",
-              date: today,
-            };
-          })()}
+          orgId={activeOrg.id}
         />
       )}
         </div>

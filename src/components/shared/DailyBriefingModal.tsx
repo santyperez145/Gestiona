@@ -1,22 +1,19 @@
 ﻿/**
  * DailyBriefingModal — AI-powered daily business morning briefing.
  *
- * On open, sends today's stats (sales, stock alerts, debts, top product)
- * to the ai-chat edge function and streams back a narrative business summary.
+ * On open, asks `ai-analysis` for a server-owned daily briefing. The browser
+ * only sends the organization id; business data is rebuilt under RLS.
  *
- * Uses SSE streaming so text appears word-by-word like a ChatGPT response.
  * Cached in sessionStorage so re-opening the same day is instant.
  */
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
-import { Sparkles, RefreshCw, Copy, X } from "lucide-react";
+import { Sparkles, RefreshCw, Copy } from "lucide-react";
 import { toast } from "sonner";
-
-import { plural } from "@/lib/plural";
-interface BriefingData {
+import { llamarIA } from "@/lib/ia";
+interface BriefingSummary {
   salesCount: number;
   totalSalesARS: number;
   topProduct: string | null;
@@ -30,86 +27,68 @@ interface BriefingData {
 interface Props {
   open: boolean;
   onClose: () => void;
-  briefingData: BriefingData;
-  userId: string;
+  orgId: string;
 }
 
-function buildPrompt(d: BriefingData): string {
-  return `Sos el asistente de negocio de ${d.businessName}. Es ${d.date}.
-Generá un briefing matutino breve y motivador (máx 5 oraciones) basado en estos datos de ayer:
-- Ventas: ${d.salesCount} transacciones por ${formatARS(d.totalSalesARS)}
-- Producto más vendido: ${d.topProduct ?? "sin datos"}
-- Productos con bajo stock: ${d.lowStockCount}
-- Deudas pendientes: ${plural(d.pendingDebtsCount, "cliente")}, ${formatARS(d.pendingDebtsARS)} total
+const CACHE_PREFIX = "gestiona.daily_briefing.v2.";
+const fechaDeBriefing = () => new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Argentina/Buenos_Aires",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+}).format(new Date());
 
-Incluí: saludo, análisis rápido del día anterior, alerta si hay bajo stock o deudas importantes, y un consejo accionable para el día de hoy. Respondé en español, tono profesional pero cercano.`;
-}
-
-const CACHE_PREFIX = "gestiona.daily_briefing.";
-
-export default function DailyBriefingModal({ open, onClose, briefingData, userId }: Props) {
+export default function DailyBriefingModal({ open, onClose, orgId }: Props) {
   const [text, setText] = useState("");
+  const [summary, setSummary] = useState<BriefingSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  const cacheKey = CACHE_PREFIX + briefingData.date + "." + userId;
+  const generationRef = useRef(0);
+  const cacheKey = CACHE_PREFIX + fechaDeBriefing() + "." + orgId;
 
   useEffect(() => {
     if (!open) return;
     // Check cache
     const cached = sessionStorage.getItem(cacheKey);
-    if (cached) { setText(cached); return; }
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached) as { content?: string; summary?: BriefingSummary };
+        if (parsed.content && parsed.summary) {
+          setText(parsed.content);
+          setSummary(parsed.summary);
+          return;
+        }
+      } catch {
+        sessionStorage.removeItem(cacheKey);
+      }
+    }
     generate();
-    return () => { abortRef.current?.abort(); };
+    return () => { generationRef.current += 1; };
   }, [open]);
 
   const generate = async () => {
     setText("");
+    setSummary(null);
     setError(null);
     setLoading(true);
-    abortRef.current = new AbortController();
+    const generation = ++generationRef.current;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("No session");
-      const prompt = buildPrompt(briefingData);
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ messages: [{ role: "user", content: prompt }], stream: true }),
-          signal: abortRef.current.signal,
-        }
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-      if (!reader) throw new Error("No stream");
-      let accumulated = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split("\n")) {
-          if (!line.startsWith("data: ")) continue;
-          const payload = line.slice(6).trim();
-          if (payload === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(payload);
-            const delta = parsed.choices?.[0]?.delta?.content ?? "";
-            accumulated += delta;
-            setText(accumulated);
-          } catch { /* ignore */ }
-        }
+      const data = await llamarIA<{ content?: string; summary?: BriefingSummary }>("ai-analysis", {
+        body: { type: "daily_briefing", orgId },
+      }, "No pudimos generar el briefing del día");
+      if (generation !== generationRef.current) return;
+      const content = data?.content?.trim();
+      if (!content) throw new Error("El asistente respondió sin contenido. Probá de nuevo.");
+      if (!data.summary) throw new Error("El briefing llegó sin sus datos de respaldo. Probá de nuevo.");
+      setText(content);
+      setSummary(data.summary);
+      sessionStorage.setItem(cacheKey, JSON.stringify({ content, summary: data.summary }));
+    } catch (cause) {
+      if (generation === generationRef.current) {
+        setError(cause instanceof Error ? cause.message : "Error al generar el briefing");
       }
-      if (accumulated) sessionStorage.setItem(cacheKey, accumulated);
-    } catch (e: any) {
-      if (e.name !== "AbortError") setError(e.message ?? "Error al generar el briefing");
     } finally {
-      setLoading(false);
+      if (generation === generationRef.current) setLoading(false);
     }
   };
 
@@ -120,7 +99,7 @@ export default function DailyBriefingModal({ open, onClose, briefingData, userId
   const today = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 
   return (
-    <Dialog open={open} onOpenChange={v => { if (!v) { abortRef.current?.abort(); onClose(); } }}>
+    <Dialog open={open} onOpenChange={v => { if (!v) { generationRef.current += 1; onClose(); } }}>
       <DialogContent className="bg-card border-border/60 max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-display">
@@ -156,24 +135,32 @@ export default function DailyBriefingModal({ open, onClose, briefingData, userId
         </div>
 
         {/* Stats summary */}
-        <div className="grid grid-cols-3 gap-2 py-2 border-t border-border/40">
+        {summary && <div className="grid grid-cols-2 gap-2 border-t border-border/40 py-2 sm:grid-cols-4">
           <div className="text-center">
             <p className="text-[10px] text-muted-foreground">Ventas ayer</p>
-            <p className="text-sm font-bold font-mono">{briefingData.salesCount}</p>
+            <p className="text-sm font-bold font-mono">{formatARS(summary.totalSalesARS)}</p>
+            <p className="text-[10px] text-muted-foreground">{summary.salesCount} operaciones</p>
           </div>
           <div className="text-center">
             <p className="text-[10px] text-muted-foreground">Bajo stock</p>
-            <p className={`text-sm font-bold font-mono ${briefingData.lowStockCount > 0 ? "text-yellow-400" : "text-emerald-400"}`}>
-              {briefingData.lowStockCount}
+            <p className={`text-sm font-bold font-mono ${summary.lowStockCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+              {summary.lowStockCount}
             </p>
           </div>
           <div className="text-center">
             <p className="text-[10px] text-muted-foreground">Deudas</p>
-            <p className={`text-sm font-bold font-mono ${briefingData.pendingDebtsCount > 0 ? "text-destructive" : "text-emerald-400"}`}>
-              {briefingData.pendingDebtsCount}
+            <p className={`text-sm font-bold font-mono ${summary.pendingDebtsCount > 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"}`}>
+              {formatARS(summary.pendingDebtsARS)}
+            </p>
+            <p className="text-[10px] text-muted-foreground">{summary.pendingDebtsCount} pendientes</p>
+          </div>
+          <div className="min-w-0 text-center">
+            <p className="text-[10px] text-muted-foreground">Producto destacado</p>
+            <p className="truncate text-sm font-bold" title={summary.topProduct ?? undefined}>
+              {summary.topProduct ?? "Sin ventas"}
             </p>
           </div>
-        </div>
+        </div>}
 
         {text && !loading && (
           <div className="flex gap-2 pt-1">

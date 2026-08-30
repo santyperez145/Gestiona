@@ -182,6 +182,16 @@ tenant/plan/flag/revisión humana, error visible y archivo local hasta confirmar
 La operación real sigue bloqueada con seguridad porque faltan DPA/proveedor,
 clave, flag y benchmark autorizado; no se reetiqueta como validada.
 
+**Cierre adicional incorporado al ROADMAP, slice 77 (2026-08-30).** La
+auditoría sí había dejado “jobs y costos de IA” y “IA operacional” abiertos,
+pero no detectó que Dashboard montaba dos consumidores aunque sus vistas fueran
+invisibles ni que Briefing conservaba un contrato viejo. Producción mostró el
+402 de una suscripción cancelada en una carga normal. Pulso y Proyección ahora
+dependen de entitlement + vista activa; Briefing/Pulso reconstruyen contexto
+con JWT/RLS, omiten PII de clientes y muestran error/retry. Cinco guardas y la
+puerta 2.083/2.083 fijan el cierre técnico. Proveedor/DPA/clave, respuesta real,
+`AI Action Rate` e impacto siguen abiertos; no se presentan como auditados.
+
 ## SMTP: la contraseña sí llegaba al servidor, y a todos los miembros
 
 Configuración decía que la clave SMTP no salía del dispositivo, pero ejecutaba
