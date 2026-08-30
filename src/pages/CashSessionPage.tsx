@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useSearchParams } from "react-router-dom";
 import {
   Banknote, Lock, Unlock, Clock, TrendingUp, TrendingDown,
   CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, RotateCcw,
@@ -18,6 +20,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import CashDenominationCountDialog from "@/components/shared/CashDenominationCountDialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { summarizePosCashSession } from "@/lib/posCashSession";
 
 import { plural } from "@/lib/plural";
 // ── Export helpers ────────────────────────────────────────────────────────────
@@ -28,17 +31,17 @@ function printCashReport(
 ) {
   const LABELS: Record<string, string> = {
     sale_in: "Venta", debt_payment: "Cobro deuda", manual_in: "Ingreso",
-    expense_out: "Gasto", supplier_out: "Proveedor", manual_out: "Egreso",
+    refund_out: "Devolución", expense_out: "Gasto", supplier_out: "Proveedor", manual_out: "Egreso",
     opening: "Apertura", closing: "Cierre",
   };
-  const isOut = (t: string) => ["expense_out", "supplier_out", "manual_out"].includes(t);
+  const isOut = (t: string) => ["refund_out", "expense_out", "supplier_out", "manual_out"].includes(t);
 
-  const totalIn = entries.filter(e => !isOut(e.entry_type) && e.entry_type !== "opening").reduce((s, e) => s + Number(e.amount_ars), 0);
+  const totalIn = entries.filter(e => !isOut(e.entry_type) && !["opening", "closing"].includes(e.entry_type)).reduce((s, e) => s + Number(e.amount_ars), 0);
   const totalOut = entries.filter(e => isOut(e.entry_type)).reduce((s, e) => s + Number(e.amount_ars), 0);
 
   // Group by payment method for in-entries
   const byMethod: Record<string, number> = {};
-  entries.filter(e => !isOut(e.entry_type) && e.entry_type !== "opening").forEach(e => {
+  entries.filter(e => !isOut(e.entry_type) && !["opening", "closing"].includes(e.entry_type)).forEach(e => {
     const m = e.payment_method || "efectivo";
     byMethod[m] = (byMethod[m] || 0) + Number(e.amount_ars);
   });
@@ -118,7 +121,7 @@ function printCashReport(
 function exportCashCSV(session: CashSession, entries: CashEntry[], orgName: string) {
   const LABELS: Record<string, string> = {
     sale_in: "Venta", debt_payment: "Cobro deuda", manual_in: "Ingreso",
-    expense_out: "Gasto", supplier_out: "Proveedor", manual_out: "Egreso",
+    refund_out: "Devolución", expense_out: "Gasto", supplier_out: "Proveedor", manual_out: "Egreso",
     opening: "Apertura", closing: "Cierre",
   };
   const rows = [
@@ -147,6 +150,10 @@ interface CashEntry {
   entry_type: string;
   payment_method: string | null;
   amount_ars: number;
+  reference_type: string | null;
+  reference_id: string | null;
+  sale_transaction_id: string | null;
+  seller_name: string | null;
   description: string | null;
   created_at: string;
 }
@@ -157,6 +164,7 @@ const ENTRY_TYPE_META: Record<string, { label: string; color: string; sign: stri
   manual_in:    { label: "Ingreso",       color: "text-emerald-400",sign: "+" },
   expense_out:  { label: "Gasto",         color: "text-red-400",    sign: "−" },
   supplier_out: { label: "Proveedor",     color: "text-orange-400", sign: "−" },
+  refund_out:   { label: "Devolución",    color: "text-red-400",    sign: "−" },
   manual_out:   { label: "Egreso",        color: "text-red-400",    sign: "−" },
   opening:      { label: "Apertura",      color: "text-muted-foreground", sign: "" },
   closing:      { label: "Cierre",        color: "text-muted-foreground", sign: "" },
@@ -164,6 +172,7 @@ const ENTRY_TYPE_META: Record<string, { label: string; color: string; sign: stri
 
 interface CashSession {
   id: string;
+  location_id: string | null;
   opened_at: string;
   closed_at: string | null;
   opening_amount: number;
@@ -174,14 +183,25 @@ interface CashSession {
   status: "open" | "closed";
 }
 
+interface PosLocation {
+  id: string;
+  name: string;
+  is_main: boolean;
+}
+
 export default function CashSessionPage() {
   usePageTitle("Sesión de Caja");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [sessions, setSessions] = useState<CashSession[]>([]);
   const [openSession, setOpenSession] = useState<CashSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [locations, setLocations] = useState<PosLocation[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [serverTicketCount, setServerTicketCount] = useState(0);
 
   // Open form
   const [openingAmount, setOpeningAmount] = useState("0");
@@ -192,85 +212,148 @@ export default function CashSessionPage() {
   const [denomCountOpen, setDenomCountOpen] = useState(false);
   const [closingNotes, setClosingNotes] = useState("");
 
-  // Session sales (for expected cash calculation)
-  const [sessionSales, setSessionSales] = useState<any[]>([]);
-
   const [expanded, setExpanded] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [cashEntries, setCashEntries] = useState<CashEntry[]>([]);
   const [showEntries, setShowEntries] = useState(false);
   // Historical session entries for printing closed sessions
   const [sessionEntriesMap, setSessionEntriesMap] = useState<Record<string, CashEntry[]>>({});
+  const requestedLocationId = searchParams.get("location");
+
+  useEffect(() => {
+    if (!activeOrg?.id) {
+      setLocations([]);
+      setSelectedLocationId(null);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from("locations")
+      .select("id,name,is_main,active")
+      .eq("org_id", activeOrg.id)
+      .eq("active", true)
+      .order("is_main", { ascending: false })
+      .order("name")
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("[Caja] No se pudieron cargar las sucursales:", error);
+          setLoadError("No se pudieron cargar las sucursales. Reintentá.");
+          setLocations([]);
+          setSelectedLocationId(null);
+          return;
+        }
+        const available = (data || []) as PosLocation[];
+        setLocations(available);
+        const stored = localStorage.getItem(`gestiona.pos.location.${activeOrg.id}`);
+        const preferred = [requestedLocationId, stored, available.find(location => location.is_main)?.id, available[0]?.id]
+          .find(candidate => candidate && available.some(location => location.id === candidate));
+        setSelectedLocationId(preferred || null);
+      });
+    return () => { cancelled = true; };
+  }, [activeOrg?.id, requestedLocationId]);
+
+  const selectLocation = (locationId: string) => {
+    setSelectedLocationId(locationId);
+    if (activeOrg?.id) localStorage.setItem(`gestiona.pos.location.${activeOrg.id}`, locationId);
+    const next = new URLSearchParams(searchParams);
+    next.set("location", locationId);
+    setSearchParams(next, { replace: true });
+  };
 
   const load = useCallback(async () => {
-    if (!activeOrg) return;
+    if (!activeOrg || !selectedLocationId) {
+      setSessions([]);
+      setOpenSession(null);
+      setCashEntries([]);
+      setServerTicketCount(0);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const { data } = await supabase
+    setLoadError(null);
+    setSessions([]);
+    setOpenSession(null);
+    setCashEntries([]);
+    setServerTicketCount(0);
+    const { data, error } = await supabase
       .from("cash_sessions")
       .select("*")
       .eq("org_id", activeOrg.id)
+      .eq("location_id", selectedLocationId)
       .order("opened_at", { ascending: false })
       .limit(30);
+
+    if (error) {
+      console.error("[Caja] No se pudieron cargar las sesiones:", error);
+      setLoadError("No se pudo leer el turno de esta sucursal. Reintentá.");
+      setLoading(false);
+      return;
+    }
 
     const all = (data || []) as CashSession[];
     setSessions(all);
     const current = all.find((s) => s.status === "open") || null;
     setOpenSession(current);
 
-    // Load sales from this session (if open)
     if (current) {
-      const { data: sales } = await supabase
-        .from("sales")
-        .select("total_ars, payment_method, date")
-        .eq("org_id", activeOrg.id)
-        .gte("date", current.opened_at);
-      setSessionSales(sales || []);
-
-      // Load cash entries for active session
-      const { data: entries } = await supabase
-        .from("cash_entries")
-        .select("id, entry_type, payment_method, amount_ars, description, created_at")
-        .eq("session_id", current.id)
-        .order("created_at", { ascending: false })
-        .limit(100);
-      setCashEntries((entries as CashEntry[]) || []);
+      const [entriesResult, summaryResult] = await Promise.all([
+        supabase
+          .from("cash_entries")
+          .select("id,entry_type,payment_method,amount_ars,reference_type,reference_id,sale_transaction_id,seller_name,description,created_at")
+          .eq("session_id", current.id)
+          .order("created_at", { ascending: false })
+          .limit(250),
+        supabase
+          .from("cash_session_summary")
+          .select("ticket_count")
+          .eq("session_id", current.id)
+          .maybeSingle(),
+      ]);
+      if (entriesResult.error) {
+        console.error("[Caja] No se pudieron cargar los movimientos:", entriesResult.error);
+        setLoadError("El turno está abierto, pero sus movimientos no pudieron cargarse.");
+      }
+      if (summaryResult.error) {
+        console.error("[Caja] No se pudo cargar el conteo de tickets:", summaryResult.error);
+      }
+      setCashEntries((entriesResult.data as CashEntry[] | null) || []);
+      setServerTicketCount(Number(summaryResult.data?.ticket_count || 0));
     } else {
-      setSessionSales([]);
       setCashEntries([]);
+      setServerTicketCount(0);
     }
     setLoading(false);
-  }, [activeOrg]);
+  }, [activeOrg, selectedLocationId]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Computed stats for open session
-  const cashSales = sessionSales.filter((s) => s.payment_method === "efectivo" || !s.payment_method);
-  const transferSales = sessionSales.filter((s) => s.payment_method === "transferencia");
-  const otherSales = sessionSales.filter((s) => !["efectivo", "transferencia"].includes(s.payment_method || "efectivo"));
-  const totalCash = cashSales.reduce((s, v) => s + Number(v.total_ars), 0);
-  const totalTransfer = transferSales.reduce((s, v) => s + Number(v.total_ars), 0);
-  const totalOther = otherSales.reduce((s, v) => s + Number(v.total_ars), 0);
-  const totalAll = sessionSales.reduce((s, v) => s + Number(v.total_ars), 0);
-  const expectedCash = openSession ? Number(openSession.opening_amount) + totalCash : 0;
+  const totals = summarizePosCashSession(openSession?.opening_amount || 0, cashEntries);
+  const expectedCash = totals.expectedCash;
   const closingDiff = closingAmount !== "" ? Number(closingAmount) - expectedCash : null;
 
   const openCaja = async () => {
-    if (!activeOrg || !user) return;
+    if (!activeOrg || !user || !selectedLocationId) {
+      toast.error("Elegí una sucursal antes de abrir la caja");
+      return;
+    }
     if (openSession) { toast.error("Ya hay una caja abierta"); return; }
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("cash_sessions").insert({
-        org_id: activeOrg.id,
-        opened_by: user.id,
-        opening_amount: Number(openingAmount) || 0,
-        notes: openingNotes || null,
-        status: "open",
-      });
+      const { error } = await supabase.rpc("pos_cash_session_open" as never, {
+        p_org_id: activeOrg.id,
+        p_location_id: selectedLocationId,
+        p_opening_amount: Number(openingAmount) || 0,
+        p_notes: openingNotes || null,
+      } as never);
       if (error) throw error;
       toast.success("Caja abierta");
       setOpeningAmount("0"); setOpeningNotes("");
-      load();
-    } catch (e: any) { toast.error(e.message); }
+      await load();
+    } catch (e: any) {
+      console.error("[Caja] No se pudo abrir la sesión:", e);
+      toast.error(e.message);
+    }
     finally { setSubmitting(false); }
   };
 
@@ -279,22 +362,19 @@ export default function CashSessionPage() {
     if (!closingAmount.trim()) { toast.error("Ingresá el monto de cierre"); return; }
     setSubmitting(true);
     try {
-      const closing = Number(closingAmount);
-      const diff = closing - expectedCash;
-      const { error } = await supabase.from("cash_sessions").update({
-        closed_by: user.id,
-        closed_at: new Date().toISOString(),
-        closing_amount: closing,
-        expected_cash: expectedCash,
-        difference: diff,
-        notes: closingNotes || openSession.notes,
-        status: "closed",
-      }).eq("id", openSession.id);
+      const { error } = await supabase.rpc("pos_cash_session_close" as never, {
+        p_session_id: openSession.id,
+        p_closing_amount: Number(closingAmount),
+        p_notes: closingNotes || null,
+      } as never);
       if (error) throw error;
       toast.success("Caja cerrada correctamente");
       setClosingAmount(""); setClosingNotes("");
-      load();
-    } catch (e: any) { toast.error(e.message); }
+      await load();
+    } catch (e: any) {
+      console.error("[Caja] No se pudo cerrar la sesión:", e);
+      toast.error(e.message);
+    }
     finally { setSubmitting(false); }
   };
 
@@ -316,6 +396,38 @@ export default function CashSessionPage() {
         }
       />
 
+      <div className="rounded-[10px] border border-border/60 bg-card p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold">Sucursal de la caja</p>
+            <p className="text-xs text-muted-foreground">Cada ubicación conserva su propio turno, efectivo y cierre.</p>
+          </div>
+          {locations.length > 0 ? (
+            <Select value={selectedLocationId || undefined} onValueChange={selectLocation}>
+              <SelectTrigger className="w-full sm:w-64" aria-label="Sucursal de la sesión de caja">
+                <SelectValue placeholder="Elegir sucursal" />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map(location => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}{location.is_main ? " (principal)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Badge variant="destructive">Sin sucursales activas</Badge>
+          )}
+        </div>
+      </div>
+
+      {loadError && (
+        <div role="alert" className="rounded-[10px] border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          {loadError}
+          <Button variant="ghost" size="sm" className="ml-2 h-7" onClick={() => void load()}>Reintentar</Button>
+        </div>
+      )}
+
       {/* Status banner */}
       <div className={`rounded-[10px] border p-4 flex items-center gap-4 ${
         openSession
@@ -336,7 +448,7 @@ export default function CashSessionPage() {
           </p>
           <p className="text-xs text-muted-foreground">
             {openSession
-              ? `Abierta hace ${sessionDuration < 60 ? `${sessionDuration} min` : `${Math.round(sessionDuration / 60)}h ${sessionDuration % 60}m`} · ${plural(sessionSales.length, "venta")} · ${formatARS(totalAll)}`
+              ? `Abierta hace ${sessionDuration < 60 ? `${sessionDuration} min` : `${Math.round(sessionDuration / 60)}h ${sessionDuration % 60}m`} · ${plural(serverTicketCount, "ticket")} · ${formatARS(totals.salesTotal)} cobrados`
               : "No hay turno activo"
             }
           </p>
@@ -386,10 +498,10 @@ export default function CashSessionPage() {
           {/* Live stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { l: "Efectivo vendido", v: formatARS(totalCash), icon: Banknote, color: "text-green-400" },
-              { l: "Transferencias", v: formatARS(totalTransfer), icon: TrendingUp, color: "text-blue-400" },
-              { l: "Otros métodos", v: formatARS(totalOther), icon: TrendingUp, color: "text-purple-400" },
-              { l: "Total del turno", v: formatARS(totalAll), icon: TrendingUp, color: "text-primary" },
+              { l: "Efectivo neto", v: formatARS(totals.cashNet), icon: Banknote, color: "text-green-400" },
+              { l: "Transferencias", v: formatARS(totals.transferTotal), icon: TrendingUp, color: "text-blue-400" },
+              { l: "Tarjetas y otros", v: formatARS(totals.cardTotal + totals.otherPaymentTotal), icon: TrendingUp, color: "text-purple-400" },
+              { l: "Total cobrado", v: formatARS(totals.salesTotal), icon: TrendingUp, color: "text-primary" },
             ].map((s) => (
               <div key={s.l} className="bg-card border border-border/60 rounded-[10px] p-4">
                 <div className="flex items-center justify-between mb-1">
@@ -404,9 +516,9 @@ export default function CashSessionPage() {
           {/* Breakdown by seller */}
           {(() => {
             const bySeller: Record<string, number> = {};
-            sessionSales.forEach(s => {
-              const k = s.seller_name || "Sin asignar";
-              bySeller[k] = (bySeller[k] || 0) + Number(s.total_ars || 0);
+            cashEntries.filter(entry => entry.entry_type === "sale_in").forEach(entry => {
+              const k = entry.seller_name || "Sin asignar";
+              bySeller[k] = (bySeller[k] || 0) + Number(entry.amount_ars || 0);
             });
             const entries = Object.entries(bySeller).sort((a, b) => b[1] - a[1]);
             if (entries.length < 2) return null;
@@ -429,7 +541,7 @@ export default function CashSessionPage() {
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold">Efectivo esperado en caja</p>
-              <p className="text-xs text-muted-foreground">Monto inicial {formatARS(openSession.opening_amount)} + ventas en efectivo {formatARS(totalCash)}</p>
+              <p className="text-xs text-muted-foreground">Apertura {formatARS(openSession.opening_amount)} + ingresos − egresos en efectivo {formatARS(totals.cashNet)}</p>
             </div>
             <span className="text-2xl font-display font-bold text-primary">{formatARS(expectedCash)}</span>
           </div>
@@ -535,7 +647,7 @@ export default function CashSessionPage() {
               <div className="divide-y divide-border/50 max-h-72 overflow-y-auto">
                 {cashEntries.map(e => {
                   const meta = ENTRY_TYPE_META[e.entry_type] ?? { label: e.entry_type, color: "text-foreground", sign: "" };
-                  const isOut = ["expense_out", "supplier_out", "manual_out"].includes(e.entry_type);
+                  const isOut = ["refund_out", "expense_out", "supplier_out", "manual_out"].includes(e.entry_type);
                   return (
                     <div key={e.id} className="flex items-center gap-3 px-5 py-2.5">
                       <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${isOut ? "bg-red-500/10" : "bg-green-500/10"}`}>
@@ -585,11 +697,16 @@ export default function CashSessionPage() {
                       setExpanded(next);
                       // Load entries for this session if not cached
                       if (next && !sessionEntriesMap[s.id]) {
-                        const { data } = await supabase
+                        const { data, error } = await supabase
                           .from("cash_entries")
                           .select("*")
                           .eq("session_id", s.id)
                           .order("created_at");
+                        if (error) {
+                          console.error("[Caja] No se pudo cargar el detalle histórico:", error);
+                          toast.error("No se pudo cargar el detalle de este turno");
+                          return;
+                        }
                         setSessionEntriesMap(prev => ({ ...prev, [s.id]: (data || []) as CashEntry[] }));
                       }
                     }}

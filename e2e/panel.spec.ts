@@ -231,6 +231,20 @@ test.describe("POS", () => {
     await abrirPos(page);
 
     await expect(page.getByRole("button", { name: /Confirmar venta/ })).toBeDisabled();
+    await expect(page.getByRole("link", { name: /Gestionar turno/ }).first()).toBeVisible();
+    expect(errors, `errores en consola:\n${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("abre el turno autoritativo de la misma sucursal sin mutar la base", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    page.on("pageerror", error => errors.push(error.message));
+
+    await abrirPos(page);
+    await page.getByRole("link", { name: /Gestionar turno/ }).first().click();
+    await expect(page).toHaveURL(/\/caja\/turno\?location=/);
+    await expect(page.getByRole("heading", { name: "Apertura & Cierre de Caja" })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Sucursal de la sesión de caja" })).toBeVisible();
     expect(errors, `errores en consola:\n${errors.join("\n")}`).toEqual([]);
   });
 

@@ -5,7 +5,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getProductsDB, getSettingsDB, addSalesDB, deleteSaleDB, formatARS, validateCouponDB, getVariantsByUserDB, recordMemberStockMovementDB } from "@/lib/supabaseStore";
+import { getProductsDB, getSettingsDB, addSalesDB, formatARS, validateCouponDB, getVariantsByUserDB, recordMemberStockMovementDB } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { loadActivePromotions, bestPromoPrice, type Promotion, type BestPromo } from "@/lib/promotions";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,6 +82,14 @@ interface QrCheckoutContext {
   error: string | null;
   /** Sesión encontrada al volver a Caja: jamás debe vaciar el carrito actual. */
   recovered?: boolean;
+}
+
+interface PosCashSessionStatus {
+  session_id: string;
+  opened_at: string;
+  ticket_count: number;
+  total_ventas: number;
+  efectivo_neto: number;
 }
 
 // El carrito ya usa este formato para una variante. Reutilizarlo para las
@@ -921,6 +929,9 @@ export default function POSPage() {
   const posLocationKey = `gestiona.pos.location.${activeOrg?.id || 'default'}`;
   const [locations, setLocations] = useState<Array<{ id: string; name: string; is_main: boolean }>>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [cashSessionStatus, setCashSessionStatus] = useState<PosCashSessionStatus | null>(null);
+  const [cashSessionLoading, setCashSessionLoading] = useState(false);
+  const [cashSessionError, setCashSessionError] = useState<string | null>(null);
   useEffect(() => {
     if (!activeOrg?.id) { setLocations([]); setSelectedLocationId(null); return; }
     let cancelled = false;
@@ -947,6 +958,42 @@ export default function POSPage() {
     setSelectedLocationId(id);
     localStorage.setItem(posLocationKey, id);
   };
+
+  const loadCashSessionStatus = useCallback(async () => {
+    if (!activeOrg?.id || !selectedLocationId) {
+      setCashSessionStatus(null);
+      setCashSessionError(null);
+      return;
+    }
+    setCashSessionLoading(true);
+    const { data, error } = await supabase
+      .from("cash_session_summary")
+      .select("session_id,opened_at,ticket_count,total_ventas,efectivo_neto")
+      .eq("org_id", activeOrg.id)
+      .eq("location_id", selectedLocationId)
+      .eq("status", "open")
+      .maybeSingle();
+    if (error) {
+      console.error("[POS] No se pudo leer la sesión de caja:", error);
+      setCashSessionError("No se pudo comprobar el turno");
+      setCashSessionStatus(null);
+    } else {
+      setCashSessionError(null);
+      setCashSessionStatus(data as PosCashSessionStatus | null);
+    }
+    setCashSessionLoading(false);
+  }, [activeOrg?.id, selectedLocationId]);
+
+  useEffect(() => {
+    void loadCashSessionStatus();
+    const timer = window.setInterval(() => void loadCashSessionStatus(), 30_000);
+    const refreshOnFocus = () => void loadCashSessionStatus();
+    window.addEventListener("focus", refreshOnFocus);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshOnFocus);
+    };
+  }, [loadCashSessionStatus]);
 
   useEffect(() => {
     if (!sellerName) setShowSellerPrompt(true);
@@ -1076,6 +1123,7 @@ export default function POSPage() {
     }
 
     if (syncedTickets > 0) {
+      await loadCashSessionStatus();
       toast.success(`${syncedTickets} ticket${syncedTickets === 1 ? "" : "s"} sincronizado${syncedTickets === 1 ? "" : "s"}`);
     }
     if (failedTickets > 0) {
@@ -1713,6 +1761,7 @@ export default function POSPage() {
       // puede convertir ese resultado correcto en un falso fallo de cobro.
       console.error("[POS] La venta cerró pero no se pudo refrescar el catálogo:", error);
     }
+    await loadCashSessionStatus();
 
     if (customer.trim()) saveRecentCustomer(customer.trim());
     setReceipt({
@@ -1767,6 +1816,7 @@ export default function POSPage() {
       } catch (error) {
         console.error("[POS QR] Venta recuperada, pero el catálogo no pudo refrescarse:", error);
       }
+      await loadCashSessionStatus();
       setQrRecoverySessions((previous) => {
         const withoutSession = previous.filter((item) => item.session_id !== session.session_id);
         return [session, ...withoutSession];
@@ -2431,18 +2481,44 @@ export default function POSPage() {
       <div className="px-4 py-3 border-t border-border space-y-3">
         {/* Location selector — only when org has locations configured */}
         {locations.length > 0 && (
-          <div className="relative">
-            <Store className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none z-10" />
-            <Select value={selectedLocationId ?? undefined} onValueChange={selectLocation}>
-              <SelectTrigger className="h-8 w-full pl-8 text-sm" aria-label="Sucursal del punto de venta">
-                <SelectValue placeholder="Elegir sucursal" />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((l) => (
-                  <SelectItem key={l.id} value={l.id}>{l.name}{l.is_main ? " (principal)" : ""}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-2">
+            <div className="relative">
+              <Store className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none z-10" />
+              <Select value={selectedLocationId ?? undefined} onValueChange={selectLocation}>
+                <SelectTrigger className="h-8 w-full pl-8 text-sm" aria-label="Sucursal del punto de venta">
+                  <SelectValue placeholder="Elegir sucursal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>{l.name}{l.is_main ? " (principal)" : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedLocationId && (
+              <Link
+                to={`/caja/turno?location=${selectedLocationId}`}
+                className={`flex min-h-10 items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors ${
+                  cashSessionError
+                    ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                    : cashSessionStatus
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                    : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <Banknote className="h-4 w-4" />
+                  {cashSessionLoading
+                    ? "Comprobando turno…"
+                    : cashSessionError
+                    ? "Turno sin verificar"
+                    : cashSessionStatus
+                    ? `Caja abierta · ${plural(Number(cashSessionStatus.ticket_count || 0), "ticket")}`
+                    : "Caja cerrada · las ventas quedarán sin turno"}
+                </span>
+                <span className="font-semibold">Gestionar turno</span>
+              </Link>
+            )}
           </div>
         )}
         <div className="relative">
@@ -2852,7 +2928,7 @@ export default function POSPage() {
           )}
         </div>
 
-        {/* Historial del turno */}
+        {/* Actividad local: ayuda a repetir/imprimir, pero no reemplaza la sesión server-side. */}
         {turnoSales.length > 0 && (
           <div className="border border-border rounded-[10px] overflow-hidden">
             <button
@@ -2861,7 +2937,7 @@ export default function POSPage() {
             >
               <span className="flex items-center gap-1.5">
                 <RotateCcw className="w-3 h-3" />
-                Últimas ventas del turno ({turnoSales.length})
+                Ventas de esta pestaña ({turnoSales.length})
               </span>
               <ChevronUp className={`w-3 h-3 transition-transform ${showTurnoHistory ? '' : 'rotate-180'}`} />
             </button>
@@ -2876,22 +2952,14 @@ export default function POSPage() {
                       </p>
                     </div>
                     <span className="font-mono font-semibold text-primary shrink-0">{formatARS(s.total)}</span>
-                    <button
-                      onClick={async () => {
-                        if (!confirm('¿Anular esta venta?')) return;
-                        try {
-                          await Promise.all(s.saleIds.map(id => deleteSaleDB(id)));
-                          setTurnoSales(prev => prev.filter(t => t.ts !== s.ts));
-                          toast.success('Venta anulada');
-                          const updated = await getProductsDB(user!.id);
-                          setProducts(updated);
-                        } catch { toast.error('Error al anular'); }
-                      }}
-                      className="shrink-0 p-1 text-destructive/60 hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
-                      title="Anular venta"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    {s.saleIds[0] && (
+                      <Link
+                        to={`/ventas?sale=${s.saleIds[0]}`}
+                        className="shrink-0 rounded px-2 py-1 text-[10px] font-semibold text-primary hover:bg-primary/10"
+                      >
+                        Ver ticket
+                      </Link>
+                    )}
                   </div>
                 ))}
               </div>
@@ -2981,12 +3049,12 @@ export default function POSPage() {
         />
       )}
 
-      {/* Turno summary modal */}
+      {/* Resumen local; la conciliación autoritativa vive en /caja/turno. */}
       <Dialog open={showTurnoSummary} onOpenChange={setShowTurnoSummary}>
           <DialogContent size="md">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2"><BarChart2 className="w-4 h-4 text-primary" />Resumen del turno</DialogTitle>
-              <DialogDescription>Ventas, medios de pago y responsable registrados en este dispositivo.</DialogDescription>
+              <DialogTitle className="flex items-center gap-2"><BarChart2 className="w-4 h-4 text-primary" />Actividad de esta pestaña</DialogTitle>
+              <DialogDescription>Atajo local desde que abriste Caja. El turno conciliable por sucursal se gestiona aparte y no se borra desde acá.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               {/* KPIs */}
@@ -3022,7 +3090,7 @@ export default function POSPage() {
               })()}
               {/* Recent sales list */}
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Ventas del turno</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Ventas de esta pestaña</p>
                 <div className="space-y-1 max-h-40 overflow-y-auto">
                   {[...turnoSales].reverse().map((s, i) => (
                     <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/40 last:border-0">
@@ -3038,9 +3106,14 @@ export default function POSPage() {
               {sellerName && <p className="text-[11px] text-muted-foreground text-center">Vendedor: <span className="font-semibold">{sellerName}</span></p>}
             </div>
             <DialogFooter>
-              <Button variant="outline" className="flex-1" onClick={() => { setTurnoSales([]); setShowTurnoSummary(false); toast.success("Turno reiniciado"); }}>
-                Reiniciar turno
+              <Button variant="outline" className="flex-1" onClick={() => { setTurnoSales([]); setShowTurnoSummary(false); toast.success("Actividad local limpiada"); }}>
+                Limpiar actividad local
               </Button>
+              {selectedLocationId && (
+                <Button variant="secondary" className="flex-1" asChild>
+                  <Link to={`/caja/turno?location=${selectedLocationId}`}>Gestionar turno</Link>
+                </Button>
+              )}
               <Button className="flex-1 gradient-gold text-primary-foreground font-semibold" onClick={() => setShowTurnoSummary(false)}>
                 Continuar
               </Button>
@@ -3238,11 +3311,34 @@ export default function POSPage() {
               >cambiar</button>
             </div>
           )}
+          {selectedLocationId && (
+            <Link
+              to={`/caja/turno?location=${selectedLocationId}`}
+              title="Gestionar turno de caja"
+              className={`hidden min-h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2 text-[11px] font-medium transition-colors md:flex ${
+                cashSessionError
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                  : cashSessionStatus
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                  : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Banknote className="h-3.5 w-3.5" />
+              {cashSessionLoading
+                ? "Turno…"
+                : cashSessionError
+                ? "Sin verificar"
+                : cashSessionStatus
+                ? `Abierta · ${Number(cashSessionStatus.ticket_count || 0)}`
+                : "Caja cerrada"}
+              <span className="hidden 2xl:inline">· Gestionar turno</span>
+            </Link>
+          )}
           {turnoSales.length > 0 && (
             <button onClick={() => setShowTurnoSummary(true)}
               className="hidden sm:flex items-center gap-1.5 shrink-0 text-xs text-primary bg-primary/10 border border-primary/20 rounded-lg px-2 py-1 hover:bg-primary/20 transition-colors font-medium">
               <BarChart2 className="w-3 h-3" />
-              {turnoSales.length} venta{turnoSales.length !== 1 ? 's' : ''} · {formatARS(turnoSales.reduce((s, v) => s + v.total, 0))}
+              Esta pestaña · {turnoSales.length}
             </button>
           )}
           <div className="flex-1 relative">

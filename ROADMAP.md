@@ -239,9 +239,10 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 2.048 tests en 202 archivos pasan al 2026-08-29; typecheck, lint sin errores (139 warnings conocidos), build/PWA y 72 Edge Functions verdes. Hay 43 E2E críticos: 32 públicos, 10 de panel y 1 setup autenticado; el recorrido de Gastos conserva 0 escrituras. |
+| Calidad técnica | 2.056 tests en 204 archivos pasan al 2026-08-29; typecheck, lint sin errores (139 warnings conocidos), build/PWA, auditoría npm sin vulnerabilidades y 72 Edge Functions verdes. Hay 46 E2E críticos listados: 32 públicos, 13 de panel y 1 setup autenticado; los recorridos de Gastos, importación y turno conservan 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
+| Turno POS | `20260829000044` vuelve autoritativa la caja por organización/ubicación: apertura/cierre por RPC, efectivo esperado server-side, un vínculo por ticket y una entrada por medio, vendedor, devolución y diferencia. Fixture reversible: 2 líneas → 1 ticket/entrada, ARS 10.000, esperado ARS 20.000, diferencia −ARS 100, outsider bloqueado y 0 restos. Base productiva al 2026-08-29: 0 sesiones y 0 movimientos reales; es confiabilidad técnica, todavía no uso. |
 | Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
 | Ledger | 10 eventos de ledger de dominio; 0 asientos contables operativos reales. |
 | Margen canónico | `20260822000004/5/6` conserva 34/34 líneas y reconstruye 34 operaciones / ARS 1.143.696 sin diferencia. Exige costo + cobro + envío real + IVA, registra fuente, mix y bloqueos. La próxima venta POS crea partes de cobro atómicas: efectivo/transferencia prueban cero; tarjeta espera liquidación real y luego calcula neto + asiento + auditoría. Además persiste ingreso posterior a descuento y precio de referencia. Base histórica: 0 completas, 0% explicable, 2,9% cobertura, 0 liquidaciones POS y 0/34 baselines; no se inventó backfill. |
@@ -1351,7 +1352,7 @@ contratos técnicos; **externo** = requiere dueño/proveedor/operación real;
 | P0-05 | F0 · infraestructura | **Externo** | Supabase/Vercel staging, secretos y cuentas sandbox separados. |
 | P0-06 | F0 · slice 4 | **Parcial** | Restore integral de proyecto y repetición contractual de RTO/RPO. |
 | P0-07 | F0 · slice 6 | **Parcial** | Exporter OpenTelemetry, SLO y alertas externas; correlación/P95 internos ya existen. |
-| P0-08 | F0 · slice 7 | **Parcial por P0-05** | Los 43 E2E definidos bloquean; los flujos con escritura esperan staging. |
+| P0-08 | F0 · slice 7 | **Parcial por P0-05** | Los 46 E2E definidos bloquean; los flujos con escritura esperan staging. |
 | P0-09 | F0 · slice 8 | **Técnico; decisión externa** | Costos reales, contrato y pricing aprobados; comisión sigue inactiva por defecto. |
 | P0-10 | F1 · slices 9–10 | **Técnico + externo** | Segundo comercio completa primera venta/pago/factura/cierre sin SQL. |
 | P1-01 | F1 · slice 10 / bitácora 39 | **Técnico** | Adopción real del Capability Catalog fuera de fixtures. |
@@ -1419,7 +1420,7 @@ por eso puede crecer por encima de 25.
 | 4 | Restore drill | F0 | **Cerrado 2026-08-21:** v3, 147 tablas / 63 filas, RTO técnico 937,22 ms, cero restos | Repetición trimestral; reconstrucción completa queda como nivel siguiente. |
 | 5 | Payment test matrix | F0 | **Interna cerrada:** 16 escenarios al 2026-08-26, incluidos firma, orden fuera de secuencia, refund ambiguo/exacto, retry, reversión y conciliación; certificación live bloqueada externamente | Pago/rechazo/webhook/timeout/refund reales reconciliados sin intervención de base. |
 | 6 | Correlation IDs y trazas críticas | F0 | **Cerrado para pagos 2026-08-21:** una correlación server-side une intent, attempt, metadata del proveedor, eventos, orden, settlement y ledger; timeline RLS sin PII | Matriz exige las 5 etapas y la UI reconstruye la operación desde Costos de cobro. Extender por riesgo, no como plataforma genérica. |
-| 7 | E2E bloqueante | F0 | **Cerrado para los 43 recorridos definidos al 2026-08-29:** tienda desktop/móvil y panel autenticado bloquean CI. Ampliar signup/refund/ARCA/Finance con escritura depende de P0-05. | GitHub Actions exige las 5 variables, no permite skips de auth y conserva specs de sólo lectura. |
+| 7 | E2E bloqueante | F0 | **Cerrado para los 46 recorridos definidos al 2026-08-29:** tienda desktop/móvil y panel autenticado bloquean CI. Ampliar signup/refund/ARCA/Finance con escritura depende de P0-05. | GitHub Actions exige las 5 variables, no permite skips de auth y conserva specs de sólo lectura. |
 | 8 | Comisión, billing y unit economics | F0 | **En curso:** aprobación segura + workbench de merchant/platform economics, impuesto, leakage, contribución y break-even entregados el 2026-08-21. Benchmark oficial: Tiendanube 0% con Pago Nube o 2%/1%/0,7% con proveedor externo, más su arancel. La muestra real sigue siendo 1 merchant y 2 pagos de ARS 1; faltan costos medidos, contrato y decisión | Contratos, costos, margen y pricing aprobados; ninguna comisión se activa por edición accidental y el escenario aprobado conserva contribución positiva bajo estrés. |
 | 9 | Segundo comercio | F1 | **Gate técnico cerrado; pendiente comercial:** alta Platform ahora es atómica/idempotente, bloquea owners vinculados y envía acceso sin revelar sesión | Primera venta sin cambios manuales de base. |
 | 10 | Onboarding universal, Business Profiler, importación, cohortes y soporte consentido | F1 | **Infraestructura cerrada 2026-08-22:** alta segura, objetivo POS/online, ocho hitos server-side, 7 perfiles declarativos, onboarding atómico, importador reconciliado, cohortes maduras y diagnóstico Support con consentimiento/expiración. Sólo faltan merchants externos | Segundo y tercer merchant reciben acceso, eligen perfil, completan hitos, importan sin SQL y reciben ayuda medible sin impersonación; la cohorte produce conversión/costo sin historia falsa. |
@@ -1446,7 +1447,7 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
 1. ~~restore drill de datos~~ — cerrado el 2026-08-21;
 2. ~~payment test matrix interna~~ — cerrada; certificación live espera una operación controlada;
 3. ~~correlation IDs y trazas de pagos~~ — cerrado el 2026-08-21;
-4. ~~E2E bloqueante~~ — cerrado para los 43 recorridos definidos al 2026-08-29 y credenciales técnicas rotadas;
+4. ~~E2E bloqueante~~ — cerrado para los 46 recorridos definidos al 2026-08-29 y credenciales técnicas rotadas;
 5. ~~modelo auditable de economics de comisión~~ — entregado el 2026-08-21; faltan costos medidos, contrato y decisión;
 6. ~~ruta universal a la primera venta~~ — cerrada el 2026-08-21 con ocho hitos y permisos verificados;
 7. ~~importación CSV/Excel con staging, preview, validación y reconciliación~~ — cerrada el 2026-08-21; prueba real 1 válida + 1 inválida, Kardex único, retry idempotente y cero restos;
@@ -2362,6 +2363,50 @@ Finance Connect.
     360/768/1024/1440; la tasa elegida sigue siendo decisión comercial/legal
     del dueño, no una recomendación automática de Gestiona.
 
+73. Turno de caja autoritativo por sucursal y ticket — cerrado técnicamente el
+    2026-08-29; uso real pendiente. Caja tenía dos verdades incompatibles: el
+    POS llamaba “turno” a una lista en memoria que desaparecía al recargar,
+    mientras `/caja/turno` escribía tablas directamente y calculaba ventas por
+    hora. El trigger histórico además elegía la primera membresía del usuario y
+    generaba un movimiento por renglón; en un operador multi-organización podía
+    atribuir el tenant equivocado y un ticket de tres productos parecía tres
+    ventas.
+
+    `20260829000044_pos_turno_autoritativo` establece una sesión por
+    organización/ubicación con lock e índice único, vincula
+    `sale_transactions.cash_session_id` dentro de `create_sales_transaction_v3`
+    y crea una entrada por ticket/medio desde la evidencia de cobro. Abrir y
+    cerrar son RPC idempotentes con `pos.create`/`pos.edit`, auditoría y cálculo
+    server-side del efectivo esperado; el rol autenticado perdió INSERT/UPDATE/
+    DELETE directo sobre sesiones. La devolución busca la sesión abierta de la
+    ubicación original y queda como `refund_out`; los errores de conciliación
+    dejan log y aviso visible.
+
+    El POS muestra sucursal y estado real sin bloquear la venta durante la
+    adopción: si no hay sesión declara que el ticket quedará “sin turno”. La
+    pantalla de sesión separa tickets, efectivo neto, transferencias, tarjetas,
+    otros medios, vendedor, ingresos/egresos, contado y diferencia. El resumen
+    local pasó a llamarse “Actividad de esta pestaña”, y se retiró la anulación
+    línea por línea que podía romper stock/cobro; dirige al inspector de Ventas.
+
+    Benchmark oficial consultado el 2026-08-29: [Square](https://squareup.com/help/us/en/article/8344-start-and-end-a-cash-drawer-session)
+    reúne fondo inicial, ventas/reembolsos, ingresos/retiros, esperado y conteo;
+    [Shopify POS](https://help.shopify.com/en/manual/sell-in-person/shopify-pos/cash-register-management/register-sessions-in-shopify-pos)
+    agrega ubicación, responsable, métodos no efectivo y discrepancia. Gestiona
+    adopta esa paridad sobre su ticket/stock/cobro canónicos, sin presentarla como
+    ventaja: producción tiene 0 sesiones y 0 movimientos reales.
+
+    La prueba reversible con rol real abrió, enlazó dos líneas como un ticket de
+    ARS 10.000, produjo una sola entrada, calculó ARS 20.000 esperados, cerró con
+    diferencia −ARS 100, bloqueó otra organización y dejó 0 restos. `db push
+    --linked --dry-run` quedó `upToDate=true`. Puerta completa: typecheck, lint
+    0 errores/139 warnings conocidos, 204 archivos/2.056 pruebas, build/PWA,
+    72 Edge Functions, auditoría de dependencias sin vulnerabilidades, enlaces
+    internos y 46 E2E listados. Los chunks quedan en 110,24 kB para POS y 28,69
+    kB para Turno, sin dependencia nueva. Falta operar y cerrar un turno real,
+    validar la superficie publicada en 360/768/1024/1440 y medir diferencia,
+    tiempo de cierre y ventas sin turno antes de declarar adopción.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
@@ -2859,10 +2904,10 @@ fixture destructiva-cero probó el RPC real y producción sirve `public-api` v42
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-29: **2.048 tests en 202 archivos**,
+- Build y suites locales del 2026-08-29: **2.056 tests en 204 archivos**,
   typecheck, lint sin errores (139 warnings de deuda conocida), build/PWA y 72
-  funciones verificadas. Última evidencia: 43 E2E críticos —32 públicos, 10 de
-  panel y 1 setup autenticado—; el de Gastos es de sólo lectura.
+  funciones verificadas. Última evidencia: 46 E2E críticos —32 públicos, 13 de
+  panel y 1 setup autenticado—; Gastos, importación y turno son de sólo lectura.
 - docs/FINANCE_DOCUMENT_EXTRACTION.md: custodia, esquema estructurado,
   confianza, revisión append-only, gate de privacidad y operación.
 - docs/FINANCE_DOCUMENT_MATCHING.md: orden determinístico, aliases confirmados,

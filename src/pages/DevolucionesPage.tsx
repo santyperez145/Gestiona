@@ -35,6 +35,8 @@ type Return = {
 
 type Sale = {
   id: string;
+  location_id: string | null;
+  sale_transaction_id: string | null;
   product_name: string;
   quantity: number;
   total_ars: number;
@@ -103,7 +105,7 @@ export default function DevolucionesPage() {
     setSearchingRef(true);
     const { data } = await supabase
       .from("sales")
-      .select("id, product_name, quantity, total_ars, customer_name, date, returned")
+      .select("id, product_name, quantity, total_ars, customer_name, date, returned, location_id, sale_transaction_id")
       .eq("org_id", activeOrg.id)
       .eq("returned", false)
       .ilike("product_name", `%${q}%`)
@@ -203,26 +205,36 @@ export default function DevolucionesPage() {
 
       // Register refund as cash egress (skip for store credit — it's not a cash movement)
       if (refundMethod !== "credito_tienda" && amount > 0) {
-        const { data: session } = await supabase
+        let sessionQuery = supabase
           .from("cash_sessions")
           .select("id")
           .eq("org_id", activeOrg.id)
           .eq("status", "open")
-          .order("opened_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .order("opened_at", { ascending: false });
+        sessionQuery = selectedSale?.location_id
+          ? sessionQuery.eq("location_id", selectedSale.location_id)
+          : sessionQuery.is("location_id", null);
+        const { data: session, error: sessionError } = await sessionQuery.limit(1).maybeSingle();
+        if (sessionError) console.error("[Devoluciones] No se pudo resolver la sesión de caja:", sessionError);
 
-        await supabase.from("cash_entries").insert({
+        const { error: cashEntryError } = await supabase.from("cash_entries").insert({
           org_id: activeOrg.id,
           session_id: session?.id || null,
-          entry_type: "manual_out",
+          entry_type: "refund_out",
           payment_method: refundMethod,
           amount_ars: amount,
-          reference_type: "sale",
-          reference_id: selectedSale?.id || null,
+          reference_type: "return",
+          reference_id: ret.id,
+          sale_transaction_id: selectedSale?.sale_transaction_id || null,
           description: `Reembolso devolución: ${productName}`,
           created_by: user.id,
         });
+        if (cashEntryError) {
+          console.error("[Devoluciones] La devolución cerró, pero no se registró su egreso de caja:", cashEntryError);
+          toast.warning("Devolución registrada con una conciliación pendiente", {
+            description: "El stock y la devolución quedaron guardados, pero Caja no pudo registrar el egreso.",
+          });
+        }
       }
 
       toast.success(`Devolución registrada · Stock restaurado (+${qty} uds)`);

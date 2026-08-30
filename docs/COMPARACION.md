@@ -1,6 +1,6 @@
 # Gestiona contra la competencia — medido, no estimado
 
-**Fecha de corte de base: 2026-08-21; investigación competitiva de POS/pagos
+**Fecha de corte de base: 2026-08-21; investigación competitiva de POS/pagos/caja
 actualizada el 2026-08-29.** Todo número nuestro sale de una consulta a la base
 de producción o de un comando reproducible y lleva la fecha al lado. Todo dato
 de un competidor lleva fuente y fecha, o va marcado como no verificado.
@@ -85,19 +85,19 @@ npx supabase db query --linked --file docs/consultas/escala.sql
 
 | | Valor | Comentario |
 |---|---:|---|
-| Tablas base | **308** | ✅ catálogo de producción, 2026-08-22 |
+| Tablas base | **326** | ✅ catálogo de producción, 2026-08-29 |
 | Relaciones con `org_id` | **340** | ✅ `information_schema.columns`, incluye vistas, 2026-08-22 |
-| Vistas | **77** | ✅ catálogo de producción, 2026-08-22 |
-| Funciones y procedimientos | **492** | ✅ catálogo de producción, 2026-08-29 |
-| Triggers | **131** | ✅ catálogo de producción, 2026-08-22 |
-| Índices | **946** | ✅ catálogo de producción, 2026-08-22 |
-| Políticas RLS | **384** | ✅ catálogo de producción, 2026-08-22 |
-| Migraciones registradas | **494** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate`, 2026-08-29 |
+| Vistas | **110** | ✅ catálogo de producción, 2026-08-29 |
+| Funciones y procedimientos | **496** | ✅ catálogo de producción, 2026-08-29 |
+| Triggers | **147** | ✅ catálogo de producción, 2026-08-29 |
+| Índices | **1.008** | ✅ catálogo de producción, 2026-08-29 |
+| Políticas RLS | **396** | ✅ catálogo de producción, 2026-08-29 |
+| Migraciones registradas | **495** | ✅ Libro reconciliado, `db push --dry-run` en `upToDate`, 2026-08-29 |
 | Cron jobs | **26** | ⚠️ 22.503 corridas exitosas y **3 fallidas** en 7 días; se agregó reconciliación QR por minuto. Las tres fallas históricas corresponden a `expire-overdue-trials`, cuya recuperación posterior se documenta en la auditoría del 2026-08-28 |
 | Edge Functions | **72** | ✅ `npm run check:functions`, 2026-08-29; incluye el checkout QR de POS |
 | Líneas de TypeScript | **142.349** | ✅ sin contar los 31.421 de tipos generados |
-| Tests unitarios | **2.048** | ✅ `npm test`, 202 archivos, 2026-08-29 |
-| Specs E2E | **3** | ✅ Playwright, sólo lectura contra producción |
+| Tests unitarios | **2.056** | ✅ `npm test`, 204 archivos, 2026-08-29 |
+| Recorridos E2E | **46** | ✅ `playwright test --list`: 32 públicos, 13 de panel y 1 setup; el nuevo turno es sólo lectura |
 | Tamaño de la base | **47 MB** | ✅ |
 | Bundle | **7,3 MB** | ⚠️ ver §5.3 |
 
@@ -186,6 +186,7 @@ consultadas el 2026-08-22.
 | | Gestiona | Tiendanube | Empretienda |
 |---|---|---|---|
 | POS de mostrador | ✅ PWA **con modo offline** | ✅ PDV, ✅ **no en su app móvil** | 🟡 carga manual de venta presencial/WhatsApp/redes |
+| Turno de caja por sucursal | 🟡 autoridad server-side por organización/ubicación; apertura/cierre por RPC, fondo, ticket único, vendedor, devoluciones, efectivo esperado y diferencia. Fixture productivo aprobado; **0 turnos reales**, por lo que falta adopción | ❓ | ❓ |
 | Descuento automático por medio en POS | ✅ mejor beneficio, autoridad servidor, evidencia por línea y configuración persistible desde su propia sección | ❓ | ❓ |
 | Fidelidad/alerta grande por ticket | ✅ una vez por `sale_transaction`, idempotente y recalculable al anular | ❓ | ❓ |
 | Stock único entre canales | ✅ ledger de stock con triggers | ✅ | ✅ tienda + venta cargada manualmente |
@@ -199,6 +200,15 @@ consultadas el 2026-08-22.
 | Multi-sucursal | ✅ `location_stock` | ❓ | ❓ |
 | Listas de precios y precios por categoría | ✅ | ❓ | ❓ |
 | CRM con ficha 360 | ✅ 5 tablas cruzadas por `customer_id` | 🟡 básico ❓ | ❓ |
+
+✅ **Benchmark de caja actualizado el 2026-08-29.** [Square](https://squareup.com/help/us/en/article/8344-start-and-end-a-cash-drawer-session)
+modela una sesión con efectivo inicial, ventas/reembolsos, ingresos/retiros,
+esperado y conteo final; [Shopify POS](https://help.shopify.com/en/manual/sell-in-person/shopify-pos/cash-register-management/register-sessions-in-shopify-pos)
+agrega ubicación, responsable, métodos no efectivo y discrepancia. Gestiona
+traduce ese patrón al Business Core: un ticket con varias líneas o split cuenta
+una vez, la venta se enlaza atómicamente a la sesión abierta de su sucursal y el
+cliente no puede escribir apertura/cierre directamente. Eso es paridad técnica,
+no una ventaja probada mientras no existan turnos reales operados y cerrados.
 
 ### 3.3 Fiscal y legal argentino
 
@@ -422,7 +432,7 @@ necesita un SaaS de 2 organizaciones (2026-08-26). No es el cuello de botella.
 | **Observabilidad** | 🟡 Sentry en front, Merchant 360 y traza correlacionada del pago desde checkout hasta ledger, visible con RLS y sin PII. Faltan métricas/SLO, OpenTelemetry, alertas y health checks activos | Trazas distribuidas, métricas, alertas por SLO | 🔴 Alto |
 | **Feature flags** | 🟡 `checkout_brick` se pausa globalmente o por comercio, con auditoría y fallback al checkout externo; no hay porcentaje ni canary | Todo lo riesgoso sale detrás de un flag y se activa por porcentaje | 🟠 Medio |
 | **Despliegue** | ✅ `git push` → Vercel. Sin canary, sin rollback automático | Blue-green o canary, rollback en un clic, health checks | 🟠 Medio |
-| **CI** | ✅ Deno para 72 Edge Functions + lint + typecheck + build, 2.048 tests en 202 archivos (2026-08-29), audit completo en 0 y 43 E2E críticos bloqueantes (tienda desktop/móvil + panel autenticado) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
+| **CI** | ✅ Deno para 72 Edge Functions + lint + typecheck + build, 2.056 tests en 204 archivos (2026-08-29), audit completo en 0 y 46 E2E críticos definidos (32 públicos, 13 panel, 1 setup) | Suite completa bloqueante, incluidos los E2E y el código serverless | 🟢 Cerrado para los recorridos definidos |
 | **API pública / webhooks salientes** | ✅ Contrato técnico cerrado: API OpenAPI 3.1, `/v1`, scopes sin filtración, cupo durable, venta atómica/idempotente, ARS 2/USD 4, lifecycle y CORS server-to-server; webhooks con guía/receptor Node, HMAC, timestamp, filtro, outbox, id estable, retry, DLQ/replay, log y certificación HTTPS externa sintética. ⚠️ 0 keys/apps reales | API documentada, versionada, con rate limit y webhooks firmados | 🟢 Base técnica; adopción externa pendiente |
 | **Multi-región / DR** | 🔴 Una sola región | Réplicas, failover regional | 🟢 Bajo hoy |
 | **On-call** | 🔴 No existe | Rotación, runbooks, postmortems | 🟢 Bajo hoy |

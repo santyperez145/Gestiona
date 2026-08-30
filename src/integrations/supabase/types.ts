@@ -5079,6 +5079,8 @@ export type Database = {
           payment_method: string | null
           reference_id: string | null
           reference_type: string | null
+          sale_transaction_id: string | null
+          seller_name: string | null
           session_id: string | null
         }
         Insert: {
@@ -5092,6 +5094,8 @@ export type Database = {
           payment_method?: string | null
           reference_id?: string | null
           reference_type?: string | null
+          sale_transaction_id?: string | null
+          seller_name?: string | null
           session_id?: string | null
         }
         Update: {
@@ -5105,6 +5109,8 @@ export type Database = {
           payment_method?: string | null
           reference_id?: string | null
           reference_type?: string | null
+          sale_transaction_id?: string | null
+          seller_name?: string | null
           session_id?: string | null
         }
         Relationships: [
@@ -5184,6 +5190,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "cash_entries_sale_transaction_id_fkey"
+            columns: ["sale_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "sale_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_entries_sale_transaction_id_fkey"
+            columns: ["sale_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "ventas_sin_asentar"
+            referencedColumns: ["transaction_id"]
           },
           {
             foreignKeyName: "cash_entries_session_id_fkey"
@@ -5336,6 +5356,7 @@ export type Database = {
           difference: number | null
           expected_cash: number | null
           id: string
+          location_id: string | null
           notes: string | null
           opened_at: string
           opened_by: string | null
@@ -5350,6 +5371,7 @@ export type Database = {
           difference?: number | null
           expected_cash?: number | null
           id?: string
+          location_id?: string | null
           notes?: string | null
           opened_at?: string
           opened_by?: string | null
@@ -5364,6 +5386,7 @@ export type Database = {
           difference?: number | null
           expected_cash?: number | null
           id?: string
+          location_id?: string | null
           notes?: string | null
           opened_at?: string
           opened_by?: string | null
@@ -5372,6 +5395,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cash_sessions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cash_sessions_org_id_fkey"
             columns: ["org_id"]
@@ -24401,116 +24431,6 @@ export type Database = {
           },
         ]
       }
-      pos_qr_sessions: {
-        Row: {
-          amount: number
-          cashier_acknowledged_at: string | null
-          client_key: string
-          completed_at: string | null
-          created_at: string
-          created_by: string
-          currency: string
-          expires_at: string
-          failure_reason: string | null
-          id: string
-          org_id: string
-          payload_hash: string
-          payment_attempt_id: string
-          payment_intent_id: string
-          platform_fee: number
-          provider_order_id: string | null
-          provider_payment_id: string | null
-          provider_status: string | null
-          provider_status_detail: string | null
-          qr_data: string | null
-          sale_transaction_id: string | null
-          sales_payload: Json
-          state: string
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          cashier_acknowledged_at?: string | null
-          client_key: string
-          completed_at?: string | null
-          created_at?: string
-          created_by: string
-          currency?: string
-          expires_at?: string
-          failure_reason?: string | null
-          id?: string
-          org_id: string
-          payload_hash: string
-          payment_attempt_id: string
-          payment_intent_id: string
-          platform_fee?: number
-          provider_order_id?: string | null
-          provider_payment_id?: string | null
-          provider_status?: string | null
-          provider_status_detail?: string | null
-          qr_data?: string | null
-          sale_transaction_id?: string | null
-          sales_payload: Json
-          state?: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          cashier_acknowledged_at?: string | null
-          client_key?: string
-          completed_at?: string | null
-          created_at?: string
-          created_by?: string
-          currency?: string
-          expires_at?: string
-          failure_reason?: string | null
-          id?: string
-          org_id?: string
-          payload_hash?: string
-          payment_attempt_id?: string
-          payment_intent_id?: string
-          platform_fee?: number
-          provider_order_id?: string | null
-          provider_payment_id?: string | null
-          provider_status?: string | null
-          provider_status_detail?: string | null
-          qr_data?: string | null
-          sale_transaction_id?: string | null
-          sales_payload?: Json
-          state?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pos_qr_sessions_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pos_qr_sessions_payment_attempt_id_fkey"
-            columns: ["payment_attempt_id"]
-            isOneToOne: false
-            referencedRelation: "payment_attempts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pos_qr_sessions_payment_intent_id_fkey"
-            columns: ["payment_intent_id"]
-            isOneToOne: false
-            referencedRelation: "payment_intents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pos_qr_sessions_sale_transaction_id_fkey"
-            columns: ["sale_transaction_id"]
-            isOneToOne: false
-            referencedRelation: "sale_transactions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       plan_price_change_targets: {
         Row: {
           aplicado_at: string | null
@@ -26331,6 +26251,193 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+        ]
+      }
+      pos_qr_sessions: {
+        Row: {
+          amount: number
+          cashier_acknowledged_at: string | null
+          client_key: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          expires_at: string
+          failure_reason: string | null
+          id: string
+          org_id: string
+          payload_hash: string
+          payment_attempt_id: string
+          payment_intent_id: string
+          platform_fee: number
+          provider_order_id: string | null
+          provider_payment_id: string | null
+          provider_status: string | null
+          provider_status_detail: string | null
+          qr_data: string | null
+          sale_transaction_id: string | null
+          sales_payload: Json
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          cashier_acknowledged_at?: string | null
+          client_key: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string
+          expires_at?: string
+          failure_reason?: string | null
+          id?: string
+          org_id: string
+          payload_hash: string
+          payment_attempt_id: string
+          payment_intent_id: string
+          platform_fee?: number
+          provider_order_id?: string | null
+          provider_payment_id?: string | null
+          provider_status?: string | null
+          provider_status_detail?: string | null
+          qr_data?: string | null
+          sale_transaction_id?: string | null
+          sales_payload: Json
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          cashier_acknowledged_at?: string | null
+          client_key?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          expires_at?: string
+          failure_reason?: string | null
+          id?: string
+          org_id?: string
+          payload_hash?: string
+          payment_attempt_id?: string
+          payment_intent_id?: string
+          platform_fee?: number
+          provider_order_id?: string | null
+          provider_payment_id?: string | null
+          provider_status?: string | null
+          provider_status_detail?: string | null
+          qr_data?: string | null
+          sale_transaction_id?: string | null
+          sales_payload?: Json
+          state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_qr_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_payment_attempt_id_fkey"
+            columns: ["payment_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "payment_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_payment_intent_id_fkey"
+            columns: ["payment_intent_id"]
+            isOneToOne: false
+            referencedRelation: "payment_intents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_sale_transaction_id_fkey"
+            columns: ["sale_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "sale_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_qr_sessions_sale_transaction_id_fkey"
+            columns: ["sale_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "ventas_sin_asentar"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -28877,7 +28984,6 @@ export type Database = {
           id: string
           order_id: string | null
           org_id: string
-          pos_qr_session_id: string | null
           product_id: string
           rating: number
           replied_at: string | null
@@ -28894,7 +29000,6 @@ export type Database = {
           id?: string
           order_id?: string | null
           org_id: string
-          pos_qr_session_id?: string | null
           product_id: string
           rating: number
           replied_at?: string | null
@@ -28911,7 +29016,6 @@ export type Database = {
           id?: string
           order_id?: string | null
           org_id?: string
-          pos_qr_session_id?: string | null
           product_id?: string
           rating?: number
           replied_at?: string | null
@@ -33549,6 +33653,7 @@ export type Database = {
       }
       sale_transactions: {
         Row: {
+          cash_session_id: string | null
           client_transaction_id: string | null
           correlation_id: string
           created_at: string
@@ -33559,6 +33664,7 @@ export type Database = {
           source: string
         }
         Insert: {
+          cash_session_id?: string | null
           client_transaction_id?: string | null
           correlation_id?: string
           created_at?: string
@@ -33569,6 +33675,7 @@ export type Database = {
           source?: string
         }
         Update: {
+          cash_session_id?: string | null
           client_transaction_id?: string | null
           correlation_id?: string
           created_at?: string
@@ -33579,6 +33686,20 @@ export type Database = {
           source?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sale_transactions_cash_session_id_fkey"
+            columns: ["cash_session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_session_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "sale_transactions_cash_session_id_fkey"
+            columns: ["cash_session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_sessions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sale_transactions_org_id_fkey"
             columns: ["org_id"]
@@ -33670,8 +33791,6 @@ export type Database = {
           customer_name: string | null
           date: string
           discount_applied: boolean
-          payment_discount_ars: number
-          payment_discount_percent: number
           ecommerce_order_id: string | null
           first_installment_date: string | null
           global_discount_ars: number | null
@@ -33683,6 +33802,8 @@ export type Database = {
           org_id: string
           override_de_precio: boolean
           paid: boolean
+          payment_discount_ars: number
+          payment_discount_percent: number
           payment_method: string
           precio_autoritativo: number | null
           product_id: string | null
@@ -33716,8 +33837,6 @@ export type Database = {
           customer_name?: string | null
           date?: string
           discount_applied?: boolean
-          payment_discount_ars?: number
-          payment_discount_percent?: number
           ecommerce_order_id?: string | null
           first_installment_date?: string | null
           global_discount_ars?: number | null
@@ -33729,6 +33848,8 @@ export type Database = {
           org_id: string
           override_de_precio?: boolean
           paid?: boolean
+          payment_discount_ars?: number
+          payment_discount_percent?: number
           payment_method?: string
           precio_autoritativo?: number | null
           product_id?: string | null
@@ -33762,8 +33883,6 @@ export type Database = {
           customer_name?: string | null
           date?: string
           discount_applied?: boolean
-          payment_discount_ars?: number
-          payment_discount_percent?: number
           ecommerce_order_id?: string | null
           first_installment_date?: string | null
           global_discount_ars?: number | null
@@ -33775,6 +33894,8 @@ export type Database = {
           org_id?: string
           override_de_precio?: boolean
           paid?: boolean
+          payment_discount_ars?: number
+          payment_discount_percent?: number
           payment_method?: string
           precio_autoritativo?: number | null
           product_id?: string | null
@@ -37064,6 +37185,7 @@ export type Database = {
           notes: string | null
           order_id: string | null
           org_id: string
+          pos_qr_session_id: string | null
           product_id: string
           quantity: number
           resolved_at: string | null
@@ -37082,6 +37204,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           org_id: string
+          pos_qr_session_id?: string | null
           product_id: string
           quantity: number
           resolved_at?: string | null
@@ -37100,6 +37223,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           org_id?: string
+          pos_qr_session_id?: string | null
           product_id?: string
           quantity?: number
           resolved_at?: string | null
@@ -41510,13 +41634,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "webhook_deliveries_webhook_id_fkey"
-            columns: ["webhook_id"]
-            isOneToOne: false
-            referencedRelation: "webhook_configs"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "webhook_deliveries_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -41593,6 +41710,13 @@ export type Database = {
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
+          {
+            foreignKeyName: "webhook_deliveries_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_configs"
+            referencedColumns: ["id"]
+          },
         ]
       }
       webhook_signing_secrets: {
@@ -41625,8 +41749,78 @@ export type Database = {
             foreignKeyName: "webhook_signing_secrets_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_signing_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_signing_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_signing_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_signing_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_signing_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_signing_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_signing_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_signing_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_signing_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "webhook_signing_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "webhook_signing_secrets_webhook_id_fkey"
@@ -43572,13 +43766,20 @@ export type Database = {
       cash_session_summary: {
         Row: {
           closed_at: string | null
+          closed_by: string | null
+          closing_amount: number | null
+          difference: number | null
           efectivo_neto: number | null
+          expected_cash: number | null
+          location_id: string | null
           opened_at: string | null
+          opened_by: string | null
           opening_amount: number | null
           org_id: string | null
           session_id: string | null
           status: string | null
           tarjeta_total: number | null
+          ticket_count: number | null
           total_cobros: number | null
           total_egresos: number | null
           total_movements: number | null
@@ -43586,6 +43787,13 @@ export type Database = {
           transferencia_total: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "cash_sessions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cash_sessions_org_id_fkey"
             columns: ["org_id"]
@@ -46644,11 +46852,11 @@ export type Database = {
           external_id: string | null
           last_error: string | null
           live_mode: boolean | null
+          mp_pos_status: string | null
           nickname: string | null
           org_id: string | null
           provider: string | null
           qr_pos_ready: boolean | null
-          mp_pos_status: string | null
           vigente: boolean | null
         }
         Insert: {
@@ -46659,11 +46867,11 @@ export type Database = {
           external_id?: string | null
           last_error?: string | null
           live_mode?: boolean | null
+          mp_pos_status?: string | null
           nickname?: string | null
           org_id?: string | null
           provider?: string | null
           qr_pos_ready?: never
-          mp_pos_status?: string | null
           vigente?: never
         }
         Update: {
@@ -46674,11 +46882,11 @@ export type Database = {
           external_id?: string | null
           last_error?: string | null
           live_mode?: boolean | null
+          mp_pos_status?: string | null
           nickname?: string | null
           org_id?: string | null
           provider?: string | null
           qr_pos_ready?: never
-          mp_pos_status?: string | null
           vigente?: never
         }
         Relationships: [
@@ -50417,6 +50625,7 @@ export type Database = {
         Args: { p_customer_id: string; p_org_id: string }
         Returns: Json
       }
+      api_key_consumir_cupo: { Args: { p_key_id: string }; Returns: Json }
       api_key_emitir: {
         Args: {
           p_expires?: string
@@ -50424,10 +50633,6 @@ export type Database = {
           p_org: string
           p_scopes?: string[]
         }
-        Returns: Json
-      }
-      api_key_consumir_cupo: {
-        Args: { p_key_id: string }
         Returns: Json
       }
       api_key_revocar: {
@@ -50617,9 +50822,17 @@ export type Database = {
         Args: { p_snapshot_date?: string }
         Returns: number
       }
+      capture_pos_cash_session: {
+        Args: { p_org_id: string; p_transaction_id: string }
+        Returns: Json
+      }
       capture_pos_payment_transactions: {
         Args: { p_org_id: string; p_transaction_id: string }
         Returns: Json
+      }
+      cash_session_expected_cash: {
+        Args: { p_session_id: string }
+        Returns: number
       }
       cerrar_conteo: { Args: { p_count_id: string }; Returns: Json }
       check_overdue_debts: { Args: never; Returns: undefined }
@@ -51971,6 +52184,35 @@ export type Database = {
       }
       platform_role: { Args: { _user_id?: string }; Returns: string }
       podar_invocaciones: { Args: { p_dias?: number }; Returns: number }
+      pos_cash_session_close: {
+        Args: {
+          p_closing_amount: number
+          p_notes?: string
+          p_session_id: string
+        }
+        Returns: Json
+      }
+      pos_cash_session_open: {
+        Args: {
+          p_location_id: string
+          p_notes?: string
+          p_opening_amount?: number
+          p_org_id: string
+        }
+        Returns: Json
+      }
+      pos_payment_discount_pct: {
+        Args: { p_method: string; p_org_id: string }
+        Returns: number
+      }
+      pos_payment_method_codes: {
+        Args: { p_sale_method: string }
+        Returns: {
+          method: string
+          provider: string
+          requires_settlement: boolean
+        }[]
+      }
       pos_qr_apply_provider: {
         Args: {
           p_fee?: number
@@ -51985,10 +52227,7 @@ export type Database = {
         }
         Returns: Json
       }
-      pos_qr_cancel_uncreated: {
-        Args: { p_session_id: string }
-        Returns: Json
-      }
+      pos_qr_cancel_uncreated: { Args: { p_session_id: string }; Returns: Json }
       pos_qr_expire_orphans: { Args: never; Returns: number }
       pos_qr_provider_created: {
         Args: {
@@ -52019,18 +52258,7 @@ export type Database = {
         Args: { p_client_key: string; p_org_id: string; p_sales: Json }
         Returns: Json
       }
-      pos_qr_session_response: {
-        Args: { p_session_id: string }
-        Returns: Json
-      }
-      pos_payment_method_codes: {
-        Args: { p_sale_method: string }
-        Returns: {
-          method: string
-          provider: string
-          requires_settlement: boolean
-        }[]
-      }
+      pos_qr_session_response: { Args: { p_session_id: string }; Returns: Json }
       preaviso_minimo_dias: { Args: { p_sube: boolean }; Returns: number }
       precio_pos_autoritativo: {
         Args: {
@@ -52169,6 +52397,10 @@ export type Database = {
       }
       receive_store_return_request: {
         Args: { p_return_request_id: string }
+        Returns: Json
+      }
+      reconcile_sale_transaction_effects: {
+        Args: { p_transaction_id: string }
         Returns: Json
       }
       reconciliar_invocaciones: { Args: never; Returns: number }
@@ -52649,7 +52881,7 @@ export type Database = {
           p_retry_on_fail?: boolean
           p_timeout_seconds?: number
           p_url: string
-          p_webhook_id: string | null
+          p_webhook_id: string
         }
         Returns: Json
       }
