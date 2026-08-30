@@ -5,7 +5,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useOrgCategoryNames } from "@/hooks/useOrgCategoryNames";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getProductsDB, getSettingsDB, addSalesDB, deleteSaleDB, formatARS, validateCouponDB, awardLoyaltyPointsForSale, getVariantsByUserDB, recordMemberStockMovementDB } from "@/lib/supabaseStore";
+import { getProductsDB, getSettingsDB, addSalesDB, deleteSaleDB, formatARS, validateCouponDB, getVariantsByUserDB, recordMemberStockMovementDB } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { loadActivePromotions, bestPromoPrice, type Promotion, type BestPromo } from "@/lib/promotions";
 import { supabase } from "@/integrations/supabase/client";
@@ -1673,8 +1673,10 @@ export default function POSPage() {
     if (!user || !activeOrg) return;
     const orgId = activeOrg.id;
 
-    // Las promociones y la fidelidad son efectos posteriores al ticket. Un
-    // fallo no deshace una venta ya cobrada, pero tampoco se oculta.
+    // El uso de promociones todavia es un efecto posterior al ticket. Un fallo
+    // no deshace una venta ya cobrada, pero tampoco se oculta. Fidelidad y
+    // alerta de venta grande ya se reconcilian en la base por sale_transaction:
+    // asi tambien ocurren si webhook/cron acredita un QR con Caja cerrada.
     const promoAgg: Record<string, { promo: Promotion; discount: number }> = {};
     for (const item of cart) {
       const bp = promoFor(item);
@@ -1694,25 +1696,7 @@ export default function POSPage() {
       if (error) console.error("[POS] No se pudieron registrar usos de promociones:", error);
     }
 
-    if (customer.trim()) {
-      const loyaltyProductId = cart[0]?.productId.split("__")[0] ?? "";
-      awardLoyaltyPointsForSale(orgId, customer.trim(), registeredTotal, loyaltyProductId)
-        .catch((error) => console.error("[POS] No se pudieron asignar puntos:", error));
-    }
-
     const largeThreshold = Number(settings?.large_sale_threshold_ars) || 50_000;
-    if (registeredTotal >= largeThreshold) {
-      const { error } = await supabase.from("notifications").insert({
-        user_id: user.id,
-        org_id: orgId,
-        type: "venta_grande",
-        title: `Venta grande: ${formatARS(registeredTotal)}`,
-        message: customer.trim() ? `Cliente: ${customer.trim()}` : "Venta sin nombre de cliente",
-        read: false,
-      });
-      if (error) console.error("[POS] No se pudo guardar la alerta de venta grande:", error);
-    }
-
     try {
       const updatedProducts = await getProductsDB(user.id);
       setProducts(updatedProducts);

@@ -1137,31 +1137,6 @@ export async function addSupplierPaymentDB(
   if (error) throw error;
 }
 
-export async function awardLoyaltyPointsForSale(
-  orgId: string,
-  customerName: string | null,
-  totalARS: number,
-  saleId: string,
-) {
-  if (!customerName) return;
-  const { data: sett } = await supabase
-    .from('settings')
-    .select('loyalty_enabled, loyalty_points_per_1000')
-    .eq('org_id', orgId)
-    .single();
-  if (!sett?.loyalty_enabled) return;
-  const pointsPer1000 = Number(sett.loyalty_points_per_1000) || 1;
-  const points = Math.floor((totalARS / 1000) * pointsPer1000);
-  if (points <= 0) return;
-  await supabase.from('loyalty_points').insert({
-    org_id: orgId,
-    customer_name: customerName,
-    delta: points,
-    reason: 'sale',
-    reference_id: saleId,
-  });
-}
-
 // ========= CRM SEGMENTS (DB-persisted) =========
 export type SavedCRMSegment = { id: string; name: string; segment: string };
 
