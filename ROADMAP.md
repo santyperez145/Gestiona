@@ -2417,6 +2417,15 @@ Finance Connect.
     configurado o CTA de activación— y deja de exigir datos que producción no
     tiene.
 
+    El despliegue `31ddc01` quedó `Ready` en 27 s y se revalidó con sesión real
+    sin escribir: Turno conserva H1, CTA visible y cero overflow en
+    360/768/1024/1440; Caja muestra la recuperación en el carrito mobile a 360
+    px y en el panel desktop a 1440 px. El E2E codifica esa misma matriz. Su
+    ejecución CLI local detectó que el estado guardado había vencido y redirigió
+    correctamente a Login, por lo que no se presenta como pasada; la matriz sí
+    se completó con la sesión vigente del navegador integrado. Evidencia:
+    [`docs/evidencias/2026-08-29_turno_caja_visual.md`](docs/evidencias/2026-08-29_turno_caja_visual.md).
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

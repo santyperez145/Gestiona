@@ -231,23 +231,43 @@ test.describe("POS", () => {
     await abrirPos(page);
 
     await expect(page.getByRole("button", { name: /Confirmar venta/ })).toBeDisabled();
-    await expect(page.getByRole("link", { name: /Gestionar turno/ }).first()).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /Gestionar turno/ }).first()
+        .or(page.getByRole("link", { name: "Configurar sucursal" }).first()),
+    ).toBeVisible();
     expect(errors, `errores en consola:\n${errors.join("\n")}`).toEqual([]);
   });
 
-  test("abre el turno autoritativo de la misma sucursal sin mutar la base", async ({ page }) => {
+  test("expone el turno autoritativo o su activación sin mutar la base", async ({ page }) => {
     const errors: string[] = [];
     page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
     page.on("pageerror", error => errors.push(error.message));
 
     await abrirPos(page);
-    await page.getByRole("link", { name: /Gestionar turno/ }).first().click();
-    await expect(page).toHaveURL(/\/caja\/turno\?location=/);
-    await expect(page.getByRole("heading", { name: "Apertura & Cierre de Caja" })).toBeVisible();
-    await expect(
-      page.getByRole("combobox", { name: "Sucursal de la sesión de caja" })
-        .or(page.getByRole("link", { name: "Configurar sucursal" })),
-    ).toBeVisible();
+    const gestionar = page.getByRole("link", { name: /Gestionar turno/ }).first();
+    if (await gestionar.isVisible()) {
+      await gestionar.click();
+      await expect(page).toHaveURL(/\/caja\/turno\?location=/);
+    } else {
+      await expect(page.getByRole("link", { name: "Configurar sucursal" }).first()).toBeVisible();
+      await page.goto("/caja/turno");
+    }
+
+    const turnoUrl = page.url();
+    for (const width of [360, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(turnoUrl);
+      await expect(page.getByRole("heading", { name: "Apertura & Cierre de Caja" })).toBeVisible();
+      await expect(
+        page.getByRole("combobox", { name: "Sucursal de la sesión de caja" })
+          .or(page.getByRole("link", { name: "Configurar sucursal" })),
+      ).toBeVisible();
+      const viewport = await page.evaluate(() => ({
+        width: window.innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+      }));
+      expect(viewport.scrollWidth, `overflow horizontal a ${width}px`).toBeLessThanOrEqual(viewport.width);
+    }
     expect(errors, `errores en consola:\n${errors.join("\n")}`).toEqual([]);
   });
 
