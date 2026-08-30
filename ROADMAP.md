@@ -2539,6 +2539,13 @@ Finance Connect.
     fuente exacta y someterla a las guardas, o probar que no tiene tráfico y
     retirarla de forma controlada.
 
+    `1ec3c3c` quedó publicado y Vercel informó `Ready` en 26 s. La sesión real
+    de administrador revalidó H1, CTA, estado vacío y modal; 360/768/1024/1440
+    no presentan overflow, el CTA físico mobile abre el diálogo y no hubo
+    errores ni warnings nuevos desde el reload. No se creó ninguna operación.
+    Evidencia:
+    [`docs/evidencias/2026-08-30_pos_refund_mercadopago.md`](docs/evidencias/2026-08-30_pos_refund_mercadopago.md).
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
