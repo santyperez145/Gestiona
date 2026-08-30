@@ -1,5 +1,5 @@
 import { LucideIcon } from "lucide-react";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 
 export type WorkspaceViewTab = {
   id: string;
@@ -17,12 +17,25 @@ type WorkspaceViewTabsProps = {
 };
 
 export default function WorkspaceViewTabs({ tabs, activeTab, onChange, ariaLabel, meta }: WorkspaceViewTabsProps) {
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  useEffect(() => {
+    tabRefs.current[activeTab]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "nearest",
+    });
+  }, [activeTab]);
+
   return (
     <div className="workspace-view-tabs" data-active-tab={activeTab}>
       <div className="workspace-view-tabs__list" role="tablist" aria-label={ariaLabel}>
         {tabs.map(({ id, label, icon: Icon, count }) => (
           <button
             key={id}
+            ref={(node) => {
+              tabRefs.current[id] = node;
+            }}
             type="button"
             role="tab"
             aria-selected={activeTab === id}

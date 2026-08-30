@@ -2640,6 +2640,18 @@ Finance Connect.
     y medir recomendación→acción→resultado. `ai-analysis` quedó ACTIVE versión
     43, `verify_jwt=true`, CORS `*`; una llamada anónima devuelve 401.
 
+    La primera validación publicada del cliente `7836b50` confirmó con una
+    sesión real cancelada que Resumen ofrece **Activar IA**, Inteligencia
+    reemplaza la proyección paga por **Ver planes y activar IA**, y desde el
+    corte de observación no aparecieron errores nuevos. La matriz
+    360/768/1024/1440 mantuvo `scrollWidth = clientWidth`, pero descubrió una
+    deuda de navegación: en escritorio la última pestaña activa quedaba
+    parcialmente fuera del contenedor por el metadato lateral. El componente
+    compartido `WorkspaceViewTabs` ahora desplaza horizontalmente cada tab
+    activa con `block/inline: nearest`; una guarda evita perder esa conducta.
+    Falta revalidar este ajuste después del siguiente deploy antes de cerrar la
+    evidencia visual.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

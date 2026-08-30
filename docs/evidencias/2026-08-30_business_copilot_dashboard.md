@@ -1,7 +1,9 @@
 # Evidencia — Business Copilot del Dashboard
 
 **Fecha:** 2026-08-30  
-**Estado:** implementación y Edge Function publicadas; cliente/Vercel y respuesta del proveedor pendientes al crear este corte.
+**Estado:** implementación, Edge Function y cliente `7836b50` publicados;
+respuesta del proveedor y revalidación del ajuste final de tabs pendientes al
+crear este corte.
 
 ## Hallazgo productivo
 
@@ -92,11 +94,29 @@ POST anónimo
 
 La prueba no usó credenciales, no leyó datos y no consumió al proveedor.
 
+## Primera validación del cliente publicado
+
+Vercel publicó `7836b50` en Production y el dominio principal activó el nuevo
+service worker después de una segunda navegación versionada. En la sesión real
+de una organización cancelada:
+
+- Resumen mostró **Activar IA → Mi plan** y no montó Briefing/Pulso;
+- Inteligencia mostró **Ver planes y activar IA → Mi plan** en vez de montar la
+  proyección paga;
+- no aparecieron logs nuevos desde el corte de observación;
+- 360/768/1024/1440 conservaron `scrollWidth = clientWidth`.
+
+La matriz encontró además que a 1440 la tab activa Inteligencia medía 155 px,
+pero su extremo derecho quedaba fuera de los 850 px visibles del tablist. No era
+overflow de página: el metadato lateral comprimía el carril y la tab activa no
+se desplazaba. `WorkspaceViewTabs` ahora aplica `scrollIntoView` con
+`block/inline: nearest`; la revalidación publicada de ese ajuste se agrega tras
+el próximo deploy.
+
 ## Lo que no se certifica
 
 `ANTHROPIC_API_KEY` no aparece en `supabase secrets list` al corte. Por eso no
 hubo respuesta real del modelo ni transferencia de datos al proveedor. Antes de
 habilitarla faltan contrato/DPA, subencargados, región/transferencia,
 retención/borrado y una prueba autenticada con organización activa. La
-publicación del cliente y la matriz visual se agregan a esta evidencia después
-del deploy de Vercel; no se anticipan como hechos.
+respuesta del modelo no se anticipa como hecho.
