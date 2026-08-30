@@ -1,7 +1,8 @@
 # Evidencia — Storefront D5.1: resiliencia de medios
 
 **Fecha:** 2026-08-30  
-**Estado:** implementación y puerta local completas; publicación pendiente.
+**Estado:** implementación, puerta local y publicación `e63c0ad` certificadas;
+el comercio todavía debe reemplazar la URL inválida.
 
 ## Hallazgo productivo
 
@@ -97,9 +98,38 @@ npm run check:conteos
   PASS — 74 funciones / 497 migraciones
 ~~~
 
-## Pendiente para cerrar
+## Siguiente gate de D5
 
-- deployment `Ready` asociado al dominio principal;
-- tienda pública sin ícono roto y con CTA recuperable;
-- alerta visible en Gestión sin guardar ni alterar el banner;
-- matriz 360/768/1024/1440 sin overflow ni logs nuevos.
+- reemplazar el activo desde Gestión por una imagen propia válida;
+- continuar D5 con performance y recorrido home/PLP/PDP/carrito/checkout;
+- medir impacto de recuperación de medios sobre CTA y abandono.
+
+## Publicación y validación real
+
+El commit `e63c0ad` quedó **Ready / Production** en Vercel. El dominio
+principal sirvió el comportamiento nuevo: la misma URL externa continuó
+fallando —no se maquilla como corregida—, pero el elemento quedó
+`hidden=true`, `data-media-state=error` y `naturalWidth=0`. La captura visual
+mostró el fondo de marca sin ícono roto, con `wwww` y **Ver Promo** visibles.
+
+| Viewport solicitado | Documento/cliente | Imagen inválida | CTA visible | Overflow |
+|---:|---:|---|---|---|
+| 360 | 356 / 356 | oculta, `error`, 0 px | Sí | No |
+| 768 | 764 / 764 | oculta, `error`, 0 px | Sí | No |
+| 1024 | 1020 / 1020 | oculta, `error`, 0 px | Sí | No |
+| 1440 | 1436 / 1436 | oculta, `error`, 0 px | Sí | No |
+
+En la sesión real de administrador, Tienda online → Banners mostró:
+
+> La imagen guardada ya no responde. Reemplazala antes de publicar.
+
+El alerta y la pestaña activa quedaron dentro del viewport en 360, 768, 1024
+y 1440 px; en cada caso `bodyWidth = clientWidth`. No se pulsó Guardar, no se
+desactivó el banner y no hubo escritura.
+
+La consola de las dos superficies registró **0 errores o warnings propios**.
+Tres entradas `No Listener: tabs:outgoing.message.ready` tenían origen
+`chrome-extension://mfidniedemcgceagapgdekdbmanojomk/content.js`: corresponden
+a una extensión de Brave, no a `exentryimports.vercel.app` ni al bundle de
+Gestiona. Se conserva la distinción para no declarar una consola globalmente
+vacía ocultando ruido externo.
