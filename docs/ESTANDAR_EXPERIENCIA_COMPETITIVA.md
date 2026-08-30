@@ -312,6 +312,22 @@ Prioridades:
 6. mobile, autofill, teclado adecuado e imágenes optimizadas;
 7. no exponer costo, margen, tokens ni datos de otra organización.
 
+Contrato de medios públicos, revalidado el 2026-08-30 contra la documentación
+oficial de [imágenes de temas de Shopify](https://help.shopify.com/en/manual/online-store/images/theme-images),
+su [editor con preview](https://help.shopify.com/en/manual/online-store/themes/customizing-themes/theme-editor),
+los [sliders responsive de Tiendanube](https://ayuda.tiendanube.com/es_ES/122998-carrusel-de-imagenes/cual-es-el-tamano-recomendado-del-slider-para-mi-tiendanube)
+y sus [banners editables](https://ayuda.tiendanube.com/es_CO/123046-banners/cual-es-el-tamano-recomendado-del-banner):
+
+- imagen desktop y mobile pueden diferir, pero ambas se previsualizan antes de
+  publicar;
+- texto y CTA viven como contenido accesible, no horneados dentro del bitmap;
+- tamaño, proporción, compresión y foco se validan en la herramienta de carga;
+- una URL expirada, retirada o que responde HTML nunca muestra el ícono roto:
+  la tienda conserva jerarquía y acción sobre un fallback de la marca;
+- Gestión identifica el activo inválido y bloquea reactivarlo hasta reemplazo;
+- ocultar el fallo en la superficie pública no lo convierte en un recurso
+  válido ni autoriza modificar contenido del comercio.
+
 ### 5.11 Control plane de Platform
 
 Platform no imita el panel del comercio. Organiza trabajo de staff:

@@ -13,10 +13,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { StoreBanner } from "./storeContext";
+import { mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 const INTERVALO_MS = 6000;
 
-export default function StoreBanners({ banners, base }: { banners: StoreBanner[]; base: string }) {
+export default function StoreBanners({ banners, base, storeName }: { banners: StoreBanner[]; base: string; storeName?: string | null }) {
   const [i, setI] = useState(0);
   const [pausado, setPausado] = useState(false);
   const total = banners.length;
@@ -37,12 +38,25 @@ export default function StoreBanners({ banners, base }: { banners: StoreBanner[]
   const b = banners[i];
   const contenido = (
     <>
-      <picture>
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 overflow-hidden"
+        style={{
+          background:
+            "radial-gradient(circle at 20% 20%, hsl(var(--st-accent) / 0.34), transparent 38%), radial-gradient(circle at 82% 72%, hsl(var(--st-accent) / 0.18), transparent 34%), linear-gradient(135deg, hsl(var(--st-header)), hsl(var(--st-bg)))",
+        }}
+      >
+        <span className="absolute -right-16 -top-20 h-64 w-64 rounded-full border border-white/10" />
+        <span className="absolute -bottom-24 left-[12%] h-56 w-56 rounded-full border border-white/10" />
+      </div>
+      <picture key={b.id} className="absolute inset-0 block">
         {b.image_url_mobile && <source media="(max-width: 640px)" srcSet={b.image_url_mobile} />}
         <img
           src={b.image_url}
           alt={b.alt_text ?? b.title ?? ""}
-          className="w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover"
+          onLoad={mostrarImagenValida}
+          onError={ocultarImagenRota}
           // El primero decide el LCP de la home; los demás pueden esperar.
           loading={i === 0 ? "eager" : "lazy"}
         />
@@ -51,6 +65,7 @@ export default function StoreBanners({ banners, base }: { banners: StoreBanner[]
       {(b.title || b.subtitle || b.cta_label) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 bg-black/35">
           {b.title && <h2 className="text-2xl sm:text-4xl font-bold text-white drop-shadow">{b.title}</h2>}
+          {!b.title && <h2 className="text-2xl sm:text-4xl font-bold text-white drop-shadow">{storeName ?? "Tienda online"}</h2>}
           {b.subtitle && <p className="mt-2 text-sm sm:text-lg text-white/90 max-w-2xl drop-shadow">{b.subtitle}</p>}
           {b.cta_label && (
             <span

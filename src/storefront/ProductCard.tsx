@@ -3,6 +3,7 @@ import { useStore, type StoreProduct } from "./storeContext";
 import { Stars } from "./ProductReviews";
 import { useWishlist } from "./wishlist";
 import { ShoppingBag, Heart } from "lucide-react";
+import { mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 export default function ProductCard({ p }: { p: StoreProduct }) {
   const { store, priceOf, fmt, addToCart, reviewsByProduct } = useStore();
@@ -20,16 +21,19 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
       style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
     >
       <Link to={`${base}/producto/${p.id}`} className="storefront-product-card__media relative block aspect-square overflow-hidden bg-black/5">
-        {p.image_url
-          ? (
+        <div aria-hidden="true" className="absolute inset-0 grid place-items-center opacity-20">
+          <ShoppingBag className="w-8 h-8" />
+        </div>
+        {p.image_url && (
             <img
               src={p.image_url}
               alt={p.name}
               loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              onLoad={mostrarImagenValida}
+              onError={ocultarImagenRota}
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
-          )
-          : <div className="w-full h-full grid place-items-center opacity-20"><ShoppingBag className="w-8 h-8" /></div>}
+          )}
 
         {off > 0 && (
           <span

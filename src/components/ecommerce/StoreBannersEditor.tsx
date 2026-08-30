@@ -47,6 +47,7 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
   const [banners, setBanners] = useState<BannerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState<string | null>(null);
+  const [imagenesRotas, setImagenesRotas] = useState<Set<string>>(() => new Set());
 
   const cargar = useCallback(async () => {
     if (!orgId || !storeId) { setLoading(false); return; }
@@ -64,6 +65,15 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
   const editar = (id: string, patch: Partial<BannerRow>) =>
     setBanners(prev => prev.map(b => (b.id === id ? { ...b, ...patch } : b)));
 
+  const registrarValidez = useCallback((id: string, valid: boolean) => {
+    setImagenesRotas(prev => {
+      const next = new Set(prev);
+      if (valid) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   const crear = async () => {
     if (!orgId || !storeId) return;
     const { data, error } = await supabase
@@ -80,6 +90,10 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
 
   const guardar = async (b: BannerRow) => {
     if (!b.image_url.trim()) { toast.error("Falta la URL de la imagen"); return; }
+    if (b.is_active && imagenesRotas.has(b.id)) {
+      toast.error("La imagen no responde. Reemplazala antes de activar el banner.");
+      return;
+    }
     setGuardando(b.id);
     const { error } = await supabase.from("store_banners").update({
       image_url: b.image_url.trim(),
@@ -170,6 +184,7 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
                 alto="h-28"
                 etiqueta="Imagen del banner"
                 ayuda="Apaisada, idealmente 1600×600 o más."
+                onValidityChange={valid => registrarValidez(b.id, valid)}
               />
             </div>
             <div className="flex flex-col gap-1 pt-5">
@@ -261,7 +276,13 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
                 type="checkbox" checked={b.is_active}
-                onChange={e => editar(b.id, { is_active: e.target.checked })}
+                onChange={e => {
+                  if (e.target.checked && imagenesRotas.has(b.id)) {
+                    toast.error("Reemplazá la imagen antes de activar el banner.");
+                    return;
+                  }
+                  editar(b.id, { is_active: e.target.checked });
+                }}
               />
               Activo
             </label>

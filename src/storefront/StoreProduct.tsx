@@ -18,6 +18,7 @@ import ProductReviews from "./ProductReviews";
 import ProductQuestions from "./ProductQuestions";
 import StockAlertForm from "./StockAlertForm";
 import { useWishlist } from "./wishlist";
+import { mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 export default function StoreProduct() {
   const { productId } = useParams<{ productId: string }>();
@@ -138,12 +139,20 @@ export default function StoreProduct() {
         {/* ── Galería ─────────────────────────────────────────────── */}
         <div>
           <div
-            className="aspect-square overflow-hidden bg-black/5 border"
+            className="relative aspect-square overflow-hidden bg-black/5 border"
             style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
           >
-            {imagenes[imgIdx]
-              ? <img src={imagenes[imgIdx]} alt={p.name} className="w-full h-full object-cover" />
-              : <div className="w-full h-full grid place-items-center opacity-20"><ShoppingBag className="w-12 h-12" /></div>}
+            <div aria-hidden="true" className="absolute inset-0 grid place-items-center opacity-20"><ShoppingBag className="w-12 h-12" /></div>
+            {imagenes[imgIdx] && (
+              <img
+                key={imagenes[imgIdx]}
+                src={imagenes[imgIdx]}
+                alt={p.name}
+                onLoad={mostrarImagenValida}
+                onError={ocultarImagenRota}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
           </div>
           {imagenes.length > 1 && (
             <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
@@ -157,7 +166,7 @@ export default function StoreProduct() {
                     borderRadius: "var(--st-radius)",
                   }}
                 >
-                  <img src={src} alt="" className="w-full h-full object-cover" />
+                  <img src={src} alt="" onLoad={mostrarImagenValida} onError={ocultarImagenRota} className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

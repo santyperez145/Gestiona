@@ -240,7 +240,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 
 | Señal | Evidencia actual |
 |---|---|
-| Calidad técnica | 2.078 tests en 208 archivos pasan al 2026-08-30; typecheck, lint sin errores (139 warnings conocidos), build/PWA, auditoría npm sin vulnerabilidades y 74 Edge Functions versionadas/verificadas, iguales a las 74 activas en Supabase. La deriva de `extract-receipt` quedó cerrada sin habilitar transferencia documental: falta proveedor/DPA, `ANTHROPIC_API_KEY`, flag explícito y prueba con comprobantes autorizados. Hay 46 E2E críticos listados: 32 públicos, 13 de panel y 1 setup autenticado; los recorridos de Gastos, importación y turno conservan 0 escrituras. |
+| Calidad técnica | 2.089 tests en 211 archivos pasan al 2026-08-30; typecheck, lint sin errores (139 warnings conocidos), build/PWA, auditoría npm sin vulnerabilidades y 74 Edge Functions versionadas/verificadas, iguales a las 74 activas en Supabase. La deriva de `extract-receipt` quedó cerrada sin habilitar transferencia documental: falta proveedor/DPA, `ANTHROPIC_API_KEY`, flag explícito y prueba con comprobantes autorizados. Hay 46 E2E críticos listados: 32 públicos, 13 de panel y 1 setup autenticado; los recorridos de Gastos, importación y turno conservan 0 escrituras. |
 | Tracción | 4 organizaciones, 1 comercio real, 34 registros POS y 6 online. Es una muestra, no product-market fit. |
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Turno POS | `20260829000044` vuelve autoritativa la caja por organización/ubicación: apertura/cierre por RPC, efectivo esperado server-side, un vínculo por ticket y una entrada por medio, vendedor, devolución y diferencia. Fixture reversible: 2 líneas → 1 ticket/entrada, ARS 10.000, esperado ARS 20.000, diferencia −ARS 100, outsider bloqueado y 0 restos. Base productiva al 2026-08-29: 0 sesiones y 0 movimientos reales; es confiabilidad técnica, todavía no uso. |
@@ -284,7 +284,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 | Finance documental | Custodia, extracción, revisión, matching, borradores y aprobación conectada al Core. | Primera factura autorizada procesada y recibida sin SQL; proveedor privado y métricas reales siguen pendientes. |
 | Finance product surface | Ruta, chrome, sesión compartida, entitlement, permiso y snapshot del Core. | Primer comercio habilitado y primer documento procesado; 0 adopción real al corte. |
 | Sistema visual v3 Figma | El workspace claro adopta obligatoriamente la dirección de los kits CRM/marketplace compartidos: canvas casi blanco, superficies blancas, primary violeta `252 83% 62%`, secundarios turquesa/coral, rail persistente, topbar y profundidad baja; se aplica a Business, Finance y Platform sin alterar el Business Core. El 2026-08-22 se eliminó la mutación global que convertía el color secundario de un comercio en fondo/rail del panel: Gestión mantiene tokens oficiales y las paletas quedan limitadas a tienda pública y catálogo PDF; Finance ya no fuerza un rail negro en modo claro. El 2026-08-23 se incorporó el símbolo oficial RGBA como identidad única de Gestiona: reemplaza letras e íconos improvisados en Business, Finance, Platform, landing, acceso y rutas institucionales, además de favicon/Apple/PWA; el logo del merchant queda aislado a Storefront y documentos comerciales. Las tres superficies ahora envuelven todas sus rutas en `workspace-route-surface`, por lo que más de cien páginas heredan el contrato aunque todavía no declaren la clase; Button, Card, Input, Select, Textarea, Tabs, Table, Badge, Dialog, Popover, Tooltip, EmptyState y skeletons fueron alineados a radios, foco, profundidad, estados y contraste del Figma. Ajustes, Perfil, resumen/Document Inbox de Finance y Anuncios de Platform adoptaron `PageHeader`; POS queda documentado como workspace de caja a viewport completo. `DESIGNROADMAP.md` separa desde ahora fases, cobertura, métricas y 26 slices visuales del plan de producto. D2.2–D2.3 retiraron 30 selects nativos: 20 de páginas y 10 de componentes; el SaaS queda en cero, mientras Storefront conserva sólo 3 excepciones mobile/autofill fijadas por test. D2.4 reemplaza los cinco paginadores manuales de Admin, Productos, Compras, Reportes y Ventas por `DataPagination`, con rango real, límites, respuesta mobile y anuncio accesible; sus 82 campos temporales de 46 archivos conservan semántica nativa bajo `Input`, con cero variantes manuales y tema claro/oscuro protegido. Los 16 transportes de archivo quedaron clasificados en importación, documento/cámara e imagen/branding; las cinco importaciones estructuradas ya comparten `FilePicker` con dropzone o botón, validación por extensión/MIME, busy y error accesible sin mover la autoridad de preview/aplicación fuera de cada flujo. D2.5 crea `WorkspaceState` con los 12 estados del estándar, skeleton estable, `alert/status` accesibles y recuperación; Finance/Compras y, desde el 2026-08-29, Reportes/Intelligence ya distinguen carga/refresh, primer uso/filtro, error, offline, stale, parcial y éxito sin convertir fallas en `[]`; Reportes además conserva la última lectura durante refresh y descarta respuestas de otra organización. D2.6 migra 16 overlays manuales de 11 archivos a Dialog/Sheet/Popover y fija en CI las únicas cuatro excepciones técnicas: rail mobile y tres scanners fullscreen. Dashboard conserva seis vistas persistidas y los hashes `#dashboard-*`; Platform organiza su rail por trabajo/rol. El estándar competitivo agrega anatomía, 12 arquetipos, árbol de overlays, segmentación, cobertura por producto y adopción tecnológica con umbral verificable. | Extender D2.5 al resto de rutas, converger documentos/cámara e imagen/branding y auditar combobox/menús de D2.4, auditar Storefront en D5 y validar los overlays y Reportes migrados en desktop/mobile; captura autenticada, revisión end-to-end y medición de tiempo a tarea antes de declarar la renovación visual validada. |
-| Rediseño público v3 | Landing pública y Auth fueron reconstruidos el 2026-08-22 con propuesta omnicanal, preview del producto, registro directo desde CTA, responsive desktop/mobile y metadatos SEO alineados. | Validar conversión del CTA y continuar la auditoría visual de Storefront y rutas públicas de compra. |
+| Rediseño público v3 | Landing pública y Auth fueron reconstruidos el 2026-08-22 con propuesta omnicanal, preview del producto, registro directo desde CTA, responsive desktop/mobile y metadatos SEO alineados. D5.1 agrega resiliencia transversal de medios: un banner/producto/logo roto conserva fallback de marca y acción, mientras Gestión identifica el activo inválido y bloquea reactivarlo. | Validar D5.1 publicado en 360/768/1024/1440, conversión del CTA y continuar la auditoría de PLP/PDP/carrito/checkout. |
 | CRM command center v2 | Clientes / CRM reemplaza la referencia minimalista anterior por la estructura de gestión densa de Aerten y el lenguaje violeta/tintado de eMarketplace Admin, ambos inspeccionados en preview público el 2026-08-22. Incorpora resumen ejecutivo de cartera/actividad/recurrencia/riesgo, tabs persistidos, rail de segmentos, filtros, tabla responsive con relación/compras/facturación/ticket/salud y ficha 360; conserva campañas, notas, comunicaciones, permisos y el mismo Business Core. La comparativa visual y su traducción están en `docs/INTERFAZ.md`. | Captura autenticada desktop/mobile, validación con un comercio real y medición de tiempo para encontrar/actuar sobre un cliente; el rediseño está implementado, no validado comercialmente. |
 | Admin/marketplace workspace v1 | `WorkspaceViewTabs` extiende el contrato Figma a Productos, Ventas y Dashboard: Catálogo/Operación, Ventas/Rendimiento y seis vistas ejecutivas con contadores, meta contextual, responsive móvil y persistencia por organización; Settings, Admin, Integraciones, Reportes y Tienda quedan bajo el mismo contrato de tokens. El shell compartido expone identidad de workspace en topbar, breadcrumb, CTA, headers con acento, métricas con estados y plataforma con consola/rail violeta. | Captura autenticada de las superficies operativas y medición de tiempo a tarea antes de declarar la renovación visual validada. |
 | Deploy/PWA sin chunks huérfanos | El incidente del 2026-08-22 confirmó que una pestaña abierta podía conservar `index-Bj1ae_cF.js` y pedir chunks ya retirados (`Dashboard-DTnpFc_O.js`, `ProductsPage-COufPAuI.js`); Vercel respondía `index.html` con MIME `text/html`. La recuperación ahora escucha `vite:preloadError`, promesas rechazadas y ErrorBoundary, limpia caches/SW, usa guardia temporal en vez de bloquear toda la sesión y excluye `/assets/` del fallback SPA. `sw.js` y `registerSW.js` se sirven sin cache. | Probar dos deploys consecutivos con una pestaña autenticada abierta y verificar una sola recarga automática, ruta preservada, cero loops y chunk inexistente con HTTP 404. |
@@ -2655,6 +2655,40 @@ Finance Connect.
     `scrollWidth = clientWidth` y no produjo logs nuevos. La evidencia visual
     queda cerrada; el E2E del proveedor y el outcome comercial siguen abiertos.
 
+78. Storefront D5.1: medios resilientes sin ocultar el problema operativo — en
+    curso el 2026-08-30. La auditoría de la tienda pública real encontró un
+    banner activo cuya `image_url` apunta a una página HTML externa: el navegador
+    midió `complete=true`, `naturalWidth=0` y `naturalHeight=0`, y mostraba un
+    bloque negro con el ícono nativo de archivo roto. No se editó el contenido
+    del comercio ni se usó ese dato como fixture.
+
+    La tienda deja ahora un fallback de marca por debajo de banners, hero,
+    categorías, cards y galería de producto, logo, búsqueda, carrito y venta
+    sugerida. Al fallar, la etiqueta de imagen se oculta; al volver a cargar o
+    cambiar la fuente responsive se recupera. En banners, título, subtítulo y
+    CTA siguen siendo HTML accesible sobre el fallback, de modo que un CDN o
+    una URL retirada no convierten la primera impresión en un callejón sin
+    salida. `ImageUpload` muestra un alerta explícito si el activo guardado no
+    responde, y Banners impide guardar o reactivar uno activo hasta reemplazar
+    su imagen.
+
+    La traducción competitiva se basa en documentación oficial consultada el
+    2026-08-30: [Shopify](https://help.shopify.com/en/manual/online-store/images/theme-images)
+    optimiza imágenes de tema, recomienda proporción/foco y permite preview en
+    su [editor](https://help.shopify.com/en/manual/online-store/themes/customizing-themes/theme-editor);
+    [Tiendanube](https://ayuda.tiendanube.com/es_ES/122998-carrusel-de-imagenes/cual-es-el-tamano-recomendado-del-slider-para-mi-tiendanube)
+    contempla piezas desktop/mobile y recomienda que texto/botón se configuren
+    en el editor de [banners](https://ayuda.tiendanube.com/es_CO/123046-banners/cual-es-el-tamano-recomendado-del-banner).
+    Gestiona adopta preview, contenido separado y resiliencia; no copia assets
+    ni afirma que la URL defectuosa quedó corregida.
+
+    La puerta completa local del 2026-08-30 pasa typecheck, lint con 0 errores
+    y 139 warnings conocidos, **2.089/2.089 pruebas en 211 archivos**,
+    build/PWA con 18 entradas y 2.018,70 KiB precacheados, 74 Edge Functions,
+    auditoría npm sin vulnerabilidades, 82 enlaces internos y conteos 74/497.
+    Falta publicar y revalidar tienda + Gestión en 360/768/1024/1440 antes de
+    cerrar la evidencia visual.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
@@ -3152,7 +3186,7 @@ fixture destructiva-cero probó el RPC real y producción sirve `public-api` v42
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
 - Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
-- Build y suites locales del 2026-08-30: **2.078 tests en 208 archivos**,
+- Build y suites locales del 2026-08-30: **2.089 tests en 211 archivos**,
   typecheck, lint sin errores (139 warnings de deuda conocida), build/PWA y 74
   funciones verificadas. Última evidencia: 46 E2E críticos —32 públicos, 13 de
   panel y 1 setup autenticado—; Gastos, importación y turno son de sólo lectura.

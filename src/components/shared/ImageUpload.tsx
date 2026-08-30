@@ -13,7 +13,7 @@
  * pesa entre 3 y 8 MB, y un banner de 6 MB arruina la carga de la home aunque
  * se vea bien.
  */
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
   validarImagen, comprimirImagen, rutaDeSubida, pesoLegible,
   PRESETS, type Limites,
 } from "@/lib/imageUpload";
-import { Upload, ImageIcon, X, Loader2 } from "lucide-react";
+import { Upload, ImageIcon, ImageOff, X, Loader2 } from "lucide-react";
 
 export default function ImageUpload({
   value,
@@ -33,6 +33,7 @@ export default function ImageUpload({
   alto = "h-32",
   etiqueta = "Subí una imagen",
   ayuda,
+  onValidityChange,
 }: {
   value: string | null;
   onChange: (url: string | null) => void;
@@ -44,10 +45,17 @@ export default function ImageUpload({
   alto?: string;
   etiqueta?: string;
   ayuda?: string;
+  /** Informa si la URL existente realmente carga en el navegador. */
+  onValidityChange?: (valid: boolean) => void;
 }) {
   const [subiendo, setSubiendo] = useState(false);
   const [encima, setEncima] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setPreviewError(false);
+  }, [value]);
 
   const subir = useCallback(async (file: File) => {
     if (!orgId) { toast.error("Elegí una organización primero"); return; }
@@ -106,7 +114,26 @@ export default function ImageUpload({
 
       {value ? (
         <div className={`relative ${alto} rounded-lg overflow-hidden border border-border bg-muted/30 group`}>
-          <img src={value} alt="" className="w-full h-full object-contain" />
+          {previewError ? (
+            <div role="alert" className="w-full h-full grid place-items-center p-4 text-center bg-destructive/5 text-destructive">
+              <div>
+                <ImageOff className="w-6 h-6 mx-auto mb-1.5" />
+                <p className="text-xs font-medium">La imagen guardada ya no responde</p>
+                <p className="text-[10px] opacity-80 mt-0.5">Reemplazala antes de publicar.</p>
+              </div>
+            </div>
+          ) : (
+            <img
+              src={value}
+              alt=""
+              className="w-full h-full object-contain"
+              onLoad={() => onValidityChange?.(true)}
+              onError={() => {
+                setPreviewError(true);
+                onValidityChange?.(false);
+              }}
+            />
+          )}
           <Button
             type="button" size="sm" variant="secondary"
             className="absolute top-2 right-2 h-7 gap-1.5 text-xs opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"

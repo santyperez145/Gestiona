@@ -17,6 +17,7 @@ import SearchBox from "./SearchBox";
 import { resolveTheme, resolveFont, googleFontHref } from "./theme";
 import { ShoppingBag, X, Plus, Minus, Trash2, Instagram, Menu, User, ChevronDown } from "lucide-react";
 import { useStoreAuth } from "./storeAuth";
+import { mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 /**
  * Un link del menú. Los externos salen del router: con `<Link>` un
@@ -185,16 +186,15 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           </button>
 
           <Link to={base} className="storefront-brand flex items-center gap-2 min-w-0 shrink-0">
-            {store?.logo_url
-              ? <img src={store.logo_url} alt="" className="h-8 w-8 rounded object-cover" />
-              : (
-                <span
-                  className="h-8 w-8 rounded grid place-items-center text-sm font-bold"
-                  style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))" }}
-                >
-                  {(store?.name ?? "T").charAt(0).toUpperCase()}
-                </span>
+            <span
+              className="relative h-8 w-8 shrink-0 rounded grid place-items-center overflow-hidden text-sm font-bold"
+              style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))" }}
+            >
+              {(store?.name ?? "T").charAt(0).toUpperCase()}
+              {store?.logo_url && (
+                <img src={store.logo_url} alt="" onLoad={mostrarImagenValida} onError={ocultarImagenRota} className="absolute inset-0 h-full w-full object-cover" />
               )}
+            </span>
             <span
               className="font-semibold truncate max-w-[9rem] sm:max-w-none"
               style={{ color: "hsl(var(--st-accent-fg))" }}
@@ -442,10 +442,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                   {cart.map(l => (
                     <div key={lineKeyOf(l)} className="flex gap-3">
                       <div
-                        className="w-16 h-16 shrink-0 overflow-hidden bg-black/5"
+                        className="relative w-16 h-16 shrink-0 overflow-hidden bg-black/5 grid place-items-center"
                         style={{ borderRadius: "var(--st-radius)" }}
                       >
-                        {l.image && <img src={l.image} alt="" className="w-full h-full object-cover" />}
+                        <ShoppingBag aria-hidden="true" className="w-5 h-5 opacity-20" />
+                        {l.image && <img src={l.image} alt="" onLoad={mostrarImagenValida} onError={ocultarImagenRota} className="absolute inset-0 w-full h-full object-cover" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium leading-tight line-clamp-2">{l.name}</p>
@@ -491,7 +492,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                             style={{ borderRadius: "var(--st-radius)" }}
                           >
                             {sg.producto.image_url && (
-                              <img src={sg.producto.image_url} alt="" className="w-full h-full object-cover" />
+                              <img src={sg.producto.image_url} alt="" onLoad={mostrarImagenValida} onError={ocultarImagenRota} className="w-full h-full object-cover" />
                             )}
                           </Link>
                           <div className="min-w-0 flex-1">
