@@ -2481,9 +2481,12 @@ Finance Connect.
     Puerta local completa: typecheck, lint 0 errores/139 warnings conocidos,
     206 archivos/2.064 pruebas, build/PWA, 72 Edge Functions, auditoría npm sin
     vulnerabilidades, enlaces internos y libro de migraciones `upToDate=true`.
-    Falta publicar, validar 360/768/1024/1440 con sesión vigente, operar una
-    devolución real y automatizar el refund de Mercado Pago con consulta
-    posterior antes de marcar adopción.
+    `dae7a0e` quedó publicado y `Ready`; la sesión vigente confirmó H1, CTA,
+    modal accesible, cero overflow en 360/768/1024/1440 y cero errores/warnings
+    de consola. Evidencia:
+    [`docs/evidencias/2026-08-30_devolucion_pos_visual.md`](docs/evidencias/2026-08-30_devolucion_pos_visual.md).
+    Falta operar una devolución real y automatizar el refund de Mercado Pago
+    con consulta posterior antes de marcar adopción.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
