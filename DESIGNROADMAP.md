@@ -149,7 +149,7 @@ usa en material de producto o inversión.
 | Settings/Integraciones | Cabecera/navegación común; SMTP privado; Mercado Pago OAuth canónico; webhooks en una sola superficie con secret one-time, health, prueba/retry server-side, entrega durable, diálogo contractual y OpenAPI público certificado externamente. | Parcial | Transportistas y matriz responsive/autenticada; medir primera integración real. |
 | Finance | Shell teal, Inbox, inspector, matching, tres borradores y estados comunes con refresh/stale/offline. | Parcial | Proveedor aprobado + prueba responsive con documentos reales. |
 | Platform | Rail/control plane violeta y Merchant 360. | Parcial | Cola, métricas y soporte mobile. |
-| Storefront | Marca configurable aislada del SaaS; imágenes rotas degradan a fallbacks propios. El resultado de compra separa carga, acceso verificado y recuperación por email sin revelar si un número existe; pago y emails comparten la misma capacidad server-side. La comunicación transaccional distingue creación, pago y despacho y responde retries/dobles clicks como éxito deduplicado, no como otra entrega. | Parcial D5 2026-09-01 | D5.1–D5.8: cola, inspector, CTA a 360 px y skeleton sin chrome SaaS. Faltan bulk con autoridad, red lenta y compra sandbox/real. |
+| Storefront | Marca configurable aislada del SaaS; imágenes rotas degradan a fallbacks propios. El resultado de compra separa carga, acceso verificado y recuperación por email sin revelar si un número existe; pago y emails comparten la misma capacidad server-side. La comunicación transaccional distingue creación, pago y despacho y responde retries/dobles clicks como éxito deduplicado, no como otra entrega. Crawlers (Search Console incluido) reciben HTML del comercio, no el de Gestiona; robots declara sitemaps reales. | Parcial D5 2026-09-01 | D5.1–D5.9: cola, inspector, CTA, skeleton y SEO de servidor. Faltan bulk con autoridad, red lenta y compra sandbox/real. |
 | Estados públicos | Pago, tracking, legales, invitación. | Parcial | Sistema público y accesibilidad. |
 
 ## 5. Fases ejecutables
@@ -409,6 +409,13 @@ cuadradas con tokens `--st-*` del tema minimal. Banner de home y foto de ficha
 piden LCP (`eager`/`high`); el resto declara `width`/`height`/`sizes` y espera.
 No comprime ni recorta el archivo del comercio; no mide LCP de campo.
 
+D5.9 cierra el hueco que hacía invisible a la tienda en Search Console:
+Google-InspectionTool y AdsBot recibían el `index.html` de Gestiona porque
+no estaban en el rewrite de crawlers. `robots.txt` ahora sale del borde y
+declara `Sitemap:`; el listado deja de canibalizar la home; la ficha declara
+`og:type=product` y el precio que cobra el catálogo. No es SSR ni dominio
+propio: es el borde que ya existía, cerrado de verdad.
+
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto: CTA móvil hecho; faltan variantes densas y confianza extra;
 - carrito y checkout: objetivos táctiles y sticky en 360 px hechos;
@@ -475,7 +482,7 @@ declara validado porque “se ve mejor”.
 | 17 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos, aprobación y handoff a recepción usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
 | 18 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
 | 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
-| 20 | Storefront home/PLP/PDP | Parcial D5.8 2026-09-01 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias. D5.7 deja el CTA de compra al pie en 360 px. D5.8 reserva geometría al cargar y declara tamaño de imagen. Falta hero del comercio, red lenta y flujo sandbox/real. |
+| 20 | Storefront home/PLP/PDP | Parcial D5.9 2026-09-01 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias. D5.7 deja el CTA de compra al pie en 360 px. D5.8 reserva geometría al cargar y declara tamaño de imagen. D5.9 hace que crawlers y Search Console vean HTML del comercio, robots con Sitemap, PLP/PDP/páginas con canonical propio y el precio canónico. Falta hero del comercio, red lenta y flujo sandbox/real. |
 | 21 | Carrito/checkout/pago | Parcial D5.7 2026-09-01 | Resultado protegido por capacidad; D5.3–D5.6 cierran avisos, Pay honesto, cola e inspector. D5.7 deja CTA de ficha/carrito/checkout a 44 px en 360. Faltan red lenta, compra sandbox/real y bulk con RPC. |
 | 22 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
 | 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |

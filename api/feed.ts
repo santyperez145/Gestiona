@@ -21,6 +21,8 @@
  * correcta de decir "esto no tiene código universal". Cuando el catálogo cargue
  * códigos de barras de verdad, se agrega.
  */
+import { precioDeCatalogo } from "../src/lib/storefrontSeo";
+
 export const config = { runtime: "edge" };
 
 const SUPABASE_URL =
@@ -54,6 +56,7 @@ interface FilaCatalogo {
   image_urls: string[] | null;
   sale_price_ars: number | null;
   discount_price_ars: number | null;
+  promo_price: number | null;
   stock: number | null;
   content_ml: number | null;
 }
@@ -102,7 +105,7 @@ export default async function handler(req: Request): Promise<Response> {
     const pRes = await fetch(
       `${SUPABASE_URL}/rest/v1/store_catalog_products?org_id=eq.${store.org_id}` +
       `&select=id,name,brand,category,gender,description,image_url,image_urls,` +
-      `sale_price_ars,discount_price_ars,stock,content_ml&limit=5000`,
+      `sale_price_ars,discount_price_ars,promo_price,stock,content_ml&limit=5000`,
       { headers },
     );
     const productos: FilaCatalogo[] = pRes.ok ? await pRes.json() : [];
@@ -113,14 +116,13 @@ export default async function handler(req: Request): Promise<Response> {
     const items = productos
       // Sin precio o sin imagen el ítem se rechaza igual: mejor no mandarlo que
       // acumular errores en la cuenta.
-      .filter(p => Number(p.discount_price_ars ?? p.sale_price_ars) > 0 && p.image_url)
+      .filter(p => precioDeCatalogo(p) > 0 && p.image_url)
       .map(p => {
         const lista = Number(p.sale_price_ars) || 0;
-        const oferta = Number(p.discount_price_ars) || 0;
-        // `price` es el de lista y `sale_price` el rebajado: al revés, Google
-        // muestra el precio viejo tachado sobre el nuevo y queda al revés.
-        const precio = oferta > 0 && oferta < lista ? lista : (oferta || lista);
-        const rebaja = oferta > 0 && oferta < lista ? oferta : null;
+        const cobrado = precioDeCatalogo(p);
+        // `price` es el de lista y `sale_price` el que se cobra si es menor.
+        const precio = lista > 0 ? lista : cobrado;
+        const rebaja = cobrado > 0 && cobrado < precio ? cobrado : null;
 
         const extras = (p.image_urls ?? [])
           .filter(u => u && u !== p.image_url)

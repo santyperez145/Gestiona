@@ -10,6 +10,7 @@ import {
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ahorroPorVolumen, type ReglaCantidad } from "@/lib/promo2x";
+import { precioDeCatalogo } from "@/lib/storefrontSeo";
 import type { CategoriaTienda } from "@/lib/storeCategories";
 import {
   fetchStoreProducts,
@@ -326,15 +327,9 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
   );
 
   // El precio que ve el comprador: el menor entre la oferta manual y la mejor
-  // promocion. Espejo de `resolve_store_line`, que es la que cobra: si
-  // divergieran, la tienda mostraria un precio y el checkout cobraria otro.
-  const priceOf = useCallback((p: StoreProduct) => {
-    const lista = Number(p.sale_price_ars) || 0;
-    const oferta = Number(p.discount_price_ars) || 0;
-    const vigente = oferta > 0 && oferta < lista ? oferta : lista;
-    const promo = Number(p.promo_price) || 0;
-    return promo > 0 && promo < vigente ? promo : vigente;
-  }, []);
+  // promocion. Vive en `precioDeCatalogo` para que el JSON-LD del borde
+  // declare el mismo número que cobra `resolve_store_line`.
+  const priceOf = useCallback((p: StoreProduct) => precioDeCatalogo(p), []);
 
   const addToCart = useCallback((p: StoreProduct, qty = 1, variant?: StoreVariant | null) => {
     // Cada variante es una línea propia: 50ml y 100ml son productos

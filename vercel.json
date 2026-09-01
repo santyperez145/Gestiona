@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/robots.txt",
+      "destination": "/api/robots"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap-index"
+    },
+    {
       "source": "/tienda/:slug/sitemap.xml",
       "destination": "/api/sitemap?path=/tienda/:slug"
     },
@@ -14,12 +22,12 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*(facebookexternalhit|WhatsApp|Twitterbot|Slackbot|LinkedInBot|TelegramBot|Discordbot|Googlebot|bingbot|Applebot|Pinterest|redditbot|SkypeUriPreview|vkShare|W3C_Validator|embedly).*"
+          "value": ".*(facebookexternalhit|Facebot|facebookcatalog|WhatsApp|Twitterbot|Slackbot|LinkedInBot|TelegramBot|Discordbot|Googlebot|Google-InspectionTool|AdsBot-Google|Storebot-Google|GoogleOther|bingbot|BingPreview|DuckDuckBot|YandexBot|Applebot|Pinterest|redditbot|SkypeUriPreview|vkShare|W3C_Validator|embedly).*"
         }
       ],
       "destination": "/api/og?path=/tienda/:path*"
     },
-    { "source": "/((?!api/|assets/|developer/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|assets/|developer/|robots\\.txt|sitemap\\.xml).*)", "destination": "/index.html" }
   ],
   "headers": [
     {

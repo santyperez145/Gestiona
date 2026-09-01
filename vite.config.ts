@@ -39,10 +39,11 @@ export default defineConfig(({ mode }) => ({
       injectRegister: "auto",
       // 📌 `brand/gestiona-mark.png` figura dos veces en el manifiesto —una
       // por acá y otra por `globPatterns`— pero es **la misma URL con la
-      // misma revisión**: el navegador la baja una sola vez. Lo duplicado es
-      // el número que reporta el plugin, no la descarga. Vaciar esta lista
-      // sólo saca `robots.txt` del precache y no ahorra nada.
-      includeAssets: ["brand/gestiona-mark.png", "robots.txt"],
+      // misma revisión**: el navegador la baja una sola vez. Vaciar esta lista
+      // no ahorra descargas. `robots.txt` NO va acá: en producción lo sirve
+      // el borde con los sitemaps reales; precachearlo dejaría la versión
+      // estática sin `Sitemap:` pegada al service worker.
+      includeAssets: ["brand/gestiona-mark.png"],
       manifest: {
         name: "Gestiona — Sistema de Gestión",
         short_name: "Gestiona",

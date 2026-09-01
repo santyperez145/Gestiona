@@ -1,8 +1,9 @@
 User-agent: *
 Allow: /
 
-# El panel de gestión no aporta nada en los buscadores y solo gasta
-# presupuesto de rastreo: lo que interesa indexar son las tiendas y catálogos.
+# Fallback estático. En producción `/robots.txt` lo sirve el borde
+# (`api/robots.ts`) y declara el Sitemap de cada tienda activa.
+# El panel de gestión no aporta nada en los buscadores.
 Disallow: /configuracion
 Disallow: /productos
 Disallow: /ventas
@@ -14,9 +15,15 @@ Disallow: /perfil
 Disallow: /equipo
 Disallow: /integraciones
 Disallow: /onboarding
+Disallow: /platform
+Disallow: /finance
+Disallow: /login
+Disallow: /tienda-online
 
-# Las vidrieras públicas sí se indexan.
+Disallow: /tienda/*/checkout
+Disallow: /tienda/*/cuenta
+Disallow: /tienda/*/orden
+Disallow: /tienda/*/carrito
+
 Allow: /tienda/
 Allow: /catalogo/
-
-# El sitemap de cada tienda vive en /tienda/<slug>/sitemap.xml

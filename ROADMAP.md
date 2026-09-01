@@ -1376,7 +1376,7 @@ contratos técnicos; **externo** = requiere dueño/proveedor/operación real;
 | P1-09 | F4 · slice 20 | **Pendiente** | State machines separadas y concurrencia/partial flows probados. |
 | P1-10 | F4 · slice 22 | **Pendiente** | Dominio, SSL, canonical, redirects, health y takeover prevention. |
 | P1-11 | F4 · slice 22 + Design | **Parcial** | Themes existen; faltan draft/preview/publish/version/rollback y page contract. |
-| P1-12 | F4 · slice 22 | **Parcial** | JSON-LD/sitemap existen; faltan redirects, hreflang y reporte de migración SEO. |
+| P1-12 | F4 · slice 22 | **Parcial** | Robots, índice, JSON-LD y OG por ruta salen del borde (D5.9). Faltan dominio propio, redirects, hreflang y reporte de migración. |
 | P1-13 | F8 · bitácora 52 | **Cerrado técnicamente 2026-08-29** | API v1 con OpenAPI público, path obligatorio, scopes sin filtraciones, cupo durable por key, mutación atómica, precisión monetaria, política de compatibilidad/deprecation y CORS browser deshabilitado. Medir la primera key e integración reales. |
 | P1-14 | F8 · bitácoras 48/50/51 | **Cerrado técnicamente 2026-08-29** | Contrato OpenAPI público, receptor HTTPS externo certificado, outbox transaccional, DLQ/replay, filtro, firma e ids estables. Mantener compatibilidad y medir primera integración real. |
 | P2-01 | F2 · slices 11–12 | **Técnico** | Operación real con los cuatro costos y decisión del merchant. |
@@ -2856,6 +2856,21 @@ Finance Connect.
     de campo: este recorte cierra el salto perceptible, no la red lenta.
     Verificado en este recorte: 2.160/2.160 pruebas en 221 archivos;
     typecheck OK; lint 0 errores y 139 warnings conocidos.
+
+86. Vitrina D5.9: que Google vea la tienda, no Gestiona — 2026-09-01.
+    Search Console inspeccionaba con `Google-InspectionTool` y recibía el
+    HTML de la SPA (`Gestiona`), no el de Exentry: ese UA no estaba en el
+    rewrite. `robots.txt` nunca declaraba `Sitemap:`. El listado canibalizaba
+    la home. La ficha decía `og:type=website` y un precio sin promoción.
+    El borde ahora reconoce InspectionTool/AdsBot/Storebot/DuckDuckBot;
+    `robots.txt` lista las tiendas activas vía `list_published_store_slugs`;
+    PLP/páginas/legales tienen canonical y schema propios; checkout queda
+    `noindex`; el precio declarado es `precioDeCatalogo`, el mismo que cobra
+    `resolve_store_line`. No es SSR ni dominio propio (congelado). Falta
+    contrastar InspectionTool en producción después del deploy.
+    Verificado en este recorte: **2.171/2.171 pruebas en 222 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos. Migración
+    `20260901000030` aplicada y anotada; RPC lista `exentryimports`.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

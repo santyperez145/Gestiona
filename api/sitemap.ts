@@ -1,8 +1,10 @@
 /**
- * sitemap.xml de una tienda: la home, el listado y cada producto con stock.
+ * sitemap.xml de una tienda: home, listado, categorías, páginas, legales
+ * y cada ficha — con o sin stock.
  *
- * Sin esto Google solo conoce la portada y no indexa ninguna ficha, que es
- * justo lo que trae tráfico de búsqueda ("comprar khamrah argentina").
+ * Un agotado sigue siendo una URL que Google ya conoce; sacarlo del índice
+ * y volverlo a pedir cuando reingrese stock gasta presupuesto de rastreo.
+ * La disponibilidad la declara el JSON-LD de la ficha, no la presencia acá.
  *
  * Uso: /tienda/:slug/sitemap.xml
  */
@@ -56,10 +58,29 @@ export default async function handler(req: Request): Promise<Response> {
     // La vista no tiene `updated_at`, así que se ordena y fecha por
     // `created_at`, que sí trae.
     const pRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/store_catalog_products?org_id=eq.${store.org_id}&stock=gt.0&select=id,created_at&limit=5000`,
+      `${SUPABASE_URL}/rest/v1/store_catalog_products?org_id=eq.${store.org_id}&select=id,created_at,stock&limit=5000`,
       { headers },
     );
     const products = pRes.ok ? await pRes.json() : [];
+
+    let pages: Array<{ slug: string; updated_at: string | null }> = [];
+    let categorias: Array<{ slug: string; productos: number }> = [];
+    try {
+      const [pags, cats] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/rpc/get_store_pages`, {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({ p_slug: slug }),
+        }),
+        fetch(`${SUPABASE_URL}/rest/v1/rpc/get_store_categories`, {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({ p_slug: slug }),
+        }),
+      ]);
+      pages = pags.ok ? await pags.json() : [];
+      categorias = cats.ok ? await cats.json() : [];
+    } catch { /* el catálogo igual se indexa */ }
 
     const base = `${origin}/tienda/${encodeURIComponent(slug)}`;
     const hoy = new Date().toISOString().slice(0, 10);
@@ -67,9 +88,21 @@ export default async function handler(req: Request): Promise<Response> {
     const urls = [
       `  <url><loc>${esc(base)}</loc><changefreq>daily</changefreq><priority>1.0</priority><lastmod>${hoy}</lastmod></url>`,
       `  <url><loc>${esc(base)}/productos</loc><changefreq>daily</changefreq><priority>0.9</priority><lastmod>${hoy}</lastmod></url>`,
-      ...(products as any[]).map(p =>
-        `  <url><loc>${esc(base)}/producto/${esc(p.id)}</loc><changefreq>weekly</changefreq><priority>0.8</priority><lastmod>${esc(String(p.created_at ?? hoy).slice(0, 10))}</lastmod></url>`,
-      ),
+      `  <url><loc>${esc(base)}/arrepentimiento</loc><changefreq>yearly</changefreq><priority>0.3</priority><lastmod>${hoy}</lastmod></url>`,
+      ...(Array.isArray(categorias) ? categorias : [])
+        .filter(c => Number(c.productos) > 0 && c.slug)
+        .map(c =>
+          `  <url><loc>${esc(base)}/productos?cat=${esc(encodeURIComponent(c.slug))}</loc><changefreq>weekly</changefreq><priority>0.7</priority><lastmod>${hoy}</lastmod></url>`,
+        ),
+      ...(Array.isArray(pages) ? pages : [])
+        .filter(p => p.slug)
+        .map(p =>
+          `  <url><loc>${esc(base)}/pagina/${esc(encodeURIComponent(p.slug))}</loc><changefreq>monthly</changefreq><priority>0.5</priority><lastmod>${esc(String(p.updated_at ?? hoy).slice(0, 10))}</lastmod></url>`,
+        ),
+      ...(products as Array<{ id: string; created_at?: string; stock?: number }>).map(p => {
+        const enStock = Number(p.stock) > 0;
+        return `  <url><loc>${esc(base)}/producto/${esc(p.id)}</loc><changefreq>weekly</changefreq><priority>${enStock ? "0.8" : "0.4"}</priority><lastmod>${esc(String(p.created_at ?? hoy).slice(0, 10))}</lastmod></url>`;
+      }),
     ];
 
     return xml(urls.join("\n"));

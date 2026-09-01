@@ -1,16 +1,13 @@
 /**
  * Vista previa para bots: WhatsApp, Instagram, Facebook, Twitter y Google no
  * ejecutan JavaScript, así que los meta tags que la SPA setea en runtime son
- * invisibles para ellos. Al pegar el link de la tienda salía una tarjeta vacía.
+ * invisibles para ellos.
  *
- * Esta función corre en el borde y devuelve HTML plano con los Open Graph
- * correctos. `vercel.json` la usa SOLO para user-agents de bots, así que los
- * compradores reales siguen recibiendo la SPA sin latencia extra.
- *
- * Rutas que entiende:
- *   /tienda/:slug
- *   /tienda/:slug/producto/:id
+ * Corre en el borde y devuelve HTML plano. `vercel.json` la usa SOLO para
+ * user-agents de crawlers; el comprador sigue recibiendo la SPA.
  */
+import { parseRutaTienda, precioDeCatalogo } from "../src/lib/storefrontSeo";
+
 export const config = { runtime: "edge" };
 
 const SUPABASE_URL =
@@ -45,21 +42,24 @@ async function rpc<T>(fn: string, body: Record<string, unknown>): Promise<T | nu
 }
 
 /**
- * Datos estructurados, serializados de forma segura para incrustar en HTML.
- *
- * ⚠️ `</script>` dentro de un string JSON cierra la etiqueta y todo lo que
- * sigue se ejecuta como HTML. Es la inyección clásica de JSON-LD, y el
- * contenido viene del comercio —nombre y descripción de producto—, así que no
- * es hipotética.
+ * ⚠️ `</script>` dentro de un string JSON cierra la etiqueta. El contenido
+ * lo escribe el comercio.
  */
 const jsonLd = (data: unknown) =>
   JSON.stringify(data).replace(/</g, "\u003c").replace(/>/g, "\u003e");
 
 function page(o: {
-  title: string; description: string; url: string; image?: string; siteName: string;
-  /** Objeto schema.org que se emite como JSON-LD. */
+  title: string;
+  description: string;
+  url: string;
+  image?: string;
+  siteName: string;
+  sitemap: string;
+  type?: "website" | "product";
+  indexable?: boolean;
   datos?: unknown;
 }) {
+  const indexable = o.indexable !== false;
   return `<!doctype html>
 <html lang="es">
 <head>
@@ -67,12 +67,15 @@ function page(o: {
 <title>${esc(o.title)}</title>
 <meta name="description" content="${esc(o.description)}">
 <link rel="canonical" href="${esc(o.url)}">
+<link rel="sitemap" type="application/xml" href="${esc(o.sitemap)}">
+<meta name="robots" content="${indexable ? "index,follow" : "noindex,nofollow"}">
 
-<meta property="og:type" content="website">
+<meta property="og:type" content="${o.type === "product" ? "product" : "website"}">
 <meta property="og:site_name" content="${esc(o.siteName)}">
 <meta property="og:title" content="${esc(o.title)}">
 <meta property="og:description" content="${esc(o.description)}">
 <meta property="og:url" content="${esc(o.url)}">
+<meta property="og:locale" content="es_AR">
 ${o.image ? `<meta property="og:image" content="${esc(o.image)}">
 <meta property="og:image:alt" content="${esc(o.title)}">` : ""}
 
@@ -90,127 +93,197 @@ ${o.datos ? `<script type="application/ld+json">${jsonLd(o.datos)}</script>` : "
 </html>`;
 }
 
+const html = (body: string, status = 200, cache = "public, max-age=300") =>
+  new Response(body, {
+    status,
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": cache },
+  });
+
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const origin = `${url.protocol}//${url.host}`;
-
-  // El path original llega por query cuando el rewrite lo reescribe.
   const path = url.searchParams.get("path") ?? url.pathname;
-  const m = /^\/tienda\/([^/]+)(?:\/producto\/([^/?]+))?/.exec(path);
+  const ruta = parseRutaTienda(path, url.searchParams);
 
-  if (!m) {
-    return new Response("Not found", { status: 404 });
-  }
+  if (!ruta) return new Response("Not found", { status: 404 });
 
-  const slug = decodeURIComponent(m[1]);
-  const productId = m[2] ? decodeURIComponent(m[2]) : null;
-
-  const stores = await rpc<any[]>("get_store_by_slug", { p_slug: slug });
+  const sitemap = `${origin}/tienda/${encodeURIComponent(ruta.slug)}/sitemap.xml`;
+  const stores = await rpc<any[]>("get_store_by_slug", { p_slug: ruta.slug });
   const store = Array.isArray(stores) ? stores[0] : stores;
 
   if (!store) {
-    return new Response(
-      page({
-        title: "Tienda no encontrada",
-        description: "Esta tienda no existe o fue desactivada.",
-        url: `${origin}${path}`,
-        siteName: "Gestiona",
-      }),
-      { status: 404, headers: { "Content-Type": "text/html; charset=utf-8" } },
-    );
+    return html(page({
+      title: "Tienda no encontrada",
+      description: "Esta tienda no existe o fue desactivada.",
+      url: `${origin}/tienda/${encodeURIComponent(ruta.slug)}`,
+      siteName: "Gestiona",
+      sitemap: `${origin}/sitemap.xml`,
+      indexable: false,
+    }), 404, "public, max-age=60");
   }
 
   const storeName = store.name ?? "Tienda online";
+  const homeUrl = `${origin}/tienda/${encodeURIComponent(ruta.slug)}`;
+  const storeDatos = {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    name: storeName,
+    url: homeUrl,
+    ...(store.logo_url ? { logo: store.logo_url } : {}),
+    ...(store.description ? { description: String(store.description).slice(0, 500) } : {}),
+  };
 
-  // ── Ficha de producto ────────────────────────────────────────────────
-  if (productId && SUPABASE_URL && SUPABASE_KEY) {
+  if (ruta.kind === "private") {
+    return html(page({
+      title: `${storeName}`,
+      description: "Esta pantalla no se indexa.",
+      url: `${origin}${path.split("?")[0]}`,
+      siteName: storeName,
+      sitemap,
+      indexable: false,
+    }), 200, "private, no-store");
+  }
+
+  if (ruta.kind === "pdp" && SUPABASE_URL && SUPABASE_KEY) {
     try {
-      // `store_catalog_products`, no `products`: la tabla cruda está cerrada a
-      // la clave anónima desde el hardening de RLS, así que esta consulta venía
-      // devolviendo **cero filas** y toda ficha compartida por WhatsApp o
-      // Facebook mostraba la vista previa genérica de la tienda en vez del
-      // producto. La vista es la superficie pública y ya trae las columnas
-      // saneadas, sin costos ni márgenes.
-      //
-      // Se filtra además por `org_id`: sin eso, el id de un producto de otra
-      // tienda devolvía su ficha bajo esta marca.
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/store_catalog_products?id=eq.${encodeURIComponent(productId)}&org_id=eq.${encodeURIComponent(store.org_id)}&select=name,brand,description,sale_price_ars,discount_price_ars,image_url,stock&limit=1`,
+        `${SUPABASE_URL}/rest/v1/store_catalog_products?id=eq.${encodeURIComponent(ruta.productId)}&org_id=eq.${encodeURIComponent(store.org_id)}&select=name,brand,description,sale_price_ars,discount_price_ars,promo_price,image_url,stock&limit=1`,
         { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
       );
       const rows = res.ok ? await res.json() : [];
       const p = rows?.[0];
       if (p) {
-        const price = Number(p.discount_price_ars) || Number(p.sale_price_ars) || 0;
+        const price = precioDeCatalogo(p);
         const precio = price
           ? new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(price)
           : "";
-        return new Response(
-          page({
-            title: `${p.name}${p.brand ? ` — ${p.brand}` : ""} | ${storeName}`,
-            description: [precio, p.description].filter(Boolean).join(" · ").slice(0, 200)
-              || `Comprá ${p.name} en ${storeName}.`,
-            url: `${origin}${path}`,
-            image: p.image_url ?? store.logo_url ?? undefined,
-            siteName: storeName,
-            /**
-             * ⚠️ Sin esto, la ficha es un link azul más en Google. Con
-             * `Product` + `offers`, el resultado muestra **el precio y si hay
-             * stock** al lado del título, que es lo que hace que lo cliqueen.
-             * Tiendanube y Shopify lo emiten en cada producto desde siempre.
-             *
-             * 📌 `availability` sale del stock real, no de un valor fijo:
-             * declarar «InStock» sobre algo agotado hace que Google marque el
-             * dato como engañoso y deje de mostrar el precio de toda la tienda.
-             */
-            datos: {
-              "@context": "https://schema.org",
-              "@type": "Product",
-              name: p.name,
-              ...(p.brand ? { brand: { "@type": "Brand", name: p.brand } } : {}),
-              ...(p.description ? { description: String(p.description).slice(0, 500) } : {}),
-              ...(p.image_url ? { image: p.image_url } : {}),
-              offers: {
-                "@type": "Offer",
-                url: `${origin}${path}`,
-                priceCurrency: "ARS",
-                price: String(price),
-                availability: Number(p.stock) > 0
-                  ? "https://schema.org/InStock"
-                  : "https://schema.org/OutOfStock",
-                seller: { "@type": "Organization", name: storeName },
-              },
+        const productUrl = `${homeUrl}/producto/${encodeURIComponent(ruta.productId)}`;
+        return html(page({
+          title: `${p.name}${p.brand ? ` — ${p.brand}` : ""} | ${storeName}`,
+          description: [precio, p.description].filter(Boolean).join(" · ").slice(0, 200)
+            || `Comprá ${p.name} en ${storeName}.`,
+          url: productUrl,
+          image: p.image_url ?? store.logo_url ?? undefined,
+          siteName: storeName,
+          sitemap,
+          type: "product",
+          datos: {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: p.name,
+            url: productUrl,
+            ...(p.brand ? { brand: { "@type": "Brand", name: p.brand } } : {}),
+            ...(p.description ? { description: String(p.description).slice(0, 500) } : {}),
+            ...(p.image_url ? { image: p.image_url } : {}),
+            offers: {
+              "@type": "Offer",
+              url: productUrl,
+              priceCurrency: "ARS",
+              price: String(price),
+              availability: Number(p.stock) > 0
+                ? "https://schema.org/InStock"
+                : "https://schema.org/OutOfStock",
+              seller: { "@type": "Organization", name: storeName },
             },
-          }),
-          { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300" } },
-        );
+          },
+        }));
       }
-    } catch { /* cae a la tarjeta de la tienda */ }
+    } catch { /* cae a la home */ }
   }
 
-  // ── Home de la tienda ────────────────────────────────────────────────
-  return new Response(
-    page({
-      title: store.meta_title || `${storeName} — Tienda online`,
+  if (ruta.kind === "plp") {
+    const cat = ruta.cat;
+    let nombreCat = cat ? cat.replace(/_/g, " ") : null;
+    if (cat) {
+      const cats = await rpc<Array<{ slug: string; name: string }>>("get_store_categories", { p_slug: ruta.slug });
+      const fila = (cats ?? []).find(c => c.slug === cat);
+      if (fila?.name) nombreCat = fila.name;
+    }
+    const plpUrl = cat
+      ? `${homeUrl}/productos?cat=${encodeURIComponent(cat)}`
+      : `${homeUrl}/productos`;
+    const titulo = nombreCat
+      ? `${nombreCat} — ${storeName}`
+      : `Productos — ${storeName}`;
+    return html(page({
+      title: titulo,
       description: store.meta_description || store.description
-        || `Comprá online en ${storeName}. Envíos a todo el país.`,
-      url: `${origin}/tienda/${slug}`,
+        || `Catálogo de ${storeName}. Envíos a todo el país.`,
+      url: plpUrl,
       image: store.banner_url ?? store.logo_url ?? undefined,
       siteName: storeName,
-      /**
-       * La home se declara como `Store` y no como `Organization`: es un
-       * comercio que vende, y ese tipo habilita el panel de conocimiento con
-       * el logo y el link —lo que separa una tienda de una web cualquiera.
-       */
+      sitemap,
       datos: {
         "@context": "https://schema.org",
-        "@type": "Store",
-        name: storeName,
-        url: `${origin}/tienda/${slug}`,
-        ...(store.logo_url ? { logo: store.logo_url } : {}),
-        ...(store.description ? { description: String(store.description).slice(0, 500) } : {}),
+        "@type": "CollectionPage",
+        name: titulo,
+        url: plpUrl,
+        isPartOf: storeDatos,
       },
-    }),
-    { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300" } },
-  );
+    }));
+  }
+
+  if (ruta.kind === "page") {
+    const pages = await rpc<Array<{ slug: string; title: string; meta_description: string | null; updated_at: string }>>(
+      "get_store_pages",
+      { p_slug: ruta.slug },
+    );
+    const pagina = (pages ?? []).find(p => p.slug === ruta.pageSlug);
+    if (!pagina) {
+      return html(page({
+        title: `Página no encontrada | ${storeName}`,
+        description: "Esta página no está publicada.",
+        url: `${homeUrl}/pagina/${encodeURIComponent(ruta.pageSlug)}`,
+        siteName: storeName,
+        sitemap,
+        indexable: false,
+      }), 404, "public, max-age=60");
+    }
+    const pageUrl = `${homeUrl}/pagina/${encodeURIComponent(pagina.slug)}`;
+    return html(page({
+      title: `${pagina.title} | ${storeName}`,
+      description: pagina.meta_description || pagina.title,
+      url: pageUrl,
+      image: store.logo_url ?? undefined,
+      siteName: storeName,
+      sitemap,
+      datos: {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: pagina.title,
+        url: pageUrl,
+        dateModified: pagina.updated_at,
+        isPartOf: storeDatos,
+      },
+    }));
+  }
+
+  if (ruta.kind === "legal") {
+    const legalUrl = `${homeUrl}/arrepentimiento`;
+    return html(page({
+      title: `Botón de arrepentimiento | ${storeName}`,
+      description: `Ejercé el derecho de arrepentimiento en ${storeName}.`,
+      url: legalUrl,
+      siteName: storeName,
+      sitemap,
+      datos: {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "Botón de arrepentimiento",
+        url: legalUrl,
+        isPartOf: storeDatos,
+      },
+    }));
+  }
+
+  return html(page({
+    title: store.meta_title || `${storeName} — Tienda online`,
+    description: store.meta_description || store.description
+      || `Comprá online en ${storeName}. Envíos a todo el país.`,
+    url: homeUrl,
+    image: store.banner_url ?? store.logo_url ?? undefined,
+    siteName: storeName,
+    sitemap,
+    datos: storeDatos,
+  }));
 }

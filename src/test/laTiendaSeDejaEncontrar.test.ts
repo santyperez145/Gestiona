@@ -72,6 +72,19 @@ describe("la tienda se deja encontrar", () => {
     expect(cuerpo).toMatch(/"@type":\s*"Store"/);
   });
 
+  it("el listado no se declara como la home", () => {
+    expect(cuerpo).toMatch(/"@type":\s*"CollectionPage"/);
+    expect(cuerpo).toMatch(/parseRutaTienda/);
+  });
+
+  it("la ficha declara og:type product y el precio que se cobra", () => {
+    expect(cuerpo).toMatch(/type === "product"/);
+    expect(cuerpo).toMatch(/precioDeCatalogo/);
+    const select = cuerpo.match(/store_catalog_products[^`]*select=([^&`]*)/)?.[1] ?? "";
+    expect(select, `el select no pide promo_price: «${select}»`).toContain("promo_price");
+    expect(select).toContain("stock");
+  });
+
   it("⚠️ el JSON-LD se escapa: un </script> en un nombre no cierra la etiqueta", () => {
     /**
      * El contenido viene del comercio. `JSON.stringify` **no** escapa `<` ni

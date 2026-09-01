@@ -50,6 +50,8 @@ describe("recuperación de un build obsoleto", () => {
     expect(fallbackSource).toContain("api/");
     expect(fallbackSource).toContain("assets/");
     expect(fallbackSource).toContain("developer/");
+    expect(fallbackSource).toContain("robots");
+    expect(fallbackSource).toContain("sitemap");
     expect(vercel.headers).toEqual(expect.arrayContaining([
       expect.objectContaining({ source: "/sw.js" }),
       expect.objectContaining({ source: "/registerSW.js" }),
