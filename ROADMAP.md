@@ -1,6 +1,7 @@
 # Gestiona Cloud — Visión y roadmap ejecutivo
 
-**Corte editorial:** 2026-08-30
+**Corte editorial:** 2026-09-01. Categoría Commerce OS:
+[`docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md`](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md).
 **Datos operativos:** 2026-08-22 salvo cuando una fila indique una fecha más
 reciente. La separación evita presentar una medición técnica nueva como si
 fuera tracción o adopción de negocio.
@@ -20,17 +21,18 @@ medible antes de adoptar dependencias.
 
 ## 0. Resumen ejecutivo
 
-Gestiona construye la infraestructura operativa y comercial para PyMEs
-latinoamericanas. Unifica operación, Commerce, Finance, pagos e inteligencia
-sobre una única fuente de verdad: el mismo producto, stock, cliente, proveedor,
-orden, costo, cobro y margen en todos los canales.
+Gestiona construye el **Commerce Operating System** para PyMEs latinoamericanas:
+tienda de entrada, operación nativa, cobros orquestados, Finance y —con
+evidencia y partner— capital. Unifica esos productos sobre una única fuente de
+verdad: el mismo producto, stock, cliente, proveedor, orden, costo, cobro y
+margen en todos los canales. Canon: [`docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md`](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md).
 
-La propuesta no es «otro ERP», «otra tienda online» ni «una plataforma con IA».
-Es esta:
+La propuesta no es «otro ERP», «otra tienda online», «alternativa a Tiendanube»
+ni «una plataforma con IA». Es esta:
 
-> Gestiona permite crear, operar, vender, cobrar, controlar y hacer crecer un
-> negocio desde un solo Business Graph, y demuestra qué decisión mejora su
-> rentabilidad.
+> Creá tu tienda, vendé en cualquier canal y gestioná todo tu negocio sin
+> cambiar de plataforma. Gestiona no sólo registra lo que vendiste: entiende
+> cuánto ganaste.
 
 La visión es grande; la ejecución se ordena por evidencia:
 
@@ -95,35 +97,39 @@ primer comercio confiable
 ## 1. Portfolio de productos
 
 Gestiona Cloud es una plataforma con productos conectados, no seis aplicaciones
-que duplican datos.
+que duplican datos. Commerce es el insignia; el resto son capas. Orbit es
+Automate, no un Core aparte.
 
 ~~~text
 Gestiona Cloud
-├── Gestiona Business
-│   Operación, ERP, POS, CRM, compras e inventario
 ├── Gestiona Commerce
 │   Storefront, checkout, canales, migraciones y B2B
+├── Gestiona Business
+│   Operación, POS, CRM, compras e inventario
+├── Gestiona Pay
+│   Orquestación de cobros, conciliación y reintegros
 ├── Gestiona Finance
 │   Documentos, gastos, payables, aprobaciones y conciliación
-├── Gestiona Platform
-│   Control Plane, soporte, riesgo, billing y operaciones
-├── Gestiona Intelligence
-│   Hallazgos, agentes, acciones y resultados
-├── Gestiona Orbit (propuesto)
-│   Playbooks transversales, impacto, aprobaciones y outcomes
-└── Gestiona Pay / Ship / Developers
-    Monetización transaccional, logística y ecosistema
+├── Gestiona Capital
+│   Crédito con socio (congelado hasta datos y regulación)
+├── Gestiona Automate
+│   Hallazgos, playbooks (Orbit), acciones y resultados
+├── Gestiona Ship / Growth / Developers
+│   Logística, consultoría productizada, API y partners
+└── Gestiona Platform
+    Control Plane, soporte, riesgo, billing y operaciones
 ~~~
 
 | Producto | Trabajo que resuelve | Evidencia antes de escalar | Monetización objetivo |
 |---|---|---|---|
-| **Business** | Mantener la verdad de productos, stock, ventas, compras, clientes y margen. | Dos comercios operan sin correcciones manuales. | Base de adopción; pricing definitivo por validar. |
 | **Commerce** | Convertir catálogo y operación en ventas por tienda y canales. | Una tienda externa migra y vende sin perder continuidad. | Pagos, envíos, dominios y servicios de crecimiento. |
+| **Business** | Mantener la verdad de productos, stock, ventas, compras, clientes y margen. | Dos comercios operan sin correcciones manuales. | Base de adopción; pricing definitivo por validar. |
+| **Pay** | Onboard, cobrar, confirmar, conciliar, reembolsar y explicar comisión. | TPV Gestiona / GMV medible; webhooks recuperables. | Margen neto de procesamiento sin custodia. |
 | **Finance** | Convertir documentos y gastos en obligaciones y controles auditables. | Facturas reales terminan en borradores correctos y aprobados. | Uso documental, conectores y workflows avanzados. |
+| **Capital** | Financiar stock o adelantar ventas con uso controlado. | Partner firmante, underwriting versionado, repago por Pay. | Originación, servicing, revenue share. No VC en cartera. |
+| **Automate** | Detectar oportunidades y ejecutar acciones dentro de políticas. | AI Action Rate e impacto verificado (Orbit O1+). | Incluido, por uso o premium según economics. |
+| **Ship / Growth** | Etiquetas, CRO y consultoría que termina en template/workflow. | Contribución por envío; servicios que no dominan el P&L. | Margen logístico y fees de implementación. |
 | **Platform** | Operar merchants, integraciones, soporte, riesgo e incidentes. | Menos intervención y menor tiempo de resolución por comercio. | Habilita escala y margen de toda la compañía. |
-| **Intelligence** | Detectar oportunidades y ejecutar acciones dentro de políticas. | AI Action Rate e impacto verificado, no contenido generado. | Incluido, por uso o premium según economics. |
-| **Orbit (propuesto)** | Coordinar señales y decisiones de varios dominios en playbooks simulables, auditables y medibles. | Tres playbooks read-only reducen tiempo a resolución sin aumentar alert fatigue. | Workflow avanzado por uso/plan, sólo si el piloto demuestra valor. |
-| **Pay / Ship** | Orquestar cobros y logística con recuperación y conciliación. | Margen neto y cumplimiento regulatorio demostrados. | Margen transaccional sin custodia no autorizada. |
 | **Developers / Apps** | Permitir que terceros amplíen la plataforma con límites. | Una app sirve a más de un merchant sin acceso a tablas. | Revenue share, partners y servicios. |
 
 ### Superficies
@@ -3016,6 +3022,7 @@ interrumpe el orden y deja su impacto documentado.
 
 ## 12. Decisiones que no cambian sin ADR
 
+- Categoría Commerce OS y un solo Business Graph ([ADR 002](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md)).
 - No reescribir el sistema.
 - No crear otra identidad u organización para Finance.
 - No duplicar proveedores, productos, compras, stock, clientes ni ledger.
@@ -3030,6 +3037,7 @@ interrumpe el orden y deja su impacto documentado.
 - No fijar pricing por intuición.
 - No reconstruir historia inexistente para completar un gráfico.
 - No contar una organización varias veces por tener varias tiendas.
+- No declarar un módulo “completo” sin el contrato de ADR 002 §4.
 
 ## 13. Congelado deliberadamente
 

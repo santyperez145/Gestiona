@@ -439,7 +439,8 @@ y los tres huecos van primero, y el resto espera evidencia.
 ## 6. Sobre Gestiona Pay
 
 📌 **Criterio.** La escalera tiene cuatro peldaños y **hoy estamos en el primero
-y medio**:
+y medio** ([ADR 002](ADR_002_COMMERCE_OPERATING_SYSTEM.md) §6). Stripe no es el
+rail de lanzamiento argentino; el adapter sí se contempla para expansión.
 
 1. **Orquestación** — el checkout es nuestro, el dinero lo mueve otro. ✅ Es lo
    que hay: OAuth de MercadoPago y `marketplace_fee` cobrando de verdad,

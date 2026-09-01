@@ -1530,11 +1530,24 @@ export default function Dashboard() {
         </div>
         <PageHeader
           icon={LayoutDashboard}
-          eyebrow="Inicio / Control operativo"
+          eyebrow="Inicio / Commerce"
           title={greeting}
-          description={filterCat === 'all' ? 'Una lectura clara de ventas, stock, clientes y caja para decidir qué hacer ahora.' : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
+          description={filterCat === 'all'
+            ? (activationReadiness?.effectiveGoal === 'online'
+              ? 'Publicá la tienda, conectá el cobro y operá stock y mostrador en el mismo negocio.'
+              : 'Una lectura de ventas, stock y caja. La tienda queda en el menú diario para publicar cuando el canal sea online.')
+            : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
           actions={
             <>
+              {activationReadiness?.effectiveGoal === 'online' && (
+                <Link
+                  to="/tienda-online"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                >
+                  <ShoppingBag className="h-3.5 w-3.5" />
+                  Tienda
+                </Link>
+              )}
               <DateRangeFilter label="Todo el período" />
               <StoreFilter />
               <Select value={filterCat} onValueChange={setFilterCat}>

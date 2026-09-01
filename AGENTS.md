@@ -1,27 +1,27 @@
 # Gestiona — contexto para Codex
 
-**El sistema donde el negocio es uno solo, aunque venda por muchos lados.** El
-mostrador, la tienda online y los marketplaces comparten el mismo stock, los
-mismos clientes, los mismos costos y la misma verdad sobre cuánto se ganó.
+**Commerce Operating System:** la tienda es la puerta; el Business Graph es el
+foso. El mostrador, la web y los marketplaces comparten stock, clientes, costos
+y la verdad de cuánto se ganó. Canon:
+[docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md).
 
-En concreto: sistema de gestión completo (stock, POS, finanzas, multi-tienda,
-canjes con influencers, marketing) **más** tiendas online que venden de verdad,
-**más** un panel desde el que se administran todas las organizaciones y se cobra
-comisión por venta.
+En concreto: Commerce (tienda que vende de verdad) **más** gestión (stock, POS,
+finanzas, canales) **más** un panel de plataforma que cobra comisión por venta.
+Pay orquesta cobros; Capital no se construye sin partner.
 
-⚠️ **La tienda no es el producto**, y describirlo como "alternativa a
-Tiendanube" orienta mal las decisiones: lleva a competir donde se pierde. El
-diferencial es que **el margen real por canal necesita cuatro datos a la vez**
-—costo con aduana, comisión del medio de pago, envío e IVA— y acá están los
-cuatro porque el proyecto nació importando. Un ecommerce no sabe el costo; un
-ERP no sabe la comisión. Ver [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md).
+⚠️ **No es “alternativa a Tiendanube”.** Competir sólo por temas y apps es
+perder. El diferencial es que **el margen real por canal necesita cuatro datos
+a la vez** —costo con aduana, comisión del medio de pago, envío e IVA—. Un
+ecommerce no sabe el costo; un ERP no sabe la comisión. Ver
+[docs/ESTRATEGIA.md](docs/ESTRATEGIA.md).
 
-📌 **Lineamiento 2026-08-14:** Gestiona se piensa como **sistema operativo para
-comercios omnicanal**, no como creador de tiendas. El corazón es el Business
-Core —productos, órdenes, clientes, finanzas e inventario— y POS, tienda,
-MercadoLibre, WhatsApp y futuras integraciones son canales alrededor de ese
-núcleo. Si un módulo intenta inventar su propio stock, precio, margen, cobro o
-cliente, va contra la arquitectura.
+📌 **Lineamiento 2026-09-01 (ADR 002):** Gestiona se piensa como sistema
+operativo de **comercio** omnicanal. El corazón sigue siendo el Business Core
+—productos, órdenes, clientes, finanzas e inventario—. POS, tienda,
+MercadoLibre, WhatsApp y Pay son canales o capas alrededor de ese núcleo. Si un
+módulo intenta inventar su propio stock, precio, margen, cobro o cliente, va
+contra la arquitectura. Completo = un trabajo de punta a punta, no treinta
+productos a medias.
 
 Tres superficies separadas, y esa separación es deliberada:
 

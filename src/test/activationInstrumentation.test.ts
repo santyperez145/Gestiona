@@ -32,6 +32,8 @@ describe('instrumentación de activación', () => {
     expect(ONBOARDING).toContain("finish('pos')");
     expect(ONBOARDING).toContain("finish('online')");
     expect(ONBOARDING).toContain("?onboarding=1&goal=online");
+    expect(ONBOARDING).toContain("navigate('/tienda-online?onboarding=1&goal=online')");
+    expect(ONBOARDING.indexOf("finish('online')")).toBeLessThan(ONBOARDING.indexOf("finish('pos')"));
   });
 
   it('no confunde exploración opcional con estar listo para vender', () => {

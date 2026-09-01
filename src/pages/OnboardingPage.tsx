@@ -110,8 +110,8 @@ export default function OnboardingPage() {
         toast.success('Ruta POS elegida. Ahora cargá tu primer producto y su stock real.');
         navigate('/productos?onboarding=1&goal=pos');
       } else if (destination === 'online') {
-        toast.success('Ruta online elegida. Empezá por el catálogo; el panel va a medir cobro, envío y legales.');
-        navigate('/productos?onboarding=1&goal=online');
+        toast.success('Ruta online elegida. Publicá la tienda; el panel va a medir cobro, envío y legales.');
+        navigate('/tienda-online?onboarding=1&goal=online');
       } else if (destination === 'demo') {
         if (demoSeedFailed) {
           toast.warning(`El negocio ${businessName} quedó configurado, pero no pudimos cargar la demo. Podés reintentar desde el panel.`);
@@ -322,36 +322,36 @@ export default function OnboardingPage() {
               <div>
                 <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-1.5">Paso 4 de 4</p>
                 <h1 className="font-display text-[1.5rem] font-bold tracking-tight leading-tight">
-                  Elegí cómo querés empezar
+                  Empezá por tu tienda
                 </h1>
                 <p className="text-[12px] text-muted-foreground/55 mt-1.5">
-                  El objetivo de hoy es llegar a tu primera venta; después el panel mantiene los pasos que falten a la vista.
+                  Publicá, cobrá y gestioná el mismo negocio. El mostrador queda a un paso si vendés en local.
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={() => finish('pos')}
+                onClick={() => finish('online')}
                 disabled={saving}
                 className="w-full rounded-[9px] border border-primary/35 bg-primary/[0.07] p-4 text-left transition-colors hover:bg-primary/[0.11] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"><MonitorSmartphone className="h-4 w-4" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Vender en mi local con POS</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Catálogo, stock, cobro en mostrador, ARCA y primera venta. Sin pedirte envío ni pasarela online.</span></span>
-                  {savingDestination === 'pos' ? <span className="mt-2 text-[11px] text-primary">Guardando...</span> : <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-primary" />}
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"><Globe2 className="h-4 w-4" /></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Publicar mi tienda online</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Catálogo, publicación, cobro con Mercado Pago, envío y páginas legales. El stock es el mismo del mostrador.</span></span>
+                  {savingDestination === 'online' ? <span className="mt-2 text-[11px] text-primary">Guardando...</span> : <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-primary" />}
                 </span>
               </button>
 
               <button
                 type="button"
-                onClick={() => finish('online')}
+                onClick={() => finish('pos')}
                 disabled={saving}
-                className="w-full rounded-[9px] border border-blue-500/25 bg-blue-500/[0.04] p-4 text-left transition-colors hover:bg-blue-500/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-[9px] border border-border/60 p-4 text-left transition-colors hover:bg-muted/30 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300"><Globe2 className="h-4 w-4" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Vender con mi tienda online</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Además del stock, vamos a medir publicación, cobro, entrega y páginas legales antes de llamarla lista.</span></span>
-                  {savingDestination === 'online' ? <span className="mt-2 text-[11px] text-blue-300">Guardando...</span> : <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-blue-300" />}
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"><MonitorSmartphone className="h-4 w-4" /></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Vender en mi local con POS</span><span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">Catálogo, stock, cobro en mostrador, ARCA y primera venta. Sin pedirte envío ni pasarela online.</span></span>
+                  {savingDestination === 'pos' ? <span className="mt-2 text-[11px] text-muted-foreground">Guardando...</span> : <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground" />}
                 </span>
               </button>
 
@@ -379,7 +379,7 @@ export default function OnboardingPage() {
         </div>
 
         <p className="text-center text-[10px] text-muted-foreground/30 mt-6">
-          Gestiona · Sistema de gestión profesional para tu negocio
+          Gestiona · Creá tu tienda y gestioná el mismo negocio
         </p>
       </div>
     </div>

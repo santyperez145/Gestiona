@@ -126,12 +126,20 @@ export default function SetupChecklist({
           <div className="border-b border-border/50 px-4 py-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Primer canal a activar</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Canal de entrada</p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Esto cambia la ruta, no separa stock, productos ni clientes.
+                  La tienda es la puerta; POS comparte el mismo stock y los mismos clientes.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={!canChangeGoal || changingGoal}
+                  onClick={() => onGoalChange?.('online')}
+                  className={`flex items-center justify-center gap-1.5 rounded-[7px] border px-3 py-2 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${readiness.selectedGoal === 'online' ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border/60 hover:bg-muted/30'}`}
+                >
+                  <Store className="h-3.5 w-3.5" /> Tienda
+                </button>
                 <button
                   type="button"
                   disabled={!canChangeGoal || changingGoal}
@@ -139,14 +147,6 @@ export default function SetupChecklist({
                   className={`flex items-center justify-center gap-1.5 rounded-[7px] border px-3 py-2 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${readiness.selectedGoal === 'pos' ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border/60 hover:bg-muted/30'}`}
                 >
                   <MonitorSmartphone className="h-3.5 w-3.5" /> POS
-                </button>
-                <button
-                  type="button"
-                  disabled={!canChangeGoal || changingGoal}
-                  onClick={() => onGoalChange?.('online')}
-                  className={`flex items-center justify-center gap-1.5 rounded-[7px] border px-3 py-2 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${readiness.selectedGoal === 'online' ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border/60 hover:bg-muted/30'}`}
-                >
-                  <Store className="h-3.5 w-3.5" /> Online
                 </button>
               </div>
             </div>
@@ -159,7 +159,7 @@ export default function SetupChecklist({
             <div className="mx-4 mt-3 flex items-start gap-2 rounded-[8px] border border-blue-500/25 bg-blue-500/[0.06] p-3">
               <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
               <div>
-                <p className="text-[12px] font-semibold">Elegí POS u online para medir un resultado real</p>
+                <p className="text-[12px] font-semibold">Elegí tienda online o POS para medir un resultado real</p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">Explorar el sistema no cuenta como activación ni como una primera venta.</p>
               </div>
             </div>

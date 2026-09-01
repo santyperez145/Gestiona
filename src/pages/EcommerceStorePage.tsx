@@ -61,11 +61,9 @@ const ESTADO_ENTREGA: Record<string, string> = {
 };
 
 const PAYMENT_METHODS = [
-  { id: "mercadopago",    label: "MercadoPago",    logo: "🔵" },
+  { id: "mercadopago",    label: "Mercado Pago (Gestiona Pay)", logo: "🔵" },
   { id: "transferencia",  label: "Transferencia",  logo: "🏦" },
-  { id: "efectivo",       label: "Efectivo",       logo: "💵" },
-  { id: "stripe",         label: "Stripe",         logo: "🟣" },
-  { id: "paypal",         label: "PayPal",         logo: "🟡" },
+  { id: "efectivo",       label: "Efectivo / retiro", logo: "💵" },
 ];
 
 // Radix Select no acepta una opción con value vacío. Este valor nunca llega a
@@ -103,7 +101,7 @@ function isStoreTab(value: string | null): value is StoreTab {
 }
 
 export default function EcommerceStorePage() {
-  usePageTitle("Tienda E-Commerce");
+  usePageTitle("Gestiona Commerce");
   const { orgId } = useOrganization();
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState<StoreTab>("overview");
@@ -381,14 +379,14 @@ export default function EcommerceStorePage() {
   const filteredOrders = orders.filter(o => !orderFilter || o.fulfillment_status === orderFilter);
 
   const TABS: { id: StoreTab; label: string }[] = [
-    { id: "overview",  label: "Overview" },
-    { id: "orders",    label: "Órdenes" },
+    { id: "overview",  label: "Publicar" },
+    { id: "orders",    label: "Pedidos" },
     { id: "reviews",   label: "Opiniones y preguntas" },
     { id: "categorias", label: "Categorías" },
     { id: "pages",     label: "Páginas" },
     { id: "banners",   label: "Banners" },
-    { id: "design",    label: "Diseño & Tema" },
-    { id: "settings",  label: "Configuración" },
+    { id: "design",    label: "Diseño y tema" },
+    { id: "settings",  label: "Pagos y envíos" },
   ];
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -409,8 +407,8 @@ export default function EcommerceStorePage() {
     <div className="workspace-page workspace-ecommerce space-y-6 pb-12">
       <PageHeader
         icon={ShoppingBag}
-        title="Tienda E-Commerce"
-        description="Tu tienda online integrada con inventario y pagos"
+        title="Gestiona Commerce"
+        description="Publicá la tienda, cobrá con Gestiona Pay (Mercado Pago) y despachá. El catálogo y el stock son los del Business Core."
         actions={
           <div className="flex items-center flex-wrap gap-2">
             {/* Una tienda activa que no puede cobrar o no puede cotizar el envío
@@ -1007,11 +1005,10 @@ export default function EcommerceStorePage() {
           </div>
 
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
-            <h3 className="font-semibold">Métodos de Pago</h3>
+            <h3 className="font-semibold">Métodos de cobro</h3>
             <p className="text-xs text-muted-foreground">
-              El descuento se aplica sobre la mercadería, nunca sobre el envío. Sirve
-              para empujar las ventas al medio que menos comisión te cobra: una
-              transferencia te cuesta 0% y MercadoPago se lleva alrededor del 6%.
+              Gestiona Pay en Argentina orquesta Mercado Pago. Stripe y PayPal no se ofrecen:
+              no hay adapter vivo. El descuento se aplica sobre la mercadería, nunca sobre el envío.
             </p>
             <div className="space-y-2">
               {PAYMENT_METHODS.map(pm => {

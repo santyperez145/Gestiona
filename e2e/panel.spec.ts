@@ -60,14 +60,14 @@ test.describe("tienda e-commerce", () => {
     await page.goto("/tienda-online");
 
     // Si la sesión no viajó, la app manda al login y no hay nada que probar.
-    await expect(page.getByRole("heading", { name: "Tienda E-Commerce" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Gestiona Commerce" })).toBeVisible();
 
     for (const pestaña of [
-      "Órdenes",
+      "Pedidos",
       "Opiniones y preguntas",
       "Páginas",
       "Banners",
-      "Diseño & Tema",
+      "Diseño y tema",
     ]) {
       await page.getByRole("button", { name: pestaña, exact: true }).click();
       await expect(page.getByRole("button", { name: pestaña, exact: true })).toBeVisible();

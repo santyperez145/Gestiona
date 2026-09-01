@@ -158,6 +158,7 @@ const PUBLICO: NavRole[] = [];
 
 export const ROUTES: RouteDefinition[] = [
   { id: "inicio", path: "/", roles: AMBOS, component: lazy(() => import("@/pages/Dashboard")), module: null, openReason: "Inicio: sin dashboard no hay desde dónde entrar a nada.", aliases: [{ path: "/landing", redirectTo: "/" }, { path: "/recomendaciones-ia", redirectTo: "/" }], status: "canonical", nav: { label: "Inicio", icon: LayoutDashboard, group: "diario", keywords: ["dashboard", "resumen", "home", "panel"] } },
+  { id: "tienda_online", path: "/tienda-online", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/EcommerceStorePage")), module: "ecommerce", status: "canonical", nav: { label: "Tienda online", icon: ShoppingBag, group: "diario", keywords: ["ecommerce", "web", "vitrina", "storefront", "pedidos online", "commerce"] } },
   { id: "caja", path: "/caja", roles: AMBOS, component: lazy(() => import("@/pages/POSPage")), module: "pos", status: "canonical", nav: { label: "Vender", icon: ScanLine, group: "diario", keywords: ["pos", "caja", "mostrador", "cobrar", "ticket", "punto de venta"] } },
   { id: "ventas", path: "/ventas", roles: AMBOS, component: lazy(() => import("@/pages/SalesPage")), module: "sales", status: "canonical", nav: { label: "Ventas", icon: DollarSign, group: "diario", keywords: ["facturación", "vendido", "pedidos"] } },
   { id: "productos", path: "/productos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ProductsPage")), module: "products", status: "canonical", nav: { label: "Productos", icon: Package, group: "diario", keywords: ["stock", "catálogo", "precios", "artículos", "mercadería"] } },
@@ -180,7 +181,6 @@ export const ROUTES: RouteDefinition[] = [
     status: "canonical",
     nav: { label: "Clientes", icon: Users, group: "diario", keywords: ["crm", "compradores", "contactos", "fichas", "rfm", "segmentos", "pipeline", "embudo", "oportunidades", "seguimientos", "recordatorios", "follow up"] },
   },
-  { id: "tienda_online", path: "/tienda-online", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/EcommerceStorePage")), module: "ecommerce", status: "canonical", nav: { label: "Tienda online", icon: ShoppingBag, group: "diario", keywords: ["ecommerce", "web", "vitrina", "storefront", "pedidos online"] } },
   { id: "tareas", path: "/tareas", roles: AMBOS, component: lazy(() => import("@/pages/TasksPage")), module: null, openReason: "Tareas del propio usuario, no datos del negocio.", status: "canonical", nav: { label: "Tareas", icon: CheckSquare, group: "trabajo", keywords: ["pendientes", "to do", "kanban"] } },
   { id: "calendario", path: "/calendario", roles: AMBOS, component: lazy(() => import("@/pages/CalendarPage")), module: null, openReason: "Agenda propia del usuario.", status: "canonical", nav: { label: "Calendario", icon: Calendar, group: "trabajo", keywords: ["agenda", "fechas", "turnos"] } },
   { id: "compras", path: "/compras", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PurchasesPage")), module: "purchases", status: "canonical", nav: { label: "Compras", icon: ShoppingCart, group: "compras", keywords: ["importación", "ingreso de mercadería", "proveedor"] } },

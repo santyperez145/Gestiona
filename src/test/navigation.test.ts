@@ -44,9 +44,9 @@ describe("estructura de la navegación", () => {
 
   // El sidebar deja estos seis siempre visibles. Si crecen, vuelve el problema
   // que esta reorganización viene a resolver.
-  it("el bloque diario se mantiene chico", () => {
+  it("el bloque diario se mantiene chico y Commerce va primero después de Inicio", () => {
     expect(ITEMS_DIARIOS.length).toBeLessThanOrEqual(7);
-    expect(ITEMS_DIARIOS.map(i => i.to)).toContain("/");
+    expect(ITEMS_DIARIOS.map(i => i.to).slice(0, 3)).toEqual(["/", "/tienda-online", "/caja"]);
     expect(ITEMS_DIARIOS.map(i => i.to)).toContain("/caja");
   });
 

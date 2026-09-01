@@ -8,7 +8,9 @@ es ilegible para cualquier otro.
 Acá va la otra mitad: **qué es este producto, contra quién compite y qué habría
 que demostrar para que sea un negocio** y no sólo un sistema que funciona.
 
-Última revisión: 2026-08-22.
+Última revisión: 2026-09-01. Categoría y Pay/Capital:
+[ADR 002](ADR_002_COMMERCE_OPERATING_SYSTEM.md). Narrativa de ronda:
+[INVERSORES.md](INVERSORES.md).
 
 ---
 
@@ -31,30 +33,34 @@ en un documento público se convierte en el dato que otros repiten.
 
 ## 1. Qué es esto, en una línea
 
-📌 **Criterio.** Hasta ahora el proyecto se describía como *"sistema de gestión
-para PyMEs argentinas"* que además tiene tienda. Eso subvende lo que hay
-construido y, peor, orienta mal las decisiones: lleva a comparar la tienda
-contra Tiendanube, que es la comparación que se pierde.
+📌 **Criterio, 2026-09-01.** La categoría es **Commerce Operating System**, no
+ERP ni “alternativa a Tiendanube”. La tienda online es la **puerta**: ahí se
+adquiere y se convierte. El producto es el sistema comercial completo —el mismo
+stock, cliente, costo y margen en mostrador, web y marketplaces—.
 
-La descripción que corresponde a lo que existe:
+> **Gestiona es la plataforma de comercio, operación y servicios financieros
+> para negocios latinoamericanos.** Permite crear una tienda, vender en todos
+> los canales, gestionar la empresa, cobrar, automatizar decisiones y —con
+> partner, más adelante— acceder a capital desde un único Business Graph.
 
-> **El sistema donde el negocio es uno solo, aunque venda por muchos lados.**
-> El mostrador, la tienda online y los marketplaces comparten el mismo stock,
-> los mismos clientes, los mismos costos y la misma verdad sobre cuánto se ganó.
+Mensaje al comercio: *Creá tu tienda, vendé en cualquier canal y gestioná todo
+tu negocio sin cambiar de plataforma.*
 
-La tienda **no es el producto**. Es una de las bocas de salida de un sistema que
-sabe cuánto costó la mercadería, cuánto queda, quién la compró y cuánto margen
-dejó. Eso es lo que ninguna plataforma de ecommerce tiene por abajo, y es lo
-que acá ya está construido.
+Lo que no cambió: el foso sigue siendo que **el margen real por canal necesita
+cuatro datos a la vez** (costo landed, comisión, envío, IVA). Un ecommerce no
+sabe el costo; un ERP no sabe la comisión. Ver [ADR 002](ADR_002_COMMERCE_OPERATING_SYSTEM.md).
 
 ---
 
 ## 2. El diferencial real, y por qué es defendible
 
-### 2.1 No es la tienda
+### 2.1 No es competir como creador de temas
 
 ✅ **Medido.** La tienda de este proyecto está bien, pero Tiendanube tiene años
-de ventaja en temas, apps y ecosistema. Competir por ahí es perder de frente.
+de ventaja en temas, apps y ecosistema. Competir **sólo** por vitrina es perder
+de frente. Commerce-first no significa copiar esa guerra: significa que el
+comercio entra por publicar y vender, y se queda porque el mismo Core sabe
+cuánto ganó.
 
 ### 2.2 Es que el costo real ya está adentro
 
@@ -384,4 +390,26 @@ que además es el dueño del proyecto.
 
 Eso no está mal —es exactamente donde empieza todo— pero conviene no confundir
 **tener un sistema que funciona** con **tener un negocio**. Lo primero está
-bastante avanzado. Lo segundo no empezó, y ninguna feature lo empieza.
+bastante avanzado. Lo segundo no empezó, y ninguna feature lo empieza. La
+narrativa de ronda, qué métricas sí se muestran y qué rails de pago se usan
+están en [INVERSORES.md](INVERSORES.md); no se citan ATM/GMV de terceros hasta
+medirlos.
+
+---
+
+## 11. Pay, Stripe y Capital — decisión 2026-09-01
+
+📌 **Criterio.**
+
+**Gestiona Pay v1** es orquestación: el checkout y la conciliación son de
+Gestiona; el dinero lo mueve Mercado Pago (OAuth, `marketplace_fee` ya cobrado
+en compras de prueba). Payway es segundo rail con contrato. dLocal es etapa
+regional.
+
+**Stripe:** no es el rail de lanzamiento en Argentina a esta fecha. Sí se
+diseña un adapter para países donde Connect, Payment Element, Billing y Radar
+apliquen. No se basa Capital argentino en Stripe Capital, Treasury ni Adyen
+Capital (disponibilidad publicada acotada a otros países).
+
+**Capital:** originación + datos + UX; el socio presta. IA no aprueba crédito.
+La ronda no fondea la cartera. Detalle: ADR 002 §§6–7.
