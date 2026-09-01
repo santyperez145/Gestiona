@@ -25,13 +25,15 @@ import {
   type StoreOrderView,
 } from "@/lib/storeOrderQueue";
 import { canFulfillStoreOrder, storeOrderPaymentLabel, storeOrderPaymentTone } from "@/lib/storeOrderPayment";
-import { Download, Search, Truck } from "lucide-react";
+import { Download, Eye, Search, Truck } from "lucide-react";
 
 interface Props {
   orders: StoreOrderQueueRow[];
   loading: boolean;
   error: string | null;
+  selectedId?: string | null;
   onRetry: () => void;
+  onInspect: (order: StoreOrderQueueRow) => void;
   onPrepare: (order: StoreOrderQueueRow) => void;
 }
 
@@ -68,7 +70,9 @@ function downloadCsv(rows: StoreOrderQueueRow[]) {
   URL.revokeObjectURL(a.href);
 }
 
-export default function StoreOrdersPanel({ orders, loading, error, onRetry, onPrepare }: Props) {
+export default function StoreOrdersPanel({
+  orders, loading, error, selectedId, onRetry, onInspect, onPrepare,
+}: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") ?? "";
   const view = parseStoreOrderView(searchParams.get("vista"));
@@ -185,7 +189,13 @@ export default function StoreOrdersPanel({ orders, loading, error, onRetry, onPr
                 </thead>
                 <tbody>
                   {visible.map(o => (
-                    <OrderRow key={o.id} order={o} onPrepare={onPrepare} />
+                    <OrderRow
+                      key={o.id}
+                      order={o}
+                      selected={o.id === selectedId}
+                      onInspect={onInspect}
+                      onPrepare={onPrepare}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -194,7 +204,13 @@ export default function StoreOrdersPanel({ orders, loading, error, onRetry, onPr
 
           <div className="space-y-3 md:hidden">
             {visible.map(o => (
-              <OrderCard key={o.id} order={o} onPrepare={onPrepare} />
+              <OrderCard
+                key={o.id}
+                order={o}
+                selected={o.id === selectedId}
+                onInspect={onInspect}
+                onPrepare={onPrepare}
+              />
             ))}
           </div>
         </>
@@ -205,16 +221,20 @@ export default function StoreOrdersPanel({ orders, loading, error, onRetry, onPr
 
 function OrderRow({
   order: o,
+  selected,
+  onInspect,
   onPrepare,
 }: {
   order: StoreOrderQueueRow;
+  selected: boolean;
+  onInspect: (order: StoreOrderQueueRow) => void;
   onPrepare: (order: StoreOrderQueueRow) => void;
 }) {
   const canShip = canFulfillStoreOrder(o.payment_status);
   return (
     <tr
-      className={`border-b border-border/20 hover:bg-muted/20 ${canShip ? "cursor-pointer" : ""}`}
-      onClick={() => canShip && onPrepare(o)}
+      className={`cursor-pointer border-b border-border/20 hover:bg-muted/20 ${selected ? "bg-primary/5" : ""}`}
+      onClick={() => onInspect(o)}
     >
       <td className="px-4 py-3 font-mono text-xs">{o.order_number}</td>
       <td className="px-4 py-3 text-sm font-medium">{o.customer_name}</td>
@@ -235,19 +255,29 @@ function OrderRow({
       </td>
       <td className="px-4 py-3 text-xs text-muted-foreground">{fechaPedido(o.created_at)}</td>
       <td className="sticky right-0 bg-card px-4 py-3">
-        {canShip ? (
+        <div className="flex flex-wrap items-center gap-1">
           <Button
             size="sm"
             variant="outline"
             className="h-7 gap-1.5 px-2 text-xs"
-            onClick={e => { e.stopPropagation(); onPrepare(o); }}
+            aria-label={`Ver detalle de ${o.order_number}`}
+            onClick={e => { e.stopPropagation(); onInspect(o); }}
           >
-            <Truck className="h-3 w-3" />
-            {o.tracking_number ? "Ver envío" : "Preparar"}
+            <Eye className="h-3 w-3" />
+            Detalle
           </Button>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        )}
+          {canShip ? (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 gap-1.5 px-2 text-xs"
+              onClick={e => { e.stopPropagation(); onPrepare(o); }}
+            >
+              <Truck className="h-3 w-3" />
+              {o.tracking_number ? "Ver envío" : "Preparar"}
+            </Button>
+          ) : null}
+        </div>
       </td>
     </tr>
   );
@@ -255,14 +285,18 @@ function OrderRow({
 
 function OrderCard({
   order: o,
+  selected,
+  onInspect,
   onPrepare,
 }: {
   order: StoreOrderQueueRow;
+  selected: boolean;
+  onInspect: (order: StoreOrderQueueRow) => void;
   onPrepare: (order: StoreOrderQueueRow) => void;
 }) {
   const canShip = canFulfillStoreOrder(o.payment_status);
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-4">
+    <div className={`rounded-xl border bg-card p-4 ${selected ? "border-primary/40" : "border-border/60"}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-mono text-xs text-muted-foreground">{o.order_number}</p>
@@ -283,17 +317,29 @@ function OrderCard({
       {o.tracking_number && (
         <p className="mt-2 font-mono text-[11px] text-muted-foreground">{o.tracking_number}</p>
       )}
-      {canShip && (
+      <div className="mt-3 flex flex-col gap-2">
         <Button
           size="sm"
           variant="outline"
-          className="mt-3 h-11 w-full gap-1.5"
-          onClick={() => onPrepare(o)}
+          className="h-11 w-full gap-1.5"
+          aria-label={`Ver detalle de ${o.order_number}`}
+          onClick={() => onInspect(o)}
         >
-          <Truck className="h-4 w-4" />
-          {o.tracking_number ? "Ver envío" : "Preparar envío"}
+          <Eye className="h-4 w-4" />
+          Detalle
         </Button>
-      )}
+        {canShip && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-11 w-full gap-1.5"
+            onClick={() => onPrepare(o)}
+          >
+            <Truck className="h-4 w-4" />
+            {o.tracking_number ? "Ver envío" : "Preparar envío"}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

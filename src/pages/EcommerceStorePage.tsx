@@ -18,6 +18,7 @@ import {
 import { Link, useSearchParams } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
 import StoreOrdersPanel from "@/components/ecommerce/StoreOrdersPanel";
+import StoreOrderInspector from "@/components/ecommerce/StoreOrderInspector";
 import PaymentConnectionsPanel from "@/components/integrations/PaymentConnectionsPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
 import QuestionsModeration from "@/components/ecommerce/QuestionsModeration";
@@ -32,6 +33,7 @@ import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
 import { estadoPublicacionLegal } from "@/lib/legalPages";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
 import { STORE_ORDER_QUEUE_LIMIT, storeOrderFulfillmentLabel, storeOrderFulfillmentTone } from "@/lib/storeOrderQueue";
+import { findStoreOrderForInspect, isStoreOrderInspectId } from "@/lib/storeOrderDetail";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -70,11 +72,21 @@ interface EcomOrder {
   customer_email: string;
   customer_phone: string | null;
   total: number;
+  subtotal: number | null;
+  shipping_cost: number | null;
+  discount_amount: number | null;
+  coupon_code: string | null;
+  coupon_discount_ars: number | null;
+  tax_amount: number | null;
   payment_status: string;
+  payment_method: string | null;
   fulfillment_status: string;
   tracking_number: string | null;
   shipping_address: Record<string, string> | null;
   items: unknown[];
+  notes: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
   created_at: string;
 }
 
@@ -106,6 +118,7 @@ export default function EcommerceStorePage() {
       if (next !== "orders") {
         params.delete("q");
         params.delete("vista");
+        params.delete("pedido");
       }
       return params;
     }, { replace: true });
@@ -152,6 +165,8 @@ export default function EcommerceStorePage() {
   });
   const [orders, setOrders] = useState<EcomOrder[]>([]);
   const [envioDe, setEnvioDe] = useState<EcomOrder | null>(null);
+  const [pedidoExtra, setPedidoExtra] = useState<EcomOrder | null>(null);
+  const [pedidoExtraLoading, setPedidoExtraLoading] = useState(false);
   const [funnelData, setFunnelData] = useState<FunnelRow[]>([]);
   // Opciones para armar el menú: las categorías y las páginas publicadas.
   const [menuCategorias, setMenuCategorias] = useState<{ slug: string; name: string }[]>([]);
@@ -184,7 +199,7 @@ export default function EcommerceStorePage() {
     setOrdersError(null);
     const { data, error } = await supabase
       .from("ecommerce_orders")
-      .select("id, order_number, customer_name, customer_email, customer_phone, total, payment_status, fulfillment_status, tracking_number, shipping_address, items, created_at")
+      .select("id, order_number, customer_name, customer_email, customer_phone, total, subtotal, shipping_cost, discount_amount, coupon_code, coupon_discount_ars, tax_amount, payment_status, payment_method, fulfillment_status, tracking_number, shipping_address, items, notes, shipped_at, delivered_at, created_at")
       .eq("org_id", orgId)
       .order("created_at", { ascending: false })
       .limit(STORE_ORDER_QUEUE_LIMIT);
@@ -197,6 +212,60 @@ export default function EcommerceStorePage() {
     }
     setOrdersLoading(false);
   }, [orgId]);
+
+  const pedidoId = searchParams.get("pedido");
+  const pedidoFromQueue = findStoreOrderForInspect(orders, pedidoId);
+  const inspectedOrder = pedidoFromQueue ?? pedidoExtra;
+
+  const openPedido = (orderId: string) => {
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      params.set("tab", "orders");
+      params.set("pedido", orderId);
+      return params;
+    });
+  };
+  const closePedido = () => {
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      params.delete("pedido");
+      return params;
+    }, { replace: true });
+  };
+
+  useEffect(() => {
+    const raw = searchParams.get("pedido");
+    if (!raw) {
+      setPedidoExtra(null);
+      setPedidoExtraLoading(false);
+      return;
+    }
+    if (findStoreOrderForInspect(orders, raw)) {
+      setPedidoExtra(null);
+      setPedidoExtraLoading(false);
+      return;
+    }
+    if (!orgId || !isStoreOrderInspectId(raw)) {
+      setPedidoExtra(null);
+      setPedidoExtraLoading(false);
+      return;
+    }
+    let cancelado = false;
+    setPedidoExtraLoading(true);
+    supabase
+      .from("ecommerce_orders")
+      .select("id, order_number, customer_name, customer_email, customer_phone, total, subtotal, shipping_cost, discount_amount, coupon_code, coupon_discount_ars, tax_amount, payment_status, payment_method, fulfillment_status, tracking_number, shipping_address, items, notes, shipped_at, delivered_at, created_at")
+      .eq("org_id", orgId)
+      .eq("id", raw)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelado) return;
+        if (error) console.error("No se pudo leer el pedido del deep link", error);
+        setPedidoExtra((data as EcomOrder | null) ?? null);
+        setPedidoExtraLoading(false);
+      });
+    return () => { cancelado = true; };
+  }, [orgId, orders, searchParams]);
 
   useEffect(() => {
     if (!orgId) {
@@ -509,6 +578,16 @@ export default function EcommerceStorePage() {
         onClose={() => setEnvioDe(null)}
         onDone={loadOrders}
       />
+      <StoreOrderInspector
+        open={Boolean(pedidoId)}
+        order={inspectedOrder}
+        requestedId={pedidoId}
+        loading={Boolean(pedidoId) && !inspectedOrder && (ordersLoading || pedidoExtraLoading)}
+        onClose={closePedido}
+        onPrepare={order => {
+          setEnvioDe(order as EcomOrder);
+        }}
+      />
 
       {/* ─── Overview ─── */}
       {tab === "overview" && (
@@ -561,7 +640,12 @@ export default function EcommerceStorePage() {
               ) : orders.slice(0, 4).map(o => {
                 const itemCount = Array.isArray(o.items) ? (o.items as unknown[]).length : 0;
                 return (
-                <div key={o.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+                <button
+                  type="button"
+                  key={o.id}
+                  className="flex w-full items-center justify-between rounded-lg bg-muted/20 p-3 text-left hover:bg-muted/30"
+                  onClick={() => openPedido(o.id)}
+                >
                   <div>
                     <p className="text-sm font-medium">{o.customer_name}</p>
                     <p className="text-xs text-muted-foreground">{o.order_number} · {itemCount} item{itemCount > 1 ? "s" : ""}</p>
@@ -572,7 +656,7 @@ export default function EcommerceStorePage() {
                       {storeOrderFulfillmentLabel(o.fulfillment_status)}
                     </Badge>
                   </div>
-                </div>
+                </button>
                 );
               })}
             </div>
@@ -587,10 +671,12 @@ export default function EcommerceStorePage() {
           orders={orders}
           loading={ordersLoading}
           error={ordersError}
+          selectedId={pedidoId}
           onRetry={() => { void loadOrders(); }}
+          onInspect={order => openPedido(order.id)}
           onPrepare={order => {
-            const full = orders.find(o => o.id === order.id);
-            if (full) setEnvioDe(full);
+            const full = orders.find(o => o.id === order.id) ?? inspectedOrder;
+            if (full) setEnvioDe(full as EcomOrder);
           }}
         />
       )}

@@ -2820,9 +2820,21 @@ Finance Connect.
     despachar” es la misma regla del Foco del día (pagado y todavía no salió);
     el pendiente del dashboard aterriza en esa vista. No hay selección masiva:
     despachar sigue siendo uno por uno, con la misma autoridad de envío de
-    antes. La cola lee los últimos 200; si se llena, lo dice. Falta bulk con
-    RPC, inspector sin perder la lista y una cola real con más de 200 filas.
-    Verificado en este recorte: 2.144/2.144 pruebas en 218 archivos; typecheck OK.
+    antes. La cola lee los últimos 200; si se llena, lo dice. El inspector
+    quedó en el ítem 83. Falta bulk con RPC y una cola real con más de 200
+    filas. Verificado en este recorte: 2.144/2.144 pruebas en 218 archivos;
+    typecheck OK.
+
+83. Pedidos: inspeccionar sin perder la cola — 2026-09-01.
+    Encontrar la orden no alcanzaba: el clic abría el envío y sólo si estaba
+    paga, así que una impaga no tenía ficha y una paga tapaba la lista.
+    `?pedido=` conserva búsqueda y vista, como `?sale=` en Ventas. La ficha
+    muestra cliente, destino, ítems e importes del checkout; no inventa margen.
+    Un id ajeno o borrado no consulta otra organización. El despacho sigue
+    aparte, con la misma autoridad de siempre. Un deep link fuera de los
+    últimos 200 se lee con `org_id` + `id`. Falta bulk con RPC y una cola real
+    de más de 200 en uso. Verificado en este recorte: 2.152/2.152 pruebas en
+    219 archivos; typecheck OK.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

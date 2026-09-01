@@ -32,4 +32,18 @@ describe("cola de pedidos en Commerce", () => {
     expect(page).toContain('params.delete("vista")');
     expect(focus).toContain("/tienda-online?tab=orders&vista=despachar");
   });
+
+  it("el inspector conserva la cola, representa la selección en URL y es fullscreen en mobile", () => {
+    expect(page).toContain('searchParams.get("pedido")');
+    expect(page).toContain("findStoreOrderForInspect(orders,");
+    expect(page).toContain('params.set("pedido", orderId)');
+    expect(page).toContain('params.delete("pedido")');
+    expect(page).toContain("StoreOrderInspector");
+    expect(page).not.toContain("findStoreOrderForInspect(visible");
+    const inspector = readFileSync(resolve(ROOT, "src/components/ecommerce/StoreOrderInspector.tsx"), "utf8");
+    expect(inspector).toContain('data-testid="store-order-inspector"');
+    expect(inspector).toContain('className="flex w-full flex-col p-0 sm:max-w-2xl"');
+    expect(panel).toContain("onInspect");
+    expect(panel).toContain('aria-label={`Ver detalle de ${o.order_number}`}');
+  });
 });
