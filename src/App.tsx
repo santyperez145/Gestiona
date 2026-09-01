@@ -231,10 +231,10 @@ function ProtectedRoutes() {
     return <ViewerGate />;
   }
 
-  // Force onboarding for fresh orgs — check DB field first, localStorage as fallback
-  const onboarded = activeOrg
-    ? (activeOrg.onboarding_completed || localStorage.getItem(`gestiona.onboarded.${activeOrg.id}`))
-    : '1';
+  // El formulario se terminó en la base, no en este navegador. localStorage
+  // dejaba entrar a un comercio que nunca eligió rubro ni canal: el segundo
+  // comercio de producción estaba así el 2026-09-01.
+  const onboarded = !activeOrg || activeOrg.onboarding_completed;
   const onOnboardingRoute = window.location.pathname === '/onboarding';
   if (activeOrg && !onboarded && !onOnboardingRoute) {
     return <Navigate to="/onboarding" replace />;

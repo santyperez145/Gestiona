@@ -2917,6 +2917,17 @@ Finance Connect.
     Verificado en este recorte: **2.190/2.190 pruebas en 224 archivos**;
     typecheck OK; lint 0 errores y 139 warnings conocidos.
 
+91. El canal de activación no se adivina — 2026-09-01.
+    El segundo comercio no terminó el onboarding y aun así
+    `onboarding_goal` era `pos` (default de columna) y un `localStorage`
+    lo dejaba entrar al panel. La ruta a la primera venta daba el
+    mostrador por elegido. Quien no eligió está en `explore`; POS/online
+    se escriben al terminar el wizard. Exentry, que sí eligió, no se
+    toca. Migración `20260901000040`.
+    Verificado en este recorte: **2.192/2.192 pruebas en 224 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos. Alta ZZ:
+    canal `explore`, formulario sin hacer, 0 restos.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

@@ -78,6 +78,15 @@ BEGIN
    WHERE org_id = v_org AND industry_code IS NOT NULL;
   INSERT INTO zz_alta VALUES (8, 'el rubro no viene adivinado', '0', v_n::text);
 
+  -- ⚠️ El canal tampoco: DEFAULT 'pos' hacía que la ruta a la primera venta
+  -- diera el mostrador por elegido antes del wizard.
+  INSERT INTO zz_alta
+  SELECT 11, 'el canal no viene adivinado', 'explore', onboarding_goal
+    FROM public.organizations WHERE id = v_org;
+  INSERT INTO zz_alta
+  SELECT 12, 'el formulario no está hecho', 'false', onboarding_completed::text
+    FROM public.organizations WHERE id = v_org;
+
   -- La matriz de permisos tiene que existir, o Admin → Permisos abre vacío.
   SELECT count(*) INTO v_n FROM public.role_permissions WHERE org_id = v_org;
   INSERT INTO zz_alta VALUES (9, 'nace con la matriz de permisos', '>0',

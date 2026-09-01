@@ -106,10 +106,22 @@ describe('evaluateActivationReadiness', () => {
     expect(pos.milestones.find(item => item.id === 'sale')?.done).toBe(false);
   });
 
-  it('normaliza valores antiguos de forma segura', () => {
+  it('un comercio que no eligió canal no está en POS por default', () => {
+    const result = evaluateActivationReadiness(ready({ onboarding_goal: null }));
+
+    expect(result.needsGoalChoice).toBe(true);
+    expect(result.effectiveGoal).toBeNull();
+    expect(result.complete).toBe(false);
+    expect(result.milestones.find(item => item.id === 'channel')?.done).toBe(false);
+  });
+
+  it('normaliza valores desconocidos a explorar, no a POS', () => {
     expect(normalizeActivationGoal('online')).toBe('online');
+    expect(normalizeActivationGoal('pos')).toBe('pos');
     expect(normalizeActivationGoal('explore')).toBe('explore');
-    expect(normalizeActivationGoal('invalido')).toBe('pos');
+    expect(normalizeActivationGoal('invalido')).toBe('explore');
+    expect(normalizeActivationGoal(null)).toBe('explore');
     expect(activationGoalLabel('pos')).toBe('POS / mostrador');
+    expect(activationGoalLabel('explore')).toBe('Sin canal elegido');
   });
 });

@@ -97,8 +97,6 @@ export default function OnboardingPage() {
         onboardingGoal,
       });
 
-      localStorage.setItem(`gestiona.onboarded.${activeOrg.id}`, '1');
-
       let demoSeedFailed = false;
       if (destination === 'demo') {
         const { error: demoError } = await supabase.functions.invoke('seed-demo', { body: { orgId: activeOrg.id } });

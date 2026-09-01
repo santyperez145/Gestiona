@@ -6,10 +6,12 @@ const ROOT = resolve(import.meta.dirname, '..', '..');
 const read = (path: string) => readFileSync(resolve(ROOT, path), 'utf8');
 
 const MIGRATION = read('supabase/migrations/20260821000059_activation_readiness.sql');
+const CANAL = read('supabase/migrations/20260901000040_el_canal_no_se_adivina.sql');
 const DASHBOARD = read('src/pages/Dashboard.tsx');
 const MERCHANT_360 = read('src/pages/PlatformMerchantPage.tsx');
 const ONBOARDING = read('src/pages/OnboardingPage.tsx');
 const CHECKLIST = read('src/components/dashboard/SetupChecklist.tsx');
+const APP = read('src/App.tsx');
 
 describe('instrumentación de activación', () => {
   it('expone una vista autenticada y niega la superficie anónima', () => {
@@ -47,5 +49,13 @@ describe('instrumentación de activación', () => {
     expect(MIGRATION).toContain("NULLIF(btrim(COALESCE(i.cae, '')), '') IS NOT NULL");
     expect(MIGRATION).toContain("THEN 'falta_verificar_ciclo'");
     expect(MIGRATION).toContain("= 'listo') AS fiscal_ready");
+  });
+
+  it('el canal lo elige el comercio, no el alta ni este navegador', () => {
+    expect(CANAL).toContain("SET DEFAULT 'explore'");
+    expect(CANAL).toContain("onboarding_completed = false");
+    expect(APP).toContain('activeOrg.onboarding_completed');
+    expect(APP).not.toContain('gestiona.onboarded');
+    expect(ONBOARDING).not.toContain('gestiona.onboarded');
   });
 });

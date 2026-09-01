@@ -44,7 +44,7 @@ export interface ActivationReadiness {
 }
 
 export function normalizeActivationGoal(value: string | null | undefined): ActivationGoal {
-  return value === 'online' || value === 'explore' ? value : 'pos';
+  return value === 'online' || value === 'pos' || value === 'explore' ? value : 'explore';
 }
 
 function fiscalDetail(status: string | null | undefined): { detail: string; owner: ActivationMilestone['owner'] } {
