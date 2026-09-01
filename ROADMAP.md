@@ -2906,6 +2906,17 @@ Finance Connect.
     Verificado en este recorte: **2.187/2.187 pruebas en 224 archivos**;
     typecheck OK; lint 0 errores y 139 warnings conocidos.
 
+90. P0.1.2: Clientes, catálogo interno y Reportes tampoco se presentan como perfumería — 2026-09-01.
+    El mismo invariante de P0.1.1 en las otras superficies que lo nombraban
+    sin preguntar. Instagram y WhatsApp se quedan: son contacto, no una
+    vertical. Preferencias olfativas, «Compra vapers», el recomendador,
+    «Filtros de perfume» y «Ingresos por familia olfativa» sólo si
+    `elCatalogoOperaPerfumes` / `elCatalogoOperaVapers`. Guardar la ficha
+    no pisa `scent_preferences` ni `buys_vapers` cuando esos campos no
+    se muestran. No se asigna `product_type_id`.
+    Verificado en este recorte: **2.190/2.190 pruebas en 224 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useCuotasDelComercio, textoDeCuotas } from "@/lib/cuotasDelComercio";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { getActiveOrgId } from "@/lib/orgContext";
 import { formatARS, getCategoryLabel, getGenderLabel } from "@/lib/supabaseStore";
 import { loadActivePromotions, loadPublicPromotions, bestPromoPrice, type Promotion } from "@/lib/promotions";
 import { FAMILIAS_OLFATIVAS, NOTAS_COMUNES, OCASIONES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
+import { elCatalogoOperaPerfumes } from "@/lib/catalogIndustry";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -88,11 +89,19 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     (isPublic ? loadPublicPromotions(orgId) : loadActivePromotions(orgId))
       .then(setCatalogPromos)
       .catch(() => {});
-    supabase.from("product_perfume_details").select("*").eq("org_id", orgId).then(({ data }) => {
-      const m: Record<string, any> = {};
-      (data ?? []).forEach((d: any) => { m[d.product_id] = d; });
-      setPerfumeDetails(m);
-    }, () => {});
+    const opera = elCatalogoOperaPerfumes({
+      industryCode: sRes.data?.industry_code,
+      categories: (pRes.data || []).map((p: { category?: string | null }) => p.category),
+    });
+    if (!opera) {
+      setPerfumeDetails({});
+    } else {
+      supabase.from("product_perfume_details").select("*").eq("org_id", orgId).then(({ data }) => {
+        const m: Record<string, any> = {};
+        (data ?? []).forEach((d: any) => { m[d.product_id] = d; });
+        setPerfumeDetails(m);
+      }, () => {});
+    }
   }, [userId, isPublic]);
 
   useEffect(() => {
@@ -109,11 +118,20 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     return () => { supabase.removeChannel(channel); };
   }, [userId, fetchData]);
 
+  const operaPerfumes = useMemo(
+    () => elCatalogoOperaPerfumes({
+      industryCode: settings?.industry_code,
+      categories: products.map((p: { category?: string | null }) => p.category),
+    }),
+    [settings?.industry_code, products],
+  );
+
   const filtered = products.filter(p => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.brand.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterCat !== 'all' && p.category !== filterCat) return false;
     // ── Facetas de perfume. El PDF se arma desde `filtered`, así que
     //    exportar respeta exactamente lo que se ve en pantalla.
+    if (operaPerfumes) {
     if (facetGenero.length && !facetGenero.includes(p.gender)) return false;
     if (facetFamilia.length || facetNotas.length || facetOcasion.length) {
       const d = perfumeDetails[p.id];
@@ -124,6 +142,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
         const todas = [...(d.notas_salida ?? []), ...(d.notas_corazon ?? []), ...(d.notas_fondo ?? [])];
         if (!facetNotas.some((n: string) => todas.includes(n))) return false;
       }
+    }
     }
     return true;
   });
@@ -1014,8 +1033,8 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
           ))}
         </div>
 
-        {/* Facetas de perfume — el PDF se exporta desde `filtered`, así que
-            lo que se filtra acá es exactamente lo que sale en el PDF. */}
+        {operaPerfumes && (
+        <>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant={showFacets ? "default" : "outline"}
@@ -1081,6 +1100,8 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
               Los filtros por familia, ocasión y notas solo alcanzan productos con ficha de perfume cargada.
             </p>
           </div>
+        )}
+        </>
         )}
       </div>
 

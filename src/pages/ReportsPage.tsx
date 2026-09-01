@@ -15,6 +15,7 @@ import KPICard from "@/components/shared/KPICard";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { FAMILIAS_OLFATIVAS, taxLabel } from "@/lib/scentTaxonomy";
+import { elCatalogoOperaPerfumes } from "@/lib/catalogIndustry";
 import { useFileSystemAccess } from "@/hooks/useFileSystemAccess";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid, ReferenceLine, Area, AreaChart, ComposedChart } from "recharts";
 import { useSalesForecaster } from "@/hooks/useSalesForecaster";
@@ -2658,16 +2659,27 @@ function BrandStatsTab({ sales, products, settings, period }: { sales: any[]; pr
   // `0` cuando no hay cotización: los productos en dólares quedan con costo 0 y
   // se ven en el reporte como lo que son, sin costo conocido. Ver `cotizacionDe`.
   const rate = cotizacionDe(settings) ?? 0;
+  const operaPerfumes = elCatalogoOperaPerfumes({
+    industryCode: settings?.industry_code,
+    categories: products.map((p: { category?: string | null }) => p.category),
+  });
 
   useEffect(() => {
-    if (!activeOrg) return;
+    if (!activeOrg || !operaPerfumes) {
+      setFamiliaByProduct({});
+      return;
+    }
     supabase.from("product_perfume_details").select("product_id, familia_olfativa").eq("org_id", activeOrg.id)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("[Reportes] no se pudieron leer las fichas de perfume", error);
+          return;
+        }
         const m: Record<string, string> = {};
         (data || []).forEach((d: any) => { if (d.familia_olfativa) m[d.product_id] = d.familia_olfativa; });
         setFamiliaByProduct(m);
       });
-  }, [activeOrg?.id]);
+  }, [activeOrg?.id, operaPerfumes]);
 
   const productById = useMemo(() => {
     const m: Record<string, any> = {};
@@ -2798,7 +2810,7 @@ function BrandStatsTab({ sales, products, settings, period }: { sales: any[]; pr
         </div>
       )}
 
-      {familiaRows.length > 0 && (
+      {operaPerfumes && familiaRows.length > 0 && (
         <div className="bg-card border border-border/60 rounded-[10px] p-4">
           <h3 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Ingresos por familia olfativa</h3>
           <div className="space-y-2">

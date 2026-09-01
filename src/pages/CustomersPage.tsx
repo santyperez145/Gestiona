@@ -19,6 +19,7 @@ import {
   Sparkles, UserCheck, RefreshCcw, ShieldAlert, Kanban, PieChart,
 } from "lucide-react";
 import { NOTAS_COMUNES, taxLabel } from "@/lib/scentTaxonomy";
+import { elCatalogoOperaPerfumes, elCatalogoOperaVapers } from "@/lib/catalogIndustry";
 import { recommendForPreferences } from "@/lib/perfumeMatch";
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
 import { useContactPicker } from "@/hooks/useContactPicker";
@@ -223,11 +224,15 @@ function CustomerFormModal({
   onSave,
   onClose,
   orgId,
+  operaPerfumes,
+  operaVapers,
 }: {
   initial?: Partial<CustomerProfile>;
   onSave: (data: Partial<CustomerProfile>) => Promise<void>;
   onClose: () => void;
   orgId?: string;
+  operaPerfumes: boolean;
+  operaVapers: boolean;
 }) {
   const [form, setForm] = useState({
     name: initial?.name ?? "",
@@ -297,8 +302,8 @@ function CustomerFormModal({
         notes: form.notes.trim() || undefined,
         instagram_handle: form.instagram.trim() || undefined,
         whatsapp_number: form.whatsapp.trim() || undefined,
-        buys_vapers: form.buysVapers,
-        scent_preferences: scentPrefs,
+        ...(operaVapers ? { buys_vapers: form.buysVapers } : {}),
+        ...(operaPerfumes ? { scent_preferences: scentPrefs } : {}),
         custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
       });
       onClose();
@@ -412,7 +417,7 @@ function CustomerFormModal({
             />
           </div>
 
-          {/* ── CRM perfumería: redes + preferencias ─────────────────── */}
+          {/* Instagram y WhatsApp son contacto, no una vertical. */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><Instagram className="w-3 h-3" />Instagram</label>
@@ -433,12 +438,15 @@ function CustomerFormModal({
               />
             </div>
           </div>
+          {operaVapers && (
           <div className="flex items-center gap-2 bg-muted rounded-lg p-3 border border-border">
             <input type="checkbox" id="buysVapers" checked={form.buysVapers} onChange={e => setForm(f => ({ ...f, buysVapers: e.target.checked }))} className="rounded" />
             <label htmlFor="buysVapers" className="text-sm flex items-center gap-1 cursor-pointer">
               <Package className="w-3.5 h-3.5 text-primary" />Compra vapers
             </label>
           </div>
+          )}
+          {operaPerfumes && (
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1"><Droplets className="w-3 h-3" />Preferencias olfativas</label>
             <div className="flex flex-wrap gap-1.5">
@@ -454,6 +462,7 @@ function CustomerFormModal({
               })}
             </div>
           </div>
+          )}
 
           {/* Custom fields */}
           {customFieldDefs.length > 0 && (
@@ -1436,6 +1445,7 @@ export default function CustomersPage() {
   const [sales, setSales] = useState<any[]>([]);
   const [recoProducts, setRecoProducts] = useState<any[]>([]);
   const [perfumeDetailsById, setPerfumeDetailsById] = useState<Record<string, any>>({});
+  const [catalogCategories, setCatalogCategories] = useState<Array<string | null | undefined>>([]);
   const [recoForCustomer, setRecoForCustomer] = useState<CustomerProfile | null>(null);
   const [debts, setDebts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
@@ -1567,17 +1577,34 @@ export default function CustomersPage() {
       getSettingsDB(user.id),
       getCustomersDB(user.id).catch(() => [] as CustomerProfile[]),
       getCRMSegmentsDB(user.id).catch(() => [] as SavedCRMSegment[]),
-      supabase.from("products").select("id, name, brand, image_url, sale_price_ars, discount_price_ars, category").eq("org_id", orgId).gt("stock", 0),
+      supabase.from("products").select("id, name, brand, image_url, sale_price_ars, discount_price_ars, category, stock").eq("org_id", orgId),
       supabase.from("product_perfume_details").select("*").eq("org_id", orgId),
     ]);
     setSales(s);
     setDebts(d);
     setSettings(st);
     setProfiles(profs as unknown as CustomerProfile[]);
-    setRecoProducts((prodRes.data as any[]) || []);
-    const dmap: Record<string, any> = {};
-    (ppdRes.data || []).forEach((r: any) => { dmap[r.product_id] = r; });
-    setPerfumeDetailsById(dmap);
+    const loadedProducts = (prodRes.data as Array<{ category?: string | null; stock?: number }> | null) || [];
+    if (prodRes.error) {
+      console.error("[Clientes] no se pudieron leer los productos del catálogo", prodRes.error);
+    }
+    const categorias = loadedProducts.map(p => p.category);
+    setCatalogCategories(categorias);
+    const operaPerfumesAhora = elCatalogoOperaPerfumes({
+      industryCode: (st as { industry_code?: string | null } | null)?.industry_code,
+      categories: categorias,
+    });
+    setRecoProducts(operaPerfumesAhora ? loadedProducts.filter(p => Number(p.stock) > 0) : []);
+    if (operaPerfumesAhora && !ppdRes.error) {
+      const dmap: Record<string, any> = {};
+      (ppdRes.data || []).forEach((r: any) => { dmap[r.product_id] = r; });
+      setPerfumeDetailsById(dmap);
+    } else {
+      setPerfumeDetailsById({});
+      if (operaPerfumesAhora && ppdRes.error) {
+        console.error("[Clientes] no se pudieron actualizar las fichas de perfume", ppdRes.error);
+      }
+    }
     // Merge DB segments with any existing localStorage segments (migration)
     const lsRaw = localStorage.getItem("gestiona.crm.saved_segments");
     const lsSegs: SavedCRMSegment[] = lsRaw ? JSON.parse(lsRaw) : [];
@@ -1718,6 +1745,21 @@ export default function CustomersPage() {
     profiles.forEach(p => { map[p.name.toLowerCase()] = p; });
     return map;
   }, [profiles]);
+
+  const operaPerfumes = useMemo(
+    () => elCatalogoOperaPerfumes({
+      industryCode: settings?.industry_code,
+      categories: catalogCategories,
+    }),
+    [settings?.industry_code, catalogCategories],
+  );
+  const operaVapers = useMemo(
+    () => elCatalogoOperaVapers({
+      industryCode: settings?.industry_code,
+      categories: catalogCategories,
+    }),
+    [settings?.industry_code, catalogCategories],
+  );
 
   /**
    * Saldo de puntos de un cliente. El mapa está indexado por id cuando lo hay,
@@ -2276,6 +2318,8 @@ export default function CustomersPage() {
           }
           onClose={() => setFormModal({ open: false })}
           orgId={activeOrg?.id}
+          operaPerfumes={operaPerfumes}
+          operaVapers={operaVapers}
         />
       )}
 
@@ -3049,7 +3093,7 @@ export default function CustomersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Recomendador de perfumes por cliente */}
+      {operaPerfumes && (
       <PerfumeRecommenderModal
         open={!!recoForCustomer}
         onOpenChange={(v) => { if (!v) setRecoForCustomer(null); }}
@@ -3058,6 +3102,7 @@ export default function CustomersPage() {
         results={recoForCustomer ? recommendForPreferences(recoForCustomer.scent_preferences || [], recoProducts, perfumeDetailsById, { limit: 8 }) : []}
         onPick={(prod) => { const num = (recoForCustomer?.whatsapp_number || recoForCustomer?.phone || '').replace(/\D/g, ''); if (num) window.open(`https://wa.me/${num}?text=${encodeURIComponent(`Hola ${recoForCustomer?.name?.split(' ')[0] || ''}! Te recomiendo este perfume que va con tu estilo: ${prod.name} 🌟`)}`, '_blank'); }}
       />
+      )}
 
       {/* Bulk Note Dialog */}
       <Dialog open={bulkNoteOpen} onOpenChange={setBulkNoteOpen}>
@@ -3687,7 +3732,7 @@ export default function CustomersPage() {
 
                       {/* ── Tab: Compras ── */}
                       <TabsContent value="compras" className="mt-0 space-y-3">
-                        {(() => {
+                        {operaPerfumes && (() => {
                           const prof = profileByName[c.name.toLowerCase()];
                           const prefs = prof?.scent_preferences || [];
                           if (prefs.length === 0) return null;
