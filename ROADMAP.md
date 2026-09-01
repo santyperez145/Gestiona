@@ -2846,6 +2846,17 @@ Finance Connect.
     contra Mercado Pago. Verificado en este recorte: 2.155/2.155 pruebas en
     220 archivos; typecheck OK.
 
+85. Vitrina D5.8: skeleton y tamaño de imagen, sin chrome del SaaS —
+    2026-09-01. La primera pintura era un spinner `bg-background` (tokens del
+    panel) y después saltaban header, banner y grilla. El esqueleto reserva
+    barra legal, header de 64 px, banner `16/7` y ocho tarjetas `1/1` con
+    `--st-*` del tema minimal. Banner de home y foto de ficha piden LCP;
+    cards, categorías, logo y miniaturas declaran `width`/`height`/`sizes` y
+    quedan `lazy`. No se recorta el archivo del comercio ni se afirma un LCP
+    de campo: este recorte cierra el salto perceptible, no la red lenta.
+    Verificado en este recorte: 2.160/2.160 pruebas en 221 archivos;
+    typecheck OK; lint 0 errores y 139 warnings conocidos.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

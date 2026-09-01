@@ -25,7 +25,8 @@ import StoreCartRecovery from "@/storefront/StoreCartRecovery";
 import StoreArrepentimiento from "@/storefront/StoreArrepentimiento";
 import { StoreAuthProvider } from "@/storefront/storeAuth";
 import { WishlistProvider } from "@/storefront/wishlist";
-import { Store, Loader2 } from "lucide-react";
+import StorefrontSkeleton from "@/storefront/StorefrontSkeleton";
+import { Store } from "lucide-react";
 import { initTracking, trackPageView } from "@/storefront/tracking";
 
 function StoreShell() {
@@ -62,11 +63,7 @@ function StoreShell() {
   }, [store]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen grid place-items-center bg-background">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <StorefrontSkeleton />;
   }
 
   if (notFound || !store) {

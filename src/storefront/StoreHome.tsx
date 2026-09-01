@@ -5,7 +5,7 @@ import StoreBanners from "./StoreBanners";
 import { menuDeCategorias } from "@/lib/storeCategories";
 import { ArrowRight, Truck, ShieldCheck, Sparkles, Wallet } from "lucide-react";
 import { mejorDescuento, nombreMedio } from "@/lib/paymentDiscount";
-import { mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
+import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 export default function StoreHome() {
   const { store, products, banners, categorias: cats2, priceOf, fmt } = useStore();
@@ -48,7 +48,14 @@ export default function StoreHome() {
         style={{ background: "hsl(var(--st-surface))", borderBottom: "1px solid hsl(var(--st-border))" }}
       >
         {store?.banner_url && (
-          <img src={store.banner_url} alt="" onLoad={mostrarImagenValida} onError={ocultarImagenRota} className="storefront-hero__image absolute inset-0 w-full h-full object-cover" />
+          <img
+            src={store.banner_url}
+            alt=""
+            {...atributosDeImagenVitrina("banner", { lcp: true })}
+            onLoad={mostrarImagenValida}
+            onError={ocultarImagenRota}
+            className="storefront-hero__image absolute inset-0 w-full h-full object-cover"
+          />
         )}
         <div className="storefront-hero__content relative max-w-6xl mx-auto px-4 py-16 sm:py-24">
           <div className="storefront-hero__copy">
@@ -127,7 +134,7 @@ export default function StoreHome() {
                     <img
                       src={cover.image_url}
                       alt=""
-                      loading="lazy"
+                      {...atributosDeImagenVitrina("categoria")}
                       onLoad={mostrarImagenValida}
                       onError={ocultarImagenRota}
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"

@@ -18,7 +18,7 @@ import ProductReviews from "./ProductReviews";
 import ProductQuestions from "./ProductQuestions";
 import StockAlertForm from "./StockAlertForm";
 import { useWishlist } from "./wishlist";
-import { mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
+import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 export default function StoreProduct() {
   const { productId } = useParams<{ productId: string }>();
@@ -148,6 +148,7 @@ export default function StoreProduct() {
                 key={imagenes[imgIdx]}
                 src={imagenes[imgIdx]}
                 alt={p.name}
+                {...atributosDeImagenVitrina("ficha", { lcp: imgIdx === 0 })}
                 onLoad={mostrarImagenValida}
                 onError={ocultarImagenRota}
                 className="absolute inset-0 w-full h-full object-cover"
@@ -166,7 +167,14 @@ export default function StoreProduct() {
                     borderRadius: "var(--st-radius)",
                   }}
                 >
-                  <img src={src} alt="" onLoad={mostrarImagenValida} onError={ocultarImagenRota} className="w-full h-full object-cover" />
+                  <img
+                    src={src}
+                    alt=""
+                    {...atributosDeImagenVitrina("miniatura")}
+                    onLoad={mostrarImagenValida}
+                    onError={ocultarImagenRota}
+                    className="w-full h-full object-cover"
+                  />
                 </button>
               ))}
             </div>

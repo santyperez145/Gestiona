@@ -3,7 +3,7 @@ import { useStore, type StoreProduct } from "./storeContext";
 import { Stars } from "./ProductReviews";
 import { useWishlist } from "./wishlist";
 import { ShoppingBag, Heart } from "lucide-react";
-import { mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
+import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 export default function ProductCard({ p }: { p: StoreProduct }) {
   const { store, priceOf, fmt, addToCart, reviewsByProduct } = useStore();
@@ -28,7 +28,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
             <img
               src={p.image_url}
               alt={p.name}
-              loading="lazy"
+              {...atributosDeImagenVitrina("tarjeta")}
               onLoad={mostrarImagenValida}
               onError={ocultarImagenRota}
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"

@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { StoreBanner } from "./storeContext";
-import { mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
+import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 const INTERVALO_MS = 6000;
 
@@ -57,8 +57,7 @@ export default function StoreBanners({ banners, base, storeName }: { banners: St
           className="absolute inset-0 w-full h-full object-cover"
           onLoad={mostrarImagenValida}
           onError={ocultarImagenRota}
-          // El primero decide el LCP de la home; los demás pueden esperar.
-          loading={i === 0 ? "eager" : "lazy"}
+          {...atributosDeImagenVitrina("banner", { lcp: i === 0 })}
         />
       </picture>
 

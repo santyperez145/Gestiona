@@ -16,7 +16,7 @@ import {
   sugerenciasDeBusqueda, destinoSugerencia, moverSeleccion,
   type ProductoBuscable, type Sugerencia,
 } from "@/lib/searchSuggest";
-import { mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
+import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 interface Props {
   base: string;
@@ -163,7 +163,16 @@ export default function SearchBox({
                   className="w-8 h-8 shrink-0 overflow-hidden bg-black/5"
                   style={{ borderRadius: "var(--st-radius)" }}
                 >
-                  {s.imagen && <img src={s.imagen} alt="" onLoad={mostrarImagenValida} onError={ocultarImagenRota} className="w-full h-full object-cover" />}
+                  {s.imagen && (
+                    <img
+                      src={s.imagen}
+                      alt=""
+                      {...atributosDeImagenVitrina("miniatura")}
+                      onLoad={mostrarImagenValida}
+                      onError={ocultarImagenRota}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                 </span>
               ) : (
                 <Search className="w-4 h-4 shrink-0 opacity-40" />

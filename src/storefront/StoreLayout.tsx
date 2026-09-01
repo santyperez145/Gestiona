@@ -17,7 +17,7 @@ import SearchBox from "./SearchBox";
 import { resolveTheme, resolveFont, googleFontHref } from "./theme";
 import { ShoppingBag, X, Plus, Minus, Trash2, Instagram, Menu, User, ChevronDown } from "lucide-react";
 import { useStoreAuth } from "./storeAuth";
-import { mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
+import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 /**
  * Un link del menú. Los externos salen del router: con `<Link>` un
@@ -192,7 +192,14 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             >
               {(store?.name ?? "T").charAt(0).toUpperCase()}
               {store?.logo_url && (
-                <img src={store.logo_url} alt="" onLoad={mostrarImagenValida} onError={ocultarImagenRota} className="absolute inset-0 h-full w-full object-cover" />
+                <img
+                  src={store.logo_url}
+                  alt=""
+                  {...atributosDeImagenVitrina("logo")}
+                  onLoad={mostrarImagenValida}
+                  onError={ocultarImagenRota}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
               )}
             </span>
             <span
@@ -452,7 +459,16 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                         style={{ borderRadius: "var(--st-radius)" }}
                       >
                         <ShoppingBag aria-hidden="true" className="w-5 h-5 opacity-20" />
-                        {l.image && <img src={l.image} alt="" onLoad={mostrarImagenValida} onError={ocultarImagenRota} className="absolute inset-0 w-full h-full object-cover" />}
+                        {l.image && (
+                          <img
+                            src={l.image}
+                            alt=""
+                            {...atributosDeImagenVitrina("miniatura")}
+                            onLoad={mostrarImagenValida}
+                            onError={ocultarImagenRota}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium leading-tight line-clamp-2">{l.name}</p>
@@ -502,7 +518,14 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                             style={{ borderRadius: "var(--st-radius)" }}
                           >
                             {sg.producto.image_url && (
-                              <img src={sg.producto.image_url} alt="" onLoad={mostrarImagenValida} onError={ocultarImagenRota} className="w-full h-full object-cover" />
+                              <img
+                                src={sg.producto.image_url}
+                                alt=""
+                                {...atributosDeImagenVitrina("miniatura")}
+                                onLoad={mostrarImagenValida}
+                                onError={ocultarImagenRota}
+                                className="w-full h-full object-cover"
+                              />
                             )}
                           </Link>
                           <div className="min-w-0 flex-1">
