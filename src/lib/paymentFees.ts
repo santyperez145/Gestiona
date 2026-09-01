@@ -60,6 +60,11 @@ export interface CommissionRule {
   /** included = el impuesto ya está dentro de la comisión; added = se suma. */
   tax_treatment?: 'included' | 'added' | null;
   tax_rate_pct?: number | null;
+  /** Espejo de `platform_commission_rules`: sin approved + vigencia, el RPC cobra 0. */
+  approval_status?: string | null;
+  effective_from?: string | null;
+  effective_until?: string | null;
+  notes?: string | null;
 }
 
 export interface Settlement {
@@ -154,6 +159,34 @@ export function resolvePlatformRule(
     (r.org_id ? 4 : 0) + (r.plan_id ? 2 : 0) + (r.applies_to !== 'all' ? 1 : 0);
 
   return candidates.reduce((best, r) => (score(r) > score(best) ? r : best), candidates[0]);
+}
+
+/**
+ * La regla que `platform_commission_amount` usaría hoy: activa, aprobada y
+ * dentro de la ventana de vigencia. Un draft o una fila sin `effective_from`
+ * no se presenta como comisión cobrada — sería mentirle al comercio.
+ */
+export function resolveLivePlatformRule(
+  rules: CommissionRule[],
+  query: { orgId?: string | null; planId?: string | null; channel: Channel },
+  asOf: Date = new Date(),
+): CommissionRule | null {
+  const t = asOf.getTime();
+  const vigentes = rules.filter(r => {
+    if (r.approval_status !== 'approved') return false;
+    if (!r.effective_from) return false;
+    if (new Date(r.effective_from).getTime() > t) return false;
+    if (r.effective_until && new Date(r.effective_until).getTime() <= t) return false;
+    return true;
+  });
+  return resolvePlatformRule(vigentes, query);
+}
+
+/** `todos` aparece en vistas viejas; el RPC y `resolvePlatformRule` usan `all`. */
+export function normalizarAppliesTo(value: string | null | undefined): CommissionRule['applies_to'] {
+  if (value === 'pos' || value === 'online' || value === 'all') return value;
+  if (value === 'todos') return 'all';
+  return 'all';
 }
 
 /**

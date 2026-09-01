@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
+import PaymentConnectionsPanel from "@/components/integrations/PaymentConnectionsPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
 import QuestionsModeration from "@/components/ecommerce/QuestionsModeration";
 import StorePagesEditor from "@/components/ecommerce/StorePagesEditor";
@@ -496,6 +497,20 @@ export default function EcommerceStorePage() {
 
       {/* ─── Overview ─── */}
       {tab === "overview" && (
+        <div className="space-y-6">
+          {!signals.paymentConnected && (
+            <div className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/[0.06] p-4 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">Gestiona Pay todavía no está activo</p>
+                <p className="mt-0.5 text-[12px] text-muted-foreground">
+                  Sin Mercado Pago conectado la tienda no puede cobrar. Un clic autoriza tu cuenta; no se pega ninguna clave.
+                </p>
+              </div>
+              <Button size="sm" className="min-h-11 shrink-0" onClick={() => setTab("settings")}>
+                Activar Gestiona Pay
+              </Button>
+            </div>
+          )}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Funnel */}
           <div className="bg-card border border-border/40 rounded-xl p-5">
@@ -545,6 +560,7 @@ export default function EcommerceStorePage() {
               })}
             </div>
           </div>
+        </div>
         </div>
       )}
 
@@ -724,6 +740,7 @@ export default function EcommerceStorePage() {
       {/* ─── Settings tab ─── */}
       {tab === "settings" && (
         <div className="space-y-5">
+          <PaymentConnectionsPanel />
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>

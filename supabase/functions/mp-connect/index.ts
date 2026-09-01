@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
         await admin.from("oauth_states").delete().eq("state", state);
         return json({ error: "La conexión expiró. Volvé a intentar." }, 400);
       }
+      const redirectTo = typeof st.redirect_to === "string" ? st.redirect_to : null;
       // De un solo uso.
       await admin.from("oauth_states").delete().eq("state", state);
 
@@ -165,7 +166,7 @@ Deno.serve(async (req) => {
       // la app, así que se enciende al conectar.
       await admin.from("settings").update({ mp_enabled: true }).eq("org_id", orgId);
 
-      return json({ ok: true, nickname, email, live_mode: tok.live_mode ?? true });
+      return json({ ok: true, nickname, email, live_mode: tok.live_mode ?? true, redirect_to: redirectTo });
     }
 
     // ── refresh ───────────────────────────────────────────────────────────

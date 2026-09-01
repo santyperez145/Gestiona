@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  resolveProviderFee, resolvePlatformRule, platformFeeFor,
-  computeSettlement, grossUpForNet, installmentPricing,
+  resolveProviderFee, resolvePlatformRule, resolveLivePlatformRule, platformFeeFor,
+  computeSettlement, grossUpForNet, installmentPricing, normalizarAppliesTo,
   type ProviderFee, type CommissionRule,
 } from '@/lib/paymentFees';
 
@@ -114,6 +114,40 @@ describe('resolvePlatformRule', () => {
       { id: 'online', plan_id: null, org_id: null, percent: 1, fixed: 0, applies_to: 'online' },
     ];
     expect(resolvePlatformRule(mixed, { channel: 'online' })?.id).toBe('online');
+  });
+});
+
+describe('resolveLivePlatformRule', () => {
+  const asOf = new Date('2026-09-01T12:00:00Z');
+
+  it('no cobra un draft aunque esté is_active', () => {
+    const rules: CommissionRule[] = [{
+      percent: 5, fixed: 0, applies_to: 'online', is_active: true,
+      approval_status: 'draft', effective_from: '2026-01-01',
+    }];
+    expect(resolveLivePlatformRule(rules, { channel: 'online' }, asOf)).toBeNull();
+  });
+
+  it('no cobra una aprobada sin vigencia', () => {
+    const rules: CommissionRule[] = [{
+      percent: 5, fixed: 0, applies_to: 'online', is_active: true,
+      approval_status: 'approved',
+    }];
+    expect(resolveLivePlatformRule(rules, { channel: 'online' }, asOf)).toBeNull();
+  });
+
+  it('usa la aprobada vigente', () => {
+    const rules: CommissionRule[] = [{
+      id: 'viva', percent: 0.5, fixed: 0, applies_to: 'online', is_active: true,
+      approval_status: 'approved', effective_from: '2026-08-26',
+    }];
+    expect(resolveLivePlatformRule(rules, { channel: 'online' }, asOf)?.id).toBe('viva');
+  });
+});
+
+describe('normalizarAppliesTo', () => {
+  it('traduce todos a all', () => {
+    expect(normalizarAppliesTo('todos')).toBe('all');
   });
 });
 

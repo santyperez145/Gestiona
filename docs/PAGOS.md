@@ -2,6 +2,22 @@
 
 Cómo cobra cada comercio en su tienda online.
 
+## Gestiona Pay (2026-09-01)
+
+📌 **Criterio.** Gestiona Pay es un producto propio de **orquestación**, no un
+PSP ni una cuenta de pago. El comercio ve «Activar Gestiona Pay». El rail de
+Argentina es **Mercado Pago** (OAuth, checkout, QR, Point, refunds, split).
+Stripe no se ofrece como cobro merchant en AR: el webhook de Stripe que ya
+existe sirve a la **suscripción de Gestiona**, no a las ventas de la tienda.
+
+Contrato de ruteo y eventos canónicos: `src/lib/gestionaPay.ts`. La autoridad
+del cobro sigue en `payment_intents` + `pago_intento_preparar`.
+
+El panel de Pay desglosa arancel de Mercado Pago, IVA y comisión de Gestiona
+con `computeSettlement` sobre el tarifario y la regla **aprobada y vigente**.
+Un draft no se muestra como cobrado. El comprador de la tienda no ve estos
+costos: paga el precio publicado.
+
 ## El modelo: una app de plataforma, muchas cuentas conectadas
 
 Es el mismo esquema de Tiendanube y Empretienda:

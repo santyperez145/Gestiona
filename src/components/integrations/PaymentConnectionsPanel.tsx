@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { destinoOAuthPermitido } from "@/lib/gestionaPay";
+import GestionaPayComisiones from "@/components/integrations/GestionaPayComisiones";
 
 interface Estado {
   provider: string;
@@ -63,11 +65,22 @@ export default function PaymentConnectionsPanel() {
       });
       setBusy(null);
       const err = await mensajeDeEdgeFunction(error, data);
-      if (err) toast.error("No se pudo conectar: " + err);
-      else toast.success(`Cuenta de MercadoPago conectada${(data as any)?.nickname ? ` (${(data as any).nickname})` : ""}`);
-
       params.delete("code"); params.delete("state");
       window.history.replaceState({}, "", window.location.pathname + (params.toString() ? `?${params}` : ""));
+      if (err) {
+        toast.error("No se pudo conectar: " + err);
+        load();
+        return;
+      }
+      toast.success(`Gestiona Pay activo${(data as { nickname?: string })?.nickname ? ` (${(data as { nickname?: string }).nickname})` : ""}`);
+      const destino = destinoOAuthPermitido(
+        (data as { redirect_to?: string | null })?.redirect_to,
+        window.location.origin,
+      );
+      if (destino && destino !== `${window.location.pathname}${window.location.search}`) {
+        window.location.assign(destino);
+        return;
+      }
       load();
     })();
   }, [activeOrg?.id, load]);
@@ -76,7 +89,7 @@ export default function PaymentConnectionsPanel() {
     if (!activeOrg?.id) return;
     setBusy("start");
     const { data, error } = await supabase.functions.invoke("mp-connect", {
-      body: { action: "start", orgId: activeOrg.id, returnUrl: window.location.href },
+      body: { action: "start", orgId: activeOrg.id, returnUrl: window.location.href.split("#")[0] },
     });
     setBusy(null);
     const url = (data as any)?.url;
@@ -115,11 +128,11 @@ export default function PaymentConnectionsPanel() {
             <CreditCard className="w-4 h-4 text-sky-500" />
           </div>
           <div className="min-w-0">
-            <h2 className="font-display font-semibold text-sm">Cobros con MercadoPago</h2>
+            <h2 className="font-display font-semibold text-sm">Gestiona Pay</h2>
             <p className="text-xs text-muted-foreground">
               {conectado
-                ? `Cuenta ${mp?.nickname ?? mp?.email ?? "vinculada"}`
-                : "Conectá tu cuenta para cobrar online en la tienda"}
+                ? `Rail Mercado Pago · ${mp?.nickname ?? mp?.email ?? "cuenta vinculada"}`
+                : "Activá el cobro de la tienda, el POS QR y la comisión de plataforma. No se pegan claves."}
             </p>
           </div>
         </div>
@@ -145,14 +158,14 @@ export default function PaymentConnectionsPanel() {
 
       {!conectado ? (
         <div className="space-y-2">
-          <Button onClick={conectar} disabled={busy === "start"} className="gap-2">
+          <Button onClick={conectar} disabled={busy === "start"} className="gap-2 min-h-11">
             {busy === "start" ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-            Conectar con MercadoPago
+            Activar Gestiona Pay
           </Button>
           <p className="text-[11px] text-muted-foreground">
-            Te lleva a MercadoPago para que autorices el cobro en tu nombre. No
-            vemos tu usuario ni tu contraseña, y podés revocar el permiso desde
-            tu cuenta cuando quieras.
+            En Argentina el procesador es Mercado Pago: autorizás tu cuenta y el
+            dinero entra ahí. Gestiona orquesta el checkout, la conciliación y la
+            comisión. Stripe no se ofrece como cobro local.
           </p>
         </div>
       ) : (
@@ -201,6 +214,15 @@ export default function PaymentConnectionsPanel() {
           </div>
         </>
       )}
+
+      <GestionaPayComisiones orgId={activeOrg?.id} planId={activeOrg?.plan_id} />
+
+      <p className="text-[11px] text-muted-foreground border-t border-border/50 pt-3">
+        Stripe Connect, Payway y dLocal son adapters del mismo contrato. En
+        Argentina no se activan: no hay cuenta Stripe doméstica ni split
+        negociado con esos rieles. El webhook de Stripe que ya existe cobra la
+        suscripción de Gestiona, no las ventas del comercio.
+      </p>
     </div>
   );
 }
