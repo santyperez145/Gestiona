@@ -66,4 +66,16 @@ describe('Commerce Pay honesty', () => {
     expect(page).toContain('label: "Pagos y envíos"');
     expect(page).toContain('PaymentConnectionsPanel');
   });
+
+  it('el checkout no ofrece Stripe ni PayPal ni inventa transferencia', () => {
+    const checkout = readFileSync(
+      resolve(import.meta.dirname, '..', 'storefront', 'StoreCheckout.tsx'),
+      'utf8',
+    );
+    expect(checkout).toContain('mediosDePagoOfrecibles');
+    expect(checkout).not.toMatch(/stripe:\s*"Tarjeta/);
+    expect(checkout).not.toMatch(/paypal:\s*"PayPal"/);
+    expect(checkout).not.toContain('?? "transferencia"');
+    expect(checkout).toContain('Esta tienda todavía no puede cobrar en línea');
+  });
 });

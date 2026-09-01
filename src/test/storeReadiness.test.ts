@@ -73,6 +73,17 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
       paymentConnected: false,
     }));
     expect(idsDe(r.blockers)).not.toContain('payments');
+    expect(idsDe(r.warnings)).toContain('pay-rail');
+    expect(r.canPublish).toBe(true);
+  });
+
+  it('sin Mercado Pago no exige Gestiona Pay', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      store: { ...tiendaLista().store!, payment_methods: ['efectivo'] },
+      paymentConnected: false,
+    }));
+    expect(idsDe(r.warnings)).not.toContain('pay-rail');
+    expect(r.checks.find(c => c.id === 'pay-rail')?.done).toBe(true);
   });
 
   it('efectivo también alcanza para cobrar', () => {

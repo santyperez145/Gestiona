@@ -17,6 +17,7 @@ import {
   retryPublicRead,
   type StoreVariant,
 } from "@/lib/publicDataSource";
+import { mediosDePagoOfrecibles } from "@/lib/gestionaPay";
 
 export interface StoreInfo {
   org_id: string;
@@ -203,7 +204,10 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         setLoading(false);
         return;
       }
-      setStore(row);
+      setStore({
+        ...row,
+        payment_methods: mediosDePagoOfrecibles(row.payment_methods),
+      });
 
       const [pRes, dRes, vRes, rRes, gRes, bRes, cRes, qRes] = await Promise.all([
         // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la

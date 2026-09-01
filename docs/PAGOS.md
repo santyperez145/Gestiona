@@ -18,6 +18,11 @@ con `computeSettlement` sobre el tarifario y la regla **aprobada y vigente**.
 Un draft no se muestra como cobrado. El comprador de la tienda no ve estos
 costos: paga el precio publicado.
 
+El checkout **no lista Mercado Pago** si Pay no está listo (token OAuth y medio
+habilitado). Marcarlo en Comercio no alcanza: `get_store_by_slug` filtra el
+array y una orden con ese método no entra. Stripe y PayPal no se ofrecen como
+cobro de la tienda.
+
 ## El modelo: una app de plataforma, muchas cuentas conectadas
 
 Es el mismo esquema de Tiendanube y Empretienda:

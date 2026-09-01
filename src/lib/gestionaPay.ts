@@ -140,6 +140,20 @@ export function eventoCanonicoStripe(type: string | null | undefined): GestionaP
  * Sólo se aceptan rutas propias: un returnUrl absoluto a otro origen sería
  * un open redirect.
  */
+/**
+ * Medios que el checkout y la vitrina pueden mostrar.
+ *
+ * Stripe y PayPal no tienen adapter de venta. Mercado Pago lo filtra el
+ * servidor cuando Pay no está listo; acá se cubre el rollout y un array viejo
+ * que todavía los traiga.
+ */
+const RAILES_SIN_ADAPTER = new Set(["stripe", "paypal"]);
+
+export function mediosDePagoOfrecibles(methods: string[] | null | undefined): string[] {
+  if (!methods?.length) return [];
+  return methods.filter((m) => m && !RAILES_SIN_ADAPTER.has(m));
+}
+
 export function destinoOAuthPermitido(url: string | null | undefined, origin: string): string | null {
   if (!url || !origin) return null;
   try {

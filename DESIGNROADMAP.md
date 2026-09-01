@@ -386,6 +386,12 @@ recibe una segunda clave idempotente; SMTP queda cubierto por el ledger durable
 sin prometer exactly-once fuera del control de Gestiona. No agrega chrome ni
 otra pantalla: vuelve confiable el feedback transaccional del recorrido D5.
 
+D5.4 cierra el medio muerto que el recorte de Pay dejó a la vista: Mercado Pago
+marcado sin cuenta conectada. La vitrina pública deja de listarlo; una orden
+con ese método no entra; Stripe y PayPal no se ofrecen aunque hayan quedado
+en un array viejo. El comercio sigue viendo su interruptor, con la explicación
+de que el comprador no lo ve hasta activar Gestiona Pay.
+
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto, variantes, stock y confianza;
 - carrito y checkout responsive;
@@ -453,7 +459,7 @@ declara validado porque “se ve mejor”.
 | 18 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
 | 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
 | 20 | Storefront home/PLP/PDP | Parcial D5 2026-08-30 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias; Gestión expone el recurso roto y bloquea reactivarlo. 3 pruebas y puerta completa pasan; publicación certificada en tienda/Banners a 360/768/1024/1440, sin overflow ni logs propios. Falta performance y flujo completo. |
-| 21 | Carrito/checkout/pago | Parcial D5.2 publicado / D5.3 local 2026-08-30 | Resultado protegido por capacidad, cuenta o recuperación número + email; token en sesión/fragmento y validación repetida en pago/emails. Creación, pago y despacho ya comparten identidad de comunicación con claim atómico, retry y segunda barrera Resend; falta rollout D5.3. Recuperación certificada en cuatro viewports; faltan red lenta y compra completa sandbox/real. |
+| 21 | Carrito/checkout/pago | Parcial D5.4 2026-09-01 | Resultado protegido por capacidad; D5.3 deduplica avisos. D5.4 oculta Mercado Pago si Gestiona Pay no está listo, rechaza la orden con rail muerto y no inventa transferencia. Faltan red lenta y compra completa sandbox/real. |
 | 22 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
 | 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
 | 24 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |

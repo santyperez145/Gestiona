@@ -113,6 +113,25 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     actionHref: wantsMp && !input.paymentConnected ? '/tienda-online' : '/integraciones',
   });
 
+  // El interruptor de Mercado Pago no cobra: cobra la conexión. Con
+  // transferencia el bloqueante de arriba no dispara, y el comprador igual
+  // veía un medio muerto. Aviso, no bloqueo: todavía se puede vender offline.
+  checks.push({
+    id: 'pay-rail',
+    title: 'Activar Gestiona Pay',
+    detail: !wantsMp
+      ? 'La tienda no ofrece Mercado Pago.'
+      : input.paymentConnected
+        ? 'Gestiona Pay activo: el checkout puede ofrecer Mercado Pago.'
+        : hasOffline
+          ? 'Mercado Pago está marcado, pero el checkout no lo va a ofrecer hasta que conectes la cuenta. El comprador sólo ve transferencia o efectivo.'
+          : 'Sin Gestiona Pay el checkout no puede cobrar con Mercado Pago.',
+    severity: 'warning',
+    done: !wantsMp || input.paymentConnected,
+    actionLabel: 'Activar Gestiona Pay',
+    actionHref: '/tienda-online',
+  });
+
   // ── Poder entregar ──────────────────────────────────────────────────────
   if (mode === 'zones') {
     const canQuote = input.zonesWithRates > 0;

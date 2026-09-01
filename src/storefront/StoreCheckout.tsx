@@ -11,6 +11,7 @@ import { trackBeginCheckout } from "./tracking";
 import { precioConMedioDePago, porcentajeDe, nombreMedio } from "@/lib/paymentDiscount";
 import { normalizarEmail } from "@/lib/couponRules";
 import { requiereDireccionDeEntrega } from "@/lib/checkoutDelivery";
+import { mediosDePagoOfrecibles } from "@/lib/gestionaPay";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -27,11 +28,9 @@ interface ShippingOption {
 }
 
 const METODO_LABEL: Record<string, string> = {
-  mercadopago: "MercadoPago",
+  mercadopago: "Mercado Pago",
   transferencia: "Transferencia bancaria",
   efectivo: "Efectivo al recibir",
-  stripe: "Tarjeta (Stripe)",
-  paypal: "PayPal",
 };
 
 export default function StoreCheckout() {
@@ -41,22 +40,24 @@ export default function StoreCheckout() {
   const base = `/tienda/${store?.slug ?? ""}`;
 
   const { customer } = useStoreAuth();
-  const metodos = store?.payment_methods?.length ? store.payment_methods : ["transferencia"];
+  const metodos = mediosDePagoOfrecibles(store?.payment_methods);
   const [form, setForm] = useState({
     nombre: "", email: "", telefono: "",
     calle: "", ciudad: "", provincia: "", cp: "", notas: "",
     metodo: metodos[0],
   });
 
-  // Al primer render la tienda todavía puede no haber cargado; en ese caso el
-  // estado nacía en "transferencia" aunque el comercio sólo aceptara
-  // MercadoPago. Se conserva una elección válida del comprador y, si dejó de
-  // serlo, se pasa al primer medio real antes de crear la orden.
-  const metodosKey = store?.payment_methods?.join("|") ?? "transferencia";
+  // Al primer render la tienda todavía puede no haber cargado. Se conserva
+  // una elección válida del comprador y, si dejó de serlo, se pasa al primer
+  // medio vivo. Si no hay ninguno, no se inventa transferencia.
+  const metodosKey = metodos.join("|");
   useEffect(() => {
-    setForm(actual => metodos.includes(actual.metodo)
-      ? actual
-      : { ...actual, metodo: metodos[0] });
+    setForm(actual => {
+      if (metodos.length === 0) return actual;
+      return metodos.includes(actual.metodo)
+        ? actual
+        : { ...actual, metodo: metodos[0] };
+    });
   // `metodosKey` representa el contenido; `metodos` se recrea como array en
   // cada render y no debe disparar este ajuste continuamente.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -310,6 +311,10 @@ export default function StoreCheckout() {
       setError(cotizando
         ? "Esperá a que terminemos de calcular la entrega."
         : envioAviso);
+      return;
+    }
+    if (metodos.length === 0) {
+      setError("Esta tienda todavía no puede cobrar. Probá más tarde.");
       return;
     }
     setEnviando(true);
@@ -598,6 +603,16 @@ export default function StoreCheckout() {
 
           <section>
             <h2 className="font-semibold mb-3">Medio de pago</h2>
+            {metodos.length === 0 ? (
+              <p
+                className="text-sm px-3 py-2.5 border"
+                role="status"
+                style={{ ...inputStyle, borderColor: "hsl(var(--st-border))" }}
+              >
+                Esta tienda todavía no puede cobrar en línea. Volvé más tarde o contactá al comercio.
+              </p>
+            ) : (
+              <>
             <div className="space-y-2">
               {metodos.map(m => {
                 const pct = porcentajeDe(m, store?.payment_discounts);
@@ -633,9 +648,13 @@ export default function StoreCheckout() {
                 );
               })}
             </div>
+            {metodos.some(m => m !== "mercadopago") && (
             <p className="text-xs mt-2" style={{ color: "hsl(var(--st-muted))" }}>
               Te contactamos para coordinar el pago y la entrega apenas recibamos el pedido.
             </p>
+            )}
+              </>
+            )}
           </section>
 
           <label className="block">
@@ -767,7 +786,7 @@ export default function StoreCheckout() {
 
           <button
             type="submit"
-            disabled={enviando || cotizando || !!envioAviso}
+            disabled={enviando || cotizando || !!envioAviso || metodos.length === 0}
             className="w-full py-3 font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >

@@ -1050,6 +1050,11 @@ export default function EcommerceStorePage() {
                     {/* El descuento sólo se ofrece si el medio está habilitado:
                         configurarlo para uno que no se acepta no haría nada y
                         además se anunciaría mal en la vitrina. */}
+                    {enabled && pm.id === "mercadopago" && !signals.paymentConnected && (
+                      <p className="text-[11px] text-muted-foreground pl-7">
+                        El checkout lo muestra cuando Gestiona Pay esté activo. Sin Mercado Pago conectado el comprador no lo ve.
+                      </p>
+                    )}
                     {enabled && (
                       <div className="flex items-center gap-2 pl-7">
                         <Label className="text-xs text-muted-foreground">Descuento</Label>

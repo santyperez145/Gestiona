@@ -4,6 +4,7 @@ import {
   destinoOAuthPermitido,
   eventoCanonicoMercadoPago,
   eventoCanonicoStripe,
+  mediosDePagoOfrecibles,
 } from "@/lib/gestionaPay";
 
 describe("decidirRailGestionaPay", () => {
@@ -43,6 +44,18 @@ describe("eventos canónicos", () => {
     expect(eventoCanonicoStripe("payment_intent.succeeded")).toBe("payment.succeeded");
     expect(eventoCanonicoStripe("invoice.payment_succeeded")).toBeNull();
     expect(eventoCanonicoStripe("charge.dispute.created")).toBe("payment.disputed");
+  });
+});
+
+describe("mediosDePagoOfrecibles", () => {
+  it("saca Stripe y PayPal, que no tienen adapter de venta", () => {
+    expect(mediosDePagoOfrecibles(["mercadopago", "stripe", "paypal", "transferencia"]))
+      .toEqual(["mercadopago", "transferencia"]);
+  });
+
+  it("no inventa transferencia cuando el array viene vacío", () => {
+    expect(mediosDePagoOfrecibles([])).toEqual([]);
+    expect(mediosDePagoOfrecibles(null)).toEqual([]);
   });
 });
 

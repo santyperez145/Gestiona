@@ -2795,6 +2795,20 @@ Finance Connect.
     Evidencia:
     [`docs/evidencias/2026-08-30_store_order_email_idempotency.md`](docs/evidencias/2026-08-30_store_order_email_idempotency.md).
 
+81. Checkout D5.4: no ofrecer un cobro que no se puede ejecutar — 2026-09-01.
+    Activar Gestiona Pay y marcar Mercado Pago en la tienda eran dos
+    interruptores. El default trae ambos medios; con transferencia el readiness
+    no bloqueaba y el comprador veía Mercado Pago aunque no hubiera token.
+    `get_store_by_slug` lista sólo medios vivos (token + medio habilitado;
+    Stripe/PayPal fuera). Un INSERT con `mercadopago` sin rail no entra a
+    `ecommerce_orders`. El checkout ya no inventa transferencia si la lista
+    viene vacía. Verificado en este recorte: 2.130/2.130 pruebas (2026-09-01).
+    Migración `20260901000020` aplicada y anotada en el libro. Fixture
+    reversible sobre producción: 1 tienda, 0 Mercado Pago ofrecido sin Pay,
+    0 Stripe/PayPal, trigger presente, helpers revocados de `anon`, ROLLBACK.
+    Falta una compra sandbox/real; este recorte cierra el medio muerto, no
+    certifica el proveedor.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
