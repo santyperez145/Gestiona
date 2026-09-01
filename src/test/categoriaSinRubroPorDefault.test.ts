@@ -233,6 +233,8 @@ const CONOCIDOS: Record<string, string> = {
   // Legítimos: el slug es dato del negocio original o una heurística de import.
   "src/lib/seedData.ts": "catálogo sembrado del negocio original",
   "src/lib/storeCategories.ts": "NOMBRES_HEREDADOS, rótulo de un slug ya cargado",
+  "src/lib/catalogIndustry.ts": "P0.1: decide si el workspace muestra el buscador olfativo; no es una lista de categorías a elegir",
+  "src/lib/catalogIndustry.test.ts": "P0.1: prueba el helper; cita las categorías de perfume a propósito",
   "src/lib/productImport.ts": "heurística de import; su fallback ya es la categoría del archivo",
   "src/components/integrations/TiendanubeExcelImport.tsx": "heurística de import",
   "src/components/products/InvoiceImportDialog.tsx": "heurística de import",

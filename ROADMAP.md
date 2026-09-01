@@ -2895,6 +2895,17 @@ Finance Connect.
     Verificado en este recorte: **2.183/2.183 pruebas en 223 archivos**;
     typecheck OK; lint 0 errores y 139 warnings conocidos.
 
+89. P0.1.1: el workspace de Productos no se presenta como perfumería — 2026-09-01.
+    El segundo comercio (`pruebas Workspace`) no eligió rubro, tiene 0
+    productos y 0 tipos, y aun así veía «Buscador perfume». Exentry sí eligió
+    `perfumes` y conserva el buscador, las facetas y «similares». La ficha
+    olfativa del formulario sigue gated por la categoría del producto: este
+    slice no la saca ni asigna `product_type_id`. La decisión vive en
+    `elCatalogoOperaPerfumes`: rubro `perfumes` o productos ya cargados
+    en esa familia. No hay más chrome de vitrina.
+    Verificado en este recorte: **2.187/2.187 pruebas en 224 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

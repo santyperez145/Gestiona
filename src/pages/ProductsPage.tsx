@@ -20,6 +20,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale, Loader2, ExternalLink, RefreshCw, MoreHorizontal } from "lucide-react";
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { recommendSimilar } from "@/lib/perfumeMatch";
+import { elCatalogoOperaPerfumes } from "@/lib/catalogIndustry";
 import { normalizeText, literalFilter } from "@/lib/searchText";
 import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice } from "@/lib/pricing";
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
@@ -481,6 +482,13 @@ export default function ProductsPage() {
     setHasLoadedData(true);
     setLastLoadedAt(new Date());
 
+    const loadedProducts = settledValue(productsResult) as Array<{ category?: string | null }>;
+    const loadedSettings = settledValue(settingsResult) as { industry_code?: string | null } | null;
+    const operaPerfumesAhora = elCatalogoOperaPerfumes({
+      industryCode: loadedSettings?.industry_code,
+      categories: loadedProducts.map(p => p.category),
+    });
+
     const failedSupporting: string[] = [];
     if (variantsResult.status === 'fulfilled') {
       const counts: Record<string, number> = {};
@@ -493,7 +501,9 @@ export default function ProductsPage() {
       console.error('[Productos] no se pudieron actualizar las variantes', variantsResult.reason);
     }
 
-    if (perfumeResult.status === 'fulfilled') {
+    if (!operaPerfumesAhora) {
+      setPerfumeDetailsByProduct({});
+    } else if (perfumeResult.status === 'fulfilled') {
       const perfumeMap: Record<string, any> = {};
       perfumeResult.value.forEach((detail: any) => { perfumeMap[detail.product_id] = detail; });
       setPerfumeDetailsByProduct(perfumeMap);
@@ -634,6 +644,14 @@ export default function ProductsPage() {
   const calidadPorProducto = useMemo(
     () => new Map(paraCalidad.map((p: any) => [p.id, p])), [paraCalidad]);
 
+  const operaPerfumes = useMemo(
+    () => elCatalogoOperaPerfumes({
+      industryCode: settings?.industry_code,
+      categories: products.map((p: { category?: string | null }) => p.category),
+    }),
+    [settings?.industry_code, products],
+  );
+
   // La cotización del comercio, una sola vez para todo el filtrado y el orden.
   // `null` = no cargó ninguna, y eso NO es cero: ver `cotizacionDe`.
   const cotizacion = cotizacionDe(settings);
@@ -687,7 +705,8 @@ export default function ProductsPage() {
       if (filterMargin === 'negative' && margin >= 0) return false;
     }
     if (filterDiscount && !(p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars))) return false;
-    // ── Facetas de perfume ──────────────────────────────────────────────
+    // ── Facetas de perfume: sólo si el comercio opera ese rubro ──────────
+    if (operaPerfumes) {
     if (filterMaxPrice) {
       const price = Number(p.discount_price_ars) || Number(p.sale_price_ars) || 0;
       if (price <= 0 || price > Number(filterMaxPrice)) return false;
@@ -703,6 +722,7 @@ export default function ProductsPage() {
         const allNotas = [...(d.notas_salida || []), ...(d.notas_corazon || []), ...(d.notas_fondo || [])];
         if (!filterNotas.some((n: string) => allNotas.includes(n))) return false;
       }
+    }
     }
     return true;
   });
@@ -1163,7 +1183,7 @@ export default function ProductsPage() {
       />
 
       <PerfumeRecommenderModal
-        open={!!recoTargetId}
+        open={operaPerfumes && !!recoTargetId}
         onOpenChange={(v) => { if (!v) setRecoTargetId(null); }}
         title="Perfumes similares"
         subtitle={recoTargetId ? `Parecidos a ${products.find(p => p.id === recoTargetId)?.name || ""} por familia y notas` : undefined}
@@ -1423,6 +1443,7 @@ export default function ProductsPage() {
           >
             <Tag className="w-3.5 h-3.5 inline mr-1" />Con oferta
           </button>
+          {operaPerfumes && (
           <Sheet open={facetSheetOpen} onOpenChange={setFacetSheetOpen}>
             <SheetTrigger asChild>
               <button
@@ -1474,6 +1495,7 @@ export default function ProductsPage() {
               </div>
             </SheetContent>
           </Sheet>
+          )}
         </div>
       </div>
 
@@ -1513,7 +1535,7 @@ export default function ProductsPage() {
                   </div>
                 )}
                 <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                  {perfumeDetailsByProduct[p.id] && (
+                  {operaPerfumes && perfumeDetailsByProduct[p.id] && (
                     <button onClick={() => setRecoTargetId(p.id)} title="Perfumes similares" className="p-1 rounded bg-card/90 hover:bg-card border border-border">
                       <Sparkles className="w-3 h-3 text-primary" />
                     </button>
@@ -1749,7 +1771,7 @@ export default function ProductsPage() {
                              </Button>
                            )}
                            <Button variant="ghost" size="sm" title="Historial de precios" onClick={() => setPriceHistoryProduct({ id: p.id, name: p.name })}><Clock className="w-3.5 h-3.5 text-muted-foreground" /></Button>
-                           {perfumeDetailsByProduct[p.id] && (
+                           {operaPerfumes && perfumeDetailsByProduct[p.id] && (
                              <Button variant="ghost" size="sm" title="Perfumes similares" onClick={() => setRecoTargetId(p.id)}><Sparkles className="w-3.5 h-3.5 text-primary" /></Button>
                            )}
                            {(canShare || p.barcode) && (
