@@ -64,7 +64,7 @@ describe("el navegador llega a las funciones que invoca", () => {
     expect(invocadas.length).toBeGreaterThan(15);
   });
 
-  it("todas dejan pasar x-client-info", () => {
+  it("todas dejan pasar x-client-info y x-supabase-client-platform", () => {
     const culpables: string[] = [];
 
     for (const nombre of invocadas) {
@@ -79,6 +79,9 @@ describe("el navegador llega a las funciones que invoca", () => {
       if (!m) continue;
       if (!m[1].toLowerCase().includes("x-client-info")) {
         culpables.push(`${nombre} → "${m[1]}"`);
+      }
+      if (!m[1].toLowerCase().includes("x-supabase-client-platform")) {
+        culpables.push(`${nombre} sin x-supabase-client-platform → "${m[1]}"`);
       }
     }
 

@@ -103,14 +103,14 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     detail: methods.length === 0
       ? 'No hay ningún medio de pago habilitado: el comprador llega al final y no puede pagar.'
       : !canCollect
-        ? 'MercadoPago está habilitado pero la cuenta no está conectada, y no hay otro medio: el checkout no puede cobrar.'
+        ? 'Gestiona Pay está habilitado pero Mercado Pago no está conectado, y no hay otro medio: el checkout no puede cobrar.'
         : wantsMp && input.paymentConnected
-          ? 'MercadoPago conectado.'
+          ? 'Gestiona Pay activo (Mercado Pago).'
           : 'Cobro por transferencia o efectivo habilitado.',
     severity: 'blocker',
     done: canCollect,
-    actionLabel: wantsMp && !input.paymentConnected ? 'Conectar MercadoPago' : 'Ver medios de pago',
-    actionHref: '/integraciones',
+    actionLabel: wantsMp && !input.paymentConnected ? 'Activar Gestiona Pay' : 'Ver medios de pago',
+    actionHref: wantsMp && !input.paymentConnected ? '/tienda-online' : '/integraciones',
   });
 
   // ── Poder entregar ──────────────────────────────────────────────────────

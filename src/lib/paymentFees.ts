@@ -190,6 +190,38 @@ export function normalizarAppliesTo(value: string | null | undefined): Commissio
 }
 
 /**
+ * Estimación de liquidación para mostrar al comercio antes de cobrar.
+ * Usa el tarifario y la regla vigente; no inventa un porcentaje si faltan.
+ */
+export function liquidarCobroEstimado(input: {
+  tarifas: ProviderFee[];
+  reglas: CommissionRule[];
+  gross: number;
+  orgId?: string | null;
+  planId?: string | null;
+  channel?: Channel;
+  provider: string;
+  method?: string;
+  installments?: number;
+}): Settlement {
+  const rule = resolveLivePlatformRule(input.reglas, {
+    orgId: input.orgId ?? null,
+    planId: input.planId ?? null,
+    channel: input.channel ?? 'online',
+  });
+  const fee = resolveProviderFee(input.tarifas, {
+    provider: input.provider,
+    method: input.method,
+    installments: input.installments,
+  });
+  return computeSettlement({
+    gross: input.gross,
+    providerFee: fee,
+    platformRule: rule,
+  });
+}
+
+/**
  * Comisión de plataforma para un bruto dado, respetando piso y techo.
  *
  * Piso y techo pertenecen a la tarifa comercial antes de impuestos. Cuando el

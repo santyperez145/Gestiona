@@ -62,6 +62,9 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
       paymentConnected: false,
     }));
     expect(idsDe(r.blockers)).toContain('payments');
+    const payments = r.blockers.find(c => c.id === 'payments');
+    expect(payments?.actionHref).toBe('/tienda-online');
+    expect(payments?.actionLabel).toBe('Activar Gestiona Pay');
   });
 
   it('con transferencia alcanza aunque MercadoPago no esté conectado', () => {

@@ -26,6 +26,15 @@ describe('Commerce Pay honesty', () => {
     expect(payPanel).not.toContain('mp_access_token');
   });
 
+  it('el checkout de la tienda deja pasar los headers del cliente supabase-js', () => {
+    const storePay = readFileSync(
+      resolve(import.meta.dirname, '..', '..', 'supabase', 'functions', 'store-pay', 'index.ts'),
+      'utf8',
+    );
+    expect(storePay).toContain('x-supabase-client-platform');
+    expect(storePay).toContain('x-client-info');
+  });
+
   it('muestra el desglose de comisiones con la liquidación real, no un porcentaje escrito a mano', () => {
     expect(payPanel).toContain('GestionaPayComisiones');
     const comisiones = readFileSync(

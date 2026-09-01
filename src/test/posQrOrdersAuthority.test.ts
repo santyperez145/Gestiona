@@ -8,6 +8,7 @@ const recoveryMigration = readFileSync(resolve(root, "supabase/migrations/202608
 const edge = readFileSync(resolve(root, "supabase/functions/mercadopago-pos-qr/index.ts"), "utf8");
 const webhook = readFileSync(resolve(root, "supabase/functions/mercadopago-webhook/index.ts"), "utf8");
 const pos = readFileSync(resolve(root, "src/pages/POSPage.tsx"), "utf8");
+const qrDialog = readFileSync(resolve(root, "src/components/pos/PosQrCheckoutDialog.tsx"), "utf8");
 
 describe("autoridad de Mercado Pago QR en Caja", () => {
   it("no crea ticket antes de processed y reserva sin escribir stock", () => {
@@ -47,6 +48,7 @@ describe("autoridad de Mercado Pago QR en Caja", () => {
     const directInsert = pos.indexOf("await addSalesDB(transactionLines", qrBranch);
     expect(qrBranch).toBeGreaterThan(-1);
     expect(pos).toContain("PosQrCheckoutDialog");
+    expect(qrDialog).toContain("LiquidacionEstimada");
     expect(pos).toContain('action: "status"');
     expect(pos).toContain("await requestQrOrder(checkout);\n        return;");
     expect(directInsert).toBeGreaterThan(qrBranch);

@@ -26,12 +26,15 @@ import {
   type PosQrSetupPayload,
 } from "@/lib/posQr";
 import { toast } from "sonner";
+import LiquidacionEstimada from "@/components/integrations/LiquidacionEstimada";
 
 interface Props {
   phase: PosQrPhase;
   session: PosQrSession | null;
   amount: number;
   businessName: string;
+  orgId?: string;
+  planId?: string | null;
   error?: string | null;
   onRetry: () => void;
   onCancel: () => void;
@@ -55,6 +58,8 @@ export function PosQrCheckoutDialog({
   session,
   amount,
   businessName,
+  orgId,
+  planId,
   error,
   onRetry,
   onCancel,
@@ -207,6 +212,14 @@ export function PosQrCheckoutDialog({
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total a pagar</p>
                 <p className="mt-1 text-3xl font-bold tracking-tight text-foreground">{formatARS(Number(session.amount || amount))}</p>
               </div>
+              <LiquidacionEstimada
+                orgId={orgId}
+                planId={planId}
+                bruto={Number(session.amount || amount)}
+                provider="mercadopago"
+                method="wallet"
+                channel="pos"
+              />
               <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-sky-500/10 px-3 py-1.5 text-xs font-semibold text-sky-600 dark:text-sky-300">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />
                 Esperando acreditación

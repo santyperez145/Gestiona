@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   resolveProviderFee, resolvePlatformRule, resolveLivePlatformRule, platformFeeFor,
   computeSettlement, grossUpForNet, installmentPricing, normalizarAppliesTo,
+  liquidarCobroEstimado,
   type ProviderFee, type CommissionRule,
 } from '@/lib/paymentFees';
 
@@ -148,6 +149,26 @@ describe('resolveLivePlatformRule', () => {
 describe('normalizarAppliesTo', () => {
   it('traduce todos a all', () => {
     expect(normalizarAppliesTo('todos')).toBe('all');
+  });
+});
+
+describe('liquidarCobroEstimado', () => {
+  it('parte arancel, IVA y comisión con la misma liquidación del cobro', () => {
+    const s = liquidarCobroEstimado({
+      tarifas: SCHEDULE,
+      reglas: [{
+        percent: 1, fixed: 0, applies_to: 'pos', is_active: true,
+        approval_status: 'approved', effective_from: '2026-01-01',
+      }],
+      gross: 10000,
+      channel: 'pos',
+      provider: 'mercadopago',
+      method: 'debit',
+    });
+    expect(s.providerFee).toBe(349);
+    expect(s.providerFeeIva).toBe(73.29);
+    expect(s.platformFee).toBe(100);
+    expect(s.net).toBe(9477.71);
   });
 });
 

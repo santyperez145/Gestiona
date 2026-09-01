@@ -3144,6 +3144,8 @@ export default function POSPage() {
           session={qrCheckout.session}
           amount={Number(qrCheckout.session?.amount ?? cartTotal)}
           businessName={config.businessName || activeOrg?.name || "Gestiona"}
+          orgId={activeOrg?.id}
+          planId={activeOrg?.plan_id}
           error={qrCheckout.error}
           onRetry={() => void retryQrOrder(qrCheckout)}
           onCancel={() => void cancelQrCheckout(false)}
