@@ -82,5 +82,6 @@ describe("idempotencia del checkout", () => {
     // mismo commit ya se aplicó, pero tampoco tragarse un error real.
     expect(fuente).toContain("create_store_order_idem");
     expect(fuente).toContain("isMissingFunction(idem.error)");
+    expect(fuente).toContain("retryIdempotentWrite");
   });
 });

@@ -11,7 +11,7 @@
  * "Tienda Online", que hasta ahora configuraba una vitrina inexistente.
  */
 import { useEffect } from "react";
-import { Link, Route, Routes, useParams, useLocation } from "react-router-dom";
+import { Route, Routes, useParams, useLocation } from "react-router-dom";
 import { StoreProvider, useStore } from "@/storefront/storeContext";
 import StoreLayout from "@/storefront/StoreLayout";
 import StoreHome from "@/storefront/StoreHome";
@@ -26,11 +26,11 @@ import StoreArrepentimiento from "@/storefront/StoreArrepentimiento";
 import { StoreAuthProvider } from "@/storefront/storeAuth";
 import { WishlistProvider } from "@/storefront/wishlist";
 import StorefrontSkeleton from "@/storefront/StorefrontSkeleton";
-import { Store } from "lucide-react";
+import StorefrontStatus from "@/storefront/StorefrontStatus";
 import { initTracking, trackPageView } from "@/storefront/tracking";
 
 function StoreShell() {
-  const { loading, notFound, store } = useStore();
+  const { loading, notFound, loadError, store, reload } = useStore();
   const { slug } = useParams<{ slug: string }>();
   const { pathname } = useLocation();
 
@@ -66,22 +66,18 @@ function StoreShell() {
     return <StorefrontSkeleton />;
   }
 
-  if (notFound || !store) {
+  if (loadError) {
     return (
-      <div className="min-h-screen grid place-items-center bg-background p-4">
-        <div className="text-center max-w-sm">
-          <div className="w-12 h-12 rounded-full bg-muted grid place-items-center mx-auto mb-3">
-            <Store className="w-5 h-5 text-muted-foreground" />
-          </div>
-          <h1 className="text-base font-semibold mb-1">Tienda no encontrada</h1>
-          <p className="text-sm text-muted-foreground mb-4">
-            No hay ninguna tienda activa en <span className="font-mono">/tienda/{slug}</span>.
-            Puede que la dirección haya cambiado o que la tienda esté desactivada.
-          </p>
-          <Link to="/" className="text-sm text-primary hover:underline">Ir al inicio</Link>
-        </div>
-      </div>
+      <StorefrontStatus
+        kind="error"
+        storeName={store?.name}
+        onRetry={reload}
+      />
     );
+  }
+
+  if (notFound || !store) {
+    return <StorefrontStatus kind="not-found" slug={slug} />;
   }
 
   return (

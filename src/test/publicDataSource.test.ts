@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { isTransientPublicError, retryPublicRead, type PgError } from "@/lib/publicDataSource";
+import { isTransientPublicError, retryIdempotentWrite, retryPublicRead, type PgError } from "@/lib/publicDataSource";
 
 describe("publicDataSource catalog columns", () => {
   it("keeps storefront-only pricing columns out of the WhatsApp catalog query", () => {
@@ -48,5 +48,35 @@ describe("publicDataSource public read recovery", () => {
 
     expect(attempts).toBe(1);
     expect(result.data).toBeNull();
+  });
+});
+
+describe("catálogo y checkout no mienten con la red caída", () => {
+  it("el catálogo distingue vacío de fallo: no devuelve [] como éxito", () => {
+    const fuente = readFileSync(resolve(process.cwd(), "src/lib/publicDataSource.ts"), "utf8");
+    const desde = fuente.indexOf("export async function fetchStoreProducts");
+    const hasta = fuente.indexOf("export async function fetchCatalogProducts");
+    const cuerpo = fuente.slice(desde, hasta);
+    expect(cuerpo).toContain("{ ok: false, error:");
+    expect(cuerpo).not.toMatch(/console\.error[\s\S]{0,80}return \[\]/);
+  });
+
+  it("el checkout idempotente reintenta un corte de red con la misma clave", async () => {
+    let attempts = 0;
+    const result = await retryIdempotentWrite(async () => {
+      attempts += 1;
+      return attempts < 3
+        ? { data: null, error: { message: "Failed to fetch" } satisfies PgError }
+        : { data: { order_number: "1" }, error: null };
+    }, { delaysMs: [0, 0], maxAttempts: 3 });
+
+    expect(attempts).toBe(3);
+    expect(result.data).toEqual({ order_number: "1" });
+
+    const fuente = readFileSync(resolve(process.cwd(), "src/lib/publicDataSource.ts"), "utf8");
+    const checkout = readFileSync(resolve(process.cwd(), "src/storefront/StoreCheckout.tsx"), "utf8");
+    expect(fuente).toContain("retryIdempotentWrite");
+    expect(fuente).toContain("create_store_order_idem");
+    expect(checkout).toContain("isTransientPublicError");
   });
 });

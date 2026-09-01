@@ -5,7 +5,7 @@ import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
 import { Loader2, ShoppingBag, Lock, Tag, Truck } from "lucide-react";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
-import { quoteStoreShipping, createStoreOrder, getStoreOrderSecure } from "@/lib/publicDataSource";
+import { quoteStoreShipping, createStoreOrder, getStoreOrderSecure, isTransientPublicError } from "@/lib/publicDataSource";
 import { orderAccessFragment, saveOrderAccessToken } from "./orderAccess";
 import { trackBeginCheckout } from "./tracking";
 import { precioConMedioDePago, porcentajeDe, nombreMedio } from "@/lib/paymentDiscount";
@@ -352,7 +352,10 @@ export default function StoreCheckout() {
     if (rpcError) {
       // El RPC valida stock y precios del lado del servidor, así que sus
       // mensajes son los que importan (ej: "Sin stock suficiente de X").
-      setError(rpcError.message.replace(/^.*?:\s*/, ""));
+      // Una caída de red ya reintentó con la misma clave: no se duplica.
+      setError(isTransientPublicError(rpcError)
+        ? "La red falló al confirmar. Reintentá: no se va a duplicar el pedido."
+        : rpcError.message.replace(/^.*?:\s*/, ""));
       return;
     }
 

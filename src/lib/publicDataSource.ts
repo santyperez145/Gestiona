@@ -64,9 +64,12 @@ export function isTransientPublicError(error: PgError | null | undefined): boole
 
 type PublicReadResult = { error?: PgError | null };
 
-/** Retries only idempotent public reads; callers must never use it for writes. */
-export async function retryPublicRead<T extends PublicReadResult>(
-  read: () => PromiseLike<T>,
+export type LecturaPublica<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: PgError };
+
+async function retryTransient<T extends PublicReadResult>(
+  op: () => PromiseLike<T>,
   options: { delaysMs?: readonly number[]; maxAttempts?: number } = {},
 ): Promise<T> {
   const delays = options.delaysMs ?? PUBLIC_READ_RETRY_DELAYS_MS;
@@ -74,7 +77,7 @@ export async function retryPublicRead<T extends PublicReadResult>(
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
-      const result = await read();
+      const result = await op();
       if (!isTransientPublicError(result.error) || attempt === maxAttempts - 1) return result;
     } catch (error) {
       if (!isTransientPublicError(error as PgError) || attempt === maxAttempts - 1) throw error;
@@ -84,8 +87,29 @@ export async function retryPublicRead<T extends PublicReadResult>(
     if (delay > 0) await new Promise<void>(resolve => setTimeout(resolve, delay));
   }
 
-  // maxAttempts is clamped to at least one, so this line is unreachable.
-  throw new Error("No se pudo completar la lectura pública");
+  throw new Error("No se pudo completar la operación pública");
+}
+
+/** Retries only idempotent public reads; callers must never use it for writes. */
+export async function retryPublicRead<T extends PublicReadResult>(
+  read: () => PromiseLike<T>,
+  options: { delaysMs?: readonly number[]; maxAttempts?: number } = {},
+): Promise<T> {
+  return retryTransient(read, options);
+}
+
+/**
+ * Misma espera que una lectura, sólo para RPCs con clave de idempotencia.
+ * Sin esa clave, un retry duplicaría la orden.
+ */
+export async function retryIdempotentWrite<T extends PublicReadResult>(
+  write: () => PromiseLike<T>,
+  options: { delaysMs?: readonly number[]; maxAttempts?: number } = {},
+): Promise<T> {
+  return retryTransient(write, {
+    delaysMs: options.delaysMs ?? [300, 900],
+    maxAttempts: options.maxAttempts ?? 3,
+  });
 }
 
 /**
@@ -142,10 +166,14 @@ export interface CatalogProduct {
  * Esconderlos pierde la visita, el lugar en Google y la señal de demanda. La
  * tienda los muestra al final y con el botón de compra cambiado.
  */
-export async function fetchStoreProducts(orgId: string): Promise<CatalogProduct[]> {
+export async function fetchStoreProducts(orgId: string): Promise<LecturaPublica<CatalogProduct[]>> {
   // `store_catalog_products` es igual a `catalog_products` pero sin exigir
   // stock. Si la migración todavía no está aplicada se cae a la vieja: la
   // tienda pierde los agotados, no los productos.
+  //
+  // ⚠️ Un error de red no es un catálogo vacío. Devolver `[]` hacía que la
+  // home mostrara "0 productos" con la tienda llena — el mismo `?? []` que
+  // este archivo existe para evitar.
   const view = await retryPublicRead(() => supabase
     .from('store_catalog_products')
     .select(STORE_PRODUCT_COLUMNS_WITH_DECANTS)
@@ -153,10 +181,10 @@ export async function fetchStoreProducts(orgId: string): Promise<CatalogProduct[
     .order('featured', { ascending: false })
     .order('name'));
 
-  if (!view.error) return (view.data ?? []) as unknown as CatalogProduct[];
+  if (!view.error) return { ok: true, data: (view.data ?? []) as unknown as CatalogProduct[] };
   if (!isMissingRelation(view.error)) {
     console.error('[catálogo] error leyendo store_catalog_products:', view.error.message);
-    return [];
+    return { ok: false, error: view.error };
   }
 
   warnFallback('store_catalog_products');
@@ -166,10 +194,10 @@ export async function fetchStoreProducts(orgId: string): Promise<CatalogProduct[
     .eq('org_id', orgId)
     .order('featured', { ascending: false })
     .order('name'));
-  if (!previa.error) return (previa.data ?? []) as unknown as CatalogProduct[];
+  if (!previa.error) return { ok: true, data: (previa.data ?? []) as unknown as CatalogProduct[] };
   if (!isMissingRelation(previa.error)) {
     console.error('[catálogo] error leyendo catalog_products:', previa.error.message);
-    return [];
+    return { ok: false, error: previa.error };
   }
 
   warnFallback('catalog_products');
@@ -183,9 +211,9 @@ export async function fetchStoreProducts(orgId: string): Promise<CatalogProduct[
 
   if (raw.error) {
     console.error('[catálogo] error leyendo products:', raw.error.message);
-    return [];
+    return { ok: false, error: raw.error };
   }
-  return (raw.data ?? []) as unknown as CatalogProduct[];
+  return { ok: true, data: (raw.data ?? []) as unknown as CatalogProduct[] };
 }
 
 /**
@@ -385,8 +413,8 @@ export async function createStoreOrder(params: Record<string, unknown>) {
   // es el patrón de este archivo: el código no puede asumir que la migración
   // del mismo commit ya se aplicó.
   if (params.p_idempotency_key) {
-    const idem = await supabase.rpc(
-      'create_store_order_idem' as never, params as never);
+    const idem = await retryIdempotentWrite(() =>
+      supabase.rpc('create_store_order_idem' as never, params as never));
     if (!idem.error) return idem as { data: unknown; error: null };
     if (!isMissingFunction(idem.error)) return idem as never;
     warnFallback('create_store_order_idem()');

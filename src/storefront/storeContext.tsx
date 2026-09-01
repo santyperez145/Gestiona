@@ -132,6 +132,9 @@ export interface CartLine {
 interface Ctx {
   loading: boolean;
   notFound: boolean;
+  /** Red o catálogo fallaron: no es un 404. */
+  loadError: boolean;
+  reload: () => void;
   store: StoreInfo | null;
   products: StoreProduct[];
   perfumes: Record<string, PerfumeDetail>;
@@ -180,20 +183,29 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
   const [banners, setBanners] = useState<StoreBanner[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
   const [cart, setCart] = useState<CartLine[]>([]);
+
+  const reload = useCallback(() => {
+    setLoadError(false);
+    setNotFound(false);
+    setReloadTick(n => n + 1);
+  }, []);
 
   // ── Carga de la tienda ──────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setNotFound(false);
+    setLoadError(false);
 
     (async () => {
       const storeResponse = await retryPublicRead(() =>
         supabase.rpc("get_store_by_slug", { p_slug: slug }));
       if (storeResponse.error) {
         console.error("[tienda] error leyendo la tienda:", storeResponse.error.message);
-        if (!cancelled) { setNotFound(true); setLoading(false); }
+        if (!cancelled) { setLoadError(true); setLoading(false); }
         return;
       }
       const { data } = storeResponse;
@@ -202,6 +214,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
 
       if (!row?.owner_user_id) {
         setNotFound(true);
+        setStore(null);
         setLoading(false);
         return;
       }
@@ -225,9 +238,15 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       ]);
       if (cancelled) return;
 
+      if (!pRes.ok) {
+        setLoadError(true);
+        setLoading(false);
+        return;
+      }
+
       // Los agotados se muestran, pero últimos: la tienda tiene que verse
       // llena de lo que sí se puede comprar.
-      const lista = (pRes ?? []) as unknown as StoreProduct[];
+      const lista = pRes.data as unknown as StoreProduct[];
       setProducts([
         ...lista.filter(x => Number(x.stock) > 0),
         ...lista.filter(x => Number(x.stock) <= 0),
@@ -265,11 +284,11 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       setReglasCantidad((qRes?.data ?? []) as unknown as ReglaCantidad[]);
       setLoading(false);
     })().catch(() => {
-      if (!cancelled) { setNotFound(true); setLoading(false); }
+      if (!cancelled) { setLoadError(true); setLoading(false); }
     });
 
     return () => { cancelled = true; };
-  }, [slug]);
+  }, [slug, reloadTick]);
 
   // ── Carrito persistido ──────────────────────────────────────────────────
   useEffect(() => {
@@ -399,7 +418,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     const shippingCost = cart.length === 0 ? 0 : (freeShipping ? 0 : base);
 
     return {
-      loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias,
+      loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias,
       addToCart, setQty, removeFromCart, clearCart, lineKeyOf,
       cartCount: cart.reduce((s, l) => s + l.qty, 0),
       subtotal,
@@ -411,7 +430,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         : null,
       priceOf, fmt,
     };
-  }, [loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, priceOf, fmt]);
+  }, [loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

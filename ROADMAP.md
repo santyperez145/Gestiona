@@ -2874,6 +2874,16 @@ Finance Connect.
     typecheck OK; lint 0 errores y 139 warnings conocidos. Migración
     `20260901000030` aplicada y anotada; RPC lista `exentryimports`.
 
+87. Vitrina D5.10: una red lenta no es un 404 — 2026-09-01.
+    Después del SEO, el crawler encuentra la tienda y el comprador en 3G
+    veía «Tienda no encontrada» o un catálogo en cero: `get_store_by_slug`
+    y `fetchStoreProducts` convertían un corte de red en vacío. El 404
+    queda para tienda inexistente; el error invita a Reintentar (el
+    carrito vive en localStorage); `create_store_order_idem` reintenta
+    el mismo corte con la misma clave. No se finge offline POS ni una
+    compra sandbox. Verificado en este recorte: **2.177/2.177 pruebas en 223 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
