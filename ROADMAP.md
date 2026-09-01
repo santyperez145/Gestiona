@@ -2809,6 +2809,21 @@ Finance Connect.
     Falta una compra sandbox/real; este recorte cierra el medio muerto, no
     certifica el proveedor.
 
+82. Pedidos de la tienda: buscar, filtrar y exportar lo que se ve — 2026-09-01.
+    Con el cobro ya honesto, el comercio operaba la cola en chips en inglés
+    (`pending`) y sin búsqueda: no encontraba un pedido, no distinguía “para
+    despachar” de “pendiente de pago” y no podía llevarse el recorte a una
+    planilla. La paridad de [Tiendanube Ventas](https://ayuda.tiendanube.com/es_AR/123288-mis-ventas/como-buscar-y-filtrar-mis-ventas)
+    se traduce, no se copia: número / cliente / email / teléfono / monto,
+    vistas en español persistidas en `?tab=orders&q=&vista=`, CSV del conjunto
+    filtrado (celdas escapadas, sin fórmulas) y cards a 360 px. “Para
+    despachar” es la misma regla del Foco del día (pagado y todavía no salió);
+    el pendiente del dashboard aterriza en esa vista. No hay selección masiva:
+    despachar sigue siendo uno por uno, con la misma autoridad de envío de
+    antes. La cola lee los últimos 200; si se llena, lo dice. Falta bulk con
+    RPC, inspector sin perder la lista y una cola real con más de 200 filas.
+    Verificado en este recorte: 2.144/2.144 pruebas en 218 archivos; typecheck OK.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

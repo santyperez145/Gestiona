@@ -40,6 +40,7 @@ describe("construirPendientes", () => {
       ...VACIO, pedidosPorDespachar: 1, sinStock: 9, deudasVencidas30: 9,
     });
     expect(p[0].id).toBe("despachar");
+    expect(p[0].destino).toBe("/tienda-online?tab=orders&vista=despachar");
   });
 
   // Una deuda al día no es un pendiente: es el negocio funcionando.

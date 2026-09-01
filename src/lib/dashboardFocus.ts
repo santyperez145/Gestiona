@@ -138,7 +138,7 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       id: "despachar",
       texto: `${d.pedidosPorDespachar} ${d.pedidosPorDespachar === 1 ? "pedido pagado sin despachar" : "pedidos pagados sin despachar"}`,
       accion: "Despachar",
-      destino: "/tienda-online",
+      destino: "/tienda-online?tab=orders&vista=despachar",
       urgencia: "critico",
     });
   }

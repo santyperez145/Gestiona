@@ -79,7 +79,7 @@ test.describe("tienda e-commerce", () => {
     // de una tabla con scroll horizontal, y el botón dejaba de existir para
     // quien no piensa en scrollear.
     await page.goto("/tienda-online");
-    await page.getByRole("button", { name: "Órdenes", exact: true }).click();
+    await page.getByRole("button", { name: "Pedidos", exact: true }).click();
 
     const pagas = page.getByRole("button", { name: /Preparar|Ver envío/ });
     if (!(await pagas.count())) {

@@ -12,11 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import {
   ShoppingBag, Globe, Package, ShoppingCart, TrendingUp, Settings,
   Plus, Eye, RefreshCw, ExternalLink, Palette, Zap, BarChart3,
-  Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin, Truck,
+  Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin,
   Image as ImageIcon, Type,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
+import StoreOrdersPanel from "@/components/ecommerce/StoreOrdersPanel";
 import PaymentConnectionsPanel from "@/components/integrations/PaymentConnectionsPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
 import QuestionsModeration from "@/components/ecommerce/QuestionsModeration";
@@ -30,7 +31,7 @@ import ImageUpload from "@/components/shared/ImageUpload";
 import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
 import { estadoPublicacionLegal } from "@/lib/legalPages";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
-import { canFulfillStoreOrder, storeOrderPaymentLabel, storeOrderPaymentTone } from "@/lib/storeOrderPayment";
+import { STORE_ORDER_QUEUE_LIMIT, storeOrderFulfillmentLabel, storeOrderFulfillmentTone } from "@/lib/storeOrderQueue";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -50,16 +51,6 @@ const SHIPPING_MODES = [
   { id: "zones", label: "Por zona y peso", hint: "Cotiza según provincia, peso y transportista." },
   { id: "free",  label: "Envío gratis",   hint: "Sin costo de envío para el comprador." },
 ];
-
-/** Los estados de entrega, en el idioma en que se trabaja. */
-const ESTADO_ENTREGA: Record<string, string> = {
-  pending: "Pendiente",
-  unfulfilled: "Pendiente",
-  processing: "Para despachar",
-  shipped: "Enviada",
-  delivered: "Entregada",
-  cancelled: "Cancelada",
-};
 
 const PAYMENT_METHODS = [
   { id: "mercadopago",    label: "Mercado Pago (Gestiona Pay)", logo: "🔵" },
@@ -104,12 +95,21 @@ function isStoreTab(value: string | null): value is StoreTab {
 export default function EcommerceStorePage() {
   usePageTitle("Gestiona Commerce");
   const { orgId } = useOrganization();
-  const [searchParams] = useSearchParams();
-  const [tab, setTab] = useState<StoreTab>("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
-  useEffect(() => {
-    setTab(isStoreTab(requestedTab) ? requestedTab : "overview");
-  }, [requestedTab]);
+  const tab: StoreTab = isStoreTab(requestedTab) ? requestedTab : "overview";
+  const goToTab = (next: StoreTab) => {
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      if (next === "overview") params.delete("tab");
+      else params.set("tab", next);
+      if (next !== "orders") {
+        params.delete("q");
+        params.delete("vista");
+      }
+      return params;
+    }, { replace: true });
+  };
   // Opiniones y preguntas comparten pestaña: son las dos cosas que escribe el
   // comprador y que el comercio contesta. Separarlas agregaba una pestaña más a
   // una fila que ya tiene siete.
@@ -135,7 +135,8 @@ export default function EcommerceStorePage() {
     fulfillment_location_id: GLOBAL_FULFILLMENT_LOCATION,
   });
   const [selectedTheme, setSelectedTheme] = useState("minimal");
-  const [orderFilter, setOrderFilter] = useState<string | null>(null);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
   // Señales de "¿puede vender?". Arrancan en el peor caso: mientras no se sepa,
   // es más honesto mostrar que falta algo que decir que todo está listo.
   const [signals, setSignals] = useState({
@@ -174,18 +175,34 @@ export default function EcommerceStorePage() {
 
   /** Releer las órdenes. Se usa al montar y después de despachar una. */
   const loadOrders = useCallback(async () => {
-    if (!orgId) return;
-    const { data } = await supabase
+    if (!orgId) {
+      setOrders([]);
+      setOrdersLoading(false);
+      return;
+    }
+    setOrdersLoading(true);
+    setOrdersError(null);
+    const { data, error } = await supabase
       .from("ecommerce_orders")
       .select("id, order_number, customer_name, customer_email, customer_phone, total, payment_status, fulfillment_status, tracking_number, shipping_address, items, created_at")
       .eq("org_id", orgId)
       .order("created_at", { ascending: false })
-      .limit(50);
-    if (data) setOrders(data as EcomOrder[]);
+      .limit(STORE_ORDER_QUEUE_LIMIT);
+    if (error) {
+      console.error("No se pudieron leer los pedidos de la tienda", error);
+      setOrders([]);
+      setOrdersError("No pudimos leer los pedidos de la tienda. Reintentá.");
+    } else {
+      setOrders((data ?? []) as EcomOrder[]);
+    }
+    setOrdersLoading(false);
   }, [orgId]);
 
   useEffect(() => {
-    if (!orgId) return;
+    if (!orgId) {
+      setOrdersLoading(false);
+      return;
+    }
     supabase.from("ecommerce_stores").select("*").eq("org_id", orgId).maybeSingle()
       .then(({ data }) => {
         if (data) {
@@ -377,8 +394,6 @@ export default function EcommerceStorePage() {
     ...signals,
   }), [storeForm, store?.logo_url, store?.slug, signals]);
 
-  const filteredOrders = orders.filter(o => !orderFilter || o.fulfillment_status === orderFilter);
-
   const TABS: { id: StoreTab; label: string }[] = [
     { id: "overview",  label: "Publicar" },
     { id: "orders",    label: "Pedidos" },
@@ -447,7 +462,7 @@ export default function EcommerceStorePage() {
       {/* Tabs */}
       <div className="flex flex-wrap gap-1 bg-muted/30 p-1 rounded-xl w-fit max-w-full">
         {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
+          <button key={t.id} onClick={() => goToTab(t.id)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {t.label}
           </button>
@@ -506,7 +521,7 @@ export default function EcommerceStorePage() {
                   Sin Mercado Pago conectado la tienda no puede cobrar. Un clic autoriza tu cuenta; no se pega ninguna clave.
                 </p>
               </div>
-              <Button size="sm" className="min-h-11 shrink-0" onClick={() => setTab("settings")}>
+              <Button size="sm" className="min-h-11 shrink-0" onClick={() => goToTab("settings")}>
                 Activar Gestiona Pay
               </Button>
             </div>
@@ -541,7 +556,9 @@ export default function EcommerceStorePage() {
           <div className="bg-card border border-border/40 rounded-xl p-5">
             <h3 className="font-semibold flex items-center gap-2 mb-4"><ShoppingCart className="w-4 h-4 text-primary" />Órdenes Recientes</h3>
             <div className="space-y-2">
-              {orders.slice(0, 4).map(o => {
+              {orders.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Todavía no hay pedidos.</p>
+              ) : orders.slice(0, 4).map(o => {
                 const itemCount = Array.isArray(o.items) ? (o.items as unknown[]).length : 0;
                 return (
                 <div key={o.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
@@ -551,8 +568,8 @@ export default function EcommerceStorePage() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold">${Number(o.total).toLocaleString("es-AR")}</p>
-                    <Badge className={`text-xs ${o.fulfillment_status === "delivered" ? "bg-emerald-500/15 text-emerald-400 border-0" : o.fulfillment_status === "shipped" ? "bg-blue-500/15 text-blue-400 border-0" : o.fulfillment_status === "processing" ? "bg-yellow-500/15 text-yellow-400 border-0" : "bg-zinc-500/15 text-zinc-400 border-0"}`}>
-                      {o.fulfillment_status}
+                    <Badge className={`text-xs ${storeOrderFulfillmentTone(o.fulfillment_status)}`}>
+                      {storeOrderFulfillmentLabel(o.fulfillment_status)}
                     </Badge>
                   </div>
                 </div>
@@ -566,77 +583,16 @@ export default function EcommerceStorePage() {
 
       {/* ─── Orders tab ─── */}
       {tab === "orders" && (
-        <div className="space-y-4">
-          <div className="flex gap-1">
-            {[null, "pending", "processing", "shipped", "delivered"].map(f => (
-              <button key={f ?? "all"} onClick={() => setOrderFilter(f)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium border transition-all ${orderFilter === f ? "bg-primary/15 text-primary border-primary/30" : "border-border/40 text-muted-foreground"}`}>
-                {f === null ? "Todas" : f}
-              </button>
-            ))}
-          </div>
-          <div className="bg-card border border-border/40 rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/40 bg-muted/20">
-                    {["Orden", "Cliente", "Email", "Total", "Pago", "Estado", "Fecha"].map(h => (
-                      <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">{h}</th>
-                    ))}
-                    {/* Pegada al borde: con ocho columnas y un email largo, la
-                        última cae fuera de la pantalla y el botón de despachar
-                        deja de existir para quien no piensa en scrollear. */}
-                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground sticky right-0 bg-muted/20 backdrop-blur">
-                      Envío
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredOrders.map(o => (
-                    <tr
-                      key={o.id}
-                      className={`border-b border-border/20 hover:bg-muted/20 ${canFulfillStoreOrder(o.payment_status) ? "cursor-pointer" : ""}`}
-                      onClick={() => canFulfillStoreOrder(o.payment_status) && setEnvioDe(o)}
-                    >
-                      <td className="px-4 py-3 font-mono text-xs">{o.order_number}</td>
-                      <td className="px-4 py-3 text-sm font-medium">{o.customer_name}</td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{o.customer_email}</td>
-                      <td className="px-4 py-3 text-sm font-semibold">${Number(o.total).toLocaleString("es-AR")}</td>
-                      <td className="px-4 py-3"><Badge className={`text-xs ${storeOrderPaymentTone(o.payment_status)}`}>{storeOrderPaymentLabel(o.payment_status)}</Badge></td>
-                      <td className="px-4 py-3">
-                        <Badge className={`text-xs ${o.fulfillment_status === "delivered" ? "bg-emerald-500/15 text-emerald-400 border-0" : o.fulfillment_status === "shipped" ? "bg-blue-500/15 text-blue-400 border-0" : "bg-zinc-500/15 text-zinc-400 border-0"}`}>
-                          {ESTADO_ENTREGA[o.fulfillment_status] ?? o.fulfillment_status}
-                        </Badge>
-                        {/* El seguimiento acá y no sólo dentro del diálogo: es
-                            la señal de que el despacho quedó hecho. */}
-                        {o.tracking_number && (
-                          <p className="text-[10px] font-mono text-muted-foreground mt-1">{o.tracking_number}</p>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{o.created_at.slice(0, 10)}</td>
-                      <td className="px-4 py-3 sticky right-0 bg-card">
-                        {/* Sólo se despacha lo que está pago: ofrecer el botón
-                            en una orden impaga invita a un error caro. */}
-                        {canFulfillStoreOrder(o.payment_status) ? (
-                          <Button
-                            size="sm" variant="outline"
-                            className="h-7 px-2 gap-1.5 text-xs"
-                            onClick={e => { e.stopPropagation(); setEnvioDe(o); }}
-                          >
-                            <Truck className="w-3 h-3" />
-                            {o.tracking_number ? "Ver envío" : "Preparar"}
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        <StoreOrdersPanel
+          orders={orders}
+          loading={ordersLoading}
+          error={ordersError}
+          onRetry={() => { void loadOrders(); }}
+          onPrepare={order => {
+            const full = orders.find(o => o.id === order.id);
+            if (full) setEnvioDe(full);
+          }}
+        />
       )}
 
       {/* ─── Design tab ─── */}
