@@ -40,9 +40,8 @@ export default defineConfig(({ mode }) => ({
       // 📌 `brand/gestiona-mark.png` figura dos veces en el manifiesto —una
       // por acá y otra por `globPatterns`— pero es **la misma URL con la
       // misma revisión**: el navegador la baja una sola vez. Vaciar esta lista
-      // no ahorra descargas. `robots.txt` NO va acá: en producción lo sirve
-      // el borde con los sitemaps reales; precachearlo dejaría la versión
-      // estática sin `Sitemap:` pegada al service worker.
+      // no ahorra descargas. `robots.txt` no vive en `public/`: Vercel sirve
+      // el archivo estático *antes* del rewrite, y Google nunca vería Sitemap.
       includeAssets: ["brand/gestiona-mark.png"],
       manifest: {
         name: "Gestiona — Sistema de Gestión",

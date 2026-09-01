@@ -2866,8 +2866,10 @@ Finance Connect.
     `robots.txt` lista las tiendas activas vía `list_published_store_slugs`;
     PLP/páginas/legales tienen canonical y schema propios; checkout queda
     `noindex`; el precio declarado es `precioDeCatalogo`, el mismo que cobra
-    `resolve_store_line`. No es SSR ni dominio propio (congelado). Falta
-    contrastar InspectionTool en producción después del deploy.
+    `resolve_store_line`. No es SSR ni dominio propio (congelado). El primer
+    deploy dejó `public/robots.txt` tapando el borde — Vercel sirve el
+    estático antes del rewrite — y el archivo se retiró. Falta contrastar
+    `Sitemap:` en `/robots.txt` publicado.
     Verificado en este recorte: **2.171/2.171 pruebas en 222 archivos**;
     typecheck OK; lint 0 errores y 139 warnings conocidos. Migración
     `20260901000030` aplicada y anotada; RPC lista `exentryimports`.

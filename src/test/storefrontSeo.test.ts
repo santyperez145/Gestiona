@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -64,13 +64,20 @@ describe("robots e índice salen del servidor", () => {
     expect(vercel.rewrites.some(r => r.source === "/sitemap.xml")).toBe(true);
   });
 
-  it("el fallback estático y el borde niegan el mismo panel", () => {
-    const estatico = leer("public/robots.txt");
+  it("no hay robots.txt estático: en Vercel el archivo tapa el rewrite", () => {
+    /**
+     * Medido el 2026-09-01: el borde ya listaba sitemaps y producción seguía
+     * sirviendo el comentario. Un archivo en `public/` se copia a `dist/` y
+     * Vercel lo entrega antes de aplicar rewrites. Sin archivo, `/robots.txt`
+     * llega a `api/robots`.
+     */
+    expect(existsSync(resolve(process.cwd(), "public/robots.txt"))).toBe(false);
     const borde = leer("api/robots.ts");
     expect(borde).toContain("cuerpoRobots");
     expect(borde).toContain("list_published_store_slugs");
+    const txt = cuerpoRobots("https://ejemplo.test", ["/sitemap.xml"]);
     for (const path of ROBOTS_DISALLOW_PANEL) {
-      expect(estatico, `public/robots.txt no niega ${path}`).toContain(`Disallow: ${path}`);
+      expect(txt, `cuerpoRobots no niega ${path}`).toContain(`Disallow: ${path}`);
     }
   });
 });

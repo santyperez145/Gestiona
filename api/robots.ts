@@ -4,6 +4,9 @@
  * El archivo estático decía dónde vivía cada sitemap y nunca lo declaraba.
  * Google no adivina `/tienda/<slug>/sitemap.xml`. Esta función lista las
  * tiendas activas en el servidor y emite `Sitemap:`.
+ *
+ * ⚠️ No puede existir `public/robots.txt`: Vercel entrega el estático antes
+ * del rewrite y esta función no corre. Lo midió el deploy de D5.9.
  */
 import { cuerpoRobots } from "../src/lib/storefrontSeo";
 
