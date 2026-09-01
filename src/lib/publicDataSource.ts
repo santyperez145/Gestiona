@@ -306,26 +306,38 @@ const PAYMENT_LINK_COLUMNS =
  * Vía RPC: el uuid del link es el secreto, y así no se puede enumerar el resto.
  * Si el RPC todavía no existe, se leen las tablas como antes — que es lo que
  * hacía esta página hasta ayer.
+ *
+ * ⚠️ Un corte de red no es un link inexistente. Devolver `null` hacía que
+ * `/pago/:id` dijera «Link no encontrado» con el presupuesto vivo.
  */
-export async function fetchPublicPaymentLink(linkId: string) {
+export async function fetchPublicPaymentLink(
+  linkId: string,
+): Promise<LecturaPublica<Record<string, unknown> | null>> {
   const rpc = await retryPublicRead(() =>
     supabase.rpc('get_public_payment_link', { p_id: linkId }));
 
   if (!rpc.error) {
     const rows = rpc.data as unknown;
-    return (Array.isArray(rows) ? rows[0] : rows) as Record<string, unknown> | null;
+    return {
+      ok: true,
+      data: (Array.isArray(rows) ? rows[0] : rows) as Record<string, unknown> | null,
+    };
   }
   if (!isMissingFunction(rpc.error)) {
     console.error('[pago] error leyendo el link:', rpc.error.message);
-    return null;
+    return { ok: false, error: rpc.error };
   }
 
   warnFallback('get_public_payment_link()');
-  const { data: linkRaw } = await retryPublicRead(() => supabase
+  const tabla = await retryPublicRead(() => supabase
     .from('payment_links').select(PAYMENT_LINK_COLUMNS).eq('id', linkId).maybeSingle());
-  if (!linkRaw) return null;
+  if (tabla.error) {
+    console.error('[pago] error leyendo payment_links:', tabla.error.message);
+    return { ok: false, error: tabla.error };
+  }
+  if (!tabla.data) return { ok: true, data: null };
   // La lista de columnas es dinámica, así que TS no puede inferir la forma.
-  const link = linkRaw as unknown as Record<string, unknown> & { org_id: string };
+  const link = tabla.data as unknown as Record<string, unknown> & { org_id: string };
 
   const [{ data: st }, { data: org }] = await Promise.all([
     retryPublicRead(() => supabase.from('settings')
@@ -337,15 +349,18 @@ export async function fetchPublicPaymentLink(linkId: string) {
 
   const s = (st ?? {}) as Record<string, string | null>;
   return {
-    ...link,
-    business_name: s.business_name || (org as { name?: string } | null)?.name || 'Tienda',
-    logo_url: s.logo_url ?? null,
-    whatsapp_number: s.whatsapp_number ?? null,
-    bank_cbu: s.bank_cbu ?? null,
-    bank_alias: s.bank_alias ?? null,
-    bank_name: s.bank_name ?? null,
-    bank_holder: s.bank_holder ?? null,
-  } as Record<string, unknown>;
+    ok: true,
+    data: {
+      ...link,
+      business_name: s.business_name || (org as { name?: string } | null)?.name || 'Tienda',
+      logo_url: s.logo_url ?? null,
+      whatsapp_number: s.whatsapp_number ?? null,
+      bank_cbu: s.bank_cbu ?? null,
+      bank_alias: s.bank_alias ?? null,
+      bank_name: s.bank_name ?? null,
+      bank_holder: s.bank_holder ?? null,
+    } as Record<string, unknown>,
+  };
 }
 
 /**

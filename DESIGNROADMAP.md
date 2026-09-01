@@ -149,8 +149,8 @@ usa en material de producto o inversión.
 | Settings/Integraciones | Cabecera/navegación común; SMTP privado; Mercado Pago OAuth canónico; webhooks en una sola superficie con secret one-time, health, prueba/retry server-side, entrega durable, diálogo contractual y OpenAPI público certificado externamente. | Parcial | Transportistas y matriz responsive/autenticada; medir primera integración real. |
 | Finance | Shell teal, Inbox, inspector, matching, tres borradores y estados comunes con refresh/stale/offline. | Parcial | Proveedor aprobado + prueba responsive con documentos reales. |
 | Platform | Rail/control plane violeta y Merchant 360. | Parcial | Cola, métricas y soporte mobile. |
-| Storefront | Marca configurable aislada del SaaS; imágenes rotas degradan a fallbacks propios. El resultado de compra separa carga, acceso verificado y recuperación por email sin revelar si un número existe; pago y emails comparten la misma capacidad server-side. La comunicación transaccional distingue creación, pago y despacho y responde retries/dobles clicks como éxito deduplicado, no como otra entrega. Crawlers reciben HTML del comercio. Una red caída no se pinta como 404 ni como catálogo vacío. | Parcial D5 2026-09-01 | D5.1–D5.10: cola, inspector, CTA, skeleton, SEO de servidor y error recuperable. Faltan bulk con autoridad y compra sandbox/real. |
-| Estados públicos | Pago, tracking, legales, invitación. | Parcial | Sistema público y accesibilidad. |
+| Storefront | Marca configurable aislada del SaaS; imágenes rotas degradan a fallbacks propios. El resultado de compra separa carga, acceso verificado y recuperación por email sin revelar si un número existe; pago y emails comparten la misma capacidad server-side. La comunicación transaccional distingue creación, pago y despacho y responde retries/dobles clicks como éxito deduplicado, no como otra entrega. Crawlers reciben HTML del comercio. Una red caída no se pinta como 404, catálogo vacío, pedido inexistente ni carrito vencido. | Parcial D5 2026-09-01 | D5.1–D5.11: cola, inspector, CTA, skeleton, SEO de servidor y error recuperable hasta el seguimiento. Faltan bulk con autoridad y compra sandbox/real. |
+| Estados públicos | Pago, tracking, legales, invitación. Link de pago y seguimiento distinguen red caída de recurso inexistente. | Parcial D5.11 2026-09-01 | Legales consistentes y accesibilidad. |
 
 ## 5. Fases ejecutables
 
@@ -422,6 +422,13 @@ cero productos con el stock lleno. Ahora 404 y error son estados distintos;
 Reintentar no borra el carrito; el checkout idempotente reintenta el corte
 con la misma clave. No es una compra sandbox ni un service worker offline.
 
+D5.11 cierra el mismo corte un paso más adelante: el seguimiento pedía el
+email (o decía «datos incorrectos») cuando no había podido consultar; el
+carrito recuperado y la cuenta pintaban vacío; el link de pago decía
+«no encontrado». Un poll que falla ya no borra un pedido visto. No se pide
+el email hasta que el servidor responde. Bulk sigue fuera: hay 2 órdenes
+pagas de $1, no una cola que justifique RPC masivo.
+
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto: CTA móvil hecho; faltan variantes densas y confianza extra;
 - carrito y checkout: objetivos táctiles y sticky en 360 px hechos;
@@ -429,7 +436,8 @@ con la misma clave. No es una compra sandbox ni un service worker offline.
   con autoridad server-side;
 - alta/importación y venta manual desde mobile con la simplicidad de referencia
   de Empretienda, sin crear otro stock;
-- pago, seguimiento, devolución y errores recuperables;
+- pago, seguimiento y errores recuperables: hechos para pedido, carrito,
+  cuenta y link de pago; falta devolución con el mismo criterio;
 - legales y contacto consistentes;
 - performance visual: skeleton y tamaño de imagen hechos; red lenta: 404 ≠ error, hecho.
 
@@ -488,8 +496,8 @@ declara validado porque “se ve mejor”.
 | 17 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos, aprobación y handoff a recepción usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
 | 18 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
 | 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
-| 20 | Storefront home/PLP/PDP | Parcial D5.10 2026-09-01 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias. D5.7 deja el CTA de compra al pie en 360 px. D5.8 reserva geometría al cargar y declara tamaño de imagen. D5.9 hace que crawlers vean HTML del comercio. D5.10 distingue 404 de red caída y no pinta un catálogo vacío. Falta hero del comercio y flujo sandbox/real. |
-| 21 | Carrito/checkout/pago | Parcial D5.10 2026-09-01 | Resultado protegido por capacidad; D5.3–D5.6 cierran avisos, Pay honesto, cola e inspector. D5.7 deja CTA de ficha/carrito/checkout a 44 px en 360. D5.10 reintenta `create_store_order_idem` ante un corte de red con la misma clave. Faltan compra sandbox/real y bulk con RPC. |
+| 20 | Storefront home/PLP/PDP | Parcial D5.11 2026-09-01 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias. D5.7 deja el CTA de compra al pie en 360 px. D5.8 reserva geometría al cargar y declara tamaño de imagen. D5.9 hace que crawlers vean HTML del comercio. D5.10 distingue 404 de red caída y no pinta un catálogo vacío. D5.11 no pide email ni declara el carrito vencido si la red falló. Falta hero del comercio y flujo sandbox/real. |
+| 21 | Carrito/checkout/pago | Parcial D5.11 2026-09-01 | Resultado protegido por capacidad; D5.3–D5.6 cierran avisos, Pay honesto, cola e inspector. D5.7 deja CTA de ficha/carrito/checkout a 44 px en 360. D5.10 reintenta `create_store_order_idem` ante un corte de red con la misma clave. D5.11 distingue link de pago inexistente de corte de red y no borra un pedido ya visto. Faltan compra sandbox/real y bulk con RPC. |
 | 22 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
 | 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
 | 24 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |

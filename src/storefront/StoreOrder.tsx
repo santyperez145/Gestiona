@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import OrderTracking from "./OrderTracking";
 import StorePaymentBrick, { type StorePaymentBrickConfig } from "./StorePaymentBrick";
 import { supabase } from "@/integrations/supabase/client";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { getStoreOrderSecure, type StoreOrderAccessRow } from "@/lib/publicDataSource";
 import { useStore } from "./storeContext";
 import { trackPurchase } from "./tracking";
@@ -11,13 +12,18 @@ import { consumeOrderAccessFragment, readOrderAccessToken, saveOrderAccessToken 
 import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle, ShieldCheck } from "lucide-react";
 
 type Order = StoreOrderAccessRow;
+type CargaPedido =
+  | { ok: true; row: Order | null }
+  | { ok: false };
 
 export default function StoreOrder() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
   const { store, fmt } = useStore();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const orderRef = useRef<Order | null>(null);
   const [emailVerificacion, setEmailVerificacion] = useState("");
   const [verificando, setVerificando] = useState(false);
   const [accesoError, setAccesoError] = useState<string | null>(null);
@@ -31,8 +37,8 @@ export default function StoreOrder() {
   const base = `/tienda/${store?.slug ?? ""}`;
   const pedidoPendiente = order?.payment_status === "pending";
 
-  const cargar = useCallback(async (email?: string) => {
-    if (!store?.slug || !orderNumber) return null;
+  const cargar = useCallback(async (email?: string): Promise<CargaPedido> => {
+    if (!store?.slug || !orderNumber) return { ok: false };
     const token = accessToken
       ?? consumeOrderAccessFragment(store.slug, orderNumber)
       ?? readOrderAccessToken(store.slug, orderNumber);
@@ -42,15 +48,29 @@ export default function StoreOrder() {
       accessToken: token,
       email,
     });
+    if (result.error) {
+      setLoading(false);
+      // Un corte a mitad de un poll no puede borrar un pedido ya visto ni
+      // pedir el email como si el número no existiera.
+      if (orderRef.current) {
+        setAccesoError("No pudimos actualizar el pedido. Reintentá.");
+        return { ok: false };
+      }
+      setLoadError(true);
+      setAccesoError(null);
+      return { ok: false };
+    }
     const row = result.data;
     if (row?.access_token) {
       const saved = saveOrderAccessToken(store.slug, orderNumber, row.access_token);
       if (saved && saved !== accessToken) setAccessToken(saved);
     }
+    orderRef.current = row;
     setOrder(row);
-    setAccesoError(result.error ? "No pudimos verificar el acceso. Probá de nuevo." : null);
+    setLoadError(false);
+    setAccesoError(null);
     setLoading(false);
-    return row;
+    return { ok: true, row };
   }, [store?.slug, orderNumber, accessToken]);
 
   useEffect(() => { cargar(); }, [cargar]);
@@ -80,7 +100,8 @@ export default function StoreOrder() {
     let intentos = 0;
     const t = setInterval(async () => {
       intentos++;
-      const fresco = await cargar();
+      const r = await cargar();
+      const fresco = r.ok ? r.row : orderRef.current;
       if (intentos >= 5 || (fresco && fresco.payment_status !== "pending")) clearInterval(t);
     }, 3000);
     return () => clearInterval(t);
@@ -102,7 +123,8 @@ export default function StoreOrder() {
     let intentos = 0;
     const t = setInterval(async () => {
       intentos++;
-      const fresco = await cargar();
+      const r = await cargar();
+      const fresco = r.ok ? r.row : orderRef.current;
       if (intentos >= 10 || (fresco && fresco.payment_status !== "pending")) {
         clearInterval(t);
       }
@@ -114,13 +136,13 @@ export default function StoreOrder() {
     if (!store?.slug || !order) return;
     setPagando(true);
     setPagoError(null);
-    const { data } = await supabase.functions.invoke("store-pay", {
+    const { data, error } = await supabase.functions.invoke("store-pay", {
       body: { action: "redirect", slug: store.slug, orderNumber: order.order_number, accessToken, returnUrl: window.location.origin },
     });
     setPagando(false);
-    const url = (data as any)?.url;
+    const url = (data as { url?: string } | null)?.url;
     if (url) window.location.href = url;
-    else setPagoError((data as any)?.error ?? "No se pudo abrir el pago online.");
+    else setPagoError((await mensajeDeEdgeFunction(error, data)) || "No se pudo abrir el pago online.");
   };
 
   const prepararPagoConTarjeta = async () => {
@@ -141,7 +163,11 @@ export default function StoreOrder() {
       setTarjetaDisponible(false);
       setPagoAviso(config.error ?? "El pago con tarjeta está temporalmente pausado. Podés continuar en MercadoPago.");
     } else {
-      setPagoError(config?.error ?? "No se pudo preparar el pago con tarjeta. Podés usar MercadoPago para elegir otro medio.");
+      setPagoError(
+        (await mensajeDeEdgeFunction(error, data))
+          || config?.error
+          || "No se pudo preparar el pago con tarjeta. Podés usar MercadoPago para elegir otro medio.",
+      );
     }
   };
 
@@ -164,6 +190,40 @@ export default function StoreOrder() {
     );
   }
 
+  if (loadError && !order) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-20">
+        <div
+          className="border p-6 text-center"
+          data-storefront-state="order-error"
+          role="alert"
+          style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
+        >
+          <AlertTriangle className="w-10 h-10 mx-auto mb-3 text-red-600" />
+          <h1 className="text-xl font-bold">No pudimos cargar tu pedido</h1>
+          <p className="text-sm mt-2" style={{ color: "hsl(var(--st-muted))" }}>
+            La red falló. Reintentá; no te pedimos el email hasta poder consultar.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              setLoadError(false);
+              void cargar(emailVerificacion.trim() || undefined);
+            }}
+            className="w-full mt-5 min-h-11 px-4 py-2.5 text-sm font-medium"
+            style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+          >
+            Reintentar
+          </button>
+          <Link to={base} className="inline-block mt-5 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
+            Volver a la tienda
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!order) {
     return (
       <div className="max-w-md mx-auto px-4 py-20">
@@ -182,9 +242,13 @@ export default function StoreOrder() {
               event.preventDefault();
               setVerificando(true);
               setAccesoError(null);
-              const found = await cargar(emailVerificacion.trim());
+              const r = await cargar(emailVerificacion.trim());
               setVerificando(false);
-              if (!found) setAccesoError("No pudimos verificar esos datos. Revisalos o escribile a la tienda.");
+              if (!r.ok) {
+                setAccesoError("La red falló. Reintentá.");
+                return;
+              }
+              if (!r.row) setAccesoError("No pudimos verificar esos datos. Revisalos o escribile a la tienda.");
             }}
           >
             <label htmlFor="order-email" className="text-xs font-medium">Email de la compra</label>
@@ -252,6 +316,18 @@ export default function StoreOrder() {
               ? <>El pedido no se enviará mientras gestionamos esta reversión. Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar los próximos pasos.</>
               : <>Te vamos a escribir a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar el pago y la entrega.</>}
         </p>
+        {accesoError && (
+          <p className="text-xs text-red-600 mt-3" role="alert">
+            {accesoError}{" "}
+            <button
+              type="button"
+              className="underline font-medium"
+              onClick={() => { void cargar(); }}
+            >
+              Reintentar
+            </button>
+          </p>
+        )}
       </div>
 
       {/* Pago pendiente con MercadoPago habilitado: se ofrece pagar ahora.

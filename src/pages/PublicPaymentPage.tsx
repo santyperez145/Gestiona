@@ -89,6 +89,7 @@ export default function PublicPaymentPage() {
   const [org, setOrg] = useState<OrgInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [activeMethod, setActiveMethod] = useState<"mp" | "transfer" | null>(null);
@@ -104,8 +105,25 @@ export default function PublicPaymentPage() {
       // resto. Antes `payment_links` y `settings` estaban abiertas con
       // USING(true) y se listaban los links y los datos bancarios de todos los
       // comercios de la plataforma.
-      const row = await fetchPublicPaymentLink(linkId);
-      if (!row) { setNotFound(true); setLoading(false); return; }
+      const lectura = await fetchPublicPaymentLink(linkId);
+      if (!lectura.ok) {
+        if (!silent) {
+          setLoadError(true);
+          setNotFound(false);
+          setLoading(false);
+        }
+        return;
+      }
+      if (!lectura.data) {
+        setNotFound(true);
+        setLoadError(false);
+        setLoading(false);
+        return;
+      }
+
+      const row = lectura.data;
+      setLoadError(false);
+      setNotFound(false);
 
       // `items` es jsonb en DB → llega como Json genérico
       setLink(row as unknown as PaymentLink);
@@ -174,6 +192,27 @@ export default function PublicPaymentPage() {
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
           <p className="text-slate-400 text-sm">Cargando link de pago...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0a1a] via-[#0e0e1e] to-[#0a0a1a] p-4">
+        <div className="text-center max-w-sm" data-payment-state="error" role="alert">
+          <div className="w-16 h-16 rounded-full bg-amber-400/10 flex items-center justify-center mx-auto mb-4">
+            <RefreshCw className="w-8 h-8 text-amber-400" />
+          </div>
+          <h1 className="text-xl font-bold text-white mb-2">No pudimos cargar el link</h1>
+          <p className="text-slate-400 text-sm">La red falló. El link sigue siendo válido; reintentá.</p>
+          <Button
+            type="button"
+            onClick={() => { void fetchLink(); }}
+            className="mt-5 min-h-11 bg-amber-400 text-slate-950 hover:bg-amber-300"
+          >
+            Reintentar
+          </Button>
         </div>
       </div>
     );

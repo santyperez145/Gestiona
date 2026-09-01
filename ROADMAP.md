@@ -2884,6 +2884,17 @@ Finance Connect.
     compra sandbox. Verificado en este recorte: **2.177/2.177 pruebas en 223 archivos**;
     typecheck OK; lint 0 errores y 139 warnings conocidos.
 
+88. Vitrina D5.11: el seguimiento tampoco miente con la red — 2026-09-01.
+    D5.10 cubría la vitrina. El pedido, el carrito recuperado, la cuenta y
+    el link de pago seguían convirtiendo un `Failed to fetch` en «ingresá
+    el email», «carrito vencido», «no hiciste pedidos» o «link no
+    encontrado». Un poll que fallaba además borraba la ficha ya vista.
+    Ahora el error invita a Reintentar; el email (D5.2) sólo se pide
+    cuando el servidor respondió sin capacidad. No hay bulk: las dos
+    órdenes pagas son de $1 desde julio, no una cola operativa.
+    Verificado en este recorte: **2.183/2.183 pruebas en 223 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

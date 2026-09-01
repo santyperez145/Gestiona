@@ -51,7 +51,7 @@ describe("publicDataSource public read recovery", () => {
   });
 });
 
-describe("catálogo y checkout no mienten con la red caída", () => {
+describe("catálogo, checkout y cobro no mienten con la red caída", () => {
   it("el catálogo distingue vacío de fallo: no devuelve [] como éxito", () => {
     const fuente = readFileSync(resolve(process.cwd(), "src/lib/publicDataSource.ts"), "utf8");
     const desde = fuente.indexOf("export async function fetchStoreProducts");
@@ -59,6 +59,16 @@ describe("catálogo y checkout no mienten con la red caída", () => {
     const cuerpo = fuente.slice(desde, hasta);
     expect(cuerpo).toContain("{ ok: false, error:");
     expect(cuerpo).not.toMatch(/console\.error[\s\S]{0,80}return \[\]/);
+  });
+
+  it("el link de pago distingue inexistente de fallo: no devuelve null como 404", () => {
+    const fuente = readFileSync(resolve(process.cwd(), "src/lib/publicDataSource.ts"), "utf8");
+    const desde = fuente.indexOf("export async function fetchPublicPaymentLink");
+    const hasta = fuente.indexOf("export async function confirmPaymentLinkTransfer");
+    const cuerpo = fuente.slice(desde, hasta);
+    expect(cuerpo).toContain("{ ok: false, error:");
+    expect(cuerpo).toContain("Promise<LecturaPublica");
+    expect(cuerpo).not.toMatch(/if \(!isMissingFunction\(rpc\.error\)\)[\s\S]{0,160}return null/);
   });
 
   it("el checkout idempotente reintenta un corte de red con la misma clave", async () => {

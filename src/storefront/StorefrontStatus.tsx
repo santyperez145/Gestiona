@@ -19,20 +19,24 @@ export default function StorefrontStatus({
   kind,
   slug,
   storeName,
+  title,
+  detail,
   onRetry,
 }: {
   kind: "not-found" | "error";
   slug?: string;
   storeName?: string | null;
+  title?: string;
+  detail?: string;
   onRetry?: () => void;
 }) {
   const error = kind === "error";
-  const titulo = error
+  const titulo = title ?? (error
     ? (storeName ? `No pudimos cargar ${storeName}` : "No pudimos cargar la tienda")
-    : "Tienda no encontrada";
-  const detalle = error
+    : "Tienda no encontrada");
+  const detalle = detail ?? (error
     ? "La red falló o el catálogo no respondió. Tu carrito sigue guardado; reintentá."
-    : `No hay ninguna tienda activa en /tienda/${slug ?? ""}. Puede que la dirección haya cambiado o que esté desactivada.`;
+    : `No hay ninguna tienda activa en /tienda/${slug ?? ""}. Puede que la dirección haya cambiado o que esté desactivada.`);
 
   return (
     <div

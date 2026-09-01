@@ -5,6 +5,7 @@ import ProductCard from "./ProductCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
+import { retryPublicRead } from "@/lib/publicDataSource";
 import { storeOrderPaymentLabel } from "@/lib/storeOrderPayment";
 import { User, Loader2, LogOut, Package, MailCheck, Heart } from "lucide-react";
 
@@ -50,16 +51,33 @@ export default function StoreAccount() {
   const deseados = products.filter(x => deseos.has(x.id));
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [cargandoPedidos, setCargandoPedidos] = useState(false);
+  const [errorPedidos, setErrorPedidos] = useState(false);
 
-  useEffect(() => {
+  const cargarPedidos = () => {
     if (!customer || !store?.slug) return;
     setCargandoPedidos(true);
-    supabase
-      .rpc("get_my_store_orders", { p_slug: store.slug })
-      .then(({ data }) => {
+    setErrorPedidos(false);
+    void retryPublicRead(() =>
+      supabase.rpc("get_my_store_orders", { p_slug: store.slug }),
+    ).then(({ data, error }) => {
+      if (error) {
+        console.error("[cuenta] error leyendo pedidos:", error.message);
+        setErrorPedidos(true);
+        setPedidos([]);
+      } else {
         setPedidos((data ?? []) as unknown as Pedido[]);
-        setCargandoPedidos(false);
-      }, () => setCargandoPedidos(false));
+      }
+      setCargandoPedidos(false);
+    }, () => {
+      setErrorPedidos(true);
+      setCargandoPedidos(false);
+    });
+  };
+
+  useEffect(() => {
+    cargarPedidos();
+    // store.slug y customer disparan la lectura; cargarPedidos se recrea cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customer, store?.slug]);
 
   const enviar = async (e: React.FormEvent) => {
@@ -190,6 +208,24 @@ export default function StoreAccount() {
 
       {cargandoPedidos ? (
         <div className="py-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin opacity-50" /></div>
+      ) : errorPedidos ? (
+        <div
+          className="border p-8 text-center"
+          data-storefront-state="account-orders-error"
+          role="alert"
+          style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+        >
+          <Package className="w-8 h-8 mx-auto mb-2 opacity-30" />
+          <p className="text-sm" style={{ color: "hsl(var(--st-muted))" }}>No pudimos cargar tus pedidos.</p>
+          <button
+            type="button"
+            onClick={cargarPedidos}
+            className="inline-block mt-4 min-h-11 px-4 py-2 text-sm font-medium"
+            style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+          >
+            Reintentar
+          </button>
+        </div>
       ) : pedidos.length === 0 ? (
         <div
           className="border p-8 text-center"
