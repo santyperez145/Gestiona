@@ -40,6 +40,16 @@ describe('Commerce Pay honesty', () => {
     expect(comisiones).not.toMatch(/0,\s*5\s*%|0\.5%/);
   });
 
+  it('al conectar Pay registra el medio en org_payment_providers, no sólo el token', () => {
+    const mpConnect = readFileSync(
+      resolve(import.meta.dirname, '..', '..', 'supabase', 'functions', 'mp-connect', 'index.ts'),
+      'utf8',
+    );
+    expect(mpConnect).toContain('medio_de_pago_conectado');
+    expect(mpConnect).toContain('org_payment_providers');
+    expect(mpConnect).toContain('mp_enabled: false');
+  });
+
   it('el workspace se presenta como Commerce, no como módulo extra', () => {
     expect(page).toContain('title="Gestiona Commerce"');
     expect(page).toContain('label: "Publicar"');

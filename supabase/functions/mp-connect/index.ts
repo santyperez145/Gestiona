@@ -20,7 +20,8 @@ import { requireEnv } from "../_shared/env.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const json = (b: unknown, s = 200) =>
@@ -70,6 +71,10 @@ Deno.serve(async (req) => {
     if (action === "disconnect") {
       await admin.from("payment_connections")
         .delete().eq("org_id", orgId).eq("provider", "mercadopago");
+      await admin.from("settings").update({ mp_enabled: false }).eq("org_id", orgId);
+      await admin.from("org_payment_providers")
+        .update({ habilitado: false, conectado_at: null, cuenta: null, updated_at: new Date().toISOString() })
+        .eq("org_id", orgId).eq("provider", "mercadopago");
       return json({ ok: true });
     }
 
@@ -165,6 +170,19 @@ Deno.serve(async (req) => {
       // `settings.mp_enabled` sigue siendo el interruptor que mira el resto de
       // la app, así que se enciende al conectar.
       await admin.from("settings").update({ mp_enabled: true }).eq("org_id", orgId);
+
+      // `costos_por_medio_de_pago` y el ruteo leen `org_payment_providers`,
+      // no `payment_connections`. Sin esta RPC el panel de Pay queda activo
+      // y Ajustes → Finanzas sigue diciendo que no hay medios.
+      const cuenta = nickname || email || String(tok.user_id);
+      const { error: medioErr } = await admin.rpc("medio_de_pago_conectado", {
+        p_org: orgId,
+        p_provider: "mercadopago",
+        p_cuenta: cuenta,
+      });
+      if (medioErr) {
+        console.error("mp-connect medio_de_pago_conectado:", medioErr);
+      }
 
       return json({ ok: true, nickname, email, live_mode: tok.live_mode ?? true, redirect_to: redirectTo });
     }
