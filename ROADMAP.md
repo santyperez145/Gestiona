@@ -2836,6 +2836,16 @@ Finance Connect.
     de más de 200 en uso. Verificado en este recorte: 2.152/2.152 pruebas en
     219 archivos; typecheck OK.
 
+84. Recorrido de compra a 360 px — 2026-09-01.
+    La vitrina ya vendía en desktop; en el teléfono el CTA se iba con el
+    scroll: la ficha escondía Agregar detrás de la descripción, el carrito
+    cerraba con un ícono de 20 px y Confirmar quedaba bajo el teclado. La
+    ficha deja una barra fija con el precio; el carrito cierra/quita/termina
+    a 44 px; filtros y checkout conservan la acción al pie, con safe-area.
+    No se finge una compra sandbox: este recorte cierra el dedo, no el cobro
+    contra Mercado Pago. Verificado en este recorte: 2.155/2.155 pruebas en
+    220 archivos; typecheck OK.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

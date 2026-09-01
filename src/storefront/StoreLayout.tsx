@@ -417,7 +417,13 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           >
             <div className="flex items-center justify-between px-4 h-14 border-b" style={{ borderColor: "hsl(var(--st-border))" }}>
               <p className="font-semibold">Tu carrito ({cartCount})</p>
-              <button onClick={() => setCartOpen(false)} aria-label="Cerrar"><X className="w-5 h-5" /></button>
+              <button
+                onClick={() => setCartOpen(false)}
+                aria-label="Cerrar"
+                className="min-h-11 min-w-11 grid place-items-center"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             {cart.length === 0 ? (
@@ -429,7 +435,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                   </p>
                   <Link
                     to={`${base}/productos`}
-                    className="inline-block mt-4 px-4 py-2 text-sm font-medium"
+                    className="mt-4 inline-flex min-h-11 items-center px-4 py-2 text-sm font-medium"
                     style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
                   >
                     Ver productos
@@ -466,7 +472,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
-                          <button onClick={() => removeFromCart(lineKeyOf(l))} aria-label="Quitar">
+                          <button
+                            onClick={() => removeFromCart(lineKeyOf(l))}
+                            aria-label="Quitar"
+                            className="min-h-11 min-w-11 grid place-items-center"
+                          >
                             <Trash2 className="w-3.5 h-3.5" style={{ color: "hsl(var(--st-muted))" }} />
                           </button>
                         </div>
@@ -543,7 +553,13 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                   </div>
                 )}
 
-                <div className="border-t p-4 space-y-2" style={{ borderColor: "hsl(var(--st-border))" }}>
+                <div
+                  className="border-t p-4 space-y-2"
+                  style={{
+                    borderColor: "hsl(var(--st-border))",
+                    paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+                  }}
+                >
                   {freeShippingGap !== null && freeShippingGap > 0 && (
                     <p className="text-xs text-center" style={{ color: "hsl(var(--st-muted))" }}>
                       Te faltan <strong>{fmt(freeShippingGap)}</strong> para el envío gratis
@@ -569,7 +585,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                   </div>
                   <Link
                     to={`${base}/checkout`}
-                    className="block text-center py-2.5 font-medium mt-2"
+                    className="mt-2 flex min-h-11 items-center justify-center py-2.5 text-center font-medium"
                     style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
                   >
                     Finalizar compra

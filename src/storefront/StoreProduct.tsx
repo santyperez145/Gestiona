@@ -323,7 +323,7 @@ export default function StoreProduct() {
             <button
               onClick={agregar}
               disabled={faltaElegir}
-              className="flex-1 py-3 font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="flex-1 min-h-11 py-3 font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
             >
               {added ? <><Check className="w-4 h-4" /> Agregado</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
@@ -332,7 +332,7 @@ export default function StoreProduct() {
               onClick={() => deseos.toggle(p.id)}
               aria-label={deseos.has(p.id) ? "Quitar de mis deseos" : "Guardar en mis deseos"}
               aria-pressed={deseos.has(p.id)}
-              className="p-3 border transition-colors"
+              className="min-h-11 min-w-11 p-3 grid place-items-center border transition-colors"
               style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
             >
               <Heart
@@ -426,6 +426,32 @@ export default function StoreProduct() {
             {relacionados.map(r => <ProductCard key={r.id} p={r} />)}
           </div>
         </section>
+      )}
+
+      {stockEfectivo > 0 && (
+        <>
+          <div className="h-20 md:hidden" aria-hidden="true" />
+          <div
+            className="storefront-buy-bar md:hidden fixed inset-x-0 bottom-0 z-30 border-t px-4 pt-3"
+            style={{
+              background: "hsl(var(--st-bg))",
+              borderColor: "hsl(var(--st-border))",
+              paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+            }}
+          >
+            <div className="mx-auto flex max-w-6xl items-center gap-3">
+              <p className="shrink-0 font-bold tabular-nums">{fmt(price)}</p>
+              <button
+                onClick={agregar}
+                disabled={faltaElegir}
+                className="min-h-11 flex-1 py-3 font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+              >
+                {added ? <><Check className="w-4 h-4" /> Agregado</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

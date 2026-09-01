@@ -136,7 +136,7 @@ export default function StoreProducts() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowFilters(v => !v)}
-            className="sm:hidden inline-flex items-center gap-1.5 px-3 py-2 text-sm border"
+            className="sm:hidden inline-flex min-h-11 items-center gap-1.5 px-3 py-2 text-sm border"
             style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
           >
             <SlidersHorizontal className="w-4 h-4" />
@@ -145,7 +145,7 @@ export default function StoreProducts() {
           <select
             value={orden}
             onChange={e => setParam("orden", e.target.value === "relevancia" ? "" : e.target.value)}
-            className="px-3 py-2 text-sm border bg-transparent"
+            className="min-h-11 px-3 py-2 text-sm border bg-transparent"
             style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
           >
             {ORDENES.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
@@ -297,7 +297,7 @@ function Opcion({ activo, onClick, children }: { activo: boolean; onClick: () =>
   return (
     <button
       onClick={onClick}
-      className={`block w-full text-left text-sm py-1 transition-opacity ${activo ? "font-semibold" : "opacity-70 hover:opacity-100"}`}
+      className={`block w-full min-h-11 text-left text-sm py-2.5 transition-opacity ${activo ? "font-semibold" : "opacity-70 hover:opacity-100"}`}
       style={activo ? { color: "hsl(var(--st-accent))" } : undefined}
     >
       {children}

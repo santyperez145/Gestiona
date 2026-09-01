@@ -429,7 +429,7 @@ export default function StoreCheckout() {
     navigate(`${base}/orden/${orderNumber}${orderAccessFragment(accessToken)}`, { replace: true });
   };
 
-  const input = "w-full px-3 py-2 text-sm border bg-transparent outline-none focus:ring-1";
+  const input = "w-full min-h-11 px-3 py-2 text-sm border bg-transparent outline-none focus:ring-1";
   const inputStyle = { borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" } as React.CSSProperties;
 
   return (
@@ -684,8 +684,13 @@ export default function StoreCheckout() {
 
         {/* ── Resumen ─────────────────────────────────────────────── */}
         <aside
-          className="border p-4 space-y-3 md:sticky md:top-20"
-          style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
+          className="border p-4 space-y-3 md:sticky md:top-20 max-md:sticky max-md:bottom-0 max-md:z-20"
+          style={{
+            borderColor: "hsl(var(--st-border))",
+            background: "hsl(var(--st-surface))",
+            borderRadius: "var(--st-radius)",
+            paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+          }}
         >
           <p className="font-semibold">Tu pedido</p>
 
@@ -787,7 +792,7 @@ export default function StoreCheckout() {
           <button
             type="submit"
             disabled={enviando || cotizando || !!envioAviso || metodos.length === 0}
-            className="w-full py-3 font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
+            className="w-full min-h-11 py-3 font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >
             {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
