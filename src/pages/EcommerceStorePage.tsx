@@ -35,6 +35,7 @@ import {
   storeAbandonedCartCount,
   storeAfterCatalogCopy,
   storeFunnelFromCarts,
+  storePublishCta,
   storeShouldLeadWithPay,
   storeShouldShowAfterCatalog,
   storeShouldShowPerformanceChrome,
@@ -360,7 +361,7 @@ export default function EcommerceStorePage() {
       });
   }, [orgId, org, loadOrders]);
 
-  const saveStore = async () => {
+  const saveStore = async (opts?: { activate?: boolean }) => {
     if (!orgId) return;
     const name = storeForm.name.trim();
     if (!name) {
@@ -377,6 +378,11 @@ export default function EcommerceStorePage() {
       toast.error("Elegí una dirección para la tienda.");
       return;
     }
+    const isActive = opts?.activate ? true : storeForm.is_active;
+    if (opts?.activate && !readiness.canPublish) {
+      toast.error(readinessSummary(readiness));
+      return;
+    }
     setLoading(true);
     const row = {
       org_id: orgId,
@@ -388,7 +394,7 @@ export default function EcommerceStorePage() {
       tax_included: storeForm.tax_included,
       free_shipping_above: envioGratisAlGuardar(storeForm.free_shipping_above),
       shipping_cost: costoEnvioAlGuardar(storeForm.shipping_cost),
-      is_active: storeForm.is_active,
+      is_active: isActive,
       payment_methods: storeForm.payment_methods,
       payment_discounts: storeForm.payment_discounts,
       payment_discount_stacks: storeForm.payment_discount_stacks,
@@ -420,8 +426,9 @@ export default function EcommerceStorePage() {
         : "No se pudo guardar la tienda.");
       return;
     }
-    toast.success("Tienda guardada correctamente");
+    toast.success(opts?.activate ? "La tienda está publicada" : "Tienda guardada correctamente");
     setStore(row);
+    setStoreForm(p => ({ ...p, is_active: isActive, slug, name }));
   };
 
   // Se evalúa sobre el FORMULARIO y no sobre lo guardado: así el estado
@@ -452,6 +459,7 @@ export default function EcommerceStorePage() {
   })
     ? storeAfterCatalogCopy({ canPublish: readiness.canPublish })
     : null;
+  const publishCta = afterCatalog ? storePublishCta({ canPublish: readiness.canPublish }) : null;
 
   const TABS: { id: StoreTab; label: string }[] = [
     { id: "overview",  label: "Publicar" },
@@ -611,12 +619,25 @@ export default function EcommerceStorePage() {
                 {afterCatalog.description}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <Button size="sm" className="min-h-11" onClick={() => goToTab("settings")}>
-                  Pagos y envíos
-                </Button>
-                <Button size="sm" variant="outline" className="min-h-11" onClick={() => goToTab("pages")}>
-                  Páginas legales
-                </Button>
+                {publishCta?.kind === "activate" ? (
+                  <Button
+                    size="sm"
+                    className="min-h-11"
+                    disabled={loading}
+                    onClick={() => { void saveStore({ activate: true }); }}
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : publishCta.label}
+                  </Button>
+                ) : (
+                  <>
+                    <Button size="sm" className="min-h-11" onClick={() => goToTab("settings")}>
+                      Pagos y envíos
+                    </Button>
+                    <Button size="sm" variant="outline" className="min-h-11" onClick={() => goToTab("pages")}>
+                      Páginas legales
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -803,7 +824,7 @@ export default function EcommerceStorePage() {
               <div className="w-8 h-8 rounded-full border border-border/40" style={{ background: storeForm.primary_color }} />
             </div>
           </div>
-          <Button onClick={saveStore} disabled={loading} className="gradient-gold text-primary-foreground">
+          <Button onClick={() => { void saveStore(); }} disabled={loading} className="gradient-gold text-primary-foreground">
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             Guardar Diseño
           </Button>
@@ -1209,7 +1230,7 @@ export default function EcommerceStorePage() {
             </button>
           </div>
 
-          <Button onClick={saveStore} disabled={loading} className="gradient-gold text-primary-foreground w-full">
+          <Button onClick={() => { void saveStore(); }} disabled={loading} className="gradient-gold text-primary-foreground w-full">
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
             Guardar Configuración
           </Button>

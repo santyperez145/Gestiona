@@ -71,7 +71,7 @@ export function storeAfterCatalogCopy(input: { canPublish: boolean }) {
     return {
       title: 'Listo para publicar',
       description:
-        'Activá la tienda en Pagos y envíos cuando quieras el link público. Transferencia ya cobra; Gestiona Pay puede esperar.',
+        'El catálogo está y transferencia ya cobra. Publicá para que el link funcione. Gestiona Pay puede esperar.',
     };
   }
   return {
@@ -79,6 +79,17 @@ export function storeAfterCatalogCopy(input: { canPublish: boolean }) {
     description:
       'El catálogo ya está. Falta una dirección para compartir, una forma de entregar y quién vende. Transferencia ya cobra; Gestiona Pay puede esperar.',
   };
+}
+
+/** El CTA de primera publicación: activar de verdad, no mandar a buscar un interruptor. */
+export function storePublishCta(input: { canPublish: boolean }): {
+  kind: 'activate' | 'complete';
+  label: string;
+} {
+  if (input.canPublish) {
+    return { kind: 'activate', label: 'Publicar la tienda' };
+  }
+  return { kind: 'complete', label: 'Pagos y envíos' };
 }
 
 function pct(part: number, total: number): number {

@@ -6,6 +6,7 @@ import {
   storeAbandonedCartCount,
   storeAfterCatalogCopy,
   storeFunnelFromCarts,
+  storePublishCta,
   storeShouldLeadWithPay,
   storeShouldShowAfterCatalog,
   storeShouldShowPerformanceChrome,
@@ -77,6 +78,13 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(storeAfterCatalogCopy({ canPublish: true }).title).toMatch(/Listo/);
     expect(STORE).toContain('storeAfterCatalogCopy');
     expect(STORE).toContain('storeShouldShowAfterCatalog');
+    expect(storePublishCta({ canPublish: false })).toEqual({
+      kind: 'complete', label: 'Pagos y envíos',
+    });
+    expect(storePublishCta({ canPublish: true })).toEqual({
+      kind: 'activate', label: 'Publicar la tienda',
+    });
+    expect(STORE).toContain('saveStore({ activate: true })');
   });
 });
 

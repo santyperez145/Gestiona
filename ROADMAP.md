@@ -3094,6 +3094,13 @@ Finance Connect.
      El aviso de `pay-rail` sigue en el estado de la tienda. Una tienda ya
      activa no vuelve a decir «activá». Recorte: `storeFirstPublish` verde.
 
+104. Publicar escribe `is_active`, no deja el interruptor sin guardar —
+     2026-09-02. El recorte 103 mandaba a Pagos y envíos. El toggle de
+     «Tienda Activa» sólo mutaba el formulario: sin Guardar la vitrina
+     seguía apagada. Si el checklist está listo, el CTA publica de verdad.
+     Si falta algo, sigue abriendo legales y envíos. No se publica por
+     el comercio cuando hay bloqueantes.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
