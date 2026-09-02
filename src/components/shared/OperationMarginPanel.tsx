@@ -10,7 +10,7 @@ import { AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { isMissingRelation } from "@/lib/publicDataSource";
-import { labelMissingMarginComponent } from "@/lib/channelMargins";
+import { marginGapActions } from "@/lib/channelMargins";
 import { formatARS } from "@/lib/supabaseStore";
 
 export type OperationMarginRow = Database["public"]["Views"]["sale_margin_operations"]["Row"];
@@ -179,13 +179,30 @@ export default function OperationMarginPanel({ orgId, operationId }: Props) {
           </div>
 
           {((row.missing_components?.length ?? 0) > 0 || (row.margin_blockers?.length ?? 0) > 0) && (
-            <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
-              Falta{" "}
-              {[...(row.missing_components ?? []), ...(row.margin_blockers ?? [])]
-                .map(labelMissingMarginComponent)
-                .join(", ")}
-              . El margen final queda Pendiente hasta completar la evidencia — no se completa a ojo.
-            </p>
+            <div className="space-y-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.04] p-3">
+              <p className="text-[11px] font-medium text-amber-800 dark:text-amber-300">
+                El margen final queda Pendiente hasta completar la evidencia — no se completa a ojo.
+              </p>
+              <ul className="space-y-2">
+                {marginGapActions(
+                  [...(row.missing_components ?? []), ...(row.margin_blockers ?? [])],
+                  { channel: row.channel },
+                ).map((gap) => (
+                  <li key={gap.code} className="text-[11px] leading-snug text-amber-900/90 dark:text-amber-200/90">
+                    <span className="font-medium capitalize">{gap.label}</span>
+                    <span className="text-muted-foreground"> — {gap.note}</span>
+                    {gap.href ? (
+                      <>
+                        {" "}
+                        <Link to={gap.href} className="font-semibold text-primary hover:underline">
+                          Ir
+                        </Link>
+                      </>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           <p className="text-[10px] leading-relaxed text-muted-foreground">

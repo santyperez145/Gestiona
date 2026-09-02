@@ -54,11 +54,99 @@ const MISSING_LABELS: Record<string, string> = {
   costo_envio_real: "costo real de envío",
   iva: "IVA",
   devolucion_neta: "neteo de devolución",
+  liquidacion_cobro: "liquidación de cobro",
 };
 
 /** Rótulo humano de un código de `missing_components` / `margin_blockers`. */
 export function labelMissingMarginComponent(code: string): string {
   return MISSING_LABELS[code] || code;
+}
+
+export interface MarginGapAction {
+  code: string;
+  label: string;
+  /** Destino real del routeManifest; null = no hay acción en panel. */
+  href: string | null;
+  /** Nota corta: qué hace / qué no promete. */
+  note: string;
+}
+
+/**
+ * Traduce un hueco de margen a una acción del panel — sólo rutas que existen.
+ * No inventa liquidación de correo ni reescribe el snapshot de esta venta.
+ */
+export function marginGapAction(
+  code: string,
+  input?: { channel?: string | null },
+): MarginGapAction {
+  const label = labelMissingMarginComponent(code);
+  switch (code) {
+    case "costo_mercaderia":
+      return {
+        code,
+        label,
+        href: "/productos",
+        note: "Completá el costo en el catálogo para las próximas ventas; no reescribe esta operación ya asentada.",
+      };
+    case "comision_cobro":
+    case "liquidacion_cobro":
+      return {
+        code,
+        label,
+        href: "/movimientos",
+        note: "Revisá costos de cobro y liquidaciones en Movimientos operativos.",
+      };
+    case "iva":
+      return {
+        code,
+        label,
+        href: "/afip",
+        note: "El IVA del margen sale de la factura o del snapshot fiscal de la operación.",
+      };
+    case "devolucion_neta":
+      return {
+        code,
+        label,
+        href: "/devoluciones",
+        note: "Hasta netear la devolución el margen no se declara final.",
+      };
+    case "costo_envio_real":
+      if (input?.channel === "mercadolibre") {
+        return {
+          code,
+          label,
+          href: "/integraciones?tab=conexiones",
+          note: "Traé órdenes de MercadoLibre para incorporar el costo de envío del canal.",
+        };
+      }
+      return {
+        code,
+        label,
+        href: null,
+        note: "Falta la liquidación del transportista; las tarifas de Envíos no son ese costo.",
+      };
+    default:
+      return {
+        code,
+        label,
+        href: null,
+        note: "Sin acción automática en el panel para este hueco.",
+      };
+  }
+}
+
+export function marginGapActions(
+  codes: string[],
+  input?: { channel?: string | null },
+): MarginGapAction[] {
+  const seen = new Set<string>();
+  const out: MarginGapAction[] = [];
+  for (const code of codes) {
+    if (!code || seen.has(code)) continue;
+    seen.add(code);
+    out.push(marginGapAction(code, input));
+  }
+  return out;
 }
 
 const roundMoney = (amount: number) => Math.round((amount + Number.EPSILON) * 100) / 100;
