@@ -3206,6 +3206,19 @@ Finance Connect.
      service_role). `confirmar_pago_manual_tienda` + botón en el
      inspector. Sólo transferencia/efectivo; Pay sigue por webhook.
 
+121. El Foco no grita cobros digitales muertos — 2026-09-02.
+     Medido: 4 pedidos `pending` en Exentry; 3 son Mercado Pago de
+     julio (preferencia vencida) y 1 transferencia. El Pulse los
+     contaba a todos como críticos. Shopify Sidekick / Tiendanube
+     muestran lo accionable hoy. El Foco cuenta transferencia/efectivo
+     y Pay de las últimas 72 h; la cola Commerce sigue listando el
+     histórico. Pulse ≤5, como Sidekick. No se partió el Core en
+     microservicios: las Edge Functions ya aíslan MP/ARCA/correo.
+
+     Verificado en este recorte: **2.367 tests** (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no
+     tiene `VITE_*`: no se afirma el Foco contra una sesión real.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

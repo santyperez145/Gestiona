@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
-  construirPendientes, leerVariacion, nivelDelDia,
+  construirPendientes, FOCO_MAX_PENDIENTES, leerVariacion, nivelDelDia,
   type DatosFoco,
 } from "@/lib/dashboardFocus";
 
@@ -123,6 +125,28 @@ describe("construirPendientes", () => {
     expect(uno.urgencia).toBe("atencion");
   });
 
+  it("Pulse muestra como máximo cinco pendientes", () => {
+    const p = construirPendientes({
+      ...VACIO,
+      pedidosPorDespachar: 1,
+      pedidosPendientesDePago: 1,
+      sinStock: 1,
+      deudasVencidas30: 1,
+      stockBajo: 1,
+      seguimientosHoy: 1,
+      zonasSinTarifa: 1,
+    });
+    expect(FOCO_MAX_PENDIENTES).toBe(5);
+    expect(p.length).toBe(5);
+    expect(p.map((x) => x.id)).toEqual([
+      "despachar",
+      "pago-pendiente",
+      "sin-stock",
+      "deuda-vencida",
+      "stock-bajo",
+    ]);
+  });
+
   it("ATM: tarifario y pesos llevan a Completar*", () => {
     expect(construirPendientes({ ...VACIO, zonasSinTarifa: 0, productosSinPeso: 0 })).toEqual([]);
     const tarifa = construirPendientes({ ...VACIO, zonasSinTarifa: 2 })[0];
@@ -158,6 +182,14 @@ describe("leerVariacion", () => {
   it("redondea a un decimal", () => {
     expect(leerVariacion(133, 100).pct).toBe(33);
     expect(leerVariacion(112.34, 100).pct).toBe(12.3);
+  });
+});
+
+describe("FocoDelDia no cuenta fantasmas de Pay", () => {
+  it("pide método y fecha, y filtra con la regla del Core", () => {
+    const ui = readFileSync(resolve(__dirname, "../components/dashboard/FocoDelDia.tsx"), "utf8");
+    expect(ui).toContain("countActionableUnpaidOrders");
+    expect(ui).toContain("payment_method, created_at");
   });
 });
 

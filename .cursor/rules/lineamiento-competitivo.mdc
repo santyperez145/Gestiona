@@ -44,6 +44,10 @@ inversor a la vez:
 - Feature factory ERP: si no acerca ATM, stock único, margen por canal, riesgo o
   tracción → congelar.
 - Simular integraciones o marcar ✅ sin evidencia.
+- Partir el Business Core en microservicios. Shopify, Tiendanube y
+  Empretienda a esta escala son monolito modular + jobs. Las Edge
+  Functions ya aíslan APIs pagas (MP, ARCA, correo). Otro deploy no
+  acerca ATM.
 
 ## Orden de decisión
 

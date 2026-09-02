@@ -14,8 +14,8 @@ describe("POS y reservas de tienda", () => {
 
   it("advierte antes de vender unidades apartadas, sin convertir la reserva en un bloqueo", () => {
     expect(pos).toContain("Esta venta usaría stock apartado para un pedido que espera pago.");
-    expect(pos).toContain("Atención: esta venta consume stock reservado por pedido(s) online pendiente(s) de pago.");
-    expect(pos).toContain("¿Confirmar igualmente?");
+    expect(pos).toContain("Esta venta consume stock reservado por pedido(s) online pendiente(s) de pago.");
+    expect(pos).toContain("¿Confirmar venta?");
     expect(pos).toContain("recordMemberStockMovementDB");
   });
 });

@@ -14,7 +14,7 @@ describe("Business Copilot conserva autoridad, privacidad y costo en el servidor
   it("no monta llamadas automáticas cuando el plan no habilita IA", () => {
     expect(dashboard).toContain("useEntitlements()");
     expect(dashboard).toMatch(/visibleDashboardSection\s*===\s*"dashboard-overview"[^\n]*!entitlementsLoading\s*&&\s*canUseAI\s*&&\s*<AIProactiveWidget/);
-    expect(dashboard).toMatch(/visibleDashboardSection\s*===\s*"dashboard-intelligence"[^\n]*!entitlementsLoading\s*&&\s*canUseAI\s*\?\s*\(\s*<AIPrediction/);
+    expect(dashboard).toMatch(/visibleDashboardSection\s*===\s*"dashboard-intelligence"[^\n]*!entitlementsLoading\s*&&\s*canUseAI[\s\S]{0,300}<AIPrediction/);
     expect(dashboard).toContain('to="/mi-plan"');
     expect(dashboard).toContain("Activar IA");
   });

@@ -23,6 +23,7 @@ import {
   construirPendientes, leerVariacion, nivelDelDia,
   type DatosFoco, type Urgencia,
 } from "@/lib/dashboardFocus";
+import { countActionableUnpaidOrders } from "@/lib/storeOrderPayment";
 import { ArrowUp, ArrowDown, Minus, AlertTriangle, AlertCircle, Circle, Check, ArrowRight } from "lucide-react";
 
 const COLOR_URGENCIA: Record<Urgencia, string> = {
@@ -82,18 +83,21 @@ export default function FocoDelDia(p: Props) {
         // un contador es peor que un contador que falta.
         if (!cancelado && !error) setPorDespachar(count ?? 0);
       });
-    // Misma regla que Commerce `vista=pago` / `canRetryStorePayment`.
+    // No es el count de `vista=pago`: esa cola muestra el histórico.
+    // Pulse sólo cuenta cobros que el comercio puede resolver ahora
+    // (transferencia/efectivo, o Pay de las últimas 72 h).
     supabase
       .from("ecommerce_orders")
-      .select("id", { count: "exact", head: true })
+      .select("id, payment_status, payment_method, created_at")
       .eq("org_id", p.orgId)
       .in("payment_status", ["pending", "failed"])
-      .then(({ count, error }) => {
+      .limit(200)
+      .then(({ data, error }) => {
         if (error) {
           console.error("FocoDelDia / pendientes de pago:", error);
           return;
         }
-        if (!cancelado) setPendientesDePago(count ?? 0);
+        if (!cancelado) setPendientesDePago(countActionableUnpaidOrders(data ?? []));
       });
     return () => { cancelado = true; };
   }, [p.orgId]);

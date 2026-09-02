@@ -64,8 +64,10 @@ export interface DatosFoco {
   /** Órdenes de la tienda pagadas y sin despachar. */
   pedidosPorDespachar: number;
   /**
-   * Órdenes con pago `pending` o `failed` — la cola Commerce `vista=pago`.
-   * Incluye transferencia/efectivo a confirmar a mano y reintentos de MP.
+   * Cobros que el comercio puede resolver **ahora**.
+   * Transferencia/efectivo pendientes, o Gestiona Pay reciente.
+   * Un MP `pending` de julio no entra: la cola Commerce `vista=pago` sí
+   * los lista; el Foco no grita fantasmas.
    */
   pedidosPendientesDePago?: number;
   /**
@@ -141,6 +143,9 @@ export function ritmoHabitual(huecos: number[]): number | null {
 const ORDEN_URGENCIA: Record<Urgencia, number> = {
   critico: 0, atencion: 1, normal: 2,
 };
+
+/** Shopify Sidekick Pulse: hasta cinco oportunidades, no un feed. */
+export const FOCO_MAX_PENDIENTES = 5;
 
 /**
  * La lista de pendientes, ya ordenada y sin ceros.
@@ -320,7 +325,9 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
     }
   }
 
-  return lista.sort((a, b) => ORDEN_URGENCIA[a.urgencia] - ORDEN_URGENCIA[b.urgencia]);
+  return lista
+    .sort((a, b) => ORDEN_URGENCIA[a.urgencia] - ORDEN_URGENCIA[b.urgencia])
+    .slice(0, FOCO_MAX_PENDIENTES);
 }
 
 /**
