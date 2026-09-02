@@ -38,6 +38,7 @@ export interface StoreReadinessInput {
     payment_methods?: string[] | null;
     shipping_mode?: string | null;
     pickup_enabled?: boolean | null;
+    pickup_address?: string | null;
     shipping_cost?: number | null;
   } | null;
   /** Productos publicables: con stock y con precio */
@@ -136,6 +137,21 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
   });
 
   // ── Poder entregar ──────────────────────────────────────────────────────
+  if (pickup) {
+    const address = String(s?.pickup_address ?? '').trim();
+    checks.push({
+      id: 'pickup-address',
+      title: 'Decir dónde se retira',
+      detail: address
+        ? 'Dirección de retiro cargada.'
+        : 'Retiro en tienda está activo pero sin dirección: el comprador ve «te vamos a contactar» en vez de un lugar.',
+      severity: 'blocker',
+      done: !!address,
+      actionLabel: 'Cargar dirección',
+      actionHref: '/tienda-online?tab=settings',
+    });
+  }
+
   if (mode === 'zones') {
     const canQuote = input.zonesWithRates > 0;
     checks.push({

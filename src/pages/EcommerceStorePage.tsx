@@ -444,6 +444,7 @@ export default function EcommerceStorePage() {
       payment_methods: storeForm.payment_methods,
       shipping_mode: storeForm.shipping_mode,
       pickup_enabled: storeForm.pickup_enabled,
+      pickup_address: storeForm.pickup_address || null,
       shipping_cost: costoEnvioAlGuardar(storeForm.shipping_cost),
     },
     ...signals,
@@ -1012,10 +1013,15 @@ export default function EcommerceStorePage() {
                 <div className="space-y-2">
                   <Input value={storeForm.pickup_address}
                     onChange={e => setStoreForm(p => ({ ...p, pickup_address: e.target.value }))}
-                    placeholder="Dirección de retiro" className="h-9" />
+                    placeholder="Dirección de retiro" className="h-9 min-h-11" />
                   <Input value={storeForm.pickup_instructions}
                     onChange={e => setStoreForm(p => ({ ...p, pickup_instructions: e.target.value }))}
                     placeholder="Horarios o instrucciones (ej: lun a vie de 10 a 18)" className="h-9" />
+                  {!storeForm.pickup_address.trim() && (
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                      Sin dirección el checkout dice «te vamos a contactar». Cargala antes de publicar.
+                    </p>
+                  )}
                 </div>
               )}
             </div>

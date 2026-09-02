@@ -17,6 +17,7 @@ function tiendaLista(over: Partial<StoreReadinessInput> = {}): StoreReadinessInp
       payment_methods: ['mercadopago', 'transferencia'],
       shipping_mode: 'zones',
       pickup_enabled: false,
+      pickup_address: null,
       shipping_cost: 2500,
     },
     publishedProducts: 12,
@@ -118,7 +119,7 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
 
   it('con retiro en local, la falta de cobertura molesta pero no bloquea', () => {
     const r = evaluateStoreReadiness(tiendaLista({
-      store: { ...tiendaLista().store!, pickup_enabled: true },
+      store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: 'Alsina 123' },
       shippingZones: 6,
       zonesWithRates: 1,
       coveredProvinces: 1,
@@ -139,12 +140,22 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
 
   it('con retiro en tienda, la falta de tarifas molesta pero no bloquea', () => {
     const r = evaluateStoreReadiness(tiendaLista({
-      store: { ...tiendaLista().store!, pickup_enabled: true },
+      store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: 'Alsina 123' },
       zonesWithRates: 0,
     }));
     expect(idsDe(r.blockers)).not.toContain('shipping-rates');
     expect(idsDe(r.warnings)).toContain('shipping-rates');
     expect(r.canPublish).toBe(true);
+  });
+
+  it('retiro sin dirección no se presenta como listo', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: null },
+    }));
+    expect(idsDe(r.blockers)).toContain('pickup-address');
+    expect(r.canPublish).toBe(false);
+    expect(r.blockers.find(c => c.id === 'pickup-address')?.actionHref)
+      .toBe('/tienda-online?tab=settings');
   });
 
   it('sin dirección propia no hay link que compartir', () => {

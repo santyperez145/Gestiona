@@ -3115,6 +3115,11 @@ Finance Connect.
      «Revisar y publicar» en el checklist y botón Publicar en el editor.
      Sigue sin publicarse el texto por el comercio.
 
+107. Retiro sin dirección no publica — 2026-09-02.
+     El default de retiro dejó tiendas «listas» con el checkout diciendo
+     «te vamos a contactar». Ahora falta la dirección es bloqueante del
+     checklist; el CTA Publicar no escribe `is_active` hasta cargarla.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
