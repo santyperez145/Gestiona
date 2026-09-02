@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   datosFaltantes, esPlantillaSinCompletar, formatearCuit,
   politicaDePrivacidad, terminosYCondiciones, paginasLegalesPendientes, estadoPublicacionLegal,
+  semillaLegalDelComercio,
   type DatosDelComercio,
 } from "./legalPages";
 
@@ -12,6 +13,53 @@ const D: DatosDelComercio = {
   domicilio: "Av. Siempreviva 742, CABA",
   emailContacto: "hola@ejemplo.com",
 };
+
+describe("semillaLegalDelComercio", () => {
+  it("toma el emisor de AFIP, no el nombre de fantasía como razón social", () => {
+    const d = semillaLegalDelComercio({
+      emisor: { cuit: "20446484436", razon_social: "Pérez Santiago", domicilio: "Alsina 123" },
+      tienda: { name: "Exentry Imports", notification_email: "ventas@exentry.com" },
+      nombreFantasia: "Exentry Imports",
+    });
+    expect(d.razonSocial).toBe("Pérez Santiago");
+    expect(d.cuit).toBe("20446484436");
+    expect(d.domicilio).toBe("Alsina 123");
+    expect(d.emailContacto).toBe("ventas@exentry.com");
+    expect(d.nombreTienda).toBe("Exentry Imports");
+  });
+
+  it("un workspace sin AFIP no se convierte en razón social", () => {
+    const d = semillaLegalDelComercio({
+      emisor: null,
+      tienda: null,
+      nombreFantasia: "pruebas",
+    });
+    expect(d.razonSocial).toBe("");
+    expect(d.cuit).toBe("");
+    expect(d.domicilio).toBe("");
+    expect(d.emailContacto).toBe("");
+    expect(d.nombreTienda).toBe("pruebas");
+    expect(datosFaltantes(d)).toEqual(["razonSocial", "cuit", "domicilio", "emailContacto"]);
+  });
+
+  it("no inventa «nuestra tienda» ni un email de login", () => {
+    const d = semillaLegalDelComercio({});
+    expect(d.nombreTienda).toBe("");
+    expect(d.nombreTienda.toLowerCase()).not.toContain("tienda");
+    expect(d.emailContacto).toBe("");
+  });
+
+  it("el email de avisos de la tienda sí es un contacto, el de AFIP no se adivina", () => {
+    const d = semillaLegalDelComercio({
+      emisor: { cuit: "20446484436", razon_social: "Exentry Imports", domicilio: null },
+      tienda: { name: "Exentry Imports", notification_email: null },
+    });
+    expect(d.razonSocial).toBe("Exentry Imports");
+    expect(d.domicilio).toBe("");
+    expect(d.emailContacto).toBe("");
+    expect(datosFaltantes(d)).toEqual(["domicilio", "emailContacto"]);
+  });
+});
 
 describe("datosFaltantes", () => {
   it("no falta nada cuando están los cuatro", () => {

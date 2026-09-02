@@ -3050,6 +3050,24 @@ Finance Connect.
      navegador de esta PC no tiene `VITE_*`: no se afirma el formulario
      contra una sesión real.
 
+101. Las páginas legales leen al emisor de verdad, no al nombre de
+     fantasía — 2026-09-01.
+     El panel pedía razón social, CUIT, domicilio y email aunque Facturas
+     ya tenía al emisor en `afip_connection_status`. Leía el espejo de
+     `settings.afip_*`, usaba `business_name` como razón social (un
+     workspace «pruebas» quedaba como firma) y tiraba a vacío el email
+     de avisos de la tienda. Medido contra la base: Exentry tiene CUIT y
+     razón en `afip_credentials`, domicilio NULL, `notification_email`
+     NULL. Ahora la semilla sale de la misma vista que Facturas; el
+     nombre de fantasía no es razón social; el email de avisos sí es
+     contacto. Sigue siendo borrador: no se publica por el dueño.
+     Domicilio y email de Exentry siguen esperando que los declare.
+
+     Verificado en este recorte: **2.266/2.266 pruebas en 234 archivos**;
+     typecheck OK; lint 0 errores y 138 warnings conocidos. El navegador
+     de esta PC no tiene `VITE_*`: no se afirma el formulario contra una
+     sesión real.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

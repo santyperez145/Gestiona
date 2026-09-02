@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Scale, Loader2, Eye, Check } from "lucide-react";
 import {
   datosFaltantes, etiquetaDeCampo, paginasLegalesPendientes, estadoPublicacionLegal,
+  semillaLegalDelComercio,
   type DatosDelComercio, type PaginaLegal,
 } from "@/lib/legalPages";
 
@@ -46,45 +47,36 @@ interface Props {
 
 export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Props) {
   const { orgId } = useOrganization();
-  const [datos, setDatos] = useState<DatosDelComercio>({
-    nombreTienda: "", razonSocial: "", cuit: "", domicilio: "", emailContacto: "",
-  });
+  const [datos, setDatos] = useState<DatosDelComercio>(() => semillaLegalDelComercio({}));
   const [cargando, setCargando] = useState(true);
   const [aplicando, setAplicando] = useState(false);
   const [verPrevia, setVerPrevia] = useState<PaginaLegal | null>(null);
 
-  // Se prellena con lo que ya está cargado para AFIP: si el comercio lo puso
-  // una vez, no tiene por qué escribirlo de nuevo.
+  // Se prellena con lo que el comercio ya declaró: el emisor de AFIP (la
+  // misma vista que Facturas) y el email de avisos de la tienda. El nombre
+  // de fantasía no es razón social; el login del SaaS no es domicilio
+  // electrónico. Si falta, se pide acá — no se adivina.
   useEffect(() => {
     if (!orgId || !storeId) { setCargando(false); return; }
     (async () => {
-      const [{ data: cfg }, { data: tienda }] = await Promise.all([
-        supabase.from("settings")
-          .select("afip_razon_social, afip_cuit, business_name")
+      const [emisorRes, tiendaRes, cfgRes] = await Promise.all([
+        supabase.from("afip_connection_status")
+          .select("cuit, razon_social, domicilio")
           .eq("org_id", orgId).maybeSingle(),
-        // El nombre y los píxeles salen de la tienda, no del slug: escribir
-        // "la tienda online de exentryimports" en un texto legal es feo y,
-        // peor, no identifica al comercio.
         supabase.from("ecommerce_stores")
-          .select("name, meta_pixel_id, ga_measurement_id")
+          .select("name, notification_email, meta_pixel_id, ga_measurement_id, tiktok_pixel_id")
           .eq("id", storeId).maybeSingle(),
+        supabase.from("settings")
+          .select("business_name")
+          .eq("org_id", orgId).maybeSingle(),
       ]);
-      const s = cfg as {
-        afip_razon_social?: string | null; afip_cuit?: string | null;
-        business_name?: string | null;
-      } | null;
-      const t = tienda as {
-        name?: string | null; meta_pixel_id?: string | null; ga_measurement_id?: string | null;
-      } | null;
-      setDatos(d => ({
-        ...d,
-        nombreTienda: t?.name || "nuestra tienda",
-        usaPixeles: Boolean(t?.meta_pixel_id || t?.ga_measurement_id),
-        razonSocial: s?.afip_razon_social || s?.business_name || "",
-        cuit: s?.afip_cuit || "",
-        // El remitente técnico no necesariamente es el domicilio electrónico
-        // legal. No se adivina: si falta, el dueño lo declara en este paso.
-        emailContacto: "",
+      if (emisorRes.error) console.error("No se pudo leer el emisor fiscal", emisorRes.error);
+      if (tiendaRes.error) console.error("No se pudo leer la tienda para las páginas legales", tiendaRes.error);
+      if (cfgRes.error) console.error("No se pudo leer el nombre de fantasía", cfgRes.error);
+      setDatos(semillaLegalDelComercio({
+        emisor: emisorRes.data,
+        tienda: tiendaRes.data,
+        nombreFantasia: cfgRes.data?.business_name,
       }));
       setCargando(false);
     })();
@@ -125,6 +117,17 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
             .eq("store_id", storeId).eq("slug", p.slug)
         : await supabase.from("store_pages").insert(fila as never);
       if (error) { toast.error(error.message); setAplicando(false); return; }
+    }
+
+    // El email que acaba de declarar para el texto legal es el de avisos de
+    // la tienda, si todavía no tenía uno. No se escribe el emisor fiscal:
+    // esa autoridad vive en afip_credentials.
+    if (datos.emailContacto.trim()) {
+      const { error } = await supabase.from("ecommerce_stores")
+        .update({ notification_email: datos.emailContacto.trim() })
+        .eq("id", storeId)
+        .is("notification_email", null);
+      if (error) console.error("No se pudo guardar el email de avisos", error);
     }
 
     setAplicando(false);

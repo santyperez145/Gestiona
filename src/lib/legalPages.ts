@@ -68,6 +68,50 @@ export function etiquetaDeCampo(c: CampoFaltante): string {
   return ETIQUETAS[c];
 }
 
+export type EmisorFiscal = {
+  cuit?: string | null;
+  razon_social?: string | null;
+  domicilio?: string | null;
+};
+
+export type TiendaParaLegales = {
+  name?: string | null;
+  notification_email?: string | null;
+  meta_pixel_id?: string | null;
+  ga_measurement_id?: string | null;
+  tiktok_pixel_id?: string | null;
+};
+
+/**
+ * Semilla del formulario legal: sólo lo que el comercio ya declaró.
+ *
+ * La autoridad del emisor es `afip_connection_status` (la misma que Facturas).
+ * `settings.afip_*` es un espejo; el nombre de fantasía no es razón social.
+ * El email de avisos de la tienda sí es un contacto comercial; el login del
+ * SaaS no. Vacío significa «todavía no está», no se rellena con un ejemplo.
+ */
+export function semillaLegalDelComercio(input: {
+  emisor?: EmisorFiscal | null;
+  tienda?: TiendaParaLegales | null;
+  nombreFantasia?: string | null;
+}): DatosDelComercio {
+  const razonSocial = String(input.emisor?.razon_social ?? "").trim();
+  const nombreTienda = String(
+    input.tienda?.name
+    || input.nombreFantasia
+    || razonSocial,
+  ).trim();
+  const t = input.tienda;
+  return {
+    nombreTienda,
+    razonSocial,
+    cuit: String(input.emisor?.cuit ?? "").trim(),
+    domicilio: String(input.emisor?.domicilio ?? "").trim(),
+    emailContacto: String(t?.notification_email ?? "").trim(),
+    usaPixeles: Boolean(t?.meta_pixel_id || t?.ga_measurement_id || t?.tiktok_pixel_id),
+  };
+}
+
 /**
  * ¿El contenido sigue siendo la plantilla semilla?
  *
