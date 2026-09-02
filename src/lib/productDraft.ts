@@ -40,3 +40,33 @@ export function productCostWarning(resolvedCost: number): string | null {
   if (resolvedCost > 0) return null;
   return 'Sin costo no se calcula el margen. El producto igual se puede vender.';
 }
+
+/** La ficha completa es la de siempre; la primera no puede empezar por foto y marca. */
+export function firstProductFormIsCompact(firstUse: boolean, expanded: boolean): boolean {
+  return firstUse && !expanded;
+}
+
+/** Los atributos del rubro no son la puerta de la primera venta. */
+export function firstProductRequiresAttributes(firstUse: boolean): boolean {
+  return !firstUse;
+}
+
+export function firstProductExpandCopy() {
+  return {
+    label: 'Cargar foto, marca y el resto',
+    hint: 'Se puede completar después. El mostrador no lo necesita para cobrar.',
+  };
+}
+
+export function firstProductSubmitLabel(input: {
+  firstUse: boolean;
+  uploading: boolean;
+  editing: boolean;
+  goal: 'pos' | 'online' | null;
+}): string {
+  if (input.uploading) return 'Subiendo imagen...';
+  if (input.editing) return 'Guardar cambios';
+  if (input.firstUse && input.goal === 'pos') return 'Crear y cobrar';
+  if (input.firstUse && input.goal === 'online') return 'Crear y publicar';
+  return 'Crear producto';
+}

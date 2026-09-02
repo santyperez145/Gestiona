@@ -22,7 +22,14 @@ import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NO
 import { recommendSimilar } from "@/lib/perfumeMatch";
 import { elCatalogoOperaPerfumes } from "@/lib/catalogIndustry";
 import { commerceHandoffPath, firstProductEmptyCopy, parseActivationHandoff, posHandoffPath } from "@/lib/activationHandoff";
-import { productCostWarning, validateProductDraft } from "@/lib/productDraft";
+import {
+  firstProductExpandCopy,
+  firstProductFormIsCompact,
+  firstProductRequiresAttributes,
+  firstProductSubmitLabel,
+  productCostWarning,
+  validateProductDraft,
+} from "@/lib/productDraft";
 import { normalizeText, literalFilter } from "@/lib/searchText";
 import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice } from "@/lib/pricing";
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
@@ -2132,6 +2139,10 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
    * diga lo contrario.
    */
   const [manejaStock, setManejaStock] = useState(product?.maneja_stock !== false);
+  const [firstUseExpanded, setFirstUseExpanded] = useState(false);
+  const creatingFirstProduct = Boolean(firstUse && !product);
+  const compactFirstProduct = firstProductFormIsCompact(creatingFirstProduct, firstUseExpanded);
+  const firstUseExpand = firstProductExpandCopy();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const markDirty = useCallback(() => {
     setHasUnsavedChanges(true);
@@ -2410,14 +2421,16 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
       firstUse: firstUse && !product,
     });
     if (!draft.ok) { toast.error(draft.error || 'No se pudo validar el producto'); return; }
-    const missingAttribute = attributeDefinitions.find(definition => {
-      if (!definition.required) return false;
-      const value = attributeValues[definition.id];
-      return value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0);
-    });
-    if (missingAttribute) {
-      toast.error(`Completá el atributo obligatorio: ${missingAttribute.name}`);
-      return;
+    if (firstProductRequiresAttributes(creatingFirstProduct)) {
+      const missingAttribute = attributeDefinitions.find(definition => {
+        if (!definition.required) return false;
+        const value = attributeValues[definition.id];
+        return value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0);
+      });
+      if (missingAttribute) {
+        toast.error(`Completá el atributo obligatorio: ${missingAttribute.name}`);
+        return;
+      }
     }
     try {
       if (variantsNeedLocation && showVariants) {
@@ -2605,7 +2618,7 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
     >
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:px-7 sm:py-7">
-      {firstUse && !product && (
+      {creatingFirstProduct && (
         <div className="rounded-[10px] border border-primary/20 bg-primary/[0.05] p-3">
           <p className="text-sm font-semibold">Para cobrar hace falta esto</p>
           <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
@@ -2613,6 +2626,56 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
           </p>
         </div>
       )}
+      {compactFirstProduct && (
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-muted-foreground">Nombre *</label>
+            <Input
+              value={name}
+              onChange={e => setName(e.target.value.toUpperCase())}
+              placeholder="Ej: Nombre del producto"
+              className="bg-muted border-border uppercase"
+              required
+            />
+          </div>
+          <div>
+            <label className="text-sm text-muted-foreground">Precio de venta *</label>
+            <Input
+              type="number"
+              min="0"
+              value={salePriceARS}
+              onChange={e => { setSalePriceARS(e.target.value); setManualSalePrice(true); }}
+              className="bg-muted border-border"
+            />
+          </div>
+          <div>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label className="text-sm text-muted-foreground">Unidades{manejaStock ? ' *' : ''}</label>
+              <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Switch checked={!manejaStock} onCheckedChange={v => { markDirty(); setManejaStock(!v); }} />
+                No lleva stock
+              </label>
+            </div>
+            {manejaStock ? (
+              <Input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" />
+            ) : (
+              <p className="rounded-[8px] border border-border/60 bg-muted/40 p-2 text-[11px] text-muted-foreground">
+                Se vende y se factura, pero no se descuenta nada.
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            className="text-left text-[12px] text-primary hover:underline"
+            onClick={() => setFirstUseExpanded(true)}
+          >
+            {firstUseExpand.label}
+          </button>
+          <p className="text-[11px] text-muted-foreground">{firstUseExpand.hint}</p>
+        </div>
+      )}
+      {!compactFirstProduct && (
+      <>
       {/* Image upload (multi) */}
       <div>
         <div className="flex items-center justify-between">
@@ -3659,16 +3722,23 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
           productCategory={product.category}
         />
       )}
+      </>
+      )}
       </div>
       </div>
       <div className="z-20 shrink-0 border-t border-border/70 bg-card/95 px-4 py-3 backdrop-blur sm:flex sm:items-center sm:justify-between sm:px-7">
         <p className="mb-2 text-xs text-muted-foreground sm:mb-0">
-          {firstUse && !product
+          {creatingFirstProduct
             ? 'Nombre, precio de venta y unidades. El costo puede esperar.'
             : 'El guardado actualiza la ficha canónica; el stock se asienta por Kardex.'}
         </p>
         <Button type="submit" disabled={uploading} className="w-full min-w-44 gradient-gold text-primary-foreground font-semibold sm:w-auto">
-          {uploading ? 'Subiendo imagen...' : product ? 'Guardar cambios' : 'Crear producto'}
+          {firstProductSubmitLabel({
+            firstUse: creatingFirstProduct,
+            uploading,
+            editing: Boolean(product),
+            goal: handoffGoal,
+          })}
         </Button>
       </div>
     </form>

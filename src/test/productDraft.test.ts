@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { productCostWarning, validateProductDraft } from '@/lib/productDraft';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import {
+  firstProductExpandCopy,
+  firstProductFormIsCompact,
+  firstProductRequiresAttributes,
+  firstProductSubmitLabel,
+  productCostWarning,
+  validateProductDraft,
+} from '@/lib/productDraft';
 
 const base = {
   name: 'Remera negra',
@@ -44,5 +53,36 @@ describe('validateProductDraft', () => {
 
   it('después de la primera ficha, cero es una decisión explícita', () => {
     expect(validateProductDraft({ ...base, firstUse: false, stockRaw: '0' })).toEqual({ ok: true });
+  });
+});
+
+describe('primera ficha compacta', () => {
+  it('esconde el resto hasta que el comercio lo pide', () => {
+    expect(firstProductFormIsCompact(true, false)).toBe(true);
+    expect(firstProductFormIsCompact(true, true)).toBe(false);
+    expect(firstProductFormIsCompact(false, false)).toBe(false);
+  });
+
+  it('no exige atributos del rubro para poder vender', () => {
+    expect(firstProductRequiresAttributes(true)).toBe(false);
+    expect(firstProductRequiresAttributes(false)).toBe(true);
+  });
+
+  it('el CTA manda al canal elegido', () => {
+    expect(firstProductSubmitLabel({ firstUse: true, uploading: false, editing: false, goal: 'pos' }))
+      .toBe('Crear y cobrar');
+    expect(firstProductSubmitLabel({ firstUse: true, uploading: false, editing: false, goal: 'online' }))
+      .toBe('Crear y publicar');
+    expect(firstProductSubmitLabel({ firstUse: false, uploading: false, editing: false, goal: 'pos' }))
+      .toBe('Crear producto');
+    expect(firstProductExpandCopy().label).toMatch(/resto/);
+  });
+
+  it('Productos usa la ficha compacta y no bloquea por atributos', () => {
+    const products = readFileSync(resolve(__dirname, '../pages/ProductsPage.tsx'), 'utf8');
+    expect(products).toContain('firstProductFormIsCompact');
+    expect(products).toContain('firstProductRequiresAttributes');
+    expect(products).toContain('firstProductSubmitLabel');
+    expect(products).toContain('compactFirstProduct');
   });
 });

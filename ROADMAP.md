@@ -2977,6 +2977,27 @@ Finance Connect.
     Verificado en este recorte: **2.225/2.225 pruebas en 228 archivos**;
     typecheck OK; lint 0 errores y 139 warnings conocidos.
 
+97. La primera venta POS se midió de punta a punta, y la ficha deja de
+    ser la del importador — 2026-09-01.
+    KYC, selfie, score de fraude y motor de riesgo F7 no entran: Pay no
+    custodia, MercadoPago ya identifica al vendedor y `sinSimulacion`
+    prohíbe un semáforo inventado. Lo que faltaba era **medir** el camino
+    que el comercio recorre. `20260827_comercio_nuevo_puede_vender.sql`
+    plantaba la org y escribía `products.stock` en el INSERT. La
+    verificación nueva parte del alta, termina el wizard en `pos`, siembra
+    Casa central, carga el SKU por `adjust_stock` y cobra efectivo **sin
+    turno**. Contra producción, 2026-09-01: 20/20 ok, 0 restos. Stock
+    global y de sucursal bajaron juntos; el libro asentó; la activación
+    contó la venta. La ficha de primera vez muestra nombre, precio y
+    unidades; foto, marca y atributos quedan un clic atrás y no traban
+    el guardado. `pruebas Workspace` sigue con onboarding incompleto y 0
+    productos — eso no se resuelve con un tablero de fraude.
+
+    Verificado en este recorte: **2.234/2.234 pruebas en 229 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos. Contra la base:
+    20/20 pasos ok, 0 restos. El navegador de esta PC no tiene `VITE_*`:
+    no se afirma la ficha compacta contra datos reales.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
@@ -3230,6 +3251,7 @@ Hasta abrir sus gates:
 - Store Builder libre antes de temas/versiones/rollback;
 - agentes autónomos sobre pagos, inventario o precios;
 - Pay regulado, Capital o custodia;
+- KYC/AML, selfie, score de fraude o motor de riesgo F7 sin partner ni volumen;
 - marketplace de apps/themes;
 - microservicios por moda;
 - multi-región, data residency o tenancy dedicado;
