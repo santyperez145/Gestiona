@@ -6,6 +6,9 @@ import {
   elCatalogoOperaVapers,
   esCategoriaPerfume,
   esCategoriaVaper,
+  laFichaEsPerfume,
+  laFichaEsTecnologia,
+  laFichaEsVaper,
 } from "./catalogIndustry";
 
 function leer(rel: string) {
@@ -40,11 +43,31 @@ describe("el workspace no se presenta como una vertical si el comercio no lo es"
     expect(esCategoriaVaper("perfume_arabe")).toBe(false);
   });
 
+  it("la ficha de producto mira el tipo tipado antes que la categoría", () => {
+    expect(laFichaEsPerfume({ productTypeSlug: "perfume", category: null })).toBe(true);
+    expect(laFichaEsPerfume({ productTypeSlug: "perfume", category: "remeras" })).toBe(true);
+    expect(laFichaEsPerfume({ productTypeSlug: "plato", category: "perfume_arabe" })).toBe(false);
+    expect(laFichaEsPerfume({ productTypeSlug: null, category: "perfume_arabe" })).toBe(true);
+    expect(laFichaEsPerfume({ productTypeSlug: "", category: "vaper" })).toBe(false);
+
+    expect(laFichaEsVaper({ productTypeSlug: "dispositivo-vape", category: null })).toBe(true);
+    expect(laFichaEsVaper({ productTypeSlug: "e-liquid", category: "remeras" })).toBe(true);
+    expect(laFichaEsVaper({ productTypeSlug: "perfume", category: "vaper" })).toBe(false);
+    expect(laFichaEsVaper({ productTypeSlug: null, category: "liquido" })).toBe(true);
+
+    expect(laFichaEsTecnologia({ productTypeSlug: "tecnologia", category: null })).toBe(true);
+    expect(laFichaEsTecnologia({ productTypeSlug: "perfume", category: "electronico" })).toBe(false);
+    expect(laFichaEsTecnologia({ productTypeSlug: null, category: "electronico" })).toBe(true);
+  });
+
   it("Productos no ofrece el buscador olfativo sin preguntar al catálogo", () => {
     const pagina = leer("src/pages/ProductsPage.tsx");
     expect(pagina).toContain("elCatalogoOperaPerfumes");
     expect(pagina).toContain("{operaPerfumes && (");
     expect(pagina).toContain("Buscador perfume");
+    expect(pagina).toContain("laFichaEsPerfume");
+    expect(pagina).toContain("laFichaEsVaper");
+    expect(pagina).toContain("laFichaEsTecnologia");
   });
 
   it("Clientes no ofrece preferencias olfativas ni vapers sin preguntar al catálogo", () => {

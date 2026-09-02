@@ -20,7 +20,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale, Loader2, ExternalLink, RefreshCw, MoreHorizontal } from "lucide-react";
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { recommendSimilar } from "@/lib/perfumeMatch";
-import { elCatalogoOperaPerfumes } from "@/lib/catalogIndustry";
+import { elCatalogoOperaPerfumes, laFichaEsPerfume, laFichaEsTecnologia, laFichaEsVaper } from "@/lib/catalogIndustry";
 import { commerceHandoffPath, firstProductEmptyCopy, firstProductFormDescription, parseActivationHandoff, posHandoffPath } from "@/lib/activationHandoff";
 import {
   firstProductExpandCopy,
@@ -2268,18 +2268,22 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
   const { suggest: aiSuggest, loading: aiLoading, result: aiResult, clear: aiClear } = useAIProductSuggest(orgId);
   const [aiDismissed, setAiDismissed] = useState(false);
 
-  const isVaper = category === 'vaper';
+  const productTypeSlug = productTypes.find(t => t.id === productTypeId)?.slug ?? null;
+  const fichaPerfume = laFichaEsPerfume({ productTypeSlug, category });
+  const fichaVaper = laFichaEsVaper({ productTypeSlug, category });
+  const fichaTecnologia = laFichaEsTecnologia({ productTypeSlug, category });
+  const isVaper = fichaVaper;
 
-  // Reset subtype and content_ml defaults when category changes
+  // Reset subtype and content_ml defaults when category/tipo change
   useEffect(() => {
     if (!product) {
       setVaperSubtype('');
-      if (category === 'vaper' || category === 'electronico') setContentMl('');
+      if (fichaVaper || fichaTecnologia) setContentMl('');
       // Un producto nuevo no es un perfume de 100 ml. El contenido se elige
-      // en la ficha de esa categoría; no se siembra en el resto del catálogo.
+      // en la ficha de esa vertical; no se siembra en el resto del catálogo.
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category]);
+  }, [category, productTypeId]);
 
   // AI name suggestion — only for new products, after 3+ characters
   useEffect(() => {
@@ -2534,8 +2538,8 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
       if (productId && orgId) {
         await saveProductAttributeValues(orgId, productId, attributeDefinitions, attributeValues);
       }
-      // Ficha de perfume — solo para categorías perfume
-      if (productId && (category === 'perfume_arabe' || category === 'perfume_diseñador') && orgId) {
+      // Ficha de perfume — tipo tipado o categoría legacy de esa familia
+      if (productId && fichaPerfume && orgId) {
         const { error: ppdErr } = await supabase.from('product_perfume_details').upsert({
           product_id: productId,
           org_id: orgId,
@@ -2851,7 +2855,7 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
         {productTypes.length === 0 && <p className="text-[11px] text-muted-foreground">Configurá el primer tipo desde “Tipos y atributos” en la barra de Productos.</p>}
       </div>
       {/* ── Smart suggestions panel ── */}
-      {category === 'vaper' && (
+      {fichaVaper && (
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2.5">
           <p className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5" />Creación inteligente — Vaper
@@ -2981,7 +2985,7 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
         </div>
       )}
 
-      {(category === 'perfume_arabe' || category === 'perfume_diseñador') && (
+      {fichaPerfume && (
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2.5">
           <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5" />Creación inteligente — Perfume
@@ -2989,9 +2993,9 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
           <div>
             <p className="text-[10px] text-muted-foreground mb-1.5">Contenido</p>
             <div className="flex flex-wrap gap-1.5">
-              {(category === 'perfume_arabe'
-                ? ['25', '50', '80', '100']
-                : ['30', '50', '100', '150', '200']
+              {(category === 'perfume_diseñador'
+                ? ['30', '50', '100', '150', '200']
+                : ['25', '50', '80', '100']
               ).map(ml => (
                 <button key={ml} type="button"
                   className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all ${contentMl === ml ? 'bg-primary/20 border-primary text-primary' : 'border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary'}`}
@@ -3084,7 +3088,7 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
         </div>
       )}
 
-      {category === 'electronico' && (
+      {fichaTecnologia && (
         <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3 space-y-2.5">
           <p className="text-xs font-semibold text-yellow-400 flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5" />Creación inteligente — Electrónico
@@ -3323,13 +3327,13 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
           <label className="text-sm text-muted-foreground">Descripción</label>
           <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Notas sobre el producto" className="bg-muted border-border" />
         </div>
-        {category !== 'electronico' && !(category === 'vaper' && vaperSubtype === 'desechable') && (
+        {!fichaTecnologia && !(fichaVaper && vaperSubtype === 'desechable') && (
           <div>
             <label className="text-sm text-muted-foreground">
-              {category === 'vaper' ? 'Capacidad (ml)' : 'Contenido (ml)'}
+              {fichaVaper ? 'Capacidad (ml)' : 'Contenido (ml)'}
             </label>
             <Input type="number" min="0.1" step="0.1" value={contentMl} onChange={e => setContentMl(e.target.value)} className="bg-muted border-border"
-              placeholder={category === 'vaper' ? 'Ej: 2, 5, 10...' : 'Ej: 100'} />
+              placeholder={fichaVaper ? 'Ej: 2, 5, 10...' : 'Ej: 100'} />
           </div>
         )}
       </div>
@@ -3531,7 +3535,7 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
           )}
         </div>
       )}
-      {(category === 'perfume_arabe' || category === 'perfume_diseñador') && (
+      {fichaPerfume && (
         <Button type="button" variant="outline" size="sm" disabled={generatingDesc || !name.trim()} className="text-xs"
           onClick={async () => {
             setGeneratingDesc(true);

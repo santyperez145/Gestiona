@@ -3155,6 +3155,13 @@ Finance Connect.
      perfil. Backfill idempotente para orgs con un solo tipo. No se
      inventan valores de atributos ni se migra la ficha olfativa.
 
+114. P0.1.4: la ficha mira el tipo tipado — 2026-09-02.
+     Chrome de perfume / vaper / tecnología en el formulario de Productos
+     usa `laFichaEsPerfume` (y hermanas): si hay slug de
+     `product_types`, ese manda; sin tipo, la categoría legacy sigue
+     abriendo. Un producto tipado como plato no abre ficha olfativa
+     aunque conserve un slug de perfume. No se borran tablas verticales.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
