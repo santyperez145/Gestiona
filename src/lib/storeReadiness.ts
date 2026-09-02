@@ -262,7 +262,7 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     title: 'Email para avisos de venta',
     detail: avisoEmail
       ? 'Los pedidos nuevos llegan a ese correo.'
-      : 'Sin email de la tienda, los avisos de pedido van al correo con el que iniciás sesión. Conviene uno de ventas.',
+      : 'Sin email de la tienda, los avisos de pedido van al correo del dueño. Conviene uno de ventas.',
     severity: 'warning',
     done: !!avisoEmail,
     actionLabel: 'Cargar email',

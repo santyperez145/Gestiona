@@ -12,6 +12,7 @@ import {
   storeDraftInicial,
   storeFormDesdeFila,
   sugerirDireccionDeRetiro,
+  sugerirEmailDeAvisos,
 } from "@/lib/storeDraft";
 
 describe("la tienda no nace con la identidad de Exentry", () => {
@@ -98,6 +99,24 @@ describe("la tienda no nace con la identidad de Exentry", () => {
     expect(page).toContain("sugerirDireccionDeRetiro");
     expect(page).toContain("Usar domicilio fiscal");
     expect(page).toContain("afip_connection_status");
+  });
+
+  it("el email de avisos vacío puede tomar el de la sesión, sin pisar lo cargado", () => {
+    expect(sugerirEmailDeAvisos({
+      notificationEmail: "",
+      sessionEmail: "dueño@ejemplo.com",
+    })).toBe("dueño@ejemplo.com");
+    expect(sugerirEmailDeAvisos({
+      notificationEmail: "ventas@ejemplo.com",
+      sessionEmail: "dueño@ejemplo.com",
+    })).toBeNull();
+    expect(sugerirEmailDeAvisos({
+      notificationEmail: "",
+      sessionEmail: "sin-arroba",
+    })).toBeNull();
+    const page = readFileSync(resolve(__dirname, "../pages/EcommerceStorePage.tsx"), "utf8");
+    expect(page).toContain("sugerirEmailDeAvisos");
+    expect(page).toContain("Usar mi correo");
   });
 
   it("leer una fila con envío NULL no rellena el formulario con tarifas inventadas", () => {

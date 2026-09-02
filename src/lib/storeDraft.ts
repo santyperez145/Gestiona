@@ -88,6 +88,21 @@ export function sugerirDireccionDeRetiro(input: {
   return fiscal || null;
 }
 
+/**
+ * Sin casilla de la tienda, store-order-email cae al dueño. Ofrecer el correo
+ * de la sesión evita tipear el mismo dato otra vez. Nunca pisa lo cargado ni
+ * inventa un email sin `@`.
+ */
+export function sugerirEmailDeAvisos(input: {
+  notificationEmail?: string | null;
+  sessionEmail?: string | null;
+}): string | null {
+  if (String(input.notificationEmail ?? "").trim()) return null;
+  const email = String(input.sessionEmail ?? "").trim();
+  if (!email.includes("@")) return null;
+  return email;
+}
+
 export function slugCandidatoDeTienda(input: {
   slugEscrito?: string | null;
   name?: string | null;

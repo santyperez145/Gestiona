@@ -3131,10 +3131,15 @@ Finance Connect.
      `design`, donde está el control. Pay-rail igual.
 
 110. El checklist avisa el email de ventas — 2026-09-02.
-     Sin `notification_email` los avisos caen al login del dueño y los
+     Sin `notification_email` los avisos caen al dueño y los
      legales piden un contacto al generar. Es warning, no bloqueo. Los
      medios de cobro del checklist también apuntan a Pagos y envíos, no
      a Integraciones.
+
+111. El email de avisos puede tomar el de la sesión — 2026-09-02.
+     Mismo patrón que el domicilio fiscal: vacío + correo de sesión con
+     `@` → botón «Usar mi correo». El texto aclara que el fallback real
+     es el dueño (como `store-order-email`), no «quien esté logueado».
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

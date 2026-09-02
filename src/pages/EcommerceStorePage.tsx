@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,7 @@ import {
   storeDraftInicial,
   storeFormDesdeFila,
   sugerirDireccionDeRetiro,
+  sugerirEmailDeAvisos,
 } from "@/lib/storeDraft";
 import { estadoPublicacionLegal } from "@/lib/legalPages";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
@@ -127,6 +129,7 @@ function isStoreTab(value: string | null): value is StoreTab {
 export default function EcommerceStorePage() {
   usePageTitle("Gestiona Commerce");
   const { orgId, org } = useOrganization();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { fromWizard } = parseActivationHandoff(searchParams);
@@ -512,6 +515,10 @@ export default function EcommerceStorePage() {
       domicilioFiscal,
     })
     : null;
+  const emailAvisosSugerido = sugerirEmailDeAvisos({
+    notificationEmail: storeForm.notification_email,
+    sessionEmail: user?.email,
+  });
 
   const kpis = useMemo(() => [
     { label: "Revenue hoy",      value: todayRevenue > 0 ? `$${(todayRevenue / 1000).toFixed(0)}K` : "$0", sub: `${todayOrders.length} órd. hoy`, icon: DollarSign,    color: "success"  as const },
@@ -929,7 +936,7 @@ export default function EcommerceStorePage() {
                   className="h-9"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <label className="text-xs text-muted-foreground mb-1.5 block">
                   Email para avisos de venta
                 </label>
@@ -938,11 +945,22 @@ export default function EcommerceStorePage() {
                   value={storeForm.notification_email}
                   onChange={e => setStoreForm(p => ({ ...p, notification_email: e.target.value }))}
                   placeholder="ventas@tunegocio.com"
-                  className="h-9"
+                  className="h-9 min-h-11"
                 />
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  Si lo dejás vacío, los pedidos llegan al email con el que iniciás sesión.
+                <p className="text-[10px] text-muted-foreground">
+                  Si lo dejás vacío, los pedidos llegan al correo del dueño de la organización.
                 </p>
+                {emailAvisosSugerido && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="min-h-11"
+                    onClick={() => setStoreForm(p => ({ ...p, notification_email: emailAvisosSugerido }))}
+                  >
+                    Usar mi correo
+                  </Button>
+                )}
               </div>
             </div>
           </div>
