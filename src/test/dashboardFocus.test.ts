@@ -113,6 +113,15 @@ describe("construirPendientes", () => {
     expect(p[0].urgencia).toBe("critico");
     expect(p[1].urgencia).toBe("critico");
   });
+
+  it("carritos abandonados van a Commerce tab=carritos", () => {
+    expect(construirPendientes({ ...VACIO, carritosAbandonados: 0 })).toEqual([]);
+    const uno = construirPendientes({ ...VACIO, carritosAbandonados: 1 })[0];
+    expect(uno.id).toBe("carritos-abandonados");
+    expect(uno.texto).toBe("1 carrito abandonado");
+    expect(uno.destino).toBe("/tienda-online?tab=carritos");
+    expect(uno.urgencia).toBe("atencion");
+  });
 });
 
 describe("leerVariacion", () => {

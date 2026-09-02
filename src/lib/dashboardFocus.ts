@@ -87,6 +87,11 @@ export interface DatosFoco {
   sinConteoFisico?: boolean;
   /** Recomendaciones de oferta IA en `pending` (aplicar → AI Action Rate). */
   ofertasIaPendientes?: number;
+  /**
+   * Carritos abandonados con ítems — cola Commerce `tab=carritos`
+   * (paridad Shopify Abandoned checkouts).
+   */
+  carritosAbandonados?: number;
 }
 
 /**
@@ -248,6 +253,19 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       texto: `${n} ${n === 1 ? "oferta IA pendiente de aplicar" : "ofertas IA pendientes de aplicar"}`,
       accion: "Revisar",
       destino: "/marketing?vista=ofertas",
+      urgencia: "atencion",
+    });
+  }
+
+  // Shopify muestra Abandoned checkouts como recurso; acá el cron recupera
+  // por email — el Foco lleva a la cola para que el comercio vea la plata en juego.
+  if ((d.carritosAbandonados ?? 0) > 0) {
+    const n = d.carritosAbandonados!;
+    lista.push({
+      id: "carritos-abandonados",
+      texto: `${n} ${n === 1 ? "carrito abandonado" : "carritos abandonados"}`,
+      accion: "Ver",
+      destino: "/tienda-online?tab=carritos",
       urgencia: "atencion",
     });
   }

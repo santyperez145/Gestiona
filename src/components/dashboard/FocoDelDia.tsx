@@ -63,6 +63,7 @@ export default function FocoDelDia(p: Props) {
   }>({ dias: null, huecos: [], nuncaVendio: false });
   const [sinConteo, setSinConteo] = useState(false);
   const [ofertasPendientes, setOfertasPendientes] = useState(0);
+  const [carritosAbandonados, setCarritosAbandonados] = useState(0);
 
   useEffect(() => {
     if (!p.orgId) return;
@@ -167,6 +168,24 @@ export default function FocoDelDia(p: Props) {
     return () => { cancelado = true; };
   }, [p.orgId]);
 
+  useEffect(() => {
+    if (!p.orgId) return;
+    let cancelado = false;
+    supabase
+      .from("ecommerce_cart_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", p.orgId)
+      .eq("status", "abandoned")
+      .then(({ count, error }) => {
+        if (error) {
+          console.error("FocoDelDia / carritos abandonados:", error);
+          return;
+        }
+        if (!cancelado) setCarritosAbandonados(count ?? 0);
+      });
+    return () => { cancelado = true; };
+  }, [p.orgId]);
+
   const datos: DatosFoco = {
     sinStock: p.sinStock,
     stockBajo: p.stockBajo,
@@ -181,6 +200,7 @@ export default function FocoDelDia(p: Props) {
     nuncaVendio: ventas.nuncaVendio,
     sinConteoFisico: sinConteo,
     ofertasIaPendientes: ofertasPendientes,
+    carritosAbandonados,
   };
 
   const pendientes = construirPendientes(datos);

@@ -19,6 +19,7 @@ import {
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
 import StoreOrdersPanel from "@/components/ecommerce/StoreOrdersPanel";
+import AbandonedCartsPanel from "@/components/ecommerce/AbandonedCartsPanel";
 import StoreOrderInspector from "@/components/ecommerce/StoreOrderInspector";
 import PaymentConnectionsPanel from "@/components/integrations/PaymentConnectionsPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
@@ -43,6 +44,8 @@ import {
   storeShouldShowAfterCatalog,
   storeShouldShowPerformanceChrome,
 } from "@/lib/storeFirstPublish";
+import type { AbandonedCartRow } from "@/lib/abandonedCarts";
+import { filterAbandonedCartsForQueue } from "@/lib/abandonedCarts";
 import {
   costoEnvioAlGuardar,
   envioGratisAlGuardar,
@@ -128,7 +131,7 @@ interface FunnelRow {
   color: string;
 }
 
-const STORE_TAB_IDS = ["overview", "orders", "reviews", "categorias", "pages", "banners", "design", "settings"] as const;
+const STORE_TAB_IDS = ["overview", "orders", "carritos", "reviews", "categorias", "pages", "banners", "design", "settings"] as const;
 type StoreTab = typeof STORE_TAB_IDS[number];
 
 function isStoreTab(value: string | null): value is StoreTab {
@@ -195,6 +198,9 @@ export default function EcommerceStorePage() {
   const [pedidoExtraLoading, setPedidoExtraLoading] = useState(false);
   const [funnelData, setFunnelData] = useState<FunnelRow[]>([]);
   const [abandonedCarts, setAbandonedCarts] = useState(0);
+  const [abandonedCartRows, setAbandonedCartRows] = useState<AbandonedCartRow[]>([]);
+  const [abandonedLoading, setAbandonedLoading] = useState(false);
+  const [abandonedError, setAbandonedError] = useState<string | null>(null);
   // Opciones para armar el menú: las categorías y las páginas publicadas.
   const [menuCategorias, setMenuCategorias] = useState<{ slug: string; name: string }[]>([]);
   const [menuPaginas, setMenuPaginas] = useState<{ slug: string; title: string }[]>([]);
@@ -389,15 +395,28 @@ export default function EcommerceStorePage() {
 
     loadOrders();
 
-    supabase
-      .from("ecommerce_cart_sessions")
-      .select("id, status, items")
-      .eq("org_id", orgId)
-      .then(({ data }) => {
-        if (!data) return;
-        setFunnelData(storeFunnelFromCarts(data));
-        setAbandonedCarts(storeAbandonedCartCount(data));
-      });
+    const loadCartSessions = () => {
+      setAbandonedLoading(true);
+      setAbandonedError(null);
+      supabase
+        .from("ecommerce_cart_sessions")
+        .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, updated_at, created_at")
+        .eq("org_id", orgId)
+        .then(({ data, error }) => {
+          if (error) {
+            console.error("EcommerceStorePage / carritos:", error);
+            setAbandonedError(error.message);
+            setAbandonedLoading(false);
+            return;
+          }
+          const rows = (data ?? []) as AbandonedCartRow[];
+          setFunnelData(storeFunnelFromCarts(rows));
+          setAbandonedCarts(storeAbandonedCartCount(rows));
+          setAbandonedCartRows(filterAbandonedCartsForQueue(rows));
+          setAbandonedLoading(false);
+        });
+    };
+    loadCartSessions();
   }, [orgId, org, loadOrders]);
 
   // Las señales viven en otras pestañas (Páginas, Pay, Productos). Si sólo se
@@ -580,6 +599,7 @@ export default function EcommerceStorePage() {
   const TABS: { id: StoreTab; label: string }[] = [
     { id: "overview",  label: "Publicar" },
     { id: "orders",    label: "Pedidos" },
+    { id: "carritos",  label: "Carritos" },
     { id: "reviews",   label: "Opiniones y preguntas" },
     { id: "categorias", label: "Categorías" },
     { id: "pages",     label: "Páginas" },
@@ -884,6 +904,36 @@ export default function EcommerceStorePage() {
           onPrepare={order => {
             const full = orders.find(o => o.id === order.id) ?? inspectedOrder;
             if (full) setEnvioDe(full as EcomOrder);
+          }}
+        />
+      )}
+
+      {tab === "carritos" && (
+        <AbandonedCartsPanel
+          carts={abandonedCartRows}
+          loading={abandonedLoading}
+          error={abandonedError}
+          onRetry={() => {
+            if (!orgId) return;
+            setAbandonedLoading(true);
+            setAbandonedError(null);
+            supabase
+              .from("ecommerce_cart_sessions")
+              .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, updated_at, created_at")
+              .eq("org_id", orgId)
+              .then(({ data, error }) => {
+                if (error) {
+                  console.error("EcommerceStorePage / carritos:", error);
+                  setAbandonedError(error.message);
+                  setAbandonedLoading(false);
+                  return;
+                }
+                const rows = (data ?? []) as AbandonedCartRow[];
+                setFunnelData(storeFunnelFromCarts(rows));
+                setAbandonedCarts(storeAbandonedCartCount(rows));
+                setAbandonedCartRows(filterAbandonedCartsForQueue(rows));
+                setAbandonedLoading(false);
+              });
           }}
         />
       )}
