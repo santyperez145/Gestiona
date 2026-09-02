@@ -1,33 +1,17 @@
 /**
- * send-whatsapp — Envía mensajes de WhatsApp via Evolution API.
- *
- * Evolution API es open-source y self-hosted.
- * Deploy gratuito en Railway / Render / VPS.
- * Repositorio: https://github.com/EvolutionAPI/evolution-api
- *
- * Variables de entorno (configuradas en Supabase secrets o en settings):
- *   EVOLUTION_API_URL      — URL base, ej: https://mi-evolution.railway.app
- *   EVOLUTION_API_KEY      — Global API key (o instance key)
- *   EVOLUTION_INSTANCE     — Nombre de la instancia conectada (ej: "gestiona")
- *
- * Si no hay configuración global, se usa la conexión privada de la
- * organización; ninguna credencial se lee desde `settings` ni el navegador.
- *
- * Request body:
- *   { orgId, recipientIds: [customerId], campaignId }
+ * send-whatsapp — campañas de WhatsApp desde el número de la plataforma (Meta Cloud).
  *
  * El navegador elige un segmento para la UX, pero el servidor vuelve a leer
  * los destinatarios consentidos y el texto del borrador. Nunca acepta una lista
  * de teléfonos ni un mensaje arbitrario: eso permitiría saltear una baja.
  *
- * Formato de teléfono esperado: +54911xxxxxxxx  o  54911xxxxxxxx
- * Evolution API acepta: "5491112345678" (sin + ni espacios)
+ * Evolution API quedó fuera: Meta bloquea números no oficiales. La puerta es
+ * `whatsapp_listo` de `mensajeria_de_plataforma`, no una instancia por comercio.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
-import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,47 +25,14 @@ interface SendRequest {
   campaignId: string;
 }
 
-/** Normaliza teléfono al formato de Evolution API: solo dígitos, sin + */
 function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, "");
-}
-
-/** Envía un único mensaje via Evolution API */
-/**
- * ⚠️ Acá había un `fetch` a Evolution API — el puente no oficial que enlaza un
- * teléfono escaneando un QR, como WhatsApp Web. Meta bloquea los números que
- * detecta usando un cliente no oficial, sin aviso, y el número que se pierde es
- * el del comercio.
- *
- * Ahora delega en `_shared/whatsapp.ts`, que manda por la API oficial de Meta
- * desde el número de la plataforma. Se conserva la firma y la forma del
- * resultado para no tocar los llamados; los argumentos de Evolution quedaron
- * sin uso.
- */
-async function sendViaEvolution(
-  _baseUrl: string,
-  _apiKey: string,
-  _instance: string,
-  phone: string,
-  text: string,
-): Promise<{ ok: boolean; error?: string }> {
-  const r = await enviarWhatsApp(phone, text);
-  if (r.ok) return { ok: true };
-  return {
-    ok: false,
-    // «Sin WhatsApp configurado» no es un fallo del envío: es que todavía no se
-    // dio de alta el número en Plataforma → Mensajería.
-    error: r.configurado
-      ? (r.error ?? "El proveedor rechazó el mensaje")
-      : "Todavía no hay un número de WhatsApp configurado en la plataforma",
-  };
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (checkRateLimit(req, "send-whatsapp", { max: 5, windowMs: 60_000 })) return rateLimitResponse();
 
-  // ── Auth check ───────────────────────────────────────────────────────────────
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
     return new Response(JSON.stringify({ error: "No autenticado" }), {
@@ -121,9 +72,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Mandar una campaña es una acción administrativa y usa una credencial del
-    // comercio. La barrera de navegación no basta: la Function se puede llamar
-    // sin abrir la pantalla.
     const { data: membership } = await admin
       .from("memberships")
       .select("role")
@@ -135,6 +83,18 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Necesitás ser administrador de esta organización" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Puerta del canal oficial: sin Meta listo no se crean tokens de baja ni
+    // se marca la campaña como enviada.
+    const { data: mensajeria, error: mensajeriaError } = await admin.rpc("mensajeria_de_plataforma");
+    if (mensajeriaError) throw mensajeriaError;
+    const cfg = mensajeria as { whatsapp_listo?: boolean; whatsapp_proveedor?: string | null } | null;
+    if (!cfg?.whatsapp_listo) {
+      return new Response(JSON.stringify({
+        error: "WhatsApp de la plataforma todavía no está listo. Escribínos y lo configuramos — no es Evolution ni un QR por comercio.",
+        code: "whatsapp_not_ready",
+      }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const { data: campaign, error: campaignError } = await admin
@@ -155,8 +115,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // La lista del cliente sólo son ids. La fuente de verdad de consentimiento y
-    // teléfono se resuelve ahora, justo antes de gastar mensajes en Evolution.
     const uniqueRecipientIds = [...new Set(recipientIds)].slice(0, 500);
     const { data: consentedRecipients, error: recipientsError } = await admin
       .from("customers")
@@ -178,8 +136,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── Resolver credenciales Evolution API ─────────────────────────────────────
-    const evolution = await getEvolutionCredentials(admin, orgId);
     const { data: settings, error: settingsError } = await admin
       .from("settings")
       .select("business_name")
@@ -187,13 +143,6 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (settingsError) throw settingsError;
 
-    if (!evolution) {
-      return new Response(JSON.stringify({
-        error: "Evolution API no configurada. Ingresá las credenciales en Ajustes → Integraciones.",
-      }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    // ── Envío en batches ──────────────────────────────────────────────────────────
     const businessName = settings?.business_name?.trim() || "este comercio";
     const unsubscribeBaseUrl = `${Deno.env.get("SUPABASE_URL")!.replace(/\/$/, "")}/functions/v1/whatsapp-unsubscribe`;
 
@@ -201,17 +150,13 @@ Deno.serve(async (req) => {
     let failed = 0;
     const errors: string[] = [];
 
-    // Evolution API recomienda no más de 3-5 mensajes simultáneos para no ser bloqueado
     const BATCH = 3;
-    const DELAY_MS = 1000; // 1s entre batches (comportamiento humano)
+    const DELAY_MS = 1000;
 
     for (let i = 0; i < recipients.length; i += BATCH) {
       const batch = recipients.slice(i, i + BATCH);
 
       await Promise.all(batch.map(async (r) => {
-        // El token va antes del envío: no se manda una promoción sin salida de
-        // baja. Si no se pudo guardar, se cuenta como fallido y no se llama a
-        // Evolution API para ese contacto.
         const unsubscribeToken = crypto.randomUUID();
         const { error: tokenError } = await admin.from("whatsapp_unsubscribe_tokens").insert({
           token: unsubscribeToken,
@@ -228,45 +173,53 @@ Deno.serve(async (req) => {
 
         const personalizedMsg = campaign.message
           .replace(/\{\{nombre\}\}/gi, r.name.split(" ")[0])
-          .replace(/\{\{name\}\}/gi,   r.name.split(" ")[0])
+          .replace(/\{\{name\}\}/gi, r.name.split(" ")[0])
           + `\n\nPara dejar de recibir promociones de ${businessName}: ${unsubscribeBaseUrl}?token=${unsubscribeToken}`;
 
-        const result = await sendViaEvolution(
-          evolution.apiUrl, evolution.apiKey, evolution.instance,
-          r.phone, personalizedMsg,
-        );
+        const result = await enviarWhatsApp(r.phone, personalizedMsg);
 
         if (result.ok) {
           sent++;
         } else {
           failed++;
           const phone = normalizePhone(r.phone);
-          errors.push(`${phone}: ${result.error}`);
-          console.warn(`Evolution API failed for ${phone}:`, result.error);
+          errors.push(`${phone}: ${result.error ?? "rechazado"}`);
+          console.warn(`WhatsApp failed for ${phone}:`, result.error);
         }
       }));
 
       if (i + BATCH < recipients.length) {
-        await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+        await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
       }
     }
 
-    // ── Actualizar stats de campaña ───────────────────────────────────────────────
-    if (campaignId) {
-      await admin.from("whatsapp_campaigns").update({
-        status: failed === recipients.length ? "failed" : "sent",
-        sent_count: sent,
-        failed_count: failed,
-        sent_at: new Date().toISOString(),
-      }).eq("id", campaignId).eq("org_id", orgId);
-    }
+    // Cero entregas no es "enviado": el comercio no debe ver un éxito vacío.
+    const status = sent === 0 ? "failed" : "sent";
+    await admin.from("whatsapp_campaigns").update({
+      status,
+      sent_count: sent,
+      failed_count: failed,
+      sent_at: sent > 0 ? new Date().toISOString() : null,
+    }).eq("id", campaignId).eq("org_id", orgId);
 
-    console.log(`send-whatsapp (Evolution): org=${orgId} sent=${sent} failed=${failed}`);
+    console.log(`send-whatsapp (meta): org=${orgId} sent=${sent} failed=${failed} status=${status}`);
+
+    if (sent === 0) {
+      return new Response(JSON.stringify({
+        error: "Ningún mensaje se entregó. Revisá el canal de WhatsApp de la plataforma o los números de los destinatarios.",
+        sent,
+        failed,
+        skipped,
+        errors: errors.slice(0, 10),
+      }), {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(JSON.stringify({ sent, failed, skipped, errors: errors.slice(0, 10) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
   } catch (err) {
     console.error("send-whatsapp error:", err);
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Error desconocido" }), {

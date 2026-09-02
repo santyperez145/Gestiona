@@ -13,12 +13,17 @@ import { toast } from "sonner";
 import {
   MessageCircle, Send, Users, CheckCircle2, XCircle, Clock,
   Loader2, Plus, Trash2, Phone, RotateCcw,
-  Eye, Variable,
+  Eye, Variable, AlertCircle,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import {
+  whatsappCampaignChannelReady,
+  whatsappCampaignSendSucceeded,
+} from "@/lib/whatsappCampaignHonesty";
 
 // ─── Template library ─────────────────────────────────────────────────────────
 const WA_TEMPLATES = [
@@ -123,6 +128,20 @@ export default function WhatsAppCampaignsPage() {
   const [sending, setSending] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [canalListo, setCanalListo] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const { data, error } = await supabase.rpc("mensajeria_de_plataforma");
+      if (error) {
+        console.error("mensajeria_de_plataforma", error);
+        setCanalListo(false);
+        return;
+      }
+      const c = data as { whatsapp_listo?: boolean } | null;
+      setCanalListo(whatsappCampaignChannelReady({ whatsapp_listo: c?.whatsapp_listo }));
+    })();
+  }, []);
 
   // ── Load ────────────────────────────────────────────────────────────────────
   const load = async () => {
@@ -235,6 +254,10 @@ export default function WhatsAppCampaignsPage() {
 
   // ── Send campaign ─────────────────────────────────────────────────────────────
   const handleSend = async (camp: Campaign) => {
+    if (!whatsappCampaignChannelReady({ whatsapp_listo: canalListo })) {
+      toast.error("WhatsApp de la plataforma todavía no está listo. No se puede enviar.");
+      return;
+    }
     const audience = audienceFor(camp.segment);
     if (!audience.length) { toast.error("No hay destinatarios con teléfono en este segmento"); return; }
     if (!(await ask({
@@ -250,15 +273,15 @@ export default function WhatsAppCampaignsPage() {
       const { data, error } = await supabase.functions.invoke("send-whatsapp", {
         body: {
           orgId: activeOrg!.id,
-          // El servidor vuelve a leer teléfono, consentimiento y baja vigente.
-          // El navegador sólo propone los ids del segmento visible.
           recipientIds: audience.map(c => c.id),
           campaignId: camp.id,
         },
         headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
       });
 
-      if (error) throw error;
+      if (error || data?.error || !whatsappCampaignSendSucceeded(data ?? {})) {
+        throw new Error(await mensajeDeEdgeFunction(error, data));
+      }
       const skipped = Number(data?.skipped ?? 0);
       toast.success(`WhatsApp enviado: ${data?.sent ?? 0} enviados, ${data?.failed ?? 0} fallidos${skipped ? `, ${skipped} sin consentimiento vigente` : ""}`);
       load();
@@ -323,6 +346,17 @@ export default function WhatsAppCampaignsPage() {
         <KPICard label="Fallidos" value={totalFail} icon={XCircle} color="destructive" />
       </div>
 
+      {canalListo === false && (
+        <div className="flex items-start gap-3 rounded-lg border border-yellow-800/40 bg-yellow-950/20 px-4 py-3 text-sm text-yellow-300">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div>
+            Todavía no podés enviar campañas por WhatsApp: el número de la
+            plataforma no está listo. Escribínos y lo configuramos — no hace
+            falta Evolution ni escanear un QR por comercio.
+          </div>
+        </div>
+      )}
+
       {/* Campaign list */}
       {campaigns.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
@@ -383,7 +417,8 @@ export default function WhatsAppCampaignsPage() {
                     <Button
                       size="sm"
                       onClick={() => handleSend(camp)}
-                      disabled={isSending}
+                      disabled={isSending || canalListo === false}
+                      title={canalListo === false ? "WhatsApp de plataforma no listo" : undefined}
                       className="gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs"
                     >
                       {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
@@ -395,7 +430,8 @@ export default function WhatsAppCampaignsPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => handleSend(camp)}
-                      disabled={isSending}
+                      disabled={isSending || canalListo === false}
+                      title={canalListo === false ? "WhatsApp de plataforma no listo" : undefined}
                       className="gap-1.5 text-xs"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />Reintentar
