@@ -1,11 +1,11 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { useOrg } from '@/lib/orgContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-  Sparkles, TrendingDown, TrendingUp, Zap, Star, Package, X, Check,
+  Sparkles, TrendingDown, Zap, Star, Package, X, Check,
   Loader2, Activity, RotateCcw, ShieldCheck, Clock3,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ import {
   revertPriceChangeProposal,
 } from '@/lib/marketingExtraDB';
 import { useHasPermission } from '@/lib/usePermissions';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { observedPriceLabel, priceOutcomeProgress, priceOutcomeState } from '@/lib/priceChangeOutcome';
+import KPICard from '@/components/shared/KPICard';
 
 const TYPE_META: Record<string, { icon: any; color: string; label: string }> = {
   liquidacion: { icon: TrendingDown, color: 'bg-red-500/20 text-red-300', label: 'Liquidación' },
@@ -46,6 +48,7 @@ function signedMoney(value: number | null | undefined) {
 export default function OfferRecommenderPanel() {
   const { activeOrg } = useOrg();
   const canEditMarketing = useHasPermission('marketing', 'edit');
+  const { ask, dialog } = useConfirmDialog();
   const [loading, setLoading] = useState(false);
   const [applyingId, setApplyingId] = useState<string | null>(null);
   const [measuringId, setMeasuringId] = useState<string | null>(null);
@@ -99,6 +102,18 @@ export default function OfferRecommenderPanel() {
       toast.error('La recomendación no se pudo identificar. Generala otra vez antes de aplicarla.');
       return;
     }
+    const precio = rec.precio_sugerido_ars
+      ? fmt(Number(rec.precio_sugerido_ars))
+      : rec.descuento_sugerido_percent
+        ? `-${rec.descuento_sugerido_percent}%`
+        : 'el precio sugerido';
+    const ok = await ask({
+      title: `¿Aplicar oferta en ${rec.product_name || 'el producto'}?`,
+      description: `Se publica ${precio} según la recomendación. Queda registrada para medir el AI Action Rate y podés revertir después con trazabilidad.`,
+      confirmText: 'Aplicar oferta',
+      variant: 'default',
+    });
+    if (!ok) return;
     setApplyingId(rec._id);
     try {
       const { error } = await supabase.rpc('apply_ai_offer_recommendation', {
@@ -165,23 +180,48 @@ export default function OfferRecommenderPanel() {
     canal_recomendado: h.recommended_channel, _id: h.id,
   }))];
 
+  const actionRate = useMemo(() => {
+    const aplicadas = outcomes.filter(o => o.status !== 'reverted').length;
+    const pendientes = allRecs.length;
+    const denom = aplicadas + pendientes;
+    const pct = denom > 0 ? Math.round((aplicadas / denom) * 100) : 0;
+    return { aplicadas, pendientes, denom, pct };
+  }, [outcomes, allRecs.length]);
+
   return (
     <div className="space-y-4">
+      {dialog}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-xl font-display font-bold flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" /> Recomendador de ofertas IA</h2>
-          <p className="text-sm text-muted-foreground">Análisis en tiempo real de tu stock, ventas y márgenes. Cero hardcodeos.</p>
+          <p className="text-sm text-muted-foreground">Generar no alcanza: el valor está en aplicar y medir. Cero hardcodeos.</p>
         </div>
-        <Button onClick={generate} disabled={loading} className="gradient-gold text-primary-foreground">
+        <Button onClick={generate} disabled={loading || !canEditMarketing} className="gradient-gold text-primary-foreground">
           {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
           Generar recomendaciones
         </Button>
       </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KPICard label="Pendientes" value={actionRate.pendientes} icon={Clock3} color="warning" sub="por decidir" />
+        <KPICard label="Aplicadas" value={actionRate.aplicadas} icon={Check} color="success" sub="con evidencia" />
+        <KPICard
+          label="AI Action Rate"
+          value={`${actionRate.pct}%`}
+          icon={Activity}
+          color={actionRate.pct > 0 ? 'success' : 'blue'}
+          sub={actionRate.denom === 0 ? 'sin decisiones aún' : `${actionRate.aplicadas}/${actionRate.denom}`}
+        />
+        <KPICard label="En medición" value={outcomes.filter(o => o.status !== 'reverted').length} icon={ShieldCheck} color="blue" sub="loop de precio" />
+      </div>
+
       {allRecs.length === 0 && !loading && (
         <Card className="p-8 text-center border-dashed">
           <Sparkles className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">Tocá "Generar recomendaciones" para que la IA analice tu negocio.</p>
+          <p className="text-sm font-medium">Todavía no hay recomendaciones para aplicar</p>
+          <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+            Generá un lote y usá <strong>Aplicar</strong> en al menos una: eso es lo que sube el AI Action Rate (G8), no el chat.
+          </p>
         </Card>
       )}
 
@@ -211,11 +251,11 @@ export default function OfferRecommenderPanel() {
               </div>
               <div className="text-xs text-muted-foreground">📍 Canal: <strong>{r.canal_recomendado?.replace(/_/g, ' ')}</strong></div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => apply(r)} disabled={!r._id || applyingId === r._id} className="flex-1">
+                <Button size="sm" onClick={() => apply(r)} disabled={!canEditMarketing || !r._id || applyingId === r._id} className="flex-1">
                   {applyingId === r._id ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}
                   Aplicar
                 </Button>
-                {r._id && <Button size="sm" variant="ghost" disabled={applyingId === r._id} onClick={() => dismiss(r._id)}><X className="w-3 h-3" /></Button>}
+                {r._id && <Button size="sm" variant="ghost" disabled={!canEditMarketing || applyingId === r._id} onClick={() => dismiss(r._id)}><X className="w-3 h-3" /></Button>}
               </div>
             </Card>
           );

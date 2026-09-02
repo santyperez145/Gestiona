@@ -216,7 +216,8 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
     tips: [
       { icon: LineChart, title: "Predicción de demanda", desc: "El tab 'Demanda' proyecta los próximos 30 días por producto usando velocidad de ventas. Semáforo de urgencia para reposición.", tag: "IA" },
       { icon: Activity, title: "Análisis de cohortes", desc: "El tab 'Cohorts' muestra la retención de clientes por mes de primera compra en un heatmap de 12 × 7. Verde = retención alta." },
-      { icon: PieChart, title: "ABC Analysis", desc: "El tab 'ABC' clasifica tus productos en A (80% del ingreso), B (15%) y C (5%) siguiendo el principio de Pareto." },
+      { icon: PieChart, title: "ABC Analysis", desc: "Clasifica productos en A (~80% del ingreso), B y C. Priorizá stock en A; revisá liquidar o descontinuar C.", tag: "Tip" },
+      { icon: Target, title: "Conversión de presupuestos", desc: "Seguí presupuestos a las 48–72 hs e incluí link de pago. El funnel muestra dónde se cae el cierre.", tag: "Tip" },
       { icon: Users, title: "Nuevos vs Recurrentes", desc: "El tab 'Clientes' tiene el gráfico apilado de nuevos vs recurrentes por mes para medir la fidelización." },
       { icon: BarChart2, title: "Pareto de clientes", desc: "El widget Pareto muestra qué % de clientes genera el 80% de los ingresos. Alerta si la concentración es demasiado alta." },
       { icon: DollarSign, title: "Canales de venta", desc: "El tab 'Canales' muestra el donut y trend mensual de ingresos por método de pago (efectivo, transferencia, etc.)." },
@@ -265,13 +266,14 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
   // ── Marketing ────────────────────────────────────────────────
   "/marketing": {
     title: "Marketing",
-    subtitle: "Contenido y publicaciones",
+    subtitle: "Contenido, automatizaciones y ofertas",
     color: "text-pink-400",
     tips: [
-      { icon: Palette, title: "Generador de Stories IG", desc: "Creá historias de Instagram profesionales con el generador: elige productos, colores, precios y descargá el PNG listo para publicar.", tag: "IA" },
-      { icon: Filter, title: "Filtrar por estado", desc: "El selector de estado (borrador / programado / publicado / archivado) filtra las publicaciones y muestra el contador de resultados." },
-      { icon: Download, title: "Exportar CSV de publicaciones", desc: "El botón CSV exporta todas las publicaciones con estado, fecha, canal y texto para análisis externo o registro." },
-      { icon: Brain, title: "Sugerencias de ofertas con IA", desc: "El panel 'Recomendador IA' analiza tu inventario y sugiere qué productos promover basándose en stock y velocidad de ventas.", tag: "IA" },
+      { icon: Zap, title: "Automatizaciones diarias", desc: "Los flujos activos se evalúan a las 08:00 (Argentina). Arrancá con stock bajo, cliente inactivo o deuda; preferí email si WhatsApp no está conectado.", tag: "Tip" },
+      { icon: Brain, title: "Aplicar ofertas IA", desc: "Generar no cuenta: el AI Action Rate mide recomendaciones aplicadas. Revisá precio y margen, aplicá y después medí el resultado.", tag: "IA" },
+      { icon: Palette, title: "Generador de Stories IG", desc: "Creá historias con productos, colores y precios; descargá el PNG listo para publicar.", tag: "IA" },
+      { icon: Filter, title: "Filtrar por estado", desc: "Borrador / programado / publicado / archivado filtra el listado y muestra el contador." },
+      { icon: Download, title: "Exportar CSV", desc: "Exportá publicaciones con estado, fecha, canal y texto (celdas escapadas, sin fórmulas)." },
     ],
   },
 
@@ -326,7 +328,8 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
       { icon: Plug, title: "Estado de salud por integración", desc: "Cada integración muestra su estado (activa / error / no configurada) basado en los últimos logs de conexión." },
       { icon: RefreshCw, title: "Retry de webhooks fallidos", desc: "Si un webhook falló, podés reintentar la entrega directamente desde la cola de dead-letters sin perder el evento." },
       { icon: Shield, title: "Webhooks con HMAC", desc: "Todos los webhooks salientes están firmados con HMAC-SHA256. Las integraciones entrantes también validan la firma." },
-      { icon: Building2, title: "Mercado Pago y MercadoLibre", desc: "Se conectan por OAuth: el comercio autoriza su cuenta y la app nunca ve sus credenciales. Mercado Pago habilita los cobros con link y QR desde el POS." },
+      { icon: Building2, title: "Mercado Pago y MercadoLibre", desc: "Se conectan por OAuth: el comercio autoriza su cuenta y la app nunca ve sus credenciales. Mercado Pago habilita cobros con link y QR desde el POS." },
+      { icon: AlertTriangle, title: "Vapers en MercadoLibre", desc: "ANMAT prohíbe vapers en Argentina: publicarlos puede sancionar la cuenta. La integración bloquea esa categoría; el resto del catálogo se publica normal.", tag: "Tip" },
     ],
   },
 

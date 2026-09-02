@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { plural } from "@/lib/plural";
 import {
   Landmark, Plus, CheckCircle2, AlertTriangle, Upload,
@@ -111,6 +112,7 @@ export default function BankReconciliationPage() {
   usePageTitle("Banco / Conciliación");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const { ask, dialog } = useConfirmDialog();
 
   const [txs, setTxs] = useState<BankTx[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -221,7 +223,7 @@ export default function BankReconciliationPage() {
   // ── Delete ────────────────────────────────────────────────────────────────────
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar este movimiento?")) return;
+    if (!(await ask({ title: "¿Eliminar este movimiento?", confirmText: "Eliminar", variant: "destructive" }))) return;
     setDeleting(id);
     try {
       await supabase.from("bank_transactions").delete().eq("id", id);
@@ -518,6 +520,7 @@ export default function BankReconciliationPage() {
           )}
         </DialogContent>
       </Dialog>
+      {dialog}
     </div>
   );
 }

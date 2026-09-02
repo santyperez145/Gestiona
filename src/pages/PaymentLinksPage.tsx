@@ -19,6 +19,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -72,6 +73,7 @@ export default function PaymentLinksPage() {
   usePageTitle("Links de Pago");
   const { user, session } = useAuth();
   const { activeOrg } = useOrg();
+  const { ask, dialog } = useConfirmDialog();
 
   const [links, setLinks] = useState<PaymentLink[]>([]);
   const [orgSettings, setOrgSettings] = useState<OrgSettings>({ mp_enabled: false, mp_conectado: false, whatsapp_number: null, business_name: "Mi Negocio" });
@@ -256,7 +258,7 @@ export default function PaymentLinksPage() {
 
   // ── Cancel ────────────────────────────────────────────────────────────────────
   const cancelLink = async (link: PaymentLink) => {
-    if (!confirm("¿Cancelar este link de pago?")) return;
+    if (!(await ask({ title: "¿Cancelar este link de pago?", confirmText: "Cancelar", variant: "destructive" }))) return;
     await supabase.from("payment_links").update({ status: "cancelled" }).eq("id", link.id);
     toast.success("Link cancelado");
     load();
@@ -264,7 +266,7 @@ export default function PaymentLinksPage() {
 
   // ── Delete ────────────────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar este link?")) return;
+    if (!(await ask({ title: "¿Eliminar este link?", confirmText: "Eliminar", variant: "destructive" }))) return;
     setDeleting(id);
     await supabase.from("payment_links").delete().eq("id", id);
     setLinks(prev => prev.filter(l => l.id !== id));
@@ -634,6 +636,7 @@ export default function PaymentLinksPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {dialog}
     </div>
   );
 }

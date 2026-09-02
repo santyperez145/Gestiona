@@ -15,6 +15,7 @@ import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { formatARS } from "@/lib/supabaseStore";
 import { useEntitlements } from "@/lib/useEntitlements";
 import { toast } from "sonner";
@@ -136,6 +137,7 @@ const ETIQUETA_ESTADO: Record<string, { texto: string; clase: string }> = {
 export default function MiPlanPage() {
   usePageTitle("Mi plan");
   const { activeOrg } = useOrg();
+  const { ask, dialog } = useConfirmDialog();
 
   const [sub, setSub] = useState<EstadoSuscripcion | null>(null);
   const [planes, setPlanes] = useState<PlanContratable[]>([]);
@@ -296,7 +298,12 @@ export default function MiPlanPage() {
               disabled={cancelando}
               onClick={async () => {
                 if (!activeOrg?.id) return;
-                if (!confirm("¿Dar de baja tu suscripción? Seguís con acceso hasta que termine el período que ya pagaste.")) return;
+                if (!(await ask({
+                  title: "¿Dar de baja tu suscripción?",
+                  description: "Seguís con acceso hasta que termine el período que ya pagaste.",
+                  confirmText: "Dar de baja",
+                  variant: "destructive",
+                }))) return;
                 setCancelando(true);
                 const { data, error } = await supabase.functions.invoke("cancel-subscription", {
                   body: { org_id: activeOrg.id },
@@ -526,6 +533,7 @@ export default function MiPlanPage() {
           </div>
         </div>
       )}
+      {dialog}
     </div>
   );
 }

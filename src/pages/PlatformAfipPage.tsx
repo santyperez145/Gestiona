@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 interface Estado {
@@ -43,6 +44,7 @@ interface Estado {
 export default function PlatformAfipPage() {
   usePageTitle('AFIP · Plataforma');
   const { isSuperadmin, loading: accessLoading } = usePlatformAccess();
+  const { ask, dialog } = useConfirmDialog();
 
   const [estado, setEstado] = useState<Estado | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -105,7 +107,11 @@ export default function PlatformAfipPage() {
   };
 
   const borrar = async () => {
-    if (!confirm('¿Borrar el certificado de la plataforma? Los comercios en modo delegado dejan de poder facturar hasta que cargues otro.')) return;
+    if (!(await ask({
+      title: "¿Borrar el certificado de la plataforma?",
+      description: "Los comercios en modo delegado dejan de poder facturar hasta que cargues otro.",
+      confirmText: "Borrar",
+    }))) return;
     setGuardando(true);
     const { data, error } = await supabase.functions.invoke('afip-platform-cert', { body: { action: 'delete' } });
     setGuardando(false);
@@ -252,6 +258,7 @@ export default function PlatformAfipPage() {
           </div>
         </div>
       )}
+      {dialog}
     </div>
   );
 }

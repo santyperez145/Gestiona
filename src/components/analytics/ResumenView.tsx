@@ -1136,22 +1136,6 @@ export default function ResumenView() {
               </p>
             )}
           </div>
-
-          <div className="bg-card border border-border rounded-2xl p-5">
-            <h3 className="text-sm font-semibold mb-3">Cómo mejorar la conversión</h3>
-            <div className="space-y-2 pb-12">
-              {[
-                { tip: "Seguí tus presupuestos a los 48hs de enviarlos — el 60% de las conversiones ocurren en las primeras 72hs", ok: derived.conversionRate >= 40 },
-                { tip: "Incluí un link de pago en cada presupuesto para facilitar el cierre", ok: derived.conversionRate >= 50 },
-                { tip: `Tenés ${derived.totalQuotes - derived.wonQuotes} presupuesto(s) sin convertir — considerá hacer seguimiento`, ok: derived.totalQuotes - derived.wonQuotes === 0 },
-              ].map((item, i) => (
-                <div key={i} className={`flex items-start gap-2 p-3 rounded-lg text-sm ${item.ok ? "bg-green-500/10 text-green-300" : "bg-muted/40 text-muted-foreground"}`}>
-                  <span className="mt-0.5">{item.ok ? "✓" : "→"}</span>
-                  <span>{item.tip}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </TabsContent>
 
         {/* ABC Analysis */}
@@ -1229,24 +1213,6 @@ export default function ResumenView() {
               </div>
             </div>
           )}
-
-          <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-2">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">¿Cómo usar el análisis ABC?</h4>
-            {[
-              { cls: "A", tip: "Productos clase A: asegurate de tener siempre stock. Negociá volumen con tus proveedores." },
-              { cls: "B", tip: "Productos clase B: monitoreá la rotación. Pueden subir a A con mejor posicionamiento o bajar a C." },
-              { cls: "C", tip: "Productos clase C: evaluá si vale la pena mantenerlos. Considerá liquidar stock o descontinuar." },
-            ].map(item => (
-              <div key={item.cls} className="flex items-start gap-2 text-xs text-muted-foreground">
-                <span className={`shrink-0 font-bold px-1.5 py-0.5 rounded text-[10px] ${
-                  item.cls === "A" ? "bg-emerald-500/15 text-emerald-400" :
-                  item.cls === "B" ? "bg-yellow-500/15 text-yellow-400" :
-                  "bg-muted text-muted-foreground"
-                }`}>{item.cls}</span>
-                <span>{item.tip}</span>
-              </div>
-            ))}
-          </div>
         </TabsContent>
 
         {/* CATEGORY TREND TAB */}

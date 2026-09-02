@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "sonner";
 import { Layers, Plus, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ interface Props {
 
 export default function QuantityDiscountsEditor({ categorias }: Props) {
   const { orgId } = useOrganization();
+  const { ask, dialog } = useConfirmDialog();
   const [reglas, setReglas] = useState<Regla[]>([]);
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -102,7 +104,10 @@ export default function QuantityDiscountsEditor({ categorias }: Props) {
   }
 
   async function borrar(r: Regla) {
-    if (!confirm(`¿Borrar la regla "${r.name}"?`)) return;
+    if (!(await ask({
+      title: `¿Borrar la regla "${r.name}"?`,
+      confirmText: "Borrar",
+    }))) return;
     const { error } = await supabase.from("quantity_discounts").delete().eq("id", r.id);
     if (error) { toast.error(error.message); return; }
     setReglas(prev => prev.filter(x => x.id !== r.id));
@@ -228,6 +233,7 @@ export default function QuantityDiscountsEditor({ categorias }: Props) {
           ))}
         </div>
       )}
+      {dialog}
     </div>
   );
 }

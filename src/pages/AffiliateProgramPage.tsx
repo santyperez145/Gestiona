@@ -46,6 +46,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -351,6 +352,7 @@ export default function AffiliateProgramPage() {
   usePageTitle("Programa de Afiliados");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
+  const { ask, dialog } = useConfirmDialog();
 
   const [partners, setPartners] = useState<AffiliatePartner[]>([]);
   const [conversions, setConversions] = useState<AffiliateConversion[]>([]);
@@ -412,7 +414,7 @@ export default function AffiliateProgramPage() {
   };
 
   const handleDelete = async (partner: AffiliatePartner) => {
-    if (!confirm(`¿Eliminar a ${partner.name}?`)) return;
+    if (!(await ask({ title: `¿Eliminar a ${partner.name}?`, confirmText: "Eliminar", variant: "destructive" }))) return;
     await supabase.from("affiliate_partners").delete().eq("id", partner.id);
     setPartners(prev => prev.filter(p => p.id !== partner.id));
     toast.success("Afiliado eliminado");
@@ -564,6 +566,7 @@ export default function AffiliateProgramPage() {
         onClose={() => { setFormOpen(false); setEditingPartner(null); }}
         onSaved={loadAll}
       />
+      {dialog}
     </div>
   );
 }

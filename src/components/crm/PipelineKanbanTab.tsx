@@ -35,6 +35,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { formatARS } from "@/lib/supabaseStore";
 import KPICard from "@/components/shared/KPICard";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -748,6 +749,7 @@ function DealCard({
 export default function PipelineKanbanTab() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const { ask, dialog: confirmDialog } = useConfirmDialog();
 
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1050,7 +1052,10 @@ export default function PipelineKanbanTab() {
   };
 
   const handleDelete = async (deal: Deal) => {
-    if (!confirm(`¿Eliminar "${deal.title}"?`)) return;
+    if (!(await ask({
+      title: `¿Eliminar "${deal.title}"?`,
+      confirmText: "Eliminar",
+    }))) return;
     try {
       await supabase.from("deals").delete().eq("id", deal.id);
       setDeals(prev => prev.filter(d => d.id !== deal.id));
@@ -1618,6 +1623,7 @@ export default function PipelineKanbanTab() {
           </DialogContent>
         </Dialog>
       )}
+      {confirmDialog}
     </div>
   );
 }

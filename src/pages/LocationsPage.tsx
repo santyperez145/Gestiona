@@ -12,6 +12,7 @@ import { MapPin, Plus, Edit2, Trash2, ArrowLeftRight, Package, Phone, Star, Chec
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import WarehouseZonesTab from "@/components/locations/WarehouseZonesTab";
 
 type Location = {
@@ -374,6 +375,7 @@ export default function LocationsPage() {
   usePageTitle("Sucursales & Depósitos");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
+  const { ask, dialog } = useConfirmDialog();
   const [locations, setLocations] = useState<Location[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [transfers, setTransfers] = useState<any[]>([]);
@@ -446,7 +448,7 @@ export default function LocationsPage() {
   };
 
   const deleteLoc = async (loc: Location) => {
-    if (!confirm(`¿Eliminar "${loc.name}"?`)) return;
+    if (!(await ask({ title: `¿Eliminar "${loc.name}"?`, confirmText: "Eliminar", variant: "destructive" }))) return;
     await supabase.from("locations").update({ active: false }).eq("id", loc.id);
     await load();
     toast.success("Local eliminado");
@@ -720,6 +722,7 @@ export default function LocationsPage() {
           />
         </DialogContent>
       </Dialog>
+      {dialog}
     </div>
   );
 }

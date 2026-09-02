@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 type AnnouncementForm = {
   id: string | null;
@@ -89,6 +90,7 @@ function upsertRow(rows: PlatformAnnouncementRow[], saved: PlatformAnnouncementR
 export default function PlatformAnnouncementsPage() {
   usePageTitle("Anuncios · Plataforma");
   const { loading: accessLoading, isSuperadmin } = usePlatformAccess();
+  const { ask, dialog } = useConfirmDialog();
   const [rows, setRows] = useState<PlatformAnnouncementRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -185,7 +187,11 @@ export default function PlatformAnnouncementsPage() {
   };
 
   const archive = async (row: PlatformAnnouncementRow) => {
-    if (!window.confirm(`¿Archivar “${row.title}”? Dejará de mostrarse y quedará en el historial operativo.`)) return;
+    if (!(await ask({
+      title: `¿Archivar “${row.title}”?`,
+      description: "Dejará de mostrarse y quedará en el historial operativo.",
+      confirmText: "Archivar",
+    }))) return;
     setArchivingId(row.id);
     const { data, error: archiveError } = await supabase.rpc("archive_platform_announcement", { p_id: row.id });
     if (archiveError || !data) {
@@ -264,6 +270,7 @@ export default function PlatformAnnouncementsPage() {
           <DialogFooter><Button variant="outline" disabled={saving} onClick={() => void save(false)}>Guardar borrador</Button><Button className="bg-violet-600 text-white hover:bg-violet-500" disabled={saving} onClick={() => void save(true)}>{saving ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Send className="mr-2 h-3.5 w-3.5" />}{form.id && form.publish ? "Actualizar publicación" : "Publicar"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+      {dialog}
     </div>
   );
 }

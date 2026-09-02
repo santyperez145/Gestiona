@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
 import {
@@ -106,9 +107,10 @@ export default function CouponsPage() {
   const { activeOrg } = useOrg();
   const { user } = useAuth();
 
+  const { ask, dialog } = useConfirmDialog();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialog, setDialog] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -182,7 +184,7 @@ export default function CouponsPage() {
 
   const openCreate = () => {
     setForm({ ...EMPTY_FORM, code: generateCode() });
-    setDialog(true);
+    setFormOpen(true);
   };
 
   const handleSave = async () => {
@@ -219,7 +221,7 @@ export default function CouponsPage() {
       }
     } else {
       toast.success(`Cupón ${payload.code} creado`);
-      setDialog(false);
+      setFormOpen(false);
       load();
     }
     setSaving(false);
@@ -232,7 +234,7 @@ export default function CouponsPage() {
   };
 
   const deleteCoupon = async (id: string, code: string) => {
-    if (!confirm(`¿Eliminar cupón ${code}?`)) return;
+    if (!(await ask({ title: `¿Eliminar cupón ${code}?`, confirmText: "Eliminar", variant: "destructive" }))) return;
     await supabase.from("coupons").delete().eq("id", id);
     setCoupons(prev => prev.filter(c => c.id !== id));
     toast.success("Cupón eliminado");
@@ -400,7 +402,7 @@ export default function CouponsPage() {
       )}
 
       {/* ─── Create Dialog ─────────────────────────────────────────── */}
-      <Dialog open={dialog} onOpenChange={setDialog}>
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -584,7 +586,7 @@ export default function CouponsPage() {
             )}
 
             <div className="flex gap-2 pt-1">
-              <Button variant="outline" className="flex-1" onClick={() => setDialog(false)}>Cancelar</Button>
+              <Button variant="outline" className="flex-1" onClick={() => setFormOpen(false)}>Cancelar</Button>
               <Button
                 className="flex-1 gradient-gold text-primary-foreground"
                 disabled={saving || !form.code.trim() || !form.discountValue}
@@ -596,6 +598,7 @@ export default function CouponsPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {dialog}
     </div>
   );
 }

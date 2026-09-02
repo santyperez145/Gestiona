@@ -7,6 +7,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { usePlatformAccess } from '@/lib/usePermissions';
 import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
@@ -48,6 +49,7 @@ function asFunctionError(error: unknown, data: unknown) {
 export default function PlatformOperationsPage() {
   usePageTitle('Operaciones de plataforma');
   const { isPlatformStaff, isSuperadmin, loading: accessLoading } = usePlatformAccess();
+  const { ask, dialog } = useConfirmDialog();
   const [rows, setRows] = useState<OperationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +86,12 @@ export default function PlatformOperationsPage() {
 
   const retryOutbox = async (row: OperationRow) => {
     if (!row.ticket_id || !row.can_retry || !isSuperadmin) return;
-    if (!window.confirm('¿Reintentar esta entrega descartada? La cola la volverá a procesar; el reintento queda auditado.')) return;
+    if (!(await ask({
+      title: "¿Reintentar esta entrega descartada?",
+      description: "La cola la volverá a procesar; el reintento queda auditado.",
+      confirmText: "Reintentar",
+      variant: "default",
+    }))) return;
 
     setRetryingTicket(row.ticket_id);
     setError(null);
@@ -195,6 +202,7 @@ export default function PlatformOperationsPage() {
           </div>
         )}
       </section>
+      {dialog}
     </div>
   );
 }

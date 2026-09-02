@@ -46,6 +46,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import WorkspaceState from "@/components/shared/WorkspaceState";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import {
@@ -778,6 +779,7 @@ export default function PurchaseOrdersPage() {
   usePageTitle("Órdenes de Compra");
   const { activeOrg } = useOrg();
   const { online } = useNetworkStatus();
+  const { ask, dialog } = useConfirmDialog();
   const orgId = activeOrg?.id ?? "";
   const activeOrgIdRef = useRef(orgId);
   activeOrgIdRef.current = orgId;
@@ -929,7 +931,7 @@ export default function PurchaseOrdersPage() {
   };
 
   const handleDelete = async (order: PurchaseOrder) => {
-    if (!confirm(`¿Eliminar ${order.order_number}?`)) return;
+    if (!(await ask({ title: `¿Eliminar ${order.order_number}?`, confirmText: "Eliminar", variant: "destructive" }))) return;
     const { error } = await supabase.from("purchase_orders").delete().eq("id", order.id);
     if (error) { toast.error("No se puede eliminar"); return; }
     setOrders(prev => prev.filter(o => o.id !== order.id));
@@ -1069,6 +1071,7 @@ export default function PurchaseOrdersPage() {
         onOpenChange={setOcrModalOpen}
         onUseData={data => { setEditingOrder(null); setOcrPrefill(data); setFormOpen(true); }}
       />
+      {dialog}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
 import type { OrgRole } from '@/lib/orgContext';
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 import { plural } from "@/lib/plural";
 interface Member {
@@ -63,6 +64,7 @@ export default function TeamPage() {
   usePageTitle("Equipo");
   const { activeOrg, activeRole } = useOrg();
   const { userLimit, plan } = useEntitlements();
+  const { ask, dialog } = useConfirmDialog();
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,7 +158,7 @@ export default function TeamPage() {
   };
 
   const removeMember = async (id: string) => {
-    if (!confirm('¿Eliminar este miembro?')) return;
+    if (!(await ask({ title: "¿Eliminar este miembro?", confirmText: "Eliminar", variant: "destructive" }))) return;
     const { error } = await supabase.from('memberships').delete().eq('id', id);
     if (error) toast.error(error.message); else { toast.success('Miembro eliminado'); load(); }
   };
@@ -298,6 +300,7 @@ export default function TeamPage() {
           </div>
         </div>
       )}
+      {dialog}
     </div>
   );
 }

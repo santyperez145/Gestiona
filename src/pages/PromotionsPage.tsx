@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -111,6 +112,7 @@ export default function PromotionsPage() {
   usePageTitle("Promociones & Flash Sales");
   const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
+  const { ask, dialog } = useConfirmDialog();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -227,7 +229,7 @@ export default function PromotionsPage() {
   };
 
   const deletePromo = async (id: string) => {
-    if (!confirm("¿Eliminar esta promoción?")) return;
+    if (!(await ask({ title: "¿Eliminar esta promoción?", confirmText: "Eliminar", variant: "destructive" }))) return;
     await supabase.from("promotions").delete().eq("id", id);
     load();
     toast.success("Promoción eliminada");
@@ -548,6 +550,7 @@ export default function PromotionsPage() {
           })}
         </div>
       )}
+      {dialog}
     </div>
   );
 }

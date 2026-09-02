@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { destinoOAuthPermitido } from "@/lib/gestionaPay";
 import GestionaPayComisiones from "@/components/integrations/GestionaPayComisiones";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 interface Estado {
   provider: string;
@@ -40,6 +41,7 @@ export default function PaymentConnectionsPanel({
   onConnectionChange?: () => void;
 } = {}) {
   const { activeOrg } = useOrg();
+  const { ask, dialog } = useConfirmDialog();
   const [mp, setMp] = useState<Estado | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -105,7 +107,12 @@ export default function PaymentConnectionsPanel({
 
   const accion = async (action: string, ok: string) => {
     if (!activeOrg?.id) return;
-    if (action === "disconnect" && !confirm("¿Desconectar MercadoPago? Los cobros online dejan de funcionar.")) return;
+    if (action === "disconnect" && !(await ask({
+      title: "¿Desconectar Gestiona Pay?",
+      description: "Los cobros online dejan de funcionar hasta que vuelvas a conectar la cuenta.",
+      confirmText: "Desconectar",
+      variant: "destructive",
+    }))) return;
     setBusy(action);
     const { data, error } = await supabase.functions.invoke("mp-connect", {
       body: { action, orgId: activeOrg.id },
@@ -128,6 +135,8 @@ export default function PaymentConnectionsPanel({
   const conectado = !!mp?.conectado;
 
   return (
+    <>
+      {dialog}
     <div className="bg-card border border-border rounded-xl p-4 md:p-6 space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 min-w-0">
@@ -231,5 +240,6 @@ export default function PaymentConnectionsPanel({
         suscripción de Gestiona, no las ventas del comercio.
       </p>
     </div>
+    </>
   );
 }

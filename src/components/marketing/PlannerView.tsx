@@ -29,6 +29,7 @@ import {
   Eye, Heart, MessageCircle, Repeat2, MousePointerClick, CheckCircle2, Clock,
   Send, XCircle, FileEdit, Loader2, Sparkles,
 } from "lucide-react";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import KPICard from "@/components/shared/KPICard";
 
 interface SocialPost {
@@ -115,6 +116,7 @@ const EMPTY_POST = {
 export default function PlannerView() {
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
+  const { ask, dialog } = useConfirmDialog();
 
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [hashtagSets, setHashtagSets] = useState<HashtagSet[]>([]);
@@ -227,7 +229,10 @@ export default function PlannerView() {
   }
 
   async function deletePost(id: string) {
-    if (!confirm("¿Eliminar post?")) return;
+    if (!(await ask({
+      title: "¿Eliminar post?",
+      confirmText: "Eliminar",
+    }))) return;
     await supabase.from("social_posts").delete().eq("id", id);
     toast.success("Post eliminado");
     loadData();
@@ -776,6 +781,7 @@ export default function PlannerView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {dialog}
     </div>
   );
 }

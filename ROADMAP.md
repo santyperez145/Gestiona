@@ -3177,6 +3177,14 @@ Finance Connect.
      `/tienda-online?tab=settings`, no a Integraciones. No se inventó
      tabla bancaria ni se exigió Mercado Pago.
 
+117. UX propia: sin confirm del navegador + AI Action Rate visible — 2026-09-02.
+     ~45 `confirm()`/`window.confirm` migrados a `useConfirmDialog` +
+     `ConfirmDialog`. Guarda `sinConfirmDelNavegador`. Banners
+     permanentes («Cómo funcionan», tips ABC/conversión, ANMAT siempre
+     visible) pasaron a PageGuide o empty. El recomendador de ofertas
+     pide confirmación propia al aplicar y muestra AI Action Rate (G8);
+     generar sin aplicar no se presenta como éxito.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

@@ -11,6 +11,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,6 +61,7 @@ export default function ProductBundlesPage() {
   usePageTitle("Bundles / Kits");
   const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
+  const { ask, dialog } = useConfirmDialog();
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,7 +140,7 @@ export default function ProductBundlesPage() {
   };
 
   const deleteBundle = async (id: string) => {
-    if (!confirm("¿Eliminar este bundle?")) return;
+    if (!(await ask({ title: "¿Eliminar este bundle?", confirmText: "Eliminar", variant: "destructive" }))) return;
     await supabase.from("product_bundles").delete().eq("id", id);
     load();
     toast.success("Bundle eliminado");
@@ -458,6 +460,7 @@ export default function ProductBundlesPage() {
           })}
         </div>
       )}
+      {dialog}
     </div>
   );
 }

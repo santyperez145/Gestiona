@@ -23,6 +23,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useSearchParams } from "react-router-dom";
 import ShippingZonesTab from "@/components/shipping/ShippingZonesTab";
 import CarriersTab from "@/components/shipping/CarriersTab";
@@ -390,6 +391,7 @@ export default function DeliveryTrackingPage() {
   usePageTitle("Seguimiento de Envíos");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
+  const { ask, dialog } = useConfirmDialog();
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -415,7 +417,7 @@ export default function DeliveryTrackingPage() {
   useEffect(() => { loadData(); }, [orgId]);
 
   async function deleteDelivery(id: string) {
-    if (!confirm("¿Eliminar este envío?")) return;
+    if (!(await ask({ title: "¿Eliminar este envío?", confirmText: "Eliminar", variant: "destructive" }))) return;
     await supabase.from("deliveries").delete().eq("id", id);
     toast.success("Envío eliminado");
     loadData();
@@ -590,6 +592,7 @@ export default function DeliveryTrackingPage() {
       <DeliveryForm open={formOpen} onClose={() => setFormOpen(false)}
         editing={editing} orgId={orgId} onSaved={loadData} />
       {tracking && <TrackingModal delivery={tracking} onClose={() => setTracking(null)} onUpdate={loadData} />}
+      {dialog}
     </div>
   );
 }

@@ -25,6 +25,7 @@ import { getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import DripSequencesTab from "@/components/marketing/DripSequencesTab";
 
@@ -161,6 +162,7 @@ export default function EmailCampaignsPage() {
   usePageTitle("Email Marketing");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const { ask, dialog } = useConfirmDialog();
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   /**
@@ -411,7 +413,11 @@ export default function EmailCampaignsPage() {
   const handleSend = async (camp: Campaign) => {
     const audience = audienceFor(camp.segment);
     if (audience.length === 0) { toast.error("No hay destinatarios para este segmento"); return; }
-    if (!confirm(`Enviar a ${audience.length} contacto(s) con email?`)) return;
+    if (!(await ask({
+      title: `¿Enviar a ${audience.length} contacto(s) con email?`,
+      confirmText: "Enviar",
+      variant: "default",
+    }))) return;
     setSending(camp.id);
     try {
       await supabase.from("email_campaigns").update({ status: "sending" }).eq("id", camp.id);
@@ -445,7 +451,10 @@ export default function EmailCampaignsPage() {
   // ── Delete ────────────────────────────────────────────────────────────────────
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar esta campaña?")) return;
+    if (!(await ask({
+      title: "¿Eliminar esta campaña?",
+      confirmText: "Eliminar",
+    }))) return;
     setDeleting(id);
     try {
       await supabase.from("email_campaigns").delete().eq("id", id);
@@ -935,6 +944,7 @@ export default function EmailCampaignsPage() {
           />
         </DialogContent>
       </Dialog>
+      {dialog}
     </div>
   );
 }

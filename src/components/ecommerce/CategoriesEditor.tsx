@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "sonner";
 import {
   Tags, Plus, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Loader2, Wand2, Check, X,
@@ -38,6 +39,7 @@ interface Fila extends CategoriaTienda {
 
 export default function CategoriesEditor({ storeId }: { storeId: string | null }) {
   const { orgId } = useOrganization();
+  const { ask, dialog } = useConfirmDialog();
   const [filas, setFilas] = useState<Fila[]>([]);
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -157,7 +159,10 @@ export default function CategoriesEditor({ storeId }: { storeId: string | null }
       });
       return;
     }
-    if (!confirm(`¿Borrar la categoría "${f.name}"?`)) return;
+    if (!(await ask({
+      title: `¿Borrar la categoría "${f.name}"?`,
+      confirmText: "Borrar",
+    }))) return;
     const { error } = await supabase.from("ecommerce_categories").delete().eq("id", f.id);
     if (error) { toast.error(error.message); return; }
     setFilas(prev => prev.filter(x => x.id !== f.id));
@@ -342,6 +347,7 @@ export default function CategoriesEditor({ storeId }: { storeId: string | null }
           ))}
         </div>
       )}
+      {dialog}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -78,6 +79,7 @@ export default function InventoryTransfersPage() {
   usePageTitle("Transferencias de Inventario");
   const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
+  const { ask, dialog } = useConfirmDialog();
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
@@ -196,7 +198,7 @@ export default function InventoryTransfersPage() {
   };
 
   const cancelTransfer = async (id: string) => {
-    if (!confirm("¿Cancelar esta transferencia?")) return;
+    if (!(await ask({ title: "¿Cancelar esta transferencia?", confirmText: "Cancelar", variant: "destructive" }))) return;
     await supabase.from("inventory_transfers").update({ status: 'cancelled' }).eq("id", id);
     load();
     toast.success("Transferencia cancelada");
@@ -517,6 +519,7 @@ export default function InventoryTransfersPage() {
           })}
         </div>
       )}
+      {dialog}
     </div>
   );
 }

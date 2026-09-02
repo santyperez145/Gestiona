@@ -42,6 +42,7 @@ import { format } from "date-fns";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -395,6 +396,7 @@ export default function PriceListsPage() {
   usePageTitle("Listas de Precios");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
+  const { ask, dialog } = useConfirmDialog();
 
   const [lists, setLists] = useState<PriceList[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -427,7 +429,7 @@ export default function PriceListsPage() {
   }), [lists]);
 
   const handleDelete = async (list: PriceList) => {
-    if (!confirm(`¿Eliminar "${list.name}"?`)) return;
+    if (!(await ask({ title: `¿Eliminar "${list.name}"?`, confirmText: "Eliminar", variant: "destructive" }))) return;
     const { error } = await supabase.from("price_lists").delete().eq("id", list.id);
     if (error) { toast.error("No se puede eliminar"); return; }
     setLists(prev => prev.filter(l => l.id !== list.id));
@@ -543,6 +545,7 @@ export default function PriceListsPage() {
         orgId={orgId}
         onClose={() => setItemsDialogList(null)}
       />
+      {dialog}
     </div>
   );
 }

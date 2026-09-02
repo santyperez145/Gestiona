@@ -27,6 +27,7 @@ import {
   Clock, Users, Send, Zap, CheckCircle2,
 } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -110,6 +111,7 @@ const EMPTY_STEP = (): SequenceStep => ({ day_offset: 3, subject: "", body_html:
 export default function DripSequencesTab() {
   const { activeOrg, activeRole } = useOrg();
   const { user } = useAuth();
+  const { ask, dialog } = useConfirmDialog();
 
   const [sequences, setSequences]   = useState<DripSequence[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -240,7 +242,10 @@ export default function DripSequencesTab() {
 
   // ── Delete sequence ───────────────────────────────────────
   const deleteSeq = async (id: string) => {
-    if (!confirm("¿Eliminar esta secuencia y todos sus datos?")) return;
+    if (!(await ask({
+      title: "¿Eliminar esta secuencia y todos sus datos?",
+      confirmText: "Eliminar",
+    }))) return;
     try {
       await supabase.from("drip_sequences").delete().eq("id", id);
       setSequences(prev => prev.filter(s => s.id !== id));
@@ -541,6 +546,7 @@ export default function DripSequencesTab() {
           })}
         </div>
       )}
+      {dialog}
     </div>
   );
 }

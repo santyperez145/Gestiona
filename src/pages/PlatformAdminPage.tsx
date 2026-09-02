@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
 import KPICard from '@/components/shared/KPICard';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
@@ -184,6 +185,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
   usePageTitle("Platform Admin");
   const { isPlatformAdmin, loading: orgLoading } = useOrg();
   const navigate = useNavigate();
+  const { ask, dialog } = useConfirmDialog();
   const tab = section;
   const setTab = useCallback((next: string) => {
     navigate(SECTION_PATH[next] || '/platform');
@@ -430,7 +432,10 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
   };
 
   const handleRemoveMember = async (orgId: string, userId: string, email: string) => {
-    if (!confirm(`¿Remover a ${email} de la organización?`)) return;
+    if (!(await ask({
+      title: `¿Remover a ${email} de la organización?`,
+      confirmText: "Remover",
+    }))) return;
     try {
       await adminCall('removeMember', { orgId, userId });
       setOrgMembers(prev => prev.filter(m => m.user_id !== userId));
@@ -609,7 +614,11 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
   };
 
   const handleResetPassword = async (u: UserRow) => {
-    if (!confirm(`¿Enviar email de recuperación de contraseña a ${u.email}?`)) return;
+    if (!(await ask({
+      title: `¿Enviar email de recuperación de contraseña a ${u.email}?`,
+      confirmText: "Enviar",
+      variant: "default",
+    }))) return;
     try {
       await adminCall('resetUserPassword', { userId: u.id });
       toast.success(`Email enviado a ${u.email}`);
@@ -1988,6 +1997,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
         ciclo={cambioPrecio.ciclo}
         precioNuevo={cambioPrecio.precio}
       />
+      {dialog}
     </div>
   );
 }

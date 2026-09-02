@@ -14,6 +14,7 @@ import {
   History, RefreshCw, CheckCircle2, XCircle, SkipForward, Kanban, BarChart3,
 } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 import { plural } from "@/lib/plural";
 // ─────────────────────────────────────────────────────────────
@@ -560,6 +561,7 @@ interface AutomationRun {
 
 export default function AutomationFlowsTab() {
   const { activeOrg } = useOrg();
+  const { ask, dialog } = useConfirmDialog();
   const [flows, setFlows] = useState<FlowRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -628,7 +630,10 @@ export default function AutomationFlowsTab() {
   };
 
   const deleteFlow = async (id: string) => {
-    if (!confirm("¿Eliminar este flujo?")) return;
+    if (!(await ask({
+      title: "¿Eliminar este flujo?",
+      confirmText: "Eliminar",
+    }))) return;
     await supabase.from("automation_flows").delete().eq("id", id);
     await load();
     toast.success("Flujo eliminado");
@@ -686,25 +691,6 @@ export default function AutomationFlowsTab() {
           sub={`${successRuns}/${totalRuns} exitosas`} />
       </div>
 
-      {/* Info banner */}
-      <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 flex items-start gap-3">
-        <Zap className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-        <div className="text-sm space-y-1">
-          <p className="font-medium">Cómo funcionan las automatizaciones</p>
-          <p className="text-muted-foreground text-xs">
-            Cada flujo activo se evalúa automáticamente <strong>todos los días a las 8:00 AM (Argentina)</strong>.
-            Cuando se cumple el disparador, se ejecuta la acción configurada.
-          </p>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {(["notification", "email", "whatsapp_message", "create_task", "create_purchase_order", "webhook"] as ActionType[]).map((a) => (
-              <span key={a} className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium ${actionBadgeClass(a)}`}>
-                {ACTION_ICONS[a]}{ACTION_LABELS[a]}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* Template gallery */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Plantillas sugeridas</p>
@@ -736,7 +722,9 @@ export default function AutomationFlowsTab() {
         <div className="text-center py-12">
           <Zap className="w-12 h-12 mx-auto mb-4 text-muted-foreground/20" />
           <p className="text-lg text-muted-foreground font-medium">Sin flujos configurados</p>
-          <p className="text-sm text-muted-foreground mt-1">Usá una plantilla o creá tu primera automatización personalizada</p>
+          <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+            Empezá con una plantilla (stock bajo, cliente inactivo o deuda). Se evalúan cada día a las 08:00; preferí email si WhatsApp todavía no está listo.
+          </p>
           <Button
             className="mt-4 gradient-gold text-primary-foreground font-semibold"
             onClick={() => setShowForm(true)}
@@ -928,6 +916,7 @@ export default function AutomationFlowsTab() {
           />
         </DialogContent>
       </Dialog>
+      {dialog}
     </div>
   );
 }

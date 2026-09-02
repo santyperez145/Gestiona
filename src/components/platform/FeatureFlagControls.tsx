@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 
 type FlagOverride = {
   id: string;
@@ -39,6 +40,7 @@ function formatUpdatedAt(value: string | null) {
 }
 
 export default function FeatureFlagControls({ isSuperadmin }: { isSuperadmin: boolean }) {
+  const { ask, dialog } = useConfirmDialog();
   const [overrides, setOverrides] = useState<FlagOverride[]>([]);
   const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState('');
@@ -88,7 +90,12 @@ export default function FeatureFlagControls({ isSuperadmin }: { isSuperadmin: bo
     const scope = orgId ?? 'global';
     const scopeLabel = orgId ? selectedOrg?.name ?? 'este comercio' : 'todos los comercios';
     const decision = enabled ? 'habilitar' : 'pausar';
-    if (!window.confirm(`¿Confirmás ${decision} el pago integrado para ${scopeLabel}? El checkout externo de MercadoPago seguirá disponible.`)) return;
+    if (!(await ask({
+      title: `¿Confirmás ${decision} el pago integrado para ${scopeLabel}?`,
+      description: "El checkout externo de MercadoPago seguirá disponible.",
+      confirmText: enabled ? "Habilitar" : "Pausar",
+      variant: "default",
+    }))) return;
 
     setSavingScope(scope);
     setError(null);
@@ -110,7 +117,11 @@ export default function FeatureFlagControls({ isSuperadmin }: { isSuperadmin: bo
     if (!isSuperadmin) return;
     const scope = orgId ?? 'global';
     const scopeLabel = orgId ? selectedOrg?.name ?? 'este comercio' : 'todos los comercios';
-    if (!window.confirm(`¿Quitar el override para ${scopeLabel}? Volverá a heredar el valor por defecto.`)) return;
+    if (!(await ask({
+      title: `¿Quitar el override para ${scopeLabel}?`,
+      description: "Volverá a heredar el valor por defecto.",
+      confirmText: "Quitar",
+    }))) return;
 
     setSavingScope(scope);
     setError(null);
@@ -216,6 +227,7 @@ export default function FeatureFlagControls({ isSuperadmin }: { isSuperadmin: bo
       {loading && <p className="border-t border-border/50 px-4 sm:px-5 py-3 text-[11px] text-muted-foreground"><Loader2 className="inline w-3.5 h-3.5 animate-spin mr-1.5" />Cargando controles…</p>}
       {notice && <p className="border-t border-emerald-500/20 bg-emerald-500/[0.04] px-4 sm:px-5 py-3 text-[11px] text-emerald-300" aria-live="polite">{notice}</p>}
       {error && <p className="border-t border-destructive/20 bg-destructive/5 px-4 sm:px-5 py-3 text-[11px] text-destructive" role="alert"><AlertTriangle className="inline w-3.5 h-3.5 mr-1.5" />{error}</p>}
+      {dialog}
     </section>
   );
 }

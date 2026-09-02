@@ -56,6 +56,7 @@ import {
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { usePriceList } from "@/hooks/usePriceList";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { listaVigente, etiquetaDescuento } from "@/lib/priceListCalc";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { useVibration } from "@/hooks/useVibration";
@@ -856,6 +857,7 @@ export default function POSPage() {
   const { nombre: nombreCategoria } = useOrgCategoryNames(activeOrg?.id);
   const config = useBusinessConfig();
   const { checkSalesLimit } = usePlanLimits();
+  const { ask, dialog } = useConfirmDialog();
 
   // ── Dynamically-loaded Fuse.js (avoids Rollup TDZ in prod) ──
   const [FuseClass, setFuseClass] = useState<any>(null);
@@ -1474,8 +1476,13 @@ export default function POSPage() {
     toast.success(`Pedido guardado: ${order.label}`);
   };
 
-  const restoreOrder = (order: SavedOrder) => {
-    if (cart.length && !window.confirm("¿Reemplazar el carrito actual con el pedido guardado?")) return;
+  const restoreOrder = async (order: SavedOrder) => {
+    if (cart.length && !(await ask({
+      title: "¿Reemplazar el carrito?",
+      description: "Se pierde el carrito actual y se carga el pedido guardado.",
+      confirmText: "Reemplazar carrito",
+      variant: "default",
+    }))) return;
     setCart(order.cart);
     setCustomer(order.customer);
     const next = savedOrders.filter(o => o.id !== order.id);
@@ -2277,9 +2284,12 @@ export default function POSPage() {
       const detail = reservationConflicts
         .map((item) => `${item.name}: ${onlineReservations[item.productId]} reservada(s) online`)
         .join("\n");
-      if (!window.confirm(
-        `Atención: esta venta consume stock reservado por pedido(s) online pendiente(s) de pago.\n\n${detail}\n\n¿Confirmar igualmente?`,
-      )) return;
+      if (!(await ask({
+        title: "¿Confirmar venta?",
+        description: `Esta venta consume stock reservado por pedido(s) online pendiente(s) de pago.\n\n${detail}`,
+        confirmText: "Confirmar venta",
+        variant: "default",
+      }))) return;
     }
 
     // Validate split payment
@@ -3239,6 +3249,7 @@ export default function POSPage() {
 
   return (
     <>
+      {dialog}
       {/* Variant Picker modal */}
       {variantPickerProduct && (
         <Dialog open onOpenChange={open => { if (!open) setVariantPickerProduct(null); }}>

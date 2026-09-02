@@ -24,6 +24,7 @@ import { recommendForPreferences } from "@/lib/perfumeMatch";
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
 import { useContactPicker } from "@/hooks/useContactPicker";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import PageHeader from "@/components/shared/PageHeader";
@@ -1442,6 +1443,7 @@ export default function CustomersPage() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const { canCreate, canEdit, canDelete } = useModulePermissions("customers");
+  const { ask, dialog } = useConfirmDialog();
   const [sales, setSales] = useState<any[]>([]);
   const [recoProducts, setRecoProducts] = useState<any[]>([]);
   const [perfumeDetailsById, setPerfumeDetailsById] = useState<Record<string, any>>({});
@@ -1660,7 +1662,12 @@ export default function CustomersPage() {
       toast.error("El cliente destino debe ser diferente al origen");
       return;
     }
-    if (!confirm(`¿Combinar "${srcProfile.name}" en "${dstProfile.name}"? Sólo se moverán filas ya enlazadas por ID. Esta acción no se puede deshacer.`)) return;
+    if (!(await ask({
+      title: "¿Combinar clientes?",
+      description: `Se moverán las filas ya enlazadas por ID de "${srcProfile.name}" a "${dstProfile.name}". Esta acción no se puede deshacer.`,
+      confirmText: "Combinar",
+      variant: "destructive",
+    }))) return;
     setMerging(true);
     try {
       const orgId = activeOrg.id;
@@ -2224,7 +2231,12 @@ export default function CustomersPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`¿Eliminar el perfil de "${name}"? (no se eliminarán las ventas asociadas)`)) return;
+    if (!(await ask({
+      title: `¿Eliminar perfil de "${name}"?`,
+      description: "No se eliminarán las ventas asociadas.",
+      confirmText: "Eliminar perfil",
+      variant: "destructive",
+    }))) return;
     setDeletingId(id);
     try {
       await deleteCustomerDB(id);
@@ -2243,12 +2255,15 @@ export default function CustomersPage() {
    */
   const handleAnonymize = async (id: string, name: string) => {
     if (!activeOrg?.id) return;
-    if (!confirm(
-      `Anonimizar a "${name}"?\n\n` +
-      `Se borran nombre, email, teléfono, dirección y notas de forma DEFINITIVA ` +
-      `en toda la app. Las ventas se conservan (AFIP lo exige) pero pasan a figurar ` +
-      `a nombre de un cliente anonimizado.\n\nEsta acción no se puede deshacer.`
-    )) return;
+    if (!(await ask({
+      title: `¿Anonimizar a "${name}"?`,
+      description:
+        "Se borran nombre, email, teléfono, dirección y notas de forma definitiva en toda la app. " +
+        "Las ventas se conservan (AFIP lo exige) pero pasan a figurar a nombre de un cliente anonimizado. " +
+        "Esta acción no se puede deshacer.",
+      confirmText: "Anonimizar",
+      variant: "destructive",
+    }))) return;
 
     setDeletingId(id);
     try {
@@ -2307,6 +2322,8 @@ export default function CustomersPage() {
   const atRiskCustomers = customers.filter(c => c.segment === "En riesgo" || c.segment === "Dormido").length;
 
   return (
+    <>
+      {dialog}
     <div className="workspace-page workspace-customers space-y-6 pb-12">
       {/* Form modal */}
       {formModal.open && (
@@ -4221,5 +4238,6 @@ export default function CustomersPage() {
       </>
       )}
     </div>
+    </>
   );
 }

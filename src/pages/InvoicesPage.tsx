@@ -28,6 +28,7 @@ const fmtARS = (n: number) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 import { plural } from "@/lib/plural";
 // ─────────────────────────────────────────────────────────────
@@ -276,6 +277,7 @@ export default function InvoicesPage() {
   usePageTitle("Facturas");
   const { user } = useAuth();
   const { activeOrg, activeRole } = useOrg();
+  const { ask, dialog } = useConfirmDialog();
   const [searchParams, setSearchParams] = useSearchParams();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -614,7 +616,7 @@ export default function InvoicesPage() {
   };
 
   const deleteInvoice = async (id: string) => {
-    if (!confirm("¿Eliminar factura?")) return;
+    if (!(await ask({ title: "¿Eliminar factura?", confirmText: "Eliminar", variant: "destructive" }))) return;
     await supabase.from("invoices").delete().eq("id", id);
     toast.success("Factura eliminada");
     load();
@@ -1385,6 +1387,7 @@ export default function InvoicesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {dialog}
     </div>
   );
 }

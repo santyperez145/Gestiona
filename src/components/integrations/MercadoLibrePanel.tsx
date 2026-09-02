@@ -11,10 +11,11 @@ import { useOrg } from "@/lib/orgContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  ShoppingBag, Loader2, RefreshCw, Download, Unlink, AlertTriangle, ExternalLink, CheckCircle2,
+  ShoppingBag, Loader2, RefreshCw, Download, Unlink, ExternalLink, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 interface Status {
   nickname: string | null;
@@ -53,6 +54,7 @@ const formatARS = (amount: number | null) => new Intl.NumberFormat("es-AR", {
 
 export default function MercadoLibrePanel() {
   const { activeOrg } = useOrg();
+  const { ask, dialog } = useConfirmDialog();
   const [status, setStatus] = useState<Status | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [orders, setOrders] = useState<MeliOrder[]>([]);
@@ -131,7 +133,12 @@ export default function MercadoLibrePanel() {
 
   const disconnect = async () => {
     if (!activeOrg?.id) return;
-    if (!confirm("¿Desconectar la cuenta de MercadoLibre? Las publicaciones siguen online, pero dejan de sincronizarse.")) return;
+    if (!(await ask({
+      title: "¿Desconectar MercadoLibre?",
+      description: "Las publicaciones siguen online, pero dejan de sincronizarse.",
+      confirmText: "Desconectar",
+      variant: "destructive",
+    }))) return;
     setBusy("disconnect");
     await supabase.functions.invoke("meli-oauth", { body: { action: "disconnect", orgId: activeOrg.id } });
     setBusy(null);
@@ -148,6 +155,8 @@ export default function MercadoLibrePanel() {
   }
 
   return (
+    <>
+      {dialog}
     <div className="bg-card border border-border rounded-xl p-4 md:p-6 space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 min-w-0">
@@ -172,16 +181,6 @@ export default function MercadoLibrePanel() {
         )}
       </div>
 
-      {/* Los vapers están prohibidos en ML Argentina — mejor decirlo antes. */}
-      <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-3 flex gap-2">
-        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-        <p className="text-xs text-muted-foreground">
-          MercadoLibre Argentina <strong>no permite vender vapers</strong> — ANMAT
-          los tiene prohibidos y publicarlos puede costarte una sanción en la
-          cuenta. La integración bloquea esa categoría; el resto del catálogo
-          se publica normalmente.
-        </p>
-      </div>
 
       {status?.last_error && (
         <div className="rounded-lg border border-destructive/25 bg-destructive/5 p-3">
@@ -370,5 +369,6 @@ export default function MercadoLibrePanel() {
         </>
       )}
     </div>
+    </>
   );
 }

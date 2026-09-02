@@ -18,6 +18,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 // ─── Template library ─────────────────────────────────────────────────────────
 const WA_TEMPLATES = [
@@ -102,6 +103,7 @@ export default function WhatsAppCampaignsPage() {
   usePageTitle("WhatsApp Masivo");
   const { user, session } = useAuth();
   const { activeOrg } = useOrg();
+  const { ask, dialog } = useConfirmDialog();
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -235,7 +237,11 @@ export default function WhatsAppCampaignsPage() {
   const handleSend = async (camp: Campaign) => {
     const audience = audienceFor(camp.segment);
     if (!audience.length) { toast.error("No hay destinatarios con teléfono en este segmento"); return; }
-    if (!confirm(`¿Enviar WhatsApp a ${audience.length} contacto(s)?`)) return;
+    if (!(await ask({
+      title: `¿Enviar WhatsApp a ${audience.length} contacto(s)?`,
+      confirmText: "Enviar",
+      variant: "default",
+    }))) return;
 
     setSending(camp.id);
     try {
@@ -267,7 +273,10 @@ export default function WhatsAppCampaignsPage() {
 
   // ── Delete ────────────────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar esta campaña?")) return;
+    if (!(await ask({
+      title: "¿Eliminar esta campaña?",
+      confirmText: "Eliminar",
+    }))) return;
     setDeleting(id);
     await supabase.from("whatsapp_campaigns").delete().eq("id", id);
     setCampaigns(prev => prev.filter(c => c.id !== id));
@@ -539,6 +548,7 @@ export default function WhatsAppCampaignsPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {dialog}
     </div>
   );
 }

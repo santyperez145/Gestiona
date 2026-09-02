@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import {
   Users,
   Plus,
@@ -489,6 +490,7 @@ function CampForm({ open, segmentId, segments, orgId, onClose, onSaved }: CampFo
 export default function CustomerSegmentsTab() {
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
+  const { ask, dialog } = useConfirmDialog();
 
   const [segments, setSegments] = useState<CustomerSegment[]>([]);
   const [campaigns, setCampaigns] = useState<SegmentCampaign[]>([]);
@@ -534,7 +536,10 @@ export default function CustomerSegmentsTab() {
   };
 
   const handleDelete = async (segment: CustomerSegment) => {
-    if (!confirm(`¿Eliminar "${segment.name}"?`)) return;
+    if (!(await ask({
+      title: `¿Eliminar "${segment.name}"?`,
+      confirmText: "Eliminar",
+    }))) return;
     const { error } = await supabase.from("customer_segments").delete().eq("id", segment.id);
     if (error) { toast.error("No se pudo eliminar"); return; }
     setSegments(prev => prev.filter(s => s.id !== segment.id));
@@ -668,6 +673,7 @@ export default function CustomerSegmentsTab() {
 
       <CampForm open={campFormOpen} segmentId={campSegmentId} segments={segments} orgId={orgId}
         onClose={() => { setCampFormOpen(false); setCampSegmentId(null); }} onSaved={loadAll} />
+      {dialog}
     </div>
   );
 }

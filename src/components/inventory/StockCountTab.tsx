@@ -18,6 +18,7 @@ import {
   Loader2, Download, Search, ChevronUp, ChevronDown,
   PackageCheck, TrendingDown, TrendingUp, Minus, ScanLine, Zap,
 } from "lucide-react";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 // ─── Barcode scanner hook ─────────────────────────────────────────────────────
 
@@ -76,6 +77,7 @@ type SortKey = "name" | "diff" | "system";
 
 export default function StockCountTab() {
   const { activeOrg } = useOrg();
+  const { ask, dialog } = useConfirmDialog();
   // El rotulo de cada categoria sale de las categorias de la organizacion.
   // Hasta 2026-08-25 salia de un Record con cuatro entradas de perfumeria, asi
   // que un comercio de otro rubro leia el slug crudo o el rubro equivocado.
@@ -216,7 +218,12 @@ export default function StockCountTab() {
     const countedRows = rows.filter(r => r.counted !== "");
     const changed = countedRows.filter(r => Number(r.counted) !== r.product.stock);
     if (countedRows.length === 0) { toast.info("Contá al menos un producto antes de cerrar"); return; }
-    if (!confirm(`¿Cerrar la toma de ${countedRows.length} producto(s) y registrar ${changed.length} ajuste(s) auditado(s)?`)) return;
+    if (!(await ask({
+      title: "¿Cerrar toma física?",
+      description: `Se registrarán ${changed.length} ajuste(s) auditado(s) sobre ${countedRows.length} producto(s) contado(s).`,
+      confirmText: "Cerrar toma",
+      variant: "destructive",
+    }))) return;
     setSaving(true);
     let countId: string | null = null;
     try {
@@ -297,6 +304,8 @@ export default function StockCountTab() {
   const countedCount = rows.filter(r => r.counted !== "").length;
 
   return (
+    <>
+      {dialog}
     <div className="space-y-6 pb-12">
       <p className="text-sm text-muted-foreground">
         Ingresá el stock real de cada producto. Confirmá para actualizar las diferencias.
@@ -529,5 +538,6 @@ export default function StockCountTab() {
         }
       `}</style>
     </div>
+    </>
   );
 }

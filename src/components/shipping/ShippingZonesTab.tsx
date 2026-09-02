@@ -16,6 +16,7 @@ import {
   type CarrierCode, type ServiceCode, type StoreShippingConfig,
 } from '@/lib/shippingCalc';
 import CompletarTarifario from './CompletarTarifario';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 
 const fmt = (n: number) => `$${n.toLocaleString('es-AR', { maximumFractionDigits: 2 })}`;
 
@@ -44,6 +45,7 @@ const emptyRate = (zoneId: string) => ({
 export default function ShippingZonesTab() {
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? '';
+  const { ask, dialog } = useConfirmDialog();
 
   const [zones, setZones] = useState<ZoneRow[]>([]);
   const [rates, setRates] = useState<ShippingRate[]>([]);
@@ -102,7 +104,11 @@ export default function ShippingZonesTab() {
     const warning = zoneRates > 0
       ? `Se van a borrar también sus ${zoneRates} ${zoneRates === 1 ? 'tarifa' : 'tarifas'}.`
       : '';
-    if (!confirm(`¿Eliminar la zona "${z.name}"? ${warning}`)) return;
+    if (!(await ask({
+      title: `¿Eliminar la zona "${z.name}"?`,
+      description: warning || undefined,
+      confirmText: "Eliminar",
+    }))) return;
     const { error } = await supabase.from('shipping_zones').delete().eq('id', z.id);
     if (error) { toast.error(error.message); return; }
     toast.success('Zona eliminada');
@@ -482,6 +488,7 @@ export default function ShippingZonesTab() {
           )}
         </div>
       )}
+      {dialog}
     </div>
   );
 }

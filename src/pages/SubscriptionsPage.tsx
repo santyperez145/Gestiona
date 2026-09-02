@@ -51,6 +51,7 @@ import { es } from "date-fns/locale";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -733,6 +734,7 @@ export default function SubscriptionsPage() {
   usePageTitle("Suscripciones");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
+  const { ask, dialog } = useConfirmDialog();
 
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [subs, setSubs] = useState<Subscription[]>([]);
@@ -824,7 +826,12 @@ export default function SubscriptionsPage() {
   };
 
   const handleDeletePlan = async (plan: SubscriptionPlan) => {
-    if (!confirm(`¿Eliminar el plan "${plan.name}"? Si tiene suscripciones activas no se podrá eliminar.`)) return;
+    if (!(await ask({
+      title: `¿Eliminar el plan "${plan.name}"?`,
+      description: "Si tiene suscripciones activas no se podrá eliminar.",
+      confirmText: "Eliminar",
+      variant: "destructive",
+    }))) return;
     const { error } = await supabase.from("subscription_plans").delete().eq("id", plan.id);
     if (error) { toast.error("No se pudo eliminar. Puede tener suscripciones activas."); return; }
     toast.success("Plan eliminado");
@@ -1012,6 +1019,7 @@ export default function SubscriptionsPage() {
         onClose={() => setInvoicesModalSub(null)}
         onRefresh={loadSubs}
       />
+      {dialog}
     </div>
   );
 }

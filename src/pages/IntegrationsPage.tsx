@@ -26,6 +26,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import AdvancedApiKeysPanel from "@/components/integrations/AdvancedApiKeysPanel";
 import AdvancedWebhooksPanel from "@/components/integrations/AdvancedWebhooksPanel";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 import { plural } from "@/lib/plural";
 // ── Integration health types ──────────────────────────────────────────────────
@@ -435,6 +436,7 @@ type EvolutionConnectionStatus = {
 
 function EvolutionSection({ orgId }: { orgId: string | undefined }) {
   const { session } = useAuth();
+  const { ask, dialog } = useConfirmDialog();
 
   // Las credenciales sólo existen mientras se envían al endpoint seguro. Nunca
   // se hidratan desde la base ni se conservan después de guardar.
@@ -507,7 +509,13 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
   };
 
   const handleRevokeCredentials = async () => {
-    if (!orgId || !session || !confirm("¿Revocar la conexión de Evolution? Se detendrán los envíos hasta configurarla otra vez.")) return;
+    if (!orgId || !session) return;
+    if (!(await ask({
+      title: "¿Revocar Evolution?",
+      description: "Se detendrán los envíos hasta configurarla otra vez.",
+      confirmText: "Revocar",
+      variant: "destructive",
+    }))) return;
     setRevoking(true);
     try {
       const { error } = await supabase.functions.invoke("evolution-credentials", {
@@ -599,7 +607,12 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
 
   // Disconnect
   const handleLogout = async () => {
-    if (!confirm("¿Desconectar WhatsApp? Tendrás que escanear el QR de nuevo.")) return;
+    if (!(await ask({
+      title: "¿Desconectar WhatsApp?",
+      description: "Tendrás que escanear el QR de nuevo.",
+      confirmText: "Desconectar",
+      variant: "destructive",
+    }))) return;
     try {
       await callEvolution("logout");
       setConnState("close");
@@ -648,6 +661,8 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
   }[connState];
 
   return (
+    <>
+      {dialog}
     <div className="rounded-xl border border-green-500/20 bg-card p-5 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -808,5 +823,6 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
         </div>
       )}
     </div>
+    </>
   );
 }
