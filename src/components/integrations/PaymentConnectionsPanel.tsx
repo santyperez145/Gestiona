@@ -33,7 +33,12 @@ interface Estado {
   last_error: string | null;
 }
 
-export default function PaymentConnectionsPanel() {
+export default function PaymentConnectionsPanel({
+  onConnectionChange,
+}: {
+  /** Para que el checklist de Commerce no diga «sin Pay» con la cuenta ya vinculada. */
+  onConnectionChange?: () => void;
+} = {}) {
   const { activeOrg } = useOrg();
   const [mp, setMp] = useState<Estado | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,9 +86,10 @@ export default function PaymentConnectionsPanel() {
         window.location.assign(destino);
         return;
       }
-      load();
+      await load();
+      onConnectionChange?.();
     })();
-  }, [activeOrg?.id, load]);
+  }, [activeOrg?.id, load, onConnectionChange]);
 
   const conectar = async () => {
     if (!activeOrg?.id) return;
@@ -107,7 +113,8 @@ export default function PaymentConnectionsPanel() {
     setBusy(null);
     const err = await mensajeDeEdgeFunction(error, data);
     if (err) toast.error(err); else toast.success(ok);
-    load();
+    await load();
+    onConnectionChange?.();
   };
 
   if (loading) {

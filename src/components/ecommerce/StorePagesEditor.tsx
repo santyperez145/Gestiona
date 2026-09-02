@@ -36,7 +36,16 @@ function slugify(t: string) {
     .slice(0, 60);
 }
 
-export default function StorePagesEditor({ storeId, storeSlug }: { storeId: string | null; storeSlug: string | null }) {
+export default function StorePagesEditor({
+  storeId,
+  storeSlug,
+  onPagesChanged,
+}: {
+  storeId: string | null;
+  storeSlug: string | null;
+  /** Para que el checklist de Publicar no quede con legales viejos. */
+  onPagesChanged?: () => void;
+}) {
   const { orgId } = useOrganization();
   const [pages, setPages] = useState<PageRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +83,8 @@ export default function StorePagesEditor({ storeId, storeSlug }: { storeId: stri
     toast.success(creadas > 0
       ? `${creadas} páginas creadas como borrador. Revisalas y publicalas.`
       : "Ya estaban todas creadas; no se pisó nada.");
-    cargar();
+    await cargar();
+    onPagesChanged?.();
   };
 
   const crear = async () => {
@@ -119,6 +129,7 @@ export default function StorePagesEditor({ storeId, storeSlug }: { storeId: stri
     setPages(prev => prev.map(p => (p.id === borrador.id ? { ...p, ...patch } : p)));
     setBorrador(prev => (prev ? { ...prev, ...patch } : prev));
     toast.success(patch.status === "published" ? "Página publicada" : "Borrador guardado");
+    onPagesChanged?.();
   };
 
   const borrar = async (p: PageRow) => {
@@ -127,6 +138,7 @@ export default function StorePagesEditor({ storeId, storeSlug }: { storeId: stri
     setPages(prev => prev.filter(x => x.id !== p.id));
     if (seleccion === p.id) { setSeleccion(null); setBorrador(null); }
     toast.success("Página eliminada");
+    onPagesChanged?.();
   };
 
   if (!storeId) {
@@ -149,7 +161,10 @@ export default function StorePagesEditor({ storeId, storeSlug }: { storeId: stri
     <LegalPagesPanel
       storeId={storeId}
       existentes={pages.map(p => ({ slug: p.slug, title: p.title, content: p.content, status: p.status }))}
-      onAplicado={cargar}
+      onAplicado={async () => {
+        await cargar();
+        onPagesChanged?.();
+      }}
       onAbrirPagina={(slug) => {
         const pagina = pages.find(p => p.slug === slug);
         if (pagina) elegir(pagina);

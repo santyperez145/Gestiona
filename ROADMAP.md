@@ -3141,6 +3141,13 @@ Finance Connect.
      `@` → botón «Usar mi correo». El texto aclara que el fallback real
      es el dueño (como `store-order-email`), no «quien esté logueado».
 
+112. El checklist se actualiza al publicar legales o conectar Pay —
+     2026-09-02.
+     Las señales de readiness sólo se leían al montar Commerce: generar
+     legales o vincular Mercado Pago dejaba el panel mintiendo hasta un
+     F5. Ahora se releen al cambiar de pestaña, al mutar páginas y al
+     cambiar la conexión de Pay.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

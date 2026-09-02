@@ -85,6 +85,9 @@ describe('la primera publicación empieza por el catálogo', () => {
       kind: 'activate', label: 'Publicar la tienda',
     });
     expect(STORE).toContain('saveStore({ activate: true })');
+    expect(STORE).toContain('reloadReadinessSignals');
+    expect(STORE).toContain('onPagesChanged={reloadReadinessSignals}');
+    expect(STORE).toContain('onConnectionChange={reloadReadinessSignals}');
   });
 });
 

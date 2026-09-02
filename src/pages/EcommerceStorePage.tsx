@@ -326,31 +326,41 @@ export default function EcommerceStorePage() {
 
     loadOrders();
 
-    // Señales para saber si la tienda puede vender de verdad. Se cuentan en la
-    // base (`head: true`) en vez de traer las filas: sólo interesa el número.
-    Promise.all([
-      supabase.from("products").select("id", { count: "exact", head: true })
-        .eq("org_id", orgId).gt("stock", 0).gt("sale_price_ars", 0),
-      supabase.from("products").select("id", { count: "exact", head: true })
-        .eq("org_id", orgId).gt("stock", 0).gt("sale_price_ars", 0).is("weight_kg", null),
-      supabase.from("shipping_zones").select("id, provinces")
-        .eq("org_id", orgId).eq("is_active", true),
-      supabase.from("shipping_rates").select("zone_id").eq("org_id", orgId).eq("is_active", true),
-      supabase.from("store_pages").select("slug, content, status")
-        .eq("org_id", orgId)
-        .in("slug", ["politica-de-privacidad", "terminos-y-condiciones"]),
-      fetchPaymentStatus(orgId),
-    ]).then(([prods, sinPeso, zonas, tarifas, paginas, ajustes]) => {
+    supabase
+      .from("ecommerce_cart_sessions")
+      .select("id, status, items")
+      .eq("org_id", orgId)
+      .then(({ data }) => {
+        if (!data) return;
+        setFunnelData(storeFunnelFromCarts(data));
+        setAbandonedCarts(storeAbandonedCartCount(data));
+      });
+  }, [orgId, org, loadOrders]);
+
+  // Las señales viven en otras pestañas (Páginas, Pay, Productos). Si sólo se
+  // leyeran al montar, publicar legales o conectar MP dejaba el checklist
+  // mintiendo hasta un F5.
+  const reloadReadinessSignals = useCallback(async () => {
+    if (!orgId) return;
+    try {
+      const [prods, sinPeso, zonas, tarifas, paginas, cobro] = await Promise.all([
+        supabase.from("products").select("id", { count: "exact", head: true })
+          .eq("org_id", orgId).gt("stock", 0).gt("sale_price_ars", 0),
+        supabase.from("products").select("id", { count: "exact", head: true })
+          .eq("org_id", orgId).gt("stock", 0).gt("sale_price_ars", 0).is("weight_kg", null),
+        supabase.from("shipping_zones").select("id, provinces")
+          .eq("org_id", orgId).eq("is_active", true),
+        supabase.from("shipping_rates").select("zone_id").eq("org_id", orgId).eq("is_active", true),
+        supabase.from("store_pages").select("slug, content, status")
+          .eq("org_id", orgId)
+          .in("slug", ["politica-de-privacidad", "terminos-y-condiciones"]),
+        fetchPaymentStatus(orgId),
+      ]);
       const zonasList = (zonas.data ?? []) as { id: string; provinces: string[] | null }[];
       const conTarifa = new Set(((tarifas.data ?? []) as { zone_id: string }[]).map(r => r.zone_id));
-      // Una provincia está cubierta si su zona tiene al menos una tarifa. Antes
-      // se contaban las provincias con zona, tuviera tarifas o no, y por eso una
-      // tienda con 6 zonas y tarifas en una sola figuraba como cubierta entera
-      // mientras el checkout le fallaba a 22 de 23 provincias.
       const provincias = new Set(
         zonasList.filter(z => conTarifa.has(z.id)).flatMap(z => z.provinces ?? []),
       );
-      const cobro = ajustes;
       const estadoLegal = estadoPublicacionLegal(
         (paginas.data ?? []) as { slug: string; content: string | null; status: string | null }[],
       );
@@ -367,18 +377,14 @@ export default function EcommerceStorePage() {
           drafts: estadoLegal.borradores,
         },
       });
-    }, () => { /* si falla, el panel muestra el estado conservador */ });
+    } catch (err) {
+      console.error("No se pudieron releer las señales de la tienda", err);
+    }
+  }, [orgId]);
 
-    supabase
-      .from("ecommerce_cart_sessions")
-      .select("id, status, items")
-      .eq("org_id", orgId)
-      .then(({ data }) => {
-        if (!data) return;
-        setFunnelData(storeFunnelFromCarts(data));
-        setAbandonedCarts(storeAbandonedCartCount(data));
-      });
-  }, [orgId, org, loadOrders]);
+  useEffect(() => {
+    void reloadReadinessSignals();
+  }, [reloadReadinessSignals, tab]);
 
   const saveStore = async (opts?: { activate?: boolean }) => {
     if (!orgId) return;
@@ -608,7 +614,11 @@ export default function EcommerceStorePage() {
       )}
 
       {tab === "pages" && (
-        <StorePagesEditor storeId={store?.id ?? null} storeSlug={store?.slug ?? null} />
+        <StorePagesEditor
+          storeId={store?.id ?? null}
+          storeSlug={store?.slug ?? null}
+          onPagesChanged={reloadReadinessSignals}
+        />
       )}
 
       {tab === "banners" && <StoreBannersEditor storeId={store?.id ?? null} />}
@@ -865,7 +875,7 @@ export default function EcommerceStorePage() {
       {/* ─── Settings tab ─── */}
       {tab === "settings" && (
         <div className="space-y-5">
-          <PaymentConnectionsPanel />
+          <PaymentConnectionsPanel onConnectionChange={reloadReadinessSignals} />
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
