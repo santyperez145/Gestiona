@@ -43,7 +43,8 @@ export default function MarketingPage() {
   useEffect(() => {
     const vista = marketingParams.get("vista");
     if (vista === 'posts' || vista === 'planner' || vista === 'images' || vista === 'calendar'
-        || vista === 'templates' || vista === 'combos' || vista === 'automations' || vista === 'brand') {
+        || vista === 'templates' || vista === 'combos' || vista === 'automations' || vista === 'brand'
+        || vista === 'ofertas') {
       setActiveTab(vista);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -51,7 +52,7 @@ export default function MarketingPage() {
 
   const [postTypes, setPostTypes] = useState<any[]>([]);
   const [themes, setThemes] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = usePersistedState<'posts' | 'planner' | 'images' | 'calendar' | 'templates' | 'combos' | 'automations' | 'brand'>(
+  const [activeTab, setActiveTab] = usePersistedState<'posts' | 'planner' | 'images' | 'calendar' | 'templates' | 'combos' | 'automations' | 'brand' | 'ofertas'>(
     orgViewKey("marketing.tab", activeOrg?.id),
     "posts",
   );
@@ -189,6 +190,7 @@ export default function MarketingPage() {
       {/* Tab Navigation */}
       <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 w-fit border border-border flex-wrap">
         {([
+          { id: 'ofertas', label: 'Ofertas IA', icon: Sparkles },
           { id: 'posts', label: 'Publicaciones', icon: Instagram },
           { id: 'planner', label: 'Planner de redes', icon: Share2 },
           { id: 'images', label: 'Imágenes IA', icon: ImageIcon },
@@ -212,6 +214,13 @@ export default function MarketingPage() {
           </button>
         ))}
       </div>
+
+      {/* ── TAB: OFERTAS IA (AI Action Rate) ── */}
+      {activeTab === 'ofertas' && (
+        <div className="p-4 rounded-[10px] border border-border/60 bg-card">
+          <OfferRecommenderPanel />
+        </div>
+      )}
 
       {/* ── TAB: PUBLICACIONES ── */}
       {activeTab === 'posts' && (
@@ -248,10 +257,6 @@ export default function MarketingPage() {
             }}>
               <FileSpreadsheet className="w-4 h-4 mr-2" />CSV
             </Button>
-          </div>
-
-          <div className="mb-8 p-4 rounded-[10px] border border-border/60 bg-card">
-            <OfferRecommenderPanel />
           </div>
 
           <UTMLinkBuilder />

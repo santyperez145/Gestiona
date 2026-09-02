@@ -3428,7 +3428,7 @@ export default function Dashboard() {
                 </p>
               </div>
               <Link
-                to="/marketing"
+                to="/marketing?vista=ofertas"
                 className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 shrink-0"
               >
                 Ver recomendaciones

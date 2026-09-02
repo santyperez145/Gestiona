@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { observedPriceLabel, priceOutcomeProgress, priceOutcomeState } from '@/lib/priceChangeOutcome';
+import { mensajeDeEdgeFunction } from '@/lib/edgeErrors';
 import KPICard from '@/components/shared/KPICard';
 
 const TYPE_META: Record<string, { icon: any; color: string; label: string }> = {
@@ -85,8 +86,9 @@ export default function OfferRecommenderPanel() {
       const { data, error } = await supabase.functions.invoke('ai-offer-recommender', {
         body: { org_id: activeOrg.id },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error || data?.error) {
+        throw new Error(await mensajeDeEdgeFunction(error, data));
+      }
       setRecs(data.ofertas || []);
       setCombos(data.combos || []);
       setGenNotice(data.notice || (data.source === 'rules'
