@@ -27,6 +27,14 @@ medio habilitado). Marcarlo en Comercio no alcanza: `get_store_by_slug` filtra
 el array y una orden con ese método no entra. Stripe y PayPal no se ofrecen
 como cobro de la tienda.
 
+## Catálogo de medios (2026-09-02)
+
+El panel lee `medios_de_pago_de`: Gestiona Pay es el producto vivo; MODO,
+Naranja X y Go Cuotas aparecen como **Próximamente** (`integracion =
+declarado`) **sin** botón Conectar. Mercado Pago no se lista como medio aparte:
+es el rail detrás de Pay. Transferencia y efectivo se configuran en Métodos de
+cobro de la tienda. Un segundo OAuth real espera contrato (Slice C).
+
 ## El modelo: una app de plataforma, muchas cuentas conectadas
 
 Es el mismo esquema de Tiendanube y Empretienda:

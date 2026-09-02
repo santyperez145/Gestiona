@@ -3193,6 +3193,12 @@ Finance Connect.
      `payment_connections.provider = mercadopago`. Guarda en
      `commercePayHonesty`: no vuelve «Mercado Pago (Gestiona Pay)».
 
+119. Pay Slice B: catálogo OAuth vivo / próximamente — 2026-09-02.
+     Panel de Pay lee `medios_de_pago_de`. Gestiona Pay sigue siendo la
+     única activación. MODO, Naranja X y Go Cuotas se listan como
+     Próximamente sin Conectar. Catálogo SQL alineado (Gestiona Pay
+     producto; MP = rail). Sin segundo OAuth inventado.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

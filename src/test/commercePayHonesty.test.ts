@@ -30,6 +30,13 @@ describe('Commerce Pay honesty', () => {
     expect(payPanel).not.toContain('mp_access_token');
   });
 
+  it('muestra el catálogo OAuth (próximamente) sin Conectar falso', () => {
+    expect(payPanel).toContain('medios_de_pago_de');
+    expect(payPanel).toContain('Más medios de cobro');
+    expect(payPanel).toContain('Sin adapter aún');
+    expect(payPanel).not.toMatch(/onClick=\{[^}]*Conectar[^}]*modo/i);
+  });
+
   it('el checkout de la tienda deja pasar los headers del cliente supabase-js', () => {
     const storePay = readFileSync(
       resolve(import.meta.dirname, '..', '..', 'supabase', 'functions', 'store-pay', 'index.ts'),

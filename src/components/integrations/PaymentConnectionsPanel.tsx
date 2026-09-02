@@ -1,13 +1,12 @@
 /**
- * PaymentConnectionsPanel — medios de cobro del comercio.
+ * PaymentConnectionsPanel — Gestiona Pay + catálogo OAuth.
  *
- * Antes había que entrar al panel de desarrolladores de MercadoPago, generar
- * un Access Token y pegarlo acá. Ahora es un clic: la plataforma tiene UNA
- * aplicación registrada y cada comercio autoriza su cuenta, igual que en
- * Tiendanube.
+ * Modelo Pago Nube / Tiendanube: el producto propio se activa con un clic;
+ * el resto de medios aparecen en el catálogo con estado honesto
+ * (Disponible / Próximamente). Un «declarado» no tiene botón Conectar.
  *
- * Los tokens viven en `payment_connections`, con RLS y sin policies: nunca
- * llegan al navegador. Este panel lee la vista `payment_connection_status`.
+ * Los tokens viven en `payment_connections` (RLS, cero policies). El panel
+ * lee `payment_connection_status` y `medios_de_pago_de`.
  */
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,11 +14,17 @@ import { useOrg } from "@/lib/orgContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  CreditCard, Loader2, Unlink, RefreshCw, CheckCircle2, ExternalLink,
+  CreditCard, Loader2, Unlink, RefreshCw, CheckCircle2, ExternalLink, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { destinoOAuthPermitido } from "@/lib/gestionaPay";
+import {
+  etiquetaEstadoMedio,
+  mediosOAuthDelCatalogo,
+  puedeConectarMedioCatalogo,
+  type MedioCatalogo,
+} from "@/lib/paymentCatalog";
 import GestionaPayComisiones from "@/components/integrations/GestionaPayComisiones";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
@@ -43,16 +48,22 @@ export default function PaymentConnectionsPanel({
   const { activeOrg } = useOrg();
   const { ask, dialog } = useConfirmDialog();
   const [mp, setMp] = useState<Estado | null>(null);
+  const [catalogo, setCatalogo] = useState<MedioCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!activeOrg?.id) { setLoading(false); return; }
     setLoading(true);
-    const cRes = await supabase.from("payment_connection_status").select("*")
-      .eq("org_id", activeOrg.id).eq("provider", "mercadopago").maybeSingle();
+    const [cRes, catRes] = await Promise.all([
+      supabase.from("payment_connection_status").select("*")
+        .eq("org_id", activeOrg.id).eq("provider", "mercadopago").maybeSingle(),
+      supabase.rpc("medios_de_pago_de", { p_org: activeOrg.id }),
+    ]);
     if (cRes.error) console.error("PaymentConnectionsPanel status:", cRes.error);
+    if (catRes.error) console.error("PaymentConnectionsPanel catálogo:", catRes.error);
     setMp((cRes.data as unknown as Estado) ?? null);
+    setCatalogo((catRes.data as MedioCatalogo[] | null) ?? []);
     setLoading(false);
   }, [activeOrg?.id]);
 
@@ -100,7 +111,7 @@ export default function PaymentConnectionsPanel({
       body: { action: "start", orgId: activeOrg.id, returnUrl: window.location.href.split("#")[0] },
     });
     setBusy(null);
-    const url = (data as any)?.url;
+    const url = (data as { url?: string } | null)?.url;
     if (url) { window.location.href = url; return; }
     toast.error(await mensajeDeEdgeFunction(error, data) || "No se pudo iniciar la conexión");
   };
@@ -133,10 +144,12 @@ export default function PaymentConnectionsPanel({
   }
 
   const conectado = !!mp?.conectado;
+  const oauthExternos = mediosOAuthDelCatalogo(catalogo);
 
   return (
     <>
       {dialog}
+    <div className="space-y-4">
     <div className="bg-card border border-border rounded-xl p-4 md:p-6 space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 min-w-0">
@@ -181,7 +194,7 @@ export default function PaymentConnectionsPanel({
           <p className="text-[11px] text-muted-foreground">
             En Argentina el procesador es Mercado Pago: autorizás tu cuenta y el
             dinero entra ahí. Gestiona orquesta el checkout, la conciliación y la
-            comisión. Stripe no se ofrece como cobro local.
+            comisión. No es un medio aparte.
           </p>
         </div>
       ) : (
@@ -232,13 +245,57 @@ export default function PaymentConnectionsPanel({
       )}
 
       <GestionaPayComisiones orgId={activeOrg?.id} planId={activeOrg?.plan_id} />
+    </div>
 
-      <p className="text-[11px] text-muted-foreground border-t border-border/50 pt-3">
-        Stripe Connect, Payway y dLocal son adapters del mismo contrato. En
-        Argentina no se activan: no hay cuenta Stripe doméstica ni split
-        negociado con esos rieles. El webhook de Stripe que ya existe cobra la
-        suscripción de Gestiona, no las ventas del comercio.
-      </p>
+    {oauthExternos.length > 0 && (
+      <div className="bg-card border border-border rounded-xl p-4 md:p-6 space-y-3">
+        <div>
+          <h3 className="font-display font-semibold text-sm">Más medios de cobro</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Como en Tiendanube: se conectan por OAuth cuando el contrato esté.
+            Transferencia y efectivo se configuran arriba en Métodos de cobro.
+          </p>
+        </div>
+        <ul className="divide-y divide-border/60 rounded-lg border border-border/50 overflow-hidden">
+          {oauthExternos.map((m) => {
+            const estado = etiquetaEstadoMedio(m.integracion);
+            const conectarVisible = puedeConectarMedioCatalogo(m);
+            return (
+              <li key={m.provider} className="flex items-start justify-between gap-3 p-3 bg-muted/10">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium">{m.nombre}</span>
+                    <Badge
+                      variant="outline"
+                      className={
+                        estado.tone === "live"
+                          ? "border-emerald-500/30 text-emerald-600"
+                          : estado.tone === "beta"
+                            ? "border-amber-500/30 text-amber-600"
+                            : "border-border text-muted-foreground"
+                      }
+                    >
+                      {estado.tone === "soon" && <Clock className="w-3 h-3 mr-1" />}
+                      {estado.label}
+                    </Badge>
+                  </div>
+                  {m.descripcion && (
+                    <p className="text-[11px] text-muted-foreground mt-1">{m.descripcion}</p>
+                  )}
+                </div>
+                {conectarVisible ? (
+                  <Button size="sm" className="min-h-11 shrink-0" disabled>
+                    Conectar
+                  </Button>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground shrink-0 pt-1">Sin adapter aún</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    )}
     </div>
     </>
   );
