@@ -176,6 +176,7 @@ export default function PaymentLinksPage() {
             body: {
               orgId: activeOrg.id,
               title: `Pago ${orgSettings.business_name} — ${customerName.trim()}`,
+              paymentLinkId: newLink.id,
               total,
               // Debe coincidir con payment_links.external_ref: el webhook
               // actualiza la fila por este valor, no por el id interno.
@@ -227,6 +228,8 @@ export default function PaymentLinksPage() {
         body: {
           orgId: activeOrg!.id,
           title: `Pago — ${link.customer_name}`,
+          paymentLinkId: link.id,
+          // Compat: el servidor ignora total si hay paymentLinkId / externalRef de link.
           total: link.total_ars,
           externalRef,
         },

@@ -2,12 +2,19 @@
  * Crea una preferencia de Checkout Pro para un cobro operado desde Gestiona.
  *
  * La organización enviada por el navegador nunca es autoridad: se exige una
- * sesión real y `sales.create` dentro de ese tenant. El monto se valida en el
- * servidor y el access token sale únicamente de la conexión OAuth privada.
+ * sesión real y `sales.create` dentro de ese tenant. El monto, cuando el cobro
+ * apunta a `payment_links` o `quotes`, se lee del Core — no del body.
+ * Sin fuente durable (POS ad-hoc) se admite el total del cajero.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
 import { getMpCredentials } from "../_shared/mpToken.ts";
+import {
+  parseLinkExternalRef,
+  parseQuoteExternalRef,
+  pickCanonicalTotal,
+  type MpLinkAmountSource,
+} from "../_shared/mpLinkAmount.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 
 const corsHeaders = {
@@ -51,15 +58,13 @@ Deno.serve(async (req) => {
     const orgId = cleanText(body.orgId, 80);
     const title = cleanText(body.title, 120) ?? "Cobro de Gestiona";
     const externalRef = cleanText(body.externalRef, 180);
-    const total = Number(body.total);
+    const paymentLinkId = cleanText(body.paymentLinkId, 80);
+    const clientTotal = body.total != null ? Number(body.total) : null;
     // Un link de Checkout Pro es un cobro online aunque se haya iniciado desde
     // el mostrador. El cliente no elige el canal que determina la comisión.
     const channel = "online";
 
     if (!orgId || !UUID_RE.test(orgId)) return json({ error: "Organización inválida" }, 400);
-    if (!Number.isFinite(total) || total <= 0 || total > 999_999_999_999.99) {
-      return json({ error: "El monto del cobro no es válido" }, 400);
-    }
 
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const supabaseAnonKey = requireEnv("SUPABASE_ANON_KEY");
@@ -78,6 +83,70 @@ Deno.serve(async (req) => {
     if (canCreate !== true) return json({ error: "No tenés permiso para crear cobros" }, 403);
 
     const admin = createClient(supabaseUrl, requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+
+    let coreTotal: number | null = null;
+    let source: MpLinkAmountSource = { kind: "client_ad_hoc" };
+
+    const quoteId = parseQuoteExternalRef(externalRef);
+    const linkIdFromRef = parseLinkExternalRef(externalRef);
+    const linkId = (paymentLinkId && UUID_RE.test(paymentLinkId))
+      ? paymentLinkId
+      : linkIdFromRef;
+
+    if (quoteId) {
+      const { data: quote, error } = await admin
+        .from("quotes")
+        .select("id, total, org_id, status")
+        .eq("id", quoteId)
+        .eq("org_id", orgId)
+        .maybeSingle();
+      if (error) {
+        console.error("mercadopago-link quote:", error);
+        return json({ error: "No se pudo leer el presupuesto" }, 500);
+      }
+      if (!quote) return json({ error: "Presupuesto no encontrado" }, 404);
+      coreTotal = Number(quote.total);
+      source = { kind: "quote", id: quote.id };
+    } else if (linkId || externalRef) {
+      let q = admin
+        .from("payment_links")
+        .select("id, total_ars, status, org_id")
+        .eq("org_id", orgId);
+      if (linkId) q = q.eq("id", linkId);
+      else q = q.eq("external_ref", externalRef!);
+      const { data: link, error } = await q.maybeSingle();
+      if (error) {
+        console.error("mercadopago-link payment_link:", error);
+        return json({ error: "No se pudo leer el link de pago" }, 500);
+      }
+      if (linkId || (externalRef && link)) {
+        if (!link) return json({ error: "Link de pago no encontrado" }, 404);
+        if (link.status === "paid" || link.status === "cancelled") {
+          return json({ error: "Ese link ya no admite cobro" }, 422);
+        }
+        coreTotal = Number(link.total_ars);
+        source = { kind: "payment_link", id: link.id };
+      }
+    }
+
+    const amount = pickCanonicalTotal({ coreTotal, clientTotal, source });
+    if (!amount.ok) return json({ error: amount.error }, amount.status);
+    const total = amount.total;
+
+    if (
+      source.kind !== "client_ad_hoc"
+      && clientTotal != null
+      && Number.isFinite(clientTotal)
+      && Math.abs(clientTotal - total) > 0.02
+    ) {
+      console.warn("mercadopago-link: client total ignored in favor of Core", {
+        orgId,
+        source,
+        clientTotal,
+        total,
+      });
+    }
+
     const credentials = await getMpCredentials(admin, orgId);
     if (!credentials) {
       return json({ error: "Conectá la cuenta de Mercado Pago desde Integraciones para cobrar" }, 422);
@@ -104,7 +173,7 @@ Deno.serve(async (req) => {
         id: `gestiona-${crypto.randomUUID()}`,
         title,
         quantity: 1,
-        unit_price: Math.round(total * 100) / 100,
+        unit_price: total,
         currency_id: "ARS",
       }],
       ...(externalRef ? { external_reference: externalRef } : {}),
@@ -114,7 +183,7 @@ Deno.serve(async (req) => {
         auto_return: "approved",
       } : {}),
       notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook?org_id=${orgId}`,
-      metadata: { channel },
+      metadata: { channel, amount_source: source.kind },
     };
 
     const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
@@ -137,6 +206,8 @@ Deno.serve(async (req) => {
       sandboxUrl: cleanText(mpData?.sandbox_init_point, 2_000),
       preferenceId: cleanText(mpData?.id, 180),
       commissionApplied: marketplaceFee,
+      amountSource: source.kind,
+      total,
     });
   } catch (error) {
     console.error("mercadopago-link error:", error);
