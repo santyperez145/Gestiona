@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   STORE_WORKSPACE_COLOR,
   colorInicialDeTienda,
@@ -9,6 +11,7 @@ import {
   slugCandidatoDeTienda,
   storeDraftInicial,
   storeFormDesdeFila,
+  sugerirDireccionDeRetiro,
 } from "@/lib/storeDraft";
 
 describe("la tienda no nace con la identidad de Exentry", () => {
@@ -76,6 +79,25 @@ describe("la tienda no nace con la identidad de Exentry", () => {
   it("una tienda nueva ofrece retiro: sin tarifas el comprador igual puede cerrar", () => {
     expect(storeDraftInicial().pickup_enabled).toBe(true);
     expect(storeFormDesdeFila({ pickup_enabled: false }).pickup_enabled).toBe(false);
+  });
+
+  it("el retiro vacío puede tomar el domicilio fiscal, sin pisar lo cargado", () => {
+    expect(sugerirDireccionDeRetiro({
+      pickupAddress: "",
+      domicilioFiscal: "Alsina 123, CABA",
+    })).toBe("Alsina 123, CABA");
+    expect(sugerirDireccionDeRetiro({
+      pickupAddress: "Local 4",
+      domicilioFiscal: "Alsina 123, CABA",
+    })).toBeNull();
+    expect(sugerirDireccionDeRetiro({
+      pickupAddress: "",
+      domicilioFiscal: null,
+    })).toBeNull();
+    const page = readFileSync(resolve(__dirname, "../pages/EcommerceStorePage.tsx"), "utf8");
+    expect(page).toContain("sugerirDireccionDeRetiro");
+    expect(page).toContain("Usar domicilio fiscal");
+    expect(page).toContain("afip_connection_status");
   });
 
   it("leer una fila con envío NULL no rellena el formulario con tarifas inventadas", () => {

@@ -3120,6 +3120,11 @@ Finance Connect.
      «te vamos a contactar». Ahora falta la dirección es bloqueante del
      checklist; el CTA Publicar no escribe `is_active` hasta cargarla.
 
+108. El retiro puede tomar el domicilio fiscal — 2026-09-02.
+     Con AFIP cargado y retiro vacío, Commerce ofrece «Usar domicilio
+     fiscal». No se pisa una dirección ya escrita ni se inventa. Es el
+     mismo texto que Facturas y legales; el local de retiro puede ser otro.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

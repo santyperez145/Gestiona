@@ -74,6 +74,20 @@ export function colorInicialDeTienda(orgColor: string | null | undefined): strin
   return STORE_WORKSPACE_COLOR;
 }
 
+/**
+ * Retiro y domicilio fiscal no son lo mismo, pero si el comercio ya declaró
+ * dónde vende en AFIP y el retiro está vacío, ofrecer ese texto evita
+ * tipear dos veces. Nunca se pisa una dirección ya cargada ni se inventa.
+ */
+export function sugerirDireccionDeRetiro(input: {
+  pickupAddress?: string | null;
+  domicilioFiscal?: string | null;
+}): string | null {
+  if (String(input.pickupAddress ?? "").trim()) return null;
+  const fiscal = String(input.domicilioFiscal ?? "").trim();
+  return fiscal || null;
+}
+
 export function slugCandidatoDeTienda(input: {
   slugEscrito?: string | null;
   name?: string | null;

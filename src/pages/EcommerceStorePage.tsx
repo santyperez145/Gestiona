@@ -47,6 +47,7 @@ import {
   slugCandidatoDeTienda,
   storeDraftInicial,
   storeFormDesdeFila,
+  sugerirDireccionDeRetiro,
 } from "@/lib/storeDraft";
 import { estadoPublicacionLegal } from "@/lib/legalPages";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
@@ -179,6 +180,7 @@ export default function EcommerceStorePage() {
   const [fulfillmentLocations, setFulfillmentLocations] = useState<{
     id: string; name: string; is_main: boolean;
   }[]>([]);
+  const [domicilioFiscal, setDomicilioFiscal] = useState<string | null>(null);
 
   useEffect(() => {
     if (!orgId || tab !== "categorias") return;
@@ -303,6 +305,20 @@ export default function EcommerceStorePage() {
           return;
         }
         setFulfillmentLocations((data ?? []) as { id: string; name: string; is_main: boolean }[]);
+      });
+
+    // Misma autoridad que Facturas/legales: si ya hay domicilio fiscal y el
+    // retiro está vacío, se ofrece copiarlo. No se escribe solo.
+    supabase.from("afip_connection_status")
+      .select("domicilio")
+      .eq("org_id", orgId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("No se pudo leer el domicilio fiscal para el retiro", error);
+          return;
+        }
+        setDomicilioFiscal(String(data?.domicilio ?? "").trim() || null);
       });
 
     loadOrders();
@@ -489,6 +505,12 @@ export default function EcommerceStorePage() {
     wantsMercadoPago: methods.includes("mercadopago"),
     hasOfflinePayment: methods.some((m) => m === "transferencia" || m === "efectivo"),
   });
+  const retiroSugerido = storeForm.pickup_enabled
+    ? sugerirDireccionDeRetiro({
+      pickupAddress: storeForm.pickup_address,
+      domicilioFiscal,
+    })
+    : null;
 
   const kpis = useMemo(() => [
     { label: "Revenue hoy",      value: todayRevenue > 0 ? `$${(todayRevenue / 1000).toFixed(0)}K` : "$0", sub: `${todayOrders.length} órd. hoy`, icon: DollarSign,    color: "success"  as const },
@@ -1021,6 +1043,17 @@ export default function EcommerceStorePage() {
                     <p className="text-[11px] text-amber-700 dark:text-amber-400">
                       Sin dirección el checkout dice «te vamos a contactar». Cargala antes de publicar.
                     </p>
+                  )}
+                  {retiroSugerido && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="min-h-11"
+                      onClick={() => setStoreForm(p => ({ ...p, pickup_address: retiroSugerido }))}
+                    >
+                      Usar domicilio fiscal
+                    </Button>
                   )}
                 </div>
               )}
