@@ -13,6 +13,8 @@ import { retryPublicRead } from "@/lib/publicDataSource";
 import { supabase } from "@/integrations/supabase/client";
 import { useInstallments } from "./useInstallments";
 import ProductCard from "./ProductCard";
+import StoreProductGallery from "./StoreProductGallery";
+import { galeriaDeProducto } from "@/lib/storeProductGallery";
 import { getCategoryLabel } from "@/lib/supabaseStore";
 import {
   FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, taxLabel,
@@ -23,7 +25,6 @@ import ProductReviews from "./ProductReviews";
 import ProductQuestions from "./ProductQuestions";
 import StockAlertForm from "./StockAlertForm";
 import { useWishlist } from "./wishlist";
-import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 export default function StoreProduct() {
   const { productId } = useParams<{ productId: string }>();
@@ -34,7 +35,6 @@ export default function StoreProduct() {
   const deseos = useWishlist();
   const navigate = useNavigate();
   const [qty, setQty] = useState(1);
-  const [imgIdx, setImgIdx] = useState(0);
   const [added, setAdded] = useState(false);
   const [variantId, setVariantId] = useState<string | null>(null);
   const [coocScores, setCoocScores] = useState<Record<string, number>>({});
@@ -166,9 +166,11 @@ export default function StoreProduct() {
   const off = price < list ? Math.round((1 - price / list) * 100) : 0;
   // Se deduplica: `image_url` suele estar repetida dentro de `image_urls`, y
   // eso generaba dos miniaturas iguales con la misma key de React.
-  const imagenes = [...new Set(
-    [p.image_url, ...(p.image_urls ?? [])].filter(Boolean) as string[],
-  )];
+  const imagenes = galeriaDeProducto({
+    image_url: p.image_url,
+    image_urls: p.image_urls,
+    variant_image: variante?.image_url,
+  });
 
   const agregar = () => {
     if (faltaElegir) return;
@@ -206,50 +208,11 @@ export default function StoreProduct() {
       </button>
 
       <div className="grid md:grid-cols-2 gap-8">
-        {/* ── Galería ─────────────────────────────────────────────── */}
-        <div>
-          <div
-            className="relative aspect-square overflow-hidden bg-black/5 border"
-            style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
-          >
-            <div aria-hidden="true" className="absolute inset-0 grid place-items-center opacity-20"><ShoppingBag className="w-12 h-12" /></div>
-            {imagenes[imgIdx] && (
-              <img
-                key={imagenes[imgIdx]}
-                src={imagenes[imgIdx]}
-                alt={p.name}
-                {...atributosDeImagenVitrina("ficha", { lcp: imgIdx === 0 })}
-                onLoad={mostrarImagenValida}
-                onError={ocultarImagenRota}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            )}
-          </div>
-          {imagenes.length > 1 && (
-            <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-              {imagenes.map((src, i) => (
-                <button
-                  key={src}
-                  onClick={() => setImgIdx(i)}
-                  className="w-16 h-16 shrink-0 overflow-hidden border-2 transition-colors"
-                  style={{
-                    borderColor: i === imgIdx ? "hsl(var(--st-accent))" : "hsl(var(--st-border))",
-                    borderRadius: "var(--st-radius)",
-                  }}
-                >
-                  <img
-                    src={src}
-                    alt=""
-                    {...atributosDeImagenVitrina("miniatura")}
-                    onLoad={mostrarImagenValida}
-                    onError={ocultarImagenRota}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <StoreProductGallery
+          imagenes={imagenes}
+          alt={p.name}
+          resetKey={`${p.id}:${variante?.id ?? ""}`}
+        />
 
         {/* ── Datos y compra ──────────────────────────────────────── */}
         <div>

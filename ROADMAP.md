@@ -3231,6 +3231,16 @@ Finance Connect.
      tiene `VITE_*`: no se afirma la tienda pública contra una sesión
      real.
 
+123. Galería de ficha con zoom y desliz — 2026-09-02.
+     Tiendanube/Shopify abren la foto y dejan pasar entre tomas. La
+     ficha ahora desliza, abre a pantalla completa, acerca 2× sobre la
+     URL del comercio y pone primero la imagen de la variante. Sin CDN
+     ni theme engine: el Core sigue mandando stock y precio.
+
+     Verificado en este recorte: **2.379 tests** (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no
+     tiene `VITE_*`: no se afirma la ficha contra una sesión real.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

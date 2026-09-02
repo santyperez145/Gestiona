@@ -51,7 +51,7 @@ describe("performance visual de la vitrina", () => {
 
   it("la home, la ficha y las cards declaran tamaño y no usan el spinner del SaaS", () => {
     const pagina = leer("src/pages/StorefrontPage.tsx");
-    const ficha = leer("src/storefront/StoreProduct.tsx");
+    const ficha = leer("src/storefront/StoreProductGallery.tsx");
     const banner = leer("src/storefront/StoreBanners.tsx");
     const card = leer("src/storefront/ProductCard.tsx");
     const css = leer("src/index.css");
