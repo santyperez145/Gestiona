@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useWishlist } from "./wishlist";
 import ProductCard from "./ProductCard";
@@ -7,11 +7,12 @@ import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
 import { retryPublicRead } from "@/lib/publicDataSource";
 import { storeOrderPaymentLabel } from "@/lib/storeOrderPayment";
+import { productIdsFromStoreOrders, suggestionsFromOrderSeeds } from "@/lib/relatedProducts";
 import { User, Loader2, LogOut, Package, MailCheck, Heart } from "lucide-react";
 
 interface Pedido {
   order_number: string;
-  items: { name: string; quantity: number; total: number }[];
+  items: { name: string; quantity: number; total: number; product_id?: string }[];
   total: number;
   payment_status: string;
   fulfillment_status: string;
@@ -36,11 +37,12 @@ const ESTADO_ENVIO: Record<string, string> = {
 
 export default function StoreAccount() {
   const { store, products, fmt } = useStore();
-  const { loading, customer, signIn, signUp, signOut, resetPassword } = useStoreAuth();
+  const { loading, customer, signIn, signUp, signOut, resetPassword, signInWithEmailOtp, verifyEmailOtp } = useStoreAuth();
   const base = `/tienda/${store?.slug ?? ""}`;
 
-  const [modo, setModo] = useState<"login" | "registro">("login");
-  const [form, setForm] = useState({ email: "", password: "", name: "" });
+  const [modo, setModo] = useState<"login" | "registro" | "otp">("login");
+  const [form, setForm] = useState({ email: "", password: "", name: "", otp: "" });
+  const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -52,6 +54,14 @@ export default function StoreAccount() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [cargandoPedidos, setCargandoPedidos] = useState(false);
   const [errorPedidos, setErrorPedidos] = useState(false);
+
+  const sugeridos = useMemo(() => {
+    const seeds = productIdsFromStoreOrders(pedidos);
+    if (seeds.length === 0) return [];
+    return suggestionsFromOrderSeeds(seeds, products, { limit: 8, preferInStock: true })
+      .map(r => r.product)
+      .filter(p => Number(p.stock) > 0);
+  }, [pedidos, products]);
 
   const cargarPedidos = () => {
     if (!customer || !store?.slug) return;
@@ -83,6 +93,37 @@ export default function StoreAccount() {
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null); setAviso(null); setEnviando(true);
+
+    if (modo === "otp") {
+      if (!otpSent) {
+        const res = await signInWithEmailOtp(form.email, {
+          createUser: false,
+        });
+        setEnviando(false);
+        if (res.error) {
+          // Primera compra: permitir crear con account_type store_customer.
+          if (/signups not allowed|user not found|Unable to validate/i.test(res.error)) {
+            const crear = await signInWithEmailOtp(form.email, {
+              createUser: true,
+              name: form.name || undefined,
+            });
+            if (crear.error) { setError(crear.error); return; }
+            setOtpSent(true);
+            setAviso("Te mandamos un enlace y un código. Si es tu primera vez, ya quedás como comprador de esta tienda (no como dueño del panel).");
+            return;
+          }
+          setError(res.error);
+          return;
+        }
+        setOtpSent(true);
+        setAviso("Te mandamos un enlace y un código a tu email.");
+        return;
+      }
+      const res = await verifyEmailOtp(form.email, form.otp);
+      setEnviando(false);
+      if (res.error) { setError(res.error); return; }
+      return;
+    }
 
     const res = modo === "login"
       ? await signIn(form.email, form.password)
@@ -116,10 +157,14 @@ export default function StoreAccount() {
         <div className="text-center mb-6">
           <User className="w-10 h-10 mx-auto mb-2 opacity-40" />
           <h1 className="text-xl font-bold">
-            {modo === "login" ? "Iniciá sesión" : "Creá tu cuenta"}
+            {modo === "otp"
+              ? (otpSent ? "Revisá tu email" : "Entrar con email")
+              : modo === "login" ? "Iniciá sesión" : "Creá tu cuenta"}
           </h1>
           <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
-            Para ver tus pedidos y comprar más rápido la próxima vez.
+            {modo === "otp"
+              ? "Enlace mágico o código. Las cuentas nuevas se marcan como comprador de la tienda, no como workspace Gestiona."
+              : "Para ver tus pedidos y comprar más rápido la próxima vez."}
           </p>
         </div>
 
@@ -132,17 +177,30 @@ export default function StoreAccount() {
           )}
           <label className="block">
             <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Email</span>
-            <input required type="email" autoComplete="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className={input} style={inputStyle} />
+            <input required type="email" autoComplete="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className={input} style={inputStyle} disabled={modo === "otp" && otpSent} />
           </label>
-          <label className="block">
-            <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Contraseña</span>
-            <input
-              required type="password" minLength={6}
-              autoComplete={modo === "login" ? "current-password" : "new-password"}
-              value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-              className={input} style={inputStyle}
-            />
-          </label>
+          {modo !== "otp" && (
+            <label className="block">
+              <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Contraseña</span>
+              <input
+                required type="password" minLength={6}
+                autoComplete={modo === "login" ? "current-password" : "new-password"}
+                value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                className={input} style={inputStyle}
+              />
+            </label>
+          )}
+          {modo === "otp" && otpSent && (
+            <label className="block">
+              <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Código del email</span>
+              <input
+                required type="text" inputMode="numeric" autoComplete="one-time-code"
+                minLength={6} maxLength={8}
+                value={form.otp} onChange={e => setForm(f => ({ ...f, otp: e.target.value }))}
+                className={input} style={inputStyle}
+              />
+            </label>
+          )}
 
           {error && <p className="text-xs text-red-600">{error}</p>}
           {aviso && (
@@ -156,24 +214,52 @@ export default function StoreAccount() {
             className="w-full min-h-11 py-2.5 text-sm font-medium disabled:opacity-60"
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >
-            {enviando ? "..." : modo === "login" ? "Entrar" : "Crear cuenta"}
+            {enviando
+              ? "..."
+              : modo === "otp"
+                ? (otpSent ? "Confirmar código" : "Enviar enlace y código")
+                : modo === "login" ? "Entrar" : "Crear cuenta"}
           </button>
         </form>
 
         <div className="mt-4 text-center space-y-2 text-xs">
-          <button
-            onClick={() => { setModo(m => (m === "login" ? "registro" : "login")); setError(null); setAviso(null); }}
-            className="hover:underline"
-            style={{ color: "hsl(var(--st-accent))" }}
-          >
-            {modo === "login" ? "No tengo cuenta, quiero registrarme" : "Ya tengo cuenta"}
-          </button>
+          {modo !== "otp" && (
+            <button
+              onClick={() => { setModo(m => (m === "login" ? "registro" : "login")); setError(null); setAviso(null); setOtpSent(false); }}
+              className="hover:underline"
+              style={{ color: "hsl(var(--st-accent))" }}
+            >
+              {modo === "login" ? "No tengo cuenta, quiero registrarme" : "Ya tengo cuenta"}
+            </button>
+          )}
           {modo === "login" && (
-            <div>
-              <button onClick={recuperar} className="hover:underline" style={{ color: "hsl(var(--st-muted))" }}>
-                Olvidé mi contraseña
-              </button>
-            </div>
+            <>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => { setModo("otp"); setError(null); setAviso(null); setOtpSent(false); }}
+                  className="hover:underline"
+                  style={{ color: "hsl(var(--st-accent))" }}
+                >
+                  Entrar con enlace o código
+                </button>
+              </div>
+              <div>
+                <button onClick={recuperar} className="hover:underline" style={{ color: "hsl(var(--st-muted))" }}>
+                  Olvidé mi contraseña
+                </button>
+              </div>
+            </>
+          )}
+          {modo === "otp" && (
+            <button
+              type="button"
+              onClick={() => { setModo("login"); setError(null); setAviso(null); setOtpSent(false); }}
+              className="hover:underline"
+              style={{ color: "hsl(var(--st-muted))" }}
+            >
+              Volver al login con contraseña
+            </button>
           )}
         </div>
 
@@ -286,6 +372,15 @@ export default function StoreAccount() {
             );
           })}
         </div>
+      )}
+
+      {sugeridos.length > 0 && (
+        <>
+          <h2 className="font-semibold mt-10 mb-3">Porque compraste</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {sugeridos.map(prod => <ProductCard key={prod.id} p={prod} />)}
+          </div>
+        </>
       )}
 
       {/* ── Lista de deseos ─────────────────────────────────────────── */}

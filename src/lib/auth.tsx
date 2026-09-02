@@ -8,10 +8,19 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, name?: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  /** Magic link o código por email. No crea cuenta nueva (login). */
+  signInWithEmailOtp: (email: string) => Promise<void>;
+  /** Confirma el código de 6–8 dígitos recibido por email. */
+  verifyEmailOtp: (email: string, token: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/** Destino tras magic link / OAuth. Debe estar en Redirect URLs de Supabase Auth. */
+export function authEmailRedirectTo(): string {
+  return `${window.location.origin}/`;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -47,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name }, emailRedirectTo: window.location.origin },
+      options: { data: { full_name: name }, emailRedirectTo: authEmailRedirectTo() },
     });
     if (error) throw error;
   };
@@ -57,13 +66,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
+  const signInWithEmailOtp = async (email: string) => {
+    // shouldCreateUser: false — esto es login, no alta silenciosa de org/trial.
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: authEmailRedirectTo(),
+      },
+    });
+    if (error) throw error;
+  };
+
+  const verifyEmailOtp = async (email: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: token.trim(),
+      type: 'email',
+    });
+    if (error) throw error;
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{
+      user, session, loading,
+      signUp, signIn, signInWithEmailOtp, verifyEmailOtp, signOut,
+    }}>
       {children}
     </AuthContext.Provider>
   );

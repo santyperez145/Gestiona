@@ -48,9 +48,15 @@ export default function StoreProducts() {
     ),
     [cats2, products],
   );
+  // Familia olfativa y género sólo aparecen si el catálogo los usa: un
+  // comercio de otro rubro no debe ver filtros de perfumería vacíos.
   const familias = useMemo(
     () => [...new Set(Object.values(perfumes).map(d => d.familia_olfativa).filter(Boolean))] as string[],
     [perfumes],
+  );
+  const generosUsados = useMemo(
+    () => [...new Set(products.map(p => p.gender).filter(Boolean))] as string[],
+    [products],
   );
 
   // Los slugs que cuentan cuando se filtra: el elegido más su descendencia.
@@ -182,14 +188,16 @@ export default function StoreProducts() {
             ))}
           </Grupo>
 
-          <Grupo titulo="Género">
-            <Opcion activo={!genero} onClick={() => setParam("genero", "")}>Todos</Opcion>
-            {["masculino", "femenino", "unisex"].map(g => (
-              <Opcion key={g} activo={genero === g} onClick={() => setParam("genero", g)}>
-                <span className="capitalize">{g}</span>
-              </Opcion>
-            ))}
-          </Grupo>
+          {generosUsados.length > 0 && (
+            <Grupo titulo="Género">
+              <Opcion activo={!genero} onClick={() => setParam("genero", "")}>Todos</Opcion>
+              {["masculino", "femenino", "unisex"].filter(g => generosUsados.includes(g)).map(g => (
+                <Opcion key={g} activo={genero === g} onClick={() => setParam("genero", g)}>
+                  <span className="capitalize">{g}</span>
+                </Opcion>
+              ))}
+            </Grupo>
+          )}
 
           {familias.length > 0 && (
             <Grupo titulo="Familia olfativa">

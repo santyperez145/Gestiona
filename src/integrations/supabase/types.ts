@@ -52715,6 +52715,13 @@ export type Database = {
           score: number
         }[]
       }
+      get_store_product_recommendations: {
+        Args: { p_limit?: number; p_product_id: string; p_slug: string }
+        Returns: {
+          recommended_product_id: string
+          score: number
+        }[]
+      }
       get_public_payment_link: {
         Args: { p_id: string }
         Returns: {

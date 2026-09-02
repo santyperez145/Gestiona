@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useStore } from "./storeContext";
 import ProductCard from "./ProductCard";
@@ -6,9 +7,15 @@ import { menuDeCategorias } from "@/lib/storeCategories";
 import { ArrowRight, Truck, ShieldCheck, Sparkles, Wallet } from "lucide-react";
 import { mejorDescuento, nombreMedio } from "@/lib/paymentDiscount";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
+import { productsFromRecentlyViewed } from "@/lib/recentlyViewed";
+import { productIdsFromStoreOrders, suggestionsFromOrderSeeds } from "@/lib/relatedProducts";
+import { useStoreAuth } from "./storeAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { retryPublicRead } from "@/lib/publicDataSource";
 
 export default function StoreHome() {
-  const { store, products, banners, categorias: cats2, priceOf, fmt } = useStore();
+  const { store, products, banners, categorias: cats2, priceOf, fmt, cart } = useStore();
+  const { customer } = useStoreAuth();
 
   // El mejor descuento que la tienda ofrece hoy, o null. Sólo cuenta los
   // medios que además están habilitados: anunciar uno que no se acepta sería
@@ -33,6 +40,39 @@ export default function StoreHome() {
   const categorias = menuDeCategorias(
     cats2, products.map(p => p.category).filter(Boolean) as string[],
   );
+
+  const vistos = useMemo(
+    () => (store?.slug ? productsFromRecentlyViewed(store.slug, products, { limit: 8 }) : []),
+    [store?.slug, products],
+  );
+
+  const [orderSeeds, setOrderSeeds] = useState<string[]>([]);
+  useEffect(() => {
+    if (!customer || !store?.slug) { setOrderSeeds([]); return; }
+    let cancelled = false;
+    void retryPublicRead(() =>
+      supabase.rpc("get_my_store_orders", { p_slug: store.slug }),
+    ).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        console.error("[home] pedidos para sugerencias:", error.message);
+        setOrderSeeds([]);
+        return;
+      }
+      setOrderSeeds(productIdsFromStoreOrders((data ?? []) as { items?: unknown; created_at?: string }[]));
+    }, () => { if (!cancelled) setOrderSeeds([]); });
+    return () => { cancelled = true; };
+  }, [customer, store?.slug]);
+
+  const porqueCompraste = useMemo(() => {
+    if (orderSeeds.length === 0) return [];
+    const enCarrito = new Set(cart.map(l => l.productId));
+    return suggestionsFromOrderSeeds(orderSeeds, products, {
+      excludeIds: enCarrito,
+      limit: 8,
+      preferInStock: true,
+    }).map(r => r.product).filter(p => Number(p.stock) > 0);
+  }, [orderSeeds, products, cart]);
 
   return (
     <div className="storefront-home">
@@ -97,8 +137,8 @@ export default function StoreHome() {
               s: "Se aplica solo al elegir el medio de pago",
             }] : []),
             { icon: Truck, t: (store?.free_shipping_above ?? 0) > 0 ? `Envío gratis desde ${fmt(Number(store?.free_shipping_above))}` : "Envíos a todo el país", s: "Coordinamos la entrega con vos" },
-            { icon: ShieldCheck, t: "Productos originales", s: "Importación propia, con garantía" },
-            { icon: Sparkles, t: "Asesoramiento", s: "Te ayudamos a elegir tu fragancia" },
+            { icon: ShieldCheck, t: "Compra protegida", s: "Datos claros y derecho de arrepentimiento" },
+            { icon: Sparkles, t: "Catálogo real", s: "Stock y precios del mismo sistema del comercio" },
           ].map(({ icon: Icon, t, s }) => (
             <div key={t} className="storefront-trust-item flex items-start gap-3">
               <Icon className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--st-accent))" }} />
@@ -110,6 +150,13 @@ export default function StoreHome() {
           ))}
         </div>
       </section>
+
+      {porqueCompraste.length > 0 && (
+        <Row title="Porque compraste" items={porqueCompraste} href={`${base}/cuenta`} />
+      )}
+      {vistos.length > 0 && (
+        <Row title="Vistos recientemente" items={vistos} href={`${base}/productos`} />
+      )}
 
       {/* ── Categorías ───────────────────────────────────────────────── */}
       {categorias.length > 1 && (

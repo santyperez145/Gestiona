@@ -253,7 +253,7 @@ const FONTS: Record<string, StoreFont> = {
     label: "Playfair Display",
     google: "Playfair+Display:wght@400;500;600;700",
     stack: '"Playfair Display", Georgia, serif',
-    hint: "Serif elegante, para perfumería y moda",
+    hint: "Serif elegante, para moda y marcas premium",
   },
   lora: {
     id: "lora",

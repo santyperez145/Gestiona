@@ -92,6 +92,10 @@ export interface DatosFoco {
    * (paridad Shopify Abandoned checkouts).
    */
   carritosAbandonados?: number;
+  /** Productos con stock+precio sin weight_kg — envío cotiza con estimado. */
+  productosSinPeso?: number;
+  /** Zonas activas sin tarifa — Completar tarifario. */
+  zonasSinTarifa?: number;
 }
 
 /**
@@ -267,6 +271,29 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       accion: "Ver",
       destino: "/tienda-online?tab=carritos",
       urgencia: "atencion",
+    });
+  }
+
+  // ATM Commerce: sin tarifas el checkout parece funcionar (retiro) pero no
+  // vende envío; sin pesos cotiza de más y abandona el carrito.
+  if ((d.zonasSinTarifa ?? 0) > 0) {
+    const n = d.zonasSinTarifa!;
+    lista.push({
+      id: "tarifario",
+      texto: `${n} ${n === 1 ? "zona de envío sin tarifa" : "zonas de envío sin tarifa"}`,
+      accion: "Completar tarifario",
+      destino: "/envios?tab=zonas",
+      urgencia: "atencion",
+    });
+  }
+  if ((d.productosSinPeso ?? 0) > 0) {
+    const n = d.productosSinPeso!;
+    lista.push({
+      id: "pesos",
+      texto: `${n} ${n === 1 ? "producto sin peso" : "productos sin peso"}`,
+      accion: "Completar pesos",
+      destino: "/productos?completar=pesos",
+      urgencia: "normal",
     });
   }
 

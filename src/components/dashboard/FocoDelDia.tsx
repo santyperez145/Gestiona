@@ -64,6 +64,8 @@ export default function FocoDelDia(p: Props) {
   const [sinConteo, setSinConteo] = useState(false);
   const [ofertasPendientes, setOfertasPendientes] = useState(0);
   const [carritosAbandonados, setCarritosAbandonados] = useState(0);
+  const [productosSinPeso, setProductosSinPeso] = useState(0);
+  const [zonasSinTarifa, setZonasSinTarifa] = useState(0);
 
   useEffect(() => {
     if (!p.orgId) return;
@@ -186,6 +188,31 @@ export default function FocoDelDia(p: Props) {
     return () => { cancelado = true; };
   }, [p.orgId]);
 
+  // Señales ATM de conversión (pesos / tarifario) — mismas reglas que Tienda.
+  useEffect(() => {
+    if (!p.orgId) return;
+    let cancelado = false;
+    void Promise.all([
+      supabase.from("products").select("id", { count: "exact", head: true })
+        .eq("org_id", p.orgId).gt("stock", 0).gt("sale_price_ars", 0).is("weight_kg", null),
+      supabase.from("shipping_zones").select("id").eq("org_id", p.orgId).eq("is_active", true),
+      supabase.from("shipping_rates").select("zone_id").eq("org_id", p.orgId).eq("is_active", true),
+    ]).then(([sinPeso, zonas, tarifas]) => {
+      if (cancelado) return;
+      if (sinPeso.error) console.error("FocoDelDia / productos sin peso:", sinPeso.error);
+      else setProductosSinPeso(sinPeso.count ?? 0);
+      if (zonas.error || tarifas.error) {
+        if (zonas.error) console.error("FocoDelDia / zonas:", zonas.error);
+        if (tarifas.error) console.error("FocoDelDia / tarifas:", tarifas.error);
+        return;
+      }
+      const conTarifa = new Set((tarifas.data ?? []).map(r => r.zone_id));
+      const sinTarifa = (zonas.data ?? []).filter(z => !conTarifa.has(z.id)).length;
+      setZonasSinTarifa(sinTarifa);
+    });
+    return () => { cancelado = true; };
+  }, [p.orgId]);
+
   const datos: DatosFoco = {
     sinStock: p.sinStock,
     stockBajo: p.stockBajo,
@@ -201,6 +228,8 @@ export default function FocoDelDia(p: Props) {
     sinConteoFisico: sinConteo,
     ofertasIaPendientes: ofertasPendientes,
     carritosAbandonados,
+    productosSinPeso,
+    zonasSinTarifa,
   };
 
   const pendientes = construirPendientes(datos);

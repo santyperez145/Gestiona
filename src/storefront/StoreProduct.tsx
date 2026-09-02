@@ -6,6 +6,11 @@ import {
 } from "@/lib/paymentDiscount";
 import { opcionDestacada, textoCuotas } from "@/lib/installments";
 import { ahorroDeUnPar } from "@/lib/promo2x";
+import { recommendSimilar } from "@/lib/perfumeMatch";
+import { scoreRelatedProducts } from "@/lib/relatedProducts";
+import { productsFromRecentlyViewed, recordView } from "@/lib/recentlyViewed";
+import { retryPublicRead } from "@/lib/publicDataSource";
+import { supabase } from "@/integrations/supabase/client";
 import { useInstallments } from "./useInstallments";
 import ProductCard from "./ProductCard";
 import { getCategoryLabel } from "@/lib/supabaseStore";
@@ -32,17 +37,68 @@ export default function StoreProduct() {
   const [imgIdx, setImgIdx] = useState(0);
   const [added, setAdded] = useState(false);
   const [variantId, setVariantId] = useState<string | null>(null);
+  const [coocScores, setCoocScores] = useState<Record<string, number>>({});
 
   const base = `/tienda/${store?.slug ?? ""}`;
   const p = products.find(x => x.id === productId);
   const d = productId ? perfumes[productId] : undefined;
 
+  // Coocurrencia anon-safe; si la relación no existe aún, el score cae a marca/cat.
+  useEffect(() => {
+    if (!store?.slug || !productId) { setCoocScores({}); return; }
+    let cancelled = false;
+    void retryPublicRead(() =>
+      supabase.rpc("get_store_product_recommendations", {
+        p_slug: store.slug,
+        p_product_id: productId,
+        p_limit: 24,
+      }),
+    ).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        // Relación ausente (migración pendiente) ≠ error de negocio: fallback local.
+        if (!/PGRST202|42883|does not exist/i.test(error.message)) {
+          console.error("[store] recomendaciones:", error.message);
+        }
+        setCoocScores({});
+        return;
+      }
+      const map: Record<string, number> = {};
+      for (const row of data ?? []) {
+        map[row.recommended_product_id] = Number(row.score) || 0;
+      }
+      setCoocScores(map);
+    }, () => { if (!cancelled) setCoocScores({}); });
+    return () => { cancelled = true; };
+  }, [store?.slug, productId]);
+
+  const attributeScores = useMemo(() => {
+    // Afinidad olfativa sólo si ESTE producto tiene ficha con datos reales.
+    // Un comercio de otro rubro no entra acá: perfumes{} vacío → scores {}.
+    if (!p || !perfumes[p.id]) return {} as Record<string, number>;
+    const similar = recommendSimilar(p.id, products, perfumes, { limit: 24, minScore: 15 });
+    const map: Record<string, number> = {};
+    for (const s of similar) map[s.product.id] = s.score;
+    return map;
+  }, [p, products, perfumes]);
+
   const relacionados = useMemo(() => {
     if (!p) return [];
-    return products
-      .filter(x => x.id !== p.id && (x.category === p.category || x.brand === p.brand))
-      .slice(0, 4);
-  }, [p, products]);
+    return scoreRelatedProducts({
+      seedId: p.id,
+      seed: p,
+      candidates: products,
+      cooccurrenceScores: coocScores,
+      attributeScores,
+      preferInStock: true,
+      limit: 8,
+    }).map(r => r.product);
+  }, [p, products, coocScores, attributeScores]);
+
+  const vistosRecientes = useMemo(() => {
+    if (!store?.slug || !p) return [];
+    return productsFromRecentlyViewed(store.slug, products, { limit: 4, excludeId: p.id });
+  }, [store?.slug, products, p]);
 
   // Ver producto: es el evento con el que Meta arma públicos similares.
   // Va ANTES del early return: los hooks no pueden ser condicionales.
@@ -52,7 +108,8 @@ export default function StoreProduct() {
   useEffect(() => {
     if (!p) return;
     trackViewItem({ id: p.id, name: p.name, price: Number(precioParaTracking) }, store?.currency ?? "ARS");
-  }, [p, precioParaTracking, store?.currency]);
+    if (store?.slug) recordView(store.slug, p.id);
+  }, [p, precioParaTracking, store?.currency, store?.slug]);
 
   // Cuotas: va ANTES del early return por la regla de los hooks, igual que el
   // tracking. Se consulta sobre `precioParaTracking`, que ya contempla la
@@ -426,6 +483,15 @@ export default function StoreProduct() {
       <ProductQuestions productId={p.id} />
 
       <ProductReviews productId={p.id} />
+
+      {vistosRecientes.length > 0 && (
+        <section className="mt-14">
+          <h2 className="text-lg font-semibold mb-4">Vistos recientemente</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {vistosRecientes.map(r => <ProductCard key={r.id} p={r} />)}
+          </div>
+        </section>
+      )}
 
       {relacionados.length > 0 && (
         <section className="mt-14">

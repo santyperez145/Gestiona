@@ -34,11 +34,18 @@ Si al apretar "Ingresar con Google" recibís un error tipo *"provider is not ena
 ## Paso 3 — Configurar las URLs de tu app en Supabase
 
 1. Abrí https://supabase.com/dashboard/project/hummeopatkniwkyrrhwc/auth/url-configuration
-2. **Site URL**: `https://tudominio.com` (o `http://localhost:8080` si estás en desarrollo)
-3. **Redirect URLs** (agregá todas):
+2. **Site URL**: `https://exentryimports.vercel.app` en producción (o `http://localhost:8080` en desarrollo)
+3. **Redirect URLs** (agregá todas; sin esto fallan Google **y** el magic link / OTP de `/login`):
    - `http://localhost:8080/**`
-   - `https://tudominio.com/**`
+   - `http://localhost:8080/`
+   - `https://exentryimports.vercel.app/**`
+   - `https://exentryimports.vercel.app/`
+   - `https://tudominio.com/**` (si hay dominio propio)
 4. Guardá.
+
+El login por email sin contraseña (`signInWithOtp` + `verifyOtp`) redirige a
+`/` tras el enlace del correo. Si esa URL no está en la lista, el usuario
+confirma el mail y cae en un error de redirect — no es un bug de la app.
 
 ## Paso 4 — Probar
 

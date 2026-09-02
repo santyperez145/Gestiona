@@ -28,12 +28,19 @@ interface Ctx {
   customer: StoreCustomer | null;
   signUp: (email: string, password: string, name: string) => Promise<{ error?: string; needsConfirm?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  /** Magic link / código. shouldCreateUser true + account_type store_customer. */
+  signInWithEmailOtp: (email: string, opts?: { createUser?: boolean; name?: string }) => Promise<{ error?: string }>;
+  verifyEmailOtp: (email: string, token: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
   refresh: () => Promise<void>;
 }
 
 const StoreAuthContext = createContext<Ctx | null>(null);
+
+function storeAccountRedirect(slug: string): string {
+  return `${window.location.origin}/tienda/${slug}/cuenta`;
+}
 
 export function StoreAuthProvider({ slug, children }: { slug: string; children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -81,7 +88,7 @@ export function StoreAuthProvider({ slug, children }: { slug: string; children: 
           // `account_type` evita que el trigger de Supabase le cree una
           // organización y un trial: es un comprador, no un usuario del SaaS.
           data: { full_name: name, account_type: "store_customer", store_slug: slug },
-          emailRedirectTo: `${window.location.origin}/tienda/${slug}/cuenta`,
+          emailRedirectTo: storeAccountRedirect(slug),
         },
       });
       if (error) return { error: error.message };
@@ -105,6 +112,36 @@ export function StoreAuthProvider({ slug, children }: { slug: string; children: 
       return {};
     },
 
+    signInWithEmailOtp: async (email, opts = {}) => {
+      const createUser = opts.createUser === true;
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          shouldCreateUser: createUser,
+          emailRedirectTo: storeAccountRedirect(slug),
+          data: createUser
+            ? {
+                full_name: opts.name?.trim() || undefined,
+                account_type: "store_customer",
+                store_slug: slug,
+              }
+            : undefined,
+        },
+      });
+      return error ? { error: error.message } : {};
+    },
+
+    verifyEmailOtp: async (email, token) => {
+      const { error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: token.trim(),
+        type: "email",
+      });
+      if (error) return { error: error.message };
+      await refresh();
+      return {};
+    },
+
     signOut: async () => {
       await supabase.auth.signOut();
       setCustomer(null);
@@ -113,7 +150,7 @@ export function StoreAuthProvider({ slug, children }: { slug: string; children: 
 
     resetPassword: async (email) => {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/tienda/${slug}/cuenta`,
+        redirectTo: storeAccountRedirect(slug),
       });
       return error ? { error: error.message } : {};
     },

@@ -13,17 +13,21 @@ const SHOWCASE_ITEMS = [
   { icon: CircleDollarSign, title: 'Costos completos', description: 'Importación, envío, comisión e IVA.' },
 ];
 
+type AuthMode = 'login' | 'register' | 'forgot' | 'otp';
+
 function AuthBrand() {
   return <Link to="/" className="auth-brand"><BrandLogo eager markClassName="h-8 w-8" nameClassName="text-[1.05rem]" /></Link>;
 }
 
 export default function AuthPage() {
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn, signUp, signInWithEmailOtp, verifyEmailOtp } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(() => searchParams.get('mode') === 'register' ? 'register' : 'login');
+  const [mode, setMode] = useState<AuthMode>(() => searchParams.get('mode') === 'register' ? 'register' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -43,6 +47,17 @@ export default function AuthPage() {
         if (error) throw error;
         toast.success('Te enviamos un email para restablecer tu contraseña');
         setMode('login');
+      } else if (mode === 'otp') {
+        if (!otpSent) {
+          await signInWithEmailOtp(email);
+          setOtpSent(true);
+          toast.success('Te enviamos un enlace y un código a tu email');
+        } else {
+          if (!otpCode.trim()) { toast.error('Ingresá el código del email'); setLoading(false); return; }
+          await verifyEmailOtp(email, otpCode);
+          navigate('/', { replace: true });
+          toast.success('¡Bienvenido de vuelta!');
+        }
       } else if (mode === 'login') {
         await signIn(email, password);
         // Move immediately to ProtectedRoutes so MfaGate can request the code
@@ -56,7 +71,12 @@ export default function AuthPage() {
         toast.success('Cuenta creada. Revisá tu email para confirmar.');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Error de autenticación');
+      const msg = err?.message || 'Error de autenticación';
+      if (/signups not allowed|user not found|unable to validate/i.test(msg)) {
+        toast.error('No hay una cuenta con ese email. Creá una cuenta primero.');
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -65,11 +85,21 @@ export default function AuthPage() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/`, queryParams: { access_type: 'offline', prompt: 'consent' } } });
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: { access_type: 'offline', prompt: 'consent' },
+        },
+      });
       if (error) {
-        if (/provider.*not enabled|unsupported provider/i.test(error.message)) toast.error('Google aún no está habilitado. Contactá al administrador.');
-        else if (/redirect/i.test(error.message)) toast.error('URL de redirección no autorizada');
-        else toast.error(error.message || 'Error al conectar con Google');
+        if (/provider.*not enabled|unsupported provider/i.test(error.message)) {
+          toast.error('Google todavía no está habilitado en este entorno. Pedile al administrador que siga docs/GOOGLE_OAUTH_SETUP.md.');
+        } else if (/redirect/i.test(error.message)) {
+          toast.error('URL de redirección no autorizada. Revisá Redirect URLs en Supabase Auth.');
+        } else {
+          toast.error(error.message || 'Error al conectar con Google');
+        }
       }
     } catch (err: any) {
       toast.error(err.message || 'Error inesperado con Google');
@@ -78,10 +108,39 @@ export default function AuthPage() {
     }
   };
 
-  const changeMode = (next: 'login' | 'register') => {
+  const changeMode = (next: AuthMode) => {
     setMode(next);
     setPassword('');
+    setOtpCode('');
+    setOtpSent(false);
   };
+
+  const heading = (() => {
+    if (mode === 'forgot') {
+      return {
+        icon: true,
+        eyebrow: 'Acceso a tu cuenta',
+        title: 'Recuperar contraseña',
+        lead: 'Ingresá tu email y te enviamos un enlace para volver a entrar.',
+      };
+    }
+    if (mode === 'otp') {
+      return {
+        icon: true,
+        eyebrow: 'Sin contraseña',
+        title: otpSent ? 'Revisá tu email' : 'Entrar con email',
+        lead: otpSent
+          ? 'Abrí el enlace del correo o ingresá el código de un solo uso. El enlace vuelve a Gestiona.'
+          : 'Te mandamos un enlace mágico y un código. No crea cuentas nuevas: sólo entra si ya existís.',
+      };
+    }
+    return {
+      icon: false,
+      eyebrow: 'Tu workspace empieza acá',
+      title: mode === 'login' ? 'Bienvenido de vuelta' : 'Creá tu cuenta',
+      lead: mode === 'login' ? 'Ingresá para continuar con la operación.' : 'Probá todas las herramientas durante 14 días.',
+    };
+  })();
 
   return (
     <div className="auth-shell">
@@ -100,21 +159,59 @@ export default function AuthPage() {
         <div className="auth-panel__top"><Link to="/" className="auth-back"><ArrowLeft /> Volver al inicio</Link><span>¿Necesitás ayuda?</span></div>
         <div className="auth-form-shell">
           <div className="auth-mobile-brand"><AuthBrand /></div>
-          {mode === 'forgot' ? (
-            <div className="auth-form-heading"><span className="auth-form-icon"><Mail /></span><p className="auth-eyebrow">Acceso a tu cuenta</p><h2>Recuperar contraseña</h2><p>Ingresá tu email y te enviamos un enlace para volver a entrar.</p></div>
-          ) : (
-            <div className="auth-form-heading"><p className="auth-eyebrow">Tu workspace empieza acá</p><h2>{mode === 'login' ? 'Bienvenido de vuelta' : 'Creá tu cuenta'}</h2><p>{mode === 'login' ? 'Ingresá para continuar con la operación.' : 'Probá todas las herramientas durante 14 días.'}</p></div>
-          )}
+          <div className="auth-form-heading">
+            {heading.icon && <span className="auth-form-icon"><Mail /></span>}
+            <p className="auth-eyebrow">{heading.eyebrow}</p>
+            <h2>{heading.title}</h2>
+            <p>{heading.lead}</p>
+          </div>
 
-          {mode === 'forgot' ? (
+          {mode === 'forgot' || mode === 'otp' ? (
             <form onSubmit={handleSubmit} className="auth-form">
-              <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" required /></label>
-              <Button type="submit" disabled={loading} className="auth-submit">{loading ? 'Enviando...' : 'Enviar enlace'} <ArrowRight /></Button>
-              <button type="button" className="auth-muted-link" onClick={() => setMode('login')}><ArrowLeft /> Volver al login</button>
+              <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" required autoComplete="email" disabled={mode === 'otp' && otpSent} /></label>
+              {mode === 'otp' && otpSent && (
+                <label>Código del email<input type="text" inputMode="numeric" autoComplete="one-time-code" value={otpCode} onChange={e => setOtpCode(e.target.value)} placeholder="123456" required minLength={6} maxLength={8} /></label>
+              )}
+              <Button type="submit" disabled={loading} className="auth-submit">
+                {loading
+                  ? 'Enviando...'
+                  : mode === 'forgot'
+                    ? 'Enviar enlace'
+                    : otpSent
+                      ? 'Confirmar código'
+                      : 'Enviar enlace y código'}
+                <ArrowRight />
+              </Button>
+              {mode === 'otp' && otpSent && (
+                <button
+                  type="button"
+                  className="auth-muted-link"
+                  disabled={loading}
+                  onClick={async () => {
+                    setLoading(true);
+                    try {
+                      await signInWithEmailOtp(email);
+                      toast.success('Te reenviamos el email');
+                    } catch (err: any) {
+                      toast.error(err?.message || 'No se pudo reenviar');
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                >
+                  Reenviar email
+                </button>
+              )}
+              <button type="button" className="auth-muted-link" onClick={() => changeMode('login')}><ArrowLeft /> Volver al login</button>
             </form>
           ) : (
             <>
-              <Button type="button" variant="outline" className="auth-google" onClick={handleGoogleLogin} disabled={loading}><span className="auth-google__g">G</span> Continuar con Google</Button>
+              <Button type="button" variant="outline" className="auth-google" onClick={handleGoogleLogin} disabled={loading}>
+                <span className="auth-google__g">G</span> Continuar con Google
+              </Button>
+              <p className="auth-provider-hint">
+                Si Google falla, el dueño debe habilitar el provider en Supabase y completar <code>docs/GOOGLE_OAUTH_SETUP.md</code> (Console + Redirect URLs).
+              </p>
               <div className="auth-divider"><span>o con email</span></div>
               <div className="auth-tabs" role="tablist" aria-label="Acceso">
                 <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'is-active' : ''} onClick={() => changeMode('login')}>Iniciar sesión</button>
@@ -122,11 +219,19 @@ export default function AuthPage() {
               </div>
               <form onSubmit={handleSubmit} className="auth-form">
                 {mode === 'register' && <label>Nombre<input value={name} onChange={e => setName(e.target.value)} placeholder="Tu nombre" required /></label>}
-                <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" required /></label>
-                <label>Contraseña<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required minLength={6} /></label>
-                {mode === 'login' && <div className="auth-form__forgot"><button type="button" onClick={() => setMode('forgot')}>¿Olvidaste tu contraseña?</button></div>}
+                <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" required autoComplete="email" /></label>
+                <label>Contraseña<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required minLength={6} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
+                {mode === 'login' && (
+                  <div className="auth-form__forgot">
+                    <button type="button" onClick={() => changeMode('otp')}>Entrar con enlace o código</button>
+                    <button type="button" onClick={() => changeMode('forgot')}>¿Olvidaste tu contraseña?</button>
+                  </div>
+                )}
                 <Button type="submit" disabled={loading} className="auth-submit">{loading ? 'Procesando...' : mode === 'login' ? 'Entrar a Gestiona' : 'Crear mi workspace'} <ArrowRight /></Button>
               </form>
+              <p className="auth-channel-note" role="note">
+                El acceso por WhatsApp todavía no está disponible: Meta Cloud Messaging tiene que estar probado (`whatsapp_listo`) antes de ofrecer códigos por ese canal.
+              </p>
               <p className="auth-legal">Al continuar aceptás los <Link to="/terminos">términos de uso</Link> y la <Link to="/privacidad">política de privacidad</Link>.</p>
             </>
           )}
