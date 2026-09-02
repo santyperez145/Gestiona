@@ -33,8 +33,10 @@ import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
 import { parseActivationHandoff, storeHandoffCopy } from "@/lib/activationHandoff";
 import {
   storeAbandonedCartCount,
+  storeAfterCatalogCopy,
   storeFunnelFromCarts,
   storeShouldLeadWithPay,
+  storeShouldShowAfterCatalog,
   storeShouldShowPerformanceChrome,
 } from "@/lib/storeFirstPublish";
 import {
@@ -443,6 +445,13 @@ export default function EcommerceStorePage() {
   const catalogHandoff = fromWizard && signals.publishedProducts === 0
     ? storeHandoffCopy()
     : null;
+  const afterCatalog = storeShouldShowAfterCatalog({
+    fromWizard,
+    publishedProducts: signals.publishedProducts,
+    storeActive: !!storeForm.is_active,
+  })
+    ? storeAfterCatalogCopy({ canPublish: readiness.canPublish })
+    : null;
 
   const TABS: { id: StoreTab; label: string }[] = [
     { id: "overview",  label: "Publicar" },
@@ -464,10 +473,12 @@ export default function EcommerceStorePage() {
     sessionCount: funnelData.find(f => f.label === "Sesiones")?.value ?? 0,
     orderCount: orders.length,
   });
+  const methods = storeForm.payment_methods ?? [];
   const leadWithPay = storeShouldLeadWithPay({
-    fromWizard,
     publishedProducts: signals.publishedProducts,
     paymentConnected: signals.paymentConnected,
+    wantsMercadoPago: methods.includes("mercadopago"),
+    hasOfflinePayment: methods.some((m) => m === "transferencia" || m === "efectivo"),
   });
 
   const kpis = useMemo(() => [
@@ -592,6 +603,22 @@ export default function EcommerceStorePage() {
               actionLabel={catalogHandoff.actionLabel}
               onAction={() => navigate(catalogHandoff.href)}
             />
+          )}
+          {afterCatalog && (
+            <div className="rounded-xl border border-border/40 bg-card p-4 sm:p-5">
+              <p className="text-sm font-semibold">{afterCatalog.title}</p>
+              <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
+                {afterCatalog.description}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" className="min-h-11" onClick={() => goToTab("settings")}>
+                  Pagos y envíos
+                </Button>
+                <Button size="sm" variant="outline" className="min-h-11" onClick={() => goToTab("pages")}>
+                  Páginas legales
+                </Button>
+              </div>
+            </div>
           )}
           {!catalogHandoff ? <StoreReadinessPanel readiness={readiness} /> : null}
           {leadWithPay && (

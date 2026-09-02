@@ -4,8 +4,10 @@ import { resolve } from 'node:path';
 import { firstProductPath } from '@/lib/activationHandoff';
 import {
   storeAbandonedCartCount,
+  storeAfterCatalogCopy,
   storeFunnelFromCarts,
   storeShouldLeadWithPay,
+  storeShouldShowAfterCatalog,
   storeShouldShowPerformanceChrome,
   storeWizardFinishCopy,
 } from '@/lib/storeFirstPublish';
@@ -27,14 +29,54 @@ describe('la primera publicación empieza por el catálogo', () => {
 
   it('sin catálogo el overview no abre con Mercado Pago', () => {
     expect(storeShouldLeadWithPay({
-      fromWizard: true, publishedProducts: 0, paymentConnected: false,
+      publishedProducts: 0,
+      paymentConnected: false,
+      wantsMercadoPago: false,
+      hasOfflinePayment: true,
     })).toBe(false);
     expect(storeShouldLeadWithPay({
-      fromWizard: true, publishedProducts: 1, paymentConnected: false,
+      publishedProducts: 1,
+      paymentConnected: false,
+      wantsMercadoPago: false,
+      hasOfflinePayment: true,
+    })).toBe(false);
+  });
+
+  it('Pay no es el CTA primario si transferencia ya cobra', () => {
+    expect(storeShouldLeadWithPay({
+      publishedProducts: 1,
+      paymentConnected: false,
+      wantsMercadoPago: true,
+      hasOfflinePayment: true,
+    })).toBe(false);
+  });
+
+  it('Pay sí encabeza cuando el checkout no puede cobrar', () => {
+    expect(storeShouldLeadWithPay({
+      publishedProducts: 1,
+      paymentConnected: false,
+      wantsMercadoPago: true,
+      hasOfflinePayment: false,
     })).toBe(true);
     expect(storeShouldLeadWithPay({
-      fromWizard: false, publishedProducts: 0, paymentConnected: true,
+      publishedProducts: 1,
+      paymentConnected: true,
+      wantsMercadoPago: true,
+      hasOfflinePayment: false,
     })).toBe(false);
+  });
+
+  it('después del primer producto el overview habla de publicar, no de Pay', () => {
+    expect(storeShouldShowAfterCatalog({
+      fromWizard: true, publishedProducts: 1, storeActive: false,
+    })).toBe(true);
+    expect(storeShouldShowAfterCatalog({
+      fromWizard: true, publishedProducts: 1, storeActive: true,
+    })).toBe(false);
+    expect(storeAfterCatalogCopy({ canPublish: false }).title).toMatch(/publicá/i);
+    expect(storeAfterCatalogCopy({ canPublish: true }).title).toMatch(/Listo/);
+    expect(STORE).toContain('storeAfterCatalogCopy');
+    expect(STORE).toContain('storeShouldShowAfterCatalog');
   });
 });
 

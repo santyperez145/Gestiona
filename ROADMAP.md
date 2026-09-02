@@ -3084,6 +3084,16 @@ Finance Connect.
      NULL. El navegador de esta PC no tiene `VITE_*`: no se afirma el
      formulario contra una sesión real.
 
+103. Después del primer producto, Commerce no empuja Pay — 2026-09-02.
+     El wizard online ya aterrizaba en Productos. Al volver a Commerce con
+     un SKU, el overview seguía abriendo con «Activar Gestiona Pay» aunque
+     el default es transferencia y el checkout no lista Mercado Pago hasta
+     que Pay está vivo. El banner sólo aparece si el comercio marcó Mercado
+     Pago, no hay otro medio y no hay conexión: ahí el checkout no cobra.
+     Con catálogo, el overview habla de publicar (Pagos y envíos / legales).
+     El aviso de `pay-rail` sigue en el estado de la tienda. Una tienda ya
+     activa no vuelve a decir «activá». Recorte: `storeFirstPublish` verde.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

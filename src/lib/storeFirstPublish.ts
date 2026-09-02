@@ -36,14 +36,49 @@ export function storeShouldShowPerformanceChrome(input: {
   return input.sessionCount > 0 || input.orderCount > 0;
 }
 
+/**
+ * El banner de Pay no es el siguiente clic de publicar.
+ *
+ * Transferencia es el default. El checkout no ofrece Mercado Pago hasta que
+ * Pay esté vivo. Empujar «Activar Gestiona Pay» encima del checklist hacía
+ * que el primer producto aterrizara en OAuth en vez de en slug, entrega y
+ * legales. El aviso de `pay-rail` sigue en el estado de la tienda.
+ */
 export function storeShouldLeadWithPay(input: {
-  fromWizard: boolean;
   publishedProducts: number;
   paymentConnected: boolean;
+  wantsMercadoPago: boolean;
+  hasOfflinePayment: boolean;
 }): boolean {
+  if (input.publishedProducts === 0) return false;
   if (input.paymentConnected) return false;
-  if (input.fromWizard && input.publishedProducts === 0) return false;
+  if (!input.wantsMercadoPago) return false;
+  if (input.hasOfflinePayment) return false;
   return true;
+}
+
+/** El recorte de primera publicación no aplica a una vitrina ya activa. */
+export function storeShouldShowAfterCatalog(input: {
+  fromWizard: boolean;
+  publishedProducts: number;
+  storeActive: boolean;
+}): boolean {
+  return input.fromWizard && input.publishedProducts > 0 && !input.storeActive;
+}
+
+export function storeAfterCatalogCopy(input: { canPublish: boolean }) {
+  if (input.canPublish) {
+    return {
+      title: 'Listo para publicar',
+      description:
+        'Activá la tienda en Pagos y envíos cuando quieras el link público. Transferencia ya cobra; Gestiona Pay puede esperar.',
+    };
+  }
+  return {
+    title: 'Ahora publicá la tienda',
+    description:
+      'El catálogo ya está. Falta una dirección para compartir, una forma de entregar y quién vende. Transferencia ya cobra; Gestiona Pay puede esperar.',
+  };
 }
 
 function pct(part: number, total: number): number {
