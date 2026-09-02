@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MAX_DESCUENTO_PORCENTAJE, type PaymentDiscounts } from "@/lib/paymentDiscount";
+import { MAX_DESCUENTO_PORCENTAJE } from "@/lib/paymentDiscount";
 import { STORE_FONTS } from "@/storefront/theme";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -37,6 +37,14 @@ import {
   storeShouldLeadWithPay,
   storeShouldShowPerformanceChrome,
 } from "@/lib/storeFirstPublish";
+import {
+  costoEnvioAlGuardar,
+  envioGratisAlGuardar,
+  esConflictoDeSlug,
+  slugCandidatoDeTienda,
+  storeDraftInicial,
+  storeFormDesdeFila,
+} from "@/lib/storeDraft";
 import { estadoPublicacionLegal } from "@/lib/legalPages";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
 import { STORE_ORDER_QUEUE_LIMIT, storeOrderFulfillmentLabel, storeOrderFulfillmentTone } from "@/lib/storeOrderQueue";
@@ -114,7 +122,7 @@ function isStoreTab(value: string | null): value is StoreTab {
 
 export default function EcommerceStorePage() {
   usePageTitle("Gestiona Commerce");
-  const { orgId } = useOrganization();
+  const { orgId, org } = useOrganization();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { fromWizard } = parseActivationHandoff(searchParams);
@@ -139,24 +147,7 @@ export default function EcommerceStorePage() {
   const [vozTab, setVozTab] = useState<"opiniones" | "preguntas">("opiniones");
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [storeForm, setStoreForm] = useState({
-    name: "Mi Tienda Online", slug: "", theme: "minimal",
-    primary_color: "#f59e0b", currency: "ARS",
-    tax_included: true, free_shipping_above: "50000",
-    shipping_cost: "2500", is_active: false,
-    payment_methods: ["mercadopago", "transferencia"],
-    payment_discounts: {} as PaymentDiscounts,
-    payment_discount_stacks: false,
-    font: "sistema",
-    meta_title: "", meta_description: "",
-    description: "", notification_email: "",
-    meta_pixel_id: "", ga_measurement_id: "", tiktok_pixel_id: "",
-    logo_url: "", banner_url: "",
-    shipping_mode: "flat", pickup_enabled: false,
-    pickup_address: "", pickup_instructions: "",
-    default_item_weight_kg: "0.5",
-    fulfillment_location_id: GLOBAL_FULFILLMENT_LOCATION,
-  });
+  const [storeForm, setStoreForm] = useState(() => storeDraftInicial(undefined, GLOBAL_FULFILLMENT_LOCATION));
   const [selectedTheme, setSelectedTheme] = useState("minimal");
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState<string | null>(null);
@@ -287,44 +278,10 @@ export default function EcommerceStorePage() {
       .then(({ data }) => {
         if (data) {
           setStore(data);
-          // Mapeo explícito: la fila trae columnas extra y numéricas donde el
-          // formulario usa strings (los inputs son de texto).
-          setStoreForm(prev => ({
-            ...prev,
-            name: data.name ?? prev.name,
-            slug: data.slug ?? prev.slug,
-            theme: data.theme ?? prev.theme,
-            primary_color: data.primary_color ?? prev.primary_color,
-            currency: data.currency ?? prev.currency,
-            tax_included: data.tax_included ?? prev.tax_included,
-            free_shipping_above: data.free_shipping_above != null ? String(data.free_shipping_above) : prev.free_shipping_above,
-            shipping_cost: data.shipping_cost != null ? String(data.shipping_cost) : prev.shipping_cost,
-            is_active: data.is_active ?? prev.is_active,
-            payment_methods: data.payment_methods || ["mercadopago", "transferencia"],
-            payment_discounts: (data.payment_discounts as PaymentDiscounts) ?? prev.payment_discounts,
-            payment_discount_stacks: data.payment_discount_stacks ?? prev.payment_discount_stacks,
-            font: data.font ?? prev.font,
-            meta_title: data.meta_title ?? prev.meta_title,
-            description: data.description ?? prev.description,
-            notification_email: data.notification_email ?? prev.notification_email,
-            logo_url: data.logo_url ?? prev.logo_url,
-            banner_url: data.banner_url ?? prev.banner_url,
-            meta_pixel_id: data.meta_pixel_id ?? prev.meta_pixel_id,
-            ga_measurement_id: data.ga_measurement_id ?? prev.ga_measurement_id,
-            tiktok_pixel_id: data.tiktok_pixel_id ?? prev.tiktok_pixel_id,
-            meta_description: data.meta_description ?? prev.meta_description,
-            // Estos se guardaban pero no se leían de vuelta: al recargar, una
-            // tienda con envío por zona se veía como precio plano.
-            shipping_mode: data.shipping_mode ?? prev.shipping_mode,
-            pickup_enabled: data.pickup_enabled ?? prev.pickup_enabled,
-            pickup_address: data.pickup_address ?? prev.pickup_address,
-            pickup_instructions: data.pickup_instructions ?? prev.pickup_instructions,
-            default_item_weight_kg: data.default_item_weight_kg != null
-              ? String(data.default_item_weight_kg)
-              : prev.default_item_weight_kg,
-            fulfillment_location_id: data.fulfillment_location_id ?? GLOBAL_FULFILLMENT_LOCATION,
-          }));
+          setStoreForm(storeFormDesdeFila(data, GLOBAL_FULFILLMENT_LOCATION));
           setSelectedTheme(data.theme);
+        } else {
+          setStoreForm(storeDraftInicial(org ?? undefined, GLOBAL_FULFILLMENT_LOCATION));
         }
       });
 
@@ -399,21 +356,36 @@ export default function EcommerceStorePage() {
         setFunnelData(storeFunnelFromCarts(data));
         setAbandonedCarts(storeAbandonedCartCount(data));
       });
-  }, [orgId]);
+  }, [orgId, org, loadOrders]);
 
   const saveStore = async () => {
     if (!orgId) return;
+    const name = storeForm.name.trim();
+    if (!name) {
+      toast.error("Poné el nombre de la tienda.");
+      return;
+    }
+    const slug = slugCandidatoDeTienda({
+      slugEscrito: storeForm.slug,
+      name,
+      orgSlug: org?.slug,
+      orgId,
+    });
+    if (!slug) {
+      toast.error("Elegí una dirección para la tienda.");
+      return;
+    }
     setLoading(true);
     const row = {
       org_id: orgId,
-      name: storeForm.name,
-      slug: storeForm.slug || storeForm.name.toLowerCase().replace(/\s+/g, "-"),
+      name,
+      slug,
       theme: selectedTheme,
       primary_color: storeForm.primary_color,
       currency: storeForm.currency,
       tax_included: storeForm.tax_included,
-      free_shipping_above: storeForm.free_shipping_above ? Number(storeForm.free_shipping_above) : null,
-      shipping_cost: Number(storeForm.shipping_cost),
+      free_shipping_above: envioGratisAlGuardar(storeForm.free_shipping_above),
+      shipping_cost: costoEnvioAlGuardar(storeForm.shipping_cost),
       is_active: storeForm.is_active,
       payment_methods: storeForm.payment_methods,
       payment_discounts: storeForm.payment_discounts,
@@ -439,7 +411,13 @@ export default function EcommerceStorePage() {
     };
     const { error } = await supabase.from("ecommerce_stores").upsert(row, { onConflict: "org_id" });
     setLoading(false);
-    if (error) { toast.error("Error al guardar"); return; }
+    if (error) {
+      console.error("No se pudo guardar la tienda", error);
+      toast.error(esConflictoDeSlug(error)
+        ? "Esa dirección ya está en uso. Probá otra."
+        : "No se pudo guardar la tienda.");
+      return;
+    }
     toast.success("Tienda guardada correctamente");
     setStore(row);
   };
@@ -457,7 +435,7 @@ export default function EcommerceStorePage() {
       payment_methods: storeForm.payment_methods,
       shipping_mode: storeForm.shipping_mode,
       pickup_enabled: storeForm.pickup_enabled,
-      shipping_cost: Number(storeForm.shipping_cost) || 0,
+      shipping_cost: costoEnvioAlGuardar(storeForm.shipping_cost),
     },
     ...signals,
   }), [storeForm, store?.logo_url, store?.slug, signals]);
@@ -937,7 +915,7 @@ export default function EcommerceStorePage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1.5 block">Costo de envío</label>
-                  <Input type="number" value={storeForm.shipping_cost} onChange={e => setStoreForm(p => ({ ...p, shipping_cost: e.target.value }))} className="h-9" />
+                  <Input type="number" value={storeForm.shipping_cost} onChange={e => setStoreForm(p => ({ ...p, shipping_cost: e.target.value }))} className="h-9" placeholder="vacío = $0" />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1.5 block">Envío gratis desde</label>

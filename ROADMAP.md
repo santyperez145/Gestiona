@@ -3034,6 +3034,22 @@ Finance Connect.
     de esta PC no tiene `VITE_*`: no se afirma el aterrizaje contra una
     sesión real.
 
+100. La tienda no nace con la identidad de Exentry — 2026-09-01.
+     Commerce sembraba «Mi Tienda Online», el dorado `#f59e0b`, envío
+     $2.500 y envío gratis desde $50.000. Un Guardar sin tocar esos
+     campos publicaba tarifas que nadie eligió y un slug que choca
+     entre comercios. Misma familia que `industry_code = perfumes`.
+     El formulario toma el nombre y el color de la organización; el
+     envío vacío se guarda como $0 / NULL; una tienda nueva ofrece
+     transferencia, no Mercado Pago desconectado. La base cambia el
+     DEFAULT; no se backfillean vitrinas existentes.
+
+     Verificado en este recorte: **2.259/2.259 pruebas en 233 archivos**;
+     typecheck OK; lint 0 errores y 138 warnings conocidos. Contra la
+     base: defaults aplicados y anotados (`20260901000060`). El
+     navegador de esta PC no tiene `VITE_*`: no se afirma el formulario
+     contra una sesión real.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
