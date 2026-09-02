@@ -3219,6 +3219,18 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no
      tiene `VITE_*`: no se afirma el Foco contra una sesión real.
 
+122. Portada modular al estilo Tiendanube, sin theme engine — 2026-09-02.
+     Tiendanube deja ordenar los bloques de Inicio. Traducción: JSON
+     `storefront_layout` (vacío = automático, como `nav_links`), barra
+     de anuncio, quick-add que exige variante y ATC sticky cuando el
+     botón sale de vista. No hay editor en vivo ni plantillas nuevas:
+     el Core sigue siendo la autoridad de stock y precio.
+
+     Verificado en este recorte: **2.373 tests** (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no
+     tiene `VITE_*`: no se afirma la tienda pública contra una sesión
+     real.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

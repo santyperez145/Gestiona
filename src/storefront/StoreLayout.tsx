@@ -18,6 +18,7 @@ import { resolveTheme, resolveFont, googleFontHref } from "./theme";
 import { ShoppingBag, X, Plus, Minus, Trash2, Instagram, Menu, User, ChevronDown } from "lucide-react";
 import { useStoreAuth } from "./storeAuth";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
+import { parseStorefrontLayout, textoDeAnuncio } from "@/lib/storeHomeLayout";
 
 /**
  * Un link del menú. Los externos salen del router: con `<Link>` un
@@ -85,6 +86,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   const base = `/tienda/${store?.slug ?? ""}`;
   const social = store?.social_links ?? {};
+  const anuncio = textoDeAnuncio(parseStorefrontLayout(store?.storefront_layout), {
+    freeShippingAbove: store?.free_shipping_above,
+    fmt,
+  });
 
   // El menú sale de las categorías que la tienda realmente tiene. Hardcodear
   // "Perfumes árabes" servía para este negocio pero rompía el resto: esto es
@@ -169,6 +174,15 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           </Link>
         </div>
       </div>
+
+      {anuncio && (
+        <div
+          className="storefront-announcement text-sm text-center px-4 py-2.5"
+          style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))" }}
+        >
+          {anuncio}
+        </div>
+      )}
 
       {/* ── Header ───────────────────────────────────────────────────── */}
       <header

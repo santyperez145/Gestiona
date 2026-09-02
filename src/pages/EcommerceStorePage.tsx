@@ -14,7 +14,7 @@ import {
   ShoppingBag, Globe, Package, ShoppingCart, TrendingUp, Settings,
   Plus, Eye, RefreshCw, ExternalLink, Palette, Zap, BarChart3,
   Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin,
-  Image as ImageIcon, Type,
+  Image as ImageIcon, Type, ChevronUp, ChevronDown,
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
@@ -56,6 +56,11 @@ import {
   sugerirDireccionDeRetiro,
   sugerirEmailDeAvisos,
 } from "@/lib/storeDraft";
+import {
+  HOME_SECTION_LABELS,
+  layoutParaGuardar,
+  moverSeccion,
+} from "@/lib/storeHomeLayout";
 import { estadoPublicacionLegal } from "@/lib/legalPages";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
 import {
@@ -520,6 +525,7 @@ export default function EcommerceStorePage() {
       pickup_address: storeForm.pickup_address || null,
       pickup_instructions: storeForm.pickup_instructions || null,
       default_item_weight_kg: Number(storeForm.default_item_weight_kg) || 0.5,
+      storefront_layout: layoutParaGuardar(storeForm.storefront_layout),
       fulfillment_location_id: storeForm.fulfillment_location_id === GLOBAL_FULFILLMENT_LOCATION
         ? null
         : storeForm.fulfillment_location_id,
@@ -1022,6 +1028,96 @@ export default function EcommerceStorePage() {
                 ayuda="Fondo del encabezado, cuando no hay banners cargados."
               />
             </div>
+          </div>
+
+          <div className="bg-card border border-border/40 rounded-xl p-5 space-y-4">
+            <h3 className="font-semibold">Portada</h3>
+            <p className="text-xs text-muted-foreground">
+              Los bloques se muestran en este orden. Vacío o todo como viene
+              de fábrica se guarda como automático: un bloque nuevo no queda
+              escondido. No es un editor en vivo — es la composición de la home.
+            </p>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={storeForm.storefront_layout.announcement.enabled}
+                  onChange={e => setStoreForm(p => ({
+                    ...p,
+                    storefront_layout: {
+                      ...p.storefront_layout,
+                      announcement: { ...p.storefront_layout.announcement, enabled: e.target.checked },
+                    },
+                  }))}
+                />
+                Barra de anuncio
+              </label>
+              <Input
+                value={storeForm.storefront_layout.announcement.text}
+                maxLength={140}
+                placeholder="Vacío = envío gratis, si está cargado"
+                onChange={e => setStoreForm(p => ({
+                  ...p,
+                  storefront_layout: {
+                    ...p.storefront_layout,
+                    announcement: { ...p.storefront_layout.announcement, text: e.target.value },
+                  },
+                }))}
+              />
+            </div>
+            <ul className="space-y-2">
+              {storeForm.storefront_layout.sections.map((s, i) => (
+                <li
+                  key={s.id}
+                  className="flex items-center gap-2 rounded-lg border border-border/40 px-3 py-2"
+                >
+                  <input
+                    type="checkbox"
+                    checked={s.enabled}
+                    onChange={e => setStoreForm(p => ({
+                      ...p,
+                      storefront_layout: {
+                        ...p.storefront_layout,
+                        sections: p.storefront_layout.sections.map(x =>
+                          x.id === s.id ? { ...x, enabled: e.target.checked } : x,
+                        ),
+                      },
+                    }))}
+                  />
+                  <span className="flex-1 text-sm">{HOME_SECTION_LABELS[s.id]}</span>
+                  <button
+                    type="button"
+                    className="min-h-11 min-w-11 grid place-items-center disabled:opacity-30"
+                    disabled={i === 0}
+                    aria-label={`Subir ${HOME_SECTION_LABELS[s.id]}`}
+                    onClick={() => setStoreForm(p => ({
+                      ...p,
+                      storefront_layout: {
+                        ...p.storefront_layout,
+                        sections: moverSeccion(p.storefront_layout.sections, s.id, -1),
+                      },
+                    }))}
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    className="min-h-11 min-w-11 grid place-items-center disabled:opacity-30"
+                    disabled={i === storeForm.storefront_layout.sections.length - 1}
+                    aria-label={`Bajar ${HOME_SECTION_LABELS[s.id]}`}
+                    onClick={() => setStoreForm(p => ({
+                      ...p,
+                      storefront_layout: {
+                        ...p.storefront_layout,
+                        sections: moverSeccion(p.storefront_layout.sections, s.id, 1),
+                      },
+                    }))}
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-4">

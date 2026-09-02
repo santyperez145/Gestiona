@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useStore } from "./storeContext";
 import {
@@ -38,6 +38,8 @@ export default function StoreProduct() {
   const [added, setAdded] = useState(false);
   const [variantId, setVariantId] = useState<string | null>(null);
   const [coocScores, setCoocScores] = useState<Record<string, number>>({});
+  const [atcVisible, setAtcVisible] = useState(true);
+  const atcRef = useRef<HTMLDivElement | null>(null);
 
   const base = `/tienda/${store?.slug ?? ""}`;
   const p = products.find(x => x.id === productId);
@@ -116,6 +118,17 @@ export default function StoreProduct() {
   // variante elegida.
   const cuotas = useInstallments(store?.slug, precioParaTracking);
   const textoCuota = textoCuotas(opcionDestacada(cuotas), fmt);
+
+  useEffect(() => {
+    const el = atcRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const obs = new IntersectionObserver(
+      ([entry]) => setAtcVisible(entry.isIntersecting),
+      { threshold: 0.15 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [productId, products]);
 
   if (!p) {
     return (
@@ -370,7 +383,7 @@ export default function StoreProduct() {
           {stockEfectivo <= 0 ? (
             <StockAlertForm productId={p.id} variantId={variantId} />
           ) : (
-          <div className="flex items-center gap-3 mt-6">
+          <div ref={atcRef} className="flex items-center gap-3 mt-6">
             <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
               <button className="px-3 py-2.5 min-h-11 min-w-11 grid place-items-center" onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="Restar">
                 <Minus className="w-4 h-4" />
@@ -502,7 +515,7 @@ export default function StoreProduct() {
         </section>
       )}
 
-      {stockEfectivo > 0 && (
+      {stockEfectivo > 0 && !atcVisible && (
         <>
           <div className="h-20 md:hidden" aria-hidden="true" />
           <div

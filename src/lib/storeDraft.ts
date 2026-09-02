@@ -14,6 +14,11 @@
 import type { PaymentDiscounts } from "@/lib/paymentDiscount";
 import { slugDeNombre } from "@/lib/storeCategories";
 import { normalizarDescuentosMedios, normalizarMediosTienda } from "@/lib/gestionaPay";
+import {
+  DEFAULT_STOREFRONT_LAYOUT,
+  parseStorefrontLayout,
+  type StorefrontLayout,
+} from "@/lib/storeHomeLayout";
 
 /** Violeta del workspace (`252 83% 62%`). El onboarding arranca igual. */
 export const STORE_WORKSPACE_COLOR = "#6E4DEE";
@@ -56,6 +61,7 @@ export type StoreFormDraft = {
   pickup_instructions: string;
   default_item_weight_kg: string;
   fulfillment_location_id: string;
+  storefront_layout: StorefrontLayout;
 };
 
 export type StoreOrgSeed = {
@@ -185,6 +191,10 @@ export function storeDraftInicial(
     pickup_instructions: "",
     default_item_weight_kg: "0.5",
     fulfillment_location_id: fulfillmentGlobal,
+    storefront_layout: {
+      ...DEFAULT_STOREFRONT_LAYOUT,
+      sections: [...DEFAULT_STOREFRONT_LAYOUT.sections],
+    },
   };
 }
 
@@ -217,6 +227,7 @@ type FilaTienda = {
   pickup_instructions?: string | null;
   default_item_weight_kg?: number | null;
   fulfillment_location_id?: string | null;
+  storefront_layout?: unknown;
 };
 
 /** Una fila guardada no se mezcla con los defaults del formulario vacío. */
@@ -261,5 +272,6 @@ export function storeFormDesdeFila(
       ? String(data.default_item_weight_kg)
       : base.default_item_weight_kg,
     fulfillment_location_id: data.fulfillment_location_id ?? fulfillmentGlobal,
+    storefront_layout: parseStorefrontLayout(data.storefront_layout),
   };
 }

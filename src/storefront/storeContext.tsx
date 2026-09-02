@@ -47,6 +47,8 @@ export interface StoreInfo {
   social_links: Record<string, string> | null;
   /** Menú armado por el comercio. Vacío = se arma solo. Ver `storeMenu.ts`. */
   nav_links: unknown;
+  /** Portada: anuncio + bloques. Vacío = se arma sola. Ver `storeHomeLayout.ts`. */
+  storefront_layout: unknown;
   meta_pixel_id: string | null;
   ga_measurement_id: string | null;
   tiktok_pixel_id: string | null;

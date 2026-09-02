@@ -11586,6 +11586,7 @@ export type Database = {
           shipping_mode: string
           slug: string
           social_links: Json
+          storefront_layout: Json | null
           tax_included: boolean
           theme: string
           tiktok_pixel_id: string | null
@@ -11625,6 +11626,7 @@ export type Database = {
           shipping_mode?: string
           slug: string
           social_links?: Json
+          storefront_layout?: Json | null
           tax_included?: boolean
           theme?: string
           tiktok_pixel_id?: string | null
@@ -11664,6 +11666,7 @@ export type Database = {
           shipping_mode?: string
           slug?: string
           social_links?: Json
+          storefront_layout?: Json | null
           tax_included?: boolean
           theme?: string
           tiktok_pixel_id?: string | null
@@ -52837,6 +52840,7 @@ export type Database = {
           social_links: Json
           theme: string
           tiktok_pixel_id: string
+          storefront_layout: Json
         }[]
       }
       get_store_categories: {

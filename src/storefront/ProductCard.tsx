@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useStore, type StoreProduct } from "./storeContext";
 import { Stars } from "./ProductReviews";
@@ -6,7 +7,10 @@ import { ShoppingBag, Heart } from "lucide-react";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 export default function ProductCard({ p }: { p: StoreProduct }) {
-  const { store, priceOf, fmt, addToCart, reviewsByProduct } = useStore();
+  const { store, priceOf, fmt, addToCart, reviewsByProduct, variantsByProduct } = useStore();
+  const variantes = variantsByProduct[p.id] ?? [];
+  const [varianteId, setVarianteId] = useState<string | null>(null);
+  const [avisoOpcion, setAvisoOpcion] = useState(false);
   const base = `/tienda/${store?.slug ?? ""}`;
   const opiniones = reviewsByProduct[p.id];
   const { has, toggle } = useWishlist();
@@ -101,13 +105,52 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         </div>
 
         {p.stock > 0 ? (
-          <button
-            onClick={() => addToCart(p)}
-            className="storefront-product-card__add mt-3 w-full min-h-11 py-2 text-sm font-medium transition-opacity hover:opacity-90"
-            style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
-          >
-            Agregar
-          </button>
+          <div className="mt-3 space-y-2">
+            {variantes.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {variantes.map(v => {
+                  const sel = v.id === varianteId;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      disabled={v.stock <= 0}
+                      onClick={() => { setVarianteId(sel ? null : v.id); setAvisoOpcion(false); }}
+                      className="min-h-11 px-2.5 text-xs border"
+                      style={{
+                        borderColor: sel ? "hsl(var(--st-accent))" : "hsl(var(--st-border))",
+                        background: sel ? "hsl(var(--st-accent) / 0.12)" : "transparent",
+                        borderRadius: "var(--st-radius)",
+                        opacity: v.stock <= 0 ? 0.4 : 1,
+                      }}
+                    >
+                      {v.variant_name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {avisoOpcion && (
+              <p className="text-[11px]" style={{ color: "hsl(var(--st-muted))" }}>
+                elegí una opción
+              </p>
+            )}
+            <button
+              onClick={() => {
+                if (variantes.length > 0) {
+                  const v = variantes.find(x => x.id === varianteId);
+                  if (!v) { setAvisoOpcion(true); return; }
+                  addToCart(p, 1, v);
+                  return;
+                }
+                addToCart(p);
+              }}
+              className="storefront-product-card__add w-full min-h-11 py-2 text-sm font-medium transition-opacity hover:opacity-90"
+              style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+            >
+              Agregar
+            </button>
+          </div>
         ) : (
           <Link
             to={`${base}/producto/${p.id}`}
