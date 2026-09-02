@@ -11,11 +11,17 @@ import { useOrg } from "@/lib/orgContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  ShoppingBag, Loader2, RefreshCw, Download, Unlink, ExternalLink, CheckCircle2,
+  ShoppingBag, Loader2, RefreshCw, Download, Unlink, ExternalLink, CheckCircle2, AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { Link } from "react-router-dom";
+import {
+  meliDisconnectedSummary,
+  meliListingsEmptyState,
+  meliOrdersEmptyState,
+} from "@/lib/meliHonesty";
 
 interface Status {
   nickname: string | null;
@@ -154,6 +160,9 @@ export default function MercadoLibrePanel() {
     );
   }
 
+  const listingsEmpty = meliListingsEmptyState();
+  const ordersEmpty = meliOrdersEmptyState();
+
   return (
     <>
       {dialog}
@@ -168,7 +177,7 @@ export default function MercadoLibrePanel() {
             <p className="text-xs text-muted-foreground">
               {status?.conectado
                 ? `Conectado como ${status.nickname ?? "—"} · ${status.site_id}`
-                : "Publicá tu catálogo y bajá las órdenes automáticamente"}
+                : meliDisconnectedSummary()}
             </p>
           </div>
         </div>
@@ -295,9 +304,20 @@ export default function MercadoLibrePanel() {
           )}
 
           {listings.length === 0 && (
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              Cuenta conectada. Publicá un producto desde su ficha en Productos.
+            <div className="rounded-lg border border-border/60 bg-muted/15 p-3 space-y-2">
+              <p className="text-xs text-muted-foreground flex items-start gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-500" />
+                {listingsEmpty.text}
+              </p>
+              <Button asChild size="sm" variant="outline">
+                <Link to={listingsEmpty.href}>{listingsEmpty.cta}</Link>
+              </Button>
+            </div>
+          )}
+
+          {orders.length === 0 && (
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {ordersEmpty.text}
             </p>
           )}
 
