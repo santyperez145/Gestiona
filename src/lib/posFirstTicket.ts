@@ -10,11 +10,63 @@
  *    transferencia son el mismo caso.
  * 3. Ventas vacío abre SaleForm («Nueva Venta»). Eso no es el POS. El
  *    segundo comercio que eligió mostrador cobra en `/caja`.
+ * 4. Siete medios al mismo nivel. QR pide Mercado Pago, fiado no cobra y
+ *    mayorista no es un cobro. En la primera visita sólo se muestran
+ *    efectivo y transferencia; el resto queda detrás de «Más medios».
  */
 
 import { posHandoffPath } from '@/lib/activationHandoff';
 
 export type PosPayMethod = 'efectivo' | 'transferencia' | 'debito' | 'credito' | 'qr' | 'mayorista' | 'fiado' | string;
+
+export const POS_FIRST_TICKET_METHODS = ['efectivo', 'transferencia'] as const;
+
+export type PosFirstTicketMethod = (typeof POS_FIRST_TICKET_METHODS)[number];
+
+export function posIsFirstTicketMethod(method: string): boolean {
+  return (POS_FIRST_TICKET_METHODS as readonly string[]).includes(method);
+}
+
+export function posShowAllPayMethods(input: {
+  firstTicket: boolean;
+  expanded: boolean;
+  payMethod: string;
+  splitMode: boolean;
+}): boolean {
+  if (!input.firstTicket) return true;
+  if (input.expanded || input.splitMode) return true;
+  return !posIsFirstTicketMethod(input.payMethod);
+}
+
+export function posVisiblePayMethods<T extends { value: string }>(
+  all: T[],
+  input: {
+    firstTicket: boolean;
+    expanded: boolean;
+    payMethod: string;
+    splitMode: boolean;
+    allowQr: boolean;
+  },
+): T[] {
+  const list = input.allowQr ? all : all.filter((method) => method.value !== 'qr');
+  if (posShowAllPayMethods(input)) return list;
+  return list.filter((method) => posIsFirstTicketMethod(method.value));
+}
+
+export function posFirstTicketPayCopy() {
+  return {
+    hint: 'Efectivo o transferencia cierran el ticket. QR, fiado y el resto están un clic más atrás.',
+    expandLabel: 'Más medios',
+    collapseLabel: 'Sólo efectivo y transferencia',
+  };
+}
+
+export function posPayMethodCaution(method: string): string | null {
+  if (method === 'fiado') {
+    return 'Fiado no cobra. El ticket queda a cuenta.';
+  }
+  return null;
+}
 
 export function posShouldAutoPromptSeller(fromWizard: boolean, sellerName: string | null | undefined): boolean {
   if (fromWizard) return false;

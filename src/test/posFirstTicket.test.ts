@@ -3,8 +3,12 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   posPaymentAlreadyCollected,
+  posPayMethodCaution,
   posReceiptCopy,
   posShouldAutoPromptSeller,
+  posVisiblePayMethods,
+  posFirstTicketPayCopy,
+  posShowAllPayMethods,
   salesListEmptyCopy,
   salesListEmptyKind,
   ticketSalesPath,
@@ -54,11 +58,39 @@ describe('el código usa las reglas', () => {
     expect(POS).toContain('posPaymentAlreadyCollected');
     expect(POS).toContain('posReceiptCopy');
     expect(POS).toContain('ticketSalesPath');
+    expect(POS).toContain('posVisiblePayMethods');
+    expect(POS).toContain('posFirstTicketPayCopy');
+    expect(POS).toContain('posIsFirstTicketMethod');
   });
 
   it('Ventas vacío no abre SaleForm como primera acción', () => {
     expect(SALES).toContain('salesListEmptyCopy');
     expect(SALES).toContain('salesListEmptyKind');
     expect(SALES).not.toMatch(/!filtered\.length \? \([\s\S]{0,400}setOpen\(true\)/);
+  });
+});
+
+describe('primera visita: efectivo y transferencia al frente', () => {
+  const methods = [
+    { value: 'efectivo' },
+    { value: 'transferencia' },
+    { value: 'debito' },
+    { value: 'qr' },
+    { value: 'mayorista' },
+    { value: 'fiado' },
+  ];
+  const first = { firstTicket: true, expanded: false, payMethod: 'efectivo', splitMode: false, allowQr: true };
+
+  it('esconde QR, fiado y mayorista hasta que pidan más medios', () => {
+    expect(posVisiblePayMethods(methods, first).map((m) => m.value)).toEqual(['efectivo', 'transferencia']);
+    expect(posShowAllPayMethods({ firstTicket: true, expanded: false, payMethod: 'efectivo', splitMode: false })).toBe(false);
+    expect(posVisiblePayMethods(methods, { ...first, expanded: true }).map((m) => m.value)).toContain('fiado');
+    expect(posVisiblePayMethods(methods, { ...first, firstTicket: false }).map((m) => m.value)).toHaveLength(6);
+  });
+
+  it('fiado avisa que no cobra', () => {
+    expect(posPayMethodCaution('fiado')).toMatch(/no cobra/);
+    expect(posPayMethodCaution('efectivo')).toBeNull();
+    expect(posFirstTicketPayCopy().expandLabel).toMatch(/Más medios/);
   });
 });

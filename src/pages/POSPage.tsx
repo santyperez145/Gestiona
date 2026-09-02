@@ -28,8 +28,13 @@ import {
 } from "@/lib/posCatalog";
 import {
   posPaymentAlreadyCollected,
+  posPayMethodCaution,
   posReceiptCopy,
   posShouldAutoPromptSeller,
+  posVisiblePayMethods,
+  posFirstTicketPayCopy,
+  posShowAllPayMethods,
+  posIsFirstTicketMethod,
   ticketSalesPath,
 } from "@/lib/posFirstTicket";
 import {
@@ -170,15 +175,18 @@ function PayMethodGrid({
   onChange,
   compact = false,
   allowQr = true,
+  methods,
 }: {
   value: PayMethod;
   onChange: (m: PayMethod) => void;
   compact?: boolean;
   allowQr?: boolean;
+  methods?: typeof PAY_METHODS;
 }) {
+  const list = (methods ?? PAY_METHODS).filter((method) => allowQr || method.value !== "qr");
   return (
-    <div className="grid grid-cols-3 gap-1">
-      {PAY_METHODS.filter((method) => allowQr || method.value !== "qr").map((m) => {
+    <div className={`grid gap-1 ${list.length <= 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+      {list.map((m) => {
         const Icon = m.icon;
         const active = value === m.value;
         return (
@@ -897,6 +905,7 @@ export default function POSPage() {
   // Single payment
   const [payMethod, setPayMethod] = useState<PayMethod>("efectivo");
   const [cashGiven, setCashGiven] = useState("");
+  const [payMethodsExpanded, setPayMethodsExpanded] = useState(false);
 
   // Split payment
   const [splitMode, setSplitMode] = useState(false);
@@ -2342,6 +2351,22 @@ export default function POSPage() {
     (!splitMode && payMethod === "efectivo" && cashGiven !== "" && Number(cashGiven) < cartTotal);
   confirmDisabledRef.current = confirmDisabled;
 
+  const firstTicketPay = posFirstTicketPayCopy();
+  const showAllPayMethods = posShowAllPayMethods({
+    firstTicket: fromWizard,
+    expanded: payMethodsExpanded,
+    payMethod,
+    splitMode,
+  });
+  const visiblePayMethods = posVisiblePayMethods(PAY_METHODS, {
+    firstTicket: fromWizard,
+    expanded: payMethodsExpanded,
+    payMethod,
+    splitMode,
+    allowQr: true,
+  });
+  const payCaution = posPayMethodCaution(payMethod);
+
   // ─────────────────────────────────────────────────────────
   // Cart panel
   // ─────────────────────────────────────────────────────────
@@ -2716,24 +2741,54 @@ export default function POSPage() {
 
         {/* Payment section */}
         <div className="space-y-2 pb-12">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Método de pago</span>
-            <button
-              onClick={() => { setSplitMode(!splitMode); setSplitAmount1(""); }}
-              className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border transition-all ${
-                splitMode
-                  ? "border-primary/60 bg-primary/10 text-primary"
-                  : "border-border bg-card text-muted-foreground hover:border-primary/30"
-              }`}
-            >
-              <SplitSquareHorizontal className="w-3 h-3" />
-              Dividir pago
-            </button>
+            <div className="flex items-center gap-1">
+              {fromWizard ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPayMethodsExpanded((open) => {
+                      const next = !open;
+                      if (!next) {
+                        if (!posIsFirstTicketMethod(payMethod)) setPayMethod("efectivo");
+                        setSplitMode(false);
+                      }
+                      return next;
+                    });
+                  }}
+                  className="flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border border-border bg-card text-muted-foreground hover:border-primary/30"
+                >
+                  {showAllPayMethods ? firstTicketPay.collapseLabel : firstTicketPay.expandLabel}
+                </button>
+              ) : null}
+              {showAllPayMethods ? (
+                <button
+                  onClick={() => { setSplitMode(!splitMode); setSplitAmount1(""); }}
+                  className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border transition-all ${
+                    splitMode
+                      ? "border-primary/60 bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                  }`}
+                >
+                  <SplitSquareHorizontal className="w-3 h-3" />
+                  Dividir pago
+                </button>
+              ) : null}
+            </div>
           </div>
+          {fromWizard && !showAllPayMethods ? (
+            <p className="text-[11px] leading-relaxed text-muted-foreground">{firstTicketPay.hint}</p>
+          ) : null}
 
           {!splitMode ? (
             <>
-              <PayMethodGrid value={payMethod} onChange={setPayMethod} />
+              <PayMethodGrid value={payMethod} onChange={setPayMethod} methods={visiblePayMethods} />
+              {payCaution ? (
+                <p className="rounded-[10px] border border-amber-500/20 bg-amber-500/10 p-2.5 text-[11px] leading-relaxed text-amber-800 dark:text-amber-200">
+                  {payCaution}
+                </p>
+              ) : null}
               {payMethod === "qr" && (
                 <div className="rounded-[10px] border border-sky-500/20 bg-sky-500/10 p-2.5 text-[11px] leading-relaxed text-sky-700 dark:text-sky-200">
                   <div className="flex gap-2">

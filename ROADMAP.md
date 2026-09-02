@@ -2969,6 +2969,14 @@ Finance Connect.
     Verificado en este recorte: **2.223/2.223 pruebas en 228 archivos**;
     typecheck OK; lint 0 errores y 139 warnings conocidos.
 
+96. La primera visita al POS no pone fiado al lado de efectivo — 2026-09-01.
+    Siete medios al mismo nivel. QR pide Mercado Pago, fiado no cobra y
+    mayorista no es un cobro. Quien llega del wizard ve efectivo y
+    transferencia; el resto queda detrás de «Más medios». Si eligen
+    fiado, el POS dice que el ticket queda a cuenta.
+    Verificado en este recorte: **2.225/2.225 pruebas en 228 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
