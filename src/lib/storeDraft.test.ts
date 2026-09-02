@@ -73,6 +73,11 @@ describe("la tienda no nace con la identidad de Exentry", () => {
     expect(storeDraftInicial().payment_methods).toEqual(["transferencia"]);
   });
 
+  it("una tienda nueva ofrece retiro: sin tarifas el comprador igual puede cerrar", () => {
+    expect(storeDraftInicial().pickup_enabled).toBe(true);
+    expect(storeFormDesdeFila({ pickup_enabled: false }).pickup_enabled).toBe(false);
+  });
+
   it("leer una fila con envío NULL no rellena el formulario con tarifas inventadas", () => {
     const form = storeFormDesdeFila({
       name: "Exentry",

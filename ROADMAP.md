@@ -3101,6 +3101,12 @@ Finance Connect.
      Si falta algo, sigue abriendo legales y envíos. No se publica por
      el comercio cuando hay bloqueantes.
 
+105. Una tienda nueva ofrece retiro, no espera el tarifario — 2026-09-02.
+     El formulario nacía con `pickup_enabled: false` y envío plano en $0.
+     Publicar sin 24 provincias dejaba al comprador sin entrega. El
+     checkout ya tiene fallback si falta la dirección de retiro. No se
+     backfillea: una fila guardada conserva lo que el comercio eligió.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

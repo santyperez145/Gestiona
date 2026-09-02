@@ -148,7 +148,9 @@ export function storeDraftInicial(
     logo_url: "",
     banner_url: "",
     shipping_mode: "flat",
-    pickup_enabled: false,
+    // Retiro primero: sin tarifario nacional el checkout todavía puede cerrar.
+    // Una fila existente conserva lo guardado (`storeFormDesdeFila`).
+    pickup_enabled: true,
     pickup_address: "",
     pickup_instructions: "",
     default_item_weight_kg: "0.5",
