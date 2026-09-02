@@ -80,6 +80,8 @@ export interface DatosFoco {
   nuncaVendio?: boolean;
   /** true = nunca cerró una toma física (`stock_counts`). */
   sinConteoFisico?: boolean;
+  /** Recomendaciones de oferta IA en `pending` (aplicar → AI Action Rate). */
+  ofertasIaPendientes?: number;
 }
 
 /**
@@ -213,6 +215,19 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       texto: `${d.seguimientosHoy} ${d.seguimientosHoy === 1 ? "seguimiento para hoy" : "seguimientos para hoy"}`,
       accion: "Ver",
       destino: "/clientes?vista=seguimientos",
+      urgencia: "atencion",
+    });
+  }
+
+  // Ofertas generadas y sin aplicar: el deep-link ya existe; sin número en el
+  // Foco el comercio no sabe que hay algo que decidir.
+  if ((d.ofertasIaPendientes ?? 0) > 0) {
+    const n = d.ofertasIaPendientes!;
+    lista.push({
+      id: "ofertas-ia",
+      texto: `${n} ${n === 1 ? "oferta IA pendiente de aplicar" : "ofertas IA pendientes de aplicar"}`,
+      accion: "Revisar",
+      destino: "/marketing?vista=ofertas",
       urgencia: "atencion",
     });
   }

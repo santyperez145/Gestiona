@@ -61,6 +61,7 @@ export default function FocoDelDia(p: Props) {
     nuncaVendio: boolean;
   }>({ dias: null, huecos: [], nuncaVendio: false });
   const [sinConteo, setSinConteo] = useState(false);
+  const [ofertasPendientes, setOfertasPendientes] = useState(0);
 
   useEffect(() => {
     if (!p.orgId) return;
@@ -134,6 +135,24 @@ export default function FocoDelDia(p: Props) {
     return () => { cancelado = true; };
   }, [p.orgId]);
 
+  useEffect(() => {
+    if (!p.orgId) return;
+    let cancelado = false;
+    supabase
+      .from("ai_offer_recommendations")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", p.orgId)
+      .eq("status", "pending")
+      .then(({ count, error }) => {
+        if (error) {
+          console.error("FocoDelDia / ofertas IA:", error);
+          return;
+        }
+        if (!cancelado) setOfertasPendientes(count ?? 0);
+      });
+    return () => { cancelado = true; };
+  }, [p.orgId]);
+
   const datos: DatosFoco = {
     sinStock: p.sinStock,
     stockBajo: p.stockBajo,
@@ -146,6 +165,7 @@ export default function FocoDelDia(p: Props) {
     huecosEntreVentas: ventas.huecos,
     nuncaVendio: ventas.nuncaVendio,
     sinConteoFisico: sinConteo,
+    ofertasIaPendientes: ofertasPendientes,
   };
 
   const pendientes = construirPendientes(datos);

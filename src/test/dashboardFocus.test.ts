@@ -79,6 +79,17 @@ describe("construirPendientes", () => {
     });
     expect(p.map((x) => x.id)).toEqual(["sin-stock"]);
   });
+
+  it("ofertas IA pendientes aparecen con destino a la vista Ofertas", () => {
+    expect(construirPendientes({ ...VACIO, ofertasIaPendientes: 0 })).toEqual([]);
+    const una = construirPendientes({ ...VACIO, ofertasIaPendientes: 1 })[0];
+    expect(una.id).toBe("ofertas-ia");
+    expect(una.texto).toContain("1 oferta IA pendiente");
+    expect(una.destino).toBe("/marketing?vista=ofertas");
+    expect(una.urgencia).toBe("atencion");
+    const varias = construirPendientes({ ...VACIO, ofertasIaPendientes: 3 })[0];
+    expect(varias.texto).toContain("3 ofertas IA pendientes");
+  });
 });
 
 describe("leerVariacion", () => {
