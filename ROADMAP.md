@@ -3148,6 +3148,13 @@ Finance Connect.
      F5. Ahora se releen al cambiar de pestaña, al mutar páginas y al
      cambiar la conexión de Pay.
 
+113. P0.1.3: el alta tipa el producto — 2026-09-02.
+     Medido: Exentry tenía 1 tipo Perfume y 4 atributos, 0/60 productos
+     con `product_type_id`. Al crear (incluida la ficha compacta) se
+     asigna el default si hay un solo tipo activo o uno claro del
+     perfil. Backfill idempotente para orgs con un solo tipo. No se
+     inventan valores de atributos ni se migra la ficha olfativa.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

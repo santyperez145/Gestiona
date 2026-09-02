@@ -43,6 +43,7 @@ import { colorDeCategoria, nombreDeCategoria } from "@/lib/storeCategories";
 import ProductTypesManager from "@/components/products/ProductTypesManager";
 import { REGLAS, type ImpactoId } from "@/lib/productQuality";
 import {
+  defaultProductTypeId,
   listAttributeDefinitions,
   listProductAttributeValues,
   listProductTypes,
@@ -2186,6 +2187,17 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
         setProductTypes(types);
         if (product?.product_type_id && types.some(type => type.id === product.product_type_id)) {
           setProductTypeId(product.product_type_id);
+          return;
+        }
+        // Alta nueva: si el Profiler dejó un solo tipo (o uno claro del
+        // perfil), la ficha compacta también lo guarda aunque el select
+        // no se vea. Sin esto el catálogo polimórfico queda en 0 adopción.
+        if (!product) {
+          const def = defaultProductTypeId(types);
+          if (!def) return;
+          setProductTypeId(def);
+          const tipo = types.find(t => t.id === def);
+          if (tipo) setManejaStock(tipo.maneja_stock !== false);
         }
       })
       .catch((error: any) => toast.error(error?.message || 'No se pudieron cargar los tipos de producto'));
@@ -2814,7 +2826,7 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium">Tipo de producto</p>
-            <p className="text-[11px] text-muted-foreground">Define los atributos propios del rubro. Es opcional para fichas existentes.</p>
+            <p className="text-[11px] text-muted-foreground">Define los atributos del rubro. En productos nuevos se asigna solo si hay un tipo claro.</p>
           </div>
           <Layers className="w-4 h-4 text-primary shrink-0" />
         </div>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   normalizeAttributeOptions,
+  defaultProductTypeId,
   slugifyProductType,
   toProductAttributeValue,
   type AttributeDefinition,
@@ -46,5 +47,22 @@ describe("product types kernel", () => {
     expect(toProductAttributeValue(definition("text"), "", base)).toBeNull();
     expect(toProductAttributeValue(definition("number"), "not-a-number", base)).toBeNull();
     expect(toProductAttributeValue(definition("multiselect"), ["", "  "], base)).toBeNull();
+  });
+
+  it("elige un tipo por defecto sin adivinar cuando hay varios", () => {
+    expect(defaultProductTypeId([])).toBeNull();
+    expect(defaultProductTypeId([{ id: "solo", source: "custom" }])).toBe("solo");
+    expect(defaultProductTypeId([
+      { id: "perfil", source: "business_profile" },
+      { id: "extra", source: "custom" },
+    ])).toBe("perfil");
+    expect(defaultProductTypeId([
+      { id: "a", source: "business_profile" },
+      { id: "b", source: "business_profile" },
+    ])).toBeNull();
+    expect(defaultProductTypeId([
+      { id: "a", source: "custom" },
+      { id: "b", source: "custom" },
+    ])).toBeNull();
   });
 });

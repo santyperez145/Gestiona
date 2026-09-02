@@ -78,6 +78,23 @@ export function normalizeAttributeOptions(options: string[]): string[] {
   return [...new Set(options.map(option => option.trim()).filter(Boolean))];
 }
 
+/**
+ * Tipo por defecto al crear un producto.
+ *
+ * Un solo tipo activo (Exentry tras el Profiler) o un solo tipo del perfil
+ * de negocio: se asigna. Si hay varios custom o varios del perfil, no
+ * adivinamos — el comercio elige. listProductTypes ya filtra `active`.
+ */
+export function defaultProductTypeId(
+  types: Array<Pick<ProductType, "id" | "source">>,
+): string | null {
+  if (types.length === 0) return null;
+  if (types.length === 1) return types[0].id;
+  const delPerfil = types.filter(t => t.source === "business_profile");
+  if (delPerfil.length === 1) return delPerfil[0].id;
+  return null;
+}
+
 export function toProductAttributeValue(
   definition: AttributeDefinition,
   rawValue: unknown,

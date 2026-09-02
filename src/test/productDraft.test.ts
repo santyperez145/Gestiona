@@ -84,5 +84,7 @@ describe('primera ficha compacta', () => {
     expect(products).toContain('firstProductRequiresAttributes');
     expect(products).toContain('firstProductSubmitLabel');
     expect(products).toContain('compactFirstProduct');
+    // P0.1.3: la ficha compacta no muestra el select, pero igual tipa al crear.
+    expect(products).toContain('defaultProductTypeId');
   });
 });
