@@ -3107,6 +3107,14 @@ Finance Connect.
      checkout ya tiene fallback si falta la dirección de retiro. No se
      backfillea: una fila guardada conserva lo que el comercio eligió.
 
+106. Legales y AFIP comparten el domicilio — 2026-09-02.
+     Generar términos con el domicilio tipado en el panel no tocaba
+     `afip_credentials`: Facturas seguía sin domicilio. Si AFIP ya tiene
+     CUIT y punto de venta, al generar se sincroniza razón/domicilio con
+     el mismo CUIT. Link a `/afip` cuando falta identidad. Borradores:
+     «Revisar y publicar» en el checklist y botón Publicar en el editor.
+     Sigue sin publicarse el texto por el comercio.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

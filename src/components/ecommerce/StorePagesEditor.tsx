@@ -97,7 +97,7 @@ export default function StorePagesEditor({ storeId, storeSlug }: { storeId: stri
     elegir(data as PageRow);
   };
 
-  const guardar = async () => {
+  const guardar = async (statusOverride?: string) => {
     if (!borrador) return;
     const slug = slugify(borrador.slug || borrador.title);
     if (!slug) { toast.error("El título no puede quedar vacío"); return; }
@@ -105,10 +105,11 @@ export default function StorePagesEditor({ storeId, storeSlug }: { storeId: stri
       toast.error("Ya hay otra página con esa dirección"); return;
     }
     setGuardando(true);
+    const status = statusOverride ?? borrador.status;
     const patch = {
       slug, title: borrador.title.trim() || "Sin título",
       content: borrador.content,
-      status: borrador.status,
+      status,
       show_in_footer: borrador.show_in_footer,
       meta_description: borrador.meta_description?.trim() || null,
     };
@@ -147,8 +148,12 @@ export default function StorePagesEditor({ storeId, storeSlug }: { storeId: stri
         que la plantilla quedó sin completar dos años. */}
     <LegalPagesPanel
       storeId={storeId}
-      existentes={pages.map(p => ({ slug: p.slug, content: p.content, status: p.status }))}
+      existentes={pages.map(p => ({ slug: p.slug, title: p.title, content: p.content, status: p.status }))}
       onAplicado={cargar}
+      onAbrirPagina={(slug) => {
+        const pagina = pages.find(p => p.slug === slug);
+        if (pagina) elegir(pagina);
+      }}
     />
 
     <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
@@ -260,13 +265,24 @@ export default function StorePagesEditor({ storeId, storeSlug }: { storeId: stri
           </div>
 
           <div className="flex gap-2 flex-wrap pt-1">
-            <Button size="sm" className="gap-1.5 text-xs" disabled={guardando} onClick={guardar}>
+            <Button size="sm" className="gap-1.5 text-xs min-h-11" disabled={guardando} onClick={() => { void guardar(); }}>
               {guardando ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-              Guardar
+              {borrador.status === "published" ? "Guardar" : "Guardar borrador"}
             </Button>
+            {borrador.status !== "published" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs min-h-11"
+                disabled={guardando}
+                onClick={() => { void guardar("published"); }}
+              >
+                Publicar
+              </Button>
+            )}
             {storeSlug && borrador.status === "published" && (
               <Button
-                size="sm" variant="outline" className="gap-1.5 text-xs"
+                size="sm" variant="outline" className="gap-1.5 text-xs min-h-11"
                 onClick={() => window.open(`${window.location.origin}/tienda/${storeSlug}/pagina/${borrador.slug}`, "_blank")}
               >
                 <ExternalLink className="w-3 h-3" />Ver
@@ -274,7 +290,7 @@ export default function StorePagesEditor({ storeId, storeSlug }: { storeId: stri
             )}
             <Button
               size="sm" variant="outline"
-              className="gap-1.5 text-xs text-red-500 hover:text-red-500 ml-auto"
+              className="gap-1.5 text-xs text-red-500 hover:text-red-500 ml-auto min-h-11"
               onClick={() => borrar(borrador)}
             >
               <Trash2 className="w-3 h-3" />Eliminar

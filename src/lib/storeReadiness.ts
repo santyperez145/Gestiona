@@ -12,6 +12,7 @@
  */
 
 import { firstProductPath } from '@/lib/activationHandoff';
+import { accionLegalDelChecklist } from '@/lib/legalPages';
 
 export type CheckSeverity = 'blocker' | 'warning' | 'suggestion';
 
@@ -221,14 +222,18 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     : legalDrafts === 1
       ? 'Hay una página legal en borrador. Revisala y publicala antes de recibir datos de compradores.'
       : 'Las páginas legales están en borrador. Revisalas y publicalas antes de recibir datos de compradores.';
+  const legalAction = accionLegalDelChecklist({
+    missingOrTemplate: legalMissing,
+    drafts: legalDrafts,
+  });
   checks.push({
     id: 'legal-pages',
     title: 'Publicar términos y privacidad',
     detail: legalDone ? 'Términos y política de privacidad publicados.' : legalDetail,
     severity: 'blocker',
     done: legalDone,
-    actionLabel: 'Completar legales',
-    actionHref: '/tienda-online?tab=pages',
+    actionLabel: legalAction.actionLabel,
+    actionHref: legalAction.actionHref,
   });
 
   checks.push({

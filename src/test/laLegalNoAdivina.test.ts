@@ -38,4 +38,19 @@ describe("las páginas legales no adivinan quién vende", () => {
     expect(soloCodigo(panel)).toContain('status: "draft"');
     expect(soloCodigo(panel)).not.toMatch(/status:\s*"published"/);
   });
+
+  it("si AFIP ya empezó, sincroniza razón y domicilio al generar", () => {
+    const codigo = soloCodigo(panel);
+    expect(codigo).toContain("puedeSincronizarIdentidadFiscal");
+    expect(codigo).toContain("save_afip_config");
+    expect(codigo).toContain("punto_venta");
+    expect(codigo).toContain('to="/afip"');
+  });
+
+  it("los borradores se abren en el editor, no se publican solos", () => {
+    const codigo = soloCodigo(panel);
+    expect(codigo).toContain("onAbrirPagina");
+    expect(codigo).toContain("Revisar");
+    expect(codigo).not.toMatch(/status:\s*"published"/);
+  });
 });

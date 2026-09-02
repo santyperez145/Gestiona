@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   datosFaltantes, esPlantillaSinCompletar, formatearCuit,
   politicaDePrivacidad, terminosYCondiciones, paginasLegalesPendientes, estadoPublicacionLegal,
-  semillaLegalDelComercio,
+  semillaLegalDelComercio, puedeSincronizarIdentidadFiscal, accionLegalDelChecklist,
   type DatosDelComercio,
 } from "./legalPages";
 
@@ -245,5 +245,61 @@ describe("estadoPublicacionLegal", () => {
     ])).toEqual({
       listaParaPublicar: false, faltantesOPlantilla: 1, borradores: 0,
     });
+  });
+});
+
+describe("puedeSincronizarIdentidadFiscal", () => {
+  const emisorBase = {
+    cuit: "20446484436",
+    razon_social: "Pérez Santiago",
+    domicilio: null as string | null,
+    punto_venta: 1,
+    environment: "homologacion" as const,
+    tipo_emisor: "monotributo",
+  };
+
+  it("sincroniza cuando AFIP tiene CUIT y PV pero falta domicilio", () => {
+    expect(puedeSincronizarIdentidadFiscal(emisorBase, {
+      cuit: "20-44648443-6",
+      razonSocial: "Pérez Santiago",
+      domicilio: "Alsina 123",
+    })).toBe(true);
+  });
+
+  it("no sincroniza si el CUIT no es el de AFIP", () => {
+    expect(puedeSincronizarIdentidadFiscal(emisorBase, {
+      cuit: "30712345678",
+      razonSocial: "Otra S.R.L.",
+      domicilio: "Alsina 123",
+    })).toBe(false);
+  });
+
+  it("no sincroniza si AFIP todavía no tiene punto de venta", () => {
+    expect(puedeSincronizarIdentidadFiscal({
+      ...emisorBase, punto_venta: null,
+    }, {
+      cuit: "20446484436",
+      razonSocial: "Pérez Santiago",
+      domicilio: "Alsina 123",
+    })).toBe(false);
+  });
+
+  it("no sincroniza si AFIP ya tiene razón y domicilio", () => {
+    expect(puedeSincronizarIdentidadFiscal({
+      ...emisorBase, domicilio: "Alsina 123",
+    }, {
+      cuit: "20446484436",
+      razonSocial: "Pérez Santiago",
+      domicilio: "Alsina 123",
+    })).toBe(false);
+  });
+});
+
+describe("accionLegalDelChecklist", () => {
+  it("distingue generar de revisar borradores", () => {
+    expect(accionLegalDelChecklist({ missingOrTemplate: 1, drafts: 0 }).actionLabel)
+      .toBe("Completar legales");
+    expect(accionLegalDelChecklist({ missingOrTemplate: 0, drafts: 2 }).actionLabel)
+      .toBe("Revisar y publicar");
   });
 });

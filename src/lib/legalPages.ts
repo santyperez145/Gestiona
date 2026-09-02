@@ -72,7 +72,67 @@ export type EmisorFiscal = {
   cuit?: string | null;
   razon_social?: string | null;
   domicilio?: string | null;
+  /** Para sincronizar identidad al generar legales, sin inventar un PV. */
+  punto_venta?: number | null;
+  environment?: string | null;
+  tipo_emisor?: string | null;
 };
+
+/** CUIT comparable: sólo dígitos. */
+export function cuitSoloDigitos(valor: string | null | undefined): string {
+  return String(valor ?? "").replace(/\D/g, "");
+}
+
+/**
+ * ¿Conviene escribir en AFIP lo que se acaba de declarar para el texto legal?
+ *
+ * Sí cuando Facturas ya tiene CUIT + punto de venta + entorno (identidad
+ * iniciada) y el formulario legal completa razón o domicilio que AFIP aún
+ * no tiene. No si el CUIT no coincide: eso sería pisar el emisor.
+ * El email de contacto no vive en AFIP.
+ */
+export function puedeSincronizarIdentidadFiscal(
+  emisor: EmisorFiscal | null | undefined,
+  datos: Pick<DatosDelComercio, "cuit" | "razonSocial" | "domicilio">,
+): boolean {
+  if (!emisor) return false;
+  const pv = Number(emisor.punto_venta);
+  if (!Number.isFinite(pv) || pv < 1) return false;
+  if (emisor.environment !== "homologacion" && emisor.environment !== "produccion") {
+    return false;
+  }
+  const cuitAfip = cuitSoloDigitos(emisor.cuit);
+  const cuitDatos = cuitSoloDigitos(datos.cuit);
+  if (cuitAfip.length !== 11 || cuitAfip !== cuitDatos) return false;
+  if (!String(datos.razonSocial ?? "").trim()) return false;
+  if (!String(datos.domicilio ?? "").trim()) return false;
+  const faltabaDomicilio = !String(emisor.domicilio ?? "").trim();
+  const faltabaRazon = !String(emisor.razon_social ?? "").trim();
+  return faltabaDomicilio || faltabaRazon;
+}
+
+/** Acción del checklist según si falta generar o sólo publicar borradores. */
+export function accionLegalDelChecklist(input: {
+  missingOrTemplate: number;
+  drafts: number;
+}): { actionLabel: string; actionHref: string } {
+  if (input.missingOrTemplate > 0) {
+    return {
+      actionLabel: "Completar legales",
+      actionHref: "/tienda-online?tab=pages",
+    };
+  }
+  if (input.drafts > 0) {
+    return {
+      actionLabel: "Revisar y publicar",
+      actionHref: "/tienda-online?tab=pages",
+    };
+  }
+  return {
+    actionLabel: "Ver legales",
+    actionHref: "/tienda-online?tab=pages",
+  };
+}
 
 export type TiendaParaLegales = {
   name?: string | null;

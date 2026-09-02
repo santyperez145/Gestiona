@@ -21,8 +21,16 @@
  * Generar una política con "[completar]" adentro sería reemplazar un marcador
  * por otro. Si falta la razón social, el CUIT, el domicilio o el email, se
  * piden primero y el botón no se habilita.
+ *
+ * ── Identidad fiscal ─────────────────────────────────────────────────────
+ *
+ * La autoridad del emisor es AFIP (`save_afip_config`). Si Facturas ya tiene
+ * CUIT y punto de venta, al generar se sincroniza razón/domicilio que faltaban:
+ * un domicilio tipado sólo en legales dejaba Facturas incompleto. No se
+ * publica el texto por el comercio: sigue siendo borrador.
  */
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -30,24 +38,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Scale, Loader2, Eye, Check } from "lucide-react";
+import { Scale, Loader2, Eye, Check, ArrowRight } from "lucide-react";
 import {
   datosFaltantes, etiquetaDeCampo, paginasLegalesPendientes, estadoPublicacionLegal,
-  semillaLegalDelComercio,
-  type DatosDelComercio, type PaginaLegal,
+  puedeSincronizarIdentidadFiscal, semillaLegalDelComercio, SLUGS_LEGALES_OBLIGATORIOS,
+  type DatosDelComercio, type EmisorFiscal, type PaginaLegal,
 } from "@/lib/legalPages";
 
 interface Props {
   storeId: string | null;
   /** Las páginas que ya existen, para no proponer lo que ya está escrito. */
-  existentes: { slug: string; content: string | null; status?: string | null }[];
+  existentes: { slug: string; title?: string | null; content: string | null; status?: string | null }[];
   /** Para que el editor recargue después de aplicar. */
   onAplicado: () => void;
+  /** Abrir un borrador en el editor de al lado para revisarlo. */
+  onAbrirPagina?: (slug: string) => void;
 }
 
-export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Props) {
+export default function LegalPagesPanel({ storeId, existentes, onAplicado, onAbrirPagina }: Props) {
   const { orgId } = useOrganization();
   const [datos, setDatos] = useState<DatosDelComercio>(() => semillaLegalDelComercio({}));
+  const [emisor, setEmisor] = useState<EmisorFiscal | null>(null);
   const [cargando, setCargando] = useState(true);
   const [aplicando, setAplicando] = useState(false);
   const [verPrevia, setVerPrevia] = useState<PaginaLegal | null>(null);
@@ -61,7 +72,7 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
     (async () => {
       const [emisorRes, tiendaRes, cfgRes] = await Promise.all([
         supabase.from("afip_connection_status")
-          .select("cuit, razon_social, domicilio")
+          .select("cuit, razon_social, domicilio, punto_venta, environment, tipo_emisor")
           .eq("org_id", orgId).maybeSingle(),
         supabase.from("ecommerce_stores")
           .select("name, notification_email, meta_pixel_id, ga_measurement_id, tiktok_pixel_id")
@@ -73,8 +84,10 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
       if (emisorRes.error) console.error("No se pudo leer el emisor fiscal", emisorRes.error);
       if (tiendaRes.error) console.error("No se pudo leer la tienda para las páginas legales", tiendaRes.error);
       if (cfgRes.error) console.error("No se pudo leer el nombre de fantasía", cfgRes.error);
+      const filaEmisor = (emisorRes.data as EmisorFiscal | null) ?? null;
+      setEmisor(filaEmisor);
       setDatos(semillaLegalDelComercio({
-        emisor: emisorRes.data,
+        emisor: filaEmisor,
         tienda: tiendaRes.data,
         nombreFantasia: cfgRes.data?.business_name,
       }));
@@ -97,6 +110,8 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
   // reemplazar una página que falta o es plantilla.
   const necesitaGenerar = estadoPublicacion.faltantesOPlantilla > 0;
   const faltanDatosParaGenerar = necesitaGenerar && faltan.length > 0;
+  const faltanFiscales = faltan.filter(c => c !== "emailContacto");
+  const syncAfipAlGenerar = puedeSincronizarIdentidadFiscal(emisor, datos);
 
   const aplicar = async () => {
     if (!orgId || !storeId || pendientes.length === 0) return;
@@ -120,14 +135,41 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
     }
 
     // El email que acaba de declarar para el texto legal es el de avisos de
-    // la tienda, si todavía no tenía uno. No se escribe el emisor fiscal:
-    // esa autoridad vive en afip_credentials.
+    // la tienda, si todavía no tenía uno. No se escribe el emisor fiscal
+    // salvo cuando AFIP ya estaba iniciado y faltaba razón/domicilio: ahí
+    // la misma declaración alimenta Facturas.
     if (datos.emailContacto.trim()) {
       const { error } = await supabase.from("ecommerce_stores")
         .update({ notification_email: datos.emailContacto.trim() })
         .eq("id", storeId)
         .is("notification_email", null);
       if (error) console.error("No se pudo guardar el email de avisos", error);
+    }
+
+    if (syncAfipAlGenerar && emisor?.punto_venta && emisor.environment) {
+      const { error: afipErr } = await supabase.rpc("save_afip_config", {
+        p_org_id: orgId,
+        p_cuit: datos.cuit.trim(),
+        p_punto_venta: emisor.punto_venta,
+        p_environment: emisor.environment,
+        p_tipo_emisor: emisor.tipo_emisor ?? null,
+        p_razon_social: datos.razonSocial.trim(),
+        p_domicilio: datos.domicilio.trim(),
+      });
+      if (afipErr) {
+        console.error("No se pudo sincronizar la identidad fiscal", afipErr);
+        toast.error(
+          afipErr.message
+          || "Las páginas se generaron, pero no se pudo actualizar AFIP.",
+        );
+      } else {
+        setEmisor(prev => prev ? {
+          ...prev,
+          razon_social: datos.razonSocial.trim(),
+          domicilio: datos.domicilio.trim(),
+          cuit: datos.cuit.trim(),
+        } : prev);
+      }
     }
 
     setAplicando(false);
@@ -173,6 +215,21 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
             Falta {faltan.map(etiquetaDeCampo).join(", ")}. Sin eso el texto
             saldría con huecos, que es lo que estamos arreglando.
           </p>
+          {faltanFiscales.length > 0 && (
+            <div className="rounded-md border border-border/60 bg-background/80 px-3 py-2 text-xs text-muted-foreground space-y-2">
+              <p>
+                Razón social, CUIT y domicilio viven en Facturas (AFIP). Si ya
+                empezaste a conectar AFIP, conviene completarlos ahí: es la
+                misma identidad que sale en el comprobante.
+              </p>
+              <Button asChild size="sm" variant="outline" className="min-h-11 gap-1.5">
+                <Link to="/afip">
+                  Ir a AFIP
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </Button>
+            </div>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             {([
               ["razonSocial", "Razón social", "Ejemplo S.R.L."],
@@ -189,6 +246,12 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
               </div>
             ))}
           </div>
+          {syncAfipAlGenerar && (
+            <p className="text-[11px] text-muted-foreground">
+              Al generar, el domicilio y la razón social también quedan en AFIP
+              (mismo CUIT y punto de venta).
+            </p>
+          )}
         </div>
       ) : pendientes.length > 0 ? (
         <div className="space-y-2">
@@ -225,7 +288,7 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
             </div>
           )}
 
-          <Button onClick={aplicar} disabled={aplicando} size="sm">
+          <Button onClick={aplicar} disabled={aplicando} size="sm" className="min-h-11">
             {aplicando ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : null}
             Generar {pendientes.length === 1 ? "la página" : `las ${pendientes.length} páginas`}
           </Button>
@@ -236,11 +299,32 @@ export default function LegalPagesPanel({ storeId, existentes, onAplicado }: Pro
           </p>
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">
-          Las páginas ya están escritas. Elegí cada borrador de la lista,
-          revisalo y marcá <strong>Publicada</strong> para que se vea en la
-          tienda.
-        </p>
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Las páginas ya están escritas. Abrí cada borrador, revisalo y
+            publicalo para que se vea en la tienda.
+          </p>
+          {onAbrirPagina && estadoPublicacion.borradores > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {SLUGS_LEGALES_OBLIGATORIOS.map(slug => {
+                const pagina = existentes.find(p => p.slug === slug);
+                if (!pagina || pagina.status === "published") return null;
+                return (
+                  <Button
+                    key={slug}
+                    size="sm"
+                    variant="outline"
+                    className="min-h-11 gap-1.5"
+                    onClick={() => onAbrirPagina(slug)}
+                  >
+                    Revisar {pagina.title || slug}
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {estadoPublicacion.borradores > 0 && (

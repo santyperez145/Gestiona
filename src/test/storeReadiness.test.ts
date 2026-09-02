@@ -169,6 +169,7 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
     }));
     expect(idsDe(r.blockers)).toContain('legal-pages');
     expect(r.blockers.find(x => x.id === 'legal-pages')?.detail).toContain('borrador');
+    expect(r.blockers.find(x => x.id === 'legal-pages')?.actionLabel).toBe('Revisar y publicar');
   });
 
   it('sin tienda configurada, todos los bloqueantes están presentes', () => {
