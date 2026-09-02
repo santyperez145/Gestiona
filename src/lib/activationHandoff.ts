@@ -32,6 +32,13 @@ export function commerceHandoffPath(): string {
   return '/tienda-online?onboarding=1&goal=online';
 }
 
+export function firstProductFormDescription(goal: HandoffGoal | null) {
+  if (goal === 'online') {
+    return 'Nombre, precio de venta y stock real. La tienda vende el mismo catálogo; sin unidades no hay nada que publicar.';
+  }
+  return 'Nombre, precio de venta y stock real. El costo puede esperar: sin unidades el mostrador no cobra.';
+}
+
 export function firstProductEmptyCopy(goal: HandoffGoal | null) {
   if (goal === 'online') {
     return {

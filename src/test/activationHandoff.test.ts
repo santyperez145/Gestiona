@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   commerceHandoffPath,
   firstProductEmptyCopy,
+  firstProductFormDescription,
   firstProductPath,
   parseActivationHandoff,
   posHandoffPath,
@@ -54,6 +55,8 @@ describe('copy del primer producto', () => {
     expect(firstProductEmptyCopy('pos').title).toContain('mostrador');
     expect(firstProductEmptyCopy('online').description).toContain('Business Core');
     expect(firstProductEmptyCopy(null).title).toBe('Todavía no hay productos');
+    expect(firstProductFormDescription('online')).toMatch(/mismo catálogo/);
+    expect(firstProductFormDescription('pos')).toMatch(/mostrador/);
   });
 
   it('la tienda sin catálogo manda a cargar producto, no a publicar vacío', () => {

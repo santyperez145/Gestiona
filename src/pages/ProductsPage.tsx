@@ -21,7 +21,7 @@ import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, TrendingUp, Uploa
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { recommendSimilar } from "@/lib/perfumeMatch";
 import { elCatalogoOperaPerfumes } from "@/lib/catalogIndustry";
-import { commerceHandoffPath, firstProductEmptyCopy, parseActivationHandoff, posHandoffPath } from "@/lib/activationHandoff";
+import { commerceHandoffPath, firstProductEmptyCopy, firstProductFormDescription, parseActivationHandoff, posHandoffPath } from "@/lib/activationHandoff";
 import {
   firstProductExpandCopy,
   firstProductFormIsCompact,
@@ -1023,7 +1023,7 @@ export default function ProductsPage() {
                     <DialogTitle>{editing ? 'Editar producto' : 'Nuevo producto'}</DialogTitle>
                     <DialogDescription>
                       {fromWizard && !editing && products.length === 0
-                        ? 'Nombre, precio de venta y stock real. El costo puede esperar: sin unidades el mostrador no cobra.'
+                        ? firstProductFormDescription(handoffGoal)
                         : 'Identidad, costos, inventario, variantes y publicación comparten una sola ficha del Business Core.'}
                     </DialogDescription>
                   </DialogHeader>

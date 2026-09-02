@@ -31,6 +31,12 @@ import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommer
 import ImageUpload from "@/components/shared/ImageUpload";
 import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
 import { parseActivationHandoff, storeHandoffCopy } from "@/lib/activationHandoff";
+import {
+  storeAbandonedCartCount,
+  storeFunnelFromCarts,
+  storeShouldLeadWithPay,
+  storeShouldShowPerformanceChrome,
+} from "@/lib/storeFirstPublish";
 import { estadoPublicacionLegal } from "@/lib/legalPages";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
 import { STORE_ORDER_QUEUE_LIMIT, storeOrderFulfillmentLabel, storeOrderFulfillmentTone } from "@/lib/storeOrderQueue";
@@ -172,6 +178,7 @@ export default function EcommerceStorePage() {
   const [pedidoExtra, setPedidoExtra] = useState<EcomOrder | null>(null);
   const [pedidoExtraLoading, setPedidoExtraLoading] = useState(false);
   const [funnelData, setFunnelData] = useState<FunnelRow[]>([]);
+  const [abandonedCarts, setAbandonedCarts] = useState(0);
   // Opciones para armar el menú: las categorías y las páginas publicadas.
   const [menuCategorias, setMenuCategorias] = useState<{ slug: string; name: string }[]>([]);
   const [menuPaginas, setMenuPaginas] = useState<{ slug: string; title: string }[]>([]);
@@ -389,20 +396,8 @@ export default function EcommerceStorePage() {
       .eq("org_id", orgId)
       .then(({ data }) => {
         if (!data) return;
-        const totalSessions = data.length;
-        const withItems = data.filter(cs => Array.isArray(cs.items) && (cs.items as unknown[]).length > 0).length;
-        const converted = data.filter(cs => cs.status === "converted").length;
-        const abandoned = data.filter(cs => cs.status === "abandoned").length;
-        const convRate = totalSessions > 0 ? parseFloat(((converted / totalSessions) * 100).toFixed(1)) : 0;
-        const withItemsPct = totalSessions > 0 ? parseFloat(((withItems / totalSessions) * 100).toFixed(1)) : 0;
-        const checkoutEst = withItems > 0 ? Math.round(withItems * 0.37) : 0;
-        const checkoutPct = totalSessions > 0 ? parseFloat(((checkoutEst / totalSessions) * 100).toFixed(1)) : 0;
-        setFunnelData([
-          { label: "Sesiones", value: totalSessions, pct: 100, color: "bg-blue-400" },
-          { label: "Con items en carrito", value: withItems, pct: withItemsPct, color: "bg-indigo-400" },
-          { label: "Checkout iniciado", value: checkoutEst, pct: checkoutPct, color: "bg-purple-400" },
-          { label: "Órdenes completadas", value: converted, pct: convRate, color: "bg-emerald-400" },
-        ]);
+        setFunnelData(storeFunnelFromCarts(data));
+        setAbandonedCarts(storeAbandonedCartCount(data));
       });
   }, [orgId]);
 
@@ -485,16 +480,24 @@ export default function EcommerceStorePage() {
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayOrders = useMemo(() => orders.filter(o => o.created_at.slice(0, 10) === todayStr), [orders, todayStr]);
   const todayRevenue = useMemo(() => todayOrders.reduce((sum, o) => sum + Number(o.total), 0), [todayOrders]);
-  const conversionPct = funnelData[3]?.pct ?? 0;
-  const activeCartsCount = funnelData[1]?.value ?? 0;
-  const abandonedCount = funnelData.find(f => f.label === "Órdenes completadas") ? (funnelData[1]?.value ?? 0) - (funnelData[3]?.value ?? 0) : 0;
+  const conversionPct = funnelData.find(f => f.label === "Órdenes completadas")?.pct ?? 0;
+  const activeCartsCount = funnelData.find(f => f.label === "Con items en carrito")?.value ?? 0;
+  const showPerformance = storeShouldShowPerformanceChrome({
+    sessionCount: funnelData.find(f => f.label === "Sesiones")?.value ?? 0,
+    orderCount: orders.length,
+  });
+  const leadWithPay = storeShouldLeadWithPay({
+    fromWizard,
+    publishedProducts: signals.publishedProducts,
+    paymentConnected: signals.paymentConnected,
+  });
 
   const kpis = useMemo(() => [
     { label: "Revenue hoy",      value: todayRevenue > 0 ? `$${(todayRevenue / 1000).toFixed(0)}K` : "$0", sub: `${todayOrders.length} órd. hoy`, icon: DollarSign,    color: "success"  as const },
     { label: "Órdenes totales",  value: String(orders.length || 0),  sub: `${todayOrders.length} hoy`,      icon: ShoppingCart, color: "primary"  as const },
     { label: "Conversión",       value: `${conversionPct}%`,          sub: `${funnelData[0]?.value ?? 0} sesiones totales`, icon: TrendingUp, color: "warning" as const },
-    { label: "Carritos c/items", value: activeCartsCount,             sub: `${Math.max(0, abandonedCount)} abandonados`, icon: Users, color: "blue" as const },
-  ], [todayRevenue, todayOrders.length, orders.length, conversionPct, funnelData, activeCartsCount, abandonedCount]);
+    { label: "Carritos c/items", value: activeCartsCount,             sub: `${abandonedCarts} abandonados`, icon: Users, color: "blue" as const },
+  ], [todayRevenue, todayOrders.length, orders.length, conversionPct, funnelData, activeCartsCount, abandonedCarts]);
 
   return (
     <div className="workspace-page workspace-ecommerce space-y-6 pb-12">
@@ -529,12 +532,14 @@ export default function EcommerceStorePage() {
         }
       />
 
-      {/* KPIs */}
+      {/* KPIs: un $0 y un 0% no son analítica. Aparecen cuando hubo tráfico. */}
+      {showPerformance ? (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map(k => (
           <KPICard key={k.label} label={k.label} value={k.value} sub={k.sub} icon={k.icon} color={k.color} />
         ))}
       </div>
+      ) : null}
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-1 bg-muted/30 p-1 rounded-xl w-fit max-w-full">
@@ -610,12 +615,13 @@ export default function EcommerceStorePage() {
               onAction={() => navigate(catalogHandoff.href)}
             />
           )}
-          {!signals.paymentConnected && (
+          {!catalogHandoff ? <StoreReadinessPanel readiness={readiness} /> : null}
+          {leadWithPay && (
             <div className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/[0.06] p-4 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">Gestiona Pay todavía no está activo</p>
                 <p className="mt-0.5 text-[12px] text-muted-foreground">
-                  Sin Mercado Pago conectado la tienda no puede cobrar. Un clic autoriza tu cuenta; no se pega ninguna clave.
+                  Sin Mercado Pago conectado el checkout no ofrece ese medio. Transferencia o efectivo sí pueden cobrar.
                 </p>
               </div>
               <Button size="sm" className="min-h-11 shrink-0" onClick={() => goToTab("settings")}>
@@ -623,6 +629,7 @@ export default function EcommerceStorePage() {
               </Button>
             </div>
           )}
+        {showPerformance ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Funnel */}
           <div className="bg-card border border-border/40 rounded-xl p-5">
@@ -680,6 +687,7 @@ export default function EcommerceStorePage() {
             </div>
           </div>
         </div>
+        ) : null}
         </div>
       )}
 

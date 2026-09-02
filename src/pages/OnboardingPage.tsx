@@ -15,6 +15,8 @@ import {
   parseProductTypeTemplates,
   summarizeBusinessProfile,
 } from '@/lib/businessProfile';
+import { firstProductPath } from '@/lib/activationHandoff';
+import { storeWizardFinishCopy } from '@/lib/storeFirstPublish';
 
 type FinishDestination = 'pos' | 'online' | 'dashboard' | 'demo';
 
@@ -108,8 +110,8 @@ export default function OnboardingPage() {
         toast.success('Ruta POS elegida. Ahora cargá tu primer producto y su stock real.');
         navigate('/productos?onboarding=1&goal=pos');
       } else if (destination === 'online') {
-        toast.success('Ruta online elegida. Publicá la tienda; el panel va a medir cobro, envío y legales.');
-        navigate('/tienda-online?onboarding=1&goal=online');
+        toast.success(storeWizardFinishCopy().toast);
+        navigate(firstProductPath('online'));
       } else if (destination === 'demo') {
         if (demoSeedFailed) {
           toast.warning(`El negocio ${businessName} quedó configurado, pero no pudimos cargar la demo. Podés reintentar desde el panel.`);

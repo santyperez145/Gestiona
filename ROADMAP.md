@@ -3017,6 +3017,23 @@ Finance Connect.
     de esta PC no tiene `VITE_*`: no se afirma el checkbox contra una
     sesión real.
 
+99. El wizard online carga el producto, y Commerce deja de fingir un
+    embudo — 2026-09-01.
+    Elegir tienda mandaba a `/tienda-online` con el toast «Publicá la
+    tienda». El overview abría con Revenue $0, «Checkout iniciado» =
+    carritos × 0,37 y el aviso de Mercado Pago encima del catálogo.
+    Transferencia ya cobra; sin producto no hay nada que publicar. Ahora
+    el wizard online aterriza en Productos, igual que POS. El embudo
+    cuenta sesiones, carritos y órdenes reales. Sin tráfico no se
+    muestran KPIs. Pay no es el primer clic si todavía no hay catálogo.
+    El tab Publicar muestra el estado de la tienda, no un dashboard
+    vacío.
+
+    Verificado en este recorte: **2.249/2.249 pruebas en 231 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos. El navegador
+    de esta PC no tiene `VITE_*`: no se afirma el aterrizaje contra una
+    sesión real.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
