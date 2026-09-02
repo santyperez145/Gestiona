@@ -3241,6 +3241,18 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no
      tiene `VITE_*`: no se afirma la ficha contra una sesión real.
 
+124. El checkout no promete envío nacional sin tarifario — 2026-09-02.
+     Medido: 6 zonas, tarifa en CABA. El anuncio "Envío gratis desde
+     $150.000" y el selector de 24 provincias fingían cobertura. La
+     vidriera ahora lista provincias con tarifa activa; Córdoba dice
+     "sin envío a domicilio". Shopify/Tiendanube cotizan después de
+     la ubicación. Completar tarifario sigue siendo del dueño.
+
+     Verificado en este recorte: **2.382 tests** (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). RPC contra
+     la base: Exentry expone `["AR-C"]`. Esta PC no tiene `VITE_*`: no
+     se afirma el checkout contra una sesión real.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

@@ -19,6 +19,7 @@ import { ShoppingBag, X, Plus, Minus, Trash2, Instagram, Menu, User, ChevronDown
 import { useStoreAuth } from "./storeAuth";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 import { parseStorefrontLayout, textoDeAnuncio } from "@/lib/storeHomeLayout";
+import { textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
 
 /**
  * Un link del menú. Los externos salen del router: con `<Link>` un
@@ -89,7 +90,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const anuncio = textoDeAnuncio(parseStorefrontLayout(store?.storefront_layout), {
     freeShippingAbove: store?.free_shipping_above,
     fmt,
+    shippingProvinces: store?.shipping_provinces,
   });
+  const coberturaEnvio = textoCoberturaDomicilio(store?.shipping_provinces);
 
   // El menú sale de las categorías que la tienda realmente tiene. Hardcodear
   // "Perfumes árabes" servía para este negocio pero rompía el resto: esto es
@@ -396,11 +399,13 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                 </a>
               )}
             </div>
-            {(store?.free_shipping_above ?? 0) > 0 && (
+            {coberturaEnvio && (store?.free_shipping_above ?? 0) > 0 ? (
               <p className="text-xs mt-3" style={{ color: "hsl(var(--st-muted))" }}>
-                Envío gratis desde {fmt(Number(store?.free_shipping_above))}
+                Envío gratis desde {fmt(Number(store?.free_shipping_above))} · {coberturaEnvio}
               </p>
-            )}
+            ) : coberturaEnvio ? (
+              <p className="text-xs mt-3" style={{ color: "hsl(var(--st-muted))" }}>{coberturaEnvio}</p>
+            ) : null}
           </div>
         </div>
         {/* Defensa del Consumidor exige que el comprador sepa dónde reclamar
@@ -597,9 +602,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                     paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
                   }}
                 >
-                  {freeShippingGap !== null && freeShippingGap > 0 && (
+                  {freeShippingGap !== null && freeShippingGap > 0 && coberturaEnvio && (
                     <p className="text-xs text-center" style={{ color: "hsl(var(--st-muted))" }}>
                       Te faltan <strong>{fmt(freeShippingGap)}</strong> para el envío gratis
+                      {coberturaEnvio ? ` · ${coberturaEnvio}` : ""}
                     </p>
                   )}
                   <div className="flex justify-between text-sm">

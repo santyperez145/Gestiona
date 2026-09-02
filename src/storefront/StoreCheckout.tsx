@@ -5,6 +5,7 @@ import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
 import { Loader2, ShoppingBag, Lock, Tag, Truck } from "lucide-react";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
+import { etiquetaProvinciaCheckout } from "@/lib/storeShippingCoverage";
 import { quoteStoreShipping, createStoreOrder, getStoreOrderSecure, isTransientPublicError } from "@/lib/publicDataSource";
 import { orderAccessFragment, saveOrderAccessToken } from "./orderAccess";
 import { trackBeginCheckout } from "./tracking";
@@ -490,7 +491,9 @@ export default function StoreCheckout() {
                 >
                   <option value="">Elegí tu provincia</option>
                   {AR_PROVINCES.map(p => (
-                    <option key={p.code} value={p.code}>{p.name}</option>
+                    <option key={p.code} value={p.code}>
+                      {etiquetaProvinciaCheckout(p.code, p.name, store?.shipping_provinces)}
+                    </option>
                   ))}
                 </select>
               </label>

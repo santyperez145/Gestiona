@@ -52841,6 +52841,7 @@ export type Database = {
           theme: string
           tiktok_pixel_id: string
           storefront_layout: Json
+          shipping_provinces: string[]
         }[]
       }
       get_store_categories: {

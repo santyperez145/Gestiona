@@ -19,6 +19,7 @@ import {
   seccionHabilitada,
   type HomeSectionId,
 } from "@/lib/storeHomeLayout";
+import { textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
 
 export default function StoreHome() {
   const { store, products, banners, categorias: cats2, priceOf, fmt, cart } = useStore();
@@ -96,9 +97,28 @@ export default function StoreHome() {
           ? <StoreBanners key="banners" banners={banners} base={base} storeName={store?.name} />
           : null;
       case "hero":
-        return mostrarHero ? <Hero key="hero" storeName={store?.name} description={store?.description} bannerUrl={store?.banner_url} base={base} disponibles={disponibles.length} /> : null;
+        return mostrarHero ? (
+          <Hero
+            key="hero"
+            storeName={store?.name}
+            description={store?.description}
+            bannerUrl={store?.banner_url}
+            base={base}
+            disponibles={disponibles.length}
+            cobertura={textoCoberturaDomicilio(store?.shipping_provinces)}
+          />
+        ) : null;
       case "trust":
-        return <TrustBar key="trust" descuentoPago={descuentoPago} freeShippingAbove={store?.free_shipping_above} fmt={fmt} />;
+        return (
+          <TrustBar
+            key="trust"
+            descuentoPago={descuentoPago}
+            freeShippingAbove={store?.free_shipping_above}
+            fmt={fmt}
+            shippingProvinces={store?.shipping_provinces}
+            pickupEnabled={!!store?.pickup_enabled}
+          />
+        );
       case "porque":
         return porqueCompraste.length > 0
           ? <Row key="porque" title="Porque compraste" items={porqueCompraste} href={`${base}/cuenta`} />
@@ -136,13 +156,14 @@ export default function StoreHome() {
 }
 
 function Hero({
-  storeName, description, bannerUrl, base, disponibles,
+  storeName, description, bannerUrl, base, disponibles, cobertura,
 }: {
   storeName?: string | null;
   description?: string | null;
   bannerUrl?: string | null;
   base: string;
   disponibles: number;
+  cobertura: string | null;
 }) {
   return (
     <section
@@ -179,7 +200,7 @@ function Hero({
         <div className="storefront-hero__aside">
           <div className="storefront-hero__aside-head"><span>Compra con confianza</span><ShieldCheck /></div>
           <div className="storefront-hero__aside-stat"><strong>{disponibles}</strong><span>productos disponibles</span></div>
-          <div className="storefront-hero__aside-row"><span><Truck /> Envíos coordinados</span><ArrowRight /></div>
+          <div className="storefront-hero__aside-row"><span><Truck /> {cobertura ?? "Retiro o envío a coordinar"}</span><ArrowRight /></div>
           <div className="storefront-hero__aside-row"><span><Wallet /> Medios de pago seguros</span><ArrowRight /></div>
         </div>
       </div>
@@ -188,12 +209,21 @@ function Hero({
 }
 
 function TrustBar({
-  descuentoPago, freeShippingAbove, fmt,
+  descuentoPago, freeShippingAbove, fmt, shippingProvinces, pickupEnabled,
 }: {
   descuentoPago: ReturnType<typeof mejorDescuento>;
   freeShippingAbove?: number | null;
   fmt: (n: number) => string;
+  shippingProvinces?: string[] | null;
+  pickupEnabled: boolean;
 }) {
+  const cobertura = textoCoberturaDomicilio(shippingProvinces);
+  const tituloEnvio = cobertura
+    ? ((freeShippingAbove ?? 0) > 0 ? `Envío gratis desde ${fmt(Number(freeShippingAbove))}` : cobertura)
+    : (pickupEnabled ? "Retiro en tienda" : "Envío a coordinar");
+  const detalleEnvio = cobertura
+    ? cobertura
+    : "El domicilio se cotiza en el checkout, no se promete el país";
   return (
     <section className="storefront-trust-bar border-b" style={{ borderColor: "hsl(var(--st-border))" }}>
       <div className={`storefront-trust-bar__inner max-w-6xl mx-auto px-4 py-5 grid grid-cols-1 gap-4 text-sm ${descuentoPago ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
@@ -203,7 +233,7 @@ function TrustBar({
             t: `${descuentoPago.porcentaje}% OFF con ${nombreMedio(descuentoPago.metodo)}`,
             s: "Se aplica solo al elegir el medio de pago",
           }] : []),
-          { icon: Truck, t: (freeShippingAbove ?? 0) > 0 ? `Envío gratis desde ${fmt(Number(freeShippingAbove))}` : "Envíos a todo el país", s: "Coordinamos la entrega con vos" },
+          { icon: Truck, t: tituloEnvio, s: detalleEnvio },
           { icon: ShieldCheck, t: "Compra protegida", s: "Datos claros y derecho de arrepentimiento" },
           { icon: Sparkles, t: "Catálogo real", s: "Stock y precios del mismo sistema del comercio" },
         ].map(({ icon: Icon, t, s }) => (

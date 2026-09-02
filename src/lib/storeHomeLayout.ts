@@ -7,6 +7,8 @@
  * igual que `nav_links`.
  */
 
+import { textoAnuncioEnvioAutomatico } from "@/lib/storeShippingCoverage";
+
 export const HOME_SECTION_IDS = [
   "banners",
   "hero",
@@ -144,12 +146,14 @@ export function heroVisible(
 
 export function textoDeAnuncio(
   layout: StorefrontLayout,
-  opts: { freeShippingAbove?: number | null; fmt?: (n: number) => string },
+  opts: {
+    freeShippingAbove?: number | null;
+    fmt?: (n: number) => string;
+    shippingProvinces?: string[] | null;
+  },
 ): string | null {
   if (!layout.announcement.enabled) return null;
   const custom = layout.announcement.text;
   if (custom) return custom;
-  const umbral = Number(opts.freeShippingAbove ?? 0);
-  if (umbral > 0 && opts.fmt) return `Envío gratis desde ${opts.fmt(umbral)}`;
-  return null;
+  return textoAnuncioEnvioAutomatico(opts);
 }

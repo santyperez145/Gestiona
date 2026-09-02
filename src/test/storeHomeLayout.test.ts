@@ -41,8 +41,12 @@ describe("portada modular de la tienda", () => {
     });
     expect(sucio.announcement.text).toBe("x Hasta 6 cuotas");
     expect(textoDeAnuncio(DEFAULT_STOREFRONT_LAYOUT, { freeShippingAbove: 0, fmt: (n) => `$${n}` })).toBeNull();
-    expect(textoDeAnuncio(DEFAULT_STOREFRONT_LAYOUT, { freeShippingAbove: 150000, fmt: (n) => `$${n}` }))
-      .toBe("Envío gratis desde $150000");
+    expect(textoDeAnuncio(DEFAULT_STOREFRONT_LAYOUT, { freeShippingAbove: 150000, fmt: (n) => `$${n}` })).toBeNull();
+    expect(textoDeAnuncio(DEFAULT_STOREFRONT_LAYOUT, {
+      freeShippingAbove: 150000,
+      fmt: (n) => `$${n}`,
+      shippingProvinces: ["AR-C"],
+    })).toBe("Envío gratis desde $150000 · Envío a domicilio en CABA");
     expect(textoDeAnuncio({ ...DEFAULT_STOREFRONT_LAYOUT, announcement: { enabled: false, text: "Hola" } }, {}))
       .toBeNull();
   });

@@ -49,6 +49,8 @@ export interface StoreInfo {
   nav_links: unknown;
   /** Portada: anuncio + bloques. Vacío = se arma sola. Ver `storeHomeLayout.ts`. */
   storefront_layout: unknown;
+  /** Provincias con tarifa de domicilio. Vacío = no hay envío a domicilio. */
+  shipping_provinces: string[] | null;
   meta_pixel_id: string | null;
   ga_measurement_id: string | null;
   tiktok_pixel_id: string | null;
