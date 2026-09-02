@@ -11,9 +11,9 @@
  * La lógica de qué es un pendiente y en qué orden va vive en
  * `src/lib/dashboardFocus.ts`, que es puro y tiene 12 tests.
  *
- * No recalcula nada: todo sale del `stats` que el panel ya computa. La única
- * consulta propia es el conteo de pedidos pagados sin despachar, que el panel
- * no traía y es el pendiente donde el que espera es un cliente que ya pagó.
+ * No recalcula nada: todo sale del `stats` que el panel ya computa. Las
+ * consultas propias son pedidos por despachar, pendientes de pago, ritmo de
+ * ventas, toma física y ofertas IA — lo que el panel no traía y es accionable.
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -55,6 +55,7 @@ interface Props {
 
 export default function FocoDelDia(p: Props) {
   const [porDespachar, setPorDespachar] = useState(0);
+  const [pendientesDePago, setPendientesDePago] = useState(0);
   const [ventas, setVentas] = useState<{
     dias: number | null;
     huecos: number[];
@@ -77,6 +78,19 @@ export default function FocoDelDia(p: Props) {
         // Si falla, el bloque muestra el resto igual: un panel que no carga por
         // un contador es peor que un contador que falta.
         if (!cancelado && !error) setPorDespachar(count ?? 0);
+      });
+    // Misma regla que Commerce `vista=pago` / `canRetryStorePayment`.
+    supabase
+      .from("ecommerce_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", p.orgId)
+      .in("payment_status", ["pending", "failed"])
+      .then(({ count, error }) => {
+        if (error) {
+          console.error("FocoDelDia / pendientes de pago:", error);
+          return;
+        }
+        if (!cancelado) setPendientesDePago(count ?? 0);
       });
     return () => { cancelado = true; };
   }, [p.orgId]);
@@ -161,6 +175,7 @@ export default function FocoDelDia(p: Props) {
     deudasVencidas30: p.deudasVencidas30,
     seguimientosHoy: p.seguimientosHoy,
     pedidosPorDespachar: porDespachar,
+    pedidosPendientesDePago: pendientesDePago,
     diasSinRegistrarVenta: ventas.dias,
     huecosEntreVentas: ventas.huecos,
     nuncaVendio: ventas.nuncaVendio,

@@ -64,6 +64,11 @@ export interface DatosFoco {
   /** Órdenes de la tienda pagadas y sin despachar. */
   pedidosPorDespachar: number;
   /**
+   * Órdenes con pago `pending` o `failed` — la cola Commerce `vista=pago`.
+   * Incluye transferencia/efectivo a confirmar a mano y reintentos de MP.
+   */
+  pedidosPendientesDePago?: number;
+  /**
    * Días desde la última venta registrada, o `null` si nunca vendió.
    *
    * Se dice "registrada" a propósito: el sistema no puede saber si el comercio
@@ -145,6 +150,21 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       texto: `${d.pedidosPorDespachar} ${d.pedidosPorDespachar === 1 ? "pedido pagado sin despachar" : "pedidos pagados sin despachar"}`,
       accion: "Despachar",
       destino: "/tienda-online?tab=orders&vista=despachar",
+      urgencia: "critico",
+    });
+  }
+
+  // Plata en la mesa: el cobro manual de transferencia ya existe en Commerce;
+  // sin este renglón la primera venta online queda invisible en el Foco.
+  // Va justo después de despachar: el cliente que ya pagó pesa más que el
+  // que aún no acreditó, pero ambos son críticos.
+  if ((d.pedidosPendientesDePago ?? 0) > 0) {
+    const n = d.pedidosPendientesDePago!;
+    lista.push({
+      id: "pago-pendiente",
+      texto: `${n} ${n === 1 ? "pedido pendiente de pago" : "pedidos pendientes de pago"}`,
+      accion: "Revisar",
+      destino: "/tienda-online?tab=orders&vista=pago",
       urgencia: "critico",
     });
   }

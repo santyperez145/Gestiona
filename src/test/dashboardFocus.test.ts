@@ -90,6 +90,29 @@ describe("construirPendientes", () => {
     const varias = construirPendientes({ ...VACIO, ofertasIaPendientes: 3 })[0];
     expect(varias.texto).toContain("3 ofertas IA pendientes");
   });
+
+  // El cobro manual ya existe; sin este renglón la venta por transferencia
+  // no aparece en "Para hacer ahora".
+  it("pedidos pendientes de pago van a Commerce vista=pago", () => {
+    expect(construirPendientes({ ...VACIO, pedidosPendientesDePago: 0 })).toEqual([]);
+    const uno = construirPendientes({ ...VACIO, pedidosPendientesDePago: 1 })[0];
+    expect(uno.id).toBe("pago-pendiente");
+    expect(uno.texto).toBe("1 pedido pendiente de pago");
+    expect(uno.accion).toBe("Revisar");
+    expect(uno.destino).toBe("/tienda-online?tab=orders&vista=pago");
+    expect(uno.urgencia).toBe("critico");
+    const varios = construirPendientes({ ...VACIO, pedidosPendientesDePago: 2 })[0];
+    expect(varios.texto).toBe("2 pedidos pendientes de pago");
+  });
+
+  it("despachar pesa más que pendiente de pago, ambos críticos", () => {
+    const p = construirPendientes({
+      ...VACIO, pedidosPorDespachar: 1, pedidosPendientesDePago: 3, sinStock: 9,
+    });
+    expect(p.map((x) => x.id).slice(0, 2)).toEqual(["despachar", "pago-pendiente"]);
+    expect(p[0].urgencia).toBe("critico");
+    expect(p[1].urgencia).toBe("critico");
+  });
 });
 
 describe("leerVariacion", () => {
