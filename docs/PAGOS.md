@@ -35,6 +35,13 @@ declarado`) **sin** botón Conectar. Mercado Pago no se lista como medio aparte:
 es el rail detrás de Pay. Transferencia y efectivo se configuran en Métodos de
 cobro de la tienda. Un segundo OAuth real espera contrato (Slice C).
 
+## Cobro manual de transferencia / efectivo (2026-09-02)
+
+`confirmar_pago_manual_tienda` acredita un pedido pendiente de transferencia o
+efectivo desde Pedidos (exige `ecommerce.edit`). Llama a `mark_store_order_paid`
+y dispara venta/stock. **No** aplica a Gestiona Pay: ese camino lo confirma el
+webhook del procesador.
+
 ## El modelo: una app de plataforma, muchas cuentas conectadas
 
 Es el mismo esquema de Tiendanube y Empretienda:

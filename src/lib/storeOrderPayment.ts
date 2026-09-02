@@ -21,6 +21,25 @@ export function canRetryStorePayment(status: StoreOrderPaymentStatus) {
   return status === "pending" || status === "failed";
 }
 
+/** Transferencia y efectivo: el comercio acredita a mano. Pay no. */
+export function esMedioPagoManualTienda(method: string | null | undefined) {
+  const m = String(method ?? "").toLowerCase().trim();
+  return m === "transferencia" || m === "efectivo";
+}
+
+/**
+ * ¿El comercio puede marcar este pedido como cobrado desde el panel?
+ * Gestiona Pay / mercadopago quedan afuera: los acredita el webhook.
+ */
+export function canConfirmManualStorePayment(input: {
+  payment_status?: StoreOrderPaymentStatus | null;
+  payment_method?: string | null;
+}) {
+  const status = input.payment_status ?? "";
+  if (!(status === "pending" || status === "failed" || status === "partial")) return false;
+  return esMedioPagoManualTienda(input.payment_method);
+}
+
 /** La logística sólo puede avanzar cuando el pago sigue acreditado. */
 export function canFulfillStoreOrder(status: StoreOrderPaymentStatus) {
   return status === "paid";

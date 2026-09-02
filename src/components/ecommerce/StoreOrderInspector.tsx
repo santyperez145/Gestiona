@@ -19,20 +19,23 @@ import {
   storeOrderFulfillmentTone,
 } from "@/lib/storeOrderQueue";
 import {
+  canConfirmManualStorePayment,
   canFulfillStoreOrder,
   storeOrderPaymentLabel,
   storeOrderPaymentTone,
 } from "@/lib/storeOrderPayment";
 import { formatARS } from "@/lib/supabaseStore";
-import { Eye, Truck } from "lucide-react";
+import { Banknote, Eye, Loader2, Truck } from "lucide-react";
 
 interface Props {
   open: boolean;
   order: StoreOrderInspectRow | null;
   requestedId: string | null;
   loading?: boolean;
+  confirmingPaid?: boolean;
   onClose: () => void;
   onPrepare: (order: StoreOrderInspectRow) => void;
+  onConfirmPaid?: (order: StoreOrderInspectRow) => void;
 }
 
 function fechaHora(iso: string | null | undefined) {
@@ -43,10 +46,11 @@ function fechaHora(iso: string | null | undefined) {
 }
 
 export default function StoreOrderInspector({
-  open, order, requestedId, loading, onClose, onPrepare,
+  open, order, requestedId, loading, confirmingPaid, onClose, onPrepare, onConfirmPaid,
 }: Props) {
   const detail = buildStoreOrderDetail(order);
   const canShip = order ? canFulfillStoreOrder(order.payment_status) : false;
+  const canConfirmPaid = order ? canConfirmManualStorePayment(order) : false;
 
   return (
     <Sheet open={open} onOpenChange={next => { if (!next) onClose(); }}>
@@ -220,9 +224,23 @@ export default function StoreOrderInspector({
             </ScrollArea>
 
             <div className="flex flex-col-reverse gap-2 border-t border-border/60 bg-popover px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
-              <Button variant="outline" className="min-h-11" onClick={onClose}>Cerrar</Button>
+              <Button variant="outline" className="min-h-11" onClick={onClose} disabled={confirmingPaid}>
+                Cerrar
+              </Button>
+              {canConfirmPaid && onConfirmPaid && (
+                <Button
+                  className="min-h-11 gap-1.5"
+                  disabled={confirmingPaid}
+                  onClick={() => onConfirmPaid(detail.order)}
+                >
+                  {confirmingPaid
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Banknote className="h-4 w-4" />}
+                  Marcar como cobrado
+                </Button>
+              )}
               {canShip && (
-                <Button className="min-h-11 gap-1.5" onClick={() => onPrepare(detail.order)}>
+                <Button className="min-h-11 gap-1.5" onClick={() => onPrepare(detail.order)} disabled={confirmingPaid}>
                   <Truck className="h-4 w-4" />
                   {detail.order.tracking_number ? "Ver envío" : "Preparar envío"}
                 </Button>

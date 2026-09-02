@@ -53181,6 +53181,10 @@ export type Database = {
         Args: { p_method?: string; p_order_id: string; p_payment_id?: string }
         Returns: Json
       }
+      confirmar_pago_manual_tienda: {
+        Args: { p_order_id: string; p_nota?: string }
+        Returns: Json
+      }
       marketing_template_sumar_like: {
         Args: { p_template_id: string }
         Returns: number

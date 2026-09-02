@@ -62,6 +62,7 @@ import {
 } from "@/lib/gestionaPay";
 import { STORE_ORDER_QUEUE_LIMIT, storeOrderFulfillmentLabel, storeOrderFulfillmentTone } from "@/lib/storeOrderQueue";
 import { findStoreOrderForInspect, isStoreOrderInspectId } from "@/lib/storeOrderDetail";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import WorkspaceState from "@/components/shared/WorkspaceState";
@@ -139,6 +140,7 @@ export default function EcommerceStorePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { ask, dialog } = useConfirmDialog();
   const { fromWizard } = parseActivationHandoff(searchParams);
   const requestedTab = searchParams.get("tab");
   const tab: StoreTab = isStoreTab(requestedTab) ? requestedTab : "overview";
@@ -187,6 +189,7 @@ export default function EcommerceStorePage() {
   });
   const [orders, setOrders] = useState<EcomOrder[]>([]);
   const [envioDe, setEnvioDe] = useState<EcomOrder | null>(null);
+  const [confirmingPaid, setConfirmingPaid] = useState(false);
   const [pedidoExtra, setPedidoExtra] = useState<EcomOrder | null>(null);
   const [pedidoExtraLoading, setPedidoExtraLoading] = useState(false);
   const [funnelData, setFunnelData] = useState<FunnelRow[]>([]);
@@ -255,6 +258,33 @@ export default function EcommerceStorePage() {
       params.delete("pedido");
       return params;
     }, { replace: true });
+  };
+
+  const confirmarPagoManual = async (order: { id: string; order_number: string; payment_method?: string | null }) => {
+    const medio = order.payment_method === "efectivo" ? "efectivo" : "transferencia";
+    if (!(await ask({
+      title: "¿Marcar como cobrado?",
+      description: medio === "efectivo"
+        ? `Confirmás que recibiste el pago en efectivo del pedido ${order.order_number}. Se acredita la venta y se puede despachar.`
+        : `Confirmás que viste la transferencia del pedido ${order.order_number}. Se acredita la venta y se puede despachar.`,
+      confirmText: "Marcar cobrado",
+    }))) return;
+    setConfirmingPaid(true);
+    const { data, error } = await supabase.rpc("confirmar_pago_manual_tienda", {
+      p_order_id: order.id,
+    });
+    setConfirmingPaid(false);
+    if (error) {
+      console.error("confirmar_pago_manual_tienda:", error);
+      toast.error(error.message || "No se pudo acreditar el pago.");
+      return;
+    }
+    if ((data as { ok?: boolean } | null)?.ok === false) {
+      toast.error("No se pudo acreditar el pago.");
+      return;
+    }
+    toast.success(`Pedido ${order.order_number} marcado como cobrado`);
+    await loadOrders();
   };
 
   useEffect(() => {
@@ -684,12 +714,14 @@ export default function EcommerceStorePage() {
         order={inspectedOrder}
         requestedId={pedidoId}
         loading={Boolean(pedidoId) && !inspectedOrder && (ordersLoading || pedidoExtraLoading)}
+        confirmingPaid={confirmingPaid}
         onClose={closePedido}
         onPrepare={order => {
           setEnvioDe(order as EcomOrder);
         }}
+        onConfirmPaid={order => { void confirmarPagoManual(order); }}
       />
-
+      {dialog}
       {/* ─── Overview ─── */}
       {tab === "overview" && (
         <div className="space-y-6">

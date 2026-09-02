@@ -3199,6 +3199,13 @@ Finance Connect.
      Próximamente sin Conectar. Catálogo SQL alineado (Gestiona Pay
      producto; MP = rail). Sin segundo OAuth inventado.
 
+120. Commerce: confirmar cobro manual de transferencia — 2026-09-02.
+     Slice C de Pay (segundo OAuth) queda bloqueado sin contrato. El
+     hueco medido: transferencia usable dejaba pedidos `pending` sin
+     RPC autenticada para acreditar (`mark_store_order_paid` es
+     service_role). `confirmar_pago_manual_tienda` + botón en el
+     inspector. Sólo transferencia/efectivo; Pay sigue por webhook.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

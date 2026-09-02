@@ -44,6 +44,7 @@ export interface StoreOrderQueueRow {
   customer_phone: string | null;
   total: number;
   payment_status: string;
+  payment_method?: string | null;
   fulfillment_status: string;
   tracking_number: string | null;
   created_at: string;

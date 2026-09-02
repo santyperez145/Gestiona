@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import {
+  canConfirmManualStorePayment,
   canFulfillStoreOrder,
   canRetryStorePayment,
   isStorePaymentReversed,
@@ -20,6 +20,29 @@ describe("estados de pago de la tienda", () => {
     expect(canRetryStorePayment("failed")).toBe(true);
     expect(canRetryStorePayment("paid")).toBe(false);
     expect(canRetryStorePayment("partial")).toBe(false);
+  });
+
+  it("permite confirmar a mano transferencia/efectivo, no Gestiona Pay", () => {
+    expect(canConfirmManualStorePayment({
+      payment_status: "pending",
+      payment_method: "transferencia",
+    })).toBe(true);
+    expect(canConfirmManualStorePayment({
+      payment_status: "pending",
+      payment_method: "efectivo",
+    })).toBe(true);
+    expect(canConfirmManualStorePayment({
+      payment_status: "pending",
+      payment_method: "gestiona_pay",
+    })).toBe(false);
+    expect(canConfirmManualStorePayment({
+      payment_status: "pending",
+      payment_method: "mercadopago",
+    })).toBe(false);
+    expect(canConfirmManualStorePayment({
+      payment_status: "paid",
+      payment_method: "transferencia",
+    })).toBe(false);
   });
 
   it("expone etiquetas operativas en español", () => {
