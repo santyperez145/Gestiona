@@ -3162,6 +3162,12 @@ Finance Connect.
      abriendo. Un producto tipado como plato no abre ficha olfativa
      aunque conserve un slug de perfume. No se borran tablas verticales.
 
+115. P0.1.5: decants en Ventas miran el tipo — 2026-09-02.
+     La venta por ml usaba `category === perfume_*`. Ahora
+     `productoEsPerfume` resuelve el slug desde `product_type_id` (mapa
+     de tipos de la org) y cae a la categoría si no hay tipo. Un plato
+     con slug de perfume heredado no ofrece decant.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

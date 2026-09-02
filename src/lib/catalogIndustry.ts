@@ -76,6 +76,24 @@ export function laFichaEsTecnologia(args: {
   return args.category === "electronico";
 }
 
+/**
+ * Resuelve si un producto (fila) admite chrome de perfume / decants.
+ * `typeSlugById` mapea `product_types.id` → slug; vacío = sólo categoría.
+ */
+export function productoEsPerfume(
+  product: { category?: string | null; product_type_id?: string | null },
+  typeSlugById: ReadonlyMap<string, string> | Record<string, string> = {},
+): boolean {
+  const id = product.product_type_id;
+  let slug: string | null = null;
+  if (id) {
+    slug = typeSlugById instanceof Map
+      ? (typeSlugById.get(id) ?? null)
+      : (typeSlugById[id] ?? null);
+  }
+  return laFichaEsPerfume({ productTypeSlug: slug, category: product.category });
+}
+
 export function elCatalogoOperaPerfumes(args: {
   industryCode: string | null | undefined;
   categories: Array<string | null | undefined>;

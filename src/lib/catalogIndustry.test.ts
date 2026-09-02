@@ -9,6 +9,7 @@ import {
   laFichaEsPerfume,
   laFichaEsTecnologia,
   laFichaEsVaper,
+  productoEsPerfume,
 } from "./catalogIndustry";
 
 function leer(rel: string) {
@@ -60,6 +61,26 @@ describe("el workspace no se presenta como una vertical si el comercio no lo es"
     expect(laFichaEsTecnologia({ productTypeSlug: null, category: "electronico" })).toBe(true);
   });
 
+  it("productoEsPerfume resuelve el slug desde product_type_id", () => {
+    const tipos = { "t-perf": "perfume", "t-plato": "plato" };
+    expect(productoEsPerfume(
+      { category: "remeras", product_type_id: "t-perf" },
+      tipos,
+    )).toBe(true);
+    expect(productoEsPerfume(
+      { category: "perfume_arabe", product_type_id: "t-plato" },
+      tipos,
+    )).toBe(false);
+    expect(productoEsPerfume(
+      { category: "perfume_arabe", product_type_id: null },
+      tipos,
+    )).toBe(true);
+    expect(productoEsPerfume(
+      { category: "perfume_arabe", product_type_id: "t-desconocido" },
+      tipos,
+    )).toBe(true); // slug aún no en el mapa → categoría legacy
+  });
+
   it("Productos no ofrece el buscador olfativo sin preguntar al catálogo", () => {
     const pagina = leer("src/pages/ProductsPage.tsx");
     expect(pagina).toContain("elCatalogoOperaPerfumes");
@@ -68,6 +89,13 @@ describe("el workspace no se presenta como una vertical si el comercio no lo es"
     expect(pagina).toContain("laFichaEsPerfume");
     expect(pagina).toContain("laFichaEsVaper");
     expect(pagina).toContain("laFichaEsTecnologia");
+  });
+
+  it("Ventas habilita decants según el tipo tipado, no sólo la categoría", () => {
+    const pagina = leer("src/pages/SalesPage.tsx");
+    expect(pagina).toContain("productoEsPerfume");
+    expect(pagina).not.toContain("product.category === 'perfume_arabe' || product.category === 'perfume_diseñador'");
+    expect(pagina).not.toContain("product?.category === 'perfume_arabe' || product?.category === 'perfume_diseñador'");
   });
 
   it("Clientes no ofrece preferencias olfativas ni vapers sin preguntar al catálogo", () => {

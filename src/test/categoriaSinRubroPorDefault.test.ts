@@ -256,7 +256,6 @@ const CONOCIDOS: Record<string, string> = {
   // sus atributos), no reemplazar el slug por otro slug.
   "src/pages/ProductsPage.tsx": "ficha de perfume (product_perfume_details), subtipos de vaper y campos de electrónica en el formulario",
   "src/pages/PublicCatalogPage.tsx": "decants, badges de género y cross-sell vaper→perfume; el hero por categoría es opcional y cae a uno genérico",
-  "src/pages/SalesPage.tsx": "la venta por decant se habilita según la categoría del producto",
   "src/pages/CatalogPage.tsx": "modo vaper del PDF del catálogo interno",
   "src/lib/weightEstimate.ts": "modelo de peso por ml, específico de perfumería",
   "src/components/marketing/InstagramStoryGenerator.tsx": "plantillas de copy de perfumería",

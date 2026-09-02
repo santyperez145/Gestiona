@@ -32,6 +32,8 @@ import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import KPICard from "@/components/shared/KPICard";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { buildSaleTicketDetail, type SaleTicketDetail } from "@/lib/saleTicketDetail";
+import { productoEsPerfume } from "@/lib/catalogIndustry";
+import { listProductTypes } from "@/lib/productTypes";
 
 import { plural } from "@/lib/plural";
 const PAGE_SIZE = 20;
@@ -1714,6 +1716,7 @@ function calcLineItem(
   settings: any,
   paymentMethod: string,
   couponResult: any,
+  typeSlugById: Record<string, string> = {},
 ) {
   const product = products.find(p => p.id === line.productId);
   if (!product) return null;
@@ -1721,7 +1724,7 @@ function calcLineItem(
   const methodConfig = PAYMENT_METHODS.find(m => m.value === paymentMethod);
   const usesDiscount = methodConfig?.usesDiscount ?? false;
   const isMayorista = paymentMethod === 'mayorista';
-  const isPerfume = product.category === 'perfume_arabe' || product.category === 'perfume_diseñador';
+  const isPerfume = productoEsPerfume(product, typeSlugById);
   const contentMl = Number(product.content_ml || 100);
   const exchangeRate = (cotizacionDe(settings) ?? 0);
   const volumeThreshold = Number(settings?.volume_discount_threshold || 3);
@@ -1781,6 +1784,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const [settings, setSettings] = useState<any>(null);
   const [customers, setCustomers] = useState<string[]>([]);
   const [allVariants, setAllVariants] = useState<any[]>([]);
+  const [typeSlugById, setTypeSlugById] = useState<Record<string, string>>({});
   const [locations, setLocations] = useState<Array<{ id: string; name: string; is_main: boolean }>>([]);
   const [locationId, setLocationId] = useState<string>(editItem?.location_id || '');
 
@@ -1808,6 +1812,17 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       setProducts(p); setSettings(s); setCustomers(c); setAllVariants(v);
     })();
   }, [userId]);
+
+  useEffect(() => {
+    if (!activeOrg?.id) { setTypeSlugById({}); return; }
+    listProductTypes(activeOrg.id)
+      .then(types => {
+        const map: Record<string, string> = {};
+        for (const t of types) map[t.id] = t.slug;
+        setTypeSlugById(map);
+      })
+      .catch(err => console.error("No se pudieron cargar los tipos para decants", err));
+  }, [activeOrg?.id]);
 
   // Load org locations for the optional location dropdown
   useEffect(() => {
@@ -1843,7 +1858,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   // Calculate all line items
   const lineCalcs = lines.map(line => ({
     line,
-    calc: calcLineItem(line, products, allVariants, settings, paymentMethod, couponResult),
+    calc: calcLineItem(line, products, allVariants, settings, paymentMethod, couponResult, typeSlugById),
   }));
 
   const grandTotal = lineCalcs.reduce((s, { calc }) => s + (calc?.total || 0), 0);
@@ -2002,6 +2017,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             settings={settings}
             paymentMethod={paymentMethod}
             couponResult={couponResult}
+            typeSlugById={typeSlugById}
             canRemove={lines.length > 1 && (!isEditMode || idx > 0)}
             isEditMode={isEditMode && idx === 0}
             onUpdate={(updates) => updateLine(line.id, updates)}
@@ -2120,7 +2136,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
 
 // ============ SINGLE LINE ITEM ROW ============
 function LineItemRow({
-  line, index, products, allVariants, settings, paymentMethod, couponResult,
+  line, index, products, allVariants, settings, paymentMethod, couponResult, typeSlugById,
   canRemove, isEditMode, onUpdate, onRemove,
 }: {
   line: SaleLineItem;
@@ -2130,16 +2146,17 @@ function LineItemRow({
   settings: any;
   paymentMethod: string;
   couponResult: any;
+  typeSlugById: Record<string, string>;
   canRemove: boolean;
   isEditMode: boolean;
   onUpdate: (updates: Partial<SaleLineItem>) => void;
   onRemove: () => void;
 }) {
-  const calc = calcLineItem(line, products, allVariants, settings, paymentMethod, couponResult);
+  const calc = calcLineItem(line, products, allVariants, settings, paymentMethod, couponResult, typeSlugById);
   const product = products.find(p => p.id === line.productId);
   const productVariants = allVariants.filter(v => v.product_id === line.productId && v.stock > 0);
   const hasVariants = productVariants.length > 0;
-  const isPerfume = product?.category === 'perfume_arabe' || product?.category === 'perfume_diseñador';
+  const isPerfume = product ? productoEsPerfume(product, typeSlugById) : false;
   const contentMl = Number(product?.content_ml || 100);
 
   return (
