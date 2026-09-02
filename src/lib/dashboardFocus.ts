@@ -76,6 +76,10 @@ export interface DatosFoco {
    * De acá sale el umbral: qué es raro depende de cada negocio.
    */
   huecosEntreVentas?: number[];
+  /** true = no hay ninguna venta en el historial consultado (primera venta). */
+  nuncaVendio?: boolean;
+  /** true = nunca cerró una toma física (`stock_counts`). */
+  sinConteoFisico?: boolean;
 }
 
 /**
@@ -211,6 +215,29 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       destino: "/clientes?vista=seguimientos",
       urgencia: "atencion",
     });
+  }
+
+  // Comercio nuevo: sin ruido operativo, el foco es la primera venta y el
+  // conteo que deja el stock creíble. Sólo cuando la lista quedó vacía.
+  if (lista.length === 0) {
+    if (d.nuncaVendio) {
+      lista.push({
+        id: "primera-venta",
+        texto: "Todavía no registraste una venta",
+        accion: "Abrir el POS",
+        destino: "/caja",
+        urgencia: "atencion",
+      });
+    }
+    if (d.sinConteoFisico) {
+      lista.push({
+        id: "toma-fisica",
+        texto: "Todavía no hay una toma física cerrada",
+        accion: "Abrir conteo",
+        destino: "/kardex",
+        urgencia: "normal",
+      });
+    }
   }
 
   return lista.sort((a, b) => ORDEN_URGENCIA[a.urgencia] - ORDEN_URGENCIA[b.urgencia]);

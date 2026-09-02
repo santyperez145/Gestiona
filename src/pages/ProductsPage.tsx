@@ -585,6 +585,17 @@ export default function ProductsPage() {
     setIdentityParams(next, { replace: true });
   }, [identityParams, loading, products, setIdentityParams]);
 
+  // Readiness / Commerce mandan acá con ?completar=pesos: abrir el estimador
+  // sin obligar a buscar el menú. Se limpia el query para no reabrir al cerrar.
+  useEffect(() => {
+    if (identityParams.get("completar") !== "pesos") return;
+    if (loading) return;
+    setPesosOpen(true);
+    const next = new URLSearchParams(identityParams);
+    next.delete("completar");
+    setIdentityParams(next, { replace: true });
+  }, [identityParams, loading, setIdentityParams]);
+
   useEffect(() => {
     handoffOpenedRef.current = false;
   }, [activeOrg?.id]);

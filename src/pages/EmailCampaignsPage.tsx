@@ -172,7 +172,12 @@ export default function EmailCampaignsPage() {
    * funciones al enviar. Escribir la dirección a mano acá es cómo el cartel
    * anterior terminó nombrando un dominio que ya no se usa.
    */
-  const [envio, setEnvio] = useState<{ puede: boolean; desde: string | null } | null>(null);
+  const [envio, setEnvio] = useState<{
+    puede: boolean;
+    desde: string | null;
+    smtpSinDominio: boolean;
+  } | null>(null);
+
 
   useEffect(() => {
     void (async () => {
@@ -184,11 +189,15 @@ export default function EmailCampaignsPage() {
         email_dominio?: string | null; email_casillas?: Record<string, string> | null;
       };
       const casilla = c?.email_casillas?.marketing ?? c?.email_casillas?.default ?? "noreply";
+      const smtpOk = Boolean(c?.smtp_configurado);
+      const dominio = String(c?.email_dominio ?? "").trim();
       setEnvio({
-        puede: Boolean(c?.smtp_configurado || c?.email_listo),
-        desde: c?.smtp_configurado
+        puede: Boolean(smtpOk || c?.email_listo),
+        desde: smtpOk
           ? (c.smtp_from_email ?? null)
-          : (c?.email_dominio ? `${casilla}@${c.email_dominio}` : null),
+          : (dominio ? `${casilla}@${dominio}` : null),
+        // SMTP de casilla personal alcanza para avisos; no para blasting.
+        smtpSinDominio: smtpOk && !dominio,
       });
     })();
   }, []);
@@ -554,9 +563,26 @@ export default function EmailCampaignsPage() {
           </div>
         </div>
       )}
-      {envio?.puede && envio.desde && (
+      {envio?.puede && envio.smtpSinDominio && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-800/40 bg-amber-950/15 px-4 py-3 text-sm text-amber-200">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div>
+            El correo transaccional funciona (avisos, carrito abandonado), pero
+            todavía no hay dominio propio verificado. Las campañas masivas
+            pueden ir a spam o chocar el tope diario de la casilla — pedí a
+            plataforma que configure <strong>email_dominio</strong> antes de
+            blastings grandes.
+          </div>
+        </div>
+      )}
+      {envio?.puede && envio.desde && !envio.smtpSinDominio && (
         <p className="text-xs text-muted-foreground">
           Tus campañas salen desde <strong>{envio.desde}</strong>.
+        </p>
+      )}
+      {envio?.puede && envio.desde && envio.smtpSinDominio && (
+        <p className="text-xs text-muted-foreground">
+          Avisos salen desde <strong>{envio.desde}</strong> (sin dominio de campaña).
         </p>
       )}
 

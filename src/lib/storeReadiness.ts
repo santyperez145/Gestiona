@@ -195,7 +195,7 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
       // así que no impide vender: molesta, no bloquea.
       severity: pickup ? 'warning' : 'blocker',
       done: canQuote,
-      actionLabel: 'Cargar tarifas',
+      actionLabel: 'Completar tarifario',
       actionHref: '/envios?tab=zonas',
     });
 
@@ -209,10 +209,12 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
       checks.push({
         id: 'coverage',
         title: 'Cubrir todo el país',
-        detail: `${faltan} ${faltan === 1 ? 'provincia' : 'provincias'} sin tarifa de envío: un comprador de ahí no puede terminar la compra.`,
+        detail: pickup
+          ? `${faltan} ${faltan === 1 ? 'provincia' : 'provincias'} sin envío a domicilio: fuera de tu cobertura el checkout sólo ofrece retiro en tienda. No prometas envío nacional hasta completar el tarifario.`
+          : `${faltan} ${faltan === 1 ? 'provincia' : 'provincias'} sin tarifa de envío: un comprador de ahí no puede terminar la compra.`,
         severity: casiTodoElPais && !pickup ? 'blocker' : 'warning',
         done: false,
-        actionLabel: 'Ver zonas',
+        actionLabel: 'Completar tarifario',
         actionHref: '/envios?tab=zonas',
       });
     }
@@ -224,8 +226,8 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
         detail: `${input.productsWithoutWeight} ${input.productsWithoutWeight === 1 ? 'producto no declara' : 'productos no declaran'} peso: se cotiza con el peso estimado de la tienda, así que el envío puede salir mal cobrado.`,
         severity: 'warning',
         done: false,
-        actionLabel: 'Ir a Productos',
-        actionHref: '/productos',
+        actionLabel: 'Completar pesos',
+        actionHref: '/productos?completar=pesos',
       });
     }
   } else if (mode === 'flat') {

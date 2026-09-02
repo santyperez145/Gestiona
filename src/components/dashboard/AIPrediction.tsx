@@ -4,7 +4,6 @@ import { Brain, Sparkles, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { useOrg } from "@/lib/orgContext";
 
 interface Prediction {
@@ -37,9 +36,10 @@ export default function AIPrediction({ sales }: { sales: any[] }) {
       const data = await llamarIA('predict-sales', { body: { sales: last90, orgId: activeOrg?.id } });
       if (data?.error) throw new Error(data.error);
       setPred(data);
-    } catch (e: any) {
-      setError(e.message || 'Error al generar predicción');
-      toast.error(e.message || 'Error con la predicción IA');
+      } catch (e: any) {
+      // No toast de "IA rota": el servidor ya puede devolver statistical;
+      // un error real es de red/auth, no "falta Anthropic".
+      setError(e.message || 'No se pudo generar la proyección');
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,8 @@ export default function AIPrediction({ sales }: { sales: any[] }) {
     <div className="bg-card border border-border/60 rounded-xl p-4 md:p-5 shadow-card">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-          <Brain className="w-4 h-4 text-primary" /> Proyección IA — Próximos 30 días
+          <Brain className="w-4 h-4 text-primary" />
+          {pred?.source === 'statistical' ? 'Proyección — Próximos 30 días' : 'Proyección IA — Próximos 30 días'}
         </h3>
         <Button variant="ghost" size="sm" onClick={fetchPrediction} disabled={loading} className="h-7 w-7 p-0">
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -65,7 +66,13 @@ export default function AIPrediction({ sales }: { sales: any[] }) {
         </div>
       )}
 
-      {error && !loading && <p className="text-xs text-muted-foreground py-4 text-center">{error}</p>}
+      {error && !loading && (
+        <p className="text-xs text-muted-foreground py-4 text-center">
+          {error.includes('5 ventas')
+            ? error
+            : 'No se pudo enriquecer con IA. Si hay historial, reintentá: también hay proyección estadística del servidor.'}
+        </p>
+      )}
 
       {pred && !loading && (
         <div className="space-y-3">

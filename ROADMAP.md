@@ -3392,6 +3392,14 @@ soporte, adopción de pagos y margen. Ningún porcentaje es una asignación eter
 
 ## 11. Definition of Done y actualización
 
+### Sesión 2026-09-02 — Cableado uso real (ATM)
+
+Olas ejecutadas: Commerce honesto (tarifario/pesos/legales/checkout), ofertas
+propias + Anthropic (`offerRules` + `ai-offer-recommender` sin Lovable),
+`seed_default_automation_flows`, banner SMTP sin dominio, FocoDelDia
+primera-venta/toma-física, `create-checkout` → 410. Fuera: segundo OAuth, Ship
+API, AFIP prod, Orbit O1+, n8n.
+
 Cada slice sigue:
 
 ~~~text

@@ -3418,7 +3418,23 @@ export default function Dashboard() {
           products={stats.products} settings={stats.rawSettings}
         />
         {visibleDashboardSection === "dashboard-intelligence" && !entitlementsLoading && canUseAI ? (
-          <AIPrediction sales={stats.rawSales} />
+          <div className="space-y-3">
+            <AIPrediction sales={stats.rawSales} />
+            <div className="rounded-xl border border-border/60 bg-card p-4 shadow-card flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">Ofertas aplicables</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Generá propuestas (IA o reglas del catálogo) y aplicá al menos una: eso mueve el AI Action Rate.
+                </p>
+              </div>
+              <Link
+                to="/marketing"
+                className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 shrink-0"
+              >
+                Ver recomendaciones
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="rounded-xl border border-border/60 bg-card p-5 shadow-card">
             <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Proyección inteligente</p>

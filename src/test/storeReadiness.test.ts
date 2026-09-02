@@ -266,6 +266,25 @@ describe('evaluateStoreReadiness — avisos', () => {
     const r = evaluateStoreReadiness(tiendaLista({ productsWithoutWeight: 3 }));
     const c = r.warnings.find(x => x.id === 'weights')!;
     expect(c.detail).toContain('3 productos');
+    expect(c.actionLabel).toBe('Completar pesos');
+    expect(c.actionHref).toBe('/productos?completar=pesos');
+  });
+
+  it('el CTA de tarifas manda a Completar tarifario', () => {
+    const r = evaluateStoreReadiness(tiendaLista({ zonesWithRates: 0 }));
+    expect(r.blockers.find(c => c.id === 'shipping-rates')?.actionLabel)
+      .toBe('Completar tarifario');
+  });
+
+  it('con retiro, la cobertura no promete envío nacional', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: 'Alsina 123' },
+      coveredProvinces: 1,
+      zonesWithRates: 1,
+    }));
+    const c = r.warnings.find(x => x.id === 'coverage')!;
+    expect(c.detail).toMatch(/retiro/i);
+    expect(c.actionLabel).toBe('Completar tarifario');
   });
 
   it('el peso no importa cuando la tienda cobra un precio plano', () => {

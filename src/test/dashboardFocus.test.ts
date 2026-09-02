@@ -65,6 +65,20 @@ describe("construirPendientes", () => {
     expect(construirPendientes({ ...VACIO, sinStock: 1 })[0].texto).toContain("1 producto sin stock");
     expect(construirPendientes({ ...VACIO, sinStock: 2 })[0].texto).toContain("2 productos sin stock");
   });
+
+  it("sin operación, empuja primera venta POS y toma física", () => {
+    const p = construirPendientes({ ...VACIO, nuncaVendio: true, sinConteoFisico: true });
+    expect(p.map((x) => x.id)).toEqual(["primera-venta", "toma-fisica"]);
+    expect(p[0].destino).toBe("/caja");
+    expect(p[1].destino).toBe("/kardex");
+  });
+
+  it("con pendientes operativos no tapa con CTAs de onboarding", () => {
+    const p = construirPendientes({
+      ...VACIO, sinStock: 1, nuncaVendio: true, sinConteoFisico: true,
+    });
+    expect(p.map((x) => x.id)).toEqual(["sin-stock"]);
+  });
 });
 
 describe("leerVariacion", () => {

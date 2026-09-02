@@ -117,8 +117,8 @@ const ACTION_ICONS: Record<ActionType, React.ReactNode> = {
 
 const ACTION_DESCRIPTIONS: Record<ActionType, string> = {
   notification: "Aparece en el ícono de campana para todos los admins.",
-  email: "Envía un email a los administradores (requiere RESEND_API_KEY configurada).",
-  whatsapp_message: "Envía WhatsApp al cliente (requiere Twilio configurado en variables de entorno).",
+  email: "Envía un email (SMTP de plataforma o Resend). Campañas masivas piden dominio verificado.",
+  whatsapp_message: "WhatsApp al cliente — requiere Evolution/Twilio conectado. Sin conexión el flow no miente: el runner lo saltea.",
   create_task: "Crea una tarea pendiente en el módulo de Tareas.",
   create_purchase_order: "Crea un borrador de orden de compra para reponer stock (solo para triggers de stock).",
   webhook: "Llama al webhook configurado en Integraciones con los datos del evento.",
@@ -195,25 +195,17 @@ const FLOW_TEMPLATES: {
     },
   },
   {
-    name: "Deal en Negociación → Tarea urgente",
-    emoji: "🎯",
-    description: "Crea tarea de seguimiento cuando un deal entra en negociación",
+    name: "Sin comprar 45 días → Email de reactivación",
+    emoji: "✉️",
+    description: "Email cuando un cliente lleva 45 días sin comprar (SMTP plataforma)",
     data: {
-      trigger_type: "deal_stage_change",
-      trigger_config: { stage: "Negociación" },
-      action_type: "create_task",
-      action_config: { task_priority: "high", task_due_days: 1, message: "Dar seguimiento — deal en negociación" },
-    },
-  },
-  {
-    name: "Deal cerrado → Notificación",
-    emoji: "🏆",
-    description: "Notifica al equipo cuando se cierra un deal como ganado",
-    data: {
-      trigger_type: "deal_stage_change",
-      trigger_config: { stage: "Cerrado ✓" },
-      action_type: "notification",
-      action_config: { message: "🏆 ¡Deal cerrado exitosamente!" },
+      trigger_type: "customer_inactive",
+      trigger_config: { days: 45 },
+      action_type: "email",
+      action_config: {
+        subject: "Volvé cuando quieras",
+        message: "Hace un tiempo que no nos visitás. Tenemos novedades pensadas para vos.",
+      },
     },
   },
 ];
@@ -344,7 +336,7 @@ function FlowForm({
               <SelectItem key={v} value={v}>{TRIGGER_EMOJI[v]} {TRIGGER_LABELS[v]}</SelectItem>
             ))}
             <div className="px-2 py-1 text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-1">Pipeline CRM</div>
-            <SelectItem value="deal_stage_change">{TRIGGER_EMOJI.deal_stage_change} {TRIGGER_LABELS.deal_stage_change}</SelectItem>
+            {/* deal_stage_change no está en el CHECK de automation_flows: el insert falla. */}
           </SelectContent>
         </Select>
       </div>

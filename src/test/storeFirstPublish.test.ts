@@ -7,6 +7,7 @@ import {
   storeAfterCatalogCopy,
   storeFunnelFromCarts,
   storePublishCta,
+  storePublishNudges,
   storeShouldLeadWithPay,
   storeShouldShowAfterCatalog,
   storeShouldShowPerformanceChrome,
@@ -88,6 +89,20 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(STORE).toContain('reloadReadinessSignals');
     expect(STORE).toContain('onPagesChanged={reloadReadinessSignals}');
     expect(STORE).toContain('onConnectionChange={reloadReadinessSignals}');
+  });
+
+  it('los nudges de publicar apuntan a tarifario, legales y pesos', () => {
+    const nudges = storePublishNudges({
+      productsWithoutWeight: 4,
+      legalMissingOrDraft: 2,
+      shippingGaps: true,
+    });
+    expect(nudges.map((n) => n.id)).toEqual(['shipping', 'legal', 'weights']);
+    expect(nudges[0].actionHref).toBe('/envios?tab=zonas');
+    expect(nudges[2].actionHref).toBe('/productos?completar=pesos');
+    expect(STORE).toContain('storePublishNudges');
+    expect(PRODUCTS).toContain('completar');
+    expect(PRODUCTS).toContain('setPesosOpen(true)');
   });
 });
 

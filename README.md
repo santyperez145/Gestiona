@@ -1,6 +1,6 @@
 # Gestiona — Sistema de gestión para PyMEs argentinas
 
-Sistema integral de gestión comercial: ventas, stock, finanzas, CRM, marketing, facturación AFIP e integraciones (Tiendanube, Mercado Pago, Stripe).
+Sistema integral de gestión comercial: ventas, stock, finanzas, CRM, marketing, facturación AFIP e integraciones (Tiendanube, Mercado Pago / Gestiona Pay).
 
 ## Stack
 
@@ -8,7 +8,7 @@ Sistema integral de gestión comercial: ventas, stock, finanzas, CRM, marketing,
 |---|---|
 | Frontend | React 18 + TypeScript + Vite + Tailwind CSS + Radix UI |
 | Backend | Supabase (PostgreSQL + Auth + Storage + Edge Functions) |
-| Pagos | Stripe (SaaS subscriptions) + Mercado Pago (ventas) |
+| Pagos | Mercado Pago: Gestiona Pay (ventas tienda) + `mp-subscribe` (planes SaaS). Stripe checkout retirado (`create-checkout` → 410). |
 | Facturación | AFIP (Argentina) |
 | E-commerce | Tiendanube OAuth + webhooks |
 | IA | Anthropic Claude (insights, chat, predicciones, descripciones) |
@@ -254,7 +254,7 @@ siguiente describe las principales, no es exhaustiva:
 | `cancel-subscription` | Cancelación de suscripción Stripe |
 | `check-overdue-debts` | Detección de deudas vencidas |
 | `check-stock-alerts` | Alertas de stock bajo |
-| `create-checkout` | Checkout Stripe para suscripciones |
+| `create-checkout` | **Retirado (410).** Usar `mp-subscribe`. |
 | `customer-reactivation-alerts` | Alertas de clientes inactivos |
 | `daily-kpi-alert` | Resumen diario de KPIs |
 | `fetch-usd-rate` | Tipo de cambio USD |

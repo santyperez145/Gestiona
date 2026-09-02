@@ -123,8 +123,10 @@ salida es la misma: emitir una de nuevo. **La facturación no pasa a
 
 | Capacidad | Estado | Evidencia (remedida 2026-08-28) |
 |---|---|---|
-| Recomendaciones de oferta | 🔨 built | 25 generadas, **0 aplicadas**. El `AI Action Rate` es 0% y ése es el número que importa, no cuántas se generan |
-| Chat / copiloto | 🔨 built | ⚠️ Falta `ANTHROPIC_API_KEY` en los secretos: hoy responde error |
+| Recomendaciones de oferta | 🔬 verified (cableado 2026-09-02) | Motor propio `offerRules` + Anthropic cuando hay clave; `apply_ai_offer_recommendation` escribe precio. Lovable sacado. AI Action Rate sigue midiendo aplicaciones reales (antes 0 aplicadas) |
+| Chat / copiloto | 🔨 built | Requiere `ANTHROPIC_API_KEY`; sin clave falla con honestidad. Proyección de ventas (`predict-sales`) cae a modo statistical sin fingir “IA rota” |
+| Automatizaciones default | 🔬 verified (cableado 2026-09-02) | `seed_default_automation_flows` al alta + backfill: reactivación email, stock bajo/out, bienvenida. Carrito abandonado vía cron SMTP propio |
+| Campañas email | 🔨 built | SMTP operable para avisos; banner si `email_dominio` NULL (no blasting) |
 
 ### Tienda — features de conversión
 

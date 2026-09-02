@@ -55,9 +55,12 @@ interface Props {
 
 export default function FocoDelDia(p: Props) {
   const [porDespachar, setPorDespachar] = useState(0);
-  const [ventas, setVentas] = useState<{ dias: number | null; huecos: number[] }>(
-    { dias: null, huecos: [] },
-  );
+  const [ventas, setVentas] = useState<{
+    dias: number | null;
+    huecos: number[];
+    nuncaVendio: boolean;
+  }>({ dias: null, huecos: [], nuncaVendio: false });
+  const [sinConteo, setSinConteo] = useState(false);
 
   useEffect(() => {
     if (!p.orgId) return;
@@ -100,12 +103,33 @@ export default function FocoDelDia(p: Props) {
         const dias = [...new Set(
           data.map(f => String(f.date).slice(0, 10)),
         )].sort();
-        if (dias.length === 0) { setVentas({ dias: null, huecos: [] }); return; }
+        if (dias.length === 0) {
+          setVentas({ dias: null, huecos: [], nuncaVendio: true });
+          return;
+        }
         const aDia = (s: string) => Math.floor(Date.parse(s + "T00:00:00Z") / 86400000);
         const huecos: number[] = [];
         for (let i = 1; i < dias.length; i++) huecos.push(aDia(dias[i]) - aDia(dias[i - 1]));
         const hoy = Math.floor(Date.now() / 86400000);
-        setVentas({ dias: hoy - aDia(dias[dias.length - 1]), huecos });
+        setVentas({ dias: hoy - aDia(dias[dias.length - 1]), huecos, nuncaVendio: false });
+      });
+    return () => { cancelado = true; };
+  }, [p.orgId]);
+
+  useEffect(() => {
+    if (!p.orgId) return;
+    let cancelado = false;
+    supabase
+      .from("stock_counts")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", p.orgId)
+      .eq("status", "cerrado")
+      .then(({ count, error }) => {
+        if (error) {
+          console.error("FocoDelDia / toma física:", error);
+          return;
+        }
+        if (!cancelado) setSinConteo((count ?? 0) === 0);
       });
     return () => { cancelado = true; };
   }, [p.orgId]);
@@ -120,6 +144,8 @@ export default function FocoDelDia(p: Props) {
     pedidosPorDespachar: porDespachar,
     diasSinRegistrarVenta: ventas.dias,
     huecosEntreVentas: ventas.huecos,
+    nuncaVendio: ventas.nuncaVendio,
+    sinConteoFisico: sinConteo,
   };
 
   const pendientes = construirPendientes(datos);

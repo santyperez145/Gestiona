@@ -59,6 +59,7 @@ export default function OfferRecommenderPanel() {
   const [outcomes, setOutcomes] = useState<any[]>([]);
   const [revertTarget, setRevertTarget] = useState<any | null>(null);
   const [revertReason, setRevertReason] = useState('');
+  const [genNotice, setGenNotice] = useState<string | null>(null);
 
   const loadHistory = async () => {
     const [pending, appliedOutcomes] = await Promise.all([
@@ -88,6 +89,9 @@ export default function OfferRecommenderPanel() {
       if (data?.error) throw new Error(data.error);
       setRecs(data.ofertas || []);
       setCombos(data.combos || []);
+      setGenNotice(data.notice || (data.source === 'rules'
+        ? 'Propuestas por reglas del catálogo (stock, dormidos, margen).'
+        : null));
       toast.success(`${data.ofertas?.length || 0} ofertas generadas`);
       await loadHistory();
     } catch (e: any) {
@@ -201,6 +205,12 @@ export default function OfferRecommenderPanel() {
           Generar recomendaciones
         </Button>
       </div>
+
+      {genNotice && (
+        <p className="text-xs text-muted-foreground border border-border/50 rounded-lg px-3 py-2">
+          {genNotice}
+        </p>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard label="Pendientes" value={actionRate.pendientes} icon={Clock3} color="warning" sub="por decidir" />

@@ -94,11 +94,6 @@ describe("el rubro no lo adivina el prompt", () => {
         "No es el rubro del comercio: es una regla real de MercadoLibre Argentina — ANMAT tiene prohibidos los vapers y publicarlos rebota. Sacarlo rompería una validación correcta.",
       lineas: /CATEGORIAS_PROHIBIDAS|ANMAT/,
     },
-    "ai-offer-recommender": {
-      motivo:
-        "`pack_decants` es un tipo de oferta atado al rubro, no una línea de prompt. Sale con el catálogo polimórfico (P0.1), junto con los demás tipos por rubro.",
-      lineas: /pack_decants/,
-    },
     "generate-social-copy": {
       motivo:
         "Rótulo de un slug ya cargado (`perfume_arabe`, `vaper`), no el rubro del prompt — mismo criterio que `NOMBRES_HEREDADOS` en `storeCategories.ts`. La persona y los hashtags ya salen de `settings.industry_code`.",

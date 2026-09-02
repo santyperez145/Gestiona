@@ -38,6 +38,7 @@ import {
   storeAfterCatalogCopy,
   storeFunnelFromCarts,
   storePublishCta,
+  storePublishNudges,
   storeShouldLeadWithPay,
   storeShouldShowAfterCatalog,
   storeShouldShowPerformanceChrome,
@@ -567,6 +568,14 @@ export default function EcommerceStorePage() {
     ? storeAfterCatalogCopy({ canPublish: readiness.canPublish })
     : null;
   const publishCta = afterCatalog ? storePublishCta({ canPublish: readiness.canPublish }) : null;
+  const publishNudges = useMemo(() => storePublishNudges({
+    productsWithoutWeight: signals.productsWithoutWeight,
+    legalMissingOrDraft:
+      signals.legalPages.missingOrTemplate + signals.legalPages.drafts,
+    shippingGaps: readiness.checks.some(
+      (c) => (c.id === "shipping-rates" || c.id === "coverage") && !c.done,
+    ),
+  }), [signals, readiness.checks]);
 
   const TABS: { id: StoreTab; label: string }[] = [
     { id: "overview",  label: "Publicar" },
@@ -765,6 +774,29 @@ export default function EcommerceStorePage() {
             </div>
           )}
           {!catalogHandoff ? <StoreReadinessPanel readiness={readiness} /> : null}
+          {!catalogHandoff && publishNudges.length > 0 && (
+            <div className="space-y-2">
+              {publishNudges.map((n) => (
+                <div
+                  key={n.id}
+                  className="flex flex-col gap-2 rounded-xl border border-border/50 bg-muted/20 p-3 sm:flex-row sm:items-center"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">{n.title}</p>
+                    <p className="text-[12px] text-muted-foreground leading-snug">{n.detail}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="min-h-11 shrink-0"
+                    asChild
+                  >
+                    <Link to={n.actionHref}>{n.actionLabel}</Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
           {leadWithPay && (
             <div className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/[0.06] p-4 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">

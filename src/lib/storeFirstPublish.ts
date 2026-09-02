@@ -81,6 +81,56 @@ export function storeAfterCatalogCopy(input: { canPublish: boolean }) {
   };
 }
 
+/**
+ * Nudges del camino a publicar: pesos, legales y cobertura.
+ * Ordenados por impacto en el checkout (no por módulo).
+ */
+export type StorePublishNudge = {
+  id: 'weights' | 'legal' | 'shipping';
+  title: string;
+  detail: string;
+  actionLabel: string;
+  actionHref: string;
+};
+
+export function storePublishNudges(input: {
+  productsWithoutWeight: number;
+  legalMissingOrDraft: number;
+  shippingGaps: boolean;
+}): StorePublishNudge[] {
+  const out: StorePublishNudge[] = [];
+  if (input.shippingGaps) {
+    out.push({
+      id: 'shipping',
+      title: 'Completar el tarifario',
+      detail:
+        'Sin tarifas en casi todo el país el checkout parece andar y falla afuera de tu zona. Con retiro habilitado el comprador sólo puede ir a buscarlo.',
+      actionLabel: 'Completar tarifario',
+      actionHref: '/envios?tab=zonas',
+    });
+  }
+  if (input.legalMissingOrDraft > 0) {
+    out.push({
+      id: 'legal',
+      title: 'Publicar términos y privacidad',
+      detail:
+        'Las páginas legales en plantilla o borrador no alcanzan: el comprador tiene que ver quién vende antes de dejar datos.',
+      actionLabel: 'Revisar legales',
+      actionHref: '/tienda-online?tab=pages',
+    });
+  }
+  if (input.productsWithoutWeight > 0) {
+    out.push({
+      id: 'weights',
+      title: 'Completar pesos',
+      detail: `${input.productsWithoutWeight} ${input.productsWithoutWeight === 1 ? 'producto' : 'productos'} sin peso: el envío se cotiza con estimado.`,
+      actionLabel: 'Completar pesos',
+      actionHref: '/productos?completar=pesos',
+    });
+  }
+  return out;
+}
+
 /** El CTA de primera publicación: activar de verdad, no mandar a buscar un interruptor. */
 export function storePublishCta(input: { canPublish: boolean }): {
   kind: 'activate' | 'complete';

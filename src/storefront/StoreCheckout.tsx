@@ -143,10 +143,20 @@ export default function StoreCheckout() {
         // Sin retiro y sin provincia todavía no hay nada que cotizar. No es
         // una zona sin cobertura ni un error: primero hay que pedir ese dato.
         setEnvioAviso(porZona && form.provincia
-          ? "Todavía no hacemos envíos a esa provincia."
+          ? (store?.pickup_enabled
+            ? "Todavía no hacemos envíos a esa provincia. Podés retirar en tienda si preferís."
+            : "Todavía no hacemos envíos a esa provincia.")
           : null);
         setOpcionElegida(null);
         return;
+      }
+      // Si la única salida es retiro, no se finge cobertura nacional: el
+      // comprador tiene que saber que a domicilio no llega.
+      const soloRetiro = lista.length === 1 && lista[0].carrier === "retiro";
+      if (soloRetiro && form.provincia) {
+        setEnvioAviso("A domicilio no llega a tu provincia. Podés retirar en tienda.");
+      } else {
+        setEnvioAviso(null);
       }
       // Preseleccionar la más barata: es lo que el RPC va a elegir si no se
       // manda ninguna, así el resumen y el cobro coinciden.
