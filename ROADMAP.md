@@ -2966,7 +2966,8 @@ Finance Connect.
     vacío abría un formulario paralelo, no el mostrador. El ticket cobrado
     dice que quedó en Ventas, el vendedor no bloquea la primera venta y el
     vacío manda a `/caja`.
-    Verificado en este recorte: ver CI de este commit.
+    Verificado en este recorte: **2.223/2.223 pruebas en 228 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
