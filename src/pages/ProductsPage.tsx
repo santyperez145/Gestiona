@@ -21,7 +21,7 @@ import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, TrendingUp, Uploa
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { recommendSimilar } from "@/lib/perfumeMatch";
 import { elCatalogoOperaPerfumes } from "@/lib/catalogIndustry";
-import { firstProductEmptyCopy, parseActivationHandoff } from "@/lib/activationHandoff";
+import { commerceHandoffPath, firstProductEmptyCopy, parseActivationHandoff, posHandoffPath } from "@/lib/activationHandoff";
 import { productCostWarning, validateProductDraft } from "@/lib/productDraft";
 import { normalizeText, literalFilter } from "@/lib/searchText";
 import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice } from "@/lib/pricing";
@@ -1029,7 +1029,20 @@ export default function ProductsPage() {
                       firstUse={fromWizard && !editing && products.length === 0}
                       handoffGoal={handoffGoal}
                       onDirtyChange={setProductFormDirty}
-                      onSave={() => { closeProductEditor(); reload(); }}
+                      onSave={() => {
+                        closeProductEditor();
+                        if (fromWizard && !editing && products.length === 0) {
+                          if (handoffGoal === 'pos') {
+                            navigate(posHandoffPath());
+                            return;
+                          }
+                          if (handoffGoal === 'online') {
+                            navigate(commerceHandoffPath());
+                            return;
+                          }
+                        }
+                        reload();
+                      }}
                     />
                   </div>
                 </DialogContent>

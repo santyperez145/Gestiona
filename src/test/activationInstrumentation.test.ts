@@ -41,11 +41,16 @@ describe('instrumentación de activación', () => {
   it('Productos y Commerce leen el query del wizard; no es un toast huérfano', () => {
     const PRODUCTS = read('src/pages/ProductsPage.tsx');
     const STORE = read('src/pages/EcommerceStorePage.tsx');
+    const POS = read('src/pages/POSPage.tsx');
     expect(PRODUCTS).toContain('parseActivationHandoff');
     expect(PRODUCTS).toContain('firstProductEmptyCopy');
     expect(PRODUCTS).toContain('validateProductDraft');
+    expect(PRODUCTS).toContain('posHandoffPath');
+    expect(PRODUCTS).toContain('commerceHandoffPath');
     expect(STORE).toContain('parseActivationHandoff');
     expect(STORE).toContain('storeHandoffCopy');
+    expect(POS).toContain('parseActivationHandoff');
+    expect(POS).toContain('posProductIsSellable');
   });
 
   it('no confunde exploración opcional con estar listo para vender', () => {

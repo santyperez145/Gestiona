@@ -14,7 +14,18 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import WorkspaceState from "@/components/shared/WorkspaceState";
+import { parseActivationHandoff } from "@/lib/activationHandoff";
+import {
+  POS_CLOSED_SHIFT_CART,
+  POS_CLOSED_SHIFT_TOPBAR,
+  POS_FIRST_SALE_BANNER,
+  posCatalogEmptyCopy,
+  posCatalogEmptyKind,
+  posProductIsOutOfStock,
+  posProductIsSellable,
+} from "@/lib/posCatalog";
 import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
@@ -749,10 +760,14 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
 // ─────────────────────────────────────────────────────────────
 export default function POSPage() {
   usePageTitle("POS — Punto de Venta");
-  // Keep screen awake while POS is open — prevents display from dimming mid-transaction
+  // Keep screen awake while POS is open — prevents display from dimming during a sale
   useWakeLock({ active: true });
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { fromWizard, goal: handoffGoal } = parseActivationHandoff(searchParams);
+  const posGoal = handoffGoal ?? (fromWizard ? "pos" as const : null);
   const { isAdmin } = useUserRole();
   const { nombre: nombreCategoria } = useOrgCategoryNames(activeOrg?.id);
   const config = useBusinessConfig();
@@ -1471,8 +1486,13 @@ export default function POSPage() {
   }, [activeOrg?.id]);
 
   // ── Filtered products ──
+  const sellableCount = useMemo(
+    () => products.filter((p) => posProductIsSellable(p)).length,
+    [products],
+  );
+
   const filtered = useMemo(() => {
-    let list = products.filter((p) => p.stock > 0 || p.allow_negative_stock);
+    let list = products.filter((p) => posProductIsSellable(p));
     if (cat !== "all") list = list.filter((p) => p.category === cat);
     if (search) {
       // Exact barcode/SKU match takes priority
@@ -1500,6 +1520,17 @@ export default function POSPage() {
     }
     return list;
   }, [products, cat, search, FuseClass]);
+
+  const catalogEmptyKind = posCatalogEmptyKind({
+    loading: loadingProds,
+    productCount: products.length,
+    sellableCount,
+    visibleCount: filtered.length,
+    narrowed: Boolean(search.trim()) || cat !== "all",
+  });
+  const catalogEmptyCopy = catalogEmptyKind && catalogEmptyKind !== "loading"
+    ? posCatalogEmptyCopy(catalogEmptyKind, posGoal)
+    : null;
 
   // ── Cart calculations ──
   const effectivePayMethod = splitMode ? splitMethod1 : payMethod;
@@ -1587,6 +1618,7 @@ export default function POSPage() {
   const addToCart = useCallback((prod: any, variantOverride?: { id: string; name: string; stock: number; price?: number }) => {
     const cartKey = variantOverride ? `${prod.id}__${variantOverride.id}` : prod.id;
     const stockLimit = variantOverride ? variantOverride.stock : prod.stock;
+    const unlimitedStock = prod.maneja_stock === false;
     const onlineReserved = Number(onlineReservations[reservationKey(prod.id, variantOverride?.id)] ?? 0);
     // Use price list adjusted price if a customer with a list is selected
     const basePrice = variantOverride?.price ?? Number(prod.sale_price_ars);
@@ -1596,7 +1628,7 @@ export default function POSPage() {
     setCart((prev) => {
       const idx = prev.findIndex((it) => it.productId === cartKey);
       if (idx >= 0) {
-        if (prev[idx].quantity >= stockLimit && stockLimit > 0) {
+        if (!unlimitedStock && prev[idx].quantity >= stockLimit && stockLimit > 0) {
           toast.warning("Sin stock suficiente");
           return prev;
         }
@@ -2516,7 +2548,7 @@ export default function POSPage() {
                     ? "Turno sin verificar"
                     : cashSessionStatus
                     ? `Caja abierta · ${plural(Number(cashSessionStatus.ticket_count || 0), "ticket")}`
-                    : "Caja cerrada · las ventas quedarán sin turno"}
+                    : POS_CLOSED_SHIFT_CART}
                 </span>
                 <span className="font-semibold">Gestionar turno</span>
               </Link>
@@ -3348,7 +3380,7 @@ export default function POSPage() {
                 ? "Sin verificar"
                 : cashSessionStatus
                 ? `Abierta · ${Number(cashSessionStatus.ticket_count || 0)}`
-                : "Caja cerrada"}
+                : POS_CLOSED_SHIFT_TOPBAR}
               <span className="hidden 2xl:inline">· Gestionar turno</span>
             </Link>
           )}
@@ -3385,7 +3417,7 @@ export default function POSPage() {
           {voiceSupported && (
             <Button size="sm" variant="ghost"
               className={`h-9 w-9 p-0 shrink-0 hidden sm:flex relative ${voiceActive ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/40' : ''}`}
-              title={voiceActive ? `Escuchando: "${voiceTranscript}"` : "Comando de voz (ej: vende 2 Lattafa)"}
+              title={voiceActive ? `Escuchando: "${voiceTranscript}"` : "Comando de voz (ej: vende 2 unidades)"}
               onClick={toggleVoice}
             >
               {voiceActive ? <MicOff className="w-4 h-4 text-red-400 animate-pulse" /> : <Mic className="w-4 h-4" />}
@@ -3448,6 +3480,17 @@ export default function POSPage() {
             </button>
           )}
         </div>
+
+        {fromWizard && sellableCount > 0 && !loadingProds ? (
+          <div className="shrink-0 px-3 pt-3">
+            <WorkspaceState
+              kind="success"
+              layout="banner"
+              title={POS_FIRST_SALE_BANNER.title}
+              description={POS_FIRST_SALE_BANNER.description}
+            />
+          </div>
+        ) : null}
 
         {/* Main area */}
         <div className="flex-1 overflow-hidden flex">
@@ -3515,11 +3558,23 @@ export default function POSPage() {
               <div className="flex items-center justify-center py-16">
                 <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
-            ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <Package className="w-10 h-10 mb-3 opacity-20" />
-                <p className="text-sm">Sin resultados</p>
-              </div>
+            ) : catalogEmptyCopy ? (
+              <WorkspaceState
+                kind={catalogEmptyCopy.workspaceKind}
+                layout="embedded"
+                icon={Package}
+                title={catalogEmptyCopy.title}
+                description={catalogEmptyCopy.description}
+                actionLabel={catalogEmptyCopy.actionLabel}
+                onAction={() => {
+                  if (catalogEmptyCopy.href) {
+                    navigate(catalogEmptyCopy.href);
+                    return;
+                  }
+                  setSearch("");
+                  setCat("all");
+                }}
+              />
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-2">
                 {filtered.map((prod) => {
@@ -3530,7 +3585,7 @@ export default function POSPage() {
                   const currentPrice = discP && discP > 0 && discP < price ? discP : price;
                   const displayPrice = posPriceForPayment(price, currentPrice, effectivePayMethod, settings, splitMode);
                   const showDisc = displayPrice + 0.01 < price;
-                  const outOfStock = prod.stock <= 0 && !prod.allow_negative_stock;
+                  const outOfStock = posProductIsOutOfStock(prod);
 
                   return (
                     <button

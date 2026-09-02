@@ -2949,6 +2949,17 @@ Finance Connect.
     Verificado en este recorte: **2.208/2.208 pruebas en 226 archivos**;
     typecheck OK; lint 0 errores y 139 warnings conocidos.
 
+94. El POS cobra el primer producto sin pedir turno — 2026-09-01.
+    Guardar el primer SKU dejaba al comercio en Productos con un toast.
+    El mostrador unificaba “sin catálogo”, “sin stock” y “no hay match” en
+    «Sin resultados», escondía servicios (`maneja_stock = false` vive en
+    stock 0) y el copy de caja cerrada sonaba a bloqueo. Ahora el primer
+    producto de POS abre `/caja?onboarding=1`, la grilla muestra lo
+    cobrable, el vacío manda a cargar unidades y se puede cobrar con el
+    turno cerrado. El ejemplo de voz dejó de ser Lattafa.
+    Verificado en este recorte: **2.217/2.217 pruebas en 227 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

@@ -22,6 +22,16 @@ export function firstProductPath(goal: HandoffGoal | null | undefined): string {
   return '/productos';
 }
 
+/** Después del primer SKU vendible, el mostrador es el siguiente clic. */
+export function posHandoffPath(): string {
+  return '/caja?onboarding=1';
+}
+
+/** Después del primer SKU online, Commerce es el siguiente clic. */
+export function commerceHandoffPath(): string {
+  return '/tienda-online?onboarding=1&goal=online';
+}
+
 export function firstProductEmptyCopy(goal: HandoffGoal | null) {
   if (goal === 'online') {
     return {

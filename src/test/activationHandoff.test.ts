@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  commerceHandoffPath,
   firstProductEmptyCopy,
   firstProductPath,
   parseActivationHandoff,
+  posHandoffPath,
   storeHandoffCopy,
 } from '@/lib/activationHandoff';
 
@@ -39,6 +41,11 @@ describe('firstProductPath', () => {
     expect(firstProductPath('pos')).toBe('/productos?onboarding=1&goal=pos');
     expect(firstProductPath('online')).toBe('/productos?onboarding=1&goal=online');
     expect(firstProductPath(null)).toBe('/productos');
+  });
+
+  it('después del primer SKU sigue el canal, no el catálogo vacío', () => {
+    expect(posHandoffPath()).toBe('/caja?onboarding=1');
+    expect(commerceHandoffPath()).toBe('/tienda-online?onboarding=1&goal=online');
   });
 });
 
