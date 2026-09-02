@@ -2960,6 +2960,14 @@ Finance Connect.
     Verificado en este recorte: **2.217/2.217 pruebas en 227 archivos**;
     typecheck OK; lint 0 errores y 139 warnings conocidos.
 
+95. El primer ticket se cierra cobrado y Ventas apunta al POS — 2026-09-01.
+    El recibo de efectivo ofrecía un link de Mercado Pago (otro cobro) y
+    «¿Quién atiende hoy?» tapaba la grilla al llegar del wizard. Ventas
+    vacío abría un formulario paralelo, no el mostrador. El ticket cobrado
+    dice que quedó en Ventas, el vendedor no bloquea la primera venta y el
+    vacío manda a `/caja`.
+    Verificado en este recorte: ver CI de este commit.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

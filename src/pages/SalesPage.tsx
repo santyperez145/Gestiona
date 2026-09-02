@@ -21,6 +21,8 @@ import { toast } from "sonner";
 import { checkStockAfterSale } from "@/lib/stockNotifications";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
+import WorkspaceState from "@/components/shared/WorkspaceState";
+import { salesListEmptyCopy, salesListEmptyKind } from "@/lib/posFirstTicket";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
 import { useUserRole } from "@/lib/useUserRole";
@@ -404,6 +406,18 @@ export default function SalesPage() {
   });
   const totalPages = Math.ceil(filteredSorted.length / PAGE_SIZE);
   const paged = filteredSorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const listEmptyKind = salesListEmptyKind({ saleCount: sales.length, filteredCount: filtered.length });
+  const listEmptyCopy = listEmptyKind ? salesListEmptyCopy(listEmptyKind) : null;
+
+  const clearSalesFilters = () => {
+    setSearch("");
+    setFilterCat("all");
+    setFilterPaid("all");
+    setFilterMethod("all");
+    setFilterSellerName("all");
+    setFilterHasNote(false);
+    applyPreset("all");
+  };
 
   const customerGroups = useMemo(() => {
     const map: Record<string, { name: string; count: number; total: number; profit: number; lastDate: string; products: Record<string, number> }> = {};
@@ -1202,8 +1216,21 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         </div>
       </div>
 
-      {!filtered.length ? (
-        <EmptyState icon={DollarSign} title="No hay ventas registradas" description="Registrá tu primera venta para comenzar a ver tus ganancias." actionLabel="Nueva Venta" onAction={() => setOpen(true)} />
+      {listEmptyCopy ? (
+        <WorkspaceState
+          kind={listEmptyCopy.workspaceKind}
+          icon={DollarSign}
+          title={listEmptyCopy.title}
+          description={listEmptyCopy.description}
+          actionLabel={listEmptyCopy.actionLabel}
+          onAction={() => {
+            if (listEmptyCopy.href) {
+              navigate(listEmptyCopy.href);
+              return;
+            }
+            clearSalesFilters();
+          }}
+        />
       ) : viewMode === "by_customer" ? (
         /* ── By Customer view ── */
         <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">

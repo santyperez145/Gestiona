@@ -51,6 +51,9 @@ describe('instrumentación de activación', () => {
     expect(STORE).toContain('storeHandoffCopy');
     expect(POS).toContain('parseActivationHandoff');
     expect(POS).toContain('posProductIsSellable');
+    expect(POS).toContain('posShouldAutoPromptSeller');
+    const SALES = read('src/pages/SalesPage.tsx');
+    expect(SALES).toContain('salesListEmptyCopy');
   });
 
   it('no confunde exploración opcional con estar listo para vender', () => {

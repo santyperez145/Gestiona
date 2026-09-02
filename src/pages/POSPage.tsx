@@ -27,6 +27,12 @@ import {
   posProductIsSellable,
 } from "@/lib/posCatalog";
 import {
+  posPaymentAlreadyCollected,
+  posReceiptCopy,
+  posShouldAutoPromptSeller,
+  ticketSalesPath,
+} from "@/lib/posFirstTicket";
+import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
@@ -246,7 +252,7 @@ function buildReceiptText(
 function ReceiptModal({
   items, payMethod, splitMode, splitMethod1, splitMethod2, splitAmount1, splitAmount2,
   customer, total, cashGiven, businessName, orgId, globalDiscountARS, couponDiscount, paymentMethodDiscountARS,
-  note, onClose, onNewSale,
+  note, saleId, onClose, onNewSale,
 }: {
   items: CartItem[]; payMethod: PayMethod;
   splitMode: boolean; splitMethod1: PayMethod; splitMethod2: PayMethod;
@@ -255,9 +261,17 @@ function ReceiptModal({
   businessName: string; orgId: string;
   globalDiscountARS: number; couponDiscount: number; paymentMethodDiscountARS: number;
   note?: string;
+  saleId?: string | null;
   onClose: () => void; onNewSale: () => void;
 }) {
   const change = !splitMode && payMethod === "efectivo" && cashGiven > total ? cashGiven - total : 0;
+  const collected = posPaymentAlreadyCollected({
+    payMethod,
+    splitMode,
+    splitMethod1,
+    splitMethod2,
+  });
+  const receiptCopy = posReceiptCopy(collected);
   const [emailTo, setEmailTo] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -397,9 +411,9 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-green-400" />
-            Venta registrada
+            {receiptCopy.title}
           </DialogTitle>
-          <DialogDescription>El ticket quedó persistido. Podés compartirlo o iniciar una nueva venta.</DialogDescription>
+          <DialogDescription>{receiptCopy.description}</DialogDescription>
         </DialogHeader>
 
         {/* Receipt body */}
@@ -493,8 +507,8 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
             </Button>
           </div>
 
-          {/* Una venta QR ya está acreditada: ofrecer otro link duplicaría el cobro. */}
-          {payMethod !== "qr" && (!mpLink ? (
+          {/* Una venta ya cobrada no pide otro link: duplicaría el cobro. Fiado sí. */}
+          {!collected && (!mpLink ? (
             <Button
               variant="outline"
               size="sm"
@@ -543,6 +557,12 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
           ) : (
             <p className="text-xs text-emerald-400 text-center">✓ Recibo enviado a {emailTo}</p>
           )}
+
+          {saleId ? (
+            <Button variant="outline" size="sm" className="w-full gap-1.5" asChild>
+              <Link to={ticketSalesPath(saleId)}>Ver en Ventas</Link>
+            </Button>
+          ) : null}
 
           <Button className="w-full gradient-gold text-primary-foreground gap-1.5" onClick={onNewSale}>
             <RotateCcw className="w-4 h-4" />Nueva venta
@@ -912,6 +932,7 @@ export default function POSPage() {
   const [receipt, setReceipt] = useState<{
     items: CartItem[]; total: number; cash: number;
     globalDiscountARS: number; couponDiscount: number; paymentMethodDiscountARS: number; note: string;
+    saleId?: string | null;
   } | null>(null);
   const [showCart, setShowCart] = useState(false);
   const [loadingProds, setLoadingProds] = useState(true);
@@ -1013,7 +1034,7 @@ export default function POSPage() {
   }, [loadCashSessionStatus]);
 
   useEffect(() => {
-    if (!sellerName) setShowSellerPrompt(true);
+    if (posShouldAutoPromptSeller(fromWizard, sellerName)) setShowSellerPrompt(true);
   }, []);
 
   // Fullscreen state (reactive via fullscreenchange event)
@@ -1806,6 +1827,7 @@ export default function POSPage() {
       couponDiscount,
       paymentMethodDiscountARS,
       note: posNote,
+      saleId: saleIds[0] || null,
     });
     toast.success(`Venta de ${formatARS(registeredTotal)} acreditada`);
     vibrateSuccess();
@@ -2292,7 +2314,7 @@ export default function POSPage() {
       if (!isOnline) {
         toast.success(`Venta guardada offline — se sincronizará al reconectar`);
         clearCart();
-        setReceipt({ items: soldItems, total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount, paymentMethodDiscountARS, note: posNote });
+        setReceipt({ items: soldItems, total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount, paymentMethodDiscountARS, note: posNote, saleId: txSaleIds[0] || null });
         return;
       }
       await finishOnlineSaleUi(
@@ -3205,6 +3227,7 @@ export default function POSPage() {
           couponDiscount={receipt.couponDiscount}
           paymentMethodDiscountARS={receipt.paymentMethodDiscountARS}
           note={receipt.note}
+          saleId={receipt.saleId}
           onClose={() => setReceipt(null)}
           onNewSale={() => { setReceipt(null); clearCart(); }}
         />
@@ -3351,7 +3374,7 @@ export default function POSPage() {
         )}
         {/* Top bar */}
         <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-border bg-card/60 backdrop-blur">
-          {sellerName && (
+          {sellerName ? (
             <div className="hidden sm:flex items-center gap-1.5 shrink-0 text-xs text-muted-foreground">
               <User className="w-3 h-3" />
               <span>{sellerName}</span>
@@ -3360,6 +3383,15 @@ export default function POSPage() {
                 className="text-[10px] text-primary hover:underline"
               >cambiar</button>
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowSellerPrompt(true)}
+              className="hidden sm:flex items-center gap-1.5 shrink-0 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <User className="w-3 h-3" />
+              Vendedor
+            </button>
           )}
           {selectedLocationId && (
             <Link
