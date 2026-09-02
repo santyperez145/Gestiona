@@ -2998,6 +2998,25 @@ Finance Connect.
     20/20 pasos ok, 0 restos. El navegador de esta PC no tiene `VITE_*`:
     no se afirma la ficha compacta contra datos reales.
 
+98. El POS puede facturar en ARCA, y el ticket 80 mm deja de parecer
+    una factura — 2026-09-01.
+    El mostrador cobraba y no tenía camino a ARCA: `facturar_pendientes`
+    cubre órdenes de tienda, no tickets. Ahora hay un checkbox opt-in
+    (apagado por default: la primera venta no se traba en AFIP). El cobro
+    corre igual si ARCA falla. `facturar_venta_pos` es idempotente por
+    `sale_transaction_id`, reusa `tipo_de_comprobante` y no adivina la
+    condición IVA. El CAE lo pide `afip-authorize`; el cliente no escribe
+    `invoices.cae`. El botón de impresión dice «Ticket 80 mm» y el pie
+    aclara que no es comprobante fiscal: sale por el diálogo del sistema
+    si hay una térmica instalada. Controladora fiscal: no. Es otro régimen
+    y otro hardware; queda en §13.
+
+    Verificado en este recorte: **2.244/2.244 pruebas en 230 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos. Contra la base:
+    15/15 ok, 0 restos (`20260901_facturar_venta_pos.sql`). El navegador
+    de esta PC no tiene `VITE_*`: no se afirma el checkbox contra una
+    sesión real.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
@@ -3252,6 +3271,7 @@ Hasta abrir sus gates:
 - agentes autónomos sobre pagos, inventario o precios;
 - Pay regulado, Capital o custodia;
 - KYC/AML, selfie, score de fraude o motor de riesgo F7 sin partner ni volumen;
+- controladora fiscal (Hasar, Epson, Moretti u otra): Gestiona emite por WSFE/CAE, no por controlador; sin hardware homologado no se finge;
 - marketplace de apps/themes;
 - microservicios por moda;
 - multi-región, data residency o tenancy dedicado;

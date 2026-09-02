@@ -47,6 +47,7 @@ const EXIGEN_PERMISO: Record<string, string> = {
   wallet_solicitar_retiro: "finance",
   medio_de_pago_habilitar: "payments",
   save_afip_config: "invoices",
+  facturar_venta_pos: "invoices",
 };
 
 /** El archivo más nuevo que define esa función, que es el que manda. */

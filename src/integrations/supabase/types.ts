@@ -17769,6 +17769,7 @@ export type Database = {
           org_id: string
           paid_at: string | null
           sale_id: string | null
+          sale_transaction_id: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           subtotal: number
           tax_amount: number
@@ -17805,6 +17806,7 @@ export type Database = {
           org_id: string
           paid_at?: string | null
           sale_id?: string | null
+          sale_transaction_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
           tax_amount?: number
@@ -17841,6 +17843,7 @@ export type Database = {
           org_id?: string
           paid_at?: string | null
           sale_id?: string | null
+          sale_transaction_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
           tax_amount?: number
@@ -52336,6 +52339,10 @@ export type Database = {
       facturar_orden_pagada: { Args: { p_evento: Json }; Returns: string }
       facturar_pendientes: {
         Args: { p_limite?: number; p_org: string }
+        Returns: Json
+      }
+      facturar_venta_pos: {
+        Args: { p_org: string; p_transaction_id: string }
         Returns: Json
       }
       feature_flag_habilitada: {

@@ -38,10 +38,20 @@ import {
   ticketSalesPath,
 } from "@/lib/posFirstTicket";
 import {
+  POS_WANTS_ARCA_INVOICE_DEFAULT,
+  posArcaInvoiceCopy,
+  posDebeIntentarAutorizar,
+  posParseFacturarResult,
+  posReceiptInvoiceCopy,
+  posSaleTransactionId,
+  posThermalPrintCopy,
+  type PosFacturaEstado,
+} from "@/lib/posComprobante";
+import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle, Mic, MicOff, HelpCircle, Keyboard, Store,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle, Mic, MicOff, HelpCircle, Keyboard, Store, FileText,
 } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useWakeLock } from "@/hooks/useWakeLock";
@@ -260,7 +270,7 @@ function buildReceiptText(
 function ReceiptModal({
   items, payMethod, splitMode, splitMethod1, splitMethod2, splitAmount1, splitAmount2,
   customer, total, cashGiven, businessName, orgId, globalDiscountARS, couponDiscount, paymentMethodDiscountARS,
-  note, saleId, onClose, onNewSale,
+  note, saleId, transactionId, invoice, onFacturar, onClose, onNewSale,
 }: {
   items: CartItem[]; payMethod: PayMethod;
   splitMode: boolean; splitMethod1: PayMethod; splitMethod2: PayMethod;
@@ -270,6 +280,9 @@ function ReceiptModal({
   globalDiscountARS: number; couponDiscount: number; paymentMethodDiscountARS: number;
   note?: string;
   saleId?: string | null;
+  transactionId?: string | null;
+  invoice?: PosFacturaEstado | null;
+  onFacturar?: () => Promise<void>;
   onClose: () => void; onNewSale: () => void;
 }) {
   const change = !splitMode && payMethod === "efectivo" && cashGiven > total ? cashGiven - total : 0;
@@ -283,6 +296,10 @@ function ReceiptModal({
   const [emailTo, setEmailTo] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [facturando, setFacturando] = useState(false);
+  const arcaCopy = posArcaInvoiceCopy();
+  const thermalCopy = posThermalPrintCopy();
+  const invoiceCopy = posReceiptInvoiceCopy(invoice);
 
   const sendReceiptEmail = async () => {
     const trimmed = emailTo.trim().toLowerCase();
@@ -378,7 +395,9 @@ ${customer ? `<p class="center">Cliente: ${customer}</p>` : ""}
 <div class="divider"></div>
 ${paymentInfo}
 <p class="center">${payMethod === "fiado" ? "⚠ PENDIENTE DE PAGO" : "✓ PAGADO"}</p>
+${invoice?.cae ? `<p class="center">CAE ${invoice.cae}${invoice.number ? ` · ${invoice.number}` : ""}</p>` : `<p class="footer">${arcaCopy.notFiscalTicket}</p>`}
 ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><span style="font-weight:bold">Nota:</span> ${note}</div>` : ""}
+<div class="footer">${thermalCopy.hint}</div>
 <div class="footer">¡Gracias por tu compra!</div>
 </body></html>`;
 
@@ -511,7 +530,7 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
               <MessageCircle className="w-4 h-4 text-green-400" />WhatsApp
             </Button>
             <Button variant="outline" size="sm" onClick={print} className="gap-1.5">
-              <Printer className="w-4 h-4" />Imprimir
+              <Printer className="w-4 h-4" />{thermalCopy.label}
             </Button>
           </div>
 
@@ -570,6 +589,43 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
             <Button variant="outline" size="sm" className="w-full gap-1.5" asChild>
               <Link to={ticketSalesPath(saleId)}>Ver en Ventas</Link>
             </Button>
+          ) : null}
+
+          {invoiceCopy ? (
+            <p className={`text-xs text-center ${
+              invoiceCopy.tone === "ok" ? "text-emerald-400"
+                : invoiceCopy.tone === "draft" ? "text-muted-foreground"
+                : "text-amber-400"
+            }`}>
+              {invoiceCopy.title}
+              {invoiceCopy.detail ? <span className="block font-mono mt-0.5">{invoiceCopy.detail}</span> : null}
+            </p>
+          ) : null}
+
+          {transactionId && !invoice?.cae ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5"
+              disabled={facturando || !onFacturar}
+              onClick={async () => {
+                if (!onFacturar) return;
+                setFacturando(true);
+                try {
+                  await onFacturar();
+                } finally {
+                  setFacturando(false);
+                }
+              }}
+            >
+              {facturando
+                ? <><Loader2 className="w-4 h-4 animate-spin" />{arcaCopy.authorizing}</>
+                : <><FileText className="w-4 h-4" />{arcaCopy.receiptAction}</>}
+            </Button>
+          ) : null}
+
+          {!transactionId ? (
+            <p className="text-[10px] text-center text-muted-foreground">{arcaCopy.notFiscalTicket}</p>
           ) : null}
 
           <Button className="w-full gradient-gold text-primary-foreground gap-1.5" onClick={onNewSale}>
@@ -904,6 +960,7 @@ export default function POSPage() {
 
   // Single payment
   const [payMethod, setPayMethod] = useState<PayMethod>("efectivo");
+  const [wantArcaInvoice, setWantArcaInvoice] = useState(POS_WANTS_ARCA_INVOICE_DEFAULT);
   const [cashGiven, setCashGiven] = useState("");
   const [payMethodsExpanded, setPayMethodsExpanded] = useState(false);
 
@@ -942,6 +999,8 @@ export default function POSPage() {
     items: CartItem[]; total: number; cash: number;
     globalDiscountARS: number; couponDiscount: number; paymentMethodDiscountARS: number; note: string;
     saleId?: string | null;
+    transactionId?: string | null;
+    invoice?: PosFacturaEstado | null;
   } | null>(null);
   const [showCart, setShowCart] = useState(false);
   const [loadingProds, setLoadingProds] = useState(true);
@@ -1781,6 +1840,7 @@ export default function POSPage() {
     saleIds: string[],
     methodLabel: string,
     registeredTotal = cartTotal,
+    extras?: { transactionId?: string | null; invoice?: PosFacturaEstado | null },
   ) => {
     if (!user || !activeOrg) return;
     const orgId = activeOrg.id;
@@ -1837,6 +1897,8 @@ export default function POSPage() {
       paymentMethodDiscountARS,
       note: posNote,
       saleId: saleIds[0] || null,
+      transactionId: extras?.transactionId ?? null,
+      invoice: extras?.invoice ?? null,
     });
     toast.success(`Venta de ${formatARS(registeredTotal)} acreditada`);
     vibrateSuccess();
@@ -1908,7 +1970,12 @@ export default function POSPage() {
       ...item,
       price: Number(providerItems[index]?.unit_price ?? item.price),
     }));
-    await finishOnlineSaleUi(soldItems, checkout.saleIds, "QR Mercado Pago", Number(session.amount));
+    await finishOnlineSaleUi(soldItems, checkout.saleIds, "QR Mercado Pago", Number(session.amount), {
+      transactionId: session.sale_transaction_id ?? null,
+      invoice: wantArcaInvoice && session.sale_transaction_id
+        ? await emitirFacturaDelTicket(session.sale_transaction_id)
+        : null,
+    });
     if (await acknowledgeQrSession(session.session_id)) {
       setQrRecoverySessions((previous) => previous.filter((item) => item.session_id !== session.session_id));
     }
@@ -2165,6 +2232,39 @@ export default function POSPage() {
     toast.info("Intento QR cancelado y reserva liberada");
   };
 
+  const emitirFacturaDelTicket = async (transactionId: string): Promise<PosFacturaEstado> => {
+    if (!activeOrg) {
+      return posParseFacturarResult({ ok: false, motivo: "Sin organización" });
+    }
+    const { data, error } = await supabase.rpc("facturar_venta_pos" as never, {
+      p_org: activeOrg.id,
+      p_transaction_id: transactionId,
+    } as never);
+    if (error) {
+      console.error("[POS] facturar_venta_pos:", error);
+      return posParseFacturarResult({ ok: false, motivo: error.message });
+    }
+    const parsed = posParseFacturarResult(data);
+    if (!posDebeIntentarAutorizar(parsed) || !parsed.invoiceId) return parsed;
+
+    const { data: authData, error: authError } = await supabase.functions.invoke("afip-authorize", {
+      body: { invoice_id: parsed.invoiceId },
+    });
+    if (authError || (authData as { error?: unknown } | null)?.error) {
+      console.error("[POS] afip-authorize:", authError || authData);
+      return {
+        ...parsed,
+        motivo: (await mensajeDeEdgeFunction(authError, authData)) || "ARCA no autorizó el comprobante",
+      };
+    }
+    const auth = (authData ?? {}) as { cae?: unknown; status?: unknown };
+    return {
+      ...parsed,
+      cae: typeof auth.cae === "string" ? auth.cae : undefined,
+      afipStatus: typeof auth.status === "string" ? auth.status : undefined,
+    };
+  };
+
   // ── Confirm sale ──
   const confirmSale = async () => {
     if (!user || !activeOrg || !cart.length) return;
@@ -2288,7 +2388,8 @@ export default function POSPage() {
       }
 
       if (isOnline) {
-        await addSalesDB(transactionLines, "pos");
+        const saleResult = await addSalesDB(transactionLines, "pos");
+        const transactionId = posSaleTransactionId(saleResult);
         const auditResults = await Promise.allSettled(transactionLines.map((saleData) =>
           logAudit(user.id, "create", "sale", saleData.id, {
             product: saleData.product_name,
@@ -2300,6 +2401,25 @@ export default function POSPage() {
         auditResults.forEach((result) => {
           if (result.status === "rejected") console.error("[POS] No se pudo guardar auditoría:", result.reason);
         });
+
+        let invoice: PosFacturaEstado | null = null;
+        if (wantArcaInvoice && transactionId) {
+          invoice = await emitirFacturaDelTicket(transactionId);
+          if (invoice.cae) toast.success(`${posArcaInvoiceCopy().authorized}: ${invoice.cae}`);
+          else if (invoice.ok && invoice.invoiceId) toast.info(posArcaInvoiceCopy().draft);
+          else if (invoice.motivo) toast.warning(invoice.motivo);
+        } else if (wantArcaInvoice && !transactionId) {
+          toast.warning(posArcaInvoiceCopy().noTransaction);
+        }
+
+        await finishOnlineSaleUi(
+          soldItems,
+          txSaleIds,
+          splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod,
+          cartTotal,
+          { transactionId, invoice },
+        );
+        return;
       } else {
         const pending = [...offlineSales, ...transactionLines];
         // Persistir antes de vaciar el carrito: si el navegador rechaza la
@@ -2319,18 +2439,12 @@ export default function POSPage() {
       // ticket. El navegador no tiene que disparar nada: cerrar esta pestaña no
       // puede perder la integración y la outbox conserva retry + evidencia.
 
-      // Large sale notification (best-effort)
       if (!isOnline) {
+        if (wantArcaInvoice) toast.info(posArcaInvoiceCopy().offline);
         toast.success(`Venta guardada offline — se sincronizará al reconectar`);
         clearCart();
-        setReceipt({ items: soldItems, total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount, paymentMethodDiscountARS, note: posNote, saleId: txSaleIds[0] || null });
-        return;
+        setReceipt({ items: soldItems, total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount, paymentMethodDiscountARS, note: posNote, saleId: txSaleIds[0] || null, transactionId: null, invoice: null });
       }
-      await finishOnlineSaleUi(
-        soldItems,
-        txSaleIds,
-        splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod,
-      );
     } catch (e: any) {
       toast.error(e.message || "Error al registrar");
     } finally {
@@ -3092,6 +3206,22 @@ export default function POSPage() {
           </div>
         )}
 
+        <button
+          type="button"
+          onClick={() => setWantArcaInvoice((open) => !open)}
+          className={`w-full flex items-start gap-2 px-3 py-2 rounded-[8px] border text-left text-xs transition-all ${
+            wantArcaInvoice
+              ? "border-primary/40 bg-primary/5 text-foreground"
+              : "border-border bg-card text-muted-foreground hover:border-primary/30"
+          }`}
+        >
+          <FileText className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${wantArcaInvoice ? "text-primary" : ""}`} />
+          <span>
+            <span className="block font-medium text-foreground">{posArcaInvoiceCopy().checkboxLabel}</span>
+            <span className="block mt-0.5 leading-relaxed">{posArcaInvoiceCopy().hint}</span>
+          </span>
+        </button>
+
         <Button
           className="w-full gradient-gold text-primary-foreground font-semibold h-11 text-base gap-2"
           onClick={confirmSale}
@@ -3283,6 +3413,15 @@ export default function POSPage() {
           paymentMethodDiscountARS={receipt.paymentMethodDiscountARS}
           note={receipt.note}
           saleId={receipt.saleId}
+          transactionId={receipt.transactionId}
+          invoice={receipt.invoice}
+          onFacturar={receipt.transactionId ? async () => {
+            const invoice = await emitirFacturaDelTicket(receipt.transactionId as string);
+            setReceipt((current) => current ? { ...current, invoice } : current);
+            if (invoice.cae) toast.success(`${posArcaInvoiceCopy().authorized}: ${invoice.cae}`);
+            else if (invoice.ok && invoice.invoiceId) toast.info(posArcaInvoiceCopy().draft);
+            else if (invoice.motivo) toast.warning(invoice.motivo);
+          } : undefined}
           onClose={() => setReceipt(null)}
           onNewSale={() => { setReceipt(null); clearCart(); }}
         />
