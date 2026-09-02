@@ -140,10 +140,10 @@ export function evaluateActivationReadiness(signals: ActivationReadinessSignals)
         : online
           ? signals.mercadopago_ready
             ? 'Mercado Pago está conectado y vigente.'
-            : 'Habilitá transferencia/efectivo o conectá Mercado Pago por OAuth.'
+            : 'Habilitá transferencia con CBU/alias, efectivo, o conectá Mercado Pago.'
           : 'El POS permite efectivo, transferencia, débito, crédito y pagos divididos.',
       done: routeChosen && (!online || Boolean(signals.online_payment_ready)),
-      href: online ? '/integraciones' : '/caja',
+      href: online ? '/tienda-online?tab=settings' : '/caja',
       actionLabel: online ? 'Configurar cobros' : 'Ver cobros',
       owner: 'merchant',
     },

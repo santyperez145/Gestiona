@@ -9,12 +9,42 @@ import { useStore } from "./storeContext";
 import { trackPurchase } from "./tracking";
 import { canRetryStorePayment, isStorePaymentReversed } from "@/lib/storeOrderPayment";
 import { consumeOrderAccessFragment, readOrderAccessToken, saveOrderAccessToken } from "./orderAccess";
-import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle, ShieldCheck, Copy } from "lucide-react";
 
 type Order = StoreOrderAccessRow;
 type CargaPedido =
   | { ok: true; row: Order | null }
   | { ok: false };
+
+function CopyField({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div
+      className="flex items-center justify-between gap-2 px-3 py-2.5 min-h-11"
+      style={{ background: "hsl(var(--st-bg))", borderRadius: "var(--st-radius)" }}
+    >
+      <span className="text-xs shrink-0" style={{ color: "hsl(var(--st-muted))" }}>{label}</span>
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span className="text-sm font-mono truncate" style={{ color: "hsl(var(--st-text))" }}>{value}</span>
+        <button
+          type="button"
+          className="shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center"
+          style={{ color: "hsl(var(--st-muted))" }}
+          aria-label={`Copiar ${label}`}
+          onClick={() => {
+            void navigator.clipboard.writeText(value);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+        >
+          {copied
+            ? <CheckCircle2 className="w-3.5 h-3.5" style={{ color: "hsl(var(--st-accent))" }} />
+            : <Copy className="w-3.5 h-3.5" />}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function StoreOrder() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
@@ -288,10 +318,15 @@ export default function StoreOrder() {
   const fallido = order.payment_status === "failed";
   const pagoRevertido = isStorePaymentReversed(order.payment_status);
   const puedeReintentarPago = canRetryStorePayment(order.payment_status);
+  const transferenciaPendiente = pedidoPendiente
+    && order.payment_method === "transferencia"
+    && Boolean(order.bank_cbu || order.bank_alias);
   const waTexto = encodeURIComponent(
     pagoRevertido
       ? `Hola! El pago del pedido ${order.order_number} fue ${order.payment_status === "charged_back" ? "desconocido" : "devuelto"}. Quiero coordinar cómo seguimos.`
-      : `Hola! Acabo de hacer el pedido ${order.order_number} por ${fmt(Number(order.total))}. Quedo atento para coordinar el pago.`,
+      : transferenciaPendiente
+        ? `Hola! Acabo de hacer el pedido ${order.order_number} por ${fmt(Number(order.total))}. Ya tengo los datos para transferir.`
+        : `Hola! Acabo de hacer el pedido ${order.order_number} por ${fmt(Number(order.total))}. Quedo atento para coordinar el pago.`,
   );
 
   return (
@@ -314,7 +349,9 @@ export default function StoreOrder() {
             ? <>Ya estamos preparando tu envío. Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> con las novedades.</>
             : pagoRevertido
               ? <>El pedido no se enviará mientras gestionamos esta reversión. Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar los próximos pasos.</>
-              : <>Te vamos a escribir a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar el pago y la entrega.</>}
+              : transferenciaPendiente
+                ? <>Transferí el total a la cuenta de abajo. Cuando acredite, te avisamos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong>.</>
+                : <>Te vamos a escribir a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar el pago y la entrega.</>}
         </p>
         {accesoError && (
           <p className="text-xs text-red-600 mt-3" role="alert">
@@ -329,6 +366,23 @@ export default function StoreOrder() {
           </p>
         )}
       </div>
+
+      {transferenciaPendiente && (
+        <div
+          className="mt-6 border p-4 space-y-2"
+          style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
+        >
+          <p className="text-sm font-medium">Datos para transferir</p>
+          <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+            Usá el importe exacto del pedido. El comercio confirma cuando ve el crédito.
+          </p>
+          {order.bank_holder && <CopyField label="Titular" value={order.bank_holder} />}
+          {order.bank_name && <CopyField label="Banco" value={order.bank_name} />}
+          {order.bank_cbu && <CopyField label="CBU" value={order.bank_cbu} />}
+          {order.bank_alias && <CopyField label="Alias" value={order.bank_alias} />}
+          <CopyField label="Importe" value={fmt(Number(order.total))} />
+        </div>
+      )}
 
       {/* Pago pendiente con MercadoPago habilitado: se ofrece pagar ahora.
           Sirve tanto si el link falló al confirmar como si el comprador

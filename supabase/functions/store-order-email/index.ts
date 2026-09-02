@@ -51,6 +51,7 @@ function itemsHtml(items: Item[], accent: string) {
 function layout(opts: {
   accent: string; storeName: string; title: string; intro: string;
   order: any; itemsRows: string; footer: string; ctaUrl?: string; ctaLabel?: string;
+  extraHtml?: string;
 }) {
   const dir = opts.order.shipping_address ?? {};
   const dirTexto = [dir.calle, dir.ciudad, dir.provincia, dir.cp].filter(Boolean).join(", ");
@@ -73,6 +74,8 @@ function layout(opts: {
     </table>
     ${dirTexto ? `<p style="margin:14px 0 0;font-size:13px;color:#555"><strong>Envío a:</strong> ${esc(dirTexto)}</p>` : ""}
   </div>
+
+  ${opts.extraHtml ?? ""}
 
   ${opts.ctaUrl ? `
   <div style="text-align:center;margin-bottom:20px">
@@ -115,7 +118,7 @@ Deno.serve(async (req) => {
 
     const { data: settings } = await admin
       .from("settings")
-      .select("*")
+      .select("bank_cbu, bank_alias, bank_name, bank_holder")
       .eq("org_id", store.org_id)
       .maybeSingle();
 
@@ -133,6 +136,26 @@ Deno.serve(async (req) => {
     const orderUrl = `${base}/tienda/${store.slug}/orden/${order.order_number}#access=${encodeURIComponent(order.public_access_token)}`;
     const rows = itemsHtml((order.items ?? []) as Item[], accent);
 
+    const bankCbu = String(settings?.bank_cbu ?? "").trim();
+    const bankAlias = String(settings?.bank_alias ?? "").trim();
+    const bankHolder = String(settings?.bank_holder ?? "").trim();
+    const bankName = String(settings?.bank_name ?? "").trim();
+    const tieneDatosTransferencia = Boolean(bankCbu || bankAlias);
+    const transferenciaPendiente = order.payment_method === "transferencia"
+      && order.payment_status !== "paid"
+      && tieneDatosTransferencia;
+    const bloqueTransferencia = transferenciaPendiente ? `
+  <div style="border:1px solid #eee;border-radius:10px;padding:16px;margin-bottom:20px;background:#fafafa">
+    <p style="margin:0 0 8px;font-weight:600;font-size:14px">Datos para transferir</p>
+    <p style="margin:0 0 10px;font-size:13px;color:#555">Transferí exactamente ${money(order.total)}.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      ${bankHolder ? `<tr><td style="color:#888;padding:4px 0">Titular</td><td style="text-align:right;padding:4px 0">${esc(bankHolder)}</td></tr>` : ""}
+      ${bankName ? `<tr><td style="color:#888;padding:4px 0">Banco</td><td style="text-align:right;padding:4px 0">${esc(bankName)}</td></tr>` : ""}
+      ${bankCbu ? `<tr><td style="color:#888;padding:4px 0">CBU</td><td style="text-align:right;padding:4px 0;font-family:ui-monospace,monospace">${esc(bankCbu)}</td></tr>` : ""}
+      ${bankAlias ? `<tr><td style="color:#888;padding:4px 0">Alias</td><td style="text-align:right;padding:4px 0">${esc(bankAlias)}</td></tr>` : ""}
+    </table>
+  </div>` : "";
+
     const results: Record<string, unknown> = {};
 
     // ── Al comprador ─────────────────────────────────────────────────────
@@ -146,6 +169,9 @@ Deno.serve(async (req) => {
         recipientEmail: order.customer_email,
       });
       if (claim.claimed) {
+        const introPendiente = transferenciaPendiente
+          ? "Recibimos tu pedido. Transferí el total con los datos de abajo; cuando acredite te avisamos."
+          : "Recibimos tu pedido. Te escribimos para coordinar el pago y la entrega.";
         const result = await sendEmail(smtpCfg, resendKey, resendFrom, {
           to: order.customer_email,
           subject: `${pagado ? "Pago confirmado" : "Recibimos tu pedido"} — ${order.order_number}`,
@@ -154,8 +180,9 @@ Deno.serve(async (req) => {
             title: pagado ? "¡Pago confirmado!" : "¡Gracias por tu compra!",
             intro: pagado
               ? "Ya estamos preparando tu envío. Te avisamos cuando salga."
-              : "Recibimos tu pedido. Te escribimos para coordinar el pago y la entrega.",
+              : introPendiente,
             order, itemsRows: rows,
+            extraHtml: bloqueTransferencia || undefined,
             ctaUrl: base ? orderUrl : undefined,
             ctaLabel: "Ver mi pedido",
             footer: `Guardá este número: <strong>${esc(order.order_number)}</strong><br>${esc(store.name)}`,

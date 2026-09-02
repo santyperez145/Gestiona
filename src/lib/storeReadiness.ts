@@ -13,6 +13,7 @@
 
 import { firstProductPath } from '@/lib/activationHandoff';
 import { accionLegalDelChecklist } from '@/lib/legalPages';
+import { storeBankTransferReady, storeOffersBankTransfer } from '@/lib/storeTransfer';
 
 export type CheckSeverity = 'blocker' | 'warning' | 'suggestion';
 
@@ -54,6 +55,11 @@ export interface StoreReadinessInput {
   coveredProvinces: number;
   /** MercadoPago efectivamente conectado (token o OAuth) */
   paymentConnected: boolean;
+  /** CBU / alias de settings (o flag ya resuelto desde el panel) */
+  bank_cbu?: string | null;
+  bank_alias?: string | null;
+  /** Preferí pasar bank_cbu/alias; el flag queda por compatibilidad de tests. */
+  bankTransferReady?: boolean;
   /** Páginas que faltan, siguen como plantilla o todavía son borradores. */
   legalPages: {
     missingOrTemplate: number;
@@ -118,6 +124,26 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     // Medios de la tienda y OAuth de Pay viven en Commerce → Pagos y envíos.
     actionHref: '/tienda-online?tab=settings',
   });
+
+  // Transferencia sin CBU/alias no cobra: el pedido queda en «te escribimos».
+  if (storeOffersBankTransfer(methods)) {
+    const ready = input.bankTransferReady === true
+      || storeBankTransferReady({
+        bank_cbu: input.bank_cbu,
+        bank_alias: input.bank_alias,
+      });
+    checks.push({
+      id: 'bank-transfer',
+      title: 'Cargar CBU o alias',
+      detail: ready
+        ? 'El comprador ve los datos para transferir al cerrar el pedido.'
+        : 'Transferencia está habilitada pero sin CBU ni alias: el checkout cobra «en teoría» y el pedido dice que vas a escribir. Sin eso no hay primera venta sola.',
+      severity: 'blocker',
+      done: ready,
+      actionLabel: 'Cargar datos bancarios',
+      actionHref: '/tienda-online?tab=settings',
+    });
+  }
 
   // El interruptor de Mercado Pago no cobra: cobra la conexión. Con
   // transferencia el bloqueante de arriba no dispara, y el comprador igual

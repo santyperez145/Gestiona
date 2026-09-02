@@ -52854,6 +52854,10 @@ export type Database = {
         }
         Returns: {
           access_token: string
+          bank_alias: string
+          bank_cbu: string
+          bank_holder: string
+          bank_name: string
           created_at: string
           customer_email: string
           customer_name: string

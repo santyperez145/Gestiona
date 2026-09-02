@@ -3168,6 +3168,15 @@ Finance Connect.
      de tipos de la org) y cae a la categoría si no hay tipo. Un plato
      con slug de perfume heredado no ofrece decant.
 
+116. Commerce: transferencia usable de punta a punta — 2026-09-02.
+     Vuelta al core de tienda (ADR 002): sin CBU/alias el default de
+     cobro no cierra la primera venta. Checklist bloquea publicar,
+     Commerce guarda `settings.bank_*`, el pedido público y el email
+     muestran datos copiables, y `online_payment_ready` exige CBU/alias
+     si el medio es transferencia. Activación apunta a
+     `/tienda-online?tab=settings`, no a Integraciones. No se inventó
+     tabla bancaria ni se exigió Mercado Pago.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

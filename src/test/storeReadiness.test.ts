@@ -27,6 +27,7 @@ function tiendaLista(over: Partial<StoreReadinessInput> = {}): StoreReadinessInp
     zonesWithRates: 6,
     coveredProvinces: 24,
     paymentConnected: true,
+    bankTransferReady: true,
     legalPages: { missingOrTemplate: 0, drafts: 0 },
     ...over,
   };
@@ -88,9 +89,34 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
     const r = evaluateStoreReadiness(tiendaLista({
       store: { ...tiendaLista().store!, payment_methods: ['mercadopago', 'transferencia'] },
       paymentConnected: false,
+      bankTransferReady: true,
     }));
     expect(idsDe(r.blockers)).not.toContain('payments');
     expect(idsDe(r.warnings)).toContain('pay-rail');
+    expect(r.canPublish).toBe(true);
+  });
+
+  it('transferencia sin CBU ni alias no publica', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      store: { ...tiendaLista().store!, payment_methods: ['transferencia'] },
+      paymentConnected: false,
+      bankTransferReady: false,
+      bank_cbu: null,
+      bank_alias: null,
+    }));
+    expect(idsDe(r.blockers)).toContain('bank-transfer');
+    expect(r.canPublish).toBe(false);
+    expect(r.blockers.find(c => c.id === 'bank-transfer')?.actionHref)
+      .toBe('/tienda-online?tab=settings');
+  });
+
+  it('sólo efectivo no exige datos bancarios', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      store: { ...tiendaLista().store!, payment_methods: ['efectivo'] },
+      paymentConnected: false,
+      bankTransferReady: false,
+    }));
+    expect(idsDe(r.blockers)).not.toContain('bank-transfer');
     expect(r.canPublish).toBe(true);
   });
 

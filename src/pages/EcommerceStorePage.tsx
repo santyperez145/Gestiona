@@ -31,6 +31,7 @@ import StoreBannersEditor from "@/components/ecommerce/StoreBannersEditor";
 import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
 import ImageUpload from "@/components/shared/ImageUpload";
 import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
+import { storeBankTransferReady } from "@/lib/storeTransfer";
 import { parseActivationHandoff, storeHandoffCopy } from "@/lib/activationHandoff";
 import {
   storeAbandonedCartCount,
@@ -170,6 +171,13 @@ export default function EcommerceStorePage() {
     // Hasta poder leer las páginas, es más seguro advertir que faltan que
     // presentar una tienda como apta para recibir datos personales.
     legalPages: { missingOrTemplate: 2, drafts: 0 },
+  });
+  // CBU/alias viven en settings (misma autoridad que el link de pago).
+  const [bankForm, setBankForm] = useState({
+    bank_cbu: "",
+    bank_alias: "",
+    bank_name: "",
+    bank_holder: "",
   });
   const [orders, setOrders] = useState<EcomOrder[]>([]);
   const [envioDe, setEnvioDe] = useState<EcomOrder | null>(null);
@@ -324,6 +332,24 @@ export default function EcommerceStorePage() {
         setDomicilioFiscal(String(data?.domicilio ?? "").trim() || null);
       });
 
+    supabase.from("settings")
+      .select("bank_cbu, bank_alias, bank_name, bank_holder")
+      .eq("org_id", orgId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("No se pudieron leer los datos bancarios de la tienda", error);
+          return;
+        }
+        if (!data) return;
+        setBankForm({
+          bank_cbu: data.bank_cbu || "",
+          bank_alias: data.bank_alias || "",
+          bank_name: data.bank_name || "",
+          bank_holder: data.bank_holder || "",
+        });
+      });
+
     loadOrders();
 
     supabase
@@ -443,12 +469,27 @@ export default function EcommerceStorePage() {
         : storeForm.fulfillment_location_id,
     };
     const { error } = await supabase.from("ecommerce_stores").upsert(row, { onConflict: "org_id" });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       console.error("No se pudo guardar la tienda", error);
       toast.error(esConflictoDeSlug(error)
         ? "Esa dirección ya está en uso. Probá otra."
         : "No se pudo guardar la tienda.");
+      return;
+    }
+
+    // Transferencia cobra con estos datos: si el medio está marcado y no se
+    // guardan acá, el pedido del comprador sigue diciendo «te escribimos».
+    const { error: bankError } = await supabase.from("settings").update({
+      bank_cbu: bankForm.bank_cbu.trim() || null,
+      bank_alias: bankForm.bank_alias.trim() || null,
+      bank_name: bankForm.bank_name.trim() || null,
+      bank_holder: bankForm.bank_holder.trim() || null,
+    }).eq("org_id", orgId);
+    setLoading(false);
+    if (bankError) {
+      console.error("No se pudieron guardar los datos bancarios", bankError);
+      toast.error("La tienda se guardó, pero no los datos para transferir. Reintentá.");
       return;
     }
     toast.success(opts?.activate ? "La tienda está publicada" : "Tienda guardada correctamente");
@@ -473,8 +514,11 @@ export default function EcommerceStorePage() {
       shipping_cost: costoEnvioAlGuardar(storeForm.shipping_cost),
       notification_email: storeForm.notification_email || null,
     },
+    bankTransferReady: storeBankTransferReady(bankForm),
+    bank_cbu: bankForm.bank_cbu,
+    bank_alias: bankForm.bank_alias,
     ...signals,
-  }), [storeForm, store?.logo_url, store?.slug, signals]);
+  }), [storeForm, store?.logo_url, store?.slug, signals, bankForm]);
 
   const catalogHandoff = fromWizard && signals.publishedProducts === 0
     ? storeHandoffCopy()
@@ -1216,6 +1260,52 @@ export default function EcommerceStorePage() {
                       <p className="text-[11px] text-muted-foreground pl-7">
                         El checkout lo muestra cuando Gestiona Pay esté activo. Sin Mercado Pago conectado el comprador no lo ve.
                       </p>
+                    )}
+                    {enabled && pm.id === "transferencia" && (
+                      <div className="pl-7 space-y-2 pt-1">
+                        <p className="text-[11px] text-muted-foreground">
+                          Sin CBU ni alias el pedido queda en «te vamos a escribir» y no hay primera venta sola.
+                        </p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Titular</Label>
+                            <Input
+                              value={bankForm.bank_holder}
+                              onChange={e => setBankForm(p => ({ ...p, bank_holder: e.target.value }))}
+                              placeholder="Nombre del titular"
+                              className="h-9 mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Banco</Label>
+                            <Input
+                              value={bankForm.bank_name}
+                              onChange={e => setBankForm(p => ({ ...p, bank_name: e.target.value }))}
+                              placeholder="Banco"
+                              className="h-9 mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">CBU</Label>
+                            <Input
+                              value={bankForm.bank_cbu}
+                              onChange={e => setBankForm(p => ({ ...p, bank_cbu: e.target.value }))}
+                              placeholder="0000003100010000000001"
+                              className="h-9 mt-1 font-mono text-xs"
+                              inputMode="numeric"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Alias</Label>
+                            <Input
+                              value={bankForm.bank_alias}
+                              onChange={e => setBankForm(p => ({ ...p, bank_alias: e.target.value }))}
+                              placeholder="mi.comercio"
+                              className="h-9 mt-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     )}
                     {enabled && (
                       <div className="flex items-center gap-2 pl-7">

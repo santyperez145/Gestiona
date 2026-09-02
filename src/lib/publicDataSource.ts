@@ -460,6 +460,11 @@ export interface StoreOrderAccessRow {
   shipping_address: Record<string, string>;
   created_at: string;
   access_token: string | null;
+  /** Datos de cobro por transferencia (settings); null si no hay o legacy RPC. */
+  bank_holder?: string | null;
+  bank_name?: string | null;
+  bank_cbu?: string | null;
+  bank_alias?: string | null;
 }
 
 /**
