@@ -26,6 +26,8 @@ interface AfipConnectionStatus {
   environment: string | null;
   punto_venta: number | null;
   razon_social: string | null;
+  /** Va impreso en la factura y en los términos. No bloquea CAE: ARCA no lo pide. */
+  domicilio: string | null;
   ta_expires_at: string | null;
   ticket_vigente: boolean | null;
   /** C14: 'delegado' factura con el certificado de la plataforma. */
@@ -117,7 +119,7 @@ export default function AFIPPage() {
         // No lo agarraba nada: `columnasQueExisten` vigila lo contrario —pedir
         // una columna que no existe— y con `strictNullChecks: false` el cast a
         // la interface hace que TypeScript crea que el campo está.
-        .select("cuit, configured, environment, punto_venta, razon_social, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo")
+        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo")
         .eq("org_id", orgId)
         .maybeSingle(),
       supabase
@@ -173,7 +175,7 @@ export default function AFIPPage() {
     if (!connection?.cuit) {
       return {
         title: "Falta configurar los datos fiscales",
-        detail: "Cargá CUIT, razón social, punto de venta y condición del emisor para poder pedir CAE.",
+        detail: "Cargá CUIT, razón social, domicilio fiscal, punto de venta y condición del emisor.",
         className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
         icon: AlertTriangle,
       };
@@ -190,6 +192,16 @@ export default function AFIPPage() {
         detail: delegado
           ? "Tus datos fiscales están guardados. Falta que la plataforma cargue su certificado de AFIP; no hay nada que puedas hacer de tu lado."
           : "Los datos fiscales están guardados, pero todavía no hay certificado y clave privada en el almacén seguro.",
+        className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
+        icon: AlertTriangle,
+      };
+    }
+    // ⚠️ No entra en `configured`: ARCA no pide domicilio para WSFE. Pedir
+    // CAE sigue. Lo que falta es lo que va impreso y lo que leen los términos.
+    if (!String(connection.domicilio ?? "").trim()) {
+      return {
+        title: "Falta el domicilio fiscal",
+        detail: "Va impreso en la factura y en los términos de la tienda. Completalo en el formulario de abajo.",
         className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
         icon: AlertTriangle,
       };

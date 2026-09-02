@@ -266,3 +266,31 @@ export function mensajeDocumentoFaltante(e: ExigenciaDocumento): string | null {
       return "Necesitamos tu documento para emitir la factura";
   }
 }
+
+/**
+ * Lo que va impreso en la factura y en los términos: no se adivina.
+ *
+ * CUIT ya lo valida el RPC. Razón social y domicilio se podían guardar
+ * vacíos, y entonces la factura y las páginas legales no dicen quién vende.
+ */
+export function faltantesIdentidadFiscal(input: {
+  razonSocial?: string | null;
+  domicilio?: string | null;
+}): Array<"razonSocial" | "domicilio"> {
+  const faltan: Array<"razonSocial" | "domicilio"> = [];
+  if (!String(input.razonSocial ?? "").trim()) faltan.push("razonSocial");
+  if (!String(input.domicilio ?? "").trim()) faltan.push("domicilio");
+  return faltan;
+}
+
+/** El mismo texto que `save_afip_config` cuando falta uno de los dos. */
+export function mensajeIdentidadFiscalFaltante(input: {
+  razonSocial?: string | null;
+  domicilio?: string | null;
+}): string | null {
+  const faltan = faltantesIdentidadFiscal(input);
+  if (!faltan.length) return null;
+  if (faltan.length === 2) return "Faltan la razón social y el domicilio fiscal";
+  if (faltan.includes("domicilio")) return "Falta el domicilio fiscal";
+  return "Falta la razón social";
+}

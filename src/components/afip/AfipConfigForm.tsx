@@ -34,6 +34,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileCheck, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { mensajeIdentidadFiscalFaltante } from "@/lib/fiscalIdentity";
 
 export default function AfipConfigForm() {
   const { activeOrg } = useOrg();
@@ -121,15 +122,19 @@ export default function AfipConfigForm() {
   const doSave = async () => {
     if (!activeOrg) return;
 
+    const identidad = mensajeIdentidadFiscalFaltante({ razonSocial, domicilio });
+    if (identidad) throw new Error(identidad);
+
     // Lo que no es secreto va por RPC, que además valida CUIT y entorno.
+    // Razón social y domicilio no van `null`: la autoridad los exige.
     const { error: cfgErr } = await supabase.rpc("save_afip_config", {
       p_org_id: activeOrg.id,
       p_cuit: cuit,
       p_punto_venta: parseInt(puntoVenta) || 1,
       p_environment: environment,
       p_tipo_emisor: tipoEmisor || null,
-      p_razon_social: razonSocial || null,
-      p_domicilio: domicilio || null,
+      p_razon_social: razonSocial.trim(),
+      p_domicilio: domicilio.trim(),
     });
     if (cfgErr) throw new Error(cfgErr.message.replace(/^.*?:\s*/, ""));
 
@@ -139,6 +144,11 @@ export default function AfipConfigForm() {
   };
 
   const handleSave = async () => {
+    const identidad = mensajeIdentidadFiscalFaltante({ razonSocial, domicilio });
+    if (identidad) {
+      toast.error(identidad);
+      return;
+    }
     setSaving(true);
     try {
       await doSave();
@@ -239,6 +249,7 @@ export default function AfipConfigForm() {
   //    comercio ya no sube el suyo, así que su estado no entra acá.
   const isConfigured = !!(cuit && plataformaLista);
   const canTestConnection = !!(cuit && plataformaLista);
+  const identidadIncompleta = !!mensajeIdentidadFiscalFaltante({ razonSocial, domicilio });
 
   return (
     <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
@@ -267,8 +278,9 @@ export default function AfipConfigForm() {
       <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs text-muted-foreground">
         <p className="font-medium text-foreground mb-0.5">Estos datos van impresos en tu factura</p>
         <p>
-          Son los únicos que la plataforma no puede averiguar sola. La conexión con
-          AFIP se verifica automáticamente al guardar.
+          Razón social, CUIT y domicilio van impresos en la factura y en los
+          términos. La plataforma no los adivina. La conexión con AFIP se verifica
+          automáticamente al guardar.
         </p>
       </div>
 
@@ -279,11 +291,11 @@ export default function AfipConfigForm() {
         </div>
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Razón social</label>
-          <Input value={razonSocial} onChange={e => setRazonSocial(e.target.value)} placeholder="Mi Empresa SRL" className="bg-muted border-border" />
+          <Input value={razonSocial} onChange={e => setRazonSocial(e.target.value)} placeholder="Tal cual figura en AFIP" className="bg-muted border-border" required />
         </div>
         <div className="md:col-span-2">
           <label className="text-xs text-muted-foreground mb-1 block">Domicilio fiscal</label>
-          <Input value={domicilio} onChange={e => setDomicilio(e.target.value)} placeholder="Av. Corrientes 1234, CABA" className="bg-muted border-border" />
+          <Input value={domicilio} onChange={e => setDomicilio(e.target.value)} placeholder="Calle, número, localidad — el de AFIP, no el de retiro" className="bg-muted border-border" required />
         </div>
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Punto de venta</label>
@@ -353,11 +365,11 @@ export default function AfipConfigForm() {
           que genere una clave con openssl es donde abandona. */}
 
       <div className="flex gap-2 pt-1">
-        <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold">
+        <Button onClick={handleSave} disabled={saving || identidadIncompleta} className="gradient-gold text-primary-foreground font-semibold">
           {saving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Guardando…</> : "Guardar AFIP"}
         </Button>
         {canTestConnection && (
-          <Button onClick={handleTestConnection} disabled={testing} variant="outline">
+          <Button onClick={handleTestConnection} disabled={testing || identidadIncompleta} variant="outline">
             {testing ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Verificando…</> : "Verificar conexión"}
           </Button>
         )}

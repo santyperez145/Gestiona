@@ -116,7 +116,7 @@ describe("el comercio no sube su certificado de AFIP", () => {
   it("el formulario fiscal pide sólo lo que el comercio conoce", () => {
     const form = leer("src/components/afip/AfipConfigForm.tsx");
     // Lo que va impreso en la factura y la plataforma no puede averiguar.
-    for (const campo of ["cuit", "razonSocial", "puntoVenta"]) {
+    for (const campo of ["cuit", "razonSocial", "puntoVenta", "domicilio"]) {
       expect(form, `falta el campo ${campo}`).toContain(campo);
     }
     // Y nada de claves.

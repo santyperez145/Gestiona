@@ -3,6 +3,7 @@ import {
   discriminaIva, tipoDeComprobante, validarCuit, validarDni, formatearCuit,
   documentoRequerido, tipoDocAfip, mensajeDocumentoFaltante, TIPO_DOC,
   CONDICIONES_IVA, esCondicionIva,
+  faltantesIdentidadFiscal, mensajeIdentidadFiscalFaltante,
 } from "@/lib/fiscalIdentity";
 
 describe("discriminaIva — lo decide el emisor", () => {
@@ -208,5 +209,28 @@ describe("catálogo de condiciones", () => {
     expect(esCondicionIva("consumidor_final")).toBe(true);
     expect(esCondicionIva("responsable_no_inscripto")).toBe(false);
     expect(esCondicionIva(null)).toBe(false);
+  });
+});
+
+describe("identidad fiscal del emisor — no se adivina", () => {
+  it("razón social y domicilio son los dos que van impresos", () => {
+    expect(faltantesIdentidadFiscal({ razonSocial: "Exentry", domicilio: "CABA" })).toEqual([]);
+    expect(faltantesIdentidadFiscal({ razonSocial: "  ", domicilio: "" })).toEqual([
+      "razonSocial",
+      "domicilio",
+    ]);
+    expect(faltantesIdentidadFiscal({ razonSocial: "Exentry", domicilio: null })).toEqual([
+      "domicilio",
+    ]);
+  });
+
+  it("el mensaje coincide con lo que la base va a rechazar", () => {
+    expect(mensajeIdentidadFiscalFaltante({ razonSocial: "Exentry", domicilio: "CABA" })).toBeNull();
+    expect(mensajeIdentidadFiscalFaltante({ razonSocial: "Exentry", domicilio: " " }))
+      .toBe("Falta el domicilio fiscal");
+    expect(mensajeIdentidadFiscalFaltante({ razonSocial: "", domicilio: "CABA" }))
+      .toBe("Falta la razón social");
+    expect(mensajeIdentidadFiscalFaltante({ razonSocial: null, domicilio: null }))
+      .toBe("Faltan la razón social y el domicilio fiscal");
   });
 });

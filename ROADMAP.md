@@ -3068,6 +3068,22 @@ Finance Connect.
      de esta PC no tiene `VITE_*`: no se afirma el formulario contra una
      sesión real.
 
+102. Conectar AFIP pide el domicilio fiscal, una vez — 2026-09-01.
+     El formulario ya tenía el campo y `save_afip_config` lo aceptaba
+     vacío. Facturas y las páginas legales leen la misma vista: Exentry
+     tiene CUIT y razón, domicilio NULL. Ahora la autoridad rechaza
+     razón social o domicilio vacíos, misma firma. `configured` no
+     cambia: ARCA no pide domicilio para emitir CAE. No se backfillea
+     ni se adivina desde el padrón, el retiro o el login. Exentry sigue
+     esperando que lo declare.
+
+     Verificado en este recorte: **2.272/2.272 pruebas en 235 archivos**;
+     typecheck OK; lint 0 errores y 138 warnings conocidos. Contra la
+     base: `save_afip_config` rechaza domicilio o razón vacíos, acepta
+     ambos, restos 0 (`20260901000070`). Exentry sigue con domicilio
+     NULL. El navegador de esta PC no tiene `VITE_*`: no se afirma el
+     formulario contra una sesión real.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
