@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
@@ -11,7 +11,7 @@ import { orderAccessFragment, saveOrderAccessToken } from "./orderAccess";
 import { trackBeginCheckout } from "./tracking";
 import { precioConMedioDePago, porcentajeDe, nombreMedio } from "@/lib/paymentDiscount";
 import { normalizarEmail } from "@/lib/couponRules";
-import { requiereDireccionDeEntrega } from "@/lib/checkoutDelivery";
+import { decisionEntregaCheckout, requiereDireccionDeEntrega } from "@/lib/checkoutDelivery";
 import { mediosDePagoOfrecibles, esMedioGestionaPay } from "@/lib/gestionaPay";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
@@ -107,7 +107,8 @@ export default function StoreCheckout() {
   const [opciones, setOpciones] = useState<ShippingOption[]>([]);
   const [opcionElegida, setOpcionElegida] = useState<string | null>(null);
   const [cotizando, setCotizando] = useState(false);
-  const [envioAviso, setEnvioAviso] = useState<string | null>(null);
+  const [quoteFailed, setQuoteFailed] = useState(false);
+  const [quoteUnavailable, setQuoteUnavailable] = useState(false);
 
   const porZona = store?.shipping_mode === "zones";
 
@@ -118,7 +119,8 @@ export default function StoreCheckout() {
     // se cortaba acá y quien quería retirar debía elegir una provincia igual.
     let cancelado = false;
     setCotizando(true);
-    setEnvioAviso(null);
+    setQuoteFailed(false);
+    setQuoteUnavailable(false);
 
     quoteStoreShipping({
       slug: store.slug,
@@ -133,40 +135,18 @@ export default function StoreCheckout() {
       // error del comprador, así que no se le avisa nada: se cobra el envío
       // plano de la tienda, como antes.
       if (rows === null) {
-        setOpciones([]); setOpcionElegida(null); setEnvioAviso(null);
+        setOpciones([]); setOpcionElegida(null); setQuoteUnavailable(true);
         return;
       }
 
       const lista = rows as unknown as ShippingOption[];
       setOpciones(lista);
-
-      if (lista.length === 0) {
-        // Sin retiro y sin provincia todavía no hay nada que cotizar. No es
-        // una zona sin cobertura ni un error: primero hay que pedir ese dato.
-        setEnvioAviso(porZona && form.provincia
-          ? (store?.pickup_enabled
-            ? "Todavía no hacemos envíos a esa provincia. Podés retirar en tienda si preferís."
-            : "Todavía no hacemos envíos a esa provincia.")
-          : null);
-        setOpcionElegida(null);
-        return;
-      }
-      // Si la única salida es retiro, no se finge cobertura nacional: el
-      // comprador tiene que saber que a domicilio no llega.
-      const soloRetiro = lista.length === 1 && lista[0].carrier === "retiro";
-      if (soloRetiro && form.provincia) {
-        setEnvioAviso("A domicilio no llega a tu provincia. Podés retirar en tienda.");
-      } else {
-        setEnvioAviso(null);
-      }
-      // Preseleccionar la más barata: es lo que el RPC va a elegir si no se
-      // manda ninguna, así el resumen y el cobro coinciden.
       setOpcionElegida(prev =>
-        prev && lista.some(o => o.option_id === prev) ? prev : lista[0].option_id);
+        prev && lista.some(o => o.option_id === prev) ? prev : (lista[0]?.option_id ?? null));
     }, () => {
       if (cancelado) return;
       setCotizando(false);
-      setEnvioAviso("No pudimos calcular el envío. Probá de nuevo en un momento.");
+      setQuoteFailed(true);
     });
 
     return () => { cancelado = true; };
@@ -175,6 +155,18 @@ export default function StoreCheckout() {
   }, [store?.slug, form.provincia, form.cp, porZona, JSON.stringify(cart.map(l => [l.productId, l.variantId, l.qty]))]);
 
   const opcion = opciones.find(o => o.option_id === opcionElegida) ?? null;
+  const entrega = useMemo(
+    () => decisionEntregaCheckout({
+      quoting: cotizando,
+      quoteFailed,
+      quoteUnavailable,
+      options: opciones,
+      selectedId: opcionElegida,
+      province: form.provincia,
+      zonesMode: porZona,
+    }),
+    [cotizando, quoteFailed, quoteUnavailable, opciones, opcionElegida, form.provincia, porZona],
+  );
   // Mientras no haya cotización se usa el costo del contexto, que es el plano.
   const envio = opcion ? Number(opcion.price) : (opciones.length > 0 ? 0 : shippingCost);
   const esRetiro = opcion?.carrier === "retiro";
@@ -319,10 +311,10 @@ export default function StoreCheckout() {
     e.preventDefault();
     setError(null);
 
-    if (cotizando || envioAviso) {
+    if (cotizando || entrega.bloqueo) {
       setError(cotizando
         ? "Esperá a que terminemos de calcular la entrega."
-        : envioAviso);
+        : entrega.bloqueo);
       return;
     }
     if (metodos.length === 0) {
@@ -507,13 +499,18 @@ export default function StoreCheckout() {
                 </p>
               )}
 
-              {envioAviso && (
+              {entrega.info && (
                 <p className="text-xs px-3 py-2 border" style={{ ...inputStyle, borderColor: "hsl(var(--st-border))" }}>
-                  {envioAviso}
+                  {entrega.info}
+                </p>
+              )}
+              {entrega.bloqueo && !cotizando && (
+                <p className="text-xs px-3 py-2 border" style={{ ...inputStyle, borderColor: "hsl(var(--st-border))" }}>
+                  {entrega.bloqueo}
                 </p>
               )}
 
-              {porZona && !form.provincia && !cotizando && (
+              {porZona && !form.provincia && !cotizando && !entrega.bloqueo && (
                 <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
                   {store?.pickup_enabled
                     ? "Podés retirar en tienda; elegí tu provincia sólo si preferís envío a domicilio."
@@ -808,7 +805,7 @@ export default function StoreCheckout() {
 
           <button
             type="submit"
-            disabled={enviando || cotizando || !!envioAviso || metodos.length === 0}
+            disabled={enviando || cotizando || !!entrega.bloqueo || metodos.length === 0}
             className="w-full min-h-11 py-3 font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >

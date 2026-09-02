@@ -3253,6 +3253,17 @@ Finance Connect.
      la base: Exentry expone `["AR-C"]`. Esta PC no tiene `VITE_*`: no
      se afirma el checkout contra una sesión real.
 
+125. Córdoba puede retirar: el aviso no traba Confirmar — 2026-09-02.
+     Medido: 6 zonas, tarifa en CABA, retiro en La Rioja. El checkout
+     guardaba “A domicilio no llega… Podés retirar” en el mismo flag
+     que apagaba el botón. Shopify/Tiendanube informan y dejan cerrar
+     con pickup. Info ≠ bloqueo; un domicilio que no cotizó sigue
+     sin pasar. El servidor ya rechaza un `option_id` ausente.
+
+     Verificado en este recorte: **2.388 tests** (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no
+     tiene `VITE_*`: no se afirma el checkout contra una sesión real.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
