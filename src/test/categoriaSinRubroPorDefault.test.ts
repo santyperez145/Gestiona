@@ -99,6 +99,17 @@ describe("la categoría no viene puesta en perfumería", () => {
     expect(storeCategories).toContain("NOMBRES_HEREDADOS");
   });
 
+  it("el placeholder del producto no es un perfume", () => {
+    expect(productsPage).not.toContain("LATTAFA KHAMRAH");
+    expect(productsPage).toContain('placeholder="Ej: Nombre del producto"');
+  });
+
+  it("el género y el contenido no se adivinan como de perfumería", () => {
+    expect(productsPage).not.toContain("useState(product?.gender || 'masculino')");
+    expect(productsPage).not.toContain("content_ml: parseInt(contentMl) || 100");
+    expect(productsPage).not.toContain("else setContentMl('100')");
+  });
+
   it("la ficha de producto no preselecciona un rubro", () => {
     expect(productsPage).toContain("useState(product?.category || '')");
     expect(productsPage).not.toContain("useState(product?.category || 'perfume_arabe')");

@@ -22,6 +22,7 @@ import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NO
 import { recommendSimilar } from "@/lib/perfumeMatch";
 import { elCatalogoOperaPerfumes } from "@/lib/catalogIndustry";
 import { firstProductEmptyCopy, parseActivationHandoff } from "@/lib/activationHandoff";
+import { productCostWarning, validateProductDraft } from "@/lib/productDraft";
 import { normalizeText, literalFilter } from "@/lib/searchText";
 import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice } from "@/lib/pricing";
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
@@ -1014,7 +1015,9 @@ export default function ProductsPage() {
                   <DialogHeader className="mb-0 shrink-0 border-b border-border/70 bg-card/95 px-5 py-4 pr-14 backdrop-blur sm:px-7">
                     <DialogTitle>{editing ? 'Editar producto' : 'Nuevo producto'}</DialogTitle>
                     <DialogDescription>
-                      Identidad, costos, inventario, variantes y publicación comparten una sola ficha del Business Core.
+                      {fromWizard && !editing && products.length === 0
+                        ? 'Nombre, precio de venta y stock real. El costo puede esperar: sin unidades el mostrador no cobra.'
+                        : 'Identidad, costos, inventario, variantes y publicación comparten una sola ficha del Business Core.'}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="min-h-0 flex-1 overflow-hidden">
@@ -1023,6 +1026,8 @@ export default function ProductsPage() {
                       settings={settings}
                       userId={user!.id}
                       orgId={activeOrg?.id}
+                      firstUse={fromWizard && !editing && products.length === 0}
+                      handoffGoal={handoffGoal}
                       onDirtyChange={setProductFormDirty}
                       onSave={() => { closeProductEditor(); reload(); }}
                     />
@@ -1991,18 +1996,20 @@ function ChipSelect({ items, selected, onToggle }: { items: TaxItem[]; selected:
   );
 }
 
-function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }: {
+function ProductForm({ product, settings, userId, orgId, firstUse = false, handoffGoal = null, onDirtyChange, onSave }: {
   product: any;
   settings: any;
   userId: string;
   orgId?: string;
+  firstUse?: boolean;
+  handoffGoal?: 'pos' | 'online' | null;
   onDirtyChange: (dirty: boolean) => void;
   onSave: () => void;
 }) {
   const [name, setName] = useState(product?.name || '');
   const [brand, setBrand] = useState(product?.brand || '');
   const [category, setCategory] = useState(product?.category || '');
-  const [gender, setGender] = useState(product?.gender || 'masculino');
+  const [gender, setGender] = useState(product?.gender || 'unisex');
   const [costUSD, setCostUSD] = useState(product?.cost_usd?.toString() || '');
   /**
    * ⚠️ En qué moneda se compra este producto.
@@ -2031,7 +2038,7 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
     product?.tax_rate === null || product?.tax_rate === undefined ? '' : String(product.tax_rate),
   );
   const [price2xARS, setPrice2xARS] = useState(product?.price_2x_ars?.toString() || '');
-  const [stock, setStock] = useState(product?.stock?.toString() || '0');
+  const [stock, setStock] = useState(product ? String(product?.stock ?? 0) : '');
   const [description, setDescription] = useState(product?.description || '');
   const [featured, setFeatured] = useState(product?.featured || false);
   const [offerExpiresAt, setOfferExpiresAt] = useState(product?.offer_expires_at ? new Date(product.offer_expires_at).toISOString().slice(0, 16) : '');
@@ -2041,7 +2048,7 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
   const [offerStacks, setOfferStacks] = useState<boolean | null>(
     product?.offer_stacks_payment ?? null,
   );
-  const [contentMl, setContentMl] = useState(product?.content_ml?.toString() || '100');
+  const [contentMl, setContentMl] = useState(product?.content_ml?.toString() || '');
   const [barcode, setBarcode] = useState(product?.barcode || '');
   const [sku, setSku] = useState(product?.sku || '');
   const [lotNumber, setLotNumber] = useState(product?.lot_number || '');
@@ -2231,9 +2238,9 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
   useEffect(() => {
     if (!product) {
       setVaperSubtype('');
-      if (category === 'vaper') setContentMl('');
-      else if (category === 'electronico') setContentMl('');
-      else setContentMl('100');
+      if (category === 'vaper' || category === 'electronico') setContentMl('');
+      // Un producto nuevo no es un perfume de 100 ml. El contenido se elige
+      // en la ficha de esa categoría; no se siembra en el resto del catálogo.
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
@@ -2380,8 +2387,16 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
-    if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
+    const resolvedCost = enPesos ? costoPesos : cost;
+    const draft = validateProductDraft({
+      name,
+      salePrice,
+      resolvedCost,
+      manejaStock,
+      stockRaw: showVariants ? String(variants.reduce((s, v) => s + (v.stock || 0), 0)) : stock,
+      firstUse: firstUse && !product,
+    });
+    if (!draft.ok) { toast.error(draft.error || 'No se pudo validar el producto'); return; }
     const missingAttribute = attributeDefinitions.find(definition => {
       if (!definition.required) return false;
       const value = attributeValues[definition.id];
@@ -2407,7 +2422,7 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
         ? variants.reduce((s, v) => s + (v.stock || 0), 0)
         : parseInt(stock) || 0;
       const data = {
-        name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category: category || null, gender, description: description.trim() || null,
+        name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category: category || null, gender: gender || 'unisex', description: description.trim() || null,
         // ⚠️ La moneda va explícita: sin ella el resolver tiene que deducirla, y
         // deducir la moneda de un costo es deducir el margen.
         cost_usd: enPesos ? 0 : cost,
@@ -2426,7 +2441,10 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
         featured,
         offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
         offer_stacks_payment: offerStacks,
-        content_ml: parseInt(contentMl) || 100,
+        content_ml: (() => {
+          const parsed = Number.parseInt(contentMl, 10);
+          return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+        })(),
         // Campos que el form captura pero antes NO se persistían
         barcode: barcode.trim() || null,
         sku: sku.trim() || null,
@@ -2543,7 +2561,17 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
           });
         }
       }
-      toast.success(product ? "Producto actualizado" : "Producto agregado");
+      const costNote = productCostWarning(resolvedCost);
+      toast.success(
+        product
+          ? 'Producto actualizado'
+          : firstUse && handoffGoal === 'pos'
+            ? 'Producto listo para el mostrador. El POS ya puede cobrarlo.'
+            : firstUse && handoffGoal === 'online'
+              ? 'Producto listo. El siguiente paso es publicarlo en Commerce.'
+              : 'Producto agregado',
+        costNote && !product ? { description: costNote } : undefined,
+      );
       broadcastSync({ type: "product_saved", name: data.name, action: product ? "update" : "create" });
       markClean();
       onSave();
@@ -2564,6 +2592,14 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
     >
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:px-7 sm:py-7">
+      {firstUse && !product && (
+        <div className="rounded-[10px] border border-primary/20 bg-primary/[0.05] p-3">
+          <p className="text-sm font-semibold">Para cobrar hace falta esto</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+            Nombre, precio de venta y unidades reales. El costo sirve para ver el margen; no traba la primera venta.
+          </p>
+        </div>
+      )}
       {/* Image upload (multi) */}
       <div>
         <div className="flex items-center justify-between">
@@ -2609,7 +2645,7 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
           <Input
             value={name}
             onChange={e => setName(e.target.value.toUpperCase())}
-            placeholder="Ej: LATTAFA KHAMRAH 100ML"
+            placeholder="Ej: Nombre del producto"
             className="bg-muted border-border uppercase flex-1"
             required
           />
@@ -2991,7 +3027,7 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
         </div>
         <div>
           <div className="flex items-center justify-between gap-2 mb-1">
-            <label className="text-sm text-muted-foreground">Stock</label>
+            <label className="text-sm text-muted-foreground">Stock{manejaStock ? ' *' : ''}</label>
             {/* Un servicio no se descuenta: el interruptor va PEGADO al campo
                 que deja de tener sentido, no escondido en otra pestaña. */}
             <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
@@ -3012,7 +3048,7 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
       <div>
         <div className="flex items-center justify-between mb-1">
           <label className="text-sm text-muted-foreground">
-            Costo {enPesos ? 'en pesos' : 'USD'} *
+            Costo {enPesos ? 'en pesos' : 'USD'}
           </label>
           {/* El comercio que compra en pesos no pasa por el dólar. */}
           <div className="flex rounded-md border border-border overflow-hidden text-[10px]">
@@ -3034,7 +3070,7 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
             <Input
               type="number" step="0.01" min="0" value={costARS}
               onChange={e => { setCostARS(e.target.value); setManualSalePrice(false); setManualDiscountPrice(false); }}
-              className="bg-muted border-border" required
+              className="bg-muted border-border"
             />
             {costoPesos > 0 && (
               <p className="text-[10px] text-muted-foreground mt-1">
@@ -3046,7 +3082,7 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
           </>
         ) : (
           <>
-            <Input type="number" step="0.01" min="0" value={costUSD} onChange={e => { setCostUSD(e.target.value); setManualSalePrice(false); setManualDiscountPrice(false); }} className="bg-muted border-border" required />
+            <Input type="number" step="0.01" min="0" value={costUSD} onChange={e => { setCostUSD(e.target.value); setManualSalePrice(false); setManualDiscountPrice(false); }} className="bg-muted border-border" />
             {cost > 0 && (
               <p className="text-[10px] text-muted-foreground mt-1">
                 Fórmula: [(${cost}+{customsPercent}%) × ${exchangeRate}] × {categoryMarkup} = {formatARS(autoSalePrice)} · -{defaultDiscount}% = {formatARS(autoDiscountPrice)}
@@ -3054,11 +3090,16 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
             )}
           </>
         )}
+        {(enPesos ? costoPesos : cost) <= 0 && (
+          <p className="text-[10px] text-muted-foreground mt-1">
+            {productCostWarning(0)}
+          </p>
+        )}
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <div className="flex items-center justify-between">
-            <label className="text-sm text-muted-foreground">Precio Venta ARS</label>
+            <label className="text-sm text-muted-foreground">Precio Venta ARS *</label>
             {manualSalePrice && cost > 0 && (
               <button type="button" onClick={() => { markDirty(); setManualSalePrice(false); }} className="text-[10px] text-primary hover:underline">Auto</button>
             )}
@@ -3609,7 +3650,9 @@ function ProductForm({ product, settings, userId, orgId, onDirtyChange, onSave }
       </div>
       <div className="z-20 shrink-0 border-t border-border/70 bg-card/95 px-4 py-3 backdrop-blur sm:flex sm:items-center sm:justify-between sm:px-7">
         <p className="mb-2 text-xs text-muted-foreground sm:mb-0">
-          El guardado actualiza la ficha canónica; el stock se asienta por Kardex.
+          {firstUse && !product
+            ? 'Nombre, precio de venta y unidades. El costo puede esperar.'
+            : 'El guardado actualiza la ficha canónica; el stock se asienta por Kardex.'}
         </p>
         <Button type="submit" disabled={uploading} className="w-full min-w-44 gradient-gold text-primary-foreground font-semibold sm:w-auto">
           {uploading ? 'Subiendo imagen...' : product ? 'Guardar cambios' : 'Crear producto'}

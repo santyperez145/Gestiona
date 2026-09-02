@@ -43,6 +43,7 @@ describe('instrumentación de activación', () => {
     const STORE = read('src/pages/EcommerceStorePage.tsx');
     expect(PRODUCTS).toContain('parseActivationHandoff');
     expect(PRODUCTS).toContain('firstProductEmptyCopy');
+    expect(PRODUCTS).toContain('validateProductDraft');
     expect(STORE).toContain('parseActivationHandoff');
     expect(STORE).toContain('storeHandoffCopy');
   });

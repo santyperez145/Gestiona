@@ -2939,6 +2939,16 @@ Finance Connect.
     Verificado en este recorte: **2.200/2.200 pruebas en 225 archivos**;
     typecheck OK; lint 0 errores y 139 warnings conocidos.
 
+93. El primer producto se puede vender de verdad — 2026-09-01.
+    El formulario exigía costo (y lo chequeaba en USD aunque se hubiera
+    cargado en pesos) y dejaba el stock en 0. Quien salía del wizard
+    guardaba un SKU que el POS no podía cobrar. Ahora la puerta es nombre,
+    precio de venta y unidades; el costo avisa el margen y no traba. La
+    primera ficha no acepta stock 0. El placeholder dejó de ser Lattafa,
+    el género arranca en `unisex` y `content_ml` ya no se siembra en 100.
+    Verificado en este recorte: **2.208/2.208 pruebas en 226 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
