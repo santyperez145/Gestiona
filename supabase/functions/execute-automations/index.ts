@@ -14,14 +14,13 @@
  *   notification       → creates notification for org admins
  *   create_task        → creates a task record
  *   email              → sends email via own SMTP or Resend fallback
- *   whatsapp_message   → sends WhatsApp via Evolution API (self-hosted)
+ *   whatsapp_message   → sends WhatsApp via Meta Cloud (platform number)
  *   webhook            → calls the org's configured webhook URL
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
-import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 import { deliverOutboundEvent } from "../_shared/outboundWebhook.ts";
 
 import { esLlamadaDeCron, exigirCronOUsuario } from "../_shared/cronAuth.ts";
@@ -307,13 +306,9 @@ Deno.serve(async (req) => {
             }
 
           } else if (flow.action_type === "whatsapp_message") {
-            const evolution = await getEvolutionCredentials(supabase, orgId);
-
-            if (!evolution) {
-              console.warn(`execute-automations: Evolution API not configured for org=${orgId}`);
-              status = "skipped";
-            } else {
-              // Get customer phones for matched entities
+              // Meta Cloud desde el número de plataforma — misma puerta que
+              // campañas. No se pide Evolution: 0 conexiones medido; el gate
+              // viejo dejaba toda automatización WA en skipped para siempre.
               const names = matchedEntities.map(e => e.name);
               const { data: contacts } = await supabase
                 .from("customers")
@@ -326,6 +321,7 @@ Deno.serve(async (req) => {
               }
 
               const msgTemplate = ac.message || flow.name;
+              let intentoConfigurado = false;
               for (const entity of matchedEntities.slice(0, 50)) {
                 const phone = phoneMap[entity.name];
                 if (!phone) continue;
@@ -335,17 +331,18 @@ Deno.serve(async (req) => {
                   .replace(/\{detalle\}/gi, entity.extra ?? "")
                   .replace(/\{monto\}/gi, entity.extra ?? "");
                 try {
-                  // ⚠️ Era un `fetch` a Evolution API, el puente no oficial que
-                  // enlaza un teléfono por QR. Ahora sale por la API oficial de
-                  // Meta desde el número de la plataforma.
                   const res = await enviarWhatsApp(number, text);
+                  if (res.configurado) intentoConfigurado = true;
                   if (res.ok) actionsTaken++;
                   else if (res.configurado) console.error("WhatsApp no salió:", res.error);
                 } catch (e) {
                   console.error("WhatsApp falló:", e);
                 }
               }
-            }
+              if (!intentoConfigurado && actionsTaken === 0) {
+                status = "skipped";
+                errorMessage = "WhatsApp de plataforma no está listo (Meta Cloud)";
+              }
 
           } else if (flow.action_type === "webhook") {
             const deliveries = await deliverOutboundEvent(supabase, {

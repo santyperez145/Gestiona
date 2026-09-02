@@ -17,6 +17,7 @@ import KPICard from "@/components/shared/KPICard";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 import { plural } from "@/lib/plural";
+import { whatsappCampaignChannelReady } from "@/lib/whatsappCampaignHonesty";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -118,7 +119,7 @@ const ACTION_ICONS: Record<ActionType, React.ReactNode> = {
 const ACTION_DESCRIPTIONS: Record<ActionType, string> = {
   notification: "Aparece en el ícono de campana para todos los admins.",
   email: "Envía un email (SMTP de plataforma o Resend). Campañas masivas piden dominio verificado.",
-  whatsapp_message: "WhatsApp al cliente — requiere Evolution/Twilio conectado. Sin conexión el flow no miente: el runner lo saltea.",
+  whatsapp_message: "WhatsApp al cliente desde el número de la plataforma (Meta Cloud). Si la plataforma aún no tiene WhatsApp listo, el runner lo saltea — no Evolution ni QR por comercio.",
   create_task: "Crea una tarea pendiente en el módulo de Tareas.",
   create_purchase_order: "Crea un borrador de orden de compra para reponer stock (solo para triggers de stock).",
   webhook: "Llama al webhook configurado en Integraciones con los datos del evento.",
@@ -235,10 +236,13 @@ function FlowForm({
   initial,
   onSave,
   onClose,
+  whatsappListo,
 }: {
   initial?: Partial<typeof EMPTY_FORM & { id: string }>;
   onSave: (data: any) => Promise<void>;
   onClose: () => void;
+  /** null = todavía no se midió; false = Meta no listo. */
+  whatsappListo: boolean | null;
 }) {
   const [form, setForm] = useState({ ...EMPTY_FORM, ...initial });
   const [saving, setSaving] = useState(false);
@@ -404,6 +408,12 @@ function FlowForm({
           </SelectContent>
         </Select>
         <p className="text-[11px] text-muted-foreground mt-1">{ACTION_DESCRIPTIONS[form.action_type]}</p>
+        {form.action_type === "whatsapp_message" && whatsappListo === false && (
+          <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium">
+            WhatsApp de plataforma todavía no está listo. Podés guardar el flujo;
+            no enviará hasta que Meta Cloud esté configurado en Plataforma → Mensajería.
+          </p>
+        )}
         {incompatibleAction && (
           <p className="text-[11px] text-destructive mt-1 font-medium">
             ⚠ Esta acción requiere un trigger de stock bajo o sin stock.
@@ -561,11 +571,12 @@ export default function AutomationFlowsTab() {
   const [runs, setRuns] = useState<AutomationRun[]>([]);
   const [runningFlowId, setRunningFlowId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [whatsappListo, setWhatsappListo] = useState<boolean | null>(null);
 
   const load = async () => {
     if (!activeOrg) return;
     setLoading(true);
-    const [{ data: flowData }, { data: runData }] = await Promise.all([
+    const [{ data: flowData }, { data: runData }, { data: mensajeria, error: errMsg }] = await Promise.all([
       supabase
         .from("automation_flows")
         .select("*")
@@ -577,7 +588,16 @@ export default function AutomationFlowsTab() {
         .eq("org_id", activeOrg.id)
         .order("ran_at", { ascending: false })
         .limit(50),
+      supabase.rpc("mensajeria_de_plataforma"),
     ]);
+    if (errMsg) {
+      console.error("AutomationFlowsTab / mensajería:", errMsg);
+      setWhatsappListo(null);
+    } else {
+      setWhatsappListo(whatsappCampaignChannelReady({
+        whatsapp_listo: (mensajeria as { whatsapp_listo?: boolean } | null)?.whatsapp_listo,
+      }));
+    }
     setFlows((flowData || []) as FlowRule[]);
     setRuns((runData || []) as AutomationRun[]);
     setLoading(false);
@@ -905,6 +925,7 @@ export default function AutomationFlowsTab() {
             } : undefined}
             onSave={handleSave}
             onClose={() => { setShowForm(false); setEditingFlow(null); }}
+            whatsappListo={whatsappListo}
           />
         </DialogContent>
       </Dialog>

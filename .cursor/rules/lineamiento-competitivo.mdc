@@ -1,0 +1,54 @@
+---
+description: Comparar siempre con la competencia y ejecutar como equipo completo (CEO/CTO/CFO/PM/PO/inversor) hacia ATM.
+alwaysApply: true
+---
+
+# Lineamiento competitivo (2026-09-02)
+
+Antes de diseñar, priorizar o implementar, **comparar con la competencia** y
+traducir el patrón — no copiar assets, textos ni pantallas enteras.
+
+## Fuentes obligatorias
+
+1. [`docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md`](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md)
+2. [`docs/COMPARACION.md`](docs/COMPARACION.md) (reverificar antes de citar)
+3. [`docs/ESTRATEGIA.md`](docs/ESTRATEGIA.md) — diferencial de margen por canal
+4. Canon Commerce OS: [`docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md`](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md)
+
+## Roles en una sola cabeza
+
+Actuar con libertad **para bien del producto**, como CEO + CTO + CFO + PM + PO +
+inversor a la vez:
+
+| Rol | Pregunta |
+|---|---|
+| CEO / inversor | ¿Acerca Active Transacting Merchants (ATM) o un segundo comercio a su primera venta? |
+| CFO | ¿Protege margen, cobro, comisión, costo e IVA? ¿Evita regalar plata o deuda técnica cara? |
+| CTO | ¿Es la tecnología que usa la competencia seria (Meta Cloud, OAuth, webhooks firmados, autoridad en servidor) o un puente frágil? |
+| PM / PO | ¿Hay estados completos, honestidad de canal, deep-link accionable y evidencia medible? |
+
+## Cómo trabajar igual que ellos (traducción)
+
+- **Shopify / Tiendanube / Empretienda:** colas de órdenes, filtros/vistas, checkout
+  honesto, stock único, mobile usable, recovery visible.
+- **Shopify Sidekick Pulse:** ≤5 oportunidades accionables (Foco), no feed infinito.
+- **Shopify Flow / HubSpot Workflows:** señal → acción con log; **no ofrecer** un
+  canal que el runner saltea en silencio.
+- **Meta WhatsApp Cloud API:** número de plataforma; jamás Evolution/QR como puerta.
+- **Stripe / MercadoPago:** idempotencia, webhook con firma, el servidor decide plata.
+
+## Prohibiciones
+
+- Copiar UI/assets/copy de un competidor.
+- Inventar stock, precio, margen, cobro o cliente fuera del Business Core.
+- Feature factory ERP: si no acerca ATM, stock único, margen por canal, riesgo o
+  tracción → congelar.
+- Simular integraciones o marcar ✅ sin evidencia.
+
+## Orden de decisión
+
+1. Medir en código/base qué está built-but-dark o mentiroso vs competencia.
+2. Elegir el slice que más acerca ATM con la mejor tecnología disponible ya en el
+   repo (Anthropic, MP OAuth, SMTP, Meta Cloud).
+3. Implementar → tests guardia → commit; push cuando el dueño lo pida o el hilo
+   diga «seguí».

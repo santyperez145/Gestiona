@@ -16,6 +16,18 @@ a la vez** —costo con aduana, comisión del medio de pago, envío e IVA—. Un
 ecommerce no sabe el costo; un ERP no sabe la comisión. Ver
 [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md).
 
+📌 **Lineamiento 2026-09-02 (competencia = vara de trabajo):** comparar
+**siempre** con Tiendanube, Empretienda, Shopify, Contabilium/Xubio/Colppy,
+Meta, MercadoPago y los benchmarks de
+[`docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md`](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md)
++ [`docs/COMPARACION.md`](docs/COMPARACION.md) antes de diseñar o priorizar.
+Traducir el patrón (colas, honestidad de canal, Pulse ≤5, OAuth, webhooks,
+autoridad server-side); **no** copiar assets ni pantallas. Pensar y actuar como
+CEO + CTO + CFO + PM + PO + inversor a la vez, con libertad **para bien** del
+producto: la mejor tecnología que ya usa la competencia seria (Meta Cloud, no
+Evolution; OAuth MP, no token pegado). North Star sigue siendo ATM. Regla Cursor:
+`.cursor/rules/lineamiento-competitivo.mdc`.
+
 📌 **Lineamiento 2026-09-01 (ADR 002):** Gestiona se piensa como sistema
 operativo de **comercio** omnicanal. El corazón sigue siendo el Business Core
 —productos, órdenes, clientes, finanzas e inventario—. POS, tienda,

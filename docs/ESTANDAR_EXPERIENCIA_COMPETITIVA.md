@@ -15,6 +15,13 @@ existen en el mercado. Gestiona adopta patrones que reducen tiempo, error y
 riesgo, y conserva su diferencial: una sola verdad de stock, cliente, costo,
 cobro, impuestos, envío y margen a través de todos los canales.
 
+📌 **Lineamiento 2026-09-02:** este estándar no es lectura opcional. Cada slice
+compara con la competencia citada acá y en [`COMPARACION.md`](COMPARACION.md),
+elige la tecnología equivalente a la de empresas serias (Meta Cloud, OAuth,
+webhooks firmados, autoridad en servidor) y se prioriza por ATM. El agente
+opera como CEO/CTO/CFO/PM/PO/inversor: libertad de actuar para bien, sin feature
+factory ni canales que mienten. Ver `.cursor/rules/lineamiento-competitivo.mdc`.
+
 ## 1. Autoridad y lenguaje de evidencia
 
 Cada afirmación de este documento usa una de estas marcas:

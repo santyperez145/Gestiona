@@ -10,7 +10,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { enviarWhatsApp } from "../_shared/whatsapp.ts";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
-import { getEvolutionCredentials } from "../_shared/evolutionConnection.ts";
 import { deliverOutboundEvent } from "../_shared/outboundWebhook.ts";
 
 import { exigirCron } from "../_shared/cronAuth.ts";
@@ -434,7 +433,7 @@ async function actionEmail(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Action: WhatsApp via Evolution API (self-hosted, no Twilio)
+// Action: WhatsApp via Meta Cloud (platform number)
 // ─────────────────────────────────────────────────────────────
 async function actionWhatsApp(
   orgId: string,
@@ -442,41 +441,35 @@ async function actionWhatsApp(
   customMsg: string,
   triggerType: string,
 ): Promise<number> {
-  const evolution = await getEvolutionCredentials(supabase, orgId);
-
-  if (!evolution) {
-    console.warn(`run-automation-flows: Evolution API not configured for org=${orgId} — skipping WhatsApp action`);
-    return 0;
-  }
-
+  // Misma puerta que campañas: `enviarWhatsApp` lee mensajeria_de_plataforma.
+  // El gate viejo a Evolution dejaba skipped para siempre (0 conexiones).
   const withPhone = subjects.filter((s) => s.phone);
   if (!withPhone.length) return 0;
 
   let sent = 0;
+  let intentoConfigurado = false;
 
   for (const subject of withPhone) {
-    // Normalize: digits only, no + (Evolution API expects E.164 without +)
     const number = subject.phone!.replace(/\D/g, "");
     const text = interpolate(customMsg || defaultWhatsAppMsg(triggerType), subject);
 
     try {
-      // ⚠️ Esto era un `fetch` a Evolution API, el puente no oficial que enlaza
-      // un teléfono por QR. Meta bloquea los números que detecta usando un
-      // cliente no oficial, y el que se pierde es el del comercio. Ahora sale
-      // por la API oficial desde el número de la plataforma.
       const res = await enviarWhatsApp(number, text);
-
+      if (res.configurado) intentoConfigurado = true;
       if (res.ok) {
         sent++;
       } else if (res.configurado) {
-        // Sólo se loguea si HAY WhatsApp configurado: si no lo hay, esto
-        // llenaría el log de todas las corridas con algo que nadie va a
-        // arreglar mirando el log.
         console.error(`WhatsApp no salió para ${number}:`, res.error);
       }
     } catch (e) {
       console.error(`WhatsApp falló para ${number}:`, e);
     }
+  }
+
+  if (!intentoConfigurado && sent === 0) {
+    console.warn(
+      `run-automation-flows: WhatsApp de plataforma no listo (Meta Cloud) org=${orgId} — skipping`,
+    );
   }
   return sent;
 }

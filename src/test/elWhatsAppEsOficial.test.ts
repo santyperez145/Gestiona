@@ -66,6 +66,20 @@ describe("nadie manda WhatsApp por el puente no oficial", () => {
       readFileSync(resolve(FUNCS, n, "index.ts"), "utf8").includes("graph.facebook.com"));
     expect(conEnvio, `el envío se volvió a copiar en: ${conEnvio.join(", ")}`).toEqual([]);
   });
+
+  // Shopify Flow / HubSpot no ofrecen un canal cuya puerta es un puente muerto.
+  // El gate a Evolution dejaba skipped para siempre (0 conexiones medido).
+  it("las automatizaciones no piden Evolution como puerta de WhatsApp", () => {
+    for (const n of ["run-automation-flows", "execute-automations"]) {
+      const src = readFileSync(resolve(FUNCS, n, "index.ts"), "utf8");
+      expect(src, `${n} sigue importando Evolution`).not.toContain("getEvolutionCredentials");
+      expect(src, `${n} no manda por Meta`).toContain("enviarWhatsApp");
+    }
+    const ui = readFileSync(resolve(ROOT, "src/components/marketing/AutomationFlowsTab.tsx"), "utf8");
+    expect(ui).toContain("whatsappCampaignChannelReady");
+    expect(ui).toContain("Meta Cloud");
+    expect(ui).not.toMatch(/Evolution\/Twilio/);
+  });
 });
 
 describe("el envío oficial está bien armado", () => {
