@@ -3264,6 +3264,18 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no
      tiene `VITE_*`: no se afirma el checkout contra una sesión real.
 
+126. El retiro no se despacha — 2026-09-02.
+     Medido: 2 órdenes pagas, las dos `carrier=retiro` / `sucursal`,
+     fulfillment `processing`. El Foco gritaba “sin despachar”. Square
+     y Shopify tienen cola de pickup. Vista `retirar`, Pulse aparte,
+     RPC que cierra a `delivered` sin etiqueta. Domicilio sigue
+     exigir `deliveries` + `shipped`. No se tocaron las filas ZZ.
+
+     Verificado en este recorte: **2.394 tests** (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). RPC aplicada
+     y anotada (`20260902000100`). Esta PC no tiene `VITE_*`: no se
+     afirma el Foco contra una sesión real.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

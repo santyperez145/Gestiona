@@ -15,6 +15,8 @@ import {
   type StoreOrderInspectRow,
 } from "@/lib/storeOrderDetail";
 import {
+  esPedidoRetiro,
+  storeOrderFulfillmentActionLabel,
   storeOrderFulfillmentLabel,
   storeOrderFulfillmentTone,
 } from "@/lib/storeOrderQueue";
@@ -25,7 +27,7 @@ import {
   storeOrderPaymentTone,
 } from "@/lib/storeOrderPayment";
 import { formatARS } from "@/lib/supabaseStore";
-import { Banknote, Eye, Loader2, Truck } from "lucide-react";
+import { Banknote, Eye, Loader2, Store, Truck } from "lucide-react";
 import OperationMarginPanel from "@/components/shared/OperationMarginPanel";
 
 interface Props {
@@ -77,7 +79,7 @@ export default function StoreOrderInspector({
                   {storeOrderPaymentLabel(detail.order.payment_status)}
                 </Badge>
                 <Badge className={`text-xs ${storeOrderFulfillmentTone(detail.order.fulfillment_status)}`}>
-                  {storeOrderFulfillmentLabel(detail.order.fulfillment_status)}
+                  {storeOrderFulfillmentLabel(detail.order.fulfillment_status, detail.order)}
                 </Badge>
               </div>
               <SheetTitle>Pedido {detail.order.order_number}</SheetTitle>
@@ -169,11 +171,15 @@ export default function StoreOrderInspector({
                       </div>
                     )}
                     <div className="flex justify-between gap-3">
-                      <dt className="text-muted-foreground">Envío</dt>
+                      <dt className="text-muted-foreground">
+                        {esPedidoRetiro(detail.order) ? "Retiro" : "Envío"}
+                      </dt>
                       <dd className="font-mono">
-                        {Number(detail.order.shipping_cost) === 0
-                          ? "Gratis"
-                          : formatARS(Number(detail.order.shipping_cost ?? 0))}
+                        {esPedidoRetiro(detail.order)
+                          ? "En tienda"
+                          : Number(detail.order.shipping_cost) === 0
+                            ? "Gratis"
+                            : formatARS(Number(detail.order.shipping_cost ?? 0))}
                       </dd>
                     </div>
                     {Number(detail.order.tax_amount) > 0 && (
@@ -245,8 +251,8 @@ export default function StoreOrderInspector({
               )}
               {canShip && (
                 <Button className="min-h-11 gap-1.5" onClick={() => onPrepare(detail.order)} disabled={confirmingPaid}>
-                  <Truck className="h-4 w-4" />
-                  {detail.order.tracking_number ? "Ver envío" : "Preparar envío"}
+                  {esPedidoRetiro(detail.order) ? <Store className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
+                  {storeOrderFulfillmentActionLabel(detail.order) || (detail.order.tracking_number ? "Ver envío" : "Preparar envío")}
                 </Button>
               )}
             </div>

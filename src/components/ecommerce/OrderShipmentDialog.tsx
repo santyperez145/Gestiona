@@ -23,7 +23,8 @@ import {
 import { CARRIER_LABELS, CARRIER_IDS, carrierLabel } from "@/lib/carriers";
 import { useHasPermission } from "@/lib/usePermissions";
 import { canFulfillStoreOrder, isStorePaymentReversed } from "@/lib/storeOrderPayment";
-import { Truck, Printer, Loader2, Check, PackageCheck, Home } from "lucide-react";
+import { esPedidoRetiro } from "@/lib/storeOrderQueue";
+import { Truck, Printer, Loader2, Check, PackageCheck, Home, Store } from "lucide-react";
 
 export interface OrderForShipment {
   id: string;
@@ -34,6 +35,8 @@ export interface OrderForShipment {
   total: number | string;
   payment_status: string;
   fulfillment_status: string;
+  carrier?: string | null;
+  shipping_service?: string | null;
   tracking_number?: string | null;
   shipping_address?: Record<string, string> | null;
   items?: unknown[];
@@ -155,7 +158,9 @@ export default function OrderShipmentDialog({
     setActualizandoEstado(null);
     if (error) { toast.error(error.message.replace(/^.*?:\s*/, "")); return; }
     await avisarEstado(status);
-    toast.success(status === "shipped" ? "Marcado en camino." : "Pedido marcado como entregado.");
+    toast.success(status === "shipped" ? "Marcado en camino." : (
+      esPedidoRetiro(order) ? "Pedido marcado como retirado." : "Pedido marcado como entregado."
+    ));
     cargar();
     onDone();
   };
@@ -216,11 +221,12 @@ export default function OrderShipmentDialog({
 
   if (!order) return null;
 
+  const retiro = esPedidoRetiro(order);
   const sinPagar = !canFulfillStoreOrder(order.payment_status);
   const pagoRevertido = isStorePaymentReversed(order.payment_status);
   const yaPreparada = !!entrega;
   const enCamino = entrega?.status === "in_transit" || entrega?.status === "out_for_delivery";
-  const entregada = entrega?.status === "delivered";
+  const entregada = entrega?.status === "delivered" || order.fulfillment_status === "delivered";
   const yaDespachada = !!entrega?.external_tracking || enCamino || entregada;
 
   return (
@@ -228,8 +234,8 @@ export default function OrderShipmentDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Truck className="w-4 h-4 text-primary" />
-            Envío de {order.order_number}
+            {retiro ? <Store className="w-4 h-4 text-primary" /> : <Truck className="w-4 h-4 text-primary" />}
+            {retiro ? `Retiro de ${order.order_number}` : `Envío de ${order.order_number}`}
           </DialogTitle>
         </DialogHeader>
 
@@ -239,8 +245,26 @@ export default function OrderShipmentDialog({
           <p className="text-sm text-muted-foreground py-4">
             {pagoRevertido
               ? "El pago fue devuelto o desconocido. No despaches esta orden; si el paquete ya salió, coordiná la devolución antes de reponer stock."
-              : "Esta orden todavía no está paga. Preparar el envío de algo que no se cobró es la forma más cara de equivocarse."}
+              : retiro
+                ? "Esta orden todavía no está paga. No marques un retiro de algo que no se cobró."
+                : "Esta orden todavía no está paga. Preparar el envío de algo que no se cobró es la forma más cara de equivocarse."}
           </p>
+        ) : retiro ? (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-border/60 p-3 text-sm">
+              <p className="text-xs text-muted-foreground mb-1">Retiro en tienda</p>
+              <p className="font-medium">{order.customer_name}</p>
+              {order.customer_phone ? (
+                <p className="text-muted-foreground text-xs mt-0.5">Tel. {order.customer_phone}</p>
+              ) : null}
+            </div>
+            {entregada && (
+              <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/20 gap-1">
+                <Store className="w-3 h-3" />
+                Retirado
+              </Badge>
+            )}
+          </div>
         ) : (
           <div className="space-y-4">
             {/* Destino, tal como lo cargó el comprador */}
@@ -309,18 +333,28 @@ export default function OrderShipmentDialog({
         )}
 
         <DialogFooter className="gap-2 sm:gap-2">
-          {canEditEcommerce && !sinPagar && !yaPreparada && (
+          {canEditEcommerce && retiro && !cargando && !sinPagar && !entregada && (
+            <Button
+              className="gap-1.5 text-xs"
+              disabled={actualizandoEstado === "delivered"}
+              onClick={() => avanzarEstado("delivered")}
+            >
+              {actualizandoEstado === "delivered" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Store className="w-3 h-3" />}
+              Marcar como retirado
+            </Button>
+          )}
+          {canEditEcommerce && !retiro && !sinPagar && !yaPreparada && (
             <Button className="gap-1.5 text-xs" disabled={preparando} onClick={preparar}>
               {preparando ? <Loader2 className="w-3 h-3 animate-spin" /> : <Truck className="w-3 h-3" />}
               Preparar envío
             </Button>
           )}
-          {canEditEcommerce && yaPreparada && (
+          {canEditEcommerce && !retiro && yaPreparada && (
             <Button variant="outline" className="gap-1.5 text-xs" onClick={imprimir}>
               <Printer className="w-3 h-3" />Imprimir etiqueta
             </Button>
           )}
-          {canEditEcommerce && yaPreparada && !enCamino && !entregada && (
+          {canEditEcommerce && !retiro && yaPreparada && !enCamino && !entregada && (
             <Button
               variant="outline" className="gap-1.5 text-xs"
               disabled={actualizandoEstado === "shipped"}
@@ -330,7 +364,7 @@ export default function OrderShipmentDialog({
               Marcar en camino
             </Button>
           )}
-          {canEditEcommerce && enCamino && !entregada && (
+          {canEditEcommerce && !retiro && enCamino && !entregada && (
             <Button
               variant="outline" className="gap-1.5 text-xs"
               disabled={actualizandoEstado === "delivered"}

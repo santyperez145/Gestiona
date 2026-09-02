@@ -61,8 +61,13 @@ export interface DatosFoco {
   deudasVencidas30: number;
   /** Seguimientos agendados para hoy o vencidos. */
   seguimientosHoy: number;
-  /** Órdenes de la tienda pagadas y sin despachar. */
+  /** Órdenes de la tienda pagadas y sin despachar (domicilio). */
   pedidosPorDespachar: number;
+  /**
+   * Pagadas, retiro en tienda, todavía no se las llevaron.
+   * No es "despachar": Square/Shopify tienen cola de pickup aparte.
+   */
+  pedidosPorRetirar?: number;
   /**
    * Cobros que el comercio puede resolver **ahora**.
    * Transferencia/efectivo pendientes, o Gestiona Pay reciente.
@@ -156,8 +161,21 @@ export const FOCO_MAX_PENDIENTES = 5;
 export function construirPendientes(d: DatosFoco): Pendiente[] {
   const lista: Pendiente[] = [];
 
-  // Un pedido pagado y sin despachar es alguien que ya pagó y está esperando.
-  // Va primero: es lo único de la lista donde el que espera es un cliente.
+  // Un pedido pagado de retiro es alguien que ya pagó y va a la tienda.
+  // Va primero: no se le pide al comercio que "despache" un mostrador.
+  if ((d.pedidosPorRetirar ?? 0) > 0) {
+    const n = d.pedidosPorRetirar!;
+    lista.push({
+      id: "retirar",
+      texto: `${n} ${n === 1 ? "pedido listo para retirar" : "pedidos listos para retirar"}`,
+      accion: "Marcar retirado",
+      destino: "/tienda-online?tab=orders&vista=retirar",
+      urgencia: "critico",
+    });
+  }
+
+  // Un pedido pagado a domicilio y sin despachar es alguien que ya pagó y está esperando.
+  // Va después del retiro: el que viene al local pesa más que el paquete a armar.
   if (d.pedidosPorDespachar > 0) {
     lista.push({
       id: "despachar",

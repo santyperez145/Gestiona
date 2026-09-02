@@ -37,7 +37,18 @@ describe("construirPendientes", () => {
   });
 
   // Es el único pendiente donde el que espera es un cliente que ya pagó.
-  it("un pedido pagado sin despachar va primero de todo", () => {
+  it("un pedido de retiro no se presenta como despacho", () => {
+    const p = construirPendientes({
+      ...VACIO, pedidosPorRetirar: 2, pedidosPorDespachar: 1, sinStock: 9,
+    });
+    expect(p[0].id).toBe("retirar");
+    expect(p[0].texto).toBe("2 pedidos listos para retirar");
+    expect(p[0].accion).toBe("Marcar retirado");
+    expect(p[0].destino).toBe("/tienda-online?tab=orders&vista=retirar");
+    expect(p[1].id).toBe("despachar");
+  });
+
+  it("un pedido pagado a domicilio sin despachar va primero si no hay retiro", () => {
     const p = construirPendientes({
       ...VACIO, pedidosPorDespachar: 1, sinStock: 9, deudasVencidas30: 9,
     });
@@ -185,11 +196,17 @@ describe("leerVariacion", () => {
   });
 });
 
-describe("FocoDelDia no cuenta fantasmas de Pay", () => {
+describe("FocoDelDia no cuenta fantasmas de Pay ni despacha un retiro", () => {
   it("pide método y fecha, y filtra con la regla del Core", () => {
     const ui = readFileSync(resolve(__dirname, "../components/dashboard/FocoDelDia.tsx"), "utf8");
     expect(ui).toContain("countActionableUnpaidOrders");
     expect(ui).toContain("payment_method, created_at");
+  });
+
+  it("parte retiro de domicilio con la misma cola pagada", () => {
+    const ui = readFileSync(resolve(__dirname, "../components/dashboard/FocoDelDia.tsx"), "utf8");
+    expect(ui).toContain("countFulfillmentPulse");
+    expect(ui).toContain("carrier, shipping_service");
   });
 });
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildStoreOrdersCsv,
+  countFulfillmentPulse,
   countStoreOrderViews,
   filterStoreOrders,
   isStoreOrderAwaitingFulfillment,
@@ -20,6 +21,9 @@ function order(partial: Partial<StoreOrderQueueRow> = {}): StoreOrderQueueRow {
     customer_phone: partial.customer_phone ?? "11 5555-1234",
     total: partial.total ?? 15000,
     payment_status: partial.payment_status ?? "paid",
+    payment_method: partial.payment_method ?? null,
+    carrier: partial.carrier ?? null,
+    shipping_service: partial.shipping_service ?? null,
     fulfillment_status: partial.fulfillment_status ?? "pending",
     tracking_number: partial.tracking_number ?? null,
     created_at: partial.created_at ?? "2026-09-01T12:00:00Z",
@@ -30,12 +34,14 @@ describe("cola de pedidos de la tienda", () => {
   it("no trata un chip en inglés como vista", () => {
     expect(parseStoreOrderView("pending")).toBe("todas");
     expect(parseStoreOrderView("despachar")).toBe("despachar");
+    expect(parseStoreOrderView("retirar")).toBe("retirar");
     expect(parseStoreOrderView(null)).toBe("todas");
   });
 
   it("etiqueta la entrega en el idioma de trabajo", () => {
     expect(storeOrderFulfillmentLabel("pending")).toBe("Pendiente");
     expect(storeOrderFulfillmentLabel("processing")).toBe("Para despachar");
+    expect(storeOrderFulfillmentLabel("processing", { carrier: "retiro" })).toBe("Para retirar");
     expect(storeOrderFulfillmentLabel("shipped")).toBe("Enviada");
   });
 
@@ -89,12 +95,27 @@ describe("cola de pedidos de la tienda", () => {
     ];
     expect(countStoreOrderViews(rows)).toEqual({
       todas: 3,
+      retirar: 0,
       despachar: 1,
       pago: 1,
       enviadas: 0,
       entregadas: 1,
       canceladas: 0,
     });
+  });
+
+  it("retiro pagado no entra a despachar — Square/Shopify tienen cola de pickup", () => {
+    const retiro = order({
+      id: "r",
+      carrier: "retiro",
+      shipping_service: "sucursal",
+      payment_status: "paid",
+      fulfillment_status: "processing",
+    });
+    const domicilio = order({ id: "d", payment_status: "paid", fulfillment_status: "processing" });
+    expect(filterStoreOrders([retiro, domicilio], { view: "retirar" }).map(r => r.id)).toEqual(["r"]);
+    expect(filterStoreOrders([retiro, domicilio], { view: "despachar" }).map(r => r.id)).toEqual(["d"]);
+    expect(countFulfillmentPulse([retiro, domicilio])).toEqual({ despachar: 1, retirar: 1 });
   });
 
   it("exporta el conjunto filtrado con celdas escapadas y sin fórmulas", () => {

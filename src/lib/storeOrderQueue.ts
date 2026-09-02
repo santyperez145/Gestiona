@@ -5,7 +5,7 @@
  * / email / monto, filtros de entrega y pago, y exportar lo filtrado. Las
  * acciones masivas de despacho no viven acá: mutar envío sin autoridad
  * server-side sería un botón que miente. Este módulo es puro para que la
- * pantalla no decida sola qué es "para despachar".
+ * pantalla no decida sola qué es "para despachar" y qué es "para retirar".
  */
 import { csvCell } from "@/lib/csv";
 import {
@@ -18,6 +18,7 @@ export const STORE_ORDER_QUEUE_LIMIT = 200;
 
 export const STORE_ORDER_VIEW_IDS = [
   "todas",
+  "retirar",
   "despachar",
   "pago",
   "enviadas",
@@ -29,6 +30,7 @@ export type StoreOrderView = typeof STORE_ORDER_VIEW_IDS[number];
 
 export const STORE_ORDER_VIEWS: { id: StoreOrderView; label: string }[] = [
   { id: "todas", label: "Todas" },
+  { id: "retirar", label: "Para retirar" },
   { id: "despachar", label: "Para despachar" },
   { id: "pago", label: "Pendientes de pago" },
   { id: "enviadas", label: "Enviadas" },
@@ -45,6 +47,8 @@ export interface StoreOrderQueueRow {
   total: number;
   payment_status: string;
   payment_method?: string | null;
+  carrier?: string | null;
+  shipping_service?: string | null;
   fulfillment_status: string;
   tracking_number: string | null;
   created_at: string;
@@ -58,7 +62,23 @@ export function parseStoreOrderView(raw: string | null | undefined): StoreOrderV
     : "todas";
 }
 
-export function storeOrderFulfillmentLabel(status: string) {
+/** Square / Shopify: pickup no es un envío. Medido 2026-09-02: Exentry. */
+export function esPedidoRetiro(order: {
+  carrier?: string | null;
+  shipping_service?: string | null;
+} | null | undefined) {
+  const carrier = String(order?.carrier ?? "").toLowerCase().trim();
+  const service = String(order?.shipping_service ?? "").toLowerCase().trim();
+  return carrier === "retiro" || service === "sucursal";
+}
+
+export function storeOrderFulfillmentLabel(
+  status: string,
+  order?: { carrier?: string | null; shipping_service?: string | null },
+) {
+  if (esPedidoRetiro(order) && FULFILLMENT_PENDING.has(status)) {
+    return "Para retirar";
+  }
   switch (status) {
     case "pending":
     case "unfulfilled":
@@ -125,20 +145,60 @@ export function matchesStoreOrderSearch(order: StoreOrderQueueRow, query: string
 }
 
 /**
- * Misma regla que el Foco del día: pagado y todavía no salió.
+ * Pagado y todavía no salió / no se retiró.
  * Un pago revertido no entra: no se despacha lo que ya no está acreditado.
  */
-export function isStoreOrderAwaitingFulfillment(order: StoreOrderQueueRow) {
+export function isStoreOrderAwaitingFulfillment(order: {
+  payment_status: string;
+  fulfillment_status: string;
+}) {
   return canFulfillStoreOrder(order.payment_status)
     && FULFILLMENT_PENDING.has(order.fulfillment_status);
+}
+
+export function isStoreOrderAwaitingPickup(order: StoreOrderQueueRow) {
+  return isStoreOrderAwaitingFulfillment(order) && esPedidoRetiro(order);
+}
+
+export function isStoreOrderAwaitingShipment(order: StoreOrderQueueRow) {
+  return isStoreOrderAwaitingFulfillment(order) && !esPedidoRetiro(order);
+}
+
+/** Pulse: domicilio vs mostrador. La cola histórica sigue listando ambos. */
+export function countFulfillmentPulse(
+  rows: Array<{
+    payment_status: string;
+    fulfillment_status: string;
+    carrier?: string | null;
+    shipping_service?: string | null;
+  }>,
+): { despachar: number; retirar: number } {
+  let despachar = 0;
+  let retirar = 0;
+  for (const row of rows) {
+    if (!isStoreOrderAwaitingFulfillment(row)) continue;
+    if (esPedidoRetiro(row)) retirar += 1;
+    else despachar += 1;
+  }
+  return { despachar, retirar };
+}
+
+export function storeOrderFulfillmentActionLabel(order: StoreOrderQueueRow) {
+  if (!canFulfillStoreOrder(order.payment_status)) return "";
+  if (esPedidoRetiro(order)) {
+    return FULFILLMENT_PENDING.has(order.fulfillment_status) ? "Marcar retiro" : "Ver retiro";
+  }
+  return order.tracking_number ? "Ver envío" : "Preparar";
 }
 
 export function orderMatchesStoreView(order: StoreOrderQueueRow, view: StoreOrderView) {
   switch (view) {
     case "todas":
       return true;
+    case "retirar":
+      return isStoreOrderAwaitingPickup(order);
     case "despachar":
-      return isStoreOrderAwaitingFulfillment(order);
+      return isStoreOrderAwaitingShipment(order);
     case "pago":
       return canRetryStorePayment(order.payment_status);
     case "enviadas":
@@ -164,6 +224,7 @@ export function filterStoreOrders(
 export function countStoreOrderViews(orders: StoreOrderQueueRow[]): Record<StoreOrderView, number> {
   const counts = {
     todas: orders.length,
+    retirar: 0,
     despachar: 0,
     pago: 0,
     enviadas: 0,
@@ -171,7 +232,8 @@ export function countStoreOrderViews(orders: StoreOrderQueueRow[]): Record<Store
     canceladas: 0,
   };
   for (const order of orders) {
-    if (isStoreOrderAwaitingFulfillment(order)) counts.despachar += 1;
+    if (isStoreOrderAwaitingPickup(order)) counts.retirar += 1;
+    if (isStoreOrderAwaitingShipment(order)) counts.despachar += 1;
     if (canRetryStorePayment(order.payment_status)) counts.pago += 1;
     if (order.fulfillment_status === "shipped") counts.enviadas += 1;
     if (order.fulfillment_status === "delivered") counts.entregadas += 1;
@@ -199,7 +261,7 @@ export function buildStoreOrdersCsv(orders: StoreOrderQueueRow[]) {
     order.customer_phone ?? "",
     Number(order.total),
     storeOrderPaymentLabel(order.payment_status),
-    storeOrderFulfillmentLabel(order.fulfillment_status),
+    storeOrderFulfillmentLabel(order.fulfillment_status, order),
     order.tracking_number ?? "",
     String(order.created_at ?? "").slice(0, 10),
   ]);

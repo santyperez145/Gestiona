@@ -20,12 +20,14 @@ import {
   parseStoreOrderView,
   storeOrderFulfillmentLabel,
   storeOrderFulfillmentTone,
+  storeOrderFulfillmentActionLabel,
+  esPedidoRetiro,
   storeOrdersCsvFilename,
   type StoreOrderQueueRow,
   type StoreOrderView,
 } from "@/lib/storeOrderQueue";
 import { canFulfillStoreOrder, storeOrderPaymentLabel, storeOrderPaymentTone } from "@/lib/storeOrderPayment";
-import { Download, Eye, Search, Truck } from "lucide-react";
+import { Download, Eye, Search, Store, Truck } from "lucide-react";
 
 interface Props {
   orders: StoreOrderQueueRow[];
@@ -157,7 +159,7 @@ export default function StoreOrdersPanel({
         <WorkspaceState
           kind="empty-first-use"
           title="Todavía no hay pedidos"
-          description="Cuando un comprador termine una compra, aparece acá para cobrar el pendiente o preparar el envío."
+          description="Cuando un comprador termine una compra, aparece acá para cobrar el pendiente, marcar un retiro o preparar el envío."
         />
       ) : visible.length === 0 ? (
         <WorkspaceState
@@ -247,7 +249,7 @@ function OrderRow({
       </td>
       <td className="px-4 py-3">
         <Badge className={`text-xs ${storeOrderFulfillmentTone(o.fulfillment_status)}`}>
-          {storeOrderFulfillmentLabel(o.fulfillment_status)}
+          {storeOrderFulfillmentLabel(o.fulfillment_status, o)}
         </Badge>
         {o.tracking_number && (
           <p className="mt-1 font-mono text-[10px] text-muted-foreground">{o.tracking_number}</p>
@@ -273,8 +275,8 @@ function OrderRow({
               className="h-7 gap-1.5 px-2 text-xs"
               onClick={e => { e.stopPropagation(); onPrepare(o); }}
             >
-              <Truck className="h-3 w-3" />
-              {o.tracking_number ? "Ver envío" : "Preparar"}
+              {esPedidoRetiro(o) ? <Store className="h-3 w-3" /> : <Truck className="h-3 w-3" />}
+              {storeOrderFulfillmentActionLabel(o)}
             </Button>
           ) : null}
         </div>
@@ -310,7 +312,7 @@ function OrderCard({
           {storeOrderPaymentLabel(o.payment_status)}
         </Badge>
         <Badge className={`text-xs ${storeOrderFulfillmentTone(o.fulfillment_status)}`}>
-          {storeOrderFulfillmentLabel(o.fulfillment_status)}
+          {storeOrderFulfillmentLabel(o.fulfillment_status, o)}
         </Badge>
         <span className="text-xs text-muted-foreground">{fechaPedido(o.created_at)}</span>
       </div>
@@ -335,8 +337,8 @@ function OrderCard({
             className="h-11 w-full gap-1.5"
             onClick={() => onPrepare(o)}
           >
-            <Truck className="h-4 w-4" />
-            {o.tracking_number ? "Ver envío" : "Preparar envío"}
+            {esPedidoRetiro(o) ? <Store className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
+            {storeOrderFulfillmentActionLabel(o) || (o.tracking_number ? "Ver envío" : "Preparar envío")}
           </Button>
         )}
       </div>

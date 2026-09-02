@@ -119,6 +119,8 @@ interface EcomOrder {
   tax_amount: number | null;
   payment_status: string;
   payment_method: string | null;
+  carrier?: string | null;
+  shipping_service?: string | null;
   fulfillment_status: string;
   tracking_number: string | null;
   shipping_address: Record<string, string> | null;
@@ -238,7 +240,7 @@ export default function EcommerceStorePage() {
     setOrdersError(null);
     const { data, error } = await supabase
       .from("ecommerce_orders")
-      .select("id, order_number, customer_name, customer_email, customer_phone, total, subtotal, shipping_cost, discount_amount, coupon_code, coupon_discount_ars, tax_amount, payment_status, payment_method, fulfillment_status, tracking_number, shipping_address, items, notes, shipped_at, delivered_at, created_at")
+      .select("id, order_number, customer_name, customer_email, customer_phone, total, subtotal, shipping_cost, discount_amount, coupon_code, coupon_discount_ars, tax_amount, payment_status, payment_method, fulfillment_status, tracking_number, shipping_address, items, notes, shipped_at, delivered_at, created_at, carrier, shipping_service")
       .eq("org_id", orgId)
       .order("created_at", { ascending: false })
       .limit(STORE_ORDER_QUEUE_LIMIT);
@@ -320,7 +322,7 @@ export default function EcommerceStorePage() {
     setPedidoExtraLoading(true);
     supabase
       .from("ecommerce_orders")
-      .select("id, order_number, customer_name, customer_email, customer_phone, total, subtotal, shipping_cost, discount_amount, coupon_code, coupon_discount_ars, tax_amount, payment_status, payment_method, fulfillment_status, tracking_number, shipping_address, items, notes, shipped_at, delivered_at, created_at")
+      .select("id, order_number, customer_name, customer_email, customer_phone, total, subtotal, shipping_cost, discount_amount, coupon_code, coupon_discount_ars, tax_amount, payment_status, payment_method, fulfillment_status, tracking_number, shipping_address, items, notes, shipped_at, delivered_at, created_at, carrier, shipping_service")
       .eq("org_id", orgId)
       .eq("id", raw)
       .maybeSingle()
@@ -891,7 +893,7 @@ export default function EcommerceStorePage() {
                   <div className="text-right">
                     <p className="text-sm font-semibold">${Number(o.total).toLocaleString("es-AR")}</p>
                     <Badge className={`text-xs ${storeOrderFulfillmentTone(o.fulfillment_status)}`}>
-                      {storeOrderFulfillmentLabel(o.fulfillment_status)}
+                      {storeOrderFulfillmentLabel(o.fulfillment_status, o)}
                     </Badge>
                   </div>
                 </button>

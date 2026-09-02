@@ -24,6 +24,7 @@ import {
   type DatosFoco, type Urgencia,
 } from "@/lib/dashboardFocus";
 import { countActionableUnpaidOrders } from "@/lib/storeOrderPayment";
+import { countFulfillmentPulse } from "@/lib/storeOrderQueue";
 import { ArrowUp, ArrowDown, Minus, AlertTriangle, AlertCircle, Circle, Check, ArrowRight } from "lucide-react";
 
 const COLOR_URGENCIA: Record<Urgencia, string> = {
@@ -56,6 +57,7 @@ interface Props {
 
 export default function FocoDelDia(p: Props) {
   const [porDespachar, setPorDespachar] = useState(0);
+  const [porRetirar, setPorRetirar] = useState(0);
   const [pendientesDePago, setPendientesDePago] = useState(0);
   const [ventas, setVentas] = useState<{
     dias: number | null;
@@ -74,14 +76,17 @@ export default function FocoDelDia(p: Props) {
     // `head: true` con `count`: trae el número, no las filas.
     supabase
       .from("ecommerce_orders")
-      .select("id", { count: "exact", head: true })
+      .select("payment_status, fulfillment_status, carrier, shipping_service")
       .eq("org_id", p.orgId)
       .eq("payment_status", "paid")
       .in("fulfillment_status", ["pending", "unfulfilled", "processing"])
-      .then(({ count, error }) => {
-        // Si falla, el bloque muestra el resto igual: un panel que no carga por
-        // un contador es peor que un contador que falta.
-        if (!cancelado && !error) setPorDespachar(count ?? 0);
+      .limit(200)
+      .then(({ data, error }) => {
+        if (!cancelado && !error) {
+          const n = countFulfillmentPulse(data ?? []);
+          setPorDespachar(n.despachar);
+          setPorRetirar(n.retirar);
+        }
       });
     // No es el count de `vista=pago`: esa cola muestra el histórico.
     // Pulse sólo cuenta cobros que el comercio puede resolver ahora
@@ -225,6 +230,7 @@ export default function FocoDelDia(p: Props) {
     deudasVencidas30: p.deudasVencidas30,
     seguimientosHoy: p.seguimientosHoy,
     pedidosPorDespachar: porDespachar,
+    pedidosPorRetirar: porRetirar,
     pedidosPendientesDePago: pendientesDePago,
     diasSinRegistrarVenta: ventas.dias,
     huecosEntreVentas: ventas.huecos,

@@ -10,7 +10,7 @@ import type { StoreOrderQueueRow } from "@/lib/storeOrderQueue";
 
 /** Lista plana: el `.select()` de la página tiene que ser este literal, no la constante. */
 export const STORE_ORDER_LIST_SELECT =
-  "id, order_number, customer_name, customer_email, customer_phone, total, subtotal, shipping_cost, discount_amount, coupon_code, coupon_discount_ars, tax_amount, payment_status, payment_method, fulfillment_status, tracking_number, shipping_address, items, notes, shipped_at, delivered_at, created_at";
+  "id, order_number, customer_name, customer_email, customer_phone, total, subtotal, shipping_cost, discount_amount, coupon_code, coupon_discount_ars, tax_amount, payment_status, payment_method, fulfillment_status, tracking_number, shipping_address, items, notes, shipped_at, delivered_at, created_at, carrier, shipping_service";
 
 export interface StoreOrderItem {
   name: string;
