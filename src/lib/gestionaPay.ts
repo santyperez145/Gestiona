@@ -2,13 +2,21 @@
  * Gestiona Pay — producto propio, rails de terceros.
  *
  * El dinero no lo custodia Gestiona. El producto sí: checkout, onboarding,
- * PaymentIntent, conciliación, reintegros, comisión y soporte. El procesador
- * de Argentina es Mercado Pago (OAuth, split, QR, Point). Stripe no es rail
- * doméstico a 2026-09-01; el adapter existe para mercados donde Connect esté
- * contratado. Payway y dLocal esperan contrato. No hay PSP ni wallet propia.
+ * PaymentIntent, conciliación, reintegros, comisión y soporte.
+ *
+ * 📌 Gestiona Pay ≠ Mercado Pago. Pay es el producto (como Pago Nube).
+ * Mercado Pago es el rail de procesamiento en Argentina (OAuth, split, QR).
+ * En la tienda el medio canónico es `gestiona_pay`; `mercadopago` queda
+ * sólo como alias de lectura por órdenes y configs viejas.
+ * `payment_connections.provider` y el OAuth siguen siendo `mercadopago`.
  */
 
 export type GestionaPayProvider = "mercadopago" | "stripe" | "payway" | "dlocal";
+
+/** Medio de la tienda online: el producto, no el rail. */
+export const MEDIO_GESTIONA_PAY = "gestiona_pay" as const;
+/** Alias histórico: mismo cobro, otro nombre. */
+export const MEDIO_GESTIONA_PAY_LEGACY = "mercadopago" as const;
 
 export type GestionaPayEvent =
   | "payment.created"
@@ -41,6 +49,53 @@ export function stripeCubre(pais: string): boolean {
   return STRIPE_MARKETS.has(String(pais ?? "").toUpperCase());
 }
 
+/** ¿Este código de medio de tienda es Gestiona Pay (canónico o legacy)? */
+export function esMedioGestionaPay(method: string | null | undefined): boolean {
+  return method === MEDIO_GESTIONA_PAY || method === MEDIO_GESTIONA_PAY_LEGACY;
+}
+
+/** Etiqueta para comprador y panel: nunca «Mercado Pago (Gestiona Pay)». */
+export function etiquetaMedioTienda(method: string | null | undefined): string {
+  if (esMedioGestionaPay(method)) return "Gestiona Pay";
+  if (method === "transferencia") return "Transferencia";
+  if (method === "efectivo") return "Efectivo / retiro";
+  return method ? String(method) : "—";
+}
+
+/**
+ * Normaliza el array de medios de la tienda al canónico.
+ * `mercadopago` → `gestiona_pay`; dedup; conserva el resto.
+ */
+export function normalizarMediosTienda(
+  methods: Array<string | null | undefined> | null | undefined,
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of methods ?? []) {
+    if (!raw) continue;
+    const m = esMedioGestionaPay(raw) ? MEDIO_GESTIONA_PAY : raw;
+    if (seen.has(m)) continue;
+    seen.add(m);
+    out.push(m);
+  }
+  return out;
+}
+
+/** Descuentos por medio: la clave legacy `mercadopago` pasa a `gestiona_pay`. */
+export function normalizarDescuentosMedios(
+  discounts: Record<string, unknown> | null | undefined,
+): Record<string, number> {
+  if (!discounts || typeof discounts !== "object") return {};
+  const out: Record<string, number> = {};
+  for (const [raw, value] of Object.entries(discounts)) {
+    const key = esMedioGestionaPay(raw) ? MEDIO_GESTIONA_PAY : raw;
+    const n = Number(value);
+    if (!Number.isFinite(n)) continue;
+    out[key] = n;
+  }
+  return out;
+}
+
 /**
  * Elige el procesador. En Argentina Stripe conectado no gana: no hay cuenta
  * estándar confirmada como rail doméstico y el split de MP ya cobra comisión.
@@ -57,8 +112,8 @@ export function decidirRailGestionaPay(input: {
       provider: "mercadopago",
       listo: conectados.has("mercadopago"),
       motivo: conectados.has("mercadopago")
-        ? "Gestiona Pay orquesta Mercado Pago: el dinero va a la cuenta del comercio."
-        : "En este mercado Gestiona Pay se activa con Mercado Pago. Stripe no cobra acá.",
+        ? "Gestiona Pay activo: el rail de procesamiento es Mercado Pago y el dinero va a la cuenta del comercio."
+        : "Activá Gestiona Pay. En Argentina el procesamiento corre por Mercado Pago (OAuth); Stripe no cobra acá.",
     };
   }
 
@@ -135,23 +190,17 @@ export function eventoCanonicoStripe(type: string | null | undefined): GestionaP
 }
 
 /**
- * Tras el OAuth, Mercado Pago siempre vuelve a `MP_OAUTH_REDIRECT_URI`.
- * El destino real (tienda o integraciones) viaja en `oauth_states.redirect_to`.
- * Sólo se aceptan rutas propias: un returnUrl absoluto a otro origen sería
- * un open redirect.
- */
-/**
  * Medios que el checkout y la vitrina pueden mostrar.
  *
- * Stripe y PayPal no tienen adapter de venta. Mercado Pago lo filtra el
- * servidor cuando Pay no está listo; acá se cubre el rollout y un array viejo
- * que todavía los traiga.
+ * Stripe y PayPal no tienen adapter de venta. Gestiona Pay lo filtra el
+ * servidor cuando el rail no está listo; acá se normaliza el canónico y se
+ * cubre un array viejo con `mercadopago`.
  */
 const RAILES_SIN_ADAPTER = new Set(["stripe", "paypal"]);
 
 export function mediosDePagoOfrecibles(methods: string[] | null | undefined): string[] {
   if (!methods?.length) return [];
-  return methods.filter((m) => m && !RAILES_SIN_ADAPTER.has(m));
+  return normalizarMediosTienda(methods).filter((m) => !RAILES_SIN_ADAPTER.has(m));
 }
 
 export function destinoOAuthPermitido(url: string | null | undefined, origin: string): string | null {

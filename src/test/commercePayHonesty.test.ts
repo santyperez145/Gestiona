@@ -12,11 +12,15 @@ const payPanel = readFileSync(
 );
 
 describe('Commerce Pay honesty', () => {
-  it('no ofrece Stripe ni PayPal como medio de la tienda argentina', () => {
-    expect(page).toContain('id: "mercadopago"');
+  it('ofrece Gestiona Pay como medio de tienda, no Mercado Pago como producto', () => {
+    expect(page).toContain('id: "gestiona_pay"');
+    expect(page).toContain('label: "Gestiona Pay"');
+    expect(page).not.toContain('Mercado Pago (Gestiona Pay)');
+    expect(page).not.toMatch(/id:\s*"mercadopago"/);
     expect(page).not.toMatch(/id:\s*"stripe"/);
     expect(page).not.toMatch(/id:\s*"paypal"/);
     expect(page).toContain('no hay adapter vivo');
+    expect(page).toContain('como Pago Nube');
   });
 
   it('activa Gestiona Pay por OAuth y no pide pegar una clave', () => {
@@ -73,6 +77,8 @@ describe('Commerce Pay honesty', () => {
       'utf8',
     );
     expect(checkout).toContain('mediosDePagoOfrecibles');
+    expect(checkout).toContain('esMedioGestionaPay');
+    expect(checkout).toContain('Continuar a Gestiona Pay');
     expect(checkout).not.toMatch(/stripe:\s*"Tarjeta/);
     expect(checkout).not.toMatch(/paypal:\s*"PayPal"/);
     expect(checkout).not.toContain('?? "transferencia"');

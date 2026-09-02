@@ -8,6 +8,7 @@ import { getStoreOrderSecure, type StoreOrderAccessRow } from "@/lib/publicDataS
 import { useStore } from "./storeContext";
 import { trackPurchase } from "./tracking";
 import { canRetryStorePayment, isStorePaymentReversed } from "@/lib/storeOrderPayment";
+import { esMedioGestionaPay } from "@/lib/gestionaPay";
 import { consumeOrderAccessFragment, readOrderAccessToken, saveOrderAccessToken } from "./orderAccess";
 import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle, ShieldCheck, Copy } from "lucide-react";
 
@@ -384,10 +385,10 @@ export default function StoreOrder() {
         </div>
       )}
 
-      {/* Pago pendiente con MercadoPago habilitado: se ofrece pagar ahora.
+      {/* Pago pendiente con Gestiona Pay: se ofrece pagar ahora.
           Sirve tanto si el link falló al confirmar como si el comprador
           abandonó el checkout y volvió después. */}
-      {puedeReintentarPago && order.payment_method === "mercadopago" && (
+      {puedeReintentarPago && esMedioGestionaPay(order.payment_method) && (
         <div
           className="mt-6 border p-4 text-center"
           style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
@@ -396,7 +397,7 @@ export default function StoreOrder() {
             {fallido ? "El pago no se completó" : "Tu pedido está esperando el pago"}
           </p>
           <p className="text-xs mt-1" style={{ color: "hsl(var(--st-muted))" }}>
-            Podés pagarlo ahora con MercadoPago y lo preparamos enseguida.
+            Podés pagarlo ahora con Gestiona Pay y lo preparamos enseguida.
           </p>
           {pagoEnProceso ? (
             <div className="mt-4 py-3 text-xs" style={{ color: "hsl(var(--st-muted))" }} aria-live="polite">
@@ -421,7 +422,7 @@ export default function StoreOrder() {
                   className="text-xs underline underline-offset-4 disabled:opacity-60"
                   style={{ color: "hsl(var(--st-accent))" }}
                 >
-                  {pagando ? "Abriendo MercadoPago..." : "Elegir otro medio en MercadoPago"}
+                  {pagando ? "Abriendo el pago..." : "Elegir otro medio"}
                 </button>
               </div>
             </div>
@@ -444,7 +445,7 @@ export default function StoreOrder() {
                 className="w-full sm:w-auto min-h-11 px-5 py-2.5 text-sm font-medium border disabled:opacity-60"
                 style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
               >
-                {pagando ? "Abriendo MercadoPago..." : tarjetaDisponible ? "Otros medios en MercadoPago" : "Pagar en MercadoPago"}
+                {pagando ? "Abriendo el pago..." : tarjetaDisponible ? "Otros medios" : "Pagar con Gestiona Pay"}
               </button>
             </div>
           )}

@@ -2,9 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   decidirRailGestionaPay,
   destinoOAuthPermitido,
+  esMedioGestionaPay,
+  etiquetaMedioTienda,
   eventoCanonicoMercadoPago,
   eventoCanonicoStripe,
+  MEDIO_GESTIONA_PAY,
   mediosDePagoOfrecibles,
+  normalizarDescuentosMedios,
+  normalizarMediosTienda,
 } from "@/lib/gestionaPay";
 
 describe("decidirRailGestionaPay", () => {
@@ -22,6 +27,7 @@ describe("decidirRailGestionaPay", () => {
     expect(d.provider).toBe("mercadopago");
     expect(d.listo).toBe(false);
     expect(d.motivo.toLowerCase()).toContain("stripe");
+    expect(d.motivo.toLowerCase()).toContain("gestiona pay");
   });
 
   it("en un mercado Stripe no usa Mercado Pago por default", () => {
@@ -47,10 +53,31 @@ describe("eventos canónicos", () => {
   });
 });
 
+describe("medio canónico gestiona_pay", () => {
+  it("reconoce canónico y alias legacy", () => {
+    expect(esMedioGestionaPay("gestiona_pay")).toBe(true);
+    expect(esMedioGestionaPay("mercadopago")).toBe(true);
+    expect(esMedioGestionaPay("transferencia")).toBe(false);
+  });
+
+  it("etiqueta Gestiona Pay, nunca Mercado Pago (Gestiona Pay)", () => {
+    expect(etiquetaMedioTienda("gestiona_pay")).toBe("Gestiona Pay");
+    expect(etiquetaMedioTienda("mercadopago")).toBe("Gestiona Pay");
+    expect(etiquetaMedioTienda("gestiona_pay")).not.toMatch(/Mercado Pago \(Gestiona Pay\)/);
+  });
+
+  it("normaliza mercadopago a gestiona_pay sin duplicar", () => {
+    expect(normalizarMediosTienda(["mercadopago", "transferencia", "gestiona_pay"]))
+      .toEqual([MEDIO_GESTIONA_PAY, "transferencia"]);
+    expect(normalizarDescuentosMedios({ mercadopago: 10, transferencia: 5 }))
+      .toEqual({ gestiona_pay: 10, transferencia: 5 });
+  });
+});
+
 describe("mediosDePagoOfrecibles", () => {
-  it("saca Stripe y PayPal, que no tienen adapter de venta", () => {
+  it("saca Stripe y PayPal, y normaliza el canónico de Pay", () => {
     expect(mediosDePagoOfrecibles(["mercadopago", "stripe", "paypal", "transferencia"]))
-      .toEqual(["mercadopago", "transferencia"]);
+      .toEqual(["gestiona_pay", "transferencia"]);
   });
 
   it("no inventa transferencia cuando el array viene vacío", () => {

@@ -13,6 +13,7 @@
 
 import type { PaymentDiscounts } from "@/lib/paymentDiscount";
 import { slugDeNombre } from "@/lib/storeCategories";
+import { normalizarDescuentosMedios, normalizarMediosTienda } from "@/lib/gestionaPay";
 
 /** Violeta del workspace (`252 83% 62%`). El onboarding arranca igual. */
 export const STORE_WORKSPACE_COLOR = "#6E4DEE";
@@ -236,10 +237,10 @@ export function storeFormDesdeFila(
     shipping_cost: data.shipping_cost != null ? String(data.shipping_cost) : "",
     is_active: data.is_active ?? false,
     payment_methods: Array.isArray(data.payment_methods) && data.payment_methods.length > 0
-      ? data.payment_methods
+      ? normalizarMediosTienda(data.payment_methods)
       : ["transferencia"],
     payment_discounts: data.payment_discounts && typeof data.payment_discounts === "object" && !Array.isArray(data.payment_discounts)
-      ? data.payment_discounts as PaymentDiscounts
+      ? normalizarDescuentosMedios(data.payment_discounts as Record<string, unknown>) as PaymentDiscounts
       : {},
     payment_discount_stacks: data.payment_discount_stacks ?? false,
     font: data.font ?? base.font,

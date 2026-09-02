@@ -6,12 +6,13 @@ const ROOT = resolve(import.meta.dirname, "../..");
 const leer = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 
 const migracion = leer("supabase/migrations/20260901000020_checkout_sin_pay_muerto.sql");
+const migracionCanonico = leer("supabase/migrations/20260902000030_gestiona_pay_medio_canonico.sql");
 const storeBySlug = leer("src/storefront/storeContext.tsx");
 const checkout = leer("src/storefront/StoreCheckout.tsx");
 const readiness = leer("src/lib/storeReadiness.ts");
 
 /**
- * Gestiona Pay conectado y Mercado Pago marcado en la tienda no son lo mismo.
+ * Gestiona Pay conectado y el medio marcado en la tienda no son lo mismo.
  * Si el checkout lista un medio que store-pay no puede cobrar, el comprador
  * llega al final y la plataforma parece rota.
  */
@@ -22,7 +23,7 @@ describe("checkout sin Pay muerto", () => {
     expect(migracion).not.toMatch(/UPDATE\s+public\.ecommerce_stores[\s\S]{0,80}payment_methods/);
   });
 
-  it("Mercado Pago exige token y medio habilitado, no sólo el toggle", () => {
+  it("Gestiona Pay exige token y medio habilitado, no sólo el toggle", () => {
     expect(migracion).toContain("FROM public.payment_connections c");
     expect(migracion).toContain("c.access_token IS NOT NULL");
     expect(migracion).toContain("o.habilitado");
@@ -33,11 +34,12 @@ describe("checkout sin Pay muerto", () => {
     expect(migracion).toContain("NOT IN ('stripe', 'paypal')");
   });
 
-  it("una orden no entra con un rail que no se puede cobrar", () => {
+  it("una orden no entra con un rail que no se puede cobrar; gestiona_pay es canónico", () => {
     expect(migracion).toContain("BEFORE INSERT ON public.ecommerce_orders");
-    expect(migracion).toContain("NEW.payment_method = 'mercadopago'");
     expect(migracion).toContain("Gestiona Pay no está activo");
     expect(migracion).toContain("NEW.payment_method IN ('stripe', 'paypal')");
+    expect(migracionCanonico).toContain("NEW.payment_method IN ('mercadopago', 'gestiona_pay')");
+    expect(migracionCanonico).toContain("THEN 'gestiona_pay'");
   });
 
   it("las funciones internas no quedan llamables por anon", () => {

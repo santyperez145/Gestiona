@@ -93,14 +93,18 @@ export function mejorDescuento(
   return mejor;
 }
 
+import { esMedioGestionaPay } from "@/lib/gestionaPay";
+
 /** Cómo se llama cada medio en pantalla. */
 export const NOMBRE_MEDIO: Record<string, string> = {
-  mercadopago: "MercadoPago",
+  gestiona_pay: "Gestiona Pay",
+  mercadopago: "Gestiona Pay",
   transferencia: "transferencia",
   efectivo: "efectivo",
 };
 
 export function nombreMedio(metodo: string): string {
+  if (esMedioGestionaPay(metodo)) return "Gestiona Pay";
   return NOMBRE_MEDIO[metodo] ?? metodo;
 }
 

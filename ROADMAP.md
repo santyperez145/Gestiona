@@ -3185,6 +3185,14 @@ Finance Connect.
      pide confirmación propia al aplicar y muestra AI Action Rate (G8);
      generar sin aplicar no se presenta como éxito.
 
+118. Pay Slice A: Gestiona Pay ≠ Mercado Pago — 2026-09-02.
+     Medio canónico de tienda `gestiona_pay` (alias `mercadopago` en
+     lectura). Commerce y checkout dicen «Gestiona Pay»; letter chica
+     «procesado con Mercado Pago». `medios_de_pago_vivos` y el trigger
+     aceptan ambos y normalizan al canónico. Rail OAuth sigue en
+     `payment_connections.provider = mercadopago`. Guarda en
+     `commercePayHonesty`: no vuelve «Mercado Pago (Gestiona Pay)».
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

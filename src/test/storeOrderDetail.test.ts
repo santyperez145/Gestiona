@@ -74,8 +74,9 @@ describe("inspector de un pedido de tienda", () => {
     }).texto).toBe("Mitre 100 · Rosario, Santa Fe · 2000");
   });
 
-  it("nombra el medio de cobro; no deja mercadopago crudo", () => {
-    expect(storeOrderPaymentMethodLabel("mercadopago")).toBe("Mercado Pago");
+  it("nombra el medio de cobro; Gestiona Pay, no mercadopago crudo", () => {
+    expect(storeOrderPaymentMethodLabel("gestiona_pay")).toBe("Gestiona Pay");
+    expect(storeOrderPaymentMethodLabel("mercadopago")).toBe("Gestiona Pay");
     expect(storeOrderPaymentMethodLabel("transferencia")).toBe("Transferencia");
     expect(storeOrderPaymentMethodLabel("")).toBe("Sin medio");
   });
@@ -85,7 +86,7 @@ describe("inspector de un pedido de tienda", () => {
     expect(detail).toMatchObject({
       units: 2,
       itemsTotal: 14000,
-      paymentMethodLabel: "Mercado Pago",
+      paymentMethodLabel: "Gestiona Pay",
     });
     expect(detail?.address.texto).toContain("Corrientes");
     expect(JSON.stringify(detail)).not.toMatch(/margen|profit|cost_of_goods/i);

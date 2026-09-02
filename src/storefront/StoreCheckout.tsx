@@ -11,7 +11,7 @@ import { trackBeginCheckout } from "./tracking";
 import { precioConMedioDePago, porcentajeDe, nombreMedio } from "@/lib/paymentDiscount";
 import { normalizarEmail } from "@/lib/couponRules";
 import { requiereDireccionDeEntrega } from "@/lib/checkoutDelivery";
-import { mediosDePagoOfrecibles } from "@/lib/gestionaPay";
+import { mediosDePagoOfrecibles, esMedioGestionaPay } from "@/lib/gestionaPay";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -28,7 +28,8 @@ interface ShippingOption {
 }
 
 const METODO_LABEL: Record<string, string> = {
-  mercadopago: "Mercado Pago",
+  gestiona_pay: "Gestiona Pay",
+  mercadopago: "Gestiona Pay",
   transferencia: "Transferencia bancaria",
   efectivo: "Efectivo al recibir",
 };
@@ -410,11 +411,11 @@ export default function StoreCheckout() {
       console.error("No se pudo solicitar el email transaccional del pedido", emailError);
     });
 
-    // Con MercadoPago se manda al checkout externo; el webhook confirma el
-    // pago y de ahí vuelve a la página del pedido. Si falla la generación del
-    // link no se pierde nada: la orden ya está creada y se puede pagar después
-    // desde esa misma página.
-    if (form.metodo === "mercadopago") {
+    // Con Gestiona Pay se manda al checkout del rail (Mercado Pago); el webhook
+    // confirma el pago y de ahí vuelve a la página del pedido. Si falla la
+    // generación del link no se pierde nada: la orden ya está creada y se puede
+    // pagar después desde esa misma página.
+    if (esMedioGestionaPay(form.metodo)) {
       setEnviando(true);
       const { data: pay, error: payErr } = await supabase.functions.invoke("store-pay", {
         body: { slug: store!.slug, orderNumber, accessToken, returnUrl: window.location.origin },
@@ -651,7 +652,7 @@ export default function StoreCheckout() {
                 );
               })}
             </div>
-            {metodos.some(m => m !== "mercadopago") && (
+            {metodos.some(m => !esMedioGestionaPay(m)) && (
             <p className="text-xs mt-2" style={{ color: "hsl(var(--st-muted))" }}>
               Te contactamos para coordinar el pago y la entrega apenas recibamos el pedido.
             </p>
@@ -799,7 +800,7 @@ export default function StoreCheckout() {
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >
             {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-            {enviando ? "Confirmando..." : form.metodo === "mercadopago" ? "Continuar a MercadoPago" : "Confirmar pedido"}
+            {enviando ? "Confirmando..." : esMedioGestionaPay(form.metodo) ? "Continuar a Gestiona Pay" : "Confirmar pedido"}
           </button>
 
           <p className="text-[11px] text-center" style={{ color: "hsl(var(--st-muted))" }}>

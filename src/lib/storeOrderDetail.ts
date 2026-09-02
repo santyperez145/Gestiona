@@ -91,12 +91,10 @@ export function parseStoreOrderItems(raw: unknown): StoreOrderItem[] {
 }
 
 export function storeOrderPaymentMethodLabel(method: string | null | undefined) {
-  switch (method) {
-    case "mercadopago": return "Mercado Pago";
-    case "transferencia": return "Transferencia";
-    case "efectivo": return "Efectivo / retiro";
-    default: return method?.trim() || "Sin medio";
-  }
+  if (method === "gestiona_pay" || method === "mercadopago") return "Gestiona Pay";
+  if (method === "transferencia") return "Transferencia";
+  if (method === "efectivo") return "Efectivo / retiro";
+  return method?.trim() || "Sin medio";
 }
 
 export function formatStoreOrderAddress(raw: Record<string, string> | null | undefined) {

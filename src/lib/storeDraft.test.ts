@@ -130,7 +130,7 @@ describe("la tienda no nace con la identidad de Exentry", () => {
     });
     expect(form.free_shipping_above).toBe("");
     expect(form.shipping_cost).toBe("0");
-    expect(form.payment_methods).toEqual(["mercadopago", "transferencia"]);
+    expect(form.payment_methods).toEqual(["gestiona_pay", "transferencia"]);
     expect(form.primary_color).toBe("#f59e0b");
   });
 

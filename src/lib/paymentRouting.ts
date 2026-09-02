@@ -20,16 +20,17 @@
 
 /** Los métodos con los que trabaja la tienda. */
 export type MetodoPago =
-  | "efectivo" | "transferencia" | "mercadopago" | "tarjeta" | "debito";
+  | "efectivo" | "transferencia" | "mercadopago" | "gestiona_pay" | "tarjeta" | "debito";
 
 /**
  * Traduce al vocabulario de `payment_provider_fees`.
  *
  * ⚠️ Espejo exacto de `public.pago_metodo_de_tarifa`. Son **dos vocabularios
- * distintos** conviviendo: la tienda dice `mercadopago` y la tabla de tarifas
- * dice `wallet` o `credit`. No cruzarlos hizo que el ruteo por costo devolviera
- * **cero** para todo — y un proveedor que parece gratis gana cualquier
- * comparación de costo. Lo encontró la verificación, no la lectura del código.
+ * distintos** conviviendo: la tienda dice `gestiona_pay` (o el alias
+ * `mercadopago`) y la tabla de tarifas dice `wallet` o `credit`. No cruzarlos
+ * hizo que el ruteo por costo devolviera **cero** para todo — y un proveedor
+ * que parece gratis gana cualquier comparación de costo. Lo encontró la
+ * verificación, no la lectura del código.
  *
  * La distinción entre `wallet` y `credit` es plata real: un pago en una cuota
  * por la billetera cuesta 4,79% y el mismo monto en cuotas cuesta 12,9%.
@@ -40,7 +41,8 @@ export function metodoDeTarifa(metodo: string, cuotas = 1): string {
   switch (m) {
     case "efectivo":      return "cash";
     case "transferencia": return "transfer";
-    case "mercadopago":   return n > 1 ? "credit" : "wallet";
+    case "mercadopago":
+    case "gestiona_pay": return n > 1 ? "credit" : "wallet";
     case "tarjeta":       return "credit";
     case "debito":        return "debit";
     default:              return "default";

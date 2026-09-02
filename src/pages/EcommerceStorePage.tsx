@@ -54,6 +54,12 @@ import {
 } from "@/lib/storeDraft";
 import { estadoPublicacionLegal } from "@/lib/legalPages";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
+import {
+  esMedioGestionaPay,
+  MEDIO_GESTIONA_PAY,
+  normalizarDescuentosMedios,
+  normalizarMediosTienda,
+} from "@/lib/gestionaPay";
 import { STORE_ORDER_QUEUE_LIMIT, storeOrderFulfillmentLabel, storeOrderFulfillmentTone } from "@/lib/storeOrderQueue";
 import { findStoreOrderForInspect, isStoreOrderInspectId } from "@/lib/storeOrderDetail";
 import PageHeader from "@/components/shared/PageHeader";
@@ -78,7 +84,7 @@ const SHIPPING_MODES = [
 ];
 
 const PAYMENT_METHODS = [
-  { id: "mercadopago",    label: "Mercado Pago (Gestiona Pay)", logo: "🔵" },
+  { id: "gestiona_pay",   label: "Gestiona Pay", hint: "Procesado con Mercado Pago", logo: "🔵" },
   { id: "transferencia",  label: "Transferencia",  logo: "🏦" },
   { id: "efectivo",       label: "Efectivo / retiro", logo: "💵" },
 ];
@@ -446,8 +452,8 @@ export default function EcommerceStorePage() {
       free_shipping_above: envioGratisAlGuardar(storeForm.free_shipping_above),
       shipping_cost: costoEnvioAlGuardar(storeForm.shipping_cost),
       is_active: isActive,
-      payment_methods: storeForm.payment_methods,
-      payment_discounts: storeForm.payment_discounts,
+      payment_methods: normalizarMediosTienda(storeForm.payment_methods),
+      payment_discounts: normalizarDescuentosMedios(storeForm.payment_discounts),
       payment_discount_stacks: storeForm.payment_discount_stacks,
       font: storeForm.font,
       description: storeForm.description || null,
@@ -556,7 +562,7 @@ export default function EcommerceStorePage() {
   const leadWithPay = storeShouldLeadWithPay({
     publishedProducts: signals.publishedProducts,
     paymentConnected: signals.paymentConnected,
-    wantsMercadoPago: methods.includes("mercadopago"),
+    wantsMercadoPago: methods.some(esMedioGestionaPay),
     hasOfflinePayment: methods.some((m) => m === "transferencia" || m === "efectivo"),
   });
   const retiroSugerido = storeForm.pickup_enabled
@@ -732,7 +738,7 @@ export default function EcommerceStorePage() {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">Gestiona Pay todavía no está activo</p>
                 <p className="mt-0.5 text-[12px] text-muted-foreground">
-                  Sin Mercado Pago conectado el checkout no ofrece ese medio. Transferencia o efectivo sí pueden cobrar.
+                  Sin Gestiona Pay activo el checkout no ofrece cobro online. Transferencia o efectivo sí pueden cobrar.
                 </p>
               </div>
               <Button size="sm" className="min-h-11 shrink-0" onClick={() => goToTab("settings")}>
@@ -1230,35 +1236,54 @@ export default function EcommerceStorePage() {
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
             <h3 className="font-semibold">Métodos de cobro</h3>
             <p className="text-xs text-muted-foreground">
-              Gestiona Pay en Argentina orquesta Mercado Pago. Stripe y PayPal no se ofrecen:
-              no hay adapter vivo. El descuento se aplica sobre la mercadería, nunca sobre el envío.
+              Gestiona Pay es el producto de cobro (como Pago Nube). En Argentina el
+              procesamiento corre por Mercado Pago — no es un medio aparte. Stripe y
+              PayPal no se ofrecen: no hay adapter vivo. El descuento se aplica sobre
+              la mercadería, nunca sobre el envío.
             </p>
             <div className="space-y-2">
               {PAYMENT_METHODS.map(pm => {
-                const enabled = storeForm.payment_methods.includes(pm.id);
+                const enabled = pm.id === MEDIO_GESTIONA_PAY
+                  ? storeForm.payment_methods.some(esMedioGestionaPay)
+                  : storeForm.payment_methods.includes(pm.id);
                 const pct = Number(storeForm.payment_discounts?.[pm.id] ?? 0);
                 return (
                   <div key={pm.id} className="p-3 bg-muted/20 rounded-lg space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span>{pm.logo}</span>
-                        <span className="text-sm">{pm.label}</span>
+                        <div>
+                          <span className="text-sm">{pm.label}</span>
+                          {"hint" in pm && pm.hint ? (
+                            <p className="text-[11px] text-muted-foreground">{pm.hint}</p>
+                          ) : null}
+                        </div>
                       </div>
-                      <button onClick={() => setStoreForm(p => ({
-                        ...p,
-                        payment_methods: enabled
-                          ? p.payment_methods.filter(x => x !== pm.id)
-                          : [...p.payment_methods, pm.id]
-                      }))} className={`w-10 h-5 rounded-full transition-all ${enabled ? "bg-emerald-500" : "bg-muted"}`}>
+                      <button onClick={() => setStoreForm(p => {
+                        if (pm.id === MEDIO_GESTIONA_PAY) {
+                          return {
+                            ...p,
+                            payment_methods: enabled
+                              ? p.payment_methods.filter(x => !esMedioGestionaPay(x))
+                              : normalizarMediosTienda([...p.payment_methods, MEDIO_GESTIONA_PAY]),
+                          };
+                        }
+                        return {
+                          ...p,
+                          payment_methods: enabled
+                            ? p.payment_methods.filter(x => x !== pm.id)
+                            : [...p.payment_methods, pm.id],
+                        };
+                      })} className={`w-10 h-5 rounded-full transition-all ${enabled ? "bg-emerald-500" : "bg-muted"}`}>
                         <div className={`w-4 h-4 bg-white rounded-full m-0.5 transition-transform ${enabled ? "translate-x-5" : "translate-x-0"}`} />
                       </button>
                     </div>
                     {/* El descuento sólo se ofrece si el medio está habilitado:
                         configurarlo para uno que no se acepta no haría nada y
                         además se anunciaría mal en la vitrina. */}
-                    {enabled && pm.id === "mercadopago" && !signals.paymentConnected && (
+                    {enabled && pm.id === MEDIO_GESTIONA_PAY && !signals.paymentConnected && (
                       <p className="text-[11px] text-muted-foreground pl-7">
-                        El checkout lo muestra cuando Gestiona Pay esté activo. Sin Mercado Pago conectado el comprador no lo ve.
+                        El checkout lo muestra cuando actives Gestiona Pay (OAuth con Mercado Pago). Sin eso el comprador no lo ve.
                       </p>
                     )}
                     {enabled && pm.id === "transferencia" && (

@@ -14,6 +14,7 @@
 import { firstProductPath } from '@/lib/activationHandoff';
 import { accionLegalDelChecklist } from '@/lib/legalPages';
 import { storeBankTransferReady, storeOffersBankTransfer } from '@/lib/storeTransfer';
+import { esMedioGestionaPay } from '@/lib/gestionaPay';
 
 export type CheckSeverity = 'blocker' | 'warning' | 'suggestion';
 
@@ -105,8 +106,8 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
 
   // ── Poder cobrar ────────────────────────────────────────────────────────
   const hasOffline = methods.some(m => OFFLINE_METHODS.includes(m));
-  const wantsMp = methods.includes('mercadopago');
-  const canCollect = hasOffline || (wantsMp && input.paymentConnected);
+  const wantsPay = methods.some(esMedioGestionaPay);
+  const canCollect = hasOffline || (wantsPay && input.paymentConnected);
 
   checks.push({
     id: 'payments',
@@ -114,13 +115,13 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     detail: methods.length === 0
       ? 'No hay ningún medio de pago habilitado: el comprador llega al final y no puede pagar.'
       : !canCollect
-        ? 'Gestiona Pay está habilitado pero Mercado Pago no está conectado, y no hay otro medio: el checkout no puede cobrar.'
-        : wantsMp && input.paymentConnected
-          ? 'Gestiona Pay activo (Mercado Pago).'
+        ? 'Gestiona Pay está marcado pero no está activo, y no hay otro medio: el checkout no puede cobrar.'
+        : wantsPay && input.paymentConnected
+          ? 'Gestiona Pay activo (procesado con Mercado Pago).'
           : 'Cobro por transferencia o efectivo habilitado.',
     severity: 'blocker',
     done: canCollect,
-    actionLabel: wantsMp && !input.paymentConnected ? 'Activar Gestiona Pay' : 'Ver medios de pago',
+    actionLabel: wantsPay && !input.paymentConnected ? 'Activar Gestiona Pay' : 'Ver medios de pago',
     // Medios de la tienda y OAuth de Pay viven en Commerce → Pagos y envíos.
     actionHref: '/tienda-online?tab=settings',
   });
@@ -145,21 +146,21 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     });
   }
 
-  // El interruptor de Mercado Pago no cobra: cobra la conexión. Con
-  // transferencia el bloqueante de arriba no dispara, y el comprador igual
+  // El interruptor de Gestiona Pay no cobra: cobra la conexión OAuth.
+  // Con transferencia el bloqueante de arriba no dispara, y el comprador igual
   // veía un medio muerto. Aviso, no bloqueo: todavía se puede vender offline.
   checks.push({
     id: 'pay-rail',
     title: 'Activar Gestiona Pay',
-    detail: !wantsMp
-      ? 'La tienda no ofrece Mercado Pago.'
+    detail: !wantsPay
+      ? 'La tienda no ofrece Gestiona Pay.'
       : input.paymentConnected
-        ? 'Gestiona Pay activo: el checkout puede ofrecer Mercado Pago.'
+        ? 'Gestiona Pay activo: el checkout puede cobrar online.'
         : hasOffline
-          ? 'Mercado Pago está marcado, pero el checkout no lo va a ofrecer hasta que conectes la cuenta. El comprador sólo ve transferencia o efectivo.'
-          : 'Sin Gestiona Pay el checkout no puede cobrar con Mercado Pago.',
+          ? 'Gestiona Pay está marcado, pero el checkout no lo va a ofrecer hasta que actives la cuenta. El comprador sólo ve transferencia o efectivo.'
+          : 'Sin Gestiona Pay activo el checkout no puede cobrar online.',
     severity: 'warning',
-    done: !wantsMp || input.paymentConnected,
+    done: !wantsPay || input.paymentConnected,
     actionLabel: 'Activar Gestiona Pay',
     actionHref: '/tienda-online?tab=settings',
   });

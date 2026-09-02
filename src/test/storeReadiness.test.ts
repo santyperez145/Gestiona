@@ -120,7 +120,7 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
     expect(r.canPublish).toBe(true);
   });
 
-  it('sin Mercado Pago no exige Gestiona Pay', () => {
+  it('sin Gestiona Pay no exige el rail OAuth', () => {
     const r = evaluateStoreReadiness(tiendaLista({
       store: { ...tiendaLista().store!, payment_methods: ['efectivo'] },
       paymentConnected: false,
