@@ -71,6 +71,27 @@ describe('evaluateActivationReadiness', () => {
     expect(result.next?.id).toBe('stock');
   });
 
+  it('un catálogo vacío manda al formulario, no a un listado genérico', () => {
+    const pos = evaluateActivationReadiness(ready({
+      catalog_products_count: 0,
+      catalog_ready: false,
+      sellable_stock_products_count: 0,
+      stock_ready: false,
+    }));
+    const online = evaluateActivationReadiness(ready({
+      onboarding_goal: 'online',
+      catalog_products_count: 0,
+      catalog_ready: false,
+      sellable_stock_products_count: 0,
+      stock_ready: false,
+    }));
+
+    expect(pos.milestones.find(item => item.id === 'catalog')?.href)
+      .toBe('/productos?onboarding=1&goal=pos');
+    expect(online.milestones.find(item => item.id === 'catalog')?.href)
+      .toBe('/productos?onboarding=1&goal=online');
+  });
+
   it('exige elegir canal cuando el comercio sólo está explorando', () => {
     const result = evaluateActivationReadiness(ready({ onboarding_goal: 'explore' }));
 

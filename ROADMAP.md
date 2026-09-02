@@ -2928,6 +2928,17 @@ Finance Connect.
     typecheck OK; lint 0 errores y 139 warnings conocidos. Alta ZZ:
     canal `explore`, formulario sin hacer, 0 restos.
 
+92. El wizard no deja el primer producto en un query huérfano — 2026-09-01.
+    Elegir POS o tienda escribía `?onboarding=1&goal=…` y nadie lo leía:
+    Productos mostraba un vacío genérico y Commerce un embudo en cero
+    con el aviso de Mercado Pago primero. Ahora el catálogo vacío abre
+    el formulario (una vez, si hay permiso), el copy depende del canal
+    y Commerce manda a cargar producto antes de publicar. El checklist
+    y el readiness de la tienda reusan `firstProductPath`. El placeholder
+    del wizard dejó de ser «Perfumería Andrea».
+    Verificado en este recorte: **2.200/2.200 pruebas en 225 archivos**;
+    typecheck OK; lint 0 errores y 139 warnings conocidos.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

@@ -194,7 +194,7 @@ export default function OnboardingPage() {
                   id="name"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="Ej: Perfumería Andrea"
+                  placeholder="Ej: Mi negocio"
                   className="mt-2"
                   autoFocus
                 />

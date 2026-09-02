@@ -1,3 +1,5 @@
+import { firstProductPath } from '@/lib/activationHandoff';
+
 export type ActivationGoal = 'pos' | 'online' | 'explore';
 export type EffectiveActivationGoal = Exclude<ActivationGoal, 'explore'>;
 
@@ -102,7 +104,7 @@ export function evaluateActivationReadiness(signals: ActivationReadinessSignals)
         ? `${catalogCount} ${catalogCount === 1 ? 'producto activo con precio' : 'productos activos con precio'}.`
         : 'Cargá al menos un producto activo con precio de venta.',
       done: Boolean(signals.catalog_ready),
-      href: '/productos',
+      href: catalogCount === 0 ? firstProductPath(effectiveGoal) : '/productos',
       actionLabel: 'Cargar producto',
       owner: 'merchant',
     },

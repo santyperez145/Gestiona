@@ -21,6 +21,7 @@ import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, TrendingUp, Uploa
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { recommendSimilar } from "@/lib/perfumeMatch";
 import { elCatalogoOperaPerfumes } from "@/lib/catalogIndustry";
+import { firstProductEmptyCopy, parseActivationHandoff } from "@/lib/activationHandoff";
 import { normalizeText, literalFilter } from "@/lib/searchText";
 import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice } from "@/lib/pricing";
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
@@ -324,6 +325,8 @@ export default function ProductsPage() {
   const { productLimit, plan } = useEntitlements();
   const { online } = useNetworkStatus();
   const [identityParams, setIdentityParams] = useSearchParams();
+  const { fromWizard, goal: handoffGoal } = parseActivationHandoff(identityParams);
+  const firstProductCopy = firstProductEmptyCopy(handoffGoal);
   // Module-aware permissions: admins can grant/deny per-module via role_permissions
   // (falls back to role defaults if no DB rows exist)
   const { canCreate, canEdit, canDelete } = useModulePermissions("products");
@@ -394,6 +397,7 @@ export default function ProductsPage() {
   const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const hasLoadedDataRef = useRef(false);
+  const handoffOpenedRef = useRef(false);
   const loadRequestRef = useRef(0);
   const activeOrgIdRef = useRef<string | null>(activeOrg?.id ?? null);
   const loadedOrgIdRef = useRef<string | null>(null);
@@ -571,6 +575,25 @@ export default function ProductsPage() {
     next.delete("identity");
     setIdentityParams(next, { replace: true });
   }, [identityParams, loading, products, setIdentityParams]);
+
+  useEffect(() => {
+    handoffOpenedRef.current = false;
+  }, [activeOrg?.id]);
+
+  // El wizard promete cargar el primer producto. Sin esto, `?onboarding=1`
+  // aterriza en un catálogo vacío y el clic de "empezar a vender" se pierde.
+  useEffect(() => {
+    if (handoffOpenedRef.current) return;
+    if (identityParams.get("identity")) return;
+    if (!fromWizard || loading || !hasLoadedData) return;
+    if (loadedOrgIdRef.current !== activeOrg?.id) return;
+    if (products.length > 0) return;
+    if (!canCreate) return;
+    if (productLimit !== null && products.length >= productLimit) return;
+    handoffOpenedRef.current = true;
+    setEditing(null);
+    setOpen(true);
+  }, [activeOrg?.id, canCreate, fromWizard, hasLoadedData, identityParams, loading, productLimit, products.length]);
 
   const saveInlineStock = async (productId: string, newStock: string) => {
     const parsed = parseInt(newStock, 10);
@@ -1503,12 +1526,12 @@ export default function ProductsPage() {
         <WorkspaceState
           kind={products.length === 0 ? "empty-first-use" : "empty-filtered"}
           icon={Package}
-          title={products.length === 0 ? 'Todavía no hay productos' : 'Ningún producto coincide'}
+          title={products.length === 0 ? firstProductCopy.title : 'Ningún producto coincide'}
           description={products.length === 0
-            ? (canCreate ? 'Creá el primer producto para activar catálogo, stock y rentabilidad por canal.' : 'Tu organización todavía no cargó productos.')
+            ? (canCreate ? firstProductCopy.description : 'Tu organización todavía no cargó productos.')
             : 'Limpiá los filtros para volver a ver el catálogo completo.'}
           actionLabel={products.length === 0
-            ? (canCreate && (productLimit === null || products.length < productLimit) ? 'Nuevo producto' : undefined)
+            ? (canCreate && (productLimit === null || products.length < productLimit) ? firstProductCopy.actionLabel : undefined)
             : 'Limpiar filtros'}
           onAction={products.length === 0
             ? (canCreate && (productLimit === null || products.length < productLimit) ? () => setOpen(true) : undefined)

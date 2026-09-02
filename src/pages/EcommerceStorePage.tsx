@@ -15,7 +15,7 @@ import {
   Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin,
   Image as ImageIcon, Type,
 } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
 import StoreOrdersPanel from "@/components/ecommerce/StoreOrdersPanel";
 import StoreOrderInspector from "@/components/ecommerce/StoreOrderInspector";
@@ -30,12 +30,14 @@ import StoreBannersEditor from "@/components/ecommerce/StoreBannersEditor";
 import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
 import ImageUpload from "@/components/shared/ImageUpload";
 import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
+import { parseActivationHandoff, storeHandoffCopy } from "@/lib/activationHandoff";
 import { estadoPublicacionLegal } from "@/lib/legalPages";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
 import { STORE_ORDER_QUEUE_LIMIT, storeOrderFulfillmentLabel, storeOrderFulfillmentTone } from "@/lib/storeOrderQueue";
 import { findStoreOrderForInspect, isStoreOrderInspectId } from "@/lib/storeOrderDetail";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import WorkspaceState from "@/components/shared/WorkspaceState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const THEMES = [
@@ -107,7 +109,9 @@ function isStoreTab(value: string | null): value is StoreTab {
 export default function EcommerceStorePage() {
   usePageTitle("Gestiona Commerce");
   const { orgId } = useOrganization();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { fromWizard } = parseActivationHandoff(searchParams);
   const requestedTab = searchParams.get("tab");
   const tab: StoreTab = isStoreTab(requestedTab) ? requestedTab : "overview";
   const goToTab = (next: StoreTab) => {
@@ -463,6 +467,10 @@ export default function EcommerceStorePage() {
     ...signals,
   }), [storeForm, store?.logo_url, store?.slug, signals]);
 
+  const catalogHandoff = fromWizard && signals.publishedProducts === 0
+    ? storeHandoffCopy()
+    : null;
+
   const TABS: { id: StoreTab; label: string }[] = [
     { id: "overview",  label: "Publicar" },
     { id: "orders",    label: "Pedidos" },
@@ -592,6 +600,16 @@ export default function EcommerceStorePage() {
       {/* ─── Overview ─── */}
       {tab === "overview" && (
         <div className="space-y-6">
+          {catalogHandoff && (
+            <WorkspaceState
+              kind="empty-first-use"
+              icon={Package}
+              title={catalogHandoff.title}
+              description={catalogHandoff.description}
+              actionLabel={catalogHandoff.actionLabel}
+              onAction={() => navigate(catalogHandoff.href)}
+            />
+          )}
           {!signals.paymentConnected && (
             <div className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/[0.06] p-4 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">

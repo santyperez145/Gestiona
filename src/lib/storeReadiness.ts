@@ -11,6 +11,8 @@
  * "publiqué mi tienda" y "mi tienda vende".
  */
 
+import { firstProductPath } from '@/lib/activationHandoff';
+
 export type CheckSeverity = 'blocker' | 'warning' | 'suggestion';
 
 export interface ReadinessCheck {
@@ -89,7 +91,7 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     severity: 'blocker',
     done: input.publishedProducts > 0,
     actionLabel: 'Ir a Productos',
-    actionHref: '/productos',
+    actionHref: input.publishedProducts === 0 ? firstProductPath('online') : '/productos',
   });
 
   // ── Poder cobrar ────────────────────────────────────────────────────────

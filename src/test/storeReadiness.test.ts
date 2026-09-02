@@ -47,6 +47,8 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
     const r = evaluateStoreReadiness(tiendaLista({ publishedProducts: 0 }));
     expect(idsDe(r.blockers)).toContain('products');
     expect(r.canPublish).toBe(false);
+    expect(r.blockers.find(c => c.id === 'products')?.actionHref)
+      .toBe('/productos?onboarding=1&goal=online');
   });
 
   it('sin ningún medio de pago no se puede cobrar', () => {

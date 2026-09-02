@@ -48,6 +48,11 @@ describe("el onboarding no elige el rubro por el comercio", () => {
     expect(onboarding).not.toContain("useState('#D4A843')");
   });
 
+  it("el ejemplo del nombre no es una perfumería", () => {
+    expect(onboarding).not.toContain("Perfumería Andrea");
+    expect(onboarding).toContain('placeholder="Ej: Mi negocio"');
+  });
+
   it("la base tampoco pone un rubro por default", () => {
     expect(migracion).toContain("ALTER COLUMN industry_code DROP DEFAULT");
   });

@@ -38,6 +38,15 @@ describe('instrumentación de activación', () => {
     expect(ONBOARDING.indexOf("finish('online')")).toBeLessThan(ONBOARDING.indexOf("finish('pos')"));
   });
 
+  it('Productos y Commerce leen el query del wizard; no es un toast huérfano', () => {
+    const PRODUCTS = read('src/pages/ProductsPage.tsx');
+    const STORE = read('src/pages/EcommerceStorePage.tsx');
+    expect(PRODUCTS).toContain('parseActivationHandoff');
+    expect(PRODUCTS).toContain('firstProductEmptyCopy');
+    expect(STORE).toContain('parseActivationHandoff');
+    expect(STORE).toContain('storeHandoffCopy');
+  });
+
   it('no confunde exploración opcional con estar listo para vender', () => {
     expect(CHECKLIST).toContain('Ruta a la primera venta');
     expect(CHECKLIST).toContain('no falsean esta medición de activación');
