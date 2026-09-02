@@ -26,9 +26,11 @@ import {
 } from "@/lib/storeOrderPayment";
 import { formatARS } from "@/lib/supabaseStore";
 import { Banknote, Eye, Loader2, Truck } from "lucide-react";
+import OperationMarginPanel from "@/components/shared/OperationMarginPanel";
 
 interface Props {
   open: boolean;
+  orgId?: string;
   order: StoreOrderInspectRow | null;
   requestedId: string | null;
   loading?: boolean;
@@ -46,7 +48,7 @@ function fechaHora(iso: string | null | undefined) {
 }
 
 export default function StoreOrderInspector({
-  open, order, requestedId, loading, confirmingPaid, onClose, onPrepare, onConfirmPaid,
+  open, orgId, order, requestedId, loading, confirmingPaid, onClose, onPrepare, onConfirmPaid,
 }: Props) {
   const detail = buildStoreOrderDetail(order);
   const canShip = order ? canFulfillStoreOrder(order.payment_status) : false;
@@ -113,9 +115,11 @@ export default function StoreOrderInspector({
                     </div>
                   </div>
                   <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-                    El total lo cobró el checkout. El margen de esta venta se lee en Ventas cuando la orden ya está asentada; no se calcula acá a ojo.
+                    El total lo cobró el checkout. El margen canónico (costo, comisión, envío real e IVA) está abajo cuando la venta ya está asentada.
                   </p>
                 </section>
+
+                <OperationMarginPanel orgId={orgId} operationId={detail.order.id} />
 
                 <section aria-labelledby="pedido-cliente">
                   <h3 id="pedido-cliente" className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">

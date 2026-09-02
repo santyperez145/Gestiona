@@ -43,6 +43,7 @@ describe("cola de pedidos en Commerce", () => {
     const inspector = readFileSync(resolve(ROOT, "src/components/ecommerce/StoreOrderInspector.tsx"), "utf8");
     expect(inspector).toContain('data-testid="store-order-inspector"');
     expect(inspector).toContain('className="flex w-full flex-col p-0 sm:max-w-2xl"');
+    expect(inspector).toContain("OperationMarginPanel");
     expect(panel).toContain("onInspect");
     expect(panel).toContain('aria-label={`Ver detalle de ${o.order_number}`}');
   });

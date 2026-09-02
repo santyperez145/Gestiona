@@ -56,6 +56,11 @@ const MISSING_LABELS: Record<string, string> = {
   devolucion_neta: "neteo de devolución",
 };
 
+/** Rótulo humano de un código de `missing_components` / `margin_blockers`. */
+export function labelMissingMarginComponent(code: string): string {
+  return MISSING_LABELS[code] || code;
+}
+
 const roundMoney = (amount: number) => Math.round((amount + Number.EPSILON) * 100) / 100;
 const roundOne = (amount: number) => Math.round((amount + Number.EPSILON) * 10) / 10;
 

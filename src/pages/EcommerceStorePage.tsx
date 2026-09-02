@@ -690,6 +690,11 @@ export default function EcommerceStorePage() {
           <button key={t.id} onClick={() => goToTab(t.id)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {t.label}
+            {t.id === "carritos" && abandonedCarts > 0 ? (
+              <span className="ml-1.5 text-[10px] tabular-nums text-amber-600 dark:text-amber-400">
+                {abandonedCarts}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
@@ -740,6 +745,7 @@ export default function EcommerceStorePage() {
       />
       <StoreOrderInspector
         open={Boolean(pedidoId)}
+        orgId={orgId}
         order={inspectedOrder}
         requestedId={pedidoId}
         loading={Boolean(pedidoId) && !inspectedOrder && (ordersLoading || pedidoExtraLoading)}

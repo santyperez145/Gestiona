@@ -34,6 +34,7 @@ import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { buildSaleTicketDetail, type SaleTicketDetail } from "@/lib/saleTicketDetail";
 import { productoEsPerfume } from "@/lib/catalogIndustry";
 import { listProductTypes } from "@/lib/productTypes";
+import OperationMarginPanel from "@/components/shared/OperationMarginPanel";
 
 import { plural } from "@/lib/plural";
 const PAGE_SIZE = 20;
@@ -90,12 +91,14 @@ function labelSource(source: string): string {
 
 function SaleTicketInspector({
   open,
+  orgId,
   detail,
   requestedId,
   onClose,
   onAnalyze,
 }: {
   open: boolean;
+  orgId?: string;
   detail: SaleTicketDetail | null;
   requestedId: string | null;
   onClose: () => void;
@@ -172,9 +175,11 @@ function SaleTicketInspector({
                     </div>
                   </div>
                   <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-                    Importes leídos de las líneas canónicas de Ventas. Si existe una devolución, el estado queda visible y el margen debe revisarse en Rendimiento.
+                    La ganancia registrada es ingreso − costo de mercadería de las líneas. El margen canónico (comisión, envío real e IVA) está abajo cuando hay hechos — no se completa a ojo.
                   </p>
                 </section>
+
+                <OperationMarginPanel orgId={orgId} operationId={detail.id} />
 
                 <section aria-labelledby="ticket-context-title">
                   <h3 id="ticket-context-title" className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -877,6 +882,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
     <div className="workspace-page workspace-sales space-y-6 pb-12">
       <SaleTicketInspector
         open={Boolean(selectedSaleId)}
+        orgId={activeOrg?.id}
         detail={saleTicketDetail}
         requestedId={selectedSaleId}
         onClose={closeSaleDetail}
