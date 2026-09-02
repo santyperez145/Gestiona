@@ -462,6 +462,7 @@ export default function EcommerceStorePage() {
       pickup_enabled: storeForm.pickup_enabled,
       pickup_address: storeForm.pickup_address || null,
       shipping_cost: costoEnvioAlGuardar(storeForm.shipping_cost),
+      notification_email: storeForm.notification_email || null,
     },
     ...signals,
   }), [storeForm, store?.logo_url, store?.slug, signals]);

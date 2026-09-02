@@ -40,6 +40,7 @@ export interface StoreReadinessInput {
     pickup_enabled?: boolean | null;
     pickup_address?: string | null;
     shipping_cost?: number | null;
+    notification_email?: string | null;
   } | null;
   /** Productos publicables: con stock y con precio */
   publishedProducts: number;
@@ -114,9 +115,8 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     severity: 'blocker',
     done: canCollect,
     actionLabel: wantsMp && !input.paymentConnected ? 'Activar Gestiona Pay' : 'Ver medios de pago',
-    actionHref: wantsMp && !input.paymentConnected
-      ? '/tienda-online?tab=settings'
-      : '/integraciones',
+    // Medios de la tienda y OAuth de Pay viven en Commerce → Pagos y envíos.
+    actionHref: '/tienda-online?tab=settings',
   });
 
   // El interruptor de Mercado Pago no cobra: cobra la conexión. Con
@@ -252,6 +252,21 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     done: legalDone,
     actionLabel: legalAction.actionLabel,
     actionHref: legalAction.actionHref,
+  });
+
+  // Aviso, no bloqueo: store-order-email cae al email del dueño. Sin casilla
+  // de la tienda los legales también piden un contacto al generar.
+  const avisoEmail = String(s?.notification_email ?? '').trim();
+  checks.push({
+    id: 'notification-email',
+    title: 'Email para avisos de venta',
+    detail: avisoEmail
+      ? 'Los pedidos nuevos llegan a ese correo.'
+      : 'Sin email de la tienda, los avisos de pedido van al correo con el que iniciás sesión. Conviene uno de ventas.',
+    severity: 'warning',
+    done: !!avisoEmail,
+    actionLabel: 'Cargar email',
+    actionHref: '/tienda-online?tab=settings',
   });
 
   checks.push({

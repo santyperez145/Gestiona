@@ -3130,6 +3130,12 @@ Finance Connect.
      `/tienda-online` sin tab: el overview. Ahora van a `settings` o
      `design`, donde está el control. Pay-rail igual.
 
+110. El checklist avisa el email de ventas — 2026-09-02.
+     Sin `notification_email` los avisos caen al login del dueño y los
+     legales piden un contacto al generar. Es warning, no bloqueo. Los
+     medios de cobro del checklist también apuntan a Pagos y envíos, no
+     a Integraciones.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

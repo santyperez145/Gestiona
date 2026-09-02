@@ -19,6 +19,7 @@ function tiendaLista(over: Partial<StoreReadinessInput> = {}): StoreReadinessInp
       pickup_enabled: false,
       pickup_address: null,
       shipping_cost: 2500,
+      notification_email: 'ventas@ejemplo.com',
     },
     publishedProducts: 12,
     productsWithoutWeight: 0,
@@ -214,6 +215,16 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
 });
 
 describe('evaluateStoreReadiness — avisos', () => {
+  it('avisa si falta el email de avisos de la tienda', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      store: { ...tiendaLista().store!, notification_email: null },
+    }));
+    expect(idsDe(r.warnings)).toContain('notification-email');
+    expect(r.canPublish).toBe(true);
+    expect(r.warnings.find(c => c.id === 'notification-email')?.actionHref)
+      .toBe('/tienda-online?tab=settings');
+  });
+
   it('avisa las provincias sin cobertura', () => {
     const r = evaluateStoreReadiness(tiendaLista({ coveredProvinces: 18 }));
     const c = r.warnings.find(x => x.id === 'coverage')!;
