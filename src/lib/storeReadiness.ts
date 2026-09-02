@@ -114,7 +114,9 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     severity: 'blocker',
     done: canCollect,
     actionLabel: wantsMp && !input.paymentConnected ? 'Activar Gestiona Pay' : 'Ver medios de pago',
-    actionHref: wantsMp && !input.paymentConnected ? '/tienda-online' : '/integraciones',
+    actionHref: wantsMp && !input.paymentConnected
+      ? '/tienda-online?tab=settings'
+      : '/integraciones',
   });
 
   // El interruptor de Mercado Pago no cobra: cobra la conexión. Con
@@ -133,7 +135,7 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     severity: 'warning',
     done: !wantsMp || input.paymentConnected,
     actionLabel: 'Activar Gestiona Pay',
-    actionHref: '/tienda-online',
+    actionHref: '/tienda-online?tab=settings',
   });
 
   // ── Poder entregar ──────────────────────────────────────────────────────
@@ -210,7 +212,7 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
       severity: 'suggestion',
       done: cost > 0,
       actionLabel: 'Configurar envíos',
-      actionHref: '/tienda-online',
+      actionHref: '/tienda-online?tab=settings',
     });
   }
 
@@ -224,7 +226,7 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     severity: 'blocker',
     done: !!s?.slug,
     actionLabel: 'Configurar',
-    actionHref: '/tienda-online',
+    actionHref: '/tienda-online?tab=settings',
   });
 
   // ── Información legal para quien compra ────────────────────────────────
@@ -261,7 +263,7 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     severity: 'suggestion',
     done: !!s?.logo_url,
     actionLabel: 'Diseño',
-    actionHref: '/tienda-online',
+    actionHref: '/tienda-online?tab=design',
   });
 
   checks.push({
@@ -273,7 +275,7 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     severity: 'suggestion',
     done: !!(s?.meta_title || s?.description),
     actionLabel: 'SEO',
-    actionHref: '/tienda-online',
+    actionHref: '/tienda-online?tab=settings',
   });
 
   const blockers = checks.filter(c => c.severity === 'blocker' && !c.done);

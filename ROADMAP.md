@@ -3125,6 +3125,11 @@ Finance Connect.
      fiscal». No se pisa una dirección ya escrita ni se inventa. Es el
      mismo texto que Facturas y legales; el local de retiro puede ser otro.
 
+109. El checklist abre la pestaña correcta — 2026-09-02.
+     «Activar Gestiona Pay», slug, SEO y envío plano mandaban a
+     `/tienda-online` sin tab: el overview. Ahora van a `settings` o
+     `design`, donde está el control. Pay-rail igual.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

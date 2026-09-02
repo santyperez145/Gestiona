@@ -66,8 +66,21 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
     }));
     expect(idsDe(r.blockers)).toContain('payments');
     const payments = r.blockers.find(c => c.id === 'payments');
-    expect(payments?.actionHref).toBe('/tienda-online');
+    expect(payments?.actionHref).toBe('/tienda-online?tab=settings');
     expect(payments?.actionLabel).toBe('Activar Gestiona Pay');
+  });
+
+  it('los avisos de Pay y slug abren la pestaña correcta, no el overview', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      store: { ...tiendaLista().store!, payment_methods: ['mercadopago', 'transferencia'] },
+      paymentConnected: false,
+    }));
+    expect(r.checks.find(c => c.id === 'pay-rail')?.actionHref)
+      .toBe('/tienda-online?tab=settings');
+    expect(r.checks.find(c => c.id === 'slug')?.actionHref)
+      .toBe('/tienda-online?tab=settings');
+    expect(r.checks.find(c => c.id === 'branding')?.actionHref)
+      .toBe('/tienda-online?tab=design');
   });
 
   it('con transferencia alcanza aunque MercadoPago no esté conectado', () => {
