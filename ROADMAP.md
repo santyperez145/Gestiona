@@ -3322,8 +3322,9 @@ Finance Connect.
      «Tienda online». `tituloDeRutaTienda` es espejo de `parseRutaTienda`.
      No se inventa precio ni se toca el borde.
 
-     Verificado en este recorte: **PENDIENTE** (`npm test --
-     --maxWorkers=1 --fileParallelism=false`, 2026-09-02).
+     Verificado en este recorte: **2.419 tests** / 256 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no tiene
+     `VITE_*`: no se afirma la pestaña contra una sesión real.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
