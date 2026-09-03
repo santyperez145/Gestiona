@@ -287,13 +287,13 @@ describe('evaluateStoreReadiness — avisos', () => {
     expect(c.actionHref).toBe('/productos?completar=pesos');
   });
 
-  it('el CTA de tarifas manda a Completar tarifario', () => {
+  it('el CTA de tarifas manda a Precios por provincia', () => {
     const r = evaluateStoreReadiness(tiendaLista({ zonesWithRates: 0 }));
     expect(r.blockers.find(c => c.id === 'shipping-rates')?.actionLabel)
-      .toBe('Completar tarifario');
+      .toBe('Precios por provincia');
   });
 
-  it('sin zonas el CTA no promete Completar tarifario', () => {
+  it('sin zonas el CTA no promete Precios por provincia', () => {
     const r = evaluateStoreReadiness(tiendaLista({
       shippingZones: 0, zonesWithRates: 0, coveredProvinces: 0,
     }));
@@ -309,7 +309,7 @@ describe('evaluateStoreReadiness — avisos', () => {
     }));
     const c = r.warnings.find(x => x.id === 'coverage')!;
     expect(c.detail).toMatch(/retiro/i);
-    expect(c.actionLabel).toBe('Completar tarifario');
+    expect(c.actionLabel).toBe('Precios por provincia');
   });
 
   it('el peso no importa cuando la tienda cobra un precio plano', () => {

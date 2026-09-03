@@ -46,6 +46,7 @@ describe("margen canónico en el punto de decisión", () => {
     const panel = readFileSync(resolve(ROOT, "src/components/shared/OperationMarginPanel.tsx"), "utf8");
     const store = readFileSync(resolve(ROOT, "src/components/ecommerce/StoreOrderInspector.tsx"), "utf8");
     const sales = readFileSync(resolve(ROOT, "src/pages/SalesPage.tsx"), "utf8");
+    const ticket = readFileSync(resolve(ROOT, "src/lib/saleTicketDetail.ts"), "utf8");
 
     expect(panel).toContain('.from("sale_margin_operations")');
     expect(panel).toContain("SELECT_COLS");
@@ -58,6 +59,9 @@ describe("margen canónico en el punto de decisión", () => {
     expect(store).toContain("OperationMarginPanel");
     expect(store).toContain("operationId={detail.order.id}");
     expect(sales).toContain("OperationMarginPanel");
-    expect(sales).toContain("operationId={detail.id}");
+    expect(sales).toContain("operationId={detail.marginOperationId}");
+    expect(sales).not.toContain("operationId={detail.id}");
+    expect(ticket).toContain("marginOperationIdForSale");
+    expect(ticket).toContain("tienda_online");
   });
 });

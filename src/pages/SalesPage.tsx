@@ -104,6 +104,7 @@ function SaleTicketInspector({
   onClose: () => void;
   onAnalyze: () => void;
 }) {
+  const navigate = useNavigate();
   return (
     <Sheet open={open} onOpenChange={nextOpen => { if (!nextOpen) onClose(); }}>
       <SheetContent
@@ -179,7 +180,7 @@ function SaleTicketInspector({
                   </p>
                 </section>
 
-                <OperationMarginPanel orgId={orgId} operationId={detail.id} />
+                <OperationMarginPanel orgId={orgId} operationId={detail.marginOperationId} />
 
                 <section aria-labelledby="ticket-context-title">
                   <h3 id="ticket-context-title" className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -202,6 +203,20 @@ function SaleTicketInspector({
                       <dt className="text-[11px] text-muted-foreground">Vendedor</dt>
                       <dd className="mt-0.5 font-medium">{detail.sellerNames.join(", ") || "Sin vendedor declarado"}</dd>
                     </div>
+                    {detail.ecommerceOrderId && (
+                      <div className="sm:col-span-2">
+                        <dt className="text-[11px] text-muted-foreground">Pedido de tienda</dt>
+                        <dd className="mt-0.5">
+                          <button
+                            type="button"
+                            className="text-sm font-medium text-primary underline-offset-2 hover:underline"
+                            onClick={() => navigate(`/tienda-online?tab=orders&pedido=${detail.ecommerceOrderId}`)}
+                          >
+                            Ver pedido en Tienda
+                          </button>
+                        </dd>
+                      </div>
+                    )}
                   </dl>
                 </section>
 

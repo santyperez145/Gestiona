@@ -3403,6 +3403,18 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Migración
      `20260902000150` aplicada y anotada. Esta PC no tiene `VITE_*`.
 
+137. Margen canónico visible en Ventas online — 2026-09-03.
+     Medido: `sale_margin_operations` usa `ecommerce_order_id` para
+     `tienda_online`; el inspector de Ventas pedía `detail.id`
+     (ticket/línea) y el diferencial quedaba built-but-dark. Tienda
+     ya leía bien. `marginOperationIdForSale` + link al pedido.
+     Foco/readiness CTA → «Precios por provincia». Las 2 ventas $1
+     históricas de Exentry siguen sin `ecommerce_order_id` (pre-link).
+
+     Verificado en este recorte: **2.444 tests** / 258 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

@@ -212,7 +212,7 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
       // así que no impide vender: molesta, no bloquea.
       severity: pickup ? 'warning' : 'blocker',
       done: canQuote,
-      actionLabel: input.shippingZones === 0 ? 'Crear zonas' : 'Completar tarifario',
+      actionLabel: input.shippingZones === 0 ? 'Crear zonas' : 'Precios por provincia',
       actionHref: '/envios?tab=zonas',
     });
 
@@ -231,7 +231,7 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
           : `${faltan} ${faltan === 1 ? 'provincia' : 'provincias'} sin tarifa de envío: un comprador de ahí no puede terminar la compra.`,
         severity: casiTodoElPais && !pickup ? 'blocker' : 'warning',
         done: false,
-        actionLabel: 'Completar tarifario',
+        actionLabel: 'Precios por provincia',
         actionHref: '/envios?tab=zonas',
       });
     }

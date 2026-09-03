@@ -209,19 +209,19 @@ describe("construirPendientes", () => {
     ]);
   });
 
-  it("ATM: tarifario y pesos llevan a Completar*", () => {
+  it("ATM: tarifario y pesos llevan a Precios por provincia / Completar pesos", () => {
     expect(construirPendientes({ ...VACIO, zonasSinTarifa: 0, productosSinPeso: 0 })).toEqual([]);
     const tarifa = construirPendientes({ ...VACIO, zonasSinTarifa: 2 })[0];
     expect(tarifa.id).toBe("tarifario");
     expect(tarifa.destino).toBe("/envios?tab=zonas");
-    expect(tarifa.accion).toBe("Completar tarifario");
+    expect(tarifa.accion).toBe("Precios por provincia");
     const pesos = construirPendientes({ ...VACIO, productosSinPeso: 5 })[0];
     expect(pesos.id).toBe("pesos");
     expect(pesos.destino).toBe("/productos?completar=pesos");
     expect(pesos.accion).toBe("Completar pesos");
   });
 
-  it("tienda publicada sin zonas: Completar tarifario no alcanza", () => {
+  it("tienda publicada sin zonas: Precios por provincia no alcanza", () => {
     expect(construirPendientes({
       ...VACIO, tiendaPublicada: true, zonasActivas: 0, zonasSinTarifa: 0,
     })[0]).toMatchObject({

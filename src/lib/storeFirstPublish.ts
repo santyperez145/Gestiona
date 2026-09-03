@@ -105,7 +105,7 @@ export function storePublishNudges(input: {
       title: 'Completar el tarifario',
       detail:
         'Sin tarifas en casi todo el país el checkout parece andar y falla afuera de tu zona. Con retiro habilitado el comprador sólo puede ir a buscarlo.',
-      actionLabel: 'Completar tarifario',
+      actionLabel: 'Precios por provincia',
       actionHref: '/envios?tab=zonas',
     });
   }

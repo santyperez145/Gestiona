@@ -1,6 +1,8 @@
 export interface SaleTicketLine {
   id: string;
   sale_transaction_id?: string | null;
+  /** Orden de tienda: la autoridad de margen usa este id, no el de la línea. */
+  ecommerce_order_id?: string | null;
   product_name?: string | null;
   quantity?: number | null;
   unit_price_ars?: number | null;
@@ -22,6 +24,12 @@ export interface SaleTicketLine {
 
 export interface SaleTicketDetail {
   id: string;
+  /**
+   * Id que entiende `sale_margin_operations`:
+   * online → ecommerce_order_id; ticket POS → sale_transaction_id; legacy → sales.id.
+   */
+  marginOperationId: string;
+  ecommerceOrderId: string | null;
   code: string;
   selected: SaleTicketLine;
   lines: SaleTicketLine[];
@@ -53,6 +61,23 @@ function uniqueText(values: Array<string | null | undefined>): string[] {
 }
 
 /**
+ * Clave de margen canónico para un renglón / ticket.
+ * Espejo de `sale_margin_operations.operation_id` (migración 20260822000004):
+ * tienda_online → ecommerce_order_id; si falta el enlace, cae al ticket/línea.
+ */
+export function marginOperationIdForSale(line: {
+  id: string;
+  source?: string | null;
+  ecommerce_order_id?: string | null;
+  sale_transaction_id?: string | null;
+}): string {
+  const source = String(line.source ?? "").trim();
+  const orderId = line.ecommerce_order_id?.trim() || null;
+  if (source === "tienda_online" && orderId) return orderId;
+  return line.sale_transaction_id?.trim() || line.id;
+}
+
+/**
  * Construye la lectura de un ticket desde las líneas que ya devolvió la
  * autoridad tenant-scoped de Ventas. No vuelve a consultar ni mezcla la lista
  * filtrada: abrir/cerrar el inspector no cambia la población de trabajo.
@@ -76,9 +101,17 @@ export function buildSaleTicketDetail(
   const profitArs = lines.reduce((total, line) => total + finiteNumber(line.profit_ars), 0);
   const paidLines = lines.filter(line => line.paid === true).length;
   const id = transactionId || selected.id;
+  const ecommerceOrderId = lines
+    .map((line) => line.ecommerce_order_id?.trim())
+    .find(Boolean) || null;
 
   return {
     id,
+    marginOperationId: marginOperationIdForSale({
+      ...selected,
+      ecommerce_order_id: ecommerceOrderId ?? selected.ecommerce_order_id,
+    }),
+    ecommerceOrderId,
     code: id.slice(-8).toUpperCase(),
     selected,
     lines,

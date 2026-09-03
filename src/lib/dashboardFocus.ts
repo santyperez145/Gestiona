@@ -391,7 +391,7 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
     lista.push({
       id: "tarifario",
       texto: `${n} ${n === 1 ? "zona de envío sin tarifa" : "zonas de envío sin tarifa"}`,
-      accion: "Completar tarifario",
+      accion: "Precios por provincia",
       destino: "/envios?tab=zonas",
       urgencia: "atencion",
     });

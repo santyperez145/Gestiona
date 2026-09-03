@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { buildSaleTicketDetail, type SaleTicketLine } from "./saleTicketDetail";
+import { buildSaleTicketDetail, marginOperationIdForSale, type SaleTicketLine } from "./saleTicketDetail";
 
 const lines: SaleTicketLine[] = [
   {
@@ -86,6 +86,32 @@ describe("detalle canónico de un ticket de venta", () => {
     expect(legacy?.isGrouped).toBe(false);
     expect(legacy?.lines).toHaveLength(1);
     expect(legacy?.code).toBe("ABCDEF12");
+    expect(legacy?.marginOperationId).toBe("legacy-abcdef12");
+  });
+
+  it("una venta de tienda usa ecommerce_order_id para el margen canónico", () => {
+    const detail = buildSaleTicketDetail([
+      {
+        id: "sale-line-1",
+        source: "tienda_online",
+        ecommerce_order_id: "order-aaaa-bbbb",
+        sale_transaction_id: "ticket-should-not-win",
+        quantity: 1,
+        total_ars: 1000,
+        profit_ars: 400,
+        paid: true,
+      },
+    ], "sale-line-1");
+
+    expect(detail?.id).toBe("ticket-should-not-win");
+    expect(detail?.marginOperationId).toBe("order-aaaa-bbbb");
+    expect(detail?.ecommerceOrderId).toBe("order-aaaa-bbbb");
+    expect(marginOperationIdForSale({
+      id: "x",
+      source: "tienda_online",
+      ecommerce_order_id: null,
+      sale_transaction_id: "tx-1",
+    })).toBe("tx-1");
   });
 
   it("no inventa un registro cuando el deep link no pertenece a la lectura autorizada", () => {
@@ -122,5 +148,6 @@ describe("contrato de navegación del inspector de Ventas", () => {
     expect(page).toContain('data-testid="sale-ticket-inspector"');
     expect(page).toContain('className="flex w-full flex-col p-0 sm:max-w-2xl"');
     expect(page).toContain('aria-label={`Ver detalle de ${s.product_name || "la venta"}`}');
+    expect(page).toContain("operationId={detail.marginOperationId}");
   });
 });
