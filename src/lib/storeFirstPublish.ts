@@ -99,6 +99,30 @@ export function storeBankLeadCopy() {
   };
 }
 
+/**
+ * El draft activa retiro. Sin dirección el checklist bloquea publicar y el
+ * comprador ve «te contactamos». Square/Shopify: lugar del pickup antes del
+ * gateway. Va después de identidad y CBU.
+ */
+export function storeShouldLeadSettingsWithPickup(input: {
+  storeId: string | null | undefined;
+  pickupEnabled: boolean;
+  addressReady: boolean;
+}): boolean {
+  if (!input.storeId) return false;
+  if (!input.pickupEnabled) return false;
+  if (input.addressReady) return false;
+  return true;
+}
+
+export function storePickupLeadCopy() {
+  return {
+    title: 'Decí dónde se retira',
+    description:
+      'Retiro en tienda está activo. Sin dirección el pedido dice que vas a contactar al comprador. Gestiona Pay puede esperar.',
+  };
+}
+
 /** Sin fila en ecommerce_stores el 2º comercio no puede publicar ni legales. */
 export function storeShouldShowStoreMissingHandoff(
   storeId: string | null | undefined,

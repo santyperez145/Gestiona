@@ -49,7 +49,9 @@ import {
   storeStatusLabel,
   storeShouldLeadSettingsWithIdentity,
   storeShouldLeadSettingsWithBank,
+  storeShouldLeadSettingsWithPickup,
   storeBankLeadCopy,
+  storePickupLeadCopy,
   storeAfterCreateCopy,
   urlPublicaDeTienda,
 } from "@/lib/storeFirstPublish";
@@ -702,7 +704,15 @@ export default function EcommerceStorePage() {
     offersTransfer: storeOffersBankTransfer(storeForm.payment_methods),
     bankReady: bankPersistedReady,
   });
+  const leadSettingsWithPickup = storeShouldLeadSettingsWithPickup({
+    storeId: store?.id,
+    pickupEnabled: !!storeForm.pickup_enabled,
+    addressReady: Boolean(String(store?.pickup_address ?? "").trim()),
+  });
   const bankLead = leadSettingsWithBank ? storeBankLeadCopy() : null;
+  const pickupLead = !leadSettingsWithBank && leadSettingsWithPickup
+    ? storePickupLeadCopy()
+    : null;
   const afterCreate = justCreatedStore && store?.id && signals.publishedProducts === 0
     ? storeAfterCreateCopy()
     : null;
@@ -1339,7 +1349,49 @@ export default function EcommerceStorePage() {
               </Button>
             </div>
           )}
-          {!leadSettingsWithIdentity && !leadSettingsWithBank && (
+          {pickupLead && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5 space-y-3">
+              <p className="text-sm font-semibold">{pickupLead.title}</p>
+              <p className="text-[13px] text-muted-foreground leading-snug">{pickupLead.description}</p>
+              <div>
+                <Label className="text-xs text-muted-foreground">Dirección de retiro</Label>
+                <Input
+                  value={storeForm.pickup_address}
+                  onChange={e => setStoreForm(p => ({ ...p, pickup_address: e.target.value }))}
+                  placeholder="Calle, número, localidad"
+                  className="h-9 min-h-11 mt-1"
+                />
+              </div>
+              {retiroSugerido && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11"
+                  onClick={() => setStoreForm(p => ({ ...p, pickup_address: retiroSugerido }))}
+                >
+                  Usar domicilio fiscal
+                </Button>
+              )}
+              <div>
+                <Label className="text-xs text-muted-foreground">Horario (opcional)</Label>
+                <Input
+                  value={storeForm.pickup_instructions}
+                  onChange={e => setStoreForm(p => ({ ...p, pickup_instructions: e.target.value }))}
+                  placeholder="Lun a vie 10–18"
+                  className="h-9 min-h-11 mt-1"
+                />
+              </div>
+              <Button
+                className="min-h-11 w-full sm:w-auto"
+                disabled={loading || !storeForm.pickup_address.trim()}
+                onClick={() => { void saveStore(); }}
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Guardar dirección de retiro
+              </Button>
+            </div>
+          )}
+          {!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && (
             <PaymentConnectionsPanel onConnectionChange={reloadReadinessSignals} />
           )}
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">

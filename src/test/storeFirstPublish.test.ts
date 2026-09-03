@@ -17,7 +17,9 @@ import {
   storeStatusLabel,
   storeShouldLeadSettingsWithIdentity,
   storeShouldLeadSettingsWithBank,
+  storeShouldLeadSettingsWithPickup,
   storeBankLeadCopy,
+  storePickupLeadCopy,
   storeAfterCreateCopy,
   storeWizardFinishCopy,
   urlPublicaDeTienda,
@@ -137,6 +139,33 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(STORE).toContain('Guardar datos para transferir');
     expect(STORE).toContain('bankPersistedReady');
     expect(STORE).toContain('!leadSettingsWithIdentity && !leadSettingsWithBank');
+  });
+
+  it('con retiro activo sin dirección pide el lugar antes de OAuth', () => {
+    expect(storeShouldLeadSettingsWithPickup({
+      storeId: null,
+      pickupEnabled: true,
+      addressReady: false,
+    })).toBe(false);
+    expect(storeShouldLeadSettingsWithPickup({
+      storeId: 'id',
+      pickupEnabled: true,
+      addressReady: false,
+    })).toBe(true);
+    expect(storeShouldLeadSettingsWithPickup({
+      storeId: 'id',
+      pickupEnabled: true,
+      addressReady: true,
+    })).toBe(false);
+    expect(storeShouldLeadSettingsWithPickup({
+      storeId: 'id',
+      pickupEnabled: false,
+      addressReady: false,
+    })).toBe(false);
+    expect(storePickupLeadCopy().title).toMatch(/retir/i);
+    expect(STORE).toContain('storeShouldLeadSettingsWithPickup');
+    expect(STORE).toContain('Guardar dirección de retiro');
+    expect(STORE).toContain('!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup');
   });
 
   it('sin catálogo el overview pide el primer producto sin exigir el wizard', () => {
