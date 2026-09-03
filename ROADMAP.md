@@ -3344,6 +3344,17 @@ Finance Connect.
      Deploy de `store-order-email` aparte del `git push`. Esta PC no tiene
      `VITE_*`.
 
+132. Retiro retirado ≠ domicilio entregado — 2026-09-02.
+     Medido: 2 órdenes pagas `carrier=retiro`. Al marcar «retirado» el
+     mail de estado decía «fue entregado» / «en camino»; el WhatsApp del
+     gracias pedía «coordinar el pago» con el cobro ya acreditado.
+     `copyEstadoPedido` + `textoWhatsAppPedido` espejan `esPedidoRetiro`.
+     Sin evento nuevo: sigue `delivered` en el claim. Deploy de
+     `store-order-status-email` aparte del push.
+
+     Verificado en este recorte: **(CI de este commit)**. Esta PC no tiene
+     `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

@@ -33,20 +33,53 @@ const esc = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, char =>
 
 type Event = "shipped" | "delivered";
 
+/** Espejo de `esPedidoRetiro` / `copyEstadoPedido` en storeOrderBuyerCopy.ts. */
+function esPedidoRetiro(order: { carrier?: unknown; shipping_service?: unknown }) {
+  const carrier = String(order?.carrier ?? "").toLowerCase().trim();
+  const service = String(order?.shipping_service ?? "").toLowerCase().trim();
+  return carrier === "retiro" || service === "sucursal";
+}
+
+function copyEstadoPedido(event: Event, esRetiro: boolean) {
+  if (esRetiro) {
+    if (event === "delivered") {
+      return {
+        subject: "Tu pedido fue retirado",
+        title: "¡Pedido retirado!",
+        intro: "Registramos que retiraste tu compra. Si necesitás ayuda, escribinos.",
+      };
+    }
+    return {
+      subject: "Tu pedido está listo para retirar",
+      title: "Tu pedido está listo para retirar",
+      intro: "Ya podés pasar a buscarlo. Si necesitás ayuda, escribinos.",
+    };
+  }
+  if (event === "shipped") {
+    return {
+      subject: "Tu pedido está en camino",
+      title: "Tu pedido ya está en camino",
+      intro: "Ya entregamos tu compra al transporte. Podés seguir su estado desde tu pedido.",
+    };
+  }
+  return {
+    subject: "Tu pedido fue entregado",
+    title: "¡Tu pedido fue entregado!",
+    intro: "Tu compra figura como entregada. Si necesitás ayuda, escribinos y lo resolvemos.",
+  };
+}
+
 function emailHtml(opts: {
   accent: string;
   storeName: string;
   orderNumber: string;
   event: Event;
+  esRetiro: boolean;
   carrier?: string | null;
   tracking?: string | null;
   orderUrl?: string;
 }) {
-  const shipped = opts.event === "shipped";
-  const title = shipped ? "Tu pedido ya está en camino" : "¡Tu pedido fue entregado!";
-  const intro = shipped
-    ? "Ya entregamos tu compra al transporte. Podés seguir su estado desde tu pedido."
-    : "Tu compra figura como entregada. Si necesitás ayuda, escribinos y lo resolvemos.";
+  const copy = copyEstadoPedido(opts.event, opts.esRetiro);
   const tracking = opts.tracking
     ? `<p style="margin:14px 0 0;font-size:14px;color:#555"><strong>Seguimiento:</strong> ${esc(opts.tracking)}${opts.carrier ? ` · ${esc(opts.carrier)}` : ""}</p>`
     : "";
@@ -54,8 +87,8 @@ function emailHtml(opts: {
 
   return `<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
   <p style="font-size:20px;font-weight:700;text-align:center;margin:0 0 24px">${esc(opts.storeName)}</p>
-  <h1 style="font-size:22px;margin:0 0 8px">${esc(title)}</h1>
-  <p style="color:#555;line-height:1.5;margin:0">${esc(intro)}</p>
+  <h1 style="font-size:22px;margin:0 0 8px">${esc(copy.title)}</h1>
+  <p style="color:#555;line-height:1.5;margin:0">${esc(copy.intro)}</p>
   <div style="border:1px solid #eee;border-radius:10px;padding:16px;margin-top:20px">
     <p style="margin:0;font-weight:600">Pedido ${esc(opts.orderNumber)}</p>
     ${tracking}
@@ -82,7 +115,7 @@ Deno.serve(async (req) => {
     const admin = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
     const { data: order, error: orderError } = await admin
       .from("ecommerce_orders")
-      .select("id, org_id, store_id, order_number, customer_email, fulfillment_status, tracking_number, public_access_token")
+      .select("id, org_id, store_id, order_number, customer_email, fulfillment_status, tracking_number, public_access_token, carrier, shipping_service")
       .eq("id", orderId)
       .maybeSingle();
     if (orderError || !order) return json({ error: "Orden no encontrada" }, 404);
@@ -90,6 +123,9 @@ Deno.serve(async (req) => {
     if (order.fulfillment_status !== event) {
       return json({ error: "La orden no está en el estado que se quiere avisar" }, 409);
     }
+
+    const retiro = esPedidoRetiro(order);
+    const copy = copyEstadoPedido(event, retiro);
 
     // La matriz fina decide si puede operar ecommerce. No se reemplaza por una
     // lista de roles: `vendedor` puede despachar cuando la organización le dio
@@ -129,12 +165,13 @@ Deno.serve(async (req) => {
 
     const result = await sendEmail(smtp, resendKey, resendFrom, {
       to: order.customer_email,
-      subject: `${event === "shipped" ? "Tu pedido está en camino" : "Tu pedido fue entregado"} — ${order.order_number}`,
+      subject: `${copy.subject} — ${order.order_number}`,
       html: emailHtml({
         accent: store.primary_color || "#111111",
         storeName: store.name,
         orderNumber: order.order_number,
         event,
+        esRetiro: retiro,
         carrier: delivery?.carrier,
         tracking: delivery?.external_tracking || order.tracking_number,
         orderUrl: baseUrl

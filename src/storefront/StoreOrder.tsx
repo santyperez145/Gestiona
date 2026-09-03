@@ -10,7 +10,8 @@ import { trackPurchase } from "./tracking";
 import { canRetryStorePayment, isStorePaymentReversed } from "@/lib/storeOrderPayment";
 import { esPedidoRetiro } from "@/lib/storeOrderQueue";
 import {
-  etiquetaCostoEntrega, etiquetaDireccionEntrega, introPedidoPagado,
+  etiquetaCostoEntrega, etiquetaDireccionEntrega, etiquetaWhatsAppPedido,
+  introPagoRevertido, introPedidoPagado, textoWhatsAppPedido,
 } from "@/lib/storeOrderBuyerCopy";
 import { esMedioGestionaPay } from "@/lib/gestionaPay";
 import { consumeOrderAccessFragment, readOrderAccessToken, saveOrderAccessToken } from "./orderAccess";
@@ -329,13 +330,15 @@ export default function StoreOrder() {
   const transferenciaPendiente = pedidoPendiente
     && order.payment_method === "transferencia"
     && Boolean(order.bank_cbu || order.bank_alias);
-  const waTexto = encodeURIComponent(
-    pagoRevertido
-      ? `Hola! El pago del pedido ${order.order_number} fue ${order.payment_status === "charged_back" ? "desconocido" : "devuelto"}. Quiero coordinar cómo seguimos.`
-      : transferenciaPendiente
-        ? `Hola! Acabo de hacer el pedido ${order.order_number} por ${fmt(Number(order.total))}. Ya tengo los datos para transferir.`
-        : `Hola! Acabo de hacer el pedido ${order.order_number} por ${fmt(Number(order.total))}. Quedo atento para coordinar el pago.`,
-  );
+  const waTexto = encodeURIComponent(textoWhatsAppPedido({
+    orderNumber: order.order_number,
+    totalFmt: fmt(Number(order.total)),
+    esRetiro,
+    pagado,
+    pagoRevertido,
+    transferenciaPendiente,
+    chargedBack: order.payment_status === "charged_back",
+  }));
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
@@ -356,7 +359,7 @@ export default function StoreOrder() {
           {pagado
             ? <>{introPedidoPagado(esRetiro)} Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong>.</>
             : pagoRevertido
-              ? <>El pedido no se enviará mientras gestionamos esta reversión. Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar los próximos pasos.</>
+              ? <>{introPagoRevertido(esRetiro)} Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar los próximos pasos.</>
               : transferenciaPendiente
                 ? <>Transferí el total a la cuenta de abajo. Cuando acredite, te avisamos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong>.</>
                 : <>Te vamos a escribir a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar el pago y la entrega.</>}
@@ -513,7 +516,7 @@ export default function StoreOrder() {
           className="flex-1 py-2.5 text-center text-sm font-medium inline-flex items-center justify-center gap-2"
           style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
         >
-          <MessageCircle className="w-4 h-4" /> Coordinar por WhatsApp
+          <MessageCircle className="w-4 h-4" /> {etiquetaWhatsAppPedido(pagado)}
         </a>
         <Link
           to={`${base}/productos`}

@@ -56,7 +56,10 @@ describe("gracias y mail no prometen un envío en un retiro", () => {
     expect(gracias).toContain("introPedidoPagado(esRetiro)");
     expect(gracias).toContain("etiquetaCostoEntrega(esRetiro)");
     expect(gracias).toContain("etiquetaDireccionEntrega(esRetiro)");
+    expect(gracias).toContain("textoWhatsAppPedido");
+    expect(gracias).toContain("introPagoRevertido(esRetiro)");
     expect(gracias).not.toContain("Ya estamos preparando tu envío. Te escribimos");
+    expect(gracias).not.toContain("Quedo atento para coordinar el pago.");
   });
 
   it("el mail al comprador no dice envío cuando el carrier es retiro", () => {
@@ -71,5 +74,13 @@ describe("gracias y mail no prometen un envío en un retiro", () => {
   it("el checkout muestra el horario sólo si el comercio lo cargó", () => {
     expect(checkout).toContain("store?.pickup_instructions?.trim()");
     expect(leer("src/pages/EcommerceStorePage.tsx")).toContain("pickup_instructions: storeForm.pickup_instructions");
+  });
+
+  it("el mail de estado no dice entregado/en camino en un retiro", () => {
+    const status = leer("supabase/functions/store-order-status-email/index.ts");
+    expect(status).toContain("function esPedidoRetiro");
+    expect(status).toContain("copyEstadoPedido(event, retiro)");
+    expect(status).toContain("Tu pedido fue retirado");
+    expect(status).toContain("carrier, shipping_service");
   });
 });
