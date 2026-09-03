@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   abandonedCartItemCount,
+  abandonedCartRecoveryHref,
   abandonedCartRecoveryLabel,
   abandonedCartRecoveryState,
   abandonedCartsQueueHref,
@@ -72,9 +73,24 @@ describe("abandonedCarts", () => {
     const page = readFileSync(resolve(process.cwd(), "src/pages/EcommerceStorePage.tsx"), "utf8");
     expect(page).toContain('"carritos"');
     expect(page).toContain("AbandonedCartsPanel");
+    expect(page).toContain("recovery_token");
+    expect(page).toContain("storeSlug={store?.slug");
     const focus = readFileSync(resolve(process.cwd(), "src/lib/dashboardFocus.ts"), "utf8");
     expect(focus).toContain("carritosAbandonados");
     expect(focus).toContain("/tienda-online?tab=carritos");
+  });
+
+  it("arma el deep-link de recuperación con slug y token", () => {
+    expect(abandonedCartRecoveryHref("mi-tienda", "tok-1")).toBe("/tienda/mi-tienda/carrito/tok-1");
+    expect(abandonedCartRecoveryHref("", "tok-1")).toBeNull();
+    expect(abandonedCartRecoveryHref("mi-tienda", null)).toBeNull();
+    const panel = readFileSync(
+      resolve(process.cwd(), "src/components/ecommerce/AbandonedCartsPanel.tsx"),
+      "utf8",
+    );
+    expect(panel).toContain("abandonedCartRecoveryHref");
+    expect(panel).toContain("Copiar");
+    expect(panel).toContain("Abrir");
   });
 
   it("el checkout manda el email a save_store_cart (Shopify recovery)", () => {

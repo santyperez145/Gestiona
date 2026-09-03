@@ -49,3 +49,15 @@ describe("cuenta opcional en checkout", () => {
     expect(checkout).toContain("Crear cuenta");
   });
 });
+
+describe("influencer no manda al catálogo WhatsApp si hay tienda", () => {
+  it("Influencers copia enlaceInfluencerConRef y captura ?ref= en la tienda", () => {
+    const page = leer("src/pages/InfluencersPage.tsx");
+    const layout = leer("src/storefront/StoreLayout.tsx");
+    const checkout = leer("src/storefront/StoreCheckout.tsx");
+    expect(page).toContain("enlaceInfluencerConRef");
+    expect(page).not.toMatch(/\/catalogo\/\$\{user/);
+    expect(layout).toContain("captureStoreReferral");
+    expect(checkout).toContain("notesWithStoreReferral");
+  });
+});

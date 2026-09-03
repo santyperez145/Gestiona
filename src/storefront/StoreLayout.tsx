@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { captureStoreReferral } from "@/lib/storeReferral";
 import { useStore } from "./storeContext";
 import {
   menuDeCategorias, arbolDeCategorias, nombreDeCategoria,
@@ -54,11 +55,17 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingLabel, shippingPending, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf, cartRevealTick } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const [provinciaCarrito, setProvinciaCarrito] = useState("");
   const [cotizandoCarrito, setCotizandoCarrito] = useState(false);
   const [resumenCotizacion, setResumenCotizacion] = useState<{ amount: number; subtitle: string } | null>(null);
   const { customer } = useStoreAuth();
+
+  // Influencer / afiliado: ?ref=CODE se guarda por slug (sobrevive al carrito).
+  useEffect(() => {
+    if (!store?.slug) return;
+    captureStoreReferral(store.slug, search);
+  }, [store?.slug, search]);
 
   const theme = useMemo(
     () => resolveTheme(store?.theme, store?.primary_color),

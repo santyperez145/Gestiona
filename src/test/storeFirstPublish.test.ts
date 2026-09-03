@@ -35,6 +35,7 @@ import {
   storeOrdersEmptyShareCopy,
   storeShareIntentActive,
   storeShareIntentCopy,
+  enlaceInfluencerConRef,
 } from '@/lib/storeFirstPublish';
 
 const ROOT = resolve(import.meta.dirname, '..', '..');
@@ -387,5 +388,21 @@ describe('el enlace de la tienda se puede copiar', () => {
   it('Pedidos vacíos ofrecen copiar el link cuando hay URL pública', () => {
     expect(storeOrdersEmptyShareCopy(true).actionLabel).toBe('Copiar enlace de la tienda');
     expect(storeOrdersEmptyShareCopy(false).actionLabel).toBeUndefined();
+  });
+
+  it('el link de influencer usa la tienda publicada + ?ref=', () => {
+    expect(enlaceInfluencerConRef({
+      origin: 'https://app.example',
+      userId: 'user-1',
+      storeSlug: 'mi-tienda',
+      storeActive: true,
+      referralCode: 'ana10',
+    })).toBe('https://app.example/tienda/mi-tienda?ref=ANA10');
+    expect(enlaceInfluencerConRef({
+      origin: 'https://app.example',
+      userId: 'user-1',
+      storeActive: false,
+      referralCode: 'ANA10',
+    })).toBe('https://app.example/catalogo/user-1?ref=ANA10');
   });
 });

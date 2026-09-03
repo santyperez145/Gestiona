@@ -350,7 +350,7 @@ export default function EcommerceStorePage() {
       setAbandonedError(null);
       supabase
         .from("ecommerce_cart_sessions")
-        .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, updated_at, created_at")
+        .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, updated_at, created_at")
         .eq("org_id", orgId)
         .then(({ data, error }) => {
           if (error) {
@@ -1105,13 +1105,14 @@ export default function EcommerceStorePage() {
               carts={abandonedCartRows}
               loading={abandonedLoading}
               error={abandonedError}
+              storeSlug={store?.slug ?? null}
               onRetry={() => {
                 if (!orgId) return;
                 setAbandonedLoading(true);
                 setAbandonedError(null);
                 supabase
                   .from("ecommerce_cart_sessions")
-                  .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, updated_at, created_at")
+                  .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, updated_at, created_at")
                   .eq("org_id", orgId)
                   .then(({ data, error }) => {
                     if (error) {

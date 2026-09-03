@@ -23,6 +23,7 @@ export interface AbandonedCartRow {
   subtotal: number;
   total: number;
   abandoned_email_sent: boolean;
+  recovery_token?: string | null;
   updated_at: string;
   created_at: string;
 }
@@ -95,4 +96,15 @@ export function filterAbandonedCartsForQueue(
 
 export function abandonedCartsQueueHref(): string {
   return "/tienda-online?tab=carritos";
+}
+
+/** Deep-link que el cron ya usa: /tienda/:slug/carrito/:token */
+export function abandonedCartRecoveryHref(
+  storeSlug: string | null | undefined,
+  recoveryToken: string | null | undefined,
+): string | null {
+  const slug = String(storeSlug ?? "").trim();
+  const token = String(recoveryToken ?? "").trim();
+  if (!slug || !token) return null;
+  return `/tienda/${slug}/carrito/${token}`;
 }

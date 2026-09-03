@@ -378,6 +378,25 @@ export function enlaceCanonicoDeVitrina(input: {
   return { href: `${host}/catalogo/${userId}`, kind: 'catalogo' };
 }
 
+/**
+ * Link de influencer: misma vitrina canónica + ?ref=código.
+ * Sin código no se inventa atribución.
+ */
+export function enlaceInfluencerConRef(input: {
+  origin: string;
+  userId?: string | null;
+  storeSlug?: string | null;
+  storeActive?: boolean | null;
+  referralCode?: string | null;
+}): string | null {
+  const base = enlaceCanonicoDeVitrina(input);
+  if (!base) return null;
+  const code = (input.referralCode ?? '').trim().toUpperCase().replace(/\s+/g, '');
+  if (!code) return base.href;
+  const sep = base.href.includes('?') ? '&' : '?';
+  return `${base.href}${sep}ref=${encodeURIComponent(code)}`;
+}
+
 /** Foco «Compartí el enlace»: deep-link a overview con intención de share. */
 export function storeFirstSaleSharePath(publicada: boolean): string {
   return publicada

@@ -17,6 +17,7 @@ import { avisoCheckoutMedioPago, etiquetaMedioCheckout } from "@/lib/storeOrderB
 import { leerProvinciaCarrito, guardarProvinciaCarrito } from "@/lib/storeCartProvince";
 import { cartShippingCellText, checkoutShippingDisplay } from "@/lib/storeCartShipping";
 import { checkoutDebeIntentarCuenta } from "@/lib/storeCheckoutAccount";
+import { notesWithStoreReferral, readStoreReferral } from "@/lib/storeReferral";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -384,7 +385,7 @@ export default function StoreCheckout() {
         provincia: form.provincia, cp: form.cp, notas: form.notas,
       },
       p_payment_method: form.metodo,
-      p_notes: form.notas || null,
+      p_notes: notesWithStoreReferral(form.notas, readStoreReferral(store!.slug)),
       // El RPC revalida el cupón: entre que se escribió y se confirma pudo
       // agotarse o vencer.
       p_coupon: cuponAplicado?.code ?? null,

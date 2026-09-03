@@ -1,5 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
+import { useOrganization } from '@/hooks/useOrganization';
+import { supabase } from '@/integrations/supabase/client';
 import { listInfluencers, createInfluencer, updateInfluencer, deleteInfluencer, listInfluencerSales, listPayouts, createPayout, type Influencer } from '@/lib/influencersDB';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -18,6 +20,7 @@ import { TableSkeleton } from '@/components/shared/PageSkeleton';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import InfluencerExchangesPage from './InfluencerExchangesPage';
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { enlaceInfluencerConRef } from '@/lib/storeFirstPublish';
 
 const TIER_COLORS: Record<string, string> = {
   nano: 'bg-zinc-500/20 text-zinc-300',
@@ -36,22 +39,60 @@ function genCode(name: string) {
 
 function InfluencersTab() {
   const { user } = useAuth();
+  const { orgId } = useOrganization();
   const [items, setItems] = useState<Influencer[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<Influencer | null>(null);
+  const [storeMeta, setStoreMeta] = useState<{ slug: string | null; active: boolean }>({
+    slug: null,
+    active: false,
+  });
 
   const reload = async () => { setItems(await listInfluencers()); setLoading(false); };
   useEffect(() => { reload(); }, []);
+
+  useEffect(() => {
+    if (!orgId) return;
+    supabase
+      .from('ecommerce_stores')
+      .select('slug, active')
+      .eq('org_id', orgId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('InfluencersPage / tienda:', error);
+          return;
+        }
+        setStoreMeta({
+          slug: data?.slug ?? null,
+          active: Boolean(data?.active),
+        });
+      });
+  }, [orgId]);
 
   const totalGen = items.reduce((s, i) => s + Number(i.total_generated_ars || 0), 0);
   const totalCom = items.reduce((s, i) => s + Number(i.total_commissions_ars || 0), 0);
   const totalSales = items.reduce((s, i) => s + (i.total_sales_count || 0), 0);
 
-  const copyLink = (inf: Influencer) => {
-    const url = `${window.location.origin}/catalogo/${user?.id}?ref=${inf.referral_code}`;
-    navigator.clipboard.writeText(url);
-    toast.success(`Link de ${inf.name} copiado`);
+  const copyLink = async (inf: Influencer) => {
+    const url = enlaceInfluencerConRef({
+      origin: window.location.origin,
+      userId: user?.id,
+      storeSlug: storeMeta.slug,
+      storeActive: storeMeta.active,
+      referralCode: inf.referral_code,
+    });
+    if (!url) {
+      toast.error('No hay enlace público todavía. Publicá la tienda o abrí el catálogo.');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(`Link de ${inf.name} copiado`);
+    } catch {
+      toast.error('No se pudo copiar el link');
+    }
   };
 
   if (loading) return <TableSkeleton rows={5} cols={6} />;
