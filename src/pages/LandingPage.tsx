@@ -136,7 +136,7 @@ export default function LandingPage() {
             <a href="#producto" onClick={() => setMobileOpen(false)}>Producto</a>
             <a href="#operacion" onClick={() => setMobileOpen(false)}>Cómo funciona</a>
             <a href="#para-quien" onClick={() => setMobileOpen(false)}>Para quién</a>
-            <Link to="/pricing" onClick={() => setMobileOpen(false)}>Precios</Link>
+            <Link to="/precios" onClick={() => setMobileOpen(false)}>Precios</Link>
             <div className="landing-nav__mobile-actions">
               <Link to="/login" className="landing-button landing-button--ghost">Iniciar sesión</Link>
               <Link to="/login?mode=register" className="landing-button landing-button--dark">Empezar gratis <ArrowRight /></Link>

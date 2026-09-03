@@ -6,6 +6,12 @@
       "has": [{ "type": "host", "value": "www.nerqia.app" }],
       "destination": "https://nerqia.app/:path*",
       "permanent": true
+    },
+    {
+      "source": "/pricing",
+      "has": [{ "type": "host", "value": "nerqia.app" }],
+      "destination": "/precios",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -46,6 +52,10 @@
     {
       "source": "/sitemap.xml",
       "destination": "/api/sitemap-index"
+    },
+    {
+      "source": "/sitemap-platform.xml",
+      "destination": "/api/platform-sitemap"
     },
     {
       "source": "/tienda/:slug/sitemap.xml",

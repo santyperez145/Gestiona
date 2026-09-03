@@ -8,8 +8,9 @@
  * recursos estáticos continúan por el pipeline normal.
  */
 import { next, rewrite } from '@vercel/functions/middleware';
+import { BRAND_DOMAIN } from './src/lib/brand.js';
 import { isPotentialCustomStoreHostname } from './src/lib/storeCustomDomain.js';
-import { isValidStoreSubdomain, storeSlugFromHostname } from './src/lib/storefrontHost.js';
+import { isValidStoreSubdomain, normalizeHostname, storeSlugFromHostname } from './src/lib/storefrontHost.js';
 import { STOREFRONT_CRAWLER_UA } from './src/lib/storefrontSeo.js';
 
 const CRAWLER = new RegExp(`(?:${STOREFRONT_CRAWLER_UA})`, 'i');
@@ -33,8 +34,21 @@ export function storefrontCrawlerTarget(request: Request): URL | null {
   return source;
 }
 
+/** La plataforma también necesita HTML antes del index vacío de la SPA. */
+export function platformCrawlerTarget(request: Request): URL | null {
+  if (!CRAWLER.test(request.headers.get('user-agent') ?? '')) return null;
+  const source = new URL(request.url);
+  const host = normalizeHostname(source.hostname);
+  if (host !== BRAND_DOMAIN && host !== `www.${BRAND_DOMAIN}`) return null;
+
+  const originalPath = source.pathname;
+  source.pathname = '/api/platform-seo';
+  source.searchParams.set('path', originalPath);
+  return source;
+}
+
 export default function middleware(request: Request): Response {
-  const target = storefrontCrawlerTarget(request);
+  const target = storefrontCrawlerTarget(request) ?? platformCrawlerTarget(request);
   return target ? rewrite(target) : next();
 }
 

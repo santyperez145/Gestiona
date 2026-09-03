@@ -492,6 +492,15 @@ semántico del mismo Storefront. Se elimina la lista repetida de crawlers en
 canonical propios en home/categoría; el comprador conservó la SPA, y el
 navegador real mostró H1/canonical de la tienda sin errores de consola.
 
+D5.18 hace que la plataforma también tenga una primera impresión semántica. El
+documento estático sólo tenía head y un root vacío; ahora Google recibe el mismo
+posicionamiento que ve una persona en la landing —gestión omnicanal, stock,
+POS, tienda online, caja y margen— con jerarquía H1/H2, enlaces internos,
+canonical y nombre de sitio estructurado. Un único contrato alimenta borde,
+sitemap y head de la SPA, por lo que `/precios` no compite con `/pricing` ni las
+pantallas privadas heredan la canonical de la home. No es una promesa de
+ranking: falta publicación, Search Console e indexación observada.
+
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto: CTA móvil hecho; faltan variantes densas y confianza extra;
 - carrito y checkout: objetivos táctiles y sticky en 360 px hechos;
@@ -536,7 +545,7 @@ prioritarios estables en los cuatro viewports.
 **Salida:** el rediseño demuestra menor tiempo/error y mayor confianza; no se
 declara validado porque “se ve mejor”.
 
-## 6. Próximos 28 slices de diseño
+## 6. Próximos 29 slices de diseño
 
 | # | Slice | Estado | Evidencia de cierre |
 |---:|---|---|---|
@@ -568,6 +577,7 @@ declara validado porque “se ve mejor”.
 | 26 | Identidad y dominio oficial de Nerqia | Hecho 2026-09-03 | Nombre, productos, isotipo N/Q RGBA entregado por el dueño, wordmark horizontal, favicon/Apple/PWA, metadata, Auth y shells comparten contrato canónico; se retiró el viejo símbolo G que había quedado renombrado. `nerqia.app` es el origen productivo y `www` redirige al raíz. La identidad del merchant queda aislada en Storefront/documentos y los namespaces técnicos heredados permanecen compatibles. Landing y acceso se habían verificado en localhost 1280×720 sin errores de consola; la sustitución visual queda protegida por dimensiones, formato y adopción, y requiere nueva inspección publicada tras el deploy. |
 | 27 | Contrato visible de webhooks | Hecho 2026-08-29 | Diálogo legible, código de firma, semántica de id/retry/orden, guía y OpenAPI 3.1; transporte sintético certificado contra HTTPS externo y receptor eliminado. |
 | 28 | Contrato visible de API pública | Hecho 2026-08-29 | Panel, estado vacío y modal auditados con sesión de administrador real en producción: claro/oscuro, 360/768/1024/1440, cero overflow y consola sin warnings/errors. Guía, OpenAPI 3.1 y changelog accesibles; secretos one-time sin bloque negro en claro. La prueba descubrió que `stock:write` ocultaba parte de su consecuencia en mobile; el bundle nuevo `index-CBuC_8gZ.js` ya muestra la explicación completa en claro/oscuro a 360 px, conserva 512 px de diálogo desktop y deja consola limpia. Evidencia: `docs/evidencias/2026-08-29_api_keys_visual.md`. |
+| 29 | Descubrimiento público de Nerqia | Parcial D5.18 2026-09-03 | Landing y precios comparten título, descripción, H1, canonical y texto visible con el documento semántico del borde; `WebSite` fija el nombre Nerqia y el índice raíz incorpora la plataforma sin duplicar el sitemap de tiendas. Puerta local: 2.600 tests, build/PWA y 75 Edge Functions. Falta matriz publicada, validación de schema, propiedad/sitemap en Search Console e indexación externa observada. |
 
 Máximo dos slices visuales activos. Un problema de seguridad, datos, stock,
 pagos o legal interrumpe esta secuencia y vuelve a `ROADMAP.md`.

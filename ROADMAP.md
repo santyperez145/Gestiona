@@ -3892,6 +3892,37 @@ Finance Connect.
      mismo título/canonical, H1 **Exentry Imports**, catálogo real y cero logs de
      consola. El bug queda cerrado con evidencia publicada, no por inferencia.
 
+167. SEO de plataforma y descubrimiento verificable — 2026-09-03.
+     La medición externa `site:nerqia.app` y `"Nerqia" software comercio` no
+     devolvió ninguna página propia. El hueco era real: el índice raíz sólo
+     apuntaba a tiendas y Googlebot recibía un `index.html` con metadatos pero
+     cuerpo vacío para la plataforma. Agregar `meta keywords` no era una salida:
+     Google declara que la ignora para indexación y ranking.
+
+     `platformSeo.ts` pasa a ser el contrato único de título, descripción, H1,
+     texto útil, canonical, indexabilidad y sitemap. El mismo Routing Middleware
+     ya usado por Storefront deriva bots sobre `nerqia.app` a HTML semántico con
+     enlaces y JSON-LD `WebSite`/`Organization`/`SoftwareApplication`; las
+     personas conservan la SPA y `PlatformSeoHead` mantiene esos metadatos al
+     navegar. El contenido nombra de forma visible la propuesta que sí existe:
+     gestión omnicanal para comercios argentinos, stock único, POS, tienda
+     online, caja y margen por canal. Panel y legales no orientados a adquisición
+     salen con `noindex`; no se intenta rankear una pantalla privada.
+
+     El índice `sitemap.xml` ahora incluye `sitemap-platform.xml` aunque la base
+     o una tienda no respondan, y después los sitemaps de cada comercio. Home,
+     precios y estado son las tres URLs canónicas iniciales; `/pricing` gana un
+     redirect HTTP a `/precios` y el enlace visible deja de partir señales. El
+     runbook, fuentes oficiales, criterio competitivo y métricas viven en
+     `docs/SEO_INDEXACION.md`. Puerta local: typecheck verde; lint 0 errores/143
+     warnings heredados; **2.600 tests verdes en 276 archivos**; build/PWA y 75
+     Edge Functions verdes; auditoría estándar con 0 vulnerabilidades.
+
+     Estado: **implementado localmente, pendiente de evidencia publicada y de
+     Search Console**. Publicar/inspeccionar puede demostrar rastreabilidad; que
+     Google lo indexe o lo ubique primero sigue siendo un resultado externo que
+     sólo se cierra cuando aparezca medido, no al hacer push.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

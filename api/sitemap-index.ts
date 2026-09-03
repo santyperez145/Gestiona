@@ -21,7 +21,10 @@ const esc = (s: unknown) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c]!));
 
 export default async function handler(_req: Request): Promise<Response> {
-  const locs: string[] = [];
+  // La plataforma también necesita una ruta de descubrimiento. Antes este
+  // índice sólo apuntaba a tiendas: Google podía conocer cada catálogo y aun
+  // así no tenía una sola URL de Nerqia para rastrear.
+  const locs: string[] = [`https://${BRAND_DOMAIN}/sitemap-platform.xml`];
 
   if (SUPABASE_URL && SUPABASE_KEY) {
     try {

@@ -28,6 +28,7 @@ import {
 import { ShieldAlert, BookOpen } from "lucide-react";
 import { storeSlugFromHostname } from "@/lib/storefrontHost";
 import { isPotentialCustomStoreHostname } from "@/lib/storeCustomDomain";
+import PlatformSeoHead from "@/components/seo/PlatformSeoHead";
 
 // ── Eager (needed for first paint / public routes) ──────────────────────────
 import AuthPage from "@/pages/AuthPage";
@@ -369,6 +370,7 @@ const App = () => (
       <AuthProvider>
         <OrgProvider>
           <BrowserRouter>
+            <PlatformSeoHead />
             <Suspense fallback={<PageLoader />}>
               <ApplicationRoutes />
             </Suspense>
