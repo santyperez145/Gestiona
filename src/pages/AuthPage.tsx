@@ -152,7 +152,7 @@ export default function AuthPage() {
           <p className="auth-showcase__lead">Una plataforma para vender, operar y entender tu negocio sin saltar entre herramientas.</p>
           <div className="auth-showcase__items">{SHOWCASE_ITEMS.map(({ icon: Icon, title, description }) => <div className="auth-showcase__item" key={title}><span><Icon /></span><div><strong>{title}</strong><small>{description}</small></div><Check /></div>)}</div>
         </div>
-        <div className="auth-showcase__footer"><span>Gestiona · Business Core</span><span>01 / 03</span></div>
+        <div className="auth-showcase__footer"><span>Gestiona · Operación conectada</span><span>01 / 03</span></div>
       </aside>
 
       <main className="auth-panel">

@@ -24,7 +24,7 @@ export default function DataQualityPage() {
         icon={ScanSearch}
         title="Calidad de datos"
         description="Un centro operativo para mantener productos y clientes confiables entre POS, tienda y canales."
-        badge={{ label: "Business Core", variant: "default" }}
+        badge={{ label: "Operación central", variant: "default" }}
       />
 
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border/60 bg-card px-3 py-2.5 text-[11px] text-muted-foreground">

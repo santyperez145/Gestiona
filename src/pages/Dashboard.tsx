@@ -1714,7 +1714,7 @@ export default function Dashboard() {
       <section id="dashboard-overview" className="workspace-dashboard-core mb-0 mt-0">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Business Core</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Operación central</p>
             <h2 className="mt-1 text-base font-semibold text-foreground">Lo que está pasando</h2>
           </div>
           <span className="hidden text-[11px] text-muted-foreground sm:block">Actualizado en tiempo real</span>

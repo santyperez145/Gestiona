@@ -1036,7 +1036,7 @@ export default function ProductsPage() {
                     <DialogDescription>
                       {fromWizard && !editing && products.length === 0
                         ? firstProductFormDescription(handoffGoal)
-                        : 'Identidad, costos, inventario, variantes y publicación comparten una sola ficha del Business Core.'}
+                        : 'Identidad, costos, inventario, variantes y publicación comparten una sola ficha de operación.'}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="min-h-0 flex-1 overflow-hidden">

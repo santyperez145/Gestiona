@@ -229,7 +229,7 @@ export default function StoreOrdersPanel({
         <WorkspaceState
           kind="empty-filtered"
           title="Ningún pedido coincide"
-          description="Probá otra búsqueda o volvé a Todas. No se ocultan pedidos de otra organización: esta cola es sólo la tuya."
+          description="Probá otra búsqueda o volvé a Todas. Esta lista muestra únicamente los pedidos de tu tienda."
           actionLabel="Quitar filtros"
           onAction={clearFilters}
         />
