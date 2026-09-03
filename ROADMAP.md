@@ -3553,6 +3553,16 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+151. Seed legales al crear + Pay no bajo identidad — 2026-09-03.
+     Medido: al crear tienda no corría `seed_store_pages` hasta abrir
+     Páginas; checklist decía «faltan». Tiendanube: plantillas al nacer.
+     Sembrar draft (no publicar). Además el pie de Settings reabría
+     PaymentConnectionsPanel bajo el lead de identidad.
+
+     Verificado en este recorte: **2.481 tests** / 263 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

@@ -20,6 +20,7 @@ import {
   storeShouldLeadSettingsWithPickup,
   storeBankLeadCopy,
   storePickupLeadCopy,
+  storeShouldSeedPagesOnCreate,
   storeAfterCreateCopy,
   storeWizardFinishCopy,
   urlPublicaDeTienda,
@@ -166,6 +167,18 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(STORE).toContain('storeShouldLeadSettingsWithPickup');
     expect(STORE).toContain('Guardar dirección de retiro');
     expect(STORE).toContain('!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup');
+  });
+
+  it('al crear la tienda siembra borradores legales y no reabre Pay bajo identidad', () => {
+    expect(storeShouldSeedPagesOnCreate(true)).toBe(true);
+    expect(storeShouldSeedPagesOnCreate(false)).toBe(false);
+    expect(STORE).toContain('storeShouldSeedPagesOnCreate');
+    expect(STORE).toContain('seed_store_pages');
+    // El panel de Pay no puede colarse otra vez al pie del lead de identidad.
+    const identityLeadFoot = STORE.indexOf('Gestiona Pay puede esperar: primero guardá nombre y slug arriba.');
+    expect(identityLeadFoot).toBeGreaterThan(0);
+    const afterFoot = STORE.slice(identityLeadFoot, identityLeadFoot + 280);
+    expect(afterFoot).not.toContain('<PaymentConnectionsPanel');
   });
 
   it('sin catálogo el overview pide el primer producto sin exigir el wizard', () => {

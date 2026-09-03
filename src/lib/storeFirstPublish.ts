@@ -123,6 +123,16 @@ export function storePickupLeadCopy() {
   };
 }
 
+/**
+ * Al crear la tienda hay que sembrar borradores legales.
+ * Si espera a que abran Páginas, el checklist dice «faltan» y el 2º comercio
+ * no publica. Tiendanube/Shopify: plantillas al nacer la tienda. Siempre
+ * draft — publicar sin CUIT/razón sería firmar por el dueño.
+ */
+export function storeShouldSeedPagesOnCreate(creatingStore: boolean): boolean {
+  return creatingStore === true;
+}
+
 /** Sin fila en ecommerce_stores el 2º comercio no puede publicar ni legales. */
 export function storeShouldShowStoreMissingHandoff(
   storeId: string | null | undefined,

@@ -52,6 +52,7 @@ import {
   storeShouldLeadSettingsWithPickup,
   storeBankLeadCopy,
   storePickupLeadCopy,
+  storeShouldSeedPagesOnCreate,
   storeAfterCreateCopy,
   urlPublicaDeTienda,
 } from "@/lib/storeFirstPublish";
@@ -598,6 +599,19 @@ export default function EcommerceStorePage() {
     setStoreForm(storeFormDesdeFila(saved, GLOBAL_FULFILLMENT_LOCATION));
     setBankPersistedReady(storeBankTransferReady(bankForm));
     if (creatingStore) setJustCreatedStore(true);
+
+    // Borradores legales al nacer: sin esto el checklist dice «faltan» hasta
+    // que alguien abra Páginas y pulse Sembrar. No publica — el dueño firma.
+    if (storeShouldSeedPagesOnCreate(creatingStore) && saved?.id) {
+      const { error: seedError } = await supabase.rpc("seed_store_pages", {
+        p_store_id: saved.id,
+      });
+      if (seedError) {
+        console.error("No se pudieron sembrar las páginas legales", seedError);
+      } else {
+        void reloadReadinessSignals();
+      }
+    }
   };
 
   // Se evalúa sobre el FORMULARIO y no sobre lo guardado: así el estado
@@ -1916,12 +1930,9 @@ export default function EcommerceStorePage() {
             Guardar Configuración
           </Button>
           {leadSettingsWithIdentity && (
-            <>
-              <p className="text-xs text-muted-foreground">
-                Gestiona Pay puede esperar: primero guardá nombre y slug arriba.
-              </p>
-              <PaymentConnectionsPanel onConnectionChange={reloadReadinessSignals} />
-            </>
+            <p className="text-xs text-muted-foreground">
+              Gestiona Pay puede esperar: primero guardá nombre y slug arriba.
+            </p>
           )}
         </div>
       )}
