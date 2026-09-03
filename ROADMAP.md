@@ -3461,6 +3461,16 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+142. Cotización de envío en la ficha (PDP) — 2026-09-03.
+     ESTANDAR §5.10 / Shopify: flete tras ubicación antes de Agregar.
+     `StoreShippingQuote` reusa `quote_store_shipping` + provincia del
+     carrito; fuera de cobertura = retiro o mensaje honesto. No inventa
+     tarifas.
+
+     Verificado en este recorte: **2.465 tests** / 261 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
