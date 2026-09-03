@@ -81,6 +81,10 @@ describe('autoridad de la superficie Gestiona Finance', () => {
     expect(overview).toContain('Documentos por revisar');
     expect(overview).toContain('La validación final siempre requiere revisión humana');
     expect(overview).toContain('Cada documento se revisa antes de confirmarse');
+    const documentsPage = read('src/pages/FinanceDocumentsPage.tsx');
+    expect(documentsPage).toContain('WorkspaceViewTabs');
+    expect(documentsPage).toContain('financeDocumentNextAction');
+    expect(documentsPage).toContain('Probá otra vista o limpiá la búsqueda');
   });
 
   it('el Foco de Finance es Pulse: evidencia, tope de cinco, sin clonar Core', () => {

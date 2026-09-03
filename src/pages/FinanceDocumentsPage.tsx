@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   BadgeDollarSign,
   CheckCircle2,
@@ -11,6 +11,7 @@ import {
   FilePlus2,
   FileSearch2,
   FileText,
+  Inbox,
   Link2,
   Loader2,
   LockKeyhole,
@@ -20,6 +21,7 @@ import {
   RefreshCw,
   Sparkles,
   Trash2,
+  TriangleAlert,
   UploadCloud,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,6 +33,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import PageHeader from '@/components/shared/PageHeader';
 import WorkspaceState from '@/components/shared/WorkspaceState';
+import WorkspaceViewTabs from '@/components/shared/WorkspaceViewTabs';
+import {
+  FINANCE_INBOX_VIEWS,
+  countFinanceInboxViews,
+  filterFinanceInbox,
+  financeDocumentAgeLabel,
+  financeDocumentNextAction,
+  parseFinanceInboxView,
+} from '@/lib/financeDocumentInbox';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOrg } from '@/lib/orgContext';
@@ -69,10 +80,22 @@ import {
 
 const DOCUMENT_TYPES: FinanceDocumentType[] = ['supplier_invoice', 'receipt', 'purchase_order', 'other'];
 
+const INBOX_TAB_ICONS = {
+  todos: Inbox,
+  revisar: FileSearch2,
+  matching: Link2,
+  borradores: ClipboardCheck,
+  aprobados: CheckCircle2,
+  excepcion: TriangleAlert,
+} as const;
+
 export default function FinanceDocumentsPage() {
   usePageTitle('Documentos · Finance');
   const { activeOrg } = useOrg();
   const { online } = useNetworkStatus();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const inboxView = parseFinanceInboxView(searchParams.get('vista'));
+  const inboxQuery = searchParams.get('q') ?? '';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadRequest = useRef(0);
   const activeOrgIdRef = useRef(activeOrg?.id);
@@ -388,6 +411,25 @@ export default function FinanceDocumentsPage() {
   };
 
   const visibleDocuments = loadedOrgId === activeOrg?.id ? documents : [];
+  const inboxCounts = useMemo(() => countFinanceInboxViews(visibleDocuments), [visibleDocuments]);
+  const filteredDocuments = useMemo(
+    () => filterFinanceInbox(visibleDocuments, inboxView, inboxQuery),
+    [visibleDocuments, inboxView, inboxQuery],
+  );
+  const setInboxView = (vista: string) => {
+    const next = new URLSearchParams(searchParams);
+    const parsed = parseFinanceInboxView(vista);
+    if (parsed === 'todos') next.delete('vista');
+    else next.set('vista', parsed);
+    setSearchParams(next, { replace: true });
+  };
+  const setInboxQuery = (q: string) => {
+    const next = new URLSearchParams(searchParams);
+    const trimmed = q.trim();
+    if (trimmed) next.set('q', q);
+    else next.delete('q');
+    setSearchParams(next, { replace: true });
+  };
   const orgReady = loadedOrgId === activeOrg?.id;
   const initialLoadFailed = Boolean(loadError && !orgReady);
   const pending = visibleDocuments.filter(document => document.status === 'awaiting_inspection' || document.status === 'pending_upload').length;
@@ -400,7 +442,7 @@ export default function FinanceDocumentsPage() {
     <div className="space-y-6">
       <PageHeader
         icon={FileLock2}
-        eyebrow="Gestiona Finance / Document Inbox"
+        eyebrow="Gestiona Finance / Documentos"
         title="Documentos bajo custodia"
         description="Cada original entra privado, queda versionado y espera inspección antes de que cualquier dato pueda sugerir una compra, una obligación o un asiento."
         actions={(
@@ -477,9 +519,32 @@ export default function FinanceDocumentsPage() {
       </section>
 
       <section className="rounded-[12px] border border-border/70 bg-card">
-        <div className="flex flex-col gap-2 border-b border-border/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div><h2 className="text-sm font-semibold">Bandeja de documentos</h2><p className="mt-1 text-xs text-muted-foreground">Los originales se abren con una URL firmada de corta duración.</p></div>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{visibleDocuments.length} registrados</span>
+        <div className="flex flex-col gap-3 border-b border-border/70 px-5 py-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-sm font-semibold">Bandeja de documentos</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Cola con próxima acción. Los originales se abren con una URL firmada de corta duración.</p>
+            </div>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{visibleDocuments.length} registrados</span>
+          </div>
+          <WorkspaceViewTabs
+            ariaLabel="Vistas de la bandeja documental"
+            activeTab={inboxView}
+            onChange={setInboxView}
+            tabs={FINANCE_INBOX_VIEWS.map(view => ({
+              id: view.id,
+              label: view.label,
+              icon: INBOX_TAB_ICONS[view.id],
+              count: inboxCounts[view.id],
+            }))}
+          />
+          <Input
+            value={inboxQuery}
+            onChange={event => setInboxQuery(event.target.value)}
+            placeholder="Buscar por título, proveedor, CUIT o número"
+            aria-label="Buscar en la bandeja documental"
+            className="max-w-md"
+          />
         </div>
         {initialLoading ? (
           <WorkspaceState kind="initial-loading" layout="embedded" title="Leyendo documentos" loadingRows={4} />
@@ -487,8 +552,18 @@ export default function FinanceDocumentsPage() {
           <WorkspaceState kind="error-recoverable" layout="embedded" title="No pudimos abrir la bandeja" description={loadError} actionLabel="Reintentar" onAction={() => void loadDocuments()} />
         ) : visibleDocuments.length === 0 ? (
           <WorkspaceState kind="empty-first-use" layout="embedded" icon={FileText} title="Todavía no hay documentos" description="El primer archivo se guarda como original privado y queda esperando inspección. Todavía no produce asientos ni deudas." />
+        ) : filteredDocuments.length === 0 ? (
+          <WorkspaceState
+            kind="empty-filtered"
+            layout="embedded"
+            icon={Inbox}
+            title="Nada en esta vista"
+            description="Probá otra vista o limpiá la búsqueda. No se ocultan documentos de otra organización."
+            actionLabel="Ver todos"
+            onAction={() => { setInboxView('todos'); setInboxQuery(''); }}
+          />
         ) : (
-          <div className="divide-y divide-border/60">{visibleDocuments.map(document => <DocumentRow key={document.id} document={document} online={online} openingPath={openingPath} inspectingVersionId={inspectingVersionId} extractingVersionId={extractingVersionId} matchingExtractionId={matchingExtractionId} draftingExtractionId={draftingExtractionId} onOpen={openDocument} onInspect={inspectDocument} onExtract={extractDocument} onReview={openReview} onMatch={openMatching} onDraft={openDrafts} onNewVersion={id => { clearFile(); setNewVersionFor(id); }} />)}</div>
+          <div className="divide-y divide-border/60">{filteredDocuments.map(document => <DocumentRow key={document.id} document={document} online={online} openingPath={openingPath} inspectingVersionId={inspectingVersionId} extractingVersionId={extractingVersionId} matchingExtractionId={matchingExtractionId} draftingExtractionId={draftingExtractionId} onOpen={openDocument} onInspect={inspectDocument} onExtract={extractDocument} onReview={openReview} onMatch={openMatching} onDraft={openDrafts} onNewVersion={id => { clearFile(); setNewVersionFor(id); }} />)}</div>
         )}
       </section>
 
@@ -554,7 +629,10 @@ function DocumentRow({ document, online, openingPath, inspectingVersionId, extra
         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-border bg-muted/20 text-muted-foreground"><FileText className="h-4 w-4" /></span>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-medium">{document.title}</h3><StatusBadge status={document.status} /></div>
-          <p className="mt-1 text-xs text-muted-foreground">{financeDocumentTypeLabel(document.documentType)} · {latest ? `v${latest.versionNumber} · ${formatBytes(latest.sizeBytes)}` : 'sin versión'}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {financeDocumentNextAction(document)} · {financeDocumentAgeLabel(document.updatedAt)} · {financeDocumentTypeLabel(document.documentType)}
+            {latest ? ` · v${latest.versionNumber} · ${formatBytes(latest.sizeBytes)}` : ' · sin versión'}
+          </p>
           {latest && <div className="mt-1 flex flex-wrap items-center gap-2"><p className="truncate font-mono text-[10px] text-muted-foreground/70">SHA-256 {latest.sha256.slice(0, 16)}... · {latest.hashStatus === 'declared' ? 'declarado' : latest.hashStatus}</p><InspectionBadge status={latest.inspectionStatus} /></div>}
           {latest?.failureReason && <p className="mt-1 max-w-2xl text-[11px] text-amber-700 dark:text-amber-300">{latest.failureReason}</p>}
           {extraction && <ExtractionSummary extraction={extraction} />}
