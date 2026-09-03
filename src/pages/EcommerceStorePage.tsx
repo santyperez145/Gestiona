@@ -2078,7 +2078,7 @@ export default function EcommerceStorePage() {
                         además se anunciaría mal en la vitrina. */}
                     {enabled && pm.id === MEDIO_GESTIONA_PAY && !signals.paymentConnected && (
                       <p className="text-[11px] text-muted-foreground pl-7">
-                        El checkout lo muestra cuando actives Gestiona Pay (OAuth con Mercado Pago). Sin eso el comprador no lo ve.
+                        Se habilita en el checkout cuando activás Gestiona Pay con Mercado Pago.
                       </p>
                     )}
                     {enabled && pm.id === "transferencia" && (

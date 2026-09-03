@@ -223,7 +223,7 @@ export default function IntegrationsPage() {
       <PageHeader
         icon={Link2}
         title="Integraciones & API"
-        description="Mercado de integraciones, conexiones, claves API y webhooks. El estado de producto no inventa una API de correo sin contrato."
+        description="Conectá servicios clave para cobrar, vender y automatizar con estado claro en un solo panel."
         actions={
           <Button variant="outline" size="sm" className="text-xs" onClick={loadHealth} disabled={loadingHealth}>
             <Activity className={`w-3.5 h-3.5 mr-1.5 ${loadingHealth ? "animate-pulse" : ""}`} />
@@ -270,8 +270,8 @@ export default function IntegrationsPage() {
           <h2 className="text-base font-semibold">Tus integraciones</h2>
         </div>
         <p className="text-xs text-muted-foreground ml-6">
-          Conexiones con servicios externos que requieren <strong className="text-foreground">tu cuenta y credenciales</strong>.
-          Cada una es opcional según tu modelo de negocio.
+          Conexiones externas para potenciar tu operación.
+          Activá sólo las que necesite tu negocio.
         </p>
       </div>
 
@@ -317,7 +317,7 @@ export default function IntegrationsPage() {
           {Object.keys(healthMap).length === 0 && !loadingHealth && (
             <div className="col-span-5 px-5 py-6 text-center text-xs text-muted-foreground">
               <Activity className="w-6 h-6 mx-auto mb-2 opacity-30" />
-              Sin datos de actividad aún — los registros aparecerán después de las primeras operaciones.
+              Todavía no hay actividad para mostrar. Los registros aparecerán con las primeras operaciones.
             </div>
           )}
         </div>
@@ -361,7 +361,7 @@ export default function IntegrationsPage() {
           </div>
           <div>
             <h3 className="font-semibold">API REST Pública</h3>
-            <p className="text-sm text-muted-foreground">Integrá Gestiona con cualquier sistema externo</p>
+            <p className="text-sm text-muted-foreground">Conectá Gestiona con otros sistemas de tu operación</p>
           </div>
         </div>
 
@@ -395,10 +395,7 @@ export default function IntegrationsPage() {
             ARS admite 2 decimales, costos USD 4, y el stock representa unidades
             enteras. Cada respuesta autenticada informa el cupo real de la key.
           </p>
-          <p className="text-xs">
-            Es una API servidor a servidor: no la llames desde el navegador, ahí
-            la key queda a la vista de cualquiera.
-          </p>
+          <p className="text-xs">Recomendación: usala desde tu backend para mantener tus claves protegidas.</p>
         </div>
 
         <p className="text-xs text-muted-foreground">

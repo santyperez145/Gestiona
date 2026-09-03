@@ -87,7 +87,7 @@ function DashboardDataError({ message, onRetry }: { message: string; onRetry: ()
         icon={AlertCircle}
         eyebrow="Gestiona / Datos del negocio"
         title="No pudimos cargar el dashboard"
-        description="La sesión está activa, pero una de las fuentes del Business Core no respondió correctamente."
+        description="Tu sesión está activa, pero una de las fuentes de datos no respondió correctamente."
       />
       <WorkspaceState
         kind="error-recoverable"
