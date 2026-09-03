@@ -3367,6 +3367,19 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Migración
      `20260902000130` aplicada y anotada. Esta PC no tiene `VITE_*`.
 
+134. Publicar y transferencia no mienten — 2026-09-02.
+     Medido: «Publicar» exige `canPublish`; el toggle Tienda Activa +
+     Guardar podía dejar `is_active=true` sin readiness. Transferencia
+     sin CBU/alias seguía en la vitrina («te vamos a escribir»).
+     Gate unificado en `saveStore`; `transferencia_tienda_lista` +
+     `medios_de_pago_vivos` + trigger de orden. Exentry sigue con
+     transferencia viva (CBU/alias cargados). Tarifario/pesos/CUIT
+     siguen del dueño.
+
+     Verificado en este recorte: **2.435 tests** / 257 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Migración
+     `20260902000140` aplicada y anotada. Esta PC no tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
