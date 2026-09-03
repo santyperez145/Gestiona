@@ -3822,8 +3822,12 @@ Finance Connect.
      página actual. Se materializa `/`, se agrega la regresión, se elimina la
      contradicción `Disallow /productos` + `Allow /productos` del robots del
      subdominio y se garantiza un H1 semántico cuando el comercio oculta el
-     hero. Estas tres correcciones quedan como implementación hasta que termine
-     su nuevo deploy y se repita la recorrida publicada.
+     hero. El commit `aaa4b01` quedó `READY` en Vercel después de 5 min. La
+     recorrida publicada posterior confirmó `Inicio → /` tanto en home como en
+     PDP, un H1 real en ambas pantallas y cero errores de consola. El robots del
+     subdominio respondió 200 como `text/plain`, permite el catálogo y bloquea
+     sólo checkout, cuenta, orden, carrito y seguimiento; ya no contiene el
+     `Disallow /productos` heredado del panel.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

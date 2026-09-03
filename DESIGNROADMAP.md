@@ -467,7 +467,9 @@ en el host canónico. Una composición que decide mostrar banners y ocultar el
 hero conserva un H1 accesible con el nombre del comercio, y el robots de la
 tienda ya no hereda rutas del panel ni emite reglas contradictorias. Es el
 criterio de este roadmap: una observación de navegador termina en contrato y
-regresión, no sólo en una captura.
+regresión, no sólo en una captura. El deploy `aaa4b01` quedó `READY` y la
+revalidación sobre `exentryimports.nerqia.app` confirmó H1 en home/PDP,
+`Inicio → /`, robots acotado a rutas privadas y cero errores de consola.
 
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto: CTA móvil hecho; faltan variantes densas y confianza extra;
