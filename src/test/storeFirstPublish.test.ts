@@ -90,6 +90,9 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(STORE).toContain('reloadReadinessSignals');
     expect(STORE).toContain('onPagesChanged={reloadReadinessSignals}');
     expect(STORE).toContain('onConnectionChange={reloadReadinessSignals}');
+    // Toggle+guardar no puede saltarse el mismo gate que «Publicar».
+    expect(STORE).toContain('if (isActive && !readiness.canPublish)');
+    expect(STORE).not.toContain('if (opts?.activate && !readiness.canPublish)');
   });
 
   it('los nudges de publicar apuntan a tarifario, legales y pesos', () => {

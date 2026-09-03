@@ -495,7 +495,10 @@ export default function EcommerceStorePage() {
       return;
     }
     const isActive = opts?.activate ? true : storeForm.is_active;
-    if (opts?.activate && !readiness.canPublish) {
+    // Publicar (CTA o toggle+guardar) exige lo mismo: sin canPublish el
+    // comprador no termina la compra. Shopify/Tiendanube no dejan ir live
+    // con el cobro a medias.
+    if (isActive && !readiness.canPublish) {
       toast.error(readinessSummary(readiness));
       return;
     }
@@ -1672,8 +1675,9 @@ export default function EcommerceStorePage() {
                   : "Resolvé lo que falta antes de publicarla: hoy un comprador no podría terminar la compra"}
               </p>
             </div>
-            {/* No se bloquea el toggle: si quiere publicar igual, es su negocio.
-                Lo que no puede pasar es que lo haga sin saber qué va a fallar. */}
+            {/* El toggle avisa en amarillo si falta algo; Guardar es quien
+                corta: no se publica una tienda que el comprador no puede
+                terminar (canPublish). */}
             <button
               onClick={() => setStoreForm(p => ({ ...p, is_active: !p.is_active }))}
               title={readiness.canPublish ? undefined : readinessSummary(readiness)}

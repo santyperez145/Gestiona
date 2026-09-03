@@ -58,6 +58,15 @@ describe("checkout sin Pay muerto", () => {
     expect(readiness).toContain("id: 'pay-rail'");
   });
 
+  it("transferencia sin CBU/alias no sale en la vitrina ni entra como orden", () => {
+    const viva = leer("supabase/migrations/20260902000140_transferencia_viva_y_publicar.sql");
+    expect(viva).toContain("CREATE OR REPLACE FUNCTION public.transferencia_tienda_lista");
+    expect(viva).toContain("m <> 'transferencia'");
+    expect(viva).toContain("OR public.transferencia_tienda_lista(p_org_id)");
+    expect(viva).toContain("Faltan CBU o alias para cobrar por transferencia");
+    expect(viva).toContain("CREATE OR REPLACE FUNCTION public.medios_de_pago_vivos");
+  });
+
   it("la fixture reversible vive junto a la migración", () => {
     const fixture = leer("supabase/verificaciones/20260901_checkout_sin_pay_muerto.sql");
     expect(fixture).toContain("ROLLBACK");
