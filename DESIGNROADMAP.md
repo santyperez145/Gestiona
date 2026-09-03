@@ -26,7 +26,7 @@ El rediseño se considera completo cuando:
    navegación y acento;
 2. cada ruta usa los mismos primitives, estados, densidad y accesibilidad;
 3. claro y oscuro funcionan sin recibir colores del comercio;
-4. storefront y checkout expresan la marca de la tienda sin contaminar Gestión;
+4. storefront y checkout expresan la marca de la tienda sin contaminar Nerqia;
 5. las vistas prioritarias se validan en 360, 768, 1024 y 1440 px;
 6. al menos un comercio real completa las tareas críticas y se mide tiempo,
    abandono y error;
@@ -180,13 +180,15 @@ y justifica tecnología; no copia un Figma ni instala por moda.
 
 ### D0 — Identidad y aislamiento de temas
 
-**Estado:** hecho técnicamente y reforzado el 2026-08-23.
+**Estado:** hecho técnicamente y corregido con la identidad N/Q el 2026-09-03.
 
 - tokens claro/oscuro oficiales;
 - personalización del merchant aislada a tienda/PDF;
 - Business, Finance y Platform con identidad consistente;
-- símbolo canónico transparente en shells, landing, acceso, onboarding,
+- isotipo N/Q canónico transparente en shells, landing, acceso, onboarding,
   invitaciones, recuperación, páginas institucionales, favicon y PWA;
+- wordmark horizontal oficial versionado para piezas de marca, sin reemplazar
+  texto accesible ni contaminar la identidad visual de los merchants;
 - prueba de regresión para impedir mutaciones globales desde settings.
 
 **Salida:** cambiar colores de una tienda no modifica ninguna ruta de Gestión.
@@ -524,7 +526,7 @@ declara validado porque “se ve mejor”.
 | 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
 | 24 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |
 | 25 | Investor demo mode con datos seguros | Pendiente tras validación | Narrativa reproducible, sin métricas falsas. |
-| 26 | Identidad y dominio oficial de Nerqia | Hecho 2026-09-03 | Nombre, productos, símbolo RGBA, favicon/Apple/PWA, metadata, Auth y shells comparten contrato canónico; `nerqia.app` es el origen productivo y `www` redirige al raíz. La identidad del merchant queda aislada en Storefront/documentos y los namespaces técnicos heredados permanecen compatibles. Landing y acceso verificados en localhost 1280×720 sin errores de consola. |
+| 26 | Identidad y dominio oficial de Nerqia | Hecho 2026-09-03 | Nombre, productos, isotipo N/Q RGBA entregado por el dueño, wordmark horizontal, favicon/Apple/PWA, metadata, Auth y shells comparten contrato canónico; se retiró el viejo símbolo G que había quedado renombrado. `nerqia.app` es el origen productivo y `www` redirige al raíz. La identidad del merchant queda aislada en Storefront/documentos y los namespaces técnicos heredados permanecen compatibles. Landing y acceso se habían verificado en localhost 1280×720 sin errores de consola; la sustitución visual queda protegida por dimensiones, formato y adopción, y requiere nueva inspección publicada tras el deploy. |
 | 27 | Contrato visible de webhooks | Hecho 2026-08-29 | Diálogo legible, código de firma, semántica de id/retry/orden, guía y OpenAPI 3.1; transporte sintético certificado contra HTTPS externo y receptor eliminado. |
 | 28 | Contrato visible de API pública | Hecho 2026-08-29 | Panel, estado vacío y modal auditados con sesión de administrador real en producción: claro/oscuro, 360/768/1024/1440, cero overflow y consola sin warnings/errors. Guía, OpenAPI 3.1 y changelog accesibles; secretos one-time sin bloque negro en claro. La prueba descubrió que `stock:write` ocultaba parte de su consecuencia en mobile; el bundle nuevo `index-CBuC_8gZ.js` ya muestra la explicación completa en claro/oscuro a 360 px, conserva 512 px de diálogo desktop y deja consola limpia. Evidencia: `docs/evidencias/2026-08-29_api_keys_visual.md`. |
 

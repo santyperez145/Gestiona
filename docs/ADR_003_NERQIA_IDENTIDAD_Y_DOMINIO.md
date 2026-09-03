@@ -10,8 +10,57 @@ canónico es **https://nerqia.app**. Los productos se presentan como Nerqia
 Commerce, Nerqia Business, Nerqia Pay, Nerqia Finance y Nerqia Platform.
 
 `www.nerqia.app` existe como alias y redirige permanentemente al dominio raíz.
-Las tiendas siguen viviendo en `/tienda/:slug`: el logo y nombre del comercio
-permanecen aislados de la marca de la plataforma.
+La identidad oficial entregada por el dueño se versiona en dos activos: un
+isotipo N/Q transparente para shells, favicon y PWA, y un wordmark horizontal
+para piezas de marca. Las tiendas nunca heredan esos activos: el logo y nombre
+del comercio permanecen aislados de la marca de la plataforma.
+
+## Topología de producto y tiendas
+
+La topología objetivo evita que una nueva URL se convierta en otro storefront:
+
+| Host | Responsabilidad |
+|---|---|
+| `nerqia.app` | adquisición, pricing y contenido institucional de Nerqia |
+| `app.nerqia.app` | Business, Finance y Platform autenticados |
+| `<slug>.nerqia.app` | tienda pública canónica incluida |
+| dominio propio verificado | tienda pública canónica del merchant |
+| `/tienda/:slug` | compatibilidad y redirección, no segunda autoridad SEO |
+
+Todos los hosts de tienda reutilizan `StorefrontPage`, `StoreContext`, carrito,
+checkout, órdenes y RPC existentes. No se crea un router, catálogo, precio,
+stock ni checkout paralelo. En un host de tienda las rutas son limpias
+(`/producto/:slug`, `/carrito`, `/checkout`); en el host compartido se conserva
+el prefijo `/tienda/:slug` durante la transición.
+
+Los slugs `www`, `app`, `api`, `admin`, `platform`, `finance`, `auth`, `docs`,
+`help`, `status`, `soporte`, `mail`, `cdn`, `assets` y `developer` quedan
+reservados. Un hostname propio se normaliza y pasa por estados `pending_dns`,
+`verifying`, `active`, `misconfigured` o `disabled`; sólo `active` puede ser
+canónico. La asociación es única, tenant-scoped y resuelta en servidor con la
+menor superficie pública posible.
+
+## Evidencia competitiva y tecnológica
+
+- [Vercel for Platforms](https://vercel.com/changelog/introducing-vercel-for-platforms)
+  documenta wildcard subdomains, routing por host, TLS y dominios propios sobre
+  un único deploy. El wildcard requiere nameservers de Vercel y cada dominio
+  propio debe verificarse antes de activarse.
+- [Shopify](https://help.shopify.com/en/manual/domains/add-a-domain/connecting-domains/connect-vs-transfer)
+  separa conectar de transferir un dominio y mantiene al comercio como dueño;
+  Nerqia adopta ese límite y no se vuelve registrador.
+- [Tiendanube](https://ayuda.tiendanube.com/es_AR/dominios/guia-configurar-el-dominio-de-la-tienda)
+  ofrece subdominio incluido y dominio propio conectado: es la paridad local
+  esperada, no una razón para duplicar la tienda.
+- La [documentación de redirects de Supabase Auth](https://supabase.com/docs/guides/auth/redirect-urls)
+  recomienda URLs exactas en producción. El login del SaaS queda en
+  `app.nerqia.app`; la compra pública no depende de una sesión del panel.
+
+El DNS observado el 2026-09-03 usa nameservers de Vercel y resuelve el wildcard,
+pero eso no prueba por sí solo asociación de proyecto, certificado ni routing.
+La cuota de dominios del plan de hosting, el token de Vercel, la verificación
+DNS y el remitente de correo son gates operativos externos; jamás se marcan
+activos por existir una fila en la base.
 
 ## Compatibilidad
 
@@ -40,4 +89,5 @@ sin versión, telemetría de adopción y ventana de migración.
 
 `brandIdentity.test.ts` recorre las superficies activas y falla si reaparecen
 la marca o dominios anteriores fuera de las excepciones técnicas declaradas.
-También valida favicon/PWA, origen canónico, redirect y configuración de Auth.
+También valida los dos activos oficiales, favicon/PWA, origen canónico,
+redirect y configuración de Auth.

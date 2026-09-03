@@ -19,6 +19,25 @@ Toda pantalla, modal, segmentación o decisión de tecnología se ejecuta bajo e
 investigación fechada, traducción propia, cobertura de estados y una puerta
 medible antes de adoptar dependencias.
 
+## Objetivo canónico aceptado — 2026-09-03
+
+**Nerqia Commerce OS**: convertir la tienda online en una puerta de entrada de
+primer nivel y sostenerla sobre un único Business Graph; mantener Finance como
+producto propio de control de gasto, comparable por flujo con Mendel, sin
+clonar productos, stock, proveedores, cobros, documentos ni páginas del Core.
+Ordenar y auditar todas las rutas, eliminar funciones equivalentes, completar
+los flujos reales de punta a punta y elevar la presentación profesional de
+Commerce, Business, Finance y Platform.
+
+Cada decisión se contrasta con evidencia oficial y fechada de Tiendanube,
+Shopify, Mercado Libre, Empretienda y Mendel, sin copiar marca ni prometer
+capacidades no verificadas. La entrega exige autoridad server-side, aislamiento
+multi-tenant, accesibilidad, observabilidad, estados honestos, pruebas
+proporcionales al riesgo y separación explícita entre implementación técnica y
+habilitación de proveedor, seguridad, legal, fiscal o regulatoria. Se trabaja
+en slices completos, con documentación, commit y push, sin abrir una segunda
+fuente de verdad para la misma capacidad.
+
 ## 0. Resumen ejecutivo
 
 Nerqia construye el **Commerce Operating System** para PyMEs latinoamericanas:
@@ -3738,6 +3757,28 @@ Finance Connect.
      PWA, 107 enlaces internos y 529 migraciones verificadas (`npm run
      check:conteos`, 2026-09-03). Correo con `@nerqia.app` sigue pendiente de los
      registros DNS de Resend; Vercel no provee casillas.
+
+162. Identidad visual N/Q y contrato de dominios de tienda — 2026-09-03.
+     La identidad canónica ya decía Nerqia pero el PNG publicado seguía siendo
+     el símbolo G anterior renombrado. Se sustituyó por el isotipo N/Q entregado
+     por el dueño, recortado sobre transparencia real, y se versionó también el
+     wordmark horizontal. `BrandLogo`, favicon y PWA declaran ahora la geometría
+     real 389×389; una guarda valida firma PNG, alpha, dimensiones, adopción y
+     aislamiento de la marca del merchant.
+
+     El ADR 003 fija la topología que se implementará sin duplicar Commerce:
+     `nerqia.app` institucional, `app.nerqia.app` autenticado,
+     `<slug>.nerqia.app` como tienda incluida, dominio propio verificado como
+     canónico y `/tienda/:slug` sólo como compatibilidad. StoreContext,
+     StorefrontPage, catálogo, carrito, checkout, órdenes y autoridad SQL son
+     los mismos en todos los hosts. La decisión se contrastó el 2026-09-03 con
+     documentación oficial de Vercel for Platforms, Shopify, Tiendanube y
+     Supabase Auth. Wildcard DNS observado no se declara routing ni TLS probado;
+     asociación de proyecto, cuotas, verificación y correo siguen siendo gates
+     operativos. Puerta local: typecheck, lint 0 errores / 143 warnings
+     conocidos, **2.555 tests / 272 archivos** y build/PWA productivo
+     (2026-09-03). Próximo slice: resolver host/subdominio en código, canónicos
+     y redirecciones con pruebas antes de habilitar dominios propios.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

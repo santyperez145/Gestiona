@@ -56,7 +56,7 @@ export default defineConfig(({ mode }) => ({
         icons: [
           {
             src: "/brand/nerqia-mark.png",
-            sizes: "1254x1254",
+            sizes: "389x389",
             type: "image/png",
             purpose: "any maskable",
           },

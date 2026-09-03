@@ -23,7 +23,18 @@ describe('identidad canónica de Nerqia', () => {
 
     expect(mark.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
     expect(mark.readUInt32BE(16)).toBe(mark.readUInt32BE(20));
+    expect(mark.readUInt32BE(16)).toBe(389);
     expect(mark[25], 'el PNG debe conservar canal alpha RGBA').toBe(6);
+  });
+
+  it('versiona el wordmark horizontal oficial como activo transparente', () => {
+    const wordmark = readFileSync(resolve(process.cwd(), 'public/brand/nerqia-wordmark.png'));
+
+    expect(wordmark.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+    expect(wordmark.readUInt32BE(16)).toBe(1369);
+    expect(wordmark.readUInt32BE(20)).toBe(459);
+    expect(wordmark[25], 'el wordmark debe conservar canal alpha RGBA').toBe(6);
+    expect(source('src/lib/brand.ts')).toContain("BRAND_WORDMARK_SRC = '/brand/nerqia-wordmark.png'");
   });
 
   it('centraliza ruta, nombre accesible y dimensiones en un solo componente', () => {
@@ -33,8 +44,8 @@ describe('identidad canónica de Nerqia', () => {
     expect(brand).toContain("BRAND_MARK_SRC = '/brand/nerqia-mark.png'");
     expect(component).toContain('`${BRAND_NAME} ${product}`');
     expect(component).toContain('aria-label={decorative ? undefined : label}');
-    expect(component).toContain('width="1254"');
-    expect(component).toContain('height="1254"');
+    expect(component).toContain('width="389"');
+    expect(component).toContain('height="389"');
   });
 
   it('reemplaza marcas improvisadas en shells y accesos críticos', () => {
@@ -79,7 +90,7 @@ describe('identidad canónica de Nerqia', () => {
 
     expect(html.match(/nerqia\.app\/brand\/nerqia-mark\.png|\/brand\/nerqia-mark\.png/g)?.length).toBeGreaterThanOrEqual(4);
     expect(vite).toContain('brand/nerqia-mark.png');
-    expect(vite).toContain('sizes: "1254x1254"');
+    expect(vite).toContain('sizes: "389x389"');
     expect(vite).not.toContain("<text y='130'");
   });
 
