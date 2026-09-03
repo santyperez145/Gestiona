@@ -84,6 +84,16 @@ describe("recorrido de compra a 360 px", () => {
     expect(layout).toContain('pathname.includes("/checkout")');
   });
 
+  it("la home prioriza la marca y no inventa pagos seguros", () => {
+    const home = leer("src/storefront/StoreHome.tsx");
+    expect(home).not.toContain("Catálogo oficial");
+    expect(home).not.toContain("Medios de pago seguros");
+    expect(home).toContain("textoMediosHero");
+    expect(home).toContain("storefront-hero--ambient");
+    expect(home).toContain("min-h-11");
+    expect(home).toContain("logoUrl");
+  });
+
   it("filtros y checkout no esconden la acción primaria en el teléfono", () => {
     const productos = leer("src/storefront/StoreProducts.tsx");
     const checkout = leer("src/storefront/StoreCheckout.tsx");

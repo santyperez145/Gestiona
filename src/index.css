@@ -4027,6 +4027,38 @@
     isolation: isolate;
   }
 
+  .storefront-hero--ambient::before {
+    content: "";
+    position: absolute;
+    inset: -20% -10% auto auto;
+    width: min(70vw, 36rem);
+    height: min(70vw, 36rem);
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      hsl(var(--st-accent) / 0.18) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .storefront-hero--ambient::after {
+    content: "";
+    position: absolute;
+    inset: auto auto -30% -15%;
+    width: min(60vw, 28rem);
+    height: min(60vw, 28rem);
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      hsl(var(--st-accent) / 0.1) 0%,
+      transparent 68%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
   .storefront-hero__content {
     min-height: 21rem;
     display: grid;
@@ -4034,6 +4066,8 @@
     align-items: center;
     gap: 3rem;
     text-align: left;
+    position: relative;
+    z-index: 1;
   }
 
   .storefront-hero__image {

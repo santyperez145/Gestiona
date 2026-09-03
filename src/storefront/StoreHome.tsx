@@ -20,6 +20,7 @@ import {
   type HomeSectionId,
 } from "@/lib/storeHomeLayout";
 import { textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
+import { textoMediosHero } from "@/lib/storeHomeHero";
 
 export default function StoreHome() {
   const { store, products, banners, categorias: cats2, priceOf, fmt, cart } = useStore();
@@ -103,9 +104,11 @@ export default function StoreHome() {
             storeName={store?.name}
             description={store?.description}
             bannerUrl={store?.banner_url}
+            logoUrl={store?.logo_url}
             base={base}
             disponibles={disponibles.length}
             cobertura={textoCoberturaDomicilio(store?.shipping_provinces)}
+            medios={textoMediosHero(store?.payment_methods)}
           />
         ) : null;
       case "trust":
@@ -145,9 +148,21 @@ export default function StoreHome() {
       {layout.sections.map((s) => bloque(s.id))}
 
       {products.length === 0 && (
-        <div className="max-w-6xl mx-auto px-4 py-20 text-center">
-          <p style={{ color: "hsl(var(--st-muted))" }}>
-            Todavía no hay productos publicados en esta tienda.
+        <div className="max-w-lg mx-auto px-4 py-20 text-center space-y-4">
+          {store?.logo_url ? (
+            <img
+              src={store.logo_url}
+              alt=""
+              {...atributosDeImagenVitrina("logo")}
+              onLoad={mostrarImagenValida}
+              onError={ocultarImagenRota}
+              className="mx-auto h-14 w-14 object-contain"
+            />
+          ) : null}
+          <h2 className="text-xl font-semibold tracking-tight">{store?.name ?? "Esta tienda"}</h2>
+          <p className="text-sm" style={{ color: "hsl(var(--st-muted))" }}>
+            Todavía no hay productos publicados. Cuando el comercio cargue el catálogo,
+            el stock va a ser el mismo del mostrador.
           </p>
         </div>
       )}
@@ -156,18 +171,20 @@ export default function StoreHome() {
 }
 
 function Hero({
-  storeName, description, bannerUrl, base, disponibles, cobertura,
+  storeName, description, bannerUrl, logoUrl, base, disponibles, cobertura, medios,
 }: {
   storeName?: string | null;
   description?: string | null;
   bannerUrl?: string | null;
+  logoUrl?: string | null;
   base: string;
   disponibles: number;
   cobertura: string | null;
+  medios: string;
 }) {
   return (
     <section
-      className="storefront-hero relative overflow-hidden"
+      className={`storefront-hero relative overflow-hidden${bannerUrl ? "" : " storefront-hero--ambient"}`}
       style={{ background: "hsl(var(--st-surface))", borderBottom: "1px solid hsl(var(--st-border))" }}
     >
       {bannerUrl && (
@@ -182,7 +199,16 @@ function Hero({
       )}
       <div className="storefront-hero__content relative max-w-6xl mx-auto px-4 py-16 sm:py-24">
         <div className="storefront-hero__copy">
-          <span className="storefront-eyebrow">Catálogo oficial</span>
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt=""
+              {...atributosDeImagenVitrina("logo")}
+              onLoad={mostrarImagenValida}
+              onError={ocultarImagenRota}
+              className="storefront-hero__logo mb-4 h-12 w-12 sm:h-14 sm:w-14 object-contain"
+            />
+          ) : null}
           <h1 className="storefront-hero__title text-3xl sm:text-5xl font-bold tracking-tight">{storeName}</h1>
           {description && (
             <p className="mt-3 text-base sm:text-lg max-w-2xl" style={{ color: "hsl(var(--st-muted))" }}>
@@ -191,7 +217,7 @@ function Hero({
           )}
           <Link
             to={`${base}/productos`}
-            className="storefront-hero__cta inline-flex items-center gap-2 mt-7 px-6 py-3 font-medium transition-opacity hover:opacity-90"
+            className="storefront-hero__cta inline-flex min-h-11 items-center gap-2 mt-7 px-6 py-3 font-medium transition-opacity hover:opacity-90"
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >
             Explorar catálogo <ArrowRight className="w-4 h-4" />
@@ -200,8 +226,8 @@ function Hero({
         <div className="storefront-hero__aside">
           <div className="storefront-hero__aside-head"><span>Compra con confianza</span><ShieldCheck /></div>
           <div className="storefront-hero__aside-stat"><strong>{disponibles}</strong><span>productos disponibles</span></div>
-          <div className="storefront-hero__aside-row"><span><Truck /> {cobertura ?? "Retiro o envío a coordinar"}</span><ArrowRight /></div>
-          <div className="storefront-hero__aside-row"><span><Wallet /> Medios de pago seguros</span><ArrowRight /></div>
+          <div className="storefront-hero__aside-row"><span><Truck /> {cobertura ?? "Retiro o envío a cotizar"}</span><ArrowRight /></div>
+          <div className="storefront-hero__aside-row"><span><Wallet /> {medios}</span><ArrowRight /></div>
         </div>
       </div>
     </section>
