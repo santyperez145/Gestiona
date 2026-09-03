@@ -161,3 +161,17 @@ export function storeFunnelFromCarts(sessions: StoreCartSession[]): StoreFunnelS
 export function storeAbandonedCartCount(sessions: StoreCartSession[]): number {
   return sessions.filter((row) => row.status === 'abandoned').length;
 }
+
+/**
+ * El link que el comercio comparte. Sin slug no hay puerta.
+ * El origin lo pone el navegador; no se inventa un dominio propio (F4).
+ */
+export function urlPublicaDeTienda(
+  origin: string,
+  slug: string | null | undefined,
+): string | null {
+  const host = origin.trim().replace(/\/$/, '');
+  const s = (slug ?? '').trim();
+  if (!host || !s) return null;
+  return `${host}/tienda/${s}`;
+}

@@ -3276,6 +3276,18 @@ Finance Connect.
      y anotada (`20260902000100`). Esta PC no tiene `VITE_*`: no se
      afirma el Foco contra una sesión real.
 
+127. El Foco deja de mandar a POS a quien eligió tienda — 2026-09-02.
+     Medido: Exentry `onboarding_goal=online`; pruebas `explore` sin
+     tienda. El Pulse decía «Abrir el POS» y Alt+2 iba a `/caja`.
+     Shopify/Tiendanube no mandan a un PDV a quien abrió una vitrina.
+     Canal POS sigue en el mostrador; `explore` entra por Commerce.
+     Tienda sin publicar gana al tarifario. Commerce copia el enlace
+     público (`/tienda/:slug`); dominio propio sigue congelado (F4).
+
+     Verificado en este recorte: **2.403 tests** (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no
+     tiene `VITE_*`: no se afirma el Foco contra una sesión real.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

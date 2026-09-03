@@ -14,7 +14,7 @@ import {
   ShoppingBag, Globe, Package, ShoppingCart, TrendingUp, Settings,
   Plus, Eye, RefreshCw, ExternalLink, Palette, Zap, BarChart3,
   Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin,
-  Image as ImageIcon, Type, ChevronUp, ChevronDown,
+  Image as ImageIcon, Type, ChevronUp, ChevronDown, Copy,
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
@@ -43,6 +43,7 @@ import {
   storeShouldLeadWithPay,
   storeShouldShowAfterCatalog,
   storeShouldShowPerformanceChrome,
+  urlPublicaDeTienda,
 } from "@/lib/storeFirstPublish";
 import type { AbandonedCartRow } from "@/lib/abandonedCarts";
 import { filterAbandonedCartsForQueue } from "@/lib/abandonedCarts";
@@ -650,6 +651,11 @@ export default function EcommerceStorePage() {
     { label: "Carritos c/items", value: activeCartsCount,             sub: `${abandonedCarts} abandonados`, icon: Users, color: "blue" as const },
   ], [todayRevenue, todayOrders.length, orders.length, conversionPct, funnelData, activeCartsCount, abandonedCarts]);
 
+  const urlPublica = urlPublicaDeTienda(
+    typeof window === "undefined" ? "" : window.location.origin,
+    store?.slug,
+  );
+
   return (
     <div className="workspace-page workspace-ecommerce space-y-6 pb-12">
       <PageHeader
@@ -674,10 +680,25 @@ export default function EcommerceStorePage() {
                   ? "● Activa"
                   : `▲ ${readinessSummary(readiness)}`}
             </Badge>
-            {store?.slug && (
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => window.open(`${window.location.origin}/tienda/${store.slug}`, "_blank")}>
-                <ExternalLink className="w-3 h-3" />Ver tienda
-              </Button>
+            {urlPublica && (
+              <>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => window.open(urlPublica, "_blank")}>
+                  <ExternalLink className="w-3 h-3" />Ver tienda
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-xs"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(urlPublica).then(
+                      () => toast.success("Enlace copiado"),
+                      () => toast.error("No se pudo copiar"),
+                    );
+                  }}
+                >
+                  <Copy className="w-3 h-3" />Copiar enlace
+                </Button>
+              </>
             )}
           </div>
         }

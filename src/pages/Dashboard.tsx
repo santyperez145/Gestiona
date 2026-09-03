@@ -15,7 +15,7 @@ import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories, saveSettingsDB } from "@/lib/supabaseStore";
-import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard, Sparkles } from "lucide-react";
+import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard, Sparkles, ScanLine } from "lucide-react";
 import MetricCard from "@/components/shared/MetricCard";
 import PageHeader from "@/components/shared/PageHeader";
 import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
@@ -1704,6 +1704,9 @@ export default function Dashboard() {
           deudaTotalARS={stats.totalDebtsARS}
           deudasVencidas30={stats.overdueDebts30}
           seguimientosHoy={pendingFollowUps.length}
+          onboardingGoal={activeOrg?.onboarding_goal}
+          tiendaPublicada={activationSignals?.online_channel_ready ?? undefined}
+          ordenesOnlinePagas={activationSignals?.online_orders_total ?? undefined}
         />
       )}
 
@@ -1733,10 +1736,20 @@ export default function Dashboard() {
       </section>
 
       {/* Quick Actions */}
+      {/* Quick Actions: la puerta del canal elegido va primero. Shopify no
+          esconde Online Store detrás de POS; el mostrador sigue a un clic. */}
       <div className="workspace-dashboard-quick-actions workspace-quick-actions flex flex-wrap gap-2 mb-4 mt-3">
         {[
           { label: "Nueva Venta", icon: DollarSign, path: "/ventas", color: "text-primary" },
-          { label: "POS", icon: ShoppingBag, path: "/caja", color: "text-emerald-400" },
+          ...(activeOrg?.onboarding_goal === "pos"
+            ? [
+                { label: "POS", icon: ScanLine, path: "/caja", color: "text-emerald-400" },
+                { label: "Tienda", icon: ShoppingBag, path: "/tienda-online", color: "text-primary" },
+              ]
+            : [
+                { label: "Tienda", icon: ShoppingBag, path: "/tienda-online", color: "text-primary" },
+                { label: "POS", icon: ScanLine, path: "/caja", color: "text-emerald-400" },
+              ]),
           { label: "Nuevo Cliente", icon: Users, path: "/clientes", color: "text-blue-400" },
           { label: "Inventario", icon: Package, path: "/productos", color: "text-yellow-400" },
           { label: "Gastos", icon: Wallet, path: "/gastos", color: "text-destructive" },

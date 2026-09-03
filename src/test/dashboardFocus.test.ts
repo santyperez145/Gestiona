@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
-  construirPendientes, FOCO_MAX_PENDIENTES, leerVariacion, nivelDelDia,
+  canalDeVentaDelFoco, construirPendientes, FOCO_MAX_PENDIENTES, leerVariacion, nivelDelDia,
   type DatosFoco,
 } from "@/lib/dashboardFocus";
 
@@ -11,6 +11,16 @@ const VACIO: DatosFoco = {
   deudasPendientes: 0, deudaTotalARS: 0, deudasVencidas30: 0,
   seguimientosHoy: 0, pedidosPorDespachar: 0,
 };
+
+describe("canalDeVentaDelFoco", () => {
+  it("sólo el mostrador explícito manda a POS", () => {
+    expect(canalDeVentaDelFoco("pos")).toBe("pos");
+    expect(canalDeVentaDelFoco("online")).toBe("online");
+    expect(canalDeVentaDelFoco("explore")).toBe("online");
+    expect(canalDeVentaDelFoco(null)).toBe("online");
+    expect(canalDeVentaDelFoco(undefined)).toBe("online");
+  });
+});
 
 describe("construirPendientes", () => {
   // Una lista con "0 productos sin stock" enseña a saltear la lista entera.
@@ -79,11 +89,52 @@ describe("construirPendientes", () => {
     expect(construirPendientes({ ...VACIO, sinStock: 2 })[0].texto).toContain("2 productos sin stock");
   });
 
-  it("sin operación, empuja primera venta POS y toma física", () => {
-    const p = construirPendientes({ ...VACIO, nuncaVendio: true, sinConteoFisico: true });
+  it("sin operación y canal POS, empuja el mostrador y la toma física", () => {
+    const p = construirPendientes({
+      ...VACIO, nuncaVendio: true, sinConteoFisico: true, onboardingGoal: "pos",
+    });
     expect(p.map((x) => x.id)).toEqual(["primera-venta", "toma-fisica"]);
     expect(p[0].destino).toBe("/caja");
+    expect(p[0].accion).toBe("Abrir el POS");
     expect(p[1].destino).toBe("/kardex");
+  });
+
+  it("sin operación, la tienda es la puerta — no el POS", () => {
+    const sinCanal = construirPendientes({ ...VACIO, nuncaVendio: true });
+    expect(sinCanal[0].id).toBe("primera-venta");
+    expect(sinCanal[0].destino).toBe("/tienda-online");
+    expect(sinCanal[0].accion).toBe("Abrir Commerce");
+
+    const online = construirPendientes({
+      ...VACIO, nuncaVendio: true, onboardingGoal: "online",
+    });
+    expect(online[0].destino).toBe("/tienda-online");
+
+    const explore = construirPendientes({
+      ...VACIO, nuncaVendio: true, onboardingGoal: "explore",
+    });
+    expect(explore[0].destino).toBe("/tienda-online");
+  });
+
+  it("tienda sin publicar aparece aunque falte el tarifario", () => {
+    const p = construirPendientes({
+      ...VACIO,
+      onboardingGoal: "online",
+      tiendaPublicada: false,
+      zonasSinTarifa: 5,
+    });
+    expect(p.map((x) => x.id)).toEqual(["publicar-tienda", "tarifario"]);
+    expect(p[0].destino).toBe("/tienda-online");
+    expect(p[0].accion).toBe("Publicar");
+  });
+
+  it("con ventas POS pero cero online, el Foco pide la puerta Commerce", () => {
+    const p = construirPendientes({
+      ...VACIO, onboardingGoal: "online", ordenesOnlinePagas: 0, tiendaPublicada: true,
+    });
+    expect(p[0].id).toBe("primera-venta");
+    expect(p[0].destino).toBe("/tienda-online");
+    expect(p[0].accion).toBe("Compartí el enlace");
   });
 
   it("con pendientes operativos no tapa con CTAs de onboarding", () => {
@@ -207,6 +258,14 @@ describe("FocoDelDia no cuenta fantasmas de Pay ni despacha un retiro", () => {
     const ui = readFileSync(resolve(__dirname, "../components/dashboard/FocoDelDia.tsx"), "utf8");
     expect(ui).toContain("countFulfillmentPulse");
     expect(ui).toContain("carrier, shipping_service");
+  });
+
+  it("el Foco recibe el canal del onboarding, no asume POS", () => {
+    const ui = readFileSync(resolve(__dirname, "../components/dashboard/FocoDelDia.tsx"), "utf8");
+    const dashboard = readFileSync(resolve(__dirname, "../pages/Dashboard.tsx"), "utf8");
+    expect(ui).toContain("onboardingGoal: p.onboardingGoal");
+    expect(dashboard).toContain("onboardingGoal={activeOrg?.onboarding_goal}");
+    expect(dashboard).toContain("tiendaPublicada={activationSignals?.online_channel_ready");
   });
 });
 

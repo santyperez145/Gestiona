@@ -103,6 +103,31 @@ export interface DatosFoco {
   productosSinPeso?: number;
   /** Zonas activas sin tarifa — Completar tarifario. */
   zonasSinTarifa?: number;
+  /**
+   * Canal que eligió el comercio en el onboarding.
+   * Sin esto el Foco mandaba siempre a `/caja`, incluso a quien eligió
+   * vender online. `explore` / ausente = la tienda es la puerta (ADR 002).
+   */
+  onboardingGoal?: "pos" | "online" | "explore" | null;
+  /**
+   * `organization_activation_readiness.online_channel_ready`:
+   * tienda activa con slug. `undefined` = todavía no se midió; no se inventa.
+   */
+  tiendaPublicada?: boolean;
+  /** Órdenes online con pago acreditado. Distinto de `nuncaVendio` (tabla `sales`). */
+  ordenesOnlinePagas?: number;
+}
+
+/**
+ * Dónde se cobra la próxima venta según el canal elegido.
+ *
+ * Shopify/Tiendanube no mandan a un PDV a quien abrió una tienda.
+ * POS queda para quien eligió mostrador; el resto entra por Commerce.
+ */
+export function canalDeVentaDelFoco(
+  goal: DatosFoco["onboardingGoal"],
+): "pos" | "online" {
+  return goal === "pos" ? "pos" : "online";
 }
 
 /**
@@ -148,6 +173,25 @@ export function ritmoHabitual(huecos: number[]): number | null {
 const ORDEN_URGENCIA: Record<Urgencia, number> = {
   critico: 0, atencion: 1, normal: 2,
 };
+
+function pendientePrimeraVenta(online: boolean, publicada: boolean): Pendiente {
+  if (online) {
+    return {
+      id: "primera-venta",
+      texto: "Todavía no hay una venta online",
+      accion: publicada ? "Compartí el enlace" : "Abrir Commerce",
+      destino: "/tienda-online",
+      urgencia: "atencion",
+    };
+  }
+  return {
+    id: "primera-venta",
+    texto: "Todavía no registraste una venta",
+    accion: "Abrir el POS",
+    destino: "/caja",
+    urgencia: "atencion",
+  };
+}
 
 /** Shopify Sidekick Pulse: hasta cinco oportunidades, no un feed. */
 export const FOCO_MAX_PENDIENTES = 5;
@@ -215,8 +259,12 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
         // sueltos que el comercio no sabe si están bien o mal.
         ? `${silencio} días sin registrar una venta (solés vender cada ${ritmo})`
         : `${silencio} días sin registrar una venta`,
-      accion: "Registrar una venta",
-      destino: "/caja",
+      accion: canalDeVentaDelFoco(d.onboardingGoal) === "online"
+        ? "Revisar la tienda"
+        : "Registrar una venta",
+      destino: canalDeVentaDelFoco(d.onboardingGoal) === "online"
+        ? "/tienda-online"
+        : "/caja",
       urgencia: "critico",
     });
   }
@@ -248,6 +296,21 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       accion: "Ver",
       destino: "/deudas",
       urgencia: "normal",
+    });
+  }
+
+  // La puerta online cerrada pesa más que un tarifario incompleto: sin
+  // publicar no hay comprador. Shopify manda a "complete setup", no a POS.
+  if (
+    canalDeVentaDelFoco(d.onboardingGoal) === "online"
+    && d.tiendaPublicada === false
+  ) {
+    lista.push({
+      id: "publicar-tienda",
+      texto: "La tienda todavía no está publicada",
+      accion: "Publicar",
+      destino: "/tienda-online",
+      urgencia: "atencion",
     });
   }
 
@@ -323,14 +386,11 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
   // Comercio nuevo: sin ruido operativo, el foco es la primera venta y el
   // conteo que deja el stock creíble. Sólo cuando la lista quedó vacía.
   if (lista.length === 0) {
-    if (d.nuncaVendio) {
-      lista.push({
-        id: "primera-venta",
-        texto: "Todavía no registraste una venta",
-        accion: "Abrir el POS",
-        destino: "/caja",
-        urgencia: "atencion",
-      });
+    const online = canalDeVentaDelFoco(d.onboardingGoal) === "online";
+    const sinVentaDelCanal = d.nuncaVendio
+      || (online && d.ordenesOnlinePagas === 0);
+    if (sinVentaDelCanal) {
+      lista.push(pendientePrimeraVenta(online, d.tiendaPublicada === true));
     }
     if (d.sinConteoFisico) {
       lista.push({

@@ -99,7 +99,16 @@ describe("el pendiente de silencio", () => {
 
   it("lleva a un lugar donde se puede hacer algo", () => {
     const p = construirPendientes(conSilencio(26)).find(x => x.id === "sin-ventas");
+    expect(p!.destino).toBe("/tienda-online");
+    expect(p!.accion).toBe("Revisar la tienda");
+  });
+
+  it("si eligió mostrador, el silencio abre el POS", () => {
+    const p = construirPendientes({
+      ...conSilencio(26), onboardingGoal: "pos",
+    }).find(x => x.id === "sin-ventas");
     expect(p!.destino).toBe("/caja");
+    expect(p!.accion).toBe("Registrar una venta");
   });
 
   it("no aparece cuando el silencio es normal para ese comercio", () => {

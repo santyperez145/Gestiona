@@ -139,16 +139,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       if (!e.altKey) return;
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      // Alt+1 → Dashboard, Alt+2 → POS, Alt+3 → Productos, Alt+4 → Ventas, Alt+5 → Clientes
+      // Alt+2 es "vender ahora": el vendedor de mostrador sigue en POS;
+      // quien eligió tienda (o todavía explora) entra por Commerce.
+      const venderHoy = role === "vendedor" || activeOrg?.onboarding_goal === "pos"
+        ? "/caja"
+        : "/tienda-online";
       const routes: Record<string, string> = {
-        "1": "/", "2": "/caja", "3": "/productos", "4": "/ventas", "5": "/clientes",
+        "1": "/", "2": venderHoy, "3": "/productos", "4": "/ventas", "5": "/clientes",
         "6": "/tareas", "7": "/movimientos", "8": "/analytics", "9": "/integraciones",
       };
       if (routes[e.key]) { e.preventDefault(); navigate(routes[e.key]); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [navigate]);
+  }, [navigate, role, activeOrg?.onboarding_goal]);
 
   // Además del rol, se respeta `can_view` por módulo (Admin → Permisos):
   // sin esto los toggles de la mayoría de los módulos no hacían nada.

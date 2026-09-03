@@ -12,6 +12,7 @@ import {
   storeShouldShowAfterCatalog,
   storeShouldShowPerformanceChrome,
   storeWizardFinishCopy,
+  urlPublicaDeTienda,
 } from '@/lib/storeFirstPublish';
 
 const ROOT = resolve(import.meta.dirname, '..', '..');
@@ -137,5 +138,19 @@ describe('el embudo no inventa un checkout', () => {
     expect(STORE).toContain('StoreReadinessPanel');
     expect(STORE).not.toMatch(/\*\s*0\.37/);
     expect(STORE).not.toContain('Checkout iniciado');
+  });
+});
+
+describe('el enlace de la tienda se puede copiar', () => {
+  it('arma /tienda/:slug y no inventa un dominio', () => {
+    expect(urlPublicaDeTienda('https://exentryimports.vercel.app', 'exentryimports'))
+      .toBe('https://exentryimports.vercel.app/tienda/exentryimports');
+    expect(urlPublicaDeTienda('https://exentryimports.vercel.app/', '  ')).toBeNull();
+    expect(urlPublicaDeTienda('', 'exentryimports')).toBeNull();
+  });
+
+  it('Commerce copia el mismo link que abre Ver tienda', () => {
+    expect(STORE).toContain('urlPublicaDeTienda');
+    expect(STORE).toContain('Copiar enlace');
   });
 });

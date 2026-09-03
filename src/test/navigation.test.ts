@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   NAV_ITEMS, NAV_GROUPS, ITEMS_DIARIOS, GRUPOS_PLEGABLES,
   itemsDe, grupoDeRuta, buscarItems, normalizar,
@@ -124,5 +126,15 @@ describe("buscador de la paleta", () => {
       const r = buscarItems(i.label).map(x => x.to);
       expect(r, `no se encuentra "${i.label}"`).toContain(i.to);
     }
+  });
+});
+
+describe("atajo Alt+2 respeta el canal", () => {
+  it("el vendedor de mostrador sigue en POS; el resto entra por Commerce", () => {
+    const layout = readFileSync(resolve(process.cwd(), "src/components/AppLayout.tsx"), "utf8");
+    expect(layout).toContain('role === "vendedor" || activeOrg?.onboarding_goal === "pos"');
+    expect(layout).toContain('? "/caja"');
+    expect(layout).toContain(': "/tienda-online"');
+    expect(layout).not.toMatch(/"2": "\/caja"/);
   });
 });

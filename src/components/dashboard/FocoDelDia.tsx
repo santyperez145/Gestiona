@@ -9,7 +9,7 @@
  *   2. ¿Qué tengo que hacer?  una lista corta, ordenada por costo de no hacerlo
  *
  * La lógica de qué es un pendiente y en qué orden va vive en
- * `src/lib/dashboardFocus.ts`, que es puro y tiene 12 tests.
+ * `src/lib/dashboardFocus.ts`, que es puro y tiene tests.
  *
  * No recalcula nada: todo sale del `stats` que el panel ya computa. Las
  * consultas propias son pedidos por despachar, pendientes de pago, ritmo de
@@ -53,6 +53,9 @@ interface Props {
   deudaTotalARS: number;
   deudasVencidas30: number;
   seguimientosHoy: number;
+  onboardingGoal?: "pos" | "online" | "explore" | null;
+  tiendaPublicada?: boolean;
+  ordenesOnlinePagas?: number;
 }
 
 export default function FocoDelDia(p: Props) {
@@ -240,6 +243,9 @@ export default function FocoDelDia(p: Props) {
     carritosAbandonados,
     productosSinPeso,
     zonasSinTarifa,
+    onboardingGoal: p.onboardingGoal,
+    tiendaPublicada: p.tiendaPublicada,
+    ordenesOnlinePagas: p.ordenesOnlinePagas,
   };
 
   const pendientes = construirPendientes(datos);
