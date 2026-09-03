@@ -3356,6 +3356,17 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Deploy de
      `store-order-status-email` aparte del push. Esta PC no tiene `VITE_*`.
 
+133. Seguimiento de retiro no promete envío — 2026-09-02.
+     Medido: 2 órdenes pagas `carrier=retiro`. Gracias/mail ya honestos
+     (131–132); `OrderTracking` seguía «Preparando el envío» → «En camino».
+     `get_order_tracking` devolvía carrier de `deliveries` (NULL sin
+     etiqueta). Ahora cae al carrier de la orden; pasos de retiro vía
+     `pasosSeguimiento`. No se inventa horario ni tarifario.
+
+     Verificado en este recorte: **2.434 tests** / 257 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Migración
+     `20260902000130` aplicada y anotada. Esta PC no tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

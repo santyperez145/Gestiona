@@ -90,3 +90,32 @@ export function textoWhatsAppPedido(opts: {
 export function etiquetaWhatsAppPedido(pagado: boolean): string {
   return pagado ? "Consultar por WhatsApp" : "Coordinar por WhatsApp";
 }
+
+/** Pasos del seguimiento público. Misma semántica de ids de fulfillment. */
+export function pasosSeguimiento(esRetiro: boolean): { id: string; label: string }[] {
+  if (esRetiro) {
+    return [
+      { id: "pending", label: "Pedido recibido" },
+      { id: "processing", label: "Preparando tu pedido" },
+      { id: "shipped", label: "Listo para retirar" },
+      { id: "delivered", label: "Retirado" },
+    ];
+  }
+  return [
+    { id: "pending", label: "Pedido recibido" },
+    { id: "processing", label: "Preparando el envío" },
+    { id: "shipped", label: "En camino" },
+    { id: "delivered", label: "Entregado" },
+  ];
+}
+
+/** `unfulfilled` es el pendiente canónico de la cola; en la línea es «recibido». */
+export function indicePasoSeguimiento(
+  fulfillmentStatus: string | null | undefined,
+  esRetiro: boolean,
+): number {
+  const pasos = pasosSeguimiento(esRetiro);
+  const raw = String(fulfillmentStatus ?? "").toLowerCase().trim();
+  const id = raw === "unfulfilled" ? "pending" : raw;
+  return Math.max(0, pasos.findIndex((p) => p.id === id));
+}

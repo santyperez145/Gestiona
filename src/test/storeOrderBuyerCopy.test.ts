@@ -4,8 +4,10 @@ import {
   etiquetaCostoEntrega,
   etiquetaDireccionEntrega,
   etiquetaWhatsAppPedido,
+  indicePasoSeguimiento,
   introPagoRevertido,
   introPedidoPagado,
+  pasosSeguimiento,
   textoWhatsAppPedido,
 } from "@/lib/storeOrderBuyerCopy";
 
@@ -46,5 +48,14 @@ describe("confirmación al comprador: retiro no es envío", () => {
     expect(introPagoRevertido(true)).toMatch(/retiro/i);
     expect(introPagoRevertido(true)).not.toMatch(/enviará/i);
     expect(introPagoRevertido(false)).toMatch(/enviará/i);
+  });
+
+  it("el seguimiento de un retiro no dice en camino ni entregado", () => {
+    const pasos = pasosSeguimiento(true);
+    expect(pasos.map((p) => p.label).join(" ")).not.toMatch(/envío|En camino|Entregado/i);
+    expect(pasos.map((p) => p.label).join(" ")).toMatch(/retirar|Retirado/i);
+    expect(pasosSeguimiento(false).some((p) => p.label === "En camino")).toBe(true);
+    expect(indicePasoSeguimiento("unfulfilled", true)).toBe(0);
+    expect(indicePasoSeguimiento("delivered", true)).toBe(3);
   });
 });

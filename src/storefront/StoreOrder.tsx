@@ -507,7 +507,7 @@ export default function StoreOrder() {
         )}
       </div>
 
-      <OrderTracking orderNumber={order.order_number} email={order.customer_email} />
+      <OrderTracking orderNumber={order.order_number} email={order.customer_email} esRetiro={esRetiro} />
 
       <div className="mt-6 flex flex-col sm:flex-row gap-2">
         <a

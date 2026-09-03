@@ -5,17 +5,26 @@
  * abre la página del pedido: no se abre ninguna puerta nueva y no hace falta
  * tener cuenta. "¿Dónde está mi pedido?" es la consulta número uno de
  * cualquier tienda, y contestarla sola ahorra el mensaje.
+ *
+ * Retiro ≠ envío: los pasos salen de `pasosSeguimiento`. El RPC trae
+ * carrier/shipping_service de la orden; el padre puede pasar `esRetiro` si
+ * ya lo sabe (gracias) para no esperar al round-trip.
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { carrierLabel } from "@/lib/carriers";
-import { Package, Truck, Home, Check, ExternalLink } from "lucide-react";
+import { esPedidoRetiro } from "@/lib/storeOrderQueue";
+import {
+  indicePasoSeguimiento, pasosSeguimiento,
+} from "@/lib/storeOrderBuyerCopy";
+import { Package, Truck, Home, Check, Store, ExternalLink } from "lucide-react";
 
 interface Tracking {
   found: boolean;
   fulfillment_status?: string;
   tracking_number?: string | null;
   carrier?: string | null;
+  shipping_service?: string | null;
   shipment_status?: string | null;
   picked_up_at?: string | null;
   delivered_at?: string | null;
@@ -23,20 +32,31 @@ interface Tracking {
   ordered_at?: string | null;
 }
 
-/** Los cuatro momentos que al comprador le importan, en orden. */
-const PASOS = [
-  { id: "pending", label: "Pedido recibido", icon: Check },
-  { id: "processing", label: "Preparando el envío", icon: Package },
-  { id: "shipped", label: "En camino", icon: Truck },
-  { id: "delivered", label: "Entregado", icon: Home },
-];
-
 const fecha = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "long" }) : null;
 
+const ICONOS: Record<string, typeof Check> = {
+  pending: Check,
+  processing: Package,
+  shipped: Truck,
+  delivered: Home,
+};
+
+const ICONOS_RETIRO: Record<string, typeof Check> = {
+  pending: Check,
+  processing: Package,
+  shipped: Store,
+  delivered: Home,
+};
+
 export default function OrderTracking({
-  orderNumber, email,
-}: { orderNumber: string; email: string }) {
+  orderNumber, email, esRetiro: esRetiroProp,
+}: {
+  orderNumber: string;
+  email: string;
+  /** Si el padre ya sabe (gracias). Si no, se deduce del RPC. */
+  esRetiro?: boolean;
+}) {
   const [t, setT] = useState<Tracking | null>(null);
 
   useEffect(() => {
@@ -48,8 +68,10 @@ export default function OrderTracking({
 
   if (!t?.found) return null;
 
-  const actual = Math.max(0, PASOS.findIndex(p => p.id === t.fulfillment_status));
-  // Un pedido entregado tiene los cuatro pasos hechos; uno recién recibido, uno.
+  const esRetiro = esRetiroProp ?? esPedidoRetiro(t);
+  const pasos = pasosSeguimiento(esRetiro);
+  const iconos = esRetiro ? ICONOS_RETIRO : ICONOS;
+  const actual = indicePasoSeguimiento(t.fulfillment_status, esRetiro);
   const hechos = actual + 1;
 
   return (
@@ -62,9 +84,9 @@ export default function OrderTracking({
       </p>
 
       <ol className="space-y-3">
-        {PASOS.map((paso, i) => {
+        {pasos.map((paso, i) => {
           const hecho = i < hechos;
-          const Icono = paso.icon;
+          const Icono = iconos[paso.id] ?? Check;
           const cuando = paso.id === "shipped" ? fecha(t.picked_up_at)
             : paso.id === "delivered" ? fecha(t.delivered_at)
             : paso.id === "pending" ? fecha(t.ordered_at)
@@ -91,7 +113,7 @@ export default function OrderTracking({
         })}
       </ol>
 
-      {t.tracking_number && (
+      {!esRetiro && t.tracking_number && (
         <div className="mt-4 pt-3 border-t text-sm" style={{ borderColor: "hsl(var(--st-border))" }}>
           <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
             {carrierLabel(t.carrier)}

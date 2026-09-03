@@ -83,4 +83,15 @@ describe("gracias y mail no prometen un envío en un retiro", () => {
     expect(status).toContain("Tu pedido fue retirado");
     expect(status).toContain("carrier, shipping_service");
   });
+
+  it("el seguimiento público no promete envío en un retiro", () => {
+    const tracking = leer("src/storefront/OrderTracking.tsx");
+    const migracion = leer("supabase/migrations/20260902000130_seguimiento_retiro.sql");
+    expect(tracking).toContain("pasosSeguimiento");
+    expect(tracking).toContain("esRetiro");
+    expect(tracking).not.toMatch(/const PASOS = \[[\s\S]*Preparando el envío/);
+    expect(migracion).toContain("COALESCE(v_del.carrier, v_order.carrier)");
+    expect(migracion).toContain("shipping_service");
+    expect(leer("src/storefront/StoreOrder.tsx")).toContain("esRetiro={esRetiro}");
+  });
 });
