@@ -3590,7 +3590,9 @@ Finance Connect.
      `?tab=overview&share=1`, banner + empty Pedidos con clipboard.
      No inventa tráfico ni tarifario.
 
-     Verificado en este recorte: **PENDIENTE CI**.
+     Verificado en este recorte: **2.487 tests** / 264 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
