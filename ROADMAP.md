@@ -3512,6 +3512,17 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+147. Catálogo público: vacío real ≠ vacío por filtros — 2026-09-03.
+     Medido: PLP decía «No encontramos productos con esos filtros»
+     con catálogo vacío (2º comercio / first publish). ESTANDAR /
+     Shopify-Tiendanube: empty-first-use distinto. `storeCatalogEmptyKind`,
+     copy honesto, `limpiar` también limpia `q`, contador de activos
+     incluye búsqueda. No inventa stock ni tarifario.
+
+     Verificado en este recorte: **2.476 tests** / 263 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
