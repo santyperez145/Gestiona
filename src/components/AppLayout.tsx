@@ -1,4 +1,4 @@
-﻿import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
 import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Bell, Tag, Calendar, Layers, ArrowRightLeft, UserPlus, Trophy, Share2, ScanBarcode, Users2, Scale, Globe, Warehouse, LineChart, Shield, ChevronRight } from "lucide-react";
 import { lazy, Suspense, useState, useMemo, useEffect } from "react";
@@ -198,7 +198,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   const currentNavItem = allNavItems.find(item => item.to === pathname);
-  const currentPageLabel = currentNavItem?.label ?? (pathname === '/' ? 'Resumen' : 'Gestiona');
+  const currentPageLabel = currentNavItem?.label ?? (pathname === '/' ? 'Resumen' : 'Nerqia');
   const currentSectionLabel = currentNavItem ? SECTION_LABELS[currentNavItem.section] : 'Operacion';
 
   const roleLabel = role === 'admin' ? 'Administrador' : role === 'vendedor' ? 'Vendedor' : 'Viewer';
@@ -250,7 +250,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {!effectiveCollapsed && (
               <div className="min-w-0 animate-fade-in">
                 <p className="text-[13px] font-display font-bold text-foreground/90 truncate tracking-tight leading-none">
-                  Gestiona
+                  Nerqia
                 </p>
                 <div className="mt-1 flex min-w-0 items-center gap-1.5">
                   <span className="truncate text-[9px] text-muted-foreground" title={config.businessName}>{config.businessName}</span>
@@ -357,13 +357,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {role === 'admin' && forModule('finance').canView && (
             <Link
               to="/finance"
-              title={effectiveCollapsed ? 'Gestiona Finance' : undefined}
+              title={effectiveCollapsed ? 'Nerqia Finance' : undefined}
               className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium transition-all duration-150 w-full border border-transparent ${
                 effectiveCollapsed ? 'justify-center' : ''
               } text-teal-600/80 hover:bg-teal-500/10 hover:text-teal-700 hover:border-teal-500/25 dark:text-teal-300/70 dark:hover:text-teal-200`}
             >
               <Receipt className="w-3.5 h-3.5 shrink-0" />
-              {!effectiveCollapsed && <span>Gestiona Finance</span>}
+              {!effectiveCollapsed && <span>Nerqia Finance</span>}
             </Link>
           )}
           {isPlatformAdmin && (
@@ -415,10 +415,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             type="button"
             onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
             className="workspace-command-search hidden lg:flex h-8 w-[220px] items-center gap-2 rounded-[7px] border border-border/80 bg-card/70 px-2.5 text-left text-[11px] text-muted-foreground/70 transition-colors hover:border-primary/45 hover:text-foreground"
-            aria-label="Buscar en Gestiona"
+            aria-label="Buscar en Nerqia"
           >
             <Search className="h-3.5 w-3.5 shrink-0" />
-            <span className="flex-1">Buscar en Gestiona</span>
+            <span className="flex-1">Buscar en Nerqia</span>
             <kbd className="rounded-[4px] border border-border bg-muted px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">Ctrl K</kbd>
           </button>
 
@@ -590,7 +590,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="bg-primary/8 border-b border-primary/20 px-4 py-2.5 flex items-center gap-3">
             <Zap className="w-4 h-4 text-primary shrink-0" />
             <p className="text-sm flex-1">
-              <span className="font-semibold">Instalá Gestiona</span> como app en tu dispositivo — acceso rápido sin abrir el navegador.
+              <span className="font-semibold">Instalá Nerqia</span> como app en tu dispositivo — acceso rápido sin abrir el navegador.
             </p>
             <Button size="sm" className="h-7 text-xs gradient-gold text-primary-foreground shrink-0" onClick={install}>
               Instalar app

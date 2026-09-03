@@ -30,7 +30,7 @@ contribución y break-even.
 
 | Métrica | Definición reproducible |
 |---|---|
-| Cargo de Gestiona al merchant | Tarifa por ticket promedio × transacciones, después de piso/tope, impuesto y leakage. |
+| Cargo de Nerqia al merchant | Tarifa por ticket promedio × transacciones, después de piso/tope, impuesto y leakage. |
 | Ingreso neto de comisión | Cargo menos impuesto indirecto; si el impuesto se adiciona, la base comercial es el ingreso. |
 | Net take rate | Ingreso neto de comisión + suscripción neta, dividido GMV. |
 | Costo variable | Costo por transacción + costo por merchant + pérdida de riesgo sobre GMV. |
@@ -46,7 +46,7 @@ cambios de mix.
 ### Dos economías que no se mezclan
 
 El arancel del procesador y su impuesto reducen el neto del comercio. No son
-COGS de Gestiona cuando el proveedor los descuenta directamente al vendedor.
+COGS de Nerqia cuando el proveedor los descuenta directamente al vendedor.
 Los COGS de la plataforma deben cargarse explícitamente: infraestructura,
 soporte/operación, costo por transacción, fraude/chargeback absorbido y otros
 costos contractualmente propios.
@@ -82,7 +82,7 @@ arancel del proveedor. Fuente oficial actualizada el 2026-03-25:
 [costos por transacción de Tiendanube](https://ayuda.tiendanube.com/es_AR/123484-costos-por-transaccion/que-son-los-costos-por-transaccion-de-tiendanube).
 
 📌 Esto es un benchmark del **costo transaccional**, no una equivalencia de
-producto. Gestiona compite como sistema operativo omnicanal con margen real por
+producto. Nerqia compite como sistema operativo omnicanal con margen real por
 canal; no conviene presentarlo como una tienda más barata. El benchmark obliga
 a explicar qué valor incremental recibe el merchant por cualquier cargo y cuál
 es su costo total de cobro.
@@ -93,12 +93,12 @@ Ninguna está aprobada:
 
 | Modelo | Ventaja potencial | Riesgo a demostrar |
 |---|---|---|
-| Gestiona Pay incluido | Monetización alineada al volumen y una sola explicación de costo. | Contrato upstream, approval rate, fraude, refunds e impuesto pueden borrar el margen. |
+| Nerqia Pay incluido | Monetización alineada al volumen y una sola explicación de costo. | Contrato upstream, approval rate, fraude, refunds e impuesto pueden borrar el margen. |
 | Suscripción + 0% transaccional | Costo predecible y comparación simple. | Fricción de adopción antes de demostrar ROI y churn alto en comercios chicos. |
 | Híbrido por plan | Permite precio bajo de entrada y mejores economics en merchants grandes. | Complejidad comercial y riesgo de cobrar dos veces sin valor visible. |
 | Cargo por valor ejecutado | Alinea revenue con Finance, Ship o automatizaciones que ahorran dinero. | Atribución, consentimiento y resultado verificable. |
 
-La hipótesis preferida del roadmap sigue siendo monetizar dentro de Gestiona
+La hipótesis preferida del roadmap sigue siendo monetizar dentro de Nerqia
 Pay cuando el contrato lo permita y evitar una comisión adicional difícil de
 explicar. El workbench existe para refutarla si los costos no cierran.
 

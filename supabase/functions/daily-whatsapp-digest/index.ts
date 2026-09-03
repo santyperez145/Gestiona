@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
 
         if (!sales?.length) {
           // Even if no sales, send encouraging "no sales today" message
-          const text = `📊 *Resumen del día — ${todayDisplay}*\n\n_Sin ventas registradas hoy._\n\nRecordá registrar tus ventas en Gestiona para ver tus métricas aquí. 💪\n\n_— ${s.business_name || "Gestiona"}_`;
+          const text = `📊 *Resumen del día — ${todayDisplay}*\n\n_Sin ventas registradas hoy._\n\nRecordá registrar tus ventas en Nerqia para ver tus métricas aquí. 💪\n\n_— ${s.business_name || "Nerqia"}_`;
           await sendWhatsApp(evolution.apiUrl, evolution.apiKey, evolution.instance, ownerNumber, text);
           sent++;
           continue;
@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
           `${profitEmoji} *Ganancia:* ${fmtARS(totalProfit)} ${marginEmoji} ${marginPct}%`,
           topProduct ? `🏆 *Top:* ${topProduct[0]} (${topProduct[1]} u.)` : "",
           "",
-          `_Powered by ${s.business_name || "Gestiona"}_`,
+          `_Powered by ${s.business_name || "Nerqia"}_`,
         ]
           .filter((l) => l !== undefined)
           .join("\n");

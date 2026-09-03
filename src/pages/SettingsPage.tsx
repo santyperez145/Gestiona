@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useStorageEstimate } from "@/hooks/useStorageEstimate";
 import { usePermissionStatus } from "@/hooks/usePermissionStatus";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
@@ -402,7 +402,7 @@ export default function SettingsPage() {
   // Brand palettes helpers (defined after state, before useEffect)
   // ── Predefined storefront palettes ───────────────────────────────────────
   const PREDEFINED_PALETTES: StorefrontPalette[] = [
-    { id: 'gold',    name: 'Exentry Gold',    bg: '#0E0E1C', card: '#16163A', accent: '#C89A35' },
+    { id: 'gold',    name: 'Nerqia Gold',     bg: '#0E0E1C', card: '#16163A', accent: '#C89A35' },
     { id: 'blue',    name: 'Night Blue',       bg: '#06080F', card: '#0F1629', accent: '#60A5FA' },
     { id: 'purple',  name: 'Violeta Premium',  bg: '#0D0B22', card: '#1A1538', accent: '#C084FC' },
     { id: 'emerald', name: 'Esmeralda',        bg: '#071510', card: '#0D2218', accent: '#34D399' },
@@ -694,7 +694,7 @@ export default function SettingsPage() {
     <div>
       <PageHeader
         icon={Building2}
-        eyebrow="Gestiona / Configuración"
+        eyebrow="Nerqia / Configuración"
         title="Ajustes"
         description="Cargando la configuración de tu organización..."
       />
@@ -706,7 +706,7 @@ export default function SettingsPage() {
     <div className="pb-12">
       <PageHeader
         icon={Building2}
-        eyebrow="Gestiona / Configuración"
+        eyebrow="Nerqia / Configuración"
         title="Ajustes"
         description={`Configuración general de ${businessName}`}
         actions={(
@@ -809,7 +809,7 @@ export default function SettingsPage() {
                 />
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Estos colores se aplican sólo a la tienda pública y al catálogo PDF. El panel de Gestión mantiene el sistema visual oficial de Gestiona.
+                Estos colores se aplican sólo a la tienda pública y al catálogo PDF. El panel de Gestión mantiene el sistema visual oficial de Nerqia.
               </p>
             </div>
 
@@ -918,7 +918,7 @@ export default function SettingsPage() {
                   <MessageCircle className="w-4 h-4 text-pink-400" />🎂 Felicitación de cumpleaños
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Autorizá el saludo cuando Gestiona tenga un canal Meta y una plantilla aprobada. Sólo alcanza a clientes con fecha y consentimiento vigentes.
+                  Autorizá el saludo cuando Nerqia tenga un canal Meta y una plantilla aprobada. Sólo alcanza a clientes con fecha y consentimiento vigentes.
                 </p>
               </div>
               <Switch checked={whatsappBirthdayEnabled} onCheckedChange={setWhatsappBirthdayEnabled} />
@@ -947,7 +947,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* ⚠️ Acá y no en Gestiona Finance: esa superficie es gestión de
+          {/* ⚠️ Acá y no en Nerqia Finance: esa superficie es gestión de
               gastos corporativos (ADR 001) y no lleva nada más. Lo que cuesta
               cobrar es configuración del comercio, y afecta el margen — por eso
               va en "Finanzas y costos", junto al tipo de cambio. */}
@@ -2314,4 +2314,3 @@ function AfipPuntero() {
     </div>
   );
 }
-

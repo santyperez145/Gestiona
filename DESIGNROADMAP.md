@@ -1,4 +1,4 @@
-# Gestiona — roadmap de diseño
+# Nerqia — roadmap de diseño
 
 **Corte:** 2026-09-03
 **Estado:** documento rector exclusivo del rediseño de producto.  
@@ -15,7 +15,7 @@ usarse la solución**.
 
 ## 0. Resultado buscado
 
-Gestiona debe sentirse como una plataforma madura de CRM, marketplace y
+Nerqia debe sentirse como una plataforma madura de CRM, marketplace y
 finanzas, no como una colección de módulos agregados en distintos momentos.
 Una persona tiene que reconocer ubicación, estado, riesgo y siguiente acción
 sin aprender un lenguaje distinto en cada pantalla.
@@ -34,7 +34,7 @@ El rediseño se considera completo cuando:
 
 ## 1. Principios obligatorios
 
-- **Una plataforma reconocible.** El violeta de Gestiona es estable en el
+- **Una plataforma reconocible.** El violeta de Nerqia es estable en el
   backoffice; la personalización del merchant pertenece a la tienda y al PDF.
 - **Decisión antes que decoración.** Estado, excepción y acción aparecen antes
   que gráficos secundarios o texto explicativo.
@@ -61,7 +61,7 @@ El rediseño se considera completo cuando:
 | Canvas claro | `228 28% 97%`; nunca negro por identidad del comercio. |
 | Canvas oscuro | Variante deliberada activada por el usuario, no fallback de un error. |
 | Superficie | Cards blancas/oscuras, borde frío bajo, sombra corta y radio 8–12 px. |
-| Acción | Violeta Gestiona; teal para Finance y señales sanas; coral para atención. |
+| Acción | Violeta Nerqia; teal para Finance y señales sanas; coral para atención. |
 | Tipografía | Space Grotesk para jerarquía, Inter para operación, JetBrains Mono para IDs/números técnicos. |
 | Datos | Números tabulares, títulos cortos, unidades visibles y alineación consistente. |
 | Navegación | Rail estable, topbar de contexto, breadcrumb y tabs internos persistidos. |
@@ -69,7 +69,7 @@ El rediseño se considera completo cuando:
 
 ### Límite de marca
 
-- Business, Finance y Platform usan el símbolo oficial de Gestiona; el nombre
+- Business, Finance y Platform usan el símbolo oficial de Nerqia; el nombre
   del workspace aparece como contexto operativo, no reemplaza la marca del SaaS.
 - El logo del merchant sólo aparece en Storefront, catálogo/PDF y documentos
   dirigidos a sus compradores.
@@ -308,7 +308,7 @@ perder contexto ni encontrar un patrón visual nuevo.
 Mendel es el benchmark principal de experiencia para Finance: control
 preventivo, presupuesto, aprobación, gasto, evidencia y conciliación deben
 sentirse como un solo recorrido. La traducción visual es propia y comparte los
-primitives de Gestiona; no copia marca, assets ni composiciones.
+primitives de Nerqia; no copia marca, assets ni composiciones.
 
 **Arquitectura de información objetivo de Finance:**
 
@@ -383,17 +383,18 @@ confirmaciones ni el comercio dos ventas. Orden + audiencia + evento forman la
 identidad; un claim atómico devuelve `duplicate`/`inProgress`, el proveedor se
 llama fuera de la transacción y un token de worker cierra el resultado. Resend
 recibe una segunda clave idempotente; SMTP queda cubierto por el ledger durable
-sin prometer exactly-once fuera del control de Gestiona. No agrega chrome ni
-otra pantalla: vuelve confiable el feedback transaccional del recorrido D5. La
-configuración de despliegue conserva explícitamente la frontera: creación de
-pedido pública con capacidad revalidada dentro de la función y cambio de estado
-autenticado con JWT; una guarda evita que otro entorno los despliegue al revés.
+sin prometer exactly-once fuera del control de Nerqia. No agrega chrome ni
+otra pantalla: vuelve confiable el feedback transaccional del recorrido D5.
+La configuración de despliegue conserva explícitamente la frontera: creación
+de pedido pública con capacidad revalidada dentro de la función y cambio de
+estado autenticado con JWT; una guarda evita que otro entorno los despliegue al
+revés.
 
 D5.4 cierra el medio muerto que el recorte de Pay dejó a la vista: Mercado Pago
 marcado sin cuenta conectada. La vitrina pública deja de listarlo; una orden
 con ese método no entra; Stripe y PayPal no se ofrecen aunque hayan quedado
 en un array viejo. El comercio sigue viendo su interruptor, con la explicación
-de que el comprador no lo ve hasta activar Gestiona Pay.
+de que el comprador no lo ve hasta activar Nerqia Pay.
 
 D5.5 cierra la cola que el comercio usa después de cobrar: chips en inglés,
 sin búsqueda y una tabla que desaparecía a 360 px. Pedidos busca por número,
@@ -413,7 +414,7 @@ piden LCP (`eager`/`high`); el resto declara `width`/`height`/`sizes` y espera.
 No comprime ni recorta el archivo del comercio; no mide LCP de campo.
 
 D5.9 cierra el hueco que hacía invisible a la tienda en Search Console:
-Google-InspectionTool y AdsBot recibían el `index.html` de Gestiona porque
+Google-InspectionTool y AdsBot recibían el `index.html` de Nerqia porque
 no estaban en el rewrite de crawlers. `robots.txt` ahora sale del borde y
 declara `Sitemap:`; el listado deja de canibalizar la home; la ficha declara
 `og:type=product` y el precio que cobra el catálogo. No es SSR ni dominio
@@ -523,7 +524,7 @@ declara validado porque “se ve mejor”.
 | 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
 | 24 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |
 | 25 | Investor demo mode con datos seguros | Pendiente tras validación | Narrativa reproducible, sin métricas falsas. |
-| 26 | Identidad oficial de Gestiona | Hecho 2026-08-23 | Símbolo RGBA canónico en 13 superficies, favicon/Apple/PWA; merchant aislado a Storefront/documentos; desktop y acceso móvil verificados en localhost. |
+| 26 | Identidad y dominio oficial de Nerqia | Hecho 2026-09-03 | Nombre, productos, símbolo RGBA, favicon/Apple/PWA, metadata, Auth y shells comparten contrato canónico; `nerqia.app` es el origen productivo y `www` redirige al raíz. La identidad del merchant queda aislada en Storefront/documentos y los namespaces técnicos heredados permanecen compatibles. Landing y acceso verificados en localhost 1280×720 sin errores de consola. |
 | 27 | Contrato visible de webhooks | Hecho 2026-08-29 | Diálogo legible, código de firma, semántica de id/retry/orden, guía y OpenAPI 3.1; transporte sintético certificado contra HTTPS externo y receptor eliminado. |
 | 28 | Contrato visible de API pública | Hecho 2026-08-29 | Panel, estado vacío y modal auditados con sesión de administrador real en producción: claro/oscuro, 360/768/1024/1440, cero overflow y consola sin warnings/errors. Guía, OpenAPI 3.1 y changelog accesibles; secretos one-time sin bloque negro en claro. La prueba descubrió que `stock:write` ocultaba parte de su consecuencia en mobile; el bundle nuevo `index-CBuC_8gZ.js` ya muestra la explicación completa en claro/oscuro a 360 px, conserva 512 px de diálogo desktop y deja consola limpia. Evidencia: `docs/evidencias/2026-08-29_api_keys_visual.md`. |
 
@@ -588,7 +589,7 @@ D2.3 para contrastar densidad, jerarquía compacta, canvas claro y violeta:
 - Pickolab/Neomart: patrón de marketplace público y jerarquía comercial.
 
 No se copian assets ni composiciones completas. Se toman patrones y se prueban
-contra el diferencial real de Gestiona: stock único, costos completos, margen
+contra el diferencial real de Nerqia: stock único, costos completos, margen
 por canal, Finance conectado y autoridad por organización.
 
 Las afirmaciones funcionales sobre competidores continúan en

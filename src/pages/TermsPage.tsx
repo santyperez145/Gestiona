@@ -3,8 +3,8 @@ import { ArrowLeft, FileText } from 'lucide-react';
 import BrandLogo from '@/components/shared/BrandLogo';
 
 const LAST_UPDATED = '6 de mayo de 2026';
-const COMPANY = 'Gestiona';
-const EMAIL = 'legal@gestiona.app';
+const COMPANY = 'Nerqia';
+const EMAIL = 'legal@nerqia.app';
 
 export default function TermsPage() {
   return (

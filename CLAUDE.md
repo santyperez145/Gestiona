@@ -1,4 +1,8 @@
-# Gestiona — contexto para Claude Code
+# Nerqia — contexto para Claude Code
+
+**Identidad canónica desde 2026-09-03:** Nerqia / `https://nerqia.app`.
+Los namespaces técnicos heredados no se renombran sin migración compatible. Ver
+[docs/ADR_003_NERQIA_IDENTIDAD_Y_DOMINIO.md](docs/ADR_003_NERQIA_IDENTIDAD_Y_DOMINIO.md).
 
 **Commerce Operating System:** la tienda es la puerta; el Business Graph es el
 foso. El mostrador, la web y los marketplaces comparten stock, clientes, costos
@@ -28,7 +32,7 @@ producto: la mejor tecnología que ya usa la competencia seria (Meta Cloud, no
 Evolution; OAuth MP, no token pegado). North Star sigue siendo ATM. Regla Cursor:
 `.cursor/rules/lineamiento-competitivo.mdc`.
 
-📌 **Lineamiento 2026-09-01 (ADR 002):** Gestiona se piensa como sistema
+📌 **Lineamiento 2026-09-01 (ADR 002):** Nerqia se piensa como sistema
 operativo de **comercio** omnicanal. El corazón sigue siendo el Business Core
 —productos, órdenes, clientes, finanzas e inventario—. POS, tienda,
 MercadoLibre, WhatsApp y Pay son canales o capas alrededor de ese núcleo. Si un
@@ -67,7 +71,7 @@ consume mediante enlaces o proyecciones. Cualquier ruta nueva debe entrar al
 `routeManifest`, declarar permiso/entitlement, conservar la autoridad del Core,
 tener estados completos y una prueba de tenant antes de implementarse.
 
-📌 **Innovación transversal propuesta: Gestiona Orbit / Playbooks.** Orbit no
+📌 **Innovación transversal propuesta: Nerqia Orbit / Playbooks.** Orbit no
 es Mendel ni un clon de un automatizador: coordina señales de stock, ventas,
 clientes, margen, documentos, pagos, integraciones, soporte y Platform desde el
 Business Graph. Su contrato es señal → contexto → preview de impacto → policy →
@@ -150,7 +154,7 @@ están en `ROADMAP.md` §0.0.
 
 **Contrato visual Figma 2026-08-22:** la renovación del frontend sigue los
 patrones de CRM, eMarketplace y marketplace/admin kits compartidos por el
-dueño, sin copiar assets ni convertir Gestiona en una tienda genérica. La
+dueño, sin copiar assets ni convertir Nerqia en una tienda genérica. La
 dirección canónica está en [docs/INTERFAZ.md](docs/INTERFAZ.md) y se aplica a
 tres de las cuatro superficies: Business, Platform y Storefront. Finance queda
 afuera a propósito — tiene su propio shell y su propio lenguaje, y mezclarlo con
@@ -291,7 +295,7 @@ los restos y tiene que dar `0`.
 **El navegador se verifica contra `localhost`, no contra Vercel.** El deploy va
 del `git push`, así que hasta que no se pushea, el sitio publicado tiene el
 código viejo aunque las migraciones ya estén aplicadas. Verificar contra
-`exentryimports.vercel.app` da falsos negativos garantizados.
+`nerqia.app` da falsos negativos garantizados.
 
 ⚠️ **Pero eso necesita las variables `VITE_*`, y no están en las dos PCs.** Sin
 `VITE_SUPABASE_URL` el cliente se construye con la URL vacía (ver
@@ -1317,7 +1321,7 @@ access control check».
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}
-' -X OPTIONS   -H 'Origin: https://exentryimports.vercel.app'   -H 'Access-Control-Request-Method: POST'   https://hummeopatkniwkyrrhwc.supabase.co/functions/v1/<funcion>
+' -X OPTIONS   -H 'Origin: https://nerqia.app'   -H 'Access-Control-Request-Method: POST'   https://hummeopatkniwkyrrhwc.supabase.co/functions/v1/<funcion>
 ```
 
 200 es que arrancó. 500 en OPTIONS es casi siempre que el módulo no carga.
@@ -1764,7 +1768,7 @@ de cliente, que decían guardarse y no guardaban nada.
 
 ## Lenguaje visual y rediseno (2026-08-14)
 
-La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de informacion y la claridad de las acciones, pero no copia pantallas ni assets. El producto tiene que verse como un sistema operativo omnicanal, no como un template de tienda.
+La UI de Nerqia toma de los kits de ecommerce la jerarquia, la densidad de informacion y la claridad de las acciones, pero no copia pantallas ni assets. El producto tiene que verse como un sistema operativo omnicanal, no como un template de tienda.
 
 - La superficie de organizacion usa un workspace neutral con acciones en ambar; la superficie de plataforma conserva violeta para que nadie confunda tenant con staff.
 - El modo claro es el punto de entrada para leer tablas, metricas y estados. El modo oscuro sigue siendo una opcion completa.
@@ -1793,7 +1797,7 @@ La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de inf
 - Los kits de Figma son referencias de criterio. La implementacion vive en los componentes y tokens del repo para que todas las superficies evolucionen juntas.
 - El shell de organizacion debe priorizar lectura y accion: sidebar silencioso, breadcrumb visible, busqueda global, estado operativo y una accion primaria. Las tarjetas metricas no son decoracion: deben tener una sola lectura y una fuente temporal clara.
 - `PageHeader`, `MetricCard` y `KPICard` son la base compartida. Antes de crear una tarjeta, toolbar o encabezado nuevo, buscar si el componente existente puede resolverlo. Las tablas de Productos, Ventas y Plataforma deben conservar scroll horizontal en mobile y estados legibles sin depender del modo oscuro.
-- Las referencias de ecommerce/admin se usan para jerarquia, densidad, filtros, tablas y composicion. No se copian assets ni pantallas: el contenido, los estados y el lenguaje tienen que responder al Business Core de Gestiona.
+- Las referencias de ecommerce/admin se usan para jerarquia, densidad, filtros, tablas y composicion. No se copian assets ni pantallas: el contenido, los estados y el lenguaje tienen que responder al Business Core de Nerqia.
 - Las paginas con muchas vistas internas deben usar un rail lateral sticky en desktop y tabs horizontales con scroll en mobile. La navegacion muestra solo el contexto necesario y deja el contenido activo en una sola columna.
 - Reportes y Analytics pueden tener muchas lecturas, pero su selector no debe convertirse en una tira interminable: agrupar visualmente por superficie y mantener la vista activa legible.
 - El Dashboard se recorre por seis destinos estables: Resumen, Ventas y metas, Clientes, Inventario, Finanzas e Inteligencia. Los anclajes son orientacion, no una segunda fuente de datos; si una seccion crece, se agrega al destino correcto antes de sumar otro bloque al flujo principal.
@@ -1821,7 +1825,7 @@ La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de inf
 - Clientes/CRM debe leerse como una ficha 360, no como una tabla plana: la lista hace visibles segmento, salud, deuda, valor y ultima actividad sin obligar a abrir cada registro.
 - La ficha 360 se expande en contexto y mantiene sus acciones cerca del cliente. El detalle puede usar una segunda superficie visual, pero no se anidan tarjetas dentro de tarjetas ni se pierde la posicion en la lista.
 - La busqueda y los filtros de CRM forman una toolbar estable; los segmentos guardados se leen como accesos rapidos y la barra de acciones masivas aparece solo cuando hay seleccion. El estado vacio, la carga y el error deben conservar la misma jerarquia.
-- Las referencias de Figma para CRM, dashboards y marketplace orientan densidad, filtros, estados y responsive. No se copian assets ni layouts: el contenido debe seguir expresando el Business Core y las acciones reales de Gestiona.
+- Las referencias de Figma para CRM, dashboards y marketplace orientan densidad, filtros, estados y responsive. No se copian assets ni layouts: el contenido debe seguir expresando el Business Core y las acciones reales de Nerqia.
 - Ventas debe tener una secuencia de lectura estable: resumen de KPIs, insights de cobro/tendencia, presets de período, filtros y finalmente el detalle. No mezclar la toolbar con tarjetas de métricas ni esconder la acción primaria entre filtros.
 - Los insights de Ventas pueden compartir una grilla equilibrada en desktop y pasar a una columna en mobile. Los gráficos compactos tienen que conservar fecha, período y leyenda suficiente para no presentar una barra como dato sin contexto.
 - Las vistas agrupadas de Ventas (`lista`, `cliente`, `sesion`, `producto`, `fecha`) son modos de lectura del mismo dato; un cambio visual no puede duplicar consultas ni inventar totales alternativos.

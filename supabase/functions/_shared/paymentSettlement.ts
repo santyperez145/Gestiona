@@ -1,7 +1,7 @@
 /**
  * La liquidación de MercadoPago se usa tanto desde el webhook como desde el
  * Checkout Brick. Tenerla en un solo lugar evita que un canal cobre la
- * comisión en MP pero omita registrarla en Gestiona.
+ * comisión en MP pero omita registrarla en Nerqia.
  */
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;

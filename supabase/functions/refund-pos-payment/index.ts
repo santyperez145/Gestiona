@@ -327,7 +327,7 @@ Deno.serve(async (req) => {
         ok: true,
         status: "pending_external",
         refundId,
-        message: "Mercado Pago confirmó el reintegro; falta guardar su evidencia en Gestiona.",
+        message: "Mercado Pago confirmó el reintegro; falta guardar su evidencia en Nerqia.",
       }, 202);
     }
 

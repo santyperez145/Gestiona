@@ -170,7 +170,7 @@ duele que falte.
    pudo probar que el cupo por plan registre el consumo — el circuito está
    construido y verificado en SQL, pero le falta el último tramo.
    📌 Es además el diferencial declarado del producto: sin esa clave, la
-   demostración que separa a Gestiona de un ecommerce no existe.
+   demostración que separa a Nerqia de un ecommerce no existe.
 
 3. **Contar el inventario** (P0-03). El Kardex no es confiable desde el
    descuento doble, y ningún código lo arregla: se corrige contando. Hoy hay

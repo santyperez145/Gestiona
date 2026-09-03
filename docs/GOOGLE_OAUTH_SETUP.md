@@ -1,20 +1,20 @@
-# Configuración de Google OAuth para Gestiona
+# Configuración de Google OAuth para Nerqia
 
 Si al apretar "Ingresar con Google" recibís un error tipo *"provider is not enabled"*, *"unsupported provider"* o un redirect que falla — es porque falta esta configuración. Es de una sola vez, ~5 minutos.
 
 ## Paso 1 — Crear credenciales OAuth en Google Cloud Console
 
 1. Andá a https://console.cloud.google.com/
-2. Creá un proyecto nuevo (o usá uno existente). Nombre sugerido: **Gestiona Auth**.
+2. Creá un proyecto nuevo (o usá uno existente). Nombre sugerido: **Nerqia Auth**.
 3. En el menú lateral: **APIs & Services → OAuth consent screen**
    - User Type: **External**
-   - App name: **Gestiona**
+   - App name: **Nerqia**
    - User support email: tu email
    - Developer contact: tu email
    - Guardar.
 4. En **APIs & Services → Credentials**, hacé **Create Credentials → OAuth client ID**:
    - Application type: **Web application**
-   - Name: **Gestiona Supabase**
+   - Name: **Nerqia Supabase**
    - **Authorized JavaScript origins**:
      - `http://localhost:8080` (desarrollo)
      - `https://tudominio.com` (producción)
@@ -34,12 +34,12 @@ Si al apretar "Ingresar con Google" recibís un error tipo *"provider is not ena
 ## Paso 3 — Configurar las URLs de tu app en Supabase
 
 1. Abrí https://supabase.com/dashboard/project/hummeopatkniwkyrrhwc/auth/url-configuration
-2. **Site URL**: `https://exentryimports.vercel.app` en producción (o `http://localhost:8080` en desarrollo)
+2. **Site URL**: `https://nerqia.app` en producción (o `http://localhost:8080` en desarrollo)
 3. **Redirect URLs** (agregá todas; sin esto fallan Google **y** el magic link / OTP de `/login`):
    - `http://localhost:8080/**`
    - `http://localhost:8080/`
-   - `https://exentryimports.vercel.app/**`
-   - `https://exentryimports.vercel.app/`
+   - `https://nerqia.app/**`
+   - `https://nerqia.app/`
    - `https://tudominio.com/**` (si hay dominio propio)
 4. Guardá.
 

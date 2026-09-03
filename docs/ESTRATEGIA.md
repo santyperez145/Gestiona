@@ -38,7 +38,7 @@ ERP ni “alternativa a Tiendanube”. La tienda online es la **puerta**: ahí s
 adquiere y se convierte. El producto es el sistema comercial completo —el mismo
 stock, cliente, costo y margen en mostrador, web y marketplaces—.
 
-> **Gestiona es la plataforma de comercio, operación y servicios financieros
+> **Nerqia es la plataforma de comercio, operación y servicios financieros
 > para negocios latinoamericanos.** Permite crear una tienda, vender en todos
 > los canales, gestionar la empresa, cobrar, automatizar decisiones y —con
 > partner, más adelante— acceder a capital desde un único Business Graph.
@@ -189,7 +189,7 @@ stock y orden. Ese límite evita que Storefront clone el Business Core.
 
 ✅ **Margin facts medidos el 2026-08-22:** “tener margen” tampoco alcanza como
 argumento. Shopify ya documenta profit por orden/mercado y Odoo margen por
-línea/pedido. Gestiona ahora conserva por venta la fuente de costo, comisión,
+línea/pedido. Nerqia ahora conserva por venta la fuente de costo, comisión,
 envío e IVA y sólo publica contribución si están los cuatro. La base inicial es
 34/34 líneas visibles, 0 completas y 2,9% de cobertura promedio: instrumentación
 honesta, todavía no ventaja validada. Contrato y consulta reproducible:
@@ -215,7 +215,7 @@ operaciones completas y no se reconstruyó.
 ✅ **Action Loop de precio, 2026-08-22:** el benchmark actualizado confirma que
 crear promociones y mirar sus ventas es paridad: Tiendanube ya reporta cupones,
 Shopify/Odoo conectan descuentos con analytics/margen, Sidekick exige aprobación
-y Pricefx tiene workflow/revocación. Gestiona ahora congela baseline, aplica con
+y Pricefx tiene workflow/revocación. Nerqia ahora congela baseline, aplica con
 `marketing.edit`, recalcula el piso desde el Core, audita, mide con margin facts
 y revierte sin pisar un precio cambiado después. El resultado se etiqueta
 `observed_not_causal`: una comparación temporal no se vende como experimento.
@@ -227,7 +227,7 @@ comercial sigue sin validar. Contrato y fuentes: [PRICE_IMPACT_LOOP.md](PRICE_IM
 ✅ **Finance como producto, 2026-08-22:** Odoo/QuickBooks confirman que OCR,
 review, matching y aprobaciones son paridad. Mendel, Clara, Rindegastos y Concur
 elevan la vara: control antes del gasto, presupuesto/política, centro de costo,
-roles, reembolso, captura móvil y operación por excepción. Gestiona cerró
+roles, reembolso, captura móvil y operación por excepción. Nerqia cerró
 primero el límite que faltaba: `/finance` tiene chrome propio, misma
 identidad/organización, entitlement separado de `finance.view` y decisión
 Platform auditada. Su resumen lee proveedores, órdenes, obligaciones y ledger
@@ -248,7 +248,7 @@ y [borradores](FINANCE_DOCUMENT_DRAFTS.md).
 [HubSpot Workflows](https://knowledge.hubspot.com/workflows/understand-your-workflow-details-page),
 [n8n](https://docs.n8n.io/workflows/executions/all-executions/) y
 [Temporal](https://docs.temporal.io/) abre una innovación transversal distinta
-de Spend Management. Gestiona puede unir señales de stock, ventas, margen,
+de Spend Management. Nerqia puede unir señales de stock, ventas, margen,
 clientes, documentos, pagos, integraciones y soporte en un playbook que primero
 simula impacto, luego solicita aprobación y finalmente ejecuta una acción del
 dominio dueño, midiendo el outcome. Es una capa de coordinación, no un nuevo
@@ -413,8 +413,8 @@ medirlos.
 
 📌 **Criterio.**
 
-**Gestiona Pay v1** es orquestación: el checkout y la conciliación son de
-Gestiona; el dinero lo mueve Mercado Pago (OAuth, `marketplace_fee` ya cobrado
+**Nerqia Pay v1** es orquestación: el checkout y la conciliación son de
+Nerqia; el dinero lo mueve Mercado Pago (OAuth, `marketplace_fee` ya cobrado
 en compras de prueba). Payway es segundo rail con contrato. dLocal es etapa
 regional.
 

@@ -9,6 +9,9 @@ const source = readFileSync(
 
 describe('platform-admin-action CORS contract', () => {
   it('permite explícitamente el origen productivo actual', () => {
+    expect(source).toContain('"https://nerqia.app"');
+    expect(source).toContain('"https://www.nerqia.app"');
+    // Compatibilidad temporal durante el corte de dominio.
     expect(source).toContain('"https://exentryimports.vercel.app"');
   });
 

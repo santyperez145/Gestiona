@@ -6,7 +6,7 @@
 // relaciones distintas:
 //
 //   comprador → comercio    el checkout de la tienda, con `marketplace_fee`
-//   comercio  → Gestiona    esto
+//   comercio  → Nerqia    esto
 //
 // Usar el token del comercio para cobrarle al comercio no tiene sentido y
 // además MercadoPago lo rechazaría. Por eso `MP_PLATFORM_ACCESS_TOKEN` es un
@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
   const referencia = `org:${orgId}:${plan.code}:${ciclo}`;
 
   const preapproval = {
-    reason: `Gestiona ${plan.name} — ${ciclo}`,
+    reason: `Nerqia ${plan.name} — ${ciclo}`,
     external_reference: referencia,
     payer_email: user.email,
     back_url: backUrl,

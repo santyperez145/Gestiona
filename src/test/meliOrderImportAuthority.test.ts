@@ -95,7 +95,7 @@ describe("importación de órdenes MercadoLibre", () => {
   });
 
   it("la sincronización nunca convierte un negativo real en cero y el cron requiere su secreto", () => {
-    expect(sync).toContain("Stock negativo en Gestiona");
+    expect(sync).toContain("Stock negativo en Nerqia");
     expect(sync).not.toContain("Math.max(0, p.stock");
     expect(sync).toContain('action === "cron-sync"');
     expect(sync).toContain('requireEnv("MELI_CRON_SECRET")');

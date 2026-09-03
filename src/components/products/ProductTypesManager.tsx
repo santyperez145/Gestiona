@@ -202,7 +202,7 @@ export default function ProductTypesManager({ orgId, open, onOpenChange, onChang
             <div className="max-w-xl">
               <p className="flex items-center gap-1.5 text-sm font-semibold"><Sparkles className="h-3.5 w-3.5 text-primary" /> Perfil inteligente del negocio</p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Elegí el rubro y Gestiona prepara una estructura inicial sobre el catálogo único. Podés editarla: nunca borra tipos propios ni toca productos, precios o stock.
+                Elegí el rubro y Nerqia prepara una estructura inicial sobre el catálogo único. Podés editarla: nunca borra tipos propios ni toca productos, precios o stock.
               </p>
               {currentProfile && (
                 <p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-primary/80">

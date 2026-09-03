@@ -14,7 +14,7 @@ const contract = JSON.parse(readFileSync(
   "utf8",
 ));
 const docs = readFileSync(resolve(ROOT, "docs/WEBHOOKS.md"), "utf8");
-const receiver = readFileSync(resolve(ROOT, "examples/gestiona-webhook-receiver.mjs"), "utf8");
+const receiver = readFileSync(resolve(ROOT, "examples/nerqia-webhook-receiver.mjs"), "utf8");
 const certificate = readFileSync(resolve(ROOT, "scripts/certificar-webhook-externo.ts"), "utf8");
 const panel = readFileSync(resolve(ROOT, "src/components/integrations/AdvancedWebhooksPanel.tsx"), "utf8");
 const executeAutomations = readFileSync(resolve(ROOT, "supabase/functions/execute-automations/index.ts"), "utf8");

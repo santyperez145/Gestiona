@@ -6,7 +6,7 @@ import type { SmtpConfig } from "./smtpSender.ts";
  * ── Por qué existe ────────────────────────────────────────────────────────
  *
  * ⚠️ El remitente estaba hardcodeado en **nueve** funciones, con nueve
- * direcciones distintas del mismo dominio inventado (`@gestiona.app`). Resend
+ * direcciones distintas del mismo dominio inventado (`@nerqia.app`). Resend
  * sólo entrega desde un dominio verificado en la cuenta, así que si el dominio
  * verificado era otro —o no había ninguno— **todas** rechazaban, y cargar bien
  * la API key no cambiaba nada: no había dónde decirle cuál es el dominio.
@@ -75,7 +75,7 @@ export async function remitenteDe(proposito: Proposito = "default"): Promise<Rem
   }
 
   const dominio = data.email_dominio as string | null;
-  const nombre = (data.email_nombre as string) || "Gestiona";
+  const nombre = (data.email_nombre as string) || "Nerqia";
   const casillas = (data.email_casillas ?? {}) as Record<string, string>;
   const casilla = casillas[proposito] || casillas.default || "noreply";
 

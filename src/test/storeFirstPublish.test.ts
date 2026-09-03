@@ -188,7 +188,7 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(STORE).toContain('storeShouldSeedPagesOnCreate');
     expect(STORE).toContain('seed_store_pages');
     // El panel de Pay no puede colarse otra vez al pie del lead de identidad.
-    const identityLeadFoot = STORE.indexOf('Gestiona Pay puede esperar: primero guardá nombre y slug arriba.');
+    const identityLeadFoot = STORE.indexOf('Nerqia Pay puede esperar: primero guardá nombre y slug arriba.');
     expect(identityLeadFoot).toBeGreaterThan(0);
     const afterFoot = STORE.slice(identityLeadFoot, identityLeadFoot + 280);
     expect(afterFoot).not.toContain('<PaymentConnectionsPanel');

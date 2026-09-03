@@ -340,7 +340,7 @@ export default function AdvancedWebhooksPanel() {
             </div>
             <DialogTitle className="flex items-center gap-2"><FileJson className="w-5 h-5 text-primary" />Contrato OpenAPI de webhooks</DialogTitle>
             <DialogDescription>
-              Una integración puede validar el payload sin leer el código de Gestiona ni adivinar qué cambia en un reintento.
+              Una integración puede validar el payload sin leer el código de Nerqia ni adivinar qué cambia en un reintento.
             </DialogDescription>
           </DialogHeader>
 
@@ -433,7 +433,7 @@ export default function AdvancedWebhooksPanel() {
               </div>
 
               <div className="space-y-2 border-t border-border/50 pt-3">
-                <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" />Firma administrada por Gestiona</p>
+                <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" />Firma administrada por Nerqia</p>
                 <p className="text-xs text-muted-foreground">
                   La firma llega en <code>X-Gestiona-Signature: t=...,v1=...</code>. Validá el
                   HMAC de <code>timestamp.cuerpo</code> y rechazá timestamps con más de 5 minutos.

@@ -51,7 +51,7 @@ function cuerpoDelAviso(o: {
 }): { subject: string; html: string; text: string } {
   const periodo = o.ciclo === "anual" ? "por año" : "por mes";
   const titulo = o.sube
-    ? `Tu suscripción a Gestiona pasa a ${pesos(o.nuevo)} ${periodo}`
+    ? `Tu suscripción a Nerqia pasa a ${pesos(o.nuevo)} ${periodo}`
     : `Buena noticia: tu suscripción baja a ${pesos(o.nuevo)} ${periodo}`;
 
   // El precio anterior sólo se nombra si consta. Decir «pasa de X a Y» con una

@@ -35,7 +35,7 @@ describe("mercado de integraciones del comercio", () => {
     const rows = [
       {
         integration_key: "gestiona_envios",
-        display_name: "Envíos Gestiona",
+        display_name: "Envíos Nerqia",
         category: "shipping",
         connection_mode: "manual",
         lifecycle: "production",
@@ -61,7 +61,7 @@ describe("mercado de integraciones del comercio", () => {
     expect(filterMerchantCatalog(rows, { query: "mercado" })[0].integration_key).toBe("mercadopago");
   });
 
-  it("la migración crea catálogo merchant-safe y siembra OCA + Envíos Gestiona", () => {
+  it("la migración crea catálogo merchant-safe y siembra OCA + Envíos Nerqia", () => {
     const mig = readFileSync(
       resolve(ROOT, "supabase/migrations/20260903000010_merchant_integration_marketplace.sql"),
       "utf8",

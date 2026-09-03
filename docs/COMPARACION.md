@@ -1,4 +1,4 @@
-# Gestiona contra la competencia — medido, no estimado
+# Nerqia contra la competencia — medido, no estimado
 
 **Fecha de corte de base: 2026-08-21; investigación competitiva de POS/pagos/caja
 actualizada el 2026-08-29.** Todo número nuestro sale de una consulta a la base
@@ -156,7 +156,7 @@ Leyenda: ✅ está y se usó · 🟡 está pero nunca corrió en real · 🔴 no
 
 ### 3.1 Tienda online
 
-| | Gestiona | Tiendanube | Empretienda | Shopify |
+| | Nerqia | Tiendanube | Empretienda | Shopify |
 |---|---|---|---|---|
 | Catálogo, variantes, categorías | ✅ | ✅ | ✅ | ✅ |
 | Carrito y checkout propio | ✅ | ✅ | ✅ | ✅ |
@@ -183,7 +183,7 @@ consultadas el 2026-08-22.
 
 ### 3.2 Gestión — acá es donde ganamos
 
-| | Gestiona | Tiendanube | Empretienda |
+| | Nerqia | Tiendanube | Empretienda |
 |---|---|---|---|
 | POS de mostrador | ✅ PWA **con modo offline** | ✅ PDV, ✅ **no en su app móvil** | 🟡 carga manual de venta presencial/WhatsApp/redes |
 | Turno de caja por sucursal | 🟡 autoridad server-side por organización/ubicación; apertura/cierre por RPC, fondo, ticket único, vendedor, devoluciones, efectivo esperado y diferencia. Fixture productivo aprobado; **0 turnos reales**, por lo que falta adopción | ❓ | ❓ |
@@ -205,7 +205,7 @@ consultadas el 2026-08-22.
 ✅ **Benchmark de caja actualizado el 2026-08-29.** [Square](https://squareup.com/help/us/en/article/8344-start-and-end-a-cash-drawer-session)
 modela una sesión con efectivo inicial, ventas/reembolsos, ingresos/retiros,
 esperado y conteo final; [Shopify POS](https://help.shopify.com/en/manual/sell-in-person/shopify-pos/cash-register-management/register-sessions-in-shopify-pos)
-agrega ubicación, responsable, métodos no efectivo y discrepancia. Gestiona
+agrega ubicación, responsable, métodos no efectivo y discrepancia. Nerqia
 traduce ese patrón al Business Core: un ticket con varias líneas o split cuenta
 una vez, la venta se enlaza atómicamente a la sesión abierta de su sucursal y el
 cliente no puede escribir apertura/cierre directamente. Eso es paridad técnica,
@@ -216,11 +216,11 @@ no una ventaja probada mientras no existan turnos reales operados y cerrados.
 permite devolución total/parcial, motivo, reposición y distribución hasta el
 monto disponible de cada pago original; los medios personalizados sólo vuelven
 al mismo medio. [Square](https://squareup.com/help/us/en/article/8344-start-and-end-a-cash-drawer-session)
-incluye los reembolsos de efectivo en el cálculo de la sesión. Gestiona adopta
+incluye los reembolsos de efectivo en el cálculo de la sesión. Nerqia adopta
 esa paridad y agrega una obligación contable visible para toda parte externa no
 confirmada. [Mercado Pago](https://www.mercadopago.com.ar/developers/es/docs/sales-processing/cancellations-and-refunds)
 documenta cancelaciones/reembolsos y su [endpoint de refund de Orders](https://www.mercadopago.com.ar/developers/es/reference/online-payments/checkout-api/refund-order/post)
-exige una clave de idempotencia. Gestiona ya implementa ambos caminos
+exige una clave de idempotencia. Nerqia ya implementa ambos caminos
 server-side —Orders para el QR moderno y Payments para cobros heredados—,
 reintento/reconsulta y cierre sólo ante confirmación positiva; rechazo, timeout
 o respuesta ambigua conservan el pasivo. La certificación live sigue 🔴 hasta
@@ -229,7 +229,7 @@ proveedor.
 
 ### 3.3 Fiscal y legal argentino
 
-| | Gestiona | Tiendanube | Empretienda |
+| | Nerqia | Tiendanube | Empretienda |
 |---|---|---|---|
 | Factura electrónica ARCA | 🟡 **nativa**, CAE en homologación, 0 en producción | ✅ vía apps de terceros pagas | ❓ |
 | Certificado por comercio | ✅ **no hace falta** (delegación `wsfe`) | n/a (lo resuelve la app) | ❓ |
@@ -245,13 +245,13 @@ nunca emitió no es una ventaja, es una promesa.
 
 ### 3.4 Cobros
 
-| | Gestiona | Tiendanube | Shopify |
+| | Nerqia | Tiendanube | Shopify |
 |---|---|---|---|
 | MercadoPago por OAuth | ✅ única autoridad; link exige `sales.create`, comisión por canal y referencia reconciliable | ✅ | ❓ |
 | QR dinámico acreditado antes de cerrar POS | 🟡 implementado con Order, reserva y cierre server-side; polling, webhook y cron autenticado reconcilian aun con Caja cerrada, y la UI recupera el intento/venta sin tocar el carrito nuevo. Prueba reversible aprobada; cobro live pendiente | ✅ Mercado Pago QR | ❓ |
 | Comisión de plataforma sobre la venta | ✅ **cobró de verdad** (`application_fee` 5% en las compras de prueba de 2026-08-11). ⚠️ Hoy la regla está en **0,5% e inactiva** (medido 2026-08-25): no se cobra nada | ✅ ❓0,7%–2% por transacción según plan | ✅ |
 | Orquestador multi-proveedor con failover | 🟡 construido, **no enchufado al checkout** | ❓ | ✅ |
-| Medio de pago propio | 🔴 GestionaPay no existe | 🔴 | ✅ Shopify Payments |
+| Medio de pago propio | 🔴 Nerqia Pay no existe como PSP propio | 🔴 | ✅ Shopify Payments |
 | Suscripción del SaaS | 🟡 por MercadoPago, **nunca cobró** | ✅ | ✅ |
 
 ✅ El costo por transacción de Tiendanube en Argentina va de **0,7% a 2%** según
@@ -262,7 +262,7 @@ consultado 2026-08-21).
 ✅ **Benchmark QR actualizado el 2026-08-29.** Mercado Pago define una Order
 dinámica por transacción, `external_pos_id`, `X-Idempotency-Key`, vencimiento y
 consulta de la orden para conocer el estado; el QR dinámico es único para esa
-compra. Gestiona ya respeta ese contrato y agrega su propia reserva/cierre
+compra. Nerqia ya respeta ese contrato y agrega su propia reserva/cierre
 atómico contra el Business Core. Desde el slice 70, la consulta no depende de
 una pestaña: un cron autenticado vuelve a consultar Orders cada minuto y Caja
 muestra cobros pendientes o ventas cerradas hasta que el cajero las reconoce.
@@ -296,11 +296,11 @@ una decisión sin tomar.
 
 ### 3.5 Estándar internacional: no confundir paridad con ventaja
 
-| Capacidad | Shopify | Odoo | Gestiona | Lectura honesta |
+| Capacidad | Shopify | Odoo | Nerqia | Lectura honesta |
 |---|---|---|---|---|
 | Inventario compartido entre POS, tienda y ubicaciones | ✅ documentado | ✅ documentado | ✅ movimientos en base y `location_stock` | Es paridad obligatoria, no un claim diferencial. |
 | POS cuando se corta la conexión | ❓ no se relevó aquí | ✅ documentado | ✅ PWA offline | Diferencia potencial que requiere uso real, no una promesa. |
-| Contabilidad de partida doble ligada a venta/POS | ❓ no se relevó aquí | ✅ documentado | 🟡 conectada, 0 asientos reales | Odoo es el estándar funcional; Gestiona no puede declararse superior. |
+| Contabilidad de partida doble ligada a venta/POS | ❓ no se relevó aquí | ✅ documentado | 🟡 conectada, 0 asientos reales | Odoo es el estándar funcional; Nerqia no puede declararse superior. |
 | Margen con costo landed, comisión, envío e IVA | ❓ sin relevamiento comparable | ❓ sin relevamiento comparable | ✅ Core modelado | Hipótesis de posicionamiento: se valida con decisiones de precio y margen de comercios reales. |
 
 Fuentes oficiales consultadas el 2026-08-21: Shopify documenta inventario
@@ -321,7 +321,7 @@ agregarlo o emparejarlo. Sus [workflows de Bill Pay](https://quickbooks.intuit.c
 separan quien carga, aprueba y paga.
 
 Conclusión: OCR, revisión, matching y aprobaciones son **paridad**, no un claim
-defendible. Gestiona estaba atrás: su OCR sólo prellenaba Compras y ni siquiera
+defendible. Nerqia estaba atrás: su OCR sólo prellenaba Compras y ni siquiera
 tenía cadena de custodia.
 
 ✅ **Gastos alcanza la paridad de revisión, no la de operación live.** Su
@@ -374,9 +374,9 @@ que atraviesen aprobación y recepción.
 ### 3.7 Finance regional — el control empieza antes del OCR
 
 ✅ **Verificado el 2026-08-22 con fuentes oficiales.** El benchmark relevante
-para Gestiona Finance no termina en digitalizar facturas:
+para Nerqia Finance no termina en digitalizar facturas:
 
-| Capacidad | Mendel | Clara Global | Rindegastos | Gestiona hoy / decisión |
+| Capacidad | Mendel | Clara Global | Rindegastos | Nerqia hoy / decisión |
 |---|---|---|---|---|
 | Política y presupuesto antes del gasto | ✅ reglas de monto, categoría, ubicación y frecuencia; presupuestos | ✅ políticas y aprobaciones | ✅ políticas por tipo, monto y centro de costo | 🔴 F5: política versionada + presupuesto + excepción; no bloquear desde UI sin autoridad server-side. |
 | Captura y rendición | ✅ gasto, comprobante y reembolso | ✅ WhatsApp/formulario, tarjeta y reembolso | ✅ web/móvil/offline, viáticos, kilometraje y fondos | 🟡 Document Inbox web; F5 agrega mobile/WhatsApp, reembolso y fondos sin duplicar documentos. |
@@ -406,7 +406,7 @@ económico y regulatorio.
 | Tiendanube AR | ✅ sí, sin límite de tiempo | ❓ desde ~USD 18/mes | ✅ 0,7%–2% por transacción + pasarela |
 | Empretienda | ❓ oferta AR no reverificada en este corte | ❓ precio AR no reverificado | ❓ no usar una comisión sin fuente local vigente |
 | Shopify | 🔴 sólo prueba | ❓ desde USD 29/mes | ✅ + comisión si no usás Shopify Payments |
-| **Gestiona** | 14 días de trial | ❓ planes definidos, **nunca cobrados** | ⚠️ **0% efectivo** — regla de 0,5% en borrador, inactiva (2026-08-25) |
+| **Nerqia** | 14 días de trial | ❓ planes definidos, **nunca cobrados** | ⚠️ **0% efectivo** — regla de 0,5% en borrador, inactiva (2026-08-25) |
 
 Todos los planes de Tiendanube tienen ✅ 25% de descuento pagando anual, y ✅ no
 limitan cantidad de productos, visitas ni ventas.
@@ -493,7 +493,7 @@ copian pantallas: se copian controles que reducen errores de operación.
   un destino temporal y después sube el archivo directamente. La documentación
   lo recomienda para archivos grandes, medios e importaciones masivas
   ([StagedUploadsCreatePayload](https://shopify.dev/docs/api/admin-graphql/latest/payloads/StagedUploadsCreatePayload),
-  consultado 2026-08-22). Gestiona adopta el mismo límite conceptual en Finance:
+  consultado 2026-08-22). Nerqia adopta el mismo límite conceptual en Finance:
   intención server-side, objeto privado y finalización separada; la diferencia
   es que nuestro objeto queda unido a una versión documental y a la
   organización.
@@ -513,7 +513,7 @@ copian pantallas: se copian controles que reducen errores de operación.
 - ✅ **DolarAPI:** los endpoints documentados para oficial, blue y bolsa exponen
   `venta` y `fechaActualizacion` sin credencial
   ([documentación Argentina](https://dolarapi.com/docs/argentina/operations/get-dolares),
-  revisado y consultado 2026-08-29). Gestiona valida respuesta positiva con
+  revisado y consultado 2026-08-29). Nerqia valida respuesta positiva con
   timeout, conserva la última fuente sana ante una falla parcial y actualiza
   sólo referencias; el tipo de cambio operativo sigue siendo decisión del
   comercio.
@@ -523,7 +523,7 @@ copian pantallas: se copian controles que reducen errores de operación.
   su interfaz SMTP ([Google App Passwords](https://support.google.com/accounts/answer/185833),
   [Microsoft OAuth para SMTP](https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth),
   [Resend SMTP](https://resend.com/docs/send-with-smtp), revisados 2026-08-29).
-  Gestiona prioriza OAuth/credencial específica del proveedor; si el comercio
+  Nerqia prioriza OAuth/credencial específica del proveedor; si el comercio
   usa SMTP, prueba antes de persistir, guarda el secreto sólo en backend y nunca
   lo incluye en snapshots, respuestas ni vistas de estado.
 - ✅ **MercadoLibre:** sus notificaciones deben responder rápido, encolar el
@@ -549,7 +549,7 @@ copian pantallas: se copian controles que reducen errores de operación.
   filtrables por estado, origen y pago, con detalle y actividad
   ([Shopify Orders](https://help.shopify.com/en/manual/fulfillment/managing-orders/viewing-orders/searching-orders),
   [Square Order Manager](https://squareup.com/help/us/en/article/6923-pickup-orders-on-square-point-of-sale),
-  consultados 2026-08-29). Gestiona adopta el patrón como inspector de ticket
+  consultados 2026-08-29). Nerqia adopta el patrón como inspector de ticket
   con selección en URL, lista/filtros intactos y margen registrado visible; no
   copia sus estados ni presenta una línea como si fuera todo el ticket.
 - ✅ **Empretienda:** comunica importación masiva, alertas de stock, medios de
@@ -575,7 +575,7 @@ copian pantallas: se copian controles que reducen errores de operación.
   integra facturación, compras, stock, caja/bancos, impuestos/contabilidad y
   canales locales ([Contabilium](https://contabilium.com/ar/industrias/erp-ecommerce/),
   [Xubio](https://xubio.com/ar/precios-empresas), [Colppy](https://colppy.com/sistema-de-gestion-para-pymes),
-  consultados 2026-08-22). Gestiona debe ganar en implementación y margen
+  consultados 2026-08-22). Nerqia debe ganar en implementación y margen
   explicable, no presentar esos módulos como novedad.
 
 📌 **Regla derivada:** cada integración nueva debe tener una autoridad canónica,

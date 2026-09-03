@@ -116,7 +116,7 @@ export default async function handler(req: Request): Promise<Response> {
       title: "Tienda no encontrada",
       description: "Esta tienda no existe o fue desactivada.",
       url: `${origin}/tienda/${encodeURIComponent(ruta.slug)}`,
-      siteName: "Gestiona",
+      siteName: "Nerqia",
       sitemap: `${origin}/sitemap.xml`,
       indexable: false,
     }), 404, "public, max-age=60");

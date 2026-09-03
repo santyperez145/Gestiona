@@ -379,7 +379,7 @@ export default function OnboardingPage() {
         </div>
 
         <p className="text-center text-[10px] text-muted-foreground/30 mt-6">
-          Gestiona · Creá tu tienda y gestioná el mismo negocio
+          Nerqia · Creá tu tienda y gestioná el mismo negocio
         </p>
       </div>
     </div>

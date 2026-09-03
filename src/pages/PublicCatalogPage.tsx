@@ -326,8 +326,8 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
   // La marca de la tienda (si se entra por /tienda/:slug) pisa la del negocio.
   const primaryColor = storeBranding?.primary_color || settings?.primary_color || "#D4A843";
   const accentColor = settings?.catalog_accent_color || primaryColor;
-  const businessName = storeBranding?.name || settings?.business_name || "EXENTRY IMPORTS";
-  const logoUrl = storeBranding?.logo_url || settings?.logo_url || "/exentry-logo.png";
+  const businessName = storeBranding?.name || settings?.business_name || "Tienda online";
+  const logoUrl = storeBranding?.logo_url || settings?.logo_url || null;
   const whatsappNumber = settings?.whatsapp_number;
 
   const heroConfig = useMemo(() => {
@@ -442,12 +442,14 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           {/* Logo + name */}
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <img
-              src={logoUrl}
-              alt={businessName}
-              className="h-9 w-auto max-w-[100px] object-contain shrink-0 rounded-[8px]"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            />
+            {logoUrl && (
+              <img
+                src={logoUrl}
+                alt={businessName}
+                className="h-9 w-auto max-w-[100px] object-contain shrink-0 rounded-[8px]"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            )}
             <div className="min-w-0">
               <h1
                 className="font-black text-sm sm:text-[15px] tracking-wide leading-none truncate"
@@ -849,12 +851,14 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
       <footer className="border-t border-white/[0.04] mt-8 pb-28">
         <div className="max-w-7xl mx-auto px-4 py-8 text-center">
           <div className="flex items-center justify-center gap-2.5 mb-3">
-            <img
-              src={logoUrl}
-              alt={businessName}
-              className="w-7 h-7 rounded-[7px] object-cover border border-white/10"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            />
+            {logoUrl && (
+              <img
+                src={logoUrl}
+                alt={businessName}
+                className="w-7 h-7 rounded-[7px] object-cover border border-white/10"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            )}
             <span className="text-sm font-black tracking-wide" style={{ color: primaryColor }}>{businessName}</span>
           </div>
           <p className="text-[10px] text-white/20">Precios sujetos a cambios · Stock al momento de consulta</p>

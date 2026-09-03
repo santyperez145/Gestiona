@@ -55,7 +55,7 @@ describe("leerTicketWsaa", () => {
     const roto = respuestaOk.replace("&lt;token&gt;UEQ5eG1s&lt;/token&gt;", "");
     const r = leerTicketWsaa(roto);
     expect(r.token).toBeUndefined();
-    expect(r.error).toContain("problema del lado de Gestiona");
+    expect(r.error).toContain("problema del lado de Nerqia");
     expect(r.error).not.toContain("certificado venció");
   });
 

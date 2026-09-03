@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth";
@@ -1638,7 +1638,7 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
   <td class="r" style="color:${totals.netProfit >= 0 ? '#16a34a' : '#dc2626'}">${formatARS(totals.netProfit)}</td>
 </tr></tfoot>
 </table>
-<div class="disclaimer">Este reporte es orientativo. Consultá con tu contador para declaraciones oficiales ante AFIP. Sistema Gestiona.</div>
+<div class="disclaimer">Este reporte es orientativo. Consultá con tu contador para declaraciones oficiales ante AFIP. Sistema Nerqia.</div>
 </body></html>`;
             const w = window.open('', '_blank');
             if (w) { w.document.write(html); w.document.close(); w.print(); }

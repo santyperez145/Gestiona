@@ -176,6 +176,6 @@ describe("cola de pedidos de la tienda", () => {
 
   it("nombra el CSV con el día UTC", () => {
     expect(storeOrdersCsvFilename(new Date("2026-09-01T10:00:00Z")))
-      .toBe("gestiona-pedidos-tienda-2026-09-01.csv");
+      .toBe("nerqia-pedidos-tienda-2026-09-01.csv");
   });
 });

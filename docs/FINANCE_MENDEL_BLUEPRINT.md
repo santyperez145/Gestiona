@@ -1,15 +1,15 @@
-# Gestiona Finance — estudio Mendel-class y blueprint de producto
+# Nerqia Finance — estudio Mendel-class y blueprint de producto
 
 **Corte del relevamiento:** 2026-08-29  
 **Fuente primaria:** sitio oficial de [Mendel](https://mendel.com/) y sus
 páginas de producto enlazadas desde allí.  
 **Estado:** discovery cerrado como insumo de F5; no implica que las capacidades
-estén construidas ni que Gestiona pueda ofrecer productos financieros regulados.
+estén construidas ni que Nerqia pueda ofrecer productos financieros regulados.
 
 Este documento convierte a Mendel en un benchmark operativo concreto. No es una
 orden de copiar marca, textos, assets o pantallas. Es un inventario de trabajos,
 estados, controles, permisos y resultados que Finance debe cubrir para ser una
-alternativa seria. La ventaja de Gestiona aparece cuando ese gasto se conecta
+alternativa seria. La ventaja de Nerqia aparece cuando ese gasto se conecta
 con el proveedor, la compra, la recepción, el costo importado, el stock, el
 impuesto, la venta y el margen del mismo Business Graph.
 
@@ -18,7 +18,7 @@ impuesto, la venta y el margen del mismo Business Graph.
 - **✅ Observado en fuente oficial:** la capacidad o el posicionamiento está
   publicado por Mendel en la fecha de corte. Es evidencia de oferta, no prueba
   de cada implementación interna ni de disponibilidad en Argentina.
-- **📌 Decisión Gestiona:** traducción elegida para nuestro producto y su
+- **📌 Decisión Nerqia:** traducción elegida para nuestro producto y su
   arquitectura actual.
 - **🟡 F5:** capacidad objetivo posterior a la adopción de Finance documental.
 - **🔒 Gate:** no se construye ni se anuncia sin la condición indicada.
@@ -28,12 +28,12 @@ impuesto, la venta y el margen del mismo Business Graph.
 Las páginas de Mendel contienen afirmaciones comerciales y casos expresados en
 contexto mexicano o regional. Los porcentajes de ahorro, deducibilidad,
 recupero, horas y cantidad de flotillas se conservan como claims de su fuente,
-no como métricas de Gestiona. Antes de usar una afirmación en ventas se debe
+no como métricas de Nerqia. Antes de usar una afirmación en ventas se debe
 verificar país, vigencia, contrato y población medida.
 
 ## 2. Inventario exhaustivo de la superficie Mendel
 
-| Superficie oficial | ✅ Trabajo que declara resolver | 📌 Traducción en Gestiona | Estado |
+| Superficie oficial | ✅ Trabajo que declara resolver | 📌 Traducción en Nerqia | Estado |
 |---|---|---|---|
 | [Plataforma de gestión de gastos](https://mendel.com/producto/) | Centralizar gastos, aprobar, monitorear en tiempo real, aplicar reglas, operar distintos medios de pago, recuperar comprobantes, reportar e integrar con ERP. | Inicio de Finance con pendientes, gasto comprometido/consumido/disponible, excepciones, cola y drill-down a evidencia. | 🟡 F5 |
 | [Tarjetas Mendel](https://mendel.com/ar/producto/tarjetas-mendel/) | Tarjetas físicas y virtuales, límites por monto/categoría/ubicación/frecuencia, notificaciones, aceptación internacional y control preventivo. | Primero feed de tarjetas externas y transacciones bloqueadas; emisión sólo detrás de partner, legal, riesgo y economics. | 🔒 Gate regulado |
@@ -53,7 +53,7 @@ verificar país, vigencia, contrato y población medida.
 El sitio también presenta soluciones por industria y rol: automotriz, retail,
 logística, salud/farmacia, CFO, controller, contabilidad, operaciones y
 flotillas. Eso enseña que el producto se compra por un trabajo y una jerarquía,
-no por una tabla de transacciones. Gestiona debe resolver primero los objetos
+no por una tabla de transacciones. Nerqia debe resolver primero los objetos
 comunes y después aplicar presets declarativos por perfil, sin crear una base de
 datos distinta por vertical.
 
@@ -75,7 +75,7 @@ La cobertura mínima por rol será:
 se declara comparable cuando el servidor conserva autoridad, el usuario puede
 resolver la excepción y existe una prueba con datos autorizados.
 
-| Área | Cobertura obligatoria en Gestiona Finance | Estado actual / puerta de salida |
+| Área | Cobertura obligatoria en Nerqia Finance | Estado actual / puerta de salida |
 |---|---|---|
 | Bandeja de gasto | Lista unificada de gastos, solicitudes y documentos con origen, responsable, edad, estado, monto, moneda y próxima acción. | F3 tiene Document Inbox; F5 agrega gastos y solicitudes. Salida: una cola real sin planilla. |
 | Captura | App/web, cámara, email/WhatsApp cuando haya consentimiento, carga manual y captura offline con reconciliación. | F3 soporta original privado web; F5 requiere canales adicionales y deduplicación. |
@@ -140,7 +140,7 @@ estado completo, contrato de datos, E2E y migración idempotente si corresponde.
 | `/facturas`, `/afip` | Permanece como emisión fiscal/AR, con enlaces desde Finance. | Una factura emitida al cliente no es una factura de proveedor ni un expense; ambas pueden compartir evidencia fiscal. |
 | `/deudas`, `/cuotas`, `/presupuestos` | Permanece como cobranzas/comercial. | Son cuentas por cobrar y cotizaciones de venta; no deben confundirse con AP budgets o spend requests. |
 | `/billetera`, `/links-de-pago`, `/banco` de cobros | Se mantiene ligado a Payments/Commerce; Finance consume la conciliación. | El dinero cobrado por ventas y el gasto corporativo tienen orígenes y controles distintos. |
-| `/mi-plan`, `/suscripciones` | Permanece en billing de Gestiona/Platform. | Es el cobro del SaaS, no un gasto del comercio. |
+| `/mi-plan`, `/suscripciones` | Permanece en billing de Nerqia/Platform. | Es el cobro del SaaS, no un gasto del comercio. |
 
 ### 4.3 Candidatos a converger bajo Finance
 

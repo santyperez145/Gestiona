@@ -61,13 +61,13 @@ async function sendConnectionTest(config: {
     await client.send({
       from: `"${config.fromName || config.fromEmail}" <${config.fromEmail}>`,
       to: destination,
-      subject: "Conexión de correo verificada — Gestiona",
+      subject: "Conexión de correo verificada — Nerqia",
       content: "La conexión SMTP de tu organización quedó verificada.",
       html: `
         <div style="font-family:Arial,sans-serif;padding:24px;background:#f5f7fb">
           <div style="max-width:520px;margin:0 auto;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:32px">
             <h2 style="color:#172554;margin:0 0 12px">Conexión verificada</h2>
-            <p style="color:#334155;line-height:1.6">Gestiona pudo enviar este correo con el servidor de tu organización.</p>
+            <p style="color:#334155;line-height:1.6">Nerqia pudo enviar este correo con el servidor de tu organización.</p>
             <p style="color:#64748b;font-size:13px">Servidor: ${config.host}:${config.port}</p>
           </div>
         </div>`,

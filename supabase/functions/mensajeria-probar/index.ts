@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
 
   const r = await sendEmail(remitente.smtp, apiKey, remitente.from, {
     to: destino,
-    subject: "Prueba de envío de Gestiona",
+    subject: "Prueba de envío de Nerqia",
     html: `<div style="font-family:system-ui,sans-serif">
       <h2 style="font-size:16px">Llegó.</h2>
       <p>Si estás leyendo esto, el correo de la plataforma sale bien desde

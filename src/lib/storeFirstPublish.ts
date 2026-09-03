@@ -4,7 +4,7 @@
  * Tres trampas del camino online:
  * 1. El wizard mandaba a Commerce con el toast «Publicá la tienda». POS manda
  *    a cargar el producto. Sin catálogo no hay nada que publicar.
- * 2. El overview abre con Revenue $0, un embudo en cero y «Activar Gestiona
+ * 2. El overview abre con Revenue $0, un embudo en cero y «Activar Nerqia
  *    Pay». Transferencia ya cobra; el catálogo no está. Pay no es el primer clic.
  * 3. «Checkout iniciado» era `carritos_con_items * 0.37`. Un número plausible
  *    que nadie midió. `sinSimulacion` cubre el chat de IA; este embudo era el
@@ -40,7 +40,7 @@ export function storeShouldShowPerformanceChrome(input: {
  * El banner de Pay no es el siguiente clic de publicar.
  *
  * Transferencia es el default. El checkout no ofrece Mercado Pago hasta que
- * Pay esté vivo. Empujar «Activar Gestiona Pay» encima del checklist hacía
+ * Pay esté vivo. Empujar «Activar Nerqia Pay» encima del checklist hacía
  * que el primer producto aterrizara en OAuth en vez de en slug, entrega y
  * legales. El aviso de `pay-rail` sigue en el estado de la tienda.
  */
@@ -69,7 +69,7 @@ export function storeAfterCreateCopy() {
   return {
     title: 'Tienda creada. Ahora el catálogo',
     description:
-      'Ya hay vitrina con dirección. Cargá un producto con precio y stock; después publicás. Gestiona Pay puede esperar.',
+      'Ya hay vitrina con dirección. Cargá un producto con precio y stock; después publicás. Nerqia Pay puede esperar.',
     actionLabel: 'Cargar el primer producto',
     href: '/productos?onboarding=1&goal=online',
   };
@@ -95,7 +95,7 @@ export function storeBankLeadCopy() {
   return {
     title: 'Cargá CBU o alias para cobrar',
     description:
-      'Transferencia ya está marcada. Sin CBU ni alias el pedido dice «te vamos a escribir» y no hay primera venta sola. Gestiona Pay puede esperar.',
+      'Transferencia ya está marcada. Sin CBU ni alias el pedido dice «te vamos a escribir» y no hay primera venta sola. Nerqia Pay puede esperar.',
   };
 }
 
@@ -119,7 +119,7 @@ export function storePickupLeadCopy() {
   return {
     title: 'Decí dónde se retira',
     description:
-      'Retiro en tienda está activo. Sin dirección el pedido dice que vas a contactar al comprador. Gestiona Pay puede esperar.',
+      'Retiro en tienda está activo. Sin dirección el pedido dice que vas a contactar al comprador. Nerqia Pay puede esperar.',
   };
 }
 
@@ -151,7 +151,7 @@ export function storeLegalLeadCopy() {
   return {
     title: 'Completá y publicá términos y privacidad',
     description:
-      'Sin razón social, CUIT y páginas publicadas el comprador no sabe quién vende. Usá el generador en Páginas; Gestiona Pay puede esperar.',
+      'Sin razón social, CUIT y páginas publicadas el comprador no sabe quién vende. Usá el generador en Páginas; Nerqia Pay puede esperar.',
     actionLabel: 'Ir a Páginas',
   };
 }
@@ -174,7 +174,7 @@ export function storeEmailLeadCopy() {
   return {
     title: 'Email para avisos de venta',
     description:
-      'Cuando alguien compre, el aviso tiene que llegar a una casilla que mirás. Si falta, cae al correo del dueño. Gestiona Pay puede esperar.',
+      'Cuando alguien compre, el aviso tiene que llegar a una casilla que mirás. Si falta, cae al correo del dueño. Nerqia Pay puede esperar.',
   };
 }
 
@@ -200,7 +200,7 @@ export function storeHoursLeadCopy() {
   return {
     title: 'Decí cuándo se retira',
     description:
-      'La dirección ya está. Sin horario el comprador no sabe cuándo pasar. Cargalo; no se inventa. Gestiona Pay puede esperar.',
+      'La dirección ya está. Sin horario el comprador no sabe cuándo pasar. Cargalo; no se inventa. Nerqia Pay puede esperar.',
   };
 }
 
@@ -252,13 +252,13 @@ export function storeAfterCatalogCopy(input: { canPublish: boolean }) {
     return {
       title: 'Listo para publicar',
       description:
-        'El catálogo está y transferencia ya cobra. Publicá para que el link funcione. Gestiona Pay puede esperar.',
+        'El catálogo está y transferencia ya cobra. Publicá para que el link funcione. Nerqia Pay puede esperar.',
     };
   }
   return {
     title: 'Ahora publicá la tienda',
     description:
-      'El catálogo ya está. Falta una dirección para compartir, una forma de entregar y quién vende. Transferencia ya cobra; Gestiona Pay puede esperar.',
+      'El catálogo ya está. Falta una dirección para compartir, una forma de entregar y quién vende. Transferencia ya cobra; Nerqia Pay puede esperar.',
   };
 }
 

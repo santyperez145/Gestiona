@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Certifica el request canónico contra un receptor HTTPS fuera de Gestiona.
+ * Certifica el request canónico contra un receptor HTTPS fuera de Nerqia.
  * Sólo envía test.ping sintético y elimina el receptor efímero al terminar.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";

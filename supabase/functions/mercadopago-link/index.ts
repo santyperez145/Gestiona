@@ -1,5 +1,5 @@
 /**
- * Crea una preferencia de Checkout Pro para un cobro operado desde Gestiona.
+ * Crea una preferencia de Checkout Pro para un cobro operado desde Nerqia.
  *
  * La organización enviada por el navegador nunca es autoridad: se exige una
  * sesión real y `sales.create` dentro de ese tenant. El monto, cuando el cobro
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const orgId = cleanText(body.orgId, 80);
-    const title = cleanText(body.title, 120) ?? "Cobro de Gestiona";
+    const title = cleanText(body.title, 120) ?? "Cobro de Nerqia";
     const externalRef = cleanText(body.externalRef, 180);
     const paymentLinkId = cleanText(body.paymentLinkId, 80);
     const clientTotal = body.total != null ? Number(body.total) : null;

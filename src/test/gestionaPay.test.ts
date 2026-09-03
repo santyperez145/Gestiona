@@ -27,7 +27,7 @@ describe("decidirRailGestionaPay", () => {
     expect(d.provider).toBe("mercadopago");
     expect(d.listo).toBe(false);
     expect(d.motivo.toLowerCase()).toContain("stripe");
-    expect(d.motivo.toLowerCase()).toContain("gestiona pay");
+    expect(d.motivo.toLowerCase()).toContain("nerqia pay");
   });
 
   it("en un mercado Stripe no usa Mercado Pago por default", () => {
@@ -38,7 +38,7 @@ describe("decidirRailGestionaPay", () => {
 });
 
 describe("eventos canónicos", () => {
-  it("traduce estados de Mercado Pago al contrato de Gestiona Pay", () => {
+  it("traduce estados de Mercado Pago al contrato de Nerqia Pay", () => {
     expect(eventoCanonicoMercadoPago("approved")).toBe("payment.succeeded");
     expect(eventoCanonicoMercadoPago("rejected")).toBe("payment.failed");
     expect(eventoCanonicoMercadoPago("charged_back")).toBe("payment.disputed");
@@ -46,7 +46,7 @@ describe("eventos canónicos", () => {
     expect(eventoCanonicoMercadoPago("no-existe")).toBeNull();
   });
 
-  it("mapea eventos Stripe de Connect sin tratar billing de Gestiona como cobro merchant", () => {
+  it("mapea eventos Stripe de Connect sin tratar billing de Nerqia como cobro merchant", () => {
     expect(eventoCanonicoStripe("payment_intent.succeeded")).toBe("payment.succeeded");
     expect(eventoCanonicoStripe("invoice.payment_succeeded")).toBeNull();
     expect(eventoCanonicoStripe("charge.dispute.created")).toBe("payment.disputed");
@@ -60,10 +60,10 @@ describe("medio canónico gestiona_pay", () => {
     expect(esMedioGestionaPay("transferencia")).toBe(false);
   });
 
-  it("etiqueta Gestiona Pay, nunca Mercado Pago (Gestiona Pay)", () => {
-    expect(etiquetaMedioTienda("gestiona_pay")).toBe("Gestiona Pay");
-    expect(etiquetaMedioTienda("mercadopago")).toBe("Gestiona Pay");
-    expect(etiquetaMedioTienda("gestiona_pay")).not.toMatch(/Mercado Pago \(Gestiona Pay\)/);
+  it("etiqueta Nerqia Pay, nunca Mercado Pago (Nerqia Pay)", () => {
+    expect(etiquetaMedioTienda("gestiona_pay")).toBe("Nerqia Pay");
+    expect(etiquetaMedioTienda("mercadopago")).toBe("Nerqia Pay");
+    expect(etiquetaMedioTienda("gestiona_pay")).not.toMatch(/Mercado Pago \(Nerqia Pay\)/);
   });
 
   it("normaliza mercadopago a gestiona_pay sin duplicar", () => {

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -108,7 +108,7 @@ function printCashReport(
   ${session.notes ? `<p style="margin-top:12px;color:#6b7280;font-style:italic">Notas: ${session.notes}</p>` : ""}
 </div>
 
-<p style="margin-top:20px;font-size:10px;color:#9ca3af">Generado por Gestiona · ${new Date().toLocaleString("es-AR")}</p>
+<p style="margin-top:20px;font-size:10px;color:#9ca3af">Generado por Nerqia · ${new Date().toLocaleString("es-AR")}</p>
 </body></html>`;
 
   const w = window.open("", "_blank");
@@ -636,7 +636,7 @@ export default function CashSessionPage() {
                 <Button
                   size="sm" variant="ghost" className="h-7 w-7 p-0"
                   title="Imprimir movimientos"
-                  onClick={e => { e.stopPropagation(); printCashReport(openSession, cashEntries, activeOrg?.name || "Gestiona"); }}
+                  onClick={e => { e.stopPropagation(); printCashReport(openSession, cashEntries, activeOrg?.name || "Nerqia"); }}
                 >
                   <Printer className="w-3.5 h-3.5" />
                 </Button>
@@ -770,13 +770,13 @@ export default function CashSessionPage() {
                       <div className="flex gap-2 pt-1">
                         <Button
                           size="sm" variant="outline" className="h-7 text-xs gap-1.5"
-                          onClick={() => printCashReport(s, sessionEntriesMap[s.id] || [], activeOrg?.name || "Gestiona")}
+                          onClick={() => printCashReport(s, sessionEntriesMap[s.id] || [], activeOrg?.name || "Nerqia")}
                         >
                           <Printer className="w-3 h-3" />Imprimir / PDF
                         </Button>
                         <Button
                           size="sm" variant="outline" className="h-7 text-xs gap-1.5"
-                          onClick={() => exportCashCSV(s, sessionEntriesMap[s.id] || [], activeOrg?.name || "Gestiona")}
+                          onClick={() => exportCashCSV(s, sessionEntriesMap[s.id] || [], activeOrg?.name || "Nerqia")}
                         >
                           <FileSpreadsheet className="w-3 h-3" />CSV
                         </Button>

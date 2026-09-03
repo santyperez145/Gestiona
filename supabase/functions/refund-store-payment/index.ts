@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
       });
       if (settleError) {
         console.error("pago_reintegro_resultado reconcile:", settleError);
-        return json({ ok: true, status: "processing", refundId, message: "El proveedor confirmó el reintegro; falta sincronizar Gestiona." }, 202);
+        return json({ ok: true, status: "processing", refundId, message: "El proveedor confirmó el reintegro; falta sincronizar Nerqia." }, 202);
       }
       return json({ ok: true, status: "refunded", refundId, orderPaymentStatus: (settled as Record<string, unknown> | null)?.order_payment_status ?? null });
     }
@@ -280,7 +280,7 @@ Deno.serve(async (req) => {
         ok: true,
         status: "processing",
         refundId,
-        message: "MercadoPago confirmó el reintegro; falta terminar de sincronizar Gestiona.",
+        message: "MercadoPago confirmó el reintegro; falta terminar de sincronizar Nerqia.",
       }, 202);
     }
 

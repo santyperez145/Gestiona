@@ -175,7 +175,7 @@ export default function PlatformMessagingPage() {
                 <Label htmlFor="dominio">Dominio verificado en Resend</Label>
                 <Input
                   id="dominio" defaultValue={cfg?.email_dominio ?? ""}
-                  placeholder="gestiona.app"
+                  placeholder="nerqia.app"
                   onBlur={e => {
                     const v = e.target.value.trim();
                     if (v !== (cfg?.email_dominio ?? "")) void guardar({ email_dominio: v });
@@ -190,7 +190,7 @@ export default function PlatformMessagingPage() {
                 <Label htmlFor="nombre">Nombre que ve quien recibe</Label>
                 <Input
                   id="nombre" defaultValue={cfg?.email_nombre ?? ""}
-                  placeholder="Gestiona"
+                  placeholder="Nerqia"
                   onBlur={e => {
                     const v = e.target.value.trim();
                     if (v !== (cfg?.email_nombre ?? "")) void guardar({ email_nombre: v });

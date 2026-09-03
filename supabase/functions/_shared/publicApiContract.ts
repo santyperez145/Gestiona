@@ -10,7 +10,7 @@ export const PUBLIC_API_RELEASE = "2026-08-29";
 // Se arma por segmentos para que el bundler de Edge no interprete la URL
 // publica como un import absoluto del filesystem durante el deploy.
 export const PUBLIC_API_OPENAPI_PATH = ["", "developer", "api", "openapi.json"].join("/");
-export const PUBLIC_API_PUBLIC_ORIGIN = "https://exentryimports.vercel.app";
+export const PUBLIC_API_PUBLIC_ORIGIN = "https://nerqia.app";
 export const PUBLIC_API_MAX_ARS = 999_999_999_999.99;
 export const PUBLIC_API_MAX_USD = 99_999_999.9999;
 export const PUBLIC_API_ARS_DECIMALS = 2;

@@ -147,7 +147,7 @@ export function SupportAccessAuditSection() {
                     {STATUS_LABELS[status] || status}
                   </p>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    {REASON_LABELS[request.reason_code || ""] || request.reason_code} · {request.staff_email || "Staff de Gestiona"} · solicitada {request.requested_at ? new Date(request.requested_at).toLocaleString("es-AR") : "sin fecha"}
+                    {REASON_LABELS[request.reason_code || ""] || request.reason_code} · {request.staff_email || "Staff de Nerqia"} · solicitada {request.requested_at ? new Date(request.requested_at).toLocaleString("es-AR") : "sin fecha"}
                   </p>
                   {request.expires_at && <p className="mt-0.5 text-[10px] text-muted-foreground">Vence {new Date(request.expires_at).toLocaleString("es-AR")} · {request.view_count || 0} lecturas</p>}
                 </div>

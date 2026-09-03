@@ -41,7 +41,7 @@ fi
 
 echo ""
 echo "======================================="
-echo " Exentry — Deploy Edge Functions"
+echo " Nerqia — Deploy Edge Functions"
 echo " Proyecto: $PROJECT_REF"
 echo "======================================="
 echo ""

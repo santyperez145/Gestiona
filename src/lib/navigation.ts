@@ -57,7 +57,7 @@ export const NAV_GROUPS: NavGroup[] = [
   { id: "trabajo",   label: "Mi trabajo",  hint: "Tareas, seguimientos y calendario" },
   { id: "compras",   label: "Compras y stock", hint: "Reponer, mover y controlar la mercadería" },
   { id: "cobranzas", label: "Cobranzas",   hint: "Lo que falta cobrar y los documentos de venta" },
-  { id: "finanzas",  label: "Contabilidad", hint: "Gastos, libro, banco e impuestos del Business Core — no es Gestiona Finance" },
+  { id: "finanzas",  label: "Contabilidad", hint: "Gastos, libro, banco e impuestos del Business Core — no es Nerqia Finance" },
   { id: "marketing", label: "Marketing",   hint: "Campañas, email, WhatsApp y fidelidad" },
   { id: "reportes",  label: "Reportes",    hint: "Ver cómo viene el negocio" },
   { id: "sistema",   label: "Sistema",     hint: "Configuración, equipo e integraciones" },

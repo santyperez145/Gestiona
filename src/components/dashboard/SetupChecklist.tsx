@@ -207,7 +207,7 @@ export default function SetupChecklist({
                     <p className={`text-[13px] font-medium leading-tight ${item.done ? 'line-through text-muted-foreground' : ''}`}>{item.label}</p>
                     {!item.done && item.owner !== 'merchant' && (
                       <span className="rounded-[4px] border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-300">
-                        {item.owner === 'platform' ? 'Depende de Gestiona' : 'Validación compartida'}
+                        {item.owner === 'platform' ? 'Depende de Nerqia' : 'Validación compartida'}
                       </span>
                     )}
                   </div>

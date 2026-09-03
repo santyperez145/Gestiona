@@ -1,4 +1,4 @@
-# API pública de Gestiona
+# API pública de Nerqia
 
 Contrato vigente: **v1**, release **2026-08-29**. La descripción ejecutable se
 publica como [OpenAPI 3.1](../public/developer/api/openapi.json) y el estado de
@@ -31,7 +31,7 @@ curl "https://hummeopatkniwkyrrhwc.supabase.co/functions/v1/public-api/v1/produc
   -H "Authorization: Bearer $GESTIONA_API_KEY"
 ```
 
-La key completa se muestra una sola vez. En Gestiona queda únicamente su
+La key completa se muestra una sola vez. En Nerqia queda únicamente su
 SHA-256, prefijo, scopes, expiración y uso. Owner/admin puede revocarla sin
 borrar la evidencia histórica.
 
@@ -67,7 +67,7 @@ v1 conserva compatibilidad con su representación original:
 
 [Stripe usa minor units enteras](https://docs.stripe.com/currencies#minor-units-in-api-amounts)
 y Shopify serializa su decimal arbitrario como string. Cambiar v1 a uno de esos
-modelos rompería clientes; si Gestiona adopta otra representación será en `v2`,
+modelos rompería clientes; si Nerqia adopta otra representación será en `v2`,
 nunca silenciosamente dentro de v1.
 
 ## Crear una venta sin duplicarla
@@ -101,7 +101,7 @@ Una request autenticada recibe:
 |---|---|
 | `X-Request-Id` | Id exacto de la traza y del error reportable. |
 | `X-API-Version` | Major de contrato (`1`). |
-| `X-Gestiona-API-Release` | Revisión compatible (`2026-08-29`). |
+| `X-Nerqia-API-Release` | Revisión compatible (`2026-08-29`). |
 | `X-RateLimit-Limit` | Cupo de esa key en la ventana actual. |
 | `X-RateLimit-Remaining` | Requests restantes. |
 | `X-RateLimit-Reset` | Epoch UTC de reinicio. |

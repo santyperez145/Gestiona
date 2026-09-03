@@ -6,7 +6,7 @@
 `/platform/metricas`. Este archivo no inventa GMV, ATM de terceros ni
 retención.
 
-Gestiona is building the Commerce Operating System and Merchant Financial
+Nerqia is building the Commerce Operating System and Merchant Financial
 Network for Latin America.
 
 ## Problema
@@ -43,7 +43,7 @@ a 90 días, Pay Penetration ni GMV mensual de merchants ajenos.
 ## Qué no se promete en una deck
 
 - Stripe Capital, Treasury o Adyen Capital en Argentina.
-- Gestiona como PSPCP o prestamista en el primer año de código.
+- Nerqia como PSPCP o prestamista en el primer año de código.
 - Paridad de temas/apps con Tiendanube como tesis.
 - “Todos los módulos completos” como diez productos simultáneos. Completo =
   un trabajo de punta a punta (ADR 002 §4).
@@ -69,7 +69,7 @@ compliance y Finance, 5% operaciones.
 - **Stripe:** adapter para países soportados (Connect, Payment Element,
   Billing, Radar). No es el lanzamiento argentino de Pay.
 
-## Mercado (contexto, no tracción de Gestiona)
+## Mercado (contexto, no tracción de Nerqia)
 
 ❓ CACE: 181,5 millones de órdenes en el 1S 2026, +21% i.a.; Herramientas y
 Construcción entre rubros de mayor facturación — citar sólo con la fuente

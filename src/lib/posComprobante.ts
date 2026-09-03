@@ -110,6 +110,6 @@ export function posFiscalControllerPolicy() {
   return {
     built: false as const,
     reason:
-      'Gestiona emite por web service de ARCA (CAE). Una controladora fiscal es otro régimen y otro hardware; no se simula.',
+      'Nerqia emite por web service de ARCA (CAE). Una controladora fiscal es otro régimen y otro hardware; no se simula.',
   };
 }

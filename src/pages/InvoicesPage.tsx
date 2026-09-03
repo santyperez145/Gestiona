@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useClipboard } from "@/hooks/useClipboard";
@@ -263,7 +263,7 @@ function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings 
   doc.setFont("helvetica", "normal");
   const footerText = inv.cae
     ? "Comprobante Electrónico Autorizado — AFIP"
-    : "Documento generado automáticamente — Gestiona SaaS";
+    : "Documento generado automáticamente — Nerqia SaaS";
   doc.text(footerText, W / 2, fY, { align: "center" });
 
   doc.save(`factura-${inv.number}.pdf`);
@@ -1132,7 +1132,7 @@ export default function InvoicesPage() {
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Descargar PDF"
-                        onClick={() => generatePDF({ ...inv, invoice_items: inv.invoice_items || [] }, activeOrg?.name || "Gestiona", afipSettings)}
+                        onClick={() => generatePDF({ ...inv, invoice_items: inv.invoice_items || [] }, activeOrg?.name || "Nerqia", afipSettings)}
                       >
                         <FileDown className="w-4 h-4" />
                       </Button>

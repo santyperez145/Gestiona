@@ -163,7 +163,7 @@ export default function StoreAccount() {
           </h1>
           <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
             {modo === "otp"
-              ? "Enlace mágico o código. Las cuentas nuevas se marcan como comprador de la tienda, no como workspace Gestiona."
+              ? "Enlace mágico o código. Las cuentas nuevas se marcan como comprador de la tienda, no como workspace Nerqia."
               : "Para ver tus pedidos y comprar más rápido la próxima vez."}
           </p>
         </div>

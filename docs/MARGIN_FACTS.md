@@ -150,13 +150,13 @@ Verificado contra documentación oficial el 2026-08-22:
   tarifas y descuentos.
 
 Por lo tanto, “tener un reporte de margen” es paridad, no ventaja. La apuesta de
-Gestiona es otra: reconciliar POS, tienda propia y marketplace con el mismo
+Nerqia es otra: reconciliar POS, tienda propia y marketplace con el mismo
 Business Core; conservar la procedencia de costo, cobro, logística e IVA; y
 mostrar cobertura antes de afirmar rentabilidad. Todavía falta demostrar que
 esa verdad cambia una decisión y mejora un resultado en un comercio externo.
 
 La conciliación POS no se presenta como una función que Shopify u Odoo no
-tengan. Refuerza la tesis verificable de Gestiona: el mismo ticket que mueve
+tengan. Refuerza la tesis verificable de Nerqia: el mismo ticket que mueve
 stock conserva precio de referencia, partes del cobro, arancel real, asiento y
 margen; una parte pendiente reduce cobertura en vez de transformarse en cero.
 

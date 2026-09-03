@@ -58,7 +58,7 @@ function fiscalDetail(status: string | null | undefined): { detail: string; owne
     case 'falta_plataforma':
       return { detail: 'La plataforma todavía debe habilitar su certificado para el modo delegado.', owner: 'platform' };
     case 'falta_delegar':
-      return { detail: 'El comercio debe delegar WSFE en ARCA; Gestiona lo marca listo sólo después de verificar una operación.', owner: 'merchant' };
+      return { detail: 'El comercio debe delegar WSFE en ARCA; Nerqia lo marca listo sólo después de verificar una operación.', owner: 'merchant' };
     case 'falta_verificar_ciclo':
       return { detail: 'Las credenciales están cargadas, pero falta obtener un CAE para probar el ciclo completo.', owner: 'shared' };
     default:

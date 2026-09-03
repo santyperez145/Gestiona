@@ -60,7 +60,7 @@ test.describe("tienda e-commerce", () => {
     await page.goto("/tienda-online");
 
     // Si la sesión no viajó, la app manda al login y no hay nada que probar.
-    await expect(page.getByRole("heading", { name: "Gestiona Commerce" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Nerqia Commerce" })).toBeVisible();
 
     for (const pestaña of [
       "Pedidos",
@@ -370,7 +370,7 @@ test.describe("POS", () => {
 
       await expect(page.getByText("Sin conexión — el ticket se guarda en este dispositivo")).toBeVisible();
       await expect(page.getByText(/2 tickets · 6 u\. · \$ 9\.500,00/)).toBeVisible();
-      await expect(page.getByText(/El cobro ocurre por fuera de Gestiona/)).toBeVisible();
+      await expect(page.getByText(/El cobro ocurre por fuera de Nerqia/)).toBeVisible();
 
       phase = "partial";
       await context.setOffline(false);

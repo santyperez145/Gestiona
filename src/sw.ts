@@ -92,7 +92,7 @@ self.addEventListener("push", (event) => {
     data = { body: event.data?.text() ?? "Nueva notificación" };
   }
 
-  const title = data.title ?? "Gestiona";
+  const title = data.title ?? "Nerqia";
   // `renotify` es válido en la Web Notifications API pero todavía no está en
   // el tipo NotificationOptions del lib DOM de TS → se castea.
   const options = {

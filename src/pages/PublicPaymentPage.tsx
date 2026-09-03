@@ -476,7 +476,7 @@ export default function PublicPaymentPage() {
 
         {/* Footer */}
         <p className="text-center text-slate-600 text-[10px] pb-4">
-          Powered by Gestiona · Link generado para {link.customer_name}
+          Powered by Nerqia · Link generado para {link.customer_name}
         </p>
       </div>
     </div>

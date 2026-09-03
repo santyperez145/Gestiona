@@ -95,7 +95,7 @@ serve(async (req) => {
         subject: campaign.subject,
         bodyHtml: campaign.body_html,
         recipients: recipients.map((r: any) => ({ email: r.email, name: r.name })),
-        orgName: "Gestiona",
+        orgName: "Nerqia",
       },
     });
 

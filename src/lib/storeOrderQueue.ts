@@ -79,7 +79,7 @@ export const STORE_ORDER_MEDIOS: { id: StoreOrderMedio; label: string }[] = [
   { id: "todos", label: "Cualquier medio" },
   { id: "transferencia", label: "Transferencia" },
   { id: "efectivo", label: "Efectivo" },
-  { id: "digital", label: "Gestiona Pay" },
+  { id: "digital", label: "Nerqia Pay" },
 ];
 
 export function parseStoreOrderView(raw: string | null | undefined): StoreOrderView {
@@ -364,5 +364,5 @@ export function buildStoreOrdersCsv(orders: StoreOrderQueueRow[]) {
 }
 
 export function storeOrdersCsvFilename(date = new Date()) {
-  return `gestiona-pedidos-tienda-${date.toISOString().slice(0, 10)}.csv`;
+  return `nerqia-pedidos-tienda-${date.toISOString().slice(0, 10)}.csv`;
 }

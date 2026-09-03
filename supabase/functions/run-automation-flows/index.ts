@@ -415,7 +415,7 @@ async function actionEmail(
       <ul>${listHtml}</ul>
       ${extraLine}
       <hr/>
-      <p style="color:#888;font-size:12px">Enviado automáticamente por Gestiona</p>
+      <p style="color:#888;font-size:12px">Enviado automáticamente por Nerqia</p>
     </div>`;
 
   let sent = 0;
@@ -592,7 +592,7 @@ function defaultWhatsAppMsg(triggerType: string): string {
     new_customer: "¡Bienvenido/a {nombre}! Gracias por elegirnos.",
     big_sale: "¡Gran venta de {detalle} registrada para {nombre}!",
   };
-  return msgs[triggerType] ?? "Hola {nombre}! Notificación automática de Gestiona.";
+  return msgs[triggerType] ?? "Hola {nombre}! Notificación automática de Nerqia.";
 }
 
 function buildSummary(

@@ -19,7 +19,7 @@ interface StorePaymentBrickProps {
 const newAttemptKey = () => crypto.randomUUID();
 
 /**
- * Tarjetas dentro de la tienda sin que su número pase nunca por Gestiona.
+ * Tarjetas dentro de la tienda sin que su número pase nunca por Nerqia.
  * MercadoPago tokeniza el dato sensible y el backend sólo recibe ese token
  * efímero, vuelve a leer la orden y crea el pago con el importe autoritativo.
  */

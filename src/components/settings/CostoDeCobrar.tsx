@@ -3,7 +3,7 @@
  *
  * ── Dónde vive y por qué ──────────────────────────────────────────────────
  *
- * En **Ajustes → Finanzas y costos**, no en Gestiona Finance: esa superficie es
+ * En **Ajustes → Finanzas y costos**, no en Nerqia Finance: esa superficie es
  * gestión de gastos corporativos (ADR 001) y no lleva nada más. Lo que cuesta
  * cobrar es configuración del comercio y afecta el margen, así que va junto al
  * tipo de cambio y las reglas de precio.
@@ -172,7 +172,7 @@ export default function CostoDeCobrar({ orgId }: { orgId?: string }) {
             <Percent className="w-4 h-4 text-primary" />Cuánto te cuesta cobrar
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Comisión del proveedor con su IVA, más la comisión de Gestiona si está activa.
+            Comisión del proveedor con su IVA, más la comisión de Nerqia si está activa.
           </p>
         </div>
         {masCaro.costo_total_pct - masBarato.costo_total_pct > 1 && (
@@ -226,7 +226,7 @@ export default function CostoDeCobrar({ orgId }: { orgId?: string }) {
             <tr className="border-b border-border/60 text-left text-[11px] uppercase tracking-wide text-muted-foreground">
               <th className="pb-2 pr-3 font-medium">Medio</th>
               <th className="pb-2 px-3 text-right font-medium">Proveedor</th>
-              <th className="pb-2 px-3 text-right font-medium">Gestiona</th>
+              <th className="pb-2 px-3 text-right font-medium">Nerqia</th>
               <th className="pb-2 px-3 text-right font-medium">Costo total</th>
               <th className="pb-2 pl-3 text-right font-medium">Te queda</th>
             </tr>

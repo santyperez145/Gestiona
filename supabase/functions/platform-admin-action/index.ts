@@ -7,10 +7,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const ALLOWED_ORIGINS = [
+  "https://nerqia.app",
+  "https://www.nerqia.app",
+  // Alias productivo anterior: se retira cuando deje de recibir sesiones.
   "https://exentryimports.vercel.app",
-  "https://gestiona.app",
-  "https://www.gestiona.app",
-  "https://app.gestiona.app",
+  "http://localhost:8080",
+  "http://127.0.0.1:8080",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
 ];

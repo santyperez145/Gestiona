@@ -45,7 +45,7 @@ function cuerpo(p: Pendiente): { subject: string; html: string; text: string } {
         <h2 style="font-size:17px;margin:0 0 14px">${p.titulo}</h2>
         <p style="line-height:1.6">${p.mensaje}</p>
         <p style="line-height:1.6;color:#666;font-size:13px;margin-top:22px">
-          Te llega este mensaje porque administrás un negocio en Gestiona.
+          Te llega este mensaje porque administrás un negocio en Nerqia.
         </p>
       </div>`,
     text: `${p.titulo}\n\n${p.mensaje}`,

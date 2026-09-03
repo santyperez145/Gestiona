@@ -70,7 +70,7 @@ export function exportReadme(
     .map(table => `- ${table.table}: ${table.status}${table.reason ? ` — ${table.reason}` : ""}`);
 
   return [
-    `Export de datos — ${businessName || "Gestiona"}`,
+    `Export de datos — ${businessName || "Nerqia"}`,
     `Fecha: ${new Date(data.generated_at).toLocaleString("es-AR")}`,
     "",
     "Un archivo CSV por tabla exportada, codificado en UTF-8 y separado por comas.",
@@ -139,7 +139,7 @@ export async function downloadOrgExport(
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `gestiona-export-${stamp}.zip`;
+  a.download = `nerqia-export-${stamp}.zip`;
   a.click();
   URL.revokeObjectURL(url);
   return summary;

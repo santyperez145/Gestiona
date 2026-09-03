@@ -1,5 +1,5 @@
 /**
- * Desglose de comisiones de Gestiona Pay, visible antes y después de conectar.
+ * Desglose de comisiones de Nerqia Pay, visible antes y después de conectar.
  *
  * El tarifario (`payment_provider_fees`) y la regla de plataforma se leen de
  * la base. Los importes salen de `computeSettlement`: no se escribe un % a
@@ -205,13 +205,13 @@ export default function GestionaPayComisiones({
         <p className="mt-1 text-xs text-muted-foreground">
           El comprador paga el precio de la tienda. Lo de abajo se descuenta de
           lo que te acreditan: arancel de Mercado Pago, IVA sobre ese arancel y
-          comisión de Gestiona si hay una regla aprobada vigente.
+          comisión de Nerqia si hay una regla aprobada vigente.
         </p>
       </div>
 
       <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs space-y-1">
         <p>
-          <span className="font-medium text-foreground">Comisión de Gestiona: </span>
+          <span className="font-medium text-foreground">Comisión de Nerqia: </span>
           {platformRule
             ? (
               <>
@@ -230,7 +230,7 @@ export default function GestionaPayComisiones({
           <p className="text-muted-foreground">{platformRule.notes}</p>
         )}
         <p className="text-muted-foreground">
-          Efectivo y transferencia no pasan por Gestiona Pay: no tienen arancel
+          Efectivo y transferencia no pasan por Nerqia Pay: no tienen arancel
           de Mercado Pago. Siguen en la tabla para comparar.
         </p>
       </div>
@@ -253,7 +253,7 @@ export default function GestionaPayComisiones({
             te quedan <strong className="text-foreground">{ars(ejemploPay.settlement.net)}</strong>
             {' '}después de {ars(ejemploPay.settlement.providerFee)} de arancel,{' '}
             {ars(ejemploPay.settlement.providerFeeIva)} de IVA y{' '}
-            {ars(ejemploPay.settlement.platformFee)} de Gestiona.
+            {ars(ejemploPay.settlement.platformFee)} de Nerqia.
           </p>
         )}
       </div>
@@ -283,7 +283,7 @@ export default function GestionaPayComisiones({
                 <th className="pb-2 pr-3 font-medium">Medio</th>
                 <th className="pb-2 px-3 text-right font-medium">Arancel</th>
                 <th className="pb-2 px-3 text-right font-medium">IVA</th>
-                <th className="pb-2 px-3 text-right font-medium">Gestiona</th>
+                <th className="pb-2 px-3 text-right font-medium">Nerqia</th>
                 <th className="pb-2 px-3 text-right font-medium">Total</th>
                 <th className="pb-2 pl-3 text-right font-medium">Te queda</th>
               </tr>

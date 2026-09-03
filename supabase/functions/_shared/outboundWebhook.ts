@@ -8,7 +8,7 @@
  * - reintentos acotados y una fila de evidencia por entrega.
  *
  * La firma replica el patrón probado de Stripe (timestamp firmado) y GitHub
- * (HMAC-SHA256 del cuerpo), con nombres propios de Gestiona.
+ * (HMAC-SHA256 del cuerpo), con nombres propios de Nerqia.
  */
 
 export const SUPPORTED_OUTBOUND_EVENTS = [
@@ -145,7 +145,7 @@ export async function buildSignedOutboundWebhookRequest(input: {
     payloadString,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "User-Agent": "Gestiona-Webhooks/1.0",
+      "User-Agent": "Nerqia-Webhooks/1.0",
       "X-Gestiona-Event": input.event,
       "X-Gestiona-Event-Id": eventId,
       "X-Gestiona-Org": input.orgId,

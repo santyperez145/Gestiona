@@ -1,4 +1,4 @@
-# ADR 001 — Superficie y acceso de Gestiona Finance
+# ADR 001 — Superficie y acceso de Nerqia Finance
 
 - **Estado:** aceptado e implementado
 - **Fecha:** 2026-08-22
@@ -6,7 +6,7 @@
 
 ## Contexto
 
-Gestiona ya tenía OCR dentro de Compras, proveedores, órdenes de compra,
+Nerqia ya tenía OCR dentro de Compras, proveedores, órdenes de compra,
 obligaciones y un ledger financiero. Eso no constituía un producto Finance: el
 OCR anterior manda el archivo al proveedor, prellena datos y carece de cadena de
 custodia, original inmutable, validación por campo, duplicados y aprobación.
@@ -159,7 +159,7 @@ El slice F3.15 quedó implementado el 2026-08-22 sobre la misma arquitectura:
 
 La decisión sigue el patrón de almacenamiento privado de Supabase y el flujo de
 carga en dos pasos que Shopify usa para archivos grandes o importaciones. La
-similitud es de control operativo, no de producto: Gestiona conserva además la
+similitud es de control operativo, no de producto: Nerqia conserva además la
 cadena de custodia y el Core omnicanal como fuente de verdad.
 
 ## Consecuencias y siguiente gate

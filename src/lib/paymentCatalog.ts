@@ -1,7 +1,7 @@
 /**
  * Catálogo de medios de cobro (modelo Pago Nube / Tiendanube).
  *
- * Gestiona Pay es el producto. Los OAuth externos viven en
+ * Nerqia Pay es el producto. Los OAuth externos viven en
  * `payment_providers` con `integracion` honesta: declarado = próximamente,
  * sin botón Conectar. Mercado Pago es el rail de Pay, no una tarjeta aparte.
  */
@@ -43,7 +43,7 @@ export function etiquetaEstadoMedio(integracion: string | null | undefined): {
 
 /**
  * ¿El panel puede ofrecer «Conectar»?
- * Slice B: ningún OAuth externo tiene adapter. Sólo Gestiona Pay (rail MP)
+ * Slice B: ningún OAuth externo tiene adapter. Sólo Nerqia Pay (rail MP)
  * conecta de verdad. Un `produccion` sin adapter no inventa un botón.
  */
 export function puedeConectarMedioCatalogo(m: Pick<MedioCatalogo, "conexion" | "integracion" | "provider">): boolean {

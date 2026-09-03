@@ -66,7 +66,7 @@ describe('calculateUnitEconomics', () => {
     expect(withMaximum.platformChargeToMerchant).toBe(20_000);
   });
 
-  it('muestra el costo del procesador al merchant sin convertirlo en COGS de Gestiona', () => {
+  it('muestra el costo del procesador al merchant sin convertirlo en COGS de Nerqia', () => {
     const result = calculateUnitEconomics({
       ...BASE,
       variableCostPerTransaction: 0,

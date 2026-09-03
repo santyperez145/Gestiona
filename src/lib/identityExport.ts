@@ -36,5 +36,5 @@ export function buildIdentityReviewCsv(
 
 export function identityReviewFilename(entity: IdentityReviewEntity, date = new Date()): string {
   const day = date.toISOString().slice(0, 10);
-  return `gestiona-identidad-${entity}-${day}.csv`;
+  return `nerqia-identidad-${entity}-${day}.csv`;
 }

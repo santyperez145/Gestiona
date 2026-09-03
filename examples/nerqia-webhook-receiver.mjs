@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Receptor mínimo de webhooks Gestiona, sin dependencias.
+ * Receptor mínimo de webhooks Nerqia, sin dependencias.
  *
  * En producción, reemplazar el Set por una restricción UNIQUE en la base y
  * encolar el efecto antes de responder 2xx.
@@ -8,13 +8,13 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createServer } from "node:http";
 
-const secret = process.env.GESTIONA_WEBHOOK_SECRET;
+const secret = process.env.NERQIA_WEBHOOK_SECRET;
 const port = Number(process.env.PORT || 8787);
 const maxSkewSeconds = 300;
 const processed = new Set();
 
 if (!secret) {
-  console.error("Falta GESTIONA_WEBHOOK_SECRET");
+  console.error("Falta NERQIA_WEBHOOK_SECRET");
   process.exit(1);
 }
 
@@ -82,5 +82,5 @@ createServer((request, response) => {
     response.writeHead(202).end();
   });
 }).listen(port, () => {
-  console.log(`Receptor Gestiona escuchando en http://localhost:${port}`);
+  console.log(`Receptor Nerqia escuchando en http://localhost:${port}`);
 });

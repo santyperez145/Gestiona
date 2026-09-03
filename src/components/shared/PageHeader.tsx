@@ -20,7 +20,7 @@ const BADGE: Record<BadgeVariant, string> = {
   destructive: "bg-destructive/12 text-destructive border border-destructive/20",
 };
 
-export default function PageHeader({ icon: Icon, title, description, actions, badge, eyebrow = "Gestiona / Espacio de trabajo" }: PageHeaderProps) {
+export default function PageHeader({ icon: Icon, title, description, actions, badge, eyebrow = "Nerqia / Espacio de trabajo" }: PageHeaderProps) {
   return (
     <div className="page-header workspace-page-header flex flex-col sm:flex-row sm:items-start justify-between gap-5 mb-6 md:mb-8">
 

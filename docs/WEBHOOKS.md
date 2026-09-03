@@ -1,4 +1,4 @@
-# Webhooks salientes de Gestiona
+# Webhooks salientes de Nerqia
 
 Contrato vigente: **`2026-08-29`**. El documento machine-readable se publica
 como [OpenAPI 3.1](../public/developer/webhooks/openapi.json) y queda disponible
@@ -6,15 +6,15 @@ en cada deploy en `/developer/webhooks/openapi.json`.
 
 ## Garantías del transporte
 
-- Gestiona hace `POST` únicamente a un endpoint HTTPS público y no sigue
+- Nerqia hace `POST` únicamente a un endpoint HTTPS público y no sigue
   redirects.
 - La entrega es **al menos una vez**: un receptor puede ver el mismo evento más
   de una vez.
 - No se garantiza orden entre eventos. El receptor no debe depender de la
   secuencia de llegada.
-- `id` / `X-Gestiona-Event-Id` identifica el evento y se conserva en cada
+- `id` / `X-Nerqia-Event-Id` identifica el evento y se conserva en cada
   reintento. Ésa es la clave de deduplicación.
-- `delivery_id` / `X-Gestiona-Delivery` identifica un ciclo de entrega y su
+- `delivery_id` / `X-Nerqia-Delivery` identifica un ciclo de entrega y su
   fila de log. Los retries de red inmediatos pueden compartirlo; un replay
   manual o un nuevo intento de outbox genera otro.
 - Cualquier `2xx` confirma la entrega. Un timeout, error de red o status no-2xx
@@ -51,18 +51,18 @@ Todos los eventos usan el mismo sobre:
 
 | Header | Uso |
 |---|---|
-| `X-Gestiona-Event` | Tipo del evento. |
-| `X-Gestiona-Event-Id` | Id estable; deduplicar con éste. |
-| `X-Gestiona-Org` | Organización que originó el evento. |
-| `X-Gestiona-Delivery` | Id del ciclo de entrega/log; no deduplicar el efecto con éste. |
-| `X-Gestiona-Version` | Versión del contrato del payload. |
-| `X-Gestiona-Signature` | `t=<unix>,v1=<HMAC hexadecimal>`. |
+| `X-Nerqia-Event` | Tipo del evento. |
+| `X-Nerqia-Event-Id` | Id estable; deduplicar con éste. |
+| `X-Nerqia-Org` | Organización que originó el evento. |
+| `X-Nerqia-Delivery` | Id del ciclo de entrega/log; no deduplicar el efecto con éste. |
+| `X-Nerqia-Version` | Versión del contrato del payload. |
+| `X-Nerqia-Signature` | `t=<unix>,v1=<HMAC hexadecimal>`. |
 
 ## Validación de firma
 
 1. Leer el cuerpo como bytes/texto crudo UTF-8. No parsearlo y serializarlo de
    nuevo antes de validar.
-2. Separar `t` y `v1` del header `X-Gestiona-Signature`.
+2. Separar `t` y `v1` del header `X-Nerqia-Signature`.
 3. Rechazar si `abs(ahora - t) > 300` segundos.
 4. Calcular `HMAC-SHA256(secret, t + "." + cuerpo_crudo)`.
 5. Comparar el hexadecimal esperado con `v1` en tiempo constante.
@@ -70,11 +70,11 @@ Todos los eventos usan el mismo sobre:
 7. Insertar `id` en un registro con restricción única. Si ya existe, responder
    `2xx` sin repetir el efecto.
 
-El ejemplo ejecutable [gestiona-webhook-receiver.mjs](../examples/gestiona-webhook-receiver.mjs)
+El ejemplo ejecutable [nerqia-webhook-receiver.mjs](../examples/nerqia-webhook-receiver.mjs)
 implementa esos pasos sólo con módulos nativos de Node.js 20 o superior.
 
 ```bash
-GESTIONA_WEBHOOK_SECRET=whsec_... node examples/gestiona-webhook-receiver.mjs
+NERQIA_WEBHOOK_SECRET=whsec_... node examples/nerqia-webhook-receiver.mjs
 ```
 
 En producción, el `Set` en memoria del ejemplo se reemplaza por una tabla con

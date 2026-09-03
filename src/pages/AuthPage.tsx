@@ -130,7 +130,7 @@ export default function AuthPage() {
         eyebrow: 'Sin contraseña',
         title: otpSent ? 'Revisá tu email' : 'Entrar con email',
         lead: otpSent
-          ? 'Abrí el enlace del correo o ingresá el código de un solo uso. El enlace vuelve a Gestiona.'
+          ? 'Abrí el enlace del correo o ingresá el código de un solo uso. El enlace vuelve a Nerqia.'
           : 'Te mandamos un enlace mágico y un código. No crea cuentas nuevas: sólo entra si ya existís.',
       };
     }
@@ -152,7 +152,7 @@ export default function AuthPage() {
           <p className="auth-showcase__lead">Una plataforma para vender, operar y entender tu negocio sin saltar entre herramientas.</p>
           <div className="auth-showcase__items">{SHOWCASE_ITEMS.map(({ icon: Icon, title, description }) => <div className="auth-showcase__item" key={title}><span><Icon /></span><div><strong>{title}</strong><small>{description}</small></div><Check /></div>)}</div>
         </div>
-        <div className="auth-showcase__footer"><span>Gestiona · Operación conectada</span><span>01 / 03</span></div>
+        <div className="auth-showcase__footer"><span>Nerqia · Operación conectada</span><span>01 / 03</span></div>
       </aside>
 
       <main className="auth-panel">
@@ -227,7 +227,7 @@ export default function AuthPage() {
                     <button type="button" onClick={() => changeMode('forgot')}>¿Olvidaste tu contraseña?</button>
                   </div>
                 )}
-                <Button type="submit" disabled={loading} className="auth-submit">{loading ? 'Procesando...' : mode === 'login' ? 'Entrar a Gestiona' : 'Crear mi workspace'} <ArrowRight /></Button>
+                <Button type="submit" disabled={loading} className="auth-submit">{loading ? 'Procesando...' : mode === 'login' ? 'Entrar a Nerqia' : 'Crear mi workspace'} <ArrowRight /></Button>
               </form>
               <p className="auth-channel-note" role="note">
                 El acceso por WhatsApp todavía no está disponible: Meta Cloud Messaging tiene que estar probado (`whatsapp_listo`) antes de ofrecer códigos por ese canal.

@@ -149,7 +149,7 @@ async function sendViaResend(
  *
  * @param smtpCfg      - SMTP config from settings (null = not configured)
  * @param resendApiKey - RESEND_API_KEY from env (empty = not configured)
- * @param resendFrom   - "from" address for Resend (e.g. "Gestiona <noreply@gestiona.app>")
+ * @param resendFrom   - "from" address for Resend (e.g. "Nerqia <noreply@nerqia.app>")
  * @param payload      - Email content
  * @param metadata     - Optional Resend webhook metadata
  * @param options      - Delivery controls such as a stable idempotency key

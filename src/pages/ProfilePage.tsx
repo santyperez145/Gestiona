@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/lib/orgContext';
@@ -240,7 +240,7 @@ export default function ProfilePage() {
     <div className="max-w-2xl mx-auto space-y-5">
       <PageHeader
         icon={User}
-        eyebrow="Gestiona / Cuenta"
+        eyebrow="Nerqia / Cuenta"
         title="Mi perfil"
         description="Administrá tu información personal, organizaciones y seguridad de acceso."
       />

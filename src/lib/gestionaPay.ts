@@ -1,10 +1,10 @@
 /**
- * Gestiona Pay — producto propio, rails de terceros.
+ * Nerqia Pay — producto propio, rails de terceros.
  *
- * El dinero no lo custodia Gestiona. El producto sí: checkout, onboarding,
+ * El dinero no lo custodia Nerqia. El producto sí: checkout, onboarding,
  * PaymentIntent, conciliación, reintegros, comisión y soporte.
  *
- * 📌 Gestiona Pay ≠ Mercado Pago. Pay es el producto (como Pago Nube).
+ * 📌 Nerqia Pay ≠ Mercado Pago. Pay es el producto (como Pago Nube).
  * Mercado Pago es el rail de procesamiento en Argentina (OAuth, split, QR).
  * En la tienda el medio canónico es `gestiona_pay`; `mercadopago` queda
  * sólo como alias de lectura por órdenes y configs viejas.
@@ -49,14 +49,14 @@ export function stripeCubre(pais: string): boolean {
   return STRIPE_MARKETS.has(String(pais ?? "").toUpperCase());
 }
 
-/** ¿Este código de medio de tienda es Gestiona Pay (canónico o legacy)? */
+/** ¿Este código de medio de tienda es Nerqia Pay (canónico o legacy)? */
 export function esMedioGestionaPay(method: string | null | undefined): boolean {
   return method === MEDIO_GESTIONA_PAY || method === MEDIO_GESTIONA_PAY_LEGACY;
 }
 
-/** Etiqueta para comprador y panel: nunca «Mercado Pago (Gestiona Pay)». */
+/** Etiqueta para comprador y panel: nunca «Mercado Pago (Nerqia Pay)». */
 export function etiquetaMedioTienda(method: string | null | undefined): string {
-  if (esMedioGestionaPay(method)) return "Gestiona Pay";
+  if (esMedioGestionaPay(method)) return "Nerqia Pay";
   if (method === "transferencia") return "Transferencia";
   if (method === "efectivo") return "Efectivo / retiro";
   return method ? String(method) : "—";
@@ -112,8 +112,8 @@ export function decidirRailGestionaPay(input: {
       provider: "mercadopago",
       listo: conectados.has("mercadopago"),
       motivo: conectados.has("mercadopago")
-        ? "Gestiona Pay activo: el rail de procesamiento es Mercado Pago y el dinero va a la cuenta del comercio."
-        : "Activá Gestiona Pay. En Argentina el procesamiento corre por Mercado Pago (OAuth); Stripe no cobra acá.",
+        ? "Nerqia Pay activo: el rail de procesamiento es Mercado Pago y el dinero va a la cuenta del comercio."
+        : "Activá Nerqia Pay. En Argentina el procesamiento corre por Mercado Pago (OAuth); Stripe no cobra acá.",
     };
   }
 
@@ -122,7 +122,7 @@ export function decidirRailGestionaPay(input: {
       provider: "stripe",
       listo: conectados.has("stripe"),
       motivo: conectados.has("stripe")
-        ? "Gestiona Pay orquesta Stripe Connect en un mercado soportado."
+        ? "Nerqia Pay orquesta Stripe Connect en un mercado soportado."
         : "Este mercado usa Stripe Connect cuando haya contrato. No se pegan claves.",
     };
   }
@@ -192,7 +192,7 @@ export function eventoCanonicoStripe(type: string | null | undefined): GestionaP
 /**
  * Medios que el checkout y la vitrina pueden mostrar.
  *
- * Stripe y PayPal no tienen adapter de venta. Gestiona Pay lo filtra el
+ * Stripe y PayPal no tienen adapter de venta. Nerqia Pay lo filtra el
  * servidor cuando el rail no está listo; acá se normaliza el canónico y se
  * cubre un array viejo con `mercadopago`.
  */

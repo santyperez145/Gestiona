@@ -36,7 +36,7 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
           <Link to="/finance" className="flex items-center gap-2.5">
             <BrandLogo compact decorative eager markClassName="h-8 w-8" />
             <span>
-              <span className="block text-sm font-semibold tracking-tight">Gestiona Finance</span>
+              <span className="block text-sm font-semibold tracking-tight">Nerqia Finance</span>
               <span className="block text-[9px] uppercase tracking-[0.18em] text-teal-700/70 dark:text-teal-300/70">Control documental</span>
             </span>
           </Link>
@@ -77,7 +77,7 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
             <OrgSwitcher />
           </div>
           <Link to="/" className="mb-1 flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-xs text-muted-foreground hover:bg-muted/70 hover:text-foreground">
-            <ArrowLeftRight className="h-3.5 w-3.5" /> Gestiona Business
+            <ArrowLeftRight className="h-3.5 w-3.5" /> Nerqia Business
           </Link>
           <button type="button" onClick={logout} className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-xs text-muted-foreground hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300">
             <LogOut className="h-3.5 w-3.5" /> Cerrar sesión

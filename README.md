@@ -1,6 +1,6 @@
-# Gestiona — Sistema de gestión para PyMEs argentinas
+# Nerqia — Sistema de gestión para PyMEs argentinas
 
-Sistema integral de gestión comercial: ventas, stock, finanzas, CRM, marketing, facturación AFIP e integraciones (Tiendanube, Mercado Pago / Gestiona Pay).
+Sistema integral de gestión comercial: ventas, stock, finanzas, CRM, marketing, facturación AFIP e integraciones (Tiendanube, Mercado Pago / Nerqia Pay).
 
 ## Stack
 
@@ -8,7 +8,7 @@ Sistema integral de gestión comercial: ventas, stock, finanzas, CRM, marketing,
 |---|---|
 | Frontend | React 18 + TypeScript + Vite + Tailwind CSS + Radix UI |
 | Backend | Supabase (PostgreSQL + Auth + Storage + Edge Functions) |
-| Pagos | Mercado Pago: Gestiona Pay (ventas tienda) + `mp-subscribe` (planes SaaS). Stripe checkout retirado (`create-checkout` → 410). |
+| Pagos | Mercado Pago: Nerqia Pay (ventas tienda) + `mp-subscribe` (planes SaaS). Stripe checkout retirado (`create-checkout` → 410). |
 | Facturación | AFIP (Argentina) |
 | E-commerce | Tiendanube OAuth + webhooks |
 | IA | Anthropic Claude (insights, chat, predicciones, descripciones) |
@@ -351,4 +351,4 @@ Los roles de miembro son: `admin`, `seller`, `viewer`. El acceso a módulos sens
 
 ## Licencia
 
-Propietario — © 2026 Exentry Imports. Todos los derechos reservados.
+Propietario — © 2026 Nerqia. Todos los derechos reservados.

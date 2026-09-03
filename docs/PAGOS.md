@@ -2,34 +2,34 @@
 
 Cómo cobra cada comercio en su tienda online.
 
-## Gestiona Pay (2026-09-02)
+## Nerqia Pay (2026-09-02)
 
-📌 **Criterio.** Gestiona Pay es el **producto de cobro** de la tienda (modelo
+📌 **Criterio.** Nerqia Pay es el **producto de cobro** de la tienda (modelo
 Pago Nube): onboarding, checkout, PaymentIntent, conciliación, reintegros,
 comisión y soporte. **No es Mercado Pago.** El rail de procesamiento en
 Argentina es Mercado Pago (OAuth, split, QR, Point). En la tienda el medio
 canónico es `gestiona_pay`; `mercadopago` queda como alias de lectura.
 
 Stripe no se ofrece como cobro merchant en AR: el webhook de Stripe que ya
-existe sirve a la **suscripción de Gestiona**, no a las ventas de la tienda.
+existe sirve a la **suscripción de Nerqia**, no a las ventas de la tienda.
 
 Contrato de ruteo y eventos canónicos: `src/lib/gestionaPay.ts`. La autoridad
 del cobro sigue en `payment_intents` + `pago_intento_preparar`.
 `payment_connections.provider` sigue siendo `mercadopago` (rail).
 
-El panel de Pay desglosa arancel de Mercado Pago, IVA y comisión de Gestiona
+El panel de Pay desglosa arancel de Mercado Pago, IVA y comisión de Nerqia
 con `computeSettlement` sobre el tarifario y la regla **aprobada y vigente**.
 Un draft no se muestra como cobrado. El comprador de la tienda no ve estos
 costos: paga el precio publicado.
 
-El checkout **no lista Gestiona Pay** si el rail no está listo (token OAuth y
+El checkout **no lista Nerqia Pay** si el rail no está listo (token OAuth y
 medio habilitado). Marcarlo en Comercio no alcanza: `get_store_by_slug` filtra
 el array y una orden con ese método no entra. Stripe y PayPal no se ofrecen
 como cobro de la tienda.
 
 ## Catálogo de medios (2026-09-02)
 
-El panel lee `medios_de_pago_de`: Gestiona Pay es el producto vivo; MODO,
+El panel lee `medios_de_pago_de`: Nerqia Pay es el producto vivo; MODO,
 Naranja X y Go Cuotas aparecen como **Próximamente** (`integracion =
 declarado`) **sin** botón Conectar. Mercado Pago no se lista como medio aparte:
 es el rail detrás de Pay. Transferencia y efectivo se configuran en Métodos de
@@ -39,7 +39,7 @@ cobro de la tienda. Un segundo OAuth real espera contrato (Slice C).
 
 `confirmar_pago_manual_tienda` acredita un pedido pendiente de transferencia o
 efectivo desde Pedidos (exige `ecommerce.edit`). Llama a `mark_store_order_paid`
-y dispara venta/stock. **No** aplica a Gestiona Pay: ese camino lo confirma el
+y dispara venta/stock. **No** aplica a Nerqia Pay: ese camino lo confirma el
 webhook del procesador.
 
 ## El modelo: una app de plataforma, muchas cuentas conectadas

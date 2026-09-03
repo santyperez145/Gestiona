@@ -105,7 +105,7 @@ const SHIPPING_MODES = [
 ];
 
 const PAYMENT_METHODS = [
-  { id: "gestiona_pay",   label: "Gestiona Pay", hint: "Procesado con Mercado Pago", logo: "🔵" },
+  { id: "gestiona_pay",   label: "Nerqia Pay", hint: "Procesado con Mercado Pago", logo: "🔵" },
   { id: "transferencia",  label: "Transferencia",  logo: "🏦" },
   { id: "efectivo",       label: "Efectivo / retiro", logo: "💵" },
 ];
@@ -157,7 +157,7 @@ function isStoreTab(value: string | null): value is StoreTab {
 }
 
 export default function EcommerceStorePage() {
-  usePageTitle("Gestiona Commerce");
+  usePageTitle("Nerqia Commerce");
   const { orgId, org } = useOrganization();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -721,8 +721,8 @@ export default function EcommerceStorePage() {
     <div className="workspace-page workspace-ecommerce space-y-6 pb-12">
       <PageHeader
         icon={ShoppingBag}
-        title="Gestiona Commerce"
-        description="Publicá tu tienda, cobrá con Gestiona Pay (Mercado Pago) y gestioná envíos en un solo lugar."
+        title="Nerqia Commerce"
+        description="Publicá tu tienda, cobrá con Nerqia Pay (Mercado Pago) y gestioná envíos en un solo lugar."
         actions={
           <div className="flex items-center flex-wrap gap-2">
             {/* Una tienda activa que no puede cobrar o no puede cotizar el envío
@@ -914,13 +914,13 @@ export default function EcommerceStorePage() {
           {leadWithPay && (
             <div className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/[0.06] p-4 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">Gestiona Pay todavía no está activo</p>
+                <p className="text-sm font-semibold">Nerqia Pay todavía no está activo</p>
                 <p className="mt-0.5 text-[12px] text-muted-foreground">
-                  Sin Gestiona Pay activo el checkout no ofrece cobro online. Transferencia o efectivo sí pueden cobrar.
+                  Sin Nerqia Pay activo el checkout no ofrece cobro online. Transferencia o efectivo sí pueden cobrar.
                 </p>
               </div>
               <Button size="sm" className="min-h-11 shrink-0" onClick={() => goToTab("settings")}>
-                Activar Gestiona Pay
+                Activar Nerqia Pay
               </Button>
             </div>
           )}
@@ -1227,7 +1227,7 @@ export default function EcommerceStorePage() {
               <p className="text-sm font-semibold">Primero nombre y dirección</p>
               <p className="text-[13px] text-muted-foreground leading-snug">
                 Shopify y Tiendanube piden la identidad de la tienda antes del cobro.
-                Gestiona Pay puede esperar: sin slug no hay link ni páginas legales.
+                Nerqia Pay puede esperar: sin slug no hay link ni páginas legales.
               </p>
               <div className="space-y-3">
                 <div>
@@ -1772,7 +1772,7 @@ export default function EcommerceStorePage() {
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
             <h3 className="font-semibold">Métodos de cobro</h3>
             <p className="text-xs text-muted-foreground">
-              Gestiona Pay es el producto de cobro (como Pago Nube). En Argentina el
+              Nerqia Pay es el producto de cobro (como Pago Nube). En Argentina el
               procesamiento corre por Mercado Pago — no es un medio aparte. Stripe y
               PayPal no se ofrecen: no hay adapter vivo. El descuento se aplica sobre
               la mercadería, nunca sobre el envío.
@@ -1819,7 +1819,7 @@ export default function EcommerceStorePage() {
                         además se anunciaría mal en la vitrina. */}
                     {enabled && pm.id === MEDIO_GESTIONA_PAY && !signals.paymentConnected && (
                       <p className="text-[11px] text-muted-foreground pl-7">
-                        Se habilita en el checkout cuando activás Gestiona Pay con Mercado Pago.
+                        Se habilita en el checkout cuando activás Nerqia Pay con Mercado Pago.
                       </p>
                     )}
                     {enabled && pm.id === "transferencia" && (
@@ -1956,7 +1956,7 @@ export default function EcommerceStorePage() {
           </Button>
           {leadSettingsWithIdentity && (
             <p className="text-xs text-muted-foreground">
-              Gestiona Pay puede esperar: primero guardá nombre y slug arriba.
+              Nerqia Pay puede esperar: primero guardá nombre y slug arriba.
             </p>
           )}
         </div>

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { cotizacionDe } from "@/lib/exchangeRate";
 import { useOrg } from "@/lib/orgContext";
@@ -3393,7 +3393,7 @@ export default function POSPage() {
           phase={qrCheckout.phase}
           session={qrCheckout.session}
           amount={Number(qrCheckout.session?.amount ?? cartTotal)}
-          businessName={config.businessName || activeOrg?.name || "Gestiona"}
+          businessName={config.businessName || activeOrg?.name || "Nerqia"}
           orgId={activeOrg?.id}
           planId={activeOrg?.plan_id}
           error={qrCheckout.error}
@@ -3417,7 +3417,7 @@ export default function POSPage() {
           customer={customer}
           total={receipt.total}
           cashGiven={receipt.cash}
-          businessName={config.businessName || "Gestiona"}
+          businessName={config.businessName || "Nerqia"}
           orgId={activeOrg?.id || ""}
           globalDiscountARS={receipt.globalDiscountARS}
           couponDiscount={receipt.couponDiscount}
@@ -3505,7 +3505,7 @@ export default function POSPage() {
             <WifiOff className="w-3.5 h-3.5 shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="font-medium">Sin conexión — el ticket se guarda en este dispositivo</p>
-              <p className="text-[10px] opacity-80">El cobro ocurre por fuera de Gestiona; el stock se descuenta al sincronizar.</p>
+              <p className="text-[10px] opacity-80">El cobro ocurre por fuera de Nerqia; el stock se descuenta al sincronizar.</p>
             </div>
             {offlineQueue.ticketCount > 0 && <span className="font-semibold">
               {offlineQueue.ticketCount} ticket{offlineQueue.ticketCount === 1 ? "" : "s"} · {offlineQueue.units} u. · {formatARS(offlineQueue.totalARS)}{offlineAge ? ` · ${offlineAge}` : ""}
@@ -3552,7 +3552,7 @@ export default function POSPage() {
               </p>
               <p className="text-[10px] opacity-80">
                 {qrRecoverySession.state === "completed"
-                  ? "Mercado Pago acreditó y Gestiona cerró ticket, pago y stock aunque Caja no estuviera abierta."
+                  ? "Mercado Pago acreditó y Nerqia cerró ticket, pago y stock aunque Caja no estuviera abierta."
                   : "El carrito actual no se modifica. Retomá el mismo intento para evitar un cobro duplicado."}
               </p>
             </div>

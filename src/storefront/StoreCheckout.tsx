@@ -471,7 +471,7 @@ export default function StoreCheckout() {
       console.error("No se pudo solicitar el email transaccional del pedido", emailError);
     });
 
-    // Con Gestiona Pay se manda al checkout del rail (Mercado Pago); el webhook
+    // Con Nerqia Pay se manda al checkout del rail (Mercado Pago); el webhook
     // confirma el pago y de ahí vuelve a la página del pedido. Si falla la
     // generación del link no se pierde nada: la orden ya está creada y se puede
     // pagar después desde esa misma página.
@@ -911,7 +911,7 @@ export default function StoreCheckout() {
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >
             {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-            {enviando ? "Confirmando..." : esMedioGestionaPay(form.metodo) ? "Continuar a Gestiona Pay" : "Confirmar pedido"}
+            {enviando ? "Confirmando..." : esMedioGestionaPay(form.metodo) ? "Continuar a Nerqia Pay" : "Confirmar pedido"}
           </button>
 
           <p className="text-[11px] text-center" style={{ color: "hsl(var(--st-muted))" }}>

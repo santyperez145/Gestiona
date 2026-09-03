@@ -203,7 +203,7 @@ async function createOrder(
   const body = {
     type: "qr",
     total_amount: total,
-    description: "Venta presencial Gestiona",
+    description: "Venta presencial Nerqia",
     external_reference: `posqr_${sessionId.replaceAll("-", "")}`,
     expiration_time: "PT15M",
     ...(platformFee > 0 ? { marketplace_fee: amountText(platformFee) } : {}),
@@ -376,7 +376,7 @@ async function setupPos(
     }).eq("org_id", orgId).eq("provider", "mercadopago");
   }
 
-  const posName = cleanText(`Caja ${storeName}`.replace(/[^A-Za-z0-9 _-]/g, ""), 45) ?? "Caja Gestiona";
+  const posName = cleanText(`Caja ${storeName}`.replace(/[^A-Za-z0-9 _-]/g, ""), 45) ?? "Caja Nerqia";
   const existingPos = await findPos(accessToken, externalPosId, storeId);
   const existingPosId = cleanText(existingPos?.id, 180);
   if (existingPosId) {

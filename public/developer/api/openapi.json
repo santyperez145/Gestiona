@@ -2,11 +2,11 @@
   "openapi": "3.1.1",
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
-    "title": "Gestiona Public REST API",
-    "summary": "Contrato server-to-server del Business Core de Gestiona.",
+    "title": "Nerqia Public REST API",
+    "summary": "Contrato server-to-server del Business Core de Nerqia.",
     "description": "API v1 para productos, stock, ventas y clientes. Cada request usa una API key con scopes, cupo durable por key y version explicita. ARS admite 2 decimales; costos USD, 4; stock y cantidades son unidades enteras.",
     "version": "1.0.0",
-    "license": { "name": "Propietario - uso sujeto al contrato de Gestiona", "identifier": "LicenseRef-Gestiona-Proprietary" }
+    "license": { "name": "Propietario - uso sujeto al contrato de Nerqia", "identifier": "LicenseRef-Nerqia-Proprietary" }
   },
   "externalDocs": {
     "description": "Guia humana, ejemplos y politica de compatibilidad",

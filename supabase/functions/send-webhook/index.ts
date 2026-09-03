@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
         includeInactive: true,
         event: "test.ping",
         data: {
-          message: "Prueba firmada desde Gestiona",
+          message: "Prueba firmada desde Nerqia",
         },
       });
       if (!results.length) return response({ error: "Webhook inexistente" }, 404);

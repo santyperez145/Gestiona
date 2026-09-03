@@ -195,7 +195,7 @@ async function createRedirectPreference(
       ...(marketplaceFee > 0 ? { marketplace_fee: marketplaceFee } : {}),
       payer: { name: order.customer_name, email: order.customer_email },
       external_reference: `ecom:${order.id}`,
-      // Identificador opaco: permite seguir la operación en Gestiona y en el
+      // Identificador opaco: permite seguir la operación en Nerqia y en el
       // proveedor sin enviar nombre, email ni datos internos del negocio.
       metadata: { correlation_id: attempt.correlationId },
       ...(backUrl ? {

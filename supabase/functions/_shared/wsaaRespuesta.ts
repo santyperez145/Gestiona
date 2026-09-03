@@ -125,7 +125,7 @@ export function motivoDeWsaa(xml: string): string {
   // que no está mal.
   if (/LoginCmsResponse/i.test(xml)) {
     return "ARCA autorizó el pedido pero no se pudo leer el ticket de la respuesta. "
-      + "Es un problema del lado de Gestiona, no de tu configuración ni de ARCA.";
+      + "Es un problema del lado de Nerqia, no de tu configuración ni de ARCA.";
   }
   return `Respuesta inesperada de ARCA: ${xml.slice(0, 300)}`;
 }

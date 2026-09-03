@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
+import { BRAND_MARK_SRC, BRAND_NAME } from '@/lib/brand';
 
-export const GESTIONA_MARK_SRC = '/brand/gestiona-mark.png';
+export const NERQIA_MARK_SRC = BRAND_MARK_SRC;
 
 type BrandLogoProps = {
   compact?: boolean;
@@ -13,7 +14,7 @@ type BrandLogoProps = {
 };
 
 /**
- * Identidad canónica de Gestiona para superficies propias del producto.
+ * Identidad canónica de Nerqia para superficies propias del producto.
  *
  * El símbolo es decorativo porque el nombre accesible vive en el contenedor.
  * Las tiendas públicas conservan su logo de merchant y no usan este componente.
@@ -27,7 +28,7 @@ export default function BrandLogo({
   eager = false,
   decorative = false,
 }: BrandLogoProps) {
-  const label = product ? `Gestiona ${product}` : 'Gestiona';
+  const label = product ? `${BRAND_NAME} ${product}` : BRAND_NAME;
 
   return (
     <span
@@ -36,7 +37,7 @@ export default function BrandLogo({
       aria-hidden={decorative ? true : undefined}
     >
       <img
-        src={GESTIONA_MARK_SRC}
+        src={NERQIA_MARK_SRC}
         alt=""
         aria-hidden="true"
         width="1254"

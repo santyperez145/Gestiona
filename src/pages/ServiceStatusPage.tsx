@@ -62,7 +62,7 @@ export default function ServiceStatusPage() {
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
             <div>
               <p className="mb-2 flex items-center gap-2 text-sm text-muted-foreground"><ShieldCheck className="h-4 w-4 text-primary" />Transparencia operativa</p>
-              <h1 className="font-display text-3xl font-bold tracking-tight">Estado de Gestiona</h1>
+              <h1 className="font-display text-3xl font-bold tracking-tight">Estado de Nerqia</h1>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">Mostramos señales agregadas de la aplicación, las tareas automáticas y la integridad de respaldos. No publicamos datos de comercios, proveedores ni detalles internos.</p>
             </div>
             <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading}>

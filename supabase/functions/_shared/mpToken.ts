@@ -3,7 +3,7 @@
  *
  * La única autoridad es `payment_connections` (OAuth): es renovable, vive en
  * una tabla privada y conserva la relación marketplace necesaria para cobrar
- * la comisión de Gestiona. El token pegado a mano se retiró después de medir
+ * la comisión de Nerqia. El token pegado a mano se retiró después de medir
  * cero valores reales en `settings`.
  *
  * Si el token OAuth está por vencer se renueva solo: MercadoPago los vence a

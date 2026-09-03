@@ -4,7 +4,7 @@
 
 ## Decisión
 
-Gestiona retiró `Ver como` mediante magic link. Un enlace emitido como otra
+Nerqia retiró `Ver como` mediante magic link. Un enlace emitido como otra
 persona abre una sesión con los permisos de esa persona y puede continuar más
 allá de cualquier ventana aprobada. Auditar que se generó no limita el acceso ni
 equivale a consentimiento.
@@ -76,7 +76,7 @@ comercio.
 ## Comparación de producto
 
 Impersonar usuarios o abrir sesiones remotas es una herramienta operativa común;
-no es una ventaja defendible y aumenta riesgo. Gestiona prioriza consentimiento
+no es una ventaja defendible y aumenta riesgo. Nerqia prioriza consentimiento
 del dueño, alcance de sólo diagnóstico, expiración evaluada en cada lectura y
 minimización de datos. El diferencial sólo quedará demostrado si permite bajar
 tiempo de soporte sin ampliar incidentes ni exponer PII.

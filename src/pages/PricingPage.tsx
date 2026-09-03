@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { mensajeDeEdgeFunction } from '@/lib/edgeErrors';
 import { supabase } from '@/integrations/supabase/client';
@@ -286,7 +286,7 @@ export default function PricingPage() {
           Elegí el plan que se ajuste a tu negocio
         </h1>
         <p className="text-[13px] text-muted-foreground/60 max-w-xl mx-auto mb-8 leading-relaxed">
-          Probá Gestiona 14 días gratis. Sin tarjeta. Cancelás cuando quieras.
+          Probá Nerqia 14 días gratis. Sin tarjeta. Cancelás cuando quieras.
         </p>
 
         {/* Billing toggle — underline style */}

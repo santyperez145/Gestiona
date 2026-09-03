@@ -116,13 +116,13 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     detail: methods.length === 0
       ? 'No hay ningún medio de pago habilitado: el comprador llega al final y no puede pagar.'
       : !canCollect
-        ? 'Gestiona Pay está marcado pero no está activo, y no hay otro medio: el checkout no puede cobrar.'
+        ? 'Nerqia Pay está marcado pero no está activo, y no hay otro medio: el checkout no puede cobrar.'
         : wantsPay && input.paymentConnected
-          ? 'Gestiona Pay activo (procesado con Mercado Pago).'
+          ? 'Nerqia Pay activo (procesado con Mercado Pago).'
           : 'Cobro por transferencia o efectivo habilitado.',
     severity: 'blocker',
     done: canCollect,
-    actionLabel: wantsPay && !input.paymentConnected ? 'Activar Gestiona Pay' : 'Ver medios de pago',
+    actionLabel: wantsPay && !input.paymentConnected ? 'Activar Nerqia Pay' : 'Ver medios de pago',
     // Medios de la tienda y OAuth de Pay viven en Commerce → Pagos y envíos.
     actionHref: '/tienda-online?tab=settings',
   });
@@ -147,22 +147,22 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
     });
   }
 
-  // El interruptor de Gestiona Pay no cobra: cobra la conexión OAuth.
+  // El interruptor de Nerqia Pay no cobra: cobra la conexión OAuth.
   // Con transferencia el bloqueante de arriba no dispara, y el comprador igual
   // veía un medio muerto. Aviso, no bloqueo: todavía se puede vender offline.
   checks.push({
     id: 'pay-rail',
-    title: 'Activar Gestiona Pay',
+    title: 'Activar Nerqia Pay',
     detail: !wantsPay
-      ? 'La tienda no ofrece Gestiona Pay.'
+      ? 'La tienda no ofrece Nerqia Pay.'
       : input.paymentConnected
-        ? 'Gestiona Pay activo: el checkout puede cobrar online.'
+        ? 'Nerqia Pay activo: el checkout puede cobrar online.'
         : hasOffline
-          ? 'Gestiona Pay está marcado, pero el checkout no lo va a ofrecer hasta que actives la cuenta. El comprador sólo ve transferencia o efectivo.'
-          : 'Sin Gestiona Pay activo el checkout no puede cobrar online.',
+          ? 'Nerqia Pay está marcado, pero el checkout no lo va a ofrecer hasta que actives la cuenta. El comprador sólo ve transferencia o efectivo.'
+          : 'Sin Nerqia Pay activo el checkout no puede cobrar online.',
     severity: 'warning',
     done: !wantsPay || input.paymentConnected,
-    actionLabel: 'Activar Gestiona Pay',
+    actionLabel: 'Activar Nerqia Pay',
     actionHref: '/tienda-online?tab=settings',
   });
 

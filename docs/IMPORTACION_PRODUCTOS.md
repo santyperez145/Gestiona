@@ -84,7 +84,7 @@ misma transacción.
 - movimientos de stock por lote;
 - minutos de intervención de soporte.
 
-La importación de catálogo es paridad competitiva. Lo que Gestiona debe probar
+La importación de catálogo es paridad competitiva. Lo que Nerqia debe probar
 como ventaja es que incorporar datos no rompe la verdad de stock, costo y margen
 ni exige que soporte repare media importación con SQL.
 

@@ -72,7 +72,7 @@ export interface DatosFoco {
   pedidosPorRetirar?: number;
   /**
    * Cobros que el comercio puede resolver **ahora**.
-   * Transferencia/efectivo pendientes, o Gestiona Pay reciente.
+   * Transferencia/efectivo pendientes, o Nerqia Pay reciente.
    * Un MP `pending` de julio no entra: la cola Commerce `vista=pago` sí
    * los lista; el Foco no grita fantasmas.
    */

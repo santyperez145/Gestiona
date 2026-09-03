@@ -44,12 +44,12 @@ La comparación evita dos errores: presentar descuentos/reportes como una
 ventaja inexistente y copiar un producto enterprise que no corresponde al
 comercio pequeño.
 
-| Producto | Capacidad oficial verificada | Lectura para Gestiona |
+| Producto | Capacidad oficial verificada | Lectura para Nerqia |
 |---|---|---|
-| Tiendanube | Su reporte de cupones muestra uso, facturación y cancelaciones para evaluar campañas; sus promociones programan alcance y tiempo. | Medir promociones ya es paridad regional. Gestiona tiene que sumar costo/cobro/envío/IVA y procedencia, no sólo facturación. |
+| Tiendanube | Su reporte de cupones muestra uso, facturación y cancelaciones para evaluar campañas; sus promociones programan alcance y tiempo. | Medir promociones ya es paridad regional. Nerqia tiene que sumar costo/cobro/envío/IVA y procedencia, no sólo facturación. |
 | Shopify | Profit reports contemplan descuentos y refunds, pero su propia ayuda advierte que `Cost per item` es estático. Sidekick nunca modifica la tienda sin aprobación. | Se conserva aprobación humana y se evita afirmar margen cuando la evidencia no alcanza. |
 | Odoo | Pricelists automatizan reglas por producto, cliente, cantidad y período; el margen se recalcula con el precio aplicado. | Pricing estructurado y margen son paridad ERP. El loop de evidencia debe vivir en el mismo Core omnicanal. |
-| Pricefx | Workflows permiten aprobar/rechazar y revocar listas; la plataforma simula efecto de cambios. | La trazabilidad y la reversión son estándar serio de pricing. Gestiona adopta el patrón mínimo útil, no su complejidad enterprise. |
+| Pricefx | Workflows permiten aprobar/rechazar y revocar listas; la plataforma simula efecto de cambios. | La trazabilidad y la reversión son estándar serio de pricing. Nerqia adopta el patrón mínimo útil, no su complejidad enterprise. |
 
 Fuentes consultadas el 2026-08-22:
 

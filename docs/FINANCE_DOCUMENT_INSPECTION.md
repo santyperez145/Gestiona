@@ -89,7 +89,7 @@ HTTP no exitoso, timeout de 20 segundos o JSON inválido producen `error`; nunca
 Una factura puede contener CUIT, nombre, domicilio, importes y datos bancarios.
 Por eso no se usa VirusTotal ni otro corpus público. El scanner debe:
 
-- ser operado por Gestiona o contratado como encargado de tratamiento;
+- ser operado por Nerqia o contratado como encargado de tratamiento;
 - no conservar muestras ni entrenar modelos con los documentos;
 - cifrar tránsito y almacenamiento temporal;
 - borrar los bytes después del análisis;

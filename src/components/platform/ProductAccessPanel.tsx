@@ -90,9 +90,9 @@ export default function ProductAccessPanel({ orgId, canManage }: { orgId: string
         <div className="flex items-center py-6 text-xs text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Leyendo productos...</div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          <ProductCard title="Gestiona Business" status="enabled" detail="Core operativo: productos, ventas, clientes, stock y margen." />
+          <ProductCard title="Nerqia Business" status="enabled" detail="Core operativo: productos, ventas, clientes, stock y margen." />
           <ProductCard
-            title="Gestiona Finance"
+            title="Nerqia Finance"
             status={finance?.status || 'available'}
             detail={finance?.status === 'requested'
               ? `Solicitado ${formatDate(finance.requested_at)}`
@@ -120,7 +120,7 @@ export default function ProductAccessPanel({ orgId, canManage }: { orgId: string
       <Dialog open={Boolean(decision)} onOpenChange={open => { if (!open && !saving) setDecision(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{decision?.enabled ? 'Habilitar Gestiona Finance' : 'Deshabilitar Gestiona Finance'}</DialogTitle>
+            <DialogTitle>{decision?.enabled ? 'Habilitar Nerqia Finance' : 'Deshabilitar Nerqia Finance'}</DialogTitle>
             <DialogDescription>El cambio afecta el acceso de toda la organización y queda auditado. No modifica datos del Business Core.</DialogDescription>
           </DialogHeader>
           <Textarea value={reason} onChange={event => setReason(event.target.value)} maxLength={500} placeholder="Motivo de la decisión (mínimo 10 caracteres)" />

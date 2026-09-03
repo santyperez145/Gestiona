@@ -91,7 +91,7 @@ export function parseStoreOrderItems(raw: unknown): StoreOrderItem[] {
 }
 
 export function storeOrderPaymentMethodLabel(method: string | null | undefined) {
-  if (method === "gestiona_pay" || method === "mercadopago") return "Gestiona Pay";
+  if (method === "gestiona_pay" || method === "mercadopago") return "Nerqia Pay";
   if (method === "transferencia") return "Transferencia";
   if (method === "efectivo") return "Efectivo / retiro";
   return method?.trim() || "Sin medio";

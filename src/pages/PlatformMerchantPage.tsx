@@ -211,7 +211,7 @@ export default function PlatformMerchantPage() {
       .slice(0, readiness.needsGoalChoice ? 1 : 2)
       .forEach(milestone => steps.push({
         title: milestone.label,
-        detail: `${milestone.detail} Responsable: ${milestone.owner === 'platform' ? 'Gestiona' : milestone.owner === 'shared' ? 'comercio + Gestiona' : 'comercio'}.`,
+        detail: `${milestone.detail} Responsable: ${milestone.owner === 'platform' ? 'Nerqia' : milestone.owner === 'shared' ? 'comercio + Nerqia' : 'comercio'}.`,
         tone: milestone.owner === 'platform' || milestone.id === 'fiscal' ? 'warning' : 'info',
       }));
     if (health && ['en_riesgo', 'cayendo', 'dormido'].includes(health.senal || '')) {
@@ -464,7 +464,7 @@ export default function PlatformMerchantPage() {
                       <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">{milestone.detail}</p>
                       {!milestone.done && (
                         <p className="mt-2 text-[9px] font-semibold uppercase tracking-wide text-violet-300">
-                          {milestone.owner === 'platform' ? 'Gestiona' : milestone.owner === 'shared' ? 'Responsabilidad compartida' : 'Comercio'}
+                          {milestone.owner === 'platform' ? 'Nerqia' : milestone.owner === 'shared' ? 'Responsabilidad compartida' : 'Comercio'}
                         </p>
                       )}
                     </div>

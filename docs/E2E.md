@@ -50,5 +50,5 @@ el workflow permanece de sólo lectura.
 
 El 2026-08-21 había otra aplicación Java escuchando en `localhost:8080`.
 Playwright tenía `reuseExistingServer: true`, la aceptó y ejecutó los tests
-contra una respuesta JSON ajena a Gestiona. El puerto estricto y el test guardia
+contra una respuesta JSON ajena a Nerqia. El puerto estricto y el test guardia
 impiden que esa configuración reaparezca.

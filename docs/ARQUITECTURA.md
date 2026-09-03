@@ -366,7 +366,7 @@ backend, no al JavaScript público de un integrador.
 
 ### 4 sexies. Orbit: orquestación transversal propuesta, no otra autoridad
 
-📌 **Discovery 2026-08-29:** [Gestiona Orbit](INNOVATION_ORBIT_PLAYBOOKS.md)
+📌 **Discovery 2026-08-29:** [Nerqia Orbit](INNOVATION_ORBIT_PLAYBOOKS.md)
 sería un módulo opcional de playbooks para convertir señales del Business Graph
 en decisiones repetibles. Consumiría `domain_events`, outbox y vistas/RPC
 agregados; no leería tablas ajenas desde la UI ni inventaría un ledger, stock,
@@ -424,7 +424,7 @@ verticales aportan atributos, defaults y presets — nunca ramas en el motor.
 | Multi-store, multi-market, multi-brand | Un comercio que tenga dos tiendas |
 | Dominios propios por tienda | Un comercio que tenga dominio propio |
 | Theme engine, page builder, headless | Un comercio que quiera otro diseño |
-| **Gestiona Pay** más allá de orquestación | Volumen que justifique la estructura regulatoria |
+| **Nerqia Pay** más allá de orquestación | Volumen que justifique la estructura regulatoria |
 | Marketplace de apps, developer platform | Desarrolladores que quieran construir |
 | Search dedicado, recomendaciones, experimentos | Tráfico que haga que muevan la aguja |
 | Multi-región, sharding, CQRS | Carga que lo pida |
@@ -436,7 +436,7 @@ y los tres huecos van primero, y el resto espera evidencia.
 
 ---
 
-## 6. Sobre Gestiona Pay
+## 6. Sobre Nerqia Pay
 
 📌 **Criterio.** La escalera tiene cuatro peldaños y **hoy estamos en el primero
 y medio** ([ADR 002](ADR_002_COMMERCE_OPERATING_SYSTEM.md) §6). Stripe no es el

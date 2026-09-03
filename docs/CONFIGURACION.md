@@ -98,18 +98,25 @@ silencio. Detalle en `docs/CRON.md`.
 
 ## 4. Dominio propio
 
-El panel de la tienda usa `window.location.origin`, así que la URL pública
-sigue al dominio donde esté desplegada la app. Si comprás un dominio, apuntalo
-al hosting y la tienda queda en `tudominio.com/tienda/<slug>` sin tocar código.
+`nerqia.app` está registrado en Vercel, usa sus nameservers, sirve el proyecto
+y tiene TLS activo desde 2026-09-03. `www.nerqia.app` está asignado al mismo
+proyecto y redirige al dominio raíz mediante `vercel.json`.
 
-`gestiona.app` **no existe** — estaba hardcodeado en el panel y por eso el
-botón "Ver tienda" daba `ERR_CONNECTION_REFUSED`. Ya se corrigió.
+Supabase Auth declara `https://nerqia.app` como Site URL. Los callbacks de
+producción, `www`, previews de Vercel y localhost se versionan en
+`supabase/config.toml`; después de editarlos hay que ejecutar
+`npx supabase config push`.
 
-`platform-admin-action` acepta CORS por coincidencia exacta. El dominio actual
-`https://exentryimports.vercel.app` y localhost están versionados; al sumar un
-dominio propio o un frontend adicional hay que declararlo, separado por comas,
-en el secret `PLATFORM_ALLOWED_ORIGINS` y volver a desplegar la función. No usar
-`*`: esta función administra organizaciones, planes, accesos y roles.
+Las Edge Functions usan `PUBLIC_BASE_URL=https://nerqia.app`,
+`PUBLIC_APP_URL=https://nerqia.app` y una lista exacta en
+`PLATFORM_ALLOWED_ORIGINS`. No usar `*`: `platform-admin-action` administra
+organizaciones, planes, accesos y roles. El origen Vercel anterior permanece
+sólo durante la transición y se retirará cuando no haya callbacks ni clientes
+activos sobre él.
+
+Vercel no provee correo. Para que `hola@nerqia.app`, invitaciones y campañas
+entreguen mensajes, hay que agregar en Vercel DNS los registros que muestre
+Resend y marcar el dominio como verificado desde Nerqia Platform.
 
 ---
 

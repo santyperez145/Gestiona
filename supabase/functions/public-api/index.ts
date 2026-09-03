@@ -1,5 +1,5 @@
 /**
- * Gestiona Public REST API — v1
+ * Nerqia Public REST API — v1
  *
  * Authentication: Bearer gst_live_… — se hashea con SHA-256 y se busca en
  * `api_keys.key_hash`. La key NUNCA está guardada: sólo su hash.

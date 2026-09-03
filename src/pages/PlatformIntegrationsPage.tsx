@@ -56,9 +56,9 @@ const CONNECTION_LABEL: Record<string, string> = {
 };
 
 const SCOPE_LABEL: Record<string, string> = {
-  platform: 'Gestiona',
+  platform: 'Nerqia',
   merchant: 'Comercio',
-  both: 'Gestiona + comercio',
+  both: 'Nerqia + comercio',
 };
 
 function errorMessage(error: { message?: string } | null) {

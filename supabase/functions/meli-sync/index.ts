@@ -136,7 +136,7 @@ async function syncMeliStock(admin: any, orgId: string, token: string) {
     // inventar en MercadoLibre. El listado conserva el error hasta corregir el
     // Kardex y evita seguir vendiendo una cantidad falsa.
     if (Number(product.stock ?? 0) < 0) {
-      const message = "Stock negativo en Gestiona: corregilo desde Kardex antes de sincronizar MercadoLibre";
+      const message = "Stock negativo en Nerqia: corregilo desde Kardex antes de sincronizar MercadoLibre";
       errores.push({ item: listing.meli_item_id, error: message });
       const { error: updateError } = await admin.from("meli_listings")
         .update({ last_error: message }).eq("id", listing.id);

@@ -25,7 +25,7 @@ describe("estados de pago de la tienda", () => {
     expect(canRetryStorePayment("partial")).toBe(false);
   });
 
-  it("permite confirmar a mano transferencia/efectivo, no Gestiona Pay", () => {
+  it("permite confirmar a mano transferencia/efectivo, no Nerqia Pay", () => {
     expect(canConfirmManualStorePayment({
       payment_status: "pending",
       payment_method: "transferencia",

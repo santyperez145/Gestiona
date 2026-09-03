@@ -1,4 +1,4 @@
-# Guía para entender Gestiona desde cero
+# Guía para entender Nerqia desde cero
 
 Esta guía es para alguien que **no programa** o que recién arranca, y quiere
 entender qué es esta plataforma, cómo está hecha, y en qué orden estudiarla.
@@ -9,8 +9,9 @@ No hace falta leerla entera de una. Está pensada para volver.
 
 ## Parte 1 — Qué es esto, en criollo
 
-Gestiona son **tres productos que comparten una misma base de datos**. Esa es la
-idea que más cuesta al principio y la que más aclara todo lo demás.
+Nerqia es una plataforma de **tres productos que comparten una misma base de
+datos**. Esa es la idea que más cuesta al principio y la que más aclara todo lo
+demás.
 
 ### 1. El sistema de gestión
 
@@ -29,11 +30,11 @@ precio de venta, nunca el costo ni el margen.
 
 ### 3. El panel de plataforma
 
-Es el que usa el dueño **de Gestiona**, no el del comercio. Ve todas las
+Es el que usa el dueño **de Nerqia**, no el del comercio. Ve todas las
 organizaciones, cuánto factura cada una, y cobra una comisión por venta. Vive
 en `/platform`.
 
-> **La analogía que sirve:** Gestiona es a un comercio lo que Shopify o
+> **La analogía que sirve:** Nerqia es a un comercio lo que Shopify o
 > Tiendanube son a una tienda. El comercio alquila el sistema; la plataforma
 > cobra el alquiler y una comisión de lo que venda.
 

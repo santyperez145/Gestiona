@@ -16,10 +16,10 @@ const manifest = readFileSync(
 );
 
 describe('Commerce Pay honesty', () => {
-  it('ofrece Gestiona Pay como medio de tienda, no Mercado Pago como producto', () => {
+  it('ofrece Nerqia Pay como medio de tienda, no Mercado Pago como producto', () => {
     expect(page).toContain('id: "gestiona_pay"');
-    expect(page).toContain('label: "Gestiona Pay"');
-    expect(page).not.toContain('Mercado Pago (Gestiona Pay)');
+    expect(page).toContain('label: "Nerqia Pay"');
+    expect(page).not.toContain('Mercado Pago (Nerqia Pay)');
     expect(page).not.toMatch(/id:\s*"mercadopago"/);
     expect(page).not.toMatch(/id:\s*"stripe"/);
     expect(page).not.toMatch(/id:\s*"paypal"/);
@@ -27,9 +27,9 @@ describe('Commerce Pay honesty', () => {
     expect(page).toContain('como Pago Nube');
   });
 
-  it('activa Gestiona Pay por OAuth y no pide pegar una clave', () => {
+  it('activa Nerqia Pay por OAuth y no pide pegar una clave', () => {
     expect(page).toContain('PaymentConnectionsPanel');
-    expect(payPanel).toContain('Activar Gestiona Pay');
+    expect(payPanel).toContain('Activar Nerqia Pay');
     expect(payPanel).toContain('mp-connect');
     expect(payPanel).not.toContain('mp_access_token');
   });
@@ -75,7 +75,7 @@ describe('Commerce Pay honesty', () => {
   });
 
   it('el workspace se presenta como Commerce, no como módulo extra', () => {
-    expect(page).toContain('title="Gestiona Commerce"');
+    expect(page).toContain('title="Nerqia Commerce"');
     expect(page).toContain('label: "Publicar"');
     expect(manifest).toContain('id: "pedidos_online"');
     expect(manifest).toContain('label: "Pedidos"');
@@ -90,7 +90,7 @@ describe('Commerce Pay honesty', () => {
     );
     expect(checkout).toContain('mediosDePagoOfrecibles');
     expect(checkout).toContain('esMedioGestionaPay');
-    expect(checkout).toContain('Continuar a Gestiona Pay');
+    expect(checkout).toContain('Continuar a Nerqia Pay');
     expect(checkout).not.toMatch(/stripe:\s*"Tarjeta/);
     expect(checkout).not.toMatch(/paypal:\s*"PayPal"/);
     expect(checkout).not.toContain('?? "transferencia"');

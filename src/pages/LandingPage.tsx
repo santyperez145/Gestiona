@@ -71,12 +71,12 @@ function DashboardPreview() {
   const bars = [42, 63, 48, 76, 58, 88, 72, 94, 66, 82, 78, 100];
 
   return (
-    <div className="landing-product-stage" aria-label="Vista previa del centro de control de Gestiona">
+    <div className="landing-product-stage" aria-label="Vista previa del centro de control de Nerqia">
       <div className="landing-product-glow" aria-hidden="true" />
       <div className="landing-product-window">
         <div className="landing-product-window__topbar">
           <div className="landing-product-window__dots"><i /><i /><i /></div>
-          <span>gestiona / centro de control</span>
+          <span>nerqia / centro de control</span>
           <div className="landing-product-window__live"><b /> sincronizado</div>
         </div>
         <div className="landing-product-window__body">
@@ -127,9 +127,9 @@ export default function LandingPage() {
     <div className="landing-shell">
       <header className="landing-nav">
         <div className="landing-container landing-nav__inner">
-          <Link to="/" className="landing-brand" aria-label="Gestiona inicio">
+          <Link to="/" className="landing-brand" aria-label="Nerqia inicio">
             <BrandMark />
-            <span>Gestiona</span>
+            <span>Nerqia</span>
           </Link>
 
           <nav className={`landing-nav__links ${mobileOpen ? 'is-open' : ''}`} aria-label="Navegación principal">
@@ -173,24 +173,24 @@ export default function LandingPage() {
 
         <section className="landing-proof" id="producto">
           <div className="landing-container">
-            <div className="landing-section-heading landing-section-heading--row"><div><p className="landing-eyebrow">El Business Core</p><h2>Menos pantallas aisladas.<br /><span>Más decisiones conectadas.</span></h2></div><p>Gestiona no es otro canal de venta. Es la base que conecta cada operación de tu negocio para que puedas crecer sin perder el control.</p></div>
+            <div className="landing-section-heading landing-section-heading--row"><div><p className="landing-eyebrow">El Business Core</p><h2>Menos pantallas aisladas.<br /><span>Más decisiones conectadas.</span></h2></div><p>Nerqia no es otro canal de venta. Es la base que conecta cada operación de tu negocio para que puedas crecer sin perder el control.</p></div>
             <div className="landing-capability-grid">{CAPABILITIES.map(({ icon: Icon, kicker, title, description, tone }) => <article className={`landing-capability landing-capability--${tone}`} key={title}><div className="landing-capability__icon"><Icon /></div><p>{kicker}</p><h3>{title}</h3><span>{description}</span><ArrowUpRight className="landing-capability__arrow" /></article>)}</div>
           </div>
         </section>
 
         <section className="landing-operation" id="operacion">
           <div className="landing-container landing-operation__grid">
-            <div className="landing-operation__copy"><p className="landing-eyebrow">El mapa completo</p><h2>Tu negocio no vive en una sola pestaña.</h2><p>Por eso Gestiona ordena la operación en capas que se alimentan entre sí. Cuando cambia el stock, cambia la disponibilidad. Cuando vendés, cambia la caja. Cuando conocés el margen, cambia tu próxima decisión.</p><Link to="/login?mode=register" className="landing-text-link">Ver cómo funciona <ArrowRight /></Link></div>
+            <div className="landing-operation__copy"><p className="landing-eyebrow">El mapa completo</p><h2>Tu negocio no vive en una sola pestaña.</h2><p>Por eso Nerqia ordena la operación en capas que se alimentan entre sí. Cuando cambia el stock, cambia la disponibilidad. Cuando vendés, cambia la caja. Cuando conocés el margen, cambia tu próxima decisión.</p><Link to="/login?mode=register" className="landing-text-link">Ver cómo funciona <ArrowRight /></Link></div>
             <div className="landing-layers">{OPERATING_LAYERS.map(({ icon: Icon, title, description }, index) => <div className="landing-layer" key={title}><span className="landing-layer__number">0{index + 1}</span><span className="landing-layer__icon"><Icon /></span><div><strong>{title}</strong><span>{description}</span></div><ArrowUpRight /></div>)}</div>
           </div>
         </section>
 
         <section className="landing-quote" id="para-quien"><div className="landing-container landing-quote__inner"><div className="landing-quote__mark">“</div><blockquote>La pregunta no es cuánto vendiste.<br /><span>Es cuánto te quedó.</span></blockquote><div className="landing-quote__meta"><span className="landing-quote__avatar">EP</span><div><strong>Para negocios que importan, venden y quieren entender.</strong><span>Retail · Ecommerce · Distribuidores · Marcas</span></div></div></div></section>
 
-        <section className="landing-cta"><div className="landing-container"><div className="landing-cta__panel"><div><p className="landing-eyebrow">Empezá con claridad</p><h2>Tu próximo movimiento<br /><span>empieza acá.</span></h2></div><div className="landing-cta__side"><p>Configurá tu negocio en minutos y empezá a tomar decisiones con la información que ya tenés.</p><Link to="/login?mode=register" className="landing-button landing-button--primary">Probar Gestiona gratis <ArrowRight /></Link><small>Sin tarjeta de crédito · Cancelás cuando quieras</small></div></div></div></section>
+        <section className="landing-cta"><div className="landing-container"><div className="landing-cta__panel"><div><p className="landing-eyebrow">Empezá con claridad</p><h2>Tu próximo movimiento<br /><span>empieza acá.</span></h2></div><div className="landing-cta__side"><p>Configurá tu negocio en minutos y empezá a tomar decisiones con la información que ya tenés.</p><Link to="/login?mode=register" className="landing-button landing-button--primary">Probar Nerqia gratis <ArrowRight /></Link><small>Sin tarjeta de crédito · Cancelás cuando quieras</small></div></div></div></section>
       </main>
 
-      <footer className="landing-footer"><div className="landing-container landing-footer__inner"><Link to="/" className="landing-brand"><BrandMark small /><span>Gestiona</span></Link><span className="landing-footer__copy">Sistema operativo para comercios omnicanal</span><div className="landing-footer__links"><Link to="/privacidad">Privacidad</Link><Link to="/terminos">Términos</Link><Link to="/estado">Estado</Link><a href="mailto:hola@gestiona.app">Contacto</a></div></div></footer>
+      <footer className="landing-footer"><div className="landing-container landing-footer__inner"><Link to="/" className="landing-brand"><BrandMark small /><span>Nerqia</span></Link><span className="landing-footer__copy">Sistema operativo para comercios omnicanal</span><div className="landing-footer__links"><Link to="/privacidad">Privacidad</Link><Link to="/terminos">Términos</Link><Link to="/estado">Estado</Link><a href="mailto:hola@nerqia.app">Contacto</a></div></div></footer>
     </div>
   );
 }

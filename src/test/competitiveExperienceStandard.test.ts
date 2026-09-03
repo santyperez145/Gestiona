@@ -11,7 +11,7 @@ describe('estándar integral de experiencia competitiva', () => {
   it('separa evidencia, observación, decisión e hipótesis y prohíbe copiar', () => {
     expect(standard).toContain('✅ Verificado');
     expect(standard).toContain('👁 Observado');
-    expect(standard).toContain('📌 Decisión Gestiona');
+    expect(standard).toContain('📌 Decisión Nerqia');
     expect(standard).toContain('❓ Hipótesis');
     expect(standard).toContain('Traducción, no copia');
   });

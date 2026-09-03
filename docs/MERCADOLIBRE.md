@@ -79,7 +79,7 @@ sincronización.
 | `publish` | Publica un producto y guarda el vínculo en `meli_listings` |
 | `sync-stock` | Empuja stock y precio de todas las publicaciones activas |
 | `pull-orders` | Baja las últimas 50 órdenes, con precio, comisión y costo final de envío cuando ML ya informó el shipment |
-| `import-order` | Convierte una orden `paid` ya bajada en ventas de Gestiona, stock y cobro neto |
+| `import-order` | Convierte una orden `paid` ya bajada en ventas de Nerqia, stock y cobro neto |
 | `cron-sync` | Uso interno: sincroniza stock/precio y órdenes de todas las organizaciones conectadas |
 | `meli-webhook` | Recibe avisos de `orders`, vuelve a consultar la orden oficial y la deja lista para importar |
 
@@ -87,7 +87,7 @@ sincronización.
 
 Abrí un producto **ya guardado** en Productos. Si la cuenta está conectada, la
 ficha muestra **Publicar en MercadoLibre**. Primero elegí **Sugerir categoría**:
-Gestiona manda el título que ya está guardado a `domain_discovery` de
+Nerqia manda el título que ya está guardado a `domain_discovery` de
 MercadoLibre y presenta hasta tres opciones. La primera es una sugerencia, no
 una decisión automática; elegí la que corresponda y recién entonces usá
 **Confirmar y publicar**.

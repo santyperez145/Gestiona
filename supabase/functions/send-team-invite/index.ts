@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     }
 
     const orgName = (inv.organizations as { name?: string } | null)?.name || "tu organización";
-    const baseUrl = appUrl || req.headers.get("origin") || "https://exentryimports.vercel.app";
+    const baseUrl = appUrl || req.headers.get("origin") || "https://nerqia.app";
     const inviteUrl = `${baseUrl}/invitacion/${inv.token}`;
     const expiresAt = new Date(inv.expires_at).toLocaleDateString("es-AR");
 
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Te invitaron a ${orgName} en Gestiona</title>
+  <title>Te invitaron a ${orgName} en Nerqia</title>
 </head>
 <body style="margin:0;padding:0;background:#0f0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#e2e8f0;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#0f0f1a;padding:40px 20px;">
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
           <tr>
             <td style="padding:0 32px 24px;">
               <p style="color:#cbd5e1;font-size:15px;line-height:1.6;margin:0 0 16px;">
-                Fuiste invitado a unirte como <strong style="color:#d4a843;">${ROLE_LABEL[inv.role] || inv.role}</strong> en <strong>${orgName}</strong> en Gestiona — sistema de gestión integral para negocios.
+                Fuiste invitado a unirte como <strong style="color:#d4a843;">${ROLE_LABEL[inv.role] || inv.role}</strong> en <strong>${orgName}</strong> en Nerqia — sistema de gestión integral para negocios.
               </p>
               <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin:0 0 24px;">
                 Hacé click en el botón de abajo para crear tu cuenta y empezar a colaborar. Esta invitación expira el <strong>${expiresAt}</strong>.
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
             <td style="padding:16px 32px;background:rgba(212,168,67,0.04);border-top:1px solid rgba(212,168,67,0.1);">
               <p style="color:#64748b;font-size:11px;line-height:1.6;margin:0;text-align:center;">
                 ¿No esperabas esta invitación? Ignorá este email — no se hace nada hasta que aceptes.<br>
-                Gestiona © ${new Date().getFullYear()} — Sistema de Gestión Integral
+                Nerqia © ${new Date().getFullYear()} — Sistema de Gestión Integral
               </p>
             </td>
           </tr>
@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: fromEmail,
         to: inv.email,
-        subject: `Invitación para colaborar en ${orgName} — Gestiona`,
+        subject: `Invitación para colaborar en ${orgName} — Nerqia`,
         html,
       }),
     });

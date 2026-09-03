@@ -460,7 +460,7 @@ export default function FinanceDocumentsPage() {
     <div className="space-y-6">
       <PageHeader
         icon={FileLock2}
-        eyebrow="Gestiona Finance / Documentos"
+        eyebrow="Nerqia Finance / Documentos"
         title="Documentos bajo custodia"
         description="Cada original entra privado, queda versionado y espera inspección antes de que cualquier dato pueda sugerir una compra, una obligación o un asiento."
         actions={(

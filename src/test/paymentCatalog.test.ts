@@ -28,7 +28,7 @@ describe("paymentCatalog", () => {
       base({ provider: "mercadopago", nombre: "Mercado Pago", orden: 10, integracion: "produccion" }),
       base({ provider: "modo", orden: 20 }),
       base({ provider: "naranjax", nombre: "Naranja X", orden: 30 }),
-      base({ provider: "gestionapay", nombre: "Gestiona Pay", conexion: "plataforma", orden: 5 }),
+      base({ provider: "gestionapay", nombre: "Nerqia Pay", conexion: "plataforma", orden: 5 }),
       base({ provider: "transferencia", nombre: "Transferencia", conexion: "ninguna", orden: 50 }),
     ]);
     expect(list.map((m) => m.provider)).toEqual(["modo", "naranjax"]);
@@ -55,17 +55,21 @@ describe("PaymentConnectionsPanel catálogo", () => {
     resolve(import.meta.dirname, "..", "..", "supabase", "migrations", "20260902000040_catalogo_pay_oauth_proximamente.sql"),
     "utf8",
   );
+  const migracionMarca = readFileSync(
+    resolve(import.meta.dirname, "..", "..", "supabase", "migrations", "20260903000070_nerqia_identidad_canonica.sql"),
+    "utf8",
+  );
 
   it("lee medios_de_pago_de y no inventa Conectar para próximamente", () => {
     expect(panel).toContain('medios_de_pago_de');
     expect(panel).toContain("mediosOAuthDelCatalogo");
     expect(panel).toContain("Próximamente");
     expect(panel).toContain("Sin adapter aún");
-    expect(panel).toContain("Activar Gestiona Pay");
+    expect(panel).toContain("Activar Nerqia Pay");
   });
 
-  it("alinea el catálogo SQL: Gestiona Pay producto, oauth declarado sin cobrar", () => {
-    expect(migracion).toContain("nombre_publico = 'Gestiona Pay'");
+  it("alinea el catálogo SQL: Nerqia Pay producto, oauth declarado sin cobrar", () => {
+    expect(migracionMarca).toContain("nombre_publico = 'Nerqia Pay'");
     expect(migracion).toContain("WHERE codigo = 'gestionapay'");
     expect(migracion).toContain("Hoy no cobra");
     expect(migracion).toContain("REVOKE ALL ON FUNCTION public.medios_de_pago_de");

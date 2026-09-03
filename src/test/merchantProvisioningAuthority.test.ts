@@ -6,6 +6,7 @@ const migration = read('supabase/migrations/20260822000003_atomic_merchant_provi
 const verification = read('supabase/verificaciones/20260822_atomic_merchant_provisioning.sql');
 const edgeAction = read('supabase/functions/platform-admin-action/index.ts');
 const platformPage = read('src/pages/PlatformAdminPage.tsx');
+const brandMigration = read('supabase/migrations/20260903000071_nerqia_copy_servidor.sql');
 
 describe('autoridad del alta de comercios', () => {
   it('deja el grafo comercial en una única transacción server-side', () => {
@@ -27,6 +28,11 @@ describe('autoridad del alta de comercios', () => {
     expect(retry).toBeGreaterThan(-1);
     expect(membershipGuard).toBeGreaterThan(retry);
     expect(migration).toContain('Idempotency key was already used with different provisioning data');
+  });
+
+  it('actualiza el copy visible del RPC sin romper los headers heredados', () => {
+    expect(brandMigration).toContain("replace(v_definition, 'Gestiona', 'Nerqia')");
+    expect(brandMigration).toContain("replace(v_definition, 'X-__NERQIA_LEGACY_HEADER__', 'X-Gestiona')");
   });
 
   it('no permite leer ni escribir la tabla idempotente desde el cliente', () => {

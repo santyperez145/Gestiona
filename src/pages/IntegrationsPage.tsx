@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
@@ -361,7 +361,7 @@ export default function IntegrationsPage() {
           </div>
           <div>
             <h3 className="font-semibold">API REST Pública</h3>
-            <p className="text-sm text-muted-foreground">Conectá Gestiona con otros sistemas de tu operación</p>
+            <p className="text-sm text-muted-foreground">Conectá Nerqia con otros sistemas de tu operación</p>
           </div>
         </div>
 
@@ -447,7 +447,7 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
   // se hidratan desde la base ni se conservan después de guardar.
   const [apiUrl,   setApiUrl]   = useState("");
   const [apiKey,   setApiKey]   = useState("");
-  const [instance, setInstance] = useState("gestiona");
+  const [instance, setInstance] = useState("nerqia");
   const [saving, setSaving] = useState(false);
   const [revoking, setRevoking] = useState(false);
   const [connection, setConnection] = useState<EvolutionConnectionStatus | null>(null);
@@ -497,14 +497,14 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
           orgId,
           apiUrl: apiUrl.trim(),
           apiKey: apiKey.trim(),
-          instance: instance.trim() || "gestiona",
+          instance: instance.trim() || "nerqia",
         },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
       setApiUrl("");
       setApiKey("");
-      setConnection({ configured: true, instance: data?.instance || instance.trim() || "gestiona", updated_at: new Date().toISOString() });
+      setConnection({ configured: true, instance: data?.instance || instance.trim() || "nerqia", updated_at: new Date().toISOString() });
       toast.success("Conexión de WhatsApp guardada de forma segura");
     } catch (err: any) {
       toast.error("Error al guardar: " + err.message);
@@ -531,7 +531,7 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
       setConnection(null);
       setApiUrl("");
       setApiKey("");
-      setInstance("gestiona");
+      setInstance("nerqia");
       setConnState("unknown");
       setQrBase64(null);
       setPolling(false);
@@ -747,7 +747,7 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
           <Input
             value={instance}
             onChange={e => setInstance(e.target.value)}
-            placeholder="gestiona"
+            placeholder="nerqia"
             className="bg-muted border-border font-mono text-sm"
           />
           <p className="text-[10px] text-muted-foreground mt-1">

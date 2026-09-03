@@ -239,7 +239,7 @@ Deno.serve(async (req) => {
         return ok({
           ok: false,
           error: "ARCA aceptó la conexión pero no se pudo guardar el resultado: "
-            + marcado.error + ". Es un problema del lado de Gestiona.",
+            + marcado.error + ". Es un problema del lado de Nerqia.",
         });
       }
       return ok({ ok: true, environment: isProd ? "produccion" : "homologacion" });

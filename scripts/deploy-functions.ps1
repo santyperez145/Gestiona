@@ -63,7 +63,7 @@ $noJwt = @(
 
 Write-Host ""
 Write-Host "=======================================" -ForegroundColor Cyan
-Write-Host " Exentry - Deploy Edge Functions" -ForegroundColor Cyan
+Write-Host " Nerqia - Deploy Edge Functions" -ForegroundColor Cyan
 Write-Host " Proyecto: $PROJECT_REF" -ForegroundColor Cyan
 Write-Host "=======================================" -ForegroundColor Cyan
 Write-Host ""

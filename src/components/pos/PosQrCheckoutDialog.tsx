@@ -161,7 +161,7 @@ export function PosQrCheckoutDialog({
               <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
                 <div className="flex gap-2">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p>Usá datos reales: Mercado Pago los utiliza con fines fiscales y muestra la sucursal en sus mapas. Gestiona guarda sólo los identificadores de la integración, nunca el token en el navegador.</p>
+                  <p>Usá datos reales: Mercado Pago los utiliza con fines fiscales y muestra la sucursal en sus mapas. Nerqia guarda sólo los identificadores de la integración, nunca el token en el navegador.</p>
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -231,7 +231,7 @@ export function PosQrCheckoutDialog({
               <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-left text-xs leading-relaxed text-muted-foreground">
                 <div className="flex gap-2">
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                  <p>El importe fue calculado por Gestiona y la consulta se hace directo a Mercado Pago. No cierres el cobro hasta ver “Venta acreditada”.</p>
+                  <p>El importe fue calculado por Nerqia y la consulta se hace directo a Mercado Pago. No cierres el cobro hasta ver “Venta acreditada”.</p>
                 </div>
               </div>
             </div>

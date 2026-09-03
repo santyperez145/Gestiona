@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
         await notify(
           res.orgId,
           `Tu prueba termina en ${daysLeft} día${daysLeft !== 1 ? "s" : ""}`,
-          "Agregá un método de pago en Ajustes → Plan para continuar usando Gestiona sin interrupciones.",
+          "Agregá un método de pago en Ajustes → Plan para continuar usando Nerqia sin interrupciones.",
           "billing_warning",
         );
         break;

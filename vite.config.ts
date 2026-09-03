@@ -37,15 +37,15 @@ export default defineConfig(({ mode }) => ({
       filename: "sw.ts",
       registerType: "autoUpdate",
       injectRegister: "auto",
-      // 📌 `brand/gestiona-mark.png` figura dos veces en el manifiesto —una
+      // 📌 `brand/nerqia-mark.png` figura dos veces en el manifiesto —una
       // por acá y otra por `globPatterns`— pero es **la misma URL con la
       // misma revisión**: el navegador la baja una sola vez. Vaciar esta lista
       // no ahorra descargas. `robots.txt` no vive en `public/`: Vercel sirve
       // el archivo estático *antes* del rewrite, y Google nunca vería Sitemap.
-      includeAssets: ["brand/gestiona-mark.png"],
+      includeAssets: ["brand/nerqia-mark.png"],
       manifest: {
-        name: "Gestiona — Sistema de Gestión",
-        short_name: "Gestiona",
+        name: "Nerqia — Sistema de Gestión",
+        short_name: "Nerqia",
         description: "Sistema de gestión para tu negocio: ventas, stock, POS, clientes y más.",
         theme_color: "#173aef",
         background_color: "#f8f9fc",
@@ -55,7 +55,7 @@ export default defineConfig(({ mode }) => ({
         start_url: "/",
         icons: [
           {
-            src: "/brand/gestiona-mark.png",
+            src: "/brand/nerqia-mark.png",
             sizes: "1254x1254",
             type: "image/png",
             purpose: "any maskable",

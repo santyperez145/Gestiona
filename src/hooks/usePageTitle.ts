@@ -6,7 +6,7 @@
  *
  * Usage:
  *   usePageTitle("Dashboard");
- *   usePageTitle(`${productName} — Productos`, { suffix: " | Gestiona", restore: false });
+ *   usePageTitle(`${productName} — Productos`, { suffix: " | Nerqia", restore: false });
  *
  * @param title  Title to set
  * @param opts   { suffix: appended to title; restore: bool — restore on unmount }
@@ -14,14 +14,14 @@
 import { useEffect, useRef } from "react";
 
 interface Options {
-  /** String appended to every title, e.g. " | Gestiona" */
+  /** String appended to every title, e.g. " | Nerqia" */
   suffix?: string;
   /** Restore original title on unmount. Default: true */
   restore?: boolean;
 }
 
 export function usePageTitle(title: string, opts: Options = {}): void {
-  const { suffix = " | Gestiona", restore = true } = opts;
+  const { suffix = " | Nerqia", restore = true } = opts;
   const prevTitle = useRef(document.title);
 
   useEffect(() => {

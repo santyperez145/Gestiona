@@ -80,7 +80,7 @@ describe("contrato público de la API v1", () => {
   it("usa un request id correlacionable y soporta deprecación estándar sin deprecar v1", () => {
     const active = publicApiHeaders({
       requestId: "11111111-1111-4111-8111-111111111111",
-      origin: "https://gestiona.app",
+      origin: "https://nerqia.app",
       rateLimit: { limit: 1000, remaining: 999, resetAt: 1_788_000_000 },
     });
     expect(active["X-Request-Id"]).toBe("11111111-1111-4111-8111-111111111111");
@@ -91,11 +91,11 @@ describe("contrato público de la API v1", () => {
 
     const deprecated = publicApiHeaders({
       requestId: "11111111-1111-4111-8111-111111111111",
-      origin: "https://gestiona.app",
+      origin: "https://nerqia.app",
       lifecycle: {
         deprecationAt: 1_800_000_000,
         sunsetAt: new Date("2028-01-01T00:00:00Z"),
-        migrationUrl: "https://gestiona.app/developer/api/v2",
+        migrationUrl: "https://nerqia.app/developer/api/v2",
       },
     });
     expect(deprecated.Deprecation).toBe("@1800000000");

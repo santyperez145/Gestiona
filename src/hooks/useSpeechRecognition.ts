@@ -18,7 +18,7 @@
  *   </button>
  *   <p>{transcript}</p>
  *
- * Use cases in Gestiona:
+ * Use cases in Nerqia:
  *   - Voice search for products in POS ("buscar gaseosa")
  *   - Voice quantity input ("cinco")
  *   - Voice customer name in sales form

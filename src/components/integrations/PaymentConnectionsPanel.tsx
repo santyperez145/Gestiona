@@ -1,5 +1,5 @@
 /**
- * PaymentConnectionsPanel — Gestiona Pay + catálogo OAuth.
+ * PaymentConnectionsPanel — Nerqia Pay + catálogo OAuth.
  *
  * Modelo Pago Nube / Tiendanube: el producto propio se activa con un clic;
  * el resto de medios aparecen en el catálogo con estado honesto
@@ -90,7 +90,7 @@ export default function PaymentConnectionsPanel({
         load();
         return;
       }
-      toast.success(`Gestiona Pay activo${(data as { nickname?: string })?.nickname ? ` (${(data as { nickname?: string }).nickname})` : ""}`);
+      toast.success(`Nerqia Pay activo${(data as { nickname?: string })?.nickname ? ` (${(data as { nickname?: string }).nickname})` : ""}`);
       const destino = destinoOAuthPermitido(
         (data as { redirect_to?: string | null })?.redirect_to,
         window.location.origin,
@@ -119,7 +119,7 @@ export default function PaymentConnectionsPanel({
   const accion = async (action: string, ok: string) => {
     if (!activeOrg?.id) return;
     if (action === "disconnect" && !(await ask({
-      title: "¿Desconectar Gestiona Pay?",
+      title: "¿Desconectar Nerqia Pay?",
       description: "Los cobros online dejan de funcionar hasta que vuelvas a conectar la cuenta.",
       confirmText: "Desconectar",
       variant: "destructive",
@@ -157,7 +157,7 @@ export default function PaymentConnectionsPanel({
             <CreditCard className="w-4 h-4 text-sky-500" />
           </div>
           <div className="min-w-0">
-            <h2 className="font-display font-semibold text-sm">Gestiona Pay</h2>
+            <h2 className="font-display font-semibold text-sm">Nerqia Pay</h2>
             <p className="text-xs text-muted-foreground">
               {conectado
                 ? `Rail Mercado Pago · ${mp?.nickname ?? mp?.email ?? "cuenta vinculada"}`
@@ -189,11 +189,11 @@ export default function PaymentConnectionsPanel({
         <div className="space-y-2">
           <Button onClick={conectar} disabled={busy === "start"} className="gap-2 min-h-11">
             {busy === "start" ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-            Activar Gestiona Pay
+            Activar Nerqia Pay
           </Button>
           <p className="text-[11px] text-muted-foreground">
             En Argentina el procesador es Mercado Pago: autorizás tu cuenta y el
-            dinero entra ahí. Gestiona orquesta el checkout, la conciliación y la
+            dinero entra ahí. Nerqia orquesta el checkout, la conciliación y la
             comisión. No es un medio aparte.
           </p>
         </div>

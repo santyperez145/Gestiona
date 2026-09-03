@@ -6,7 +6,7 @@
  * Requires VAPID keys in Supabase secrets:
  *   VAPID_PUBLIC_KEY  — base64url public key
  *   VAPID_PRIVATE_KEY — base64url private key
- *   VAPID_SUBJECT     — mailto: or https: URL (e.g. "mailto:admin@gestiona.app")
+ *   VAPID_SUBJECT     — mailto: or https: URL (e.g. "mailto:admin@nerqia.app")
  *
  * Generate with: npx web-push generate-vapid-keys
  * or: openssl ecparam -genkey -name prime256v1 -noout | openssl ec -pubout ...
@@ -30,7 +30,7 @@ const CORS = {
 // ── VAPID JWT builder ─────────────────────────────────────────
 async function buildVapidJwt(audience: string): Promise<string> {
   const privateKeyB64 = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
-  const subject = Deno.env.get("VAPID_SUBJECT") ?? "mailto:admin@gestiona.app";
+  const subject = Deno.env.get("VAPID_SUBJECT") ?? "mailto:admin@nerqia.app";
 
   const header = { alg: "ES256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);

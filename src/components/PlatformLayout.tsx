@@ -80,7 +80,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
             <BrandLogo compact decorative eager markClassName="h-7 w-7" />
             <div className="min-w-0">
               <span className="platform-brand-title block font-display font-semibold text-[13px] tracking-tight truncate">
-                Plataforma Gestiona
+                Plataforma Nerqia
               </span>
               <span className="platform-brand-subtitle hidden sm:block text-[9px] uppercase tracking-[0.14em]">Control operativo</span>
             </div>

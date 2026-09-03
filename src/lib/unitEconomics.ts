@@ -4,7 +4,7 @@ import { platformFeeFor, round2, type CommissionRule } from '@/lib/paymentFees';
  * Unit economics de la plataforma, no del comercio.
  *
  * El arancel del procesador se muestra como costo para el merchant, pero no se
- * resta de la contribución de Gestiona: Mercado Pago lo descuenta de la cuenta
+ * resta de la contribución de Nerqia: Mercado Pago lo descuenta de la cuenta
  * del vendedor antes de separar la comisión del marketplace. Los únicos COGS
  * de plataforma son los declarados explícitamente abajo.
  */

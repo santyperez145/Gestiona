@@ -223,7 +223,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
     }]);
     const workbook = utils.book_new();
     utils.book_append_sheet(workbook, sheet, "Productos");
-    writeFile(workbook, "plantilla_productos_gestiona.xlsx");
+    writeFile(workbook, "plantilla_productos_nerqia.xlsx");
   }
 
   if (!canImport) return (

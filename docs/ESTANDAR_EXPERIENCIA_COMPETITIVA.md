@@ -1,4 +1,4 @@
-# Gestiona — estándar integral de producto y experiencia competitiva
+# Nerqia — estándar integral de producto y experiencia competitiva
 
 **Corte de investigación:** 2026-08-29
 **Estado:** lineamiento obligatorio para producto, diseño e ingeniería.  
@@ -11,7 +11,7 @@ que ordena el producto, ni a [`DESIGNROADMAP.md`](../DESIGNROADMAP.md), que
 ordena el rediseño. Es la vara permanente contra la cual ambos se ejecutan.
 
 La intención no es copiar una pantalla famosa ni sumar todas las funciones que
-existen en el mercado. Gestiona adopta patrones que reducen tiempo, error y
+existen en el mercado. Nerqia adopta patrones que reducen tiempo, error y
 riesgo, y conserva su diferencial: una sola verdad de stock, cliente, costo,
 cobro, impuestos, envío y margen a través de todos los canales.
 
@@ -30,7 +30,7 @@ Cada afirmación de este documento usa una de estas marcas:
   revisado en la fecha de corte.
 - **👁 Observado:** composición vista directamente en un preview público de
   Figma; prueba el patrón visual, no que una empresa real lo use ni que funcione.
-- **📌 Decisión Gestiona:** traducción elegida para nuestro producto.
+- **📌 Decisión Nerqia:** traducción elegida para nuestro producto.
 - **❓ Hipótesis:** idea todavía sin evidencia de uso, performance o negocio.
 
 Reglas:
@@ -53,7 +53,7 @@ Reglas:
 | Referencia | Evidencia | Patrón útil | Traducción, no copia |
 |---|---|---|---|
 | Shopify Admin | ✅ [vistas y filtros](https://help.shopify.com/en/manual/shopify-admin/productivity-tools/searching-filtering-views), [vistas de pedidos](https://help.shopify.com/en/manual/fulfillment/managing-orders/viewing-orders/searching-orders), [acciones masivas](https://help.shopify.com/en/manual/shopify-admin/productivity-tools/bulk-actions) | Vistas reutilizables por recurso, filtros explícitos, selección de página o de todos los resultados y preview de pedido sin perder la población. | Índices de productos, ventas y clientes con estado en URL, vistas guardadas, inspector contextual y bulk seguro. |
-| Shopify POS | ✅ [sesiones de caja](https://help.shopify.com/en/manual/sell-in-person/shopify-pos/cash-register-management/register-sessions-in-shopify-pos) | La sesión pertenece a una ubicación y registra fondo inicial, responsable, pagos, movimientos, efectivo esperado, contado y diferencia; los “otros métodos” siguen visibles sin fingir que son efectivo. | El turno de Gestiona es server-side por organización/ubicación, cuenta tickets canónicos —no renglones—, separa efectivo/transferencia/tarjeta, atribuye vendedor y hace que el cierre declarado se compare con un esperado calculado en servidor. |
+| Shopify POS | ✅ [sesiones de caja](https://help.shopify.com/en/manual/sell-in-person/shopify-pos/cash-register-management/register-sessions-in-shopify-pos) | La sesión pertenece a una ubicación y registra fondo inicial, responsable, pagos, movimientos, efectivo esperado, contado y diferencia; los “otros métodos” siguen visibles sin fingir que son efectivo. | El turno de Nerqia es server-side por organización/ubicación, cuenta tickets canónicos —no renglones—, separa efectivo/transferencia/tarjeta, atribuye vendedor y hace que el cierre declarado se compare con un esperado calculado en servidor. |
 | HubSpot CRM | ✅ [vistas guardadas](https://knowledge.hubspot.com/records/manage-saved-views-in-the-updated-index-page), [columnas](https://knowledge.hubspot.com/records/customize-index-page-columns), [filtros rápidos](https://knowledge.hubspot.com/records/customize-quick-filters), [segmentos](https://knowledge.hubspot.com/segments/view-and-filter-lists) | La vista guarda filtros, columnas, orden y alcance; preview sin perder la lista; lógica de segmentos agrupada. | `ResourceView` canónica y diferencia estricta entre filtro, vista, segmento, cohorte y cola. |
 | Salesforce | ✅ [vistas de lista](https://help.salesforce.com/s/articleView?id=xcloud.basics_understanding_list_views_lex.htm&language=en_US&type=5), [vistas personalizadas](https://help.salesforce.com/s/articleView?id=xcloud.customviews_lex.htm&language=en_US&type=5), [Kanban](https://help.salesforce.com/s/articleView?id=kanban.htm&language=en_US&type=5) | Tabla/Kanban/split según tarea, vista fijada, búsqueda amplia y tablero con agrupación y resumen. | Tablero sólo para entidades con etapas reales; la tabla sigue siendo la autoridad para comparar. |
 | Stripe Dashboard | ✅ [búsqueda](https://docs.stripe.com/dashboard/search), [Workbench](https://docs.stripe.com/workbench/overview), [filtros](https://docs.stripe.com/connect/dashboard/filters) | Búsqueda global con operadores y URL compartible; inspector persistente de errores, eventos, webhooks y salud. | Command palette y Operation Inspector transversal con correlación, retry y auditoría, sin exponer secretos. |
@@ -63,7 +63,7 @@ Reglas:
 | HubSpot Workflows | ✅ [historial y versiones](https://knowledge.hubspot.com/workflows/understand-your-workflow-details-page), [trazado por registro](https://knowledge.hubspot.com/workflows/review-a-records-workflow-paths-and-actions) | Performance, action logs, historial de enrollment, revisión de versiones y camino exacto de cada registro. | Cada run de Orbit muestra snapshot, evidencia, policy, entidad enlazada, error, retry y resultado, con retención/PII explícitas. |
 | QuickBooks Online | ✅ [receipts/bills](https://quickbooks.intuit.com/learn-support/en-us/help-article/import-transactions/upload-receipts-bills-quickbooks-online/L862MmZHn_US_en_US), [aprobaciones](https://quickbooks.intuit.com/learn-support/en-us/help-article/manage-workflows/set-use-bill-approval-payment-release-workflows/L1IOLL9hv_US_en_US), [gestión de bills](https://quickbooks.intuit.com/learn-support/en-us/help-article/pay-bills/review-manage-bills-quickbooks-online/L8VbbnAd2_US_en_US) | Cola `For review`, documento y datos lado a lado, match o creación, estado de aprobación y tarea asignada. | Finance Document Inbox, revisión humana versionada y borradores sin efecto hasta aprobación. |
 | QuickBooks Intuit Intelligence | ✅ [producto](https://quickbooks.intuit.com/learn-support/en-us/help-article/intuit-assist/introducing-intuit-intelligence/L189976Da_US_en_US) | IA + BI sobre datos de la compañía, respuestas contextualizadas, insights y tareas de varios pasos dentro del producto. | El briefing comparte la misma fuente server-side con sus cifras visibles; no recibe un prompt ni el grafo del negocio desde el browser. El siguiente gate es recomendación → acción → resultado, no más texto generado. |
-| Square | ✅ [reportes](https://squareup.com/help/us/en/article/5072-summaries-and-reports-from-the-online-dashboard), [gestión de órdenes](https://squareup.com/help/us/en/article/6923-pickup-orders-on-square-point-of-sale), [colas de disputa](https://squareup.com/help/us/en/article/8361-view-dispute-reports), [pagos offline](https://squareup.com/help/us/en/article/7777-process-card-payments-with-offline-mode) y [sesión de cajón](https://squareup.com/help/us/en/article/8344-start-and-end-a-cash-drawer-session) | Fecha/local/dispositivo como contexto; órdenes omnicanal buscables por estado/origen/pago con detalle y actividad; tarjetas de performance y lista accionable; “requiere respuesta”. Offline declara pendiente/riesgo/resultado. La caja parte del efectivo inicial, suma ventas/reembolsos e ingresos/retiros y compara efectivo esperado contra contado. | POS/reportes por ubicación, índice de ventas con inspector de ticket y colas con severidad, dueño, vencimiento y próxima acción. Gestiona agrupa offline por ticket y su turno usa esa misma unidad server-side; no promete procesamiento de tarjeta/hardware que no controla. |
+| Square | ✅ [reportes](https://squareup.com/help/us/en/article/5072-summaries-and-reports-from-the-online-dashboard), [gestión de órdenes](https://squareup.com/help/us/en/article/6923-pickup-orders-on-square-point-of-sale), [colas de disputa](https://squareup.com/help/us/en/article/8361-view-dispute-reports), [pagos offline](https://squareup.com/help/us/en/article/7777-process-card-payments-with-offline-mode) y [sesión de cajón](https://squareup.com/help/us/en/article/8344-start-and-end-a-cash-drawer-session) | Fecha/local/dispositivo como contexto; órdenes omnicanal buscables por estado/origen/pago con detalle y actividad; tarjetas de performance y lista accionable; “requiere respuesta”. Offline declara pendiente/riesgo/resultado. La caja parte del efectivo inicial, suma ventas/reembolsos e ingresos/retiros y compara efectivo esperado contra contado. | POS/reportes por ubicación, índice de ventas con inspector de ticket y colas con severidad, dueño, vencimiento y próxima acción. Nerqia agrupa offline por ticket y su turno usa esa misma unidad server-side; no promete procesamiento de tarjeta/hardware que no controla. |
 
 ### Finance y spend management regional
 
@@ -72,7 +72,7 @@ Reglas:
 | Mendel | ✅ [producto](https://mendel.com/ar/producto/), [tarjetas](https://mendel.com/ar/producto/tarjetas-mendel/), [integraciones](https://mendel.com/ar/producto/integraciones/) y [MCP](https://mendel.com/ar/mendel-mcp/) | Control preventivo: presupuesto y política antes del gasto; tarjetas físicas/virtuales, reglas por monto/categoría/ubicación/frecuencia, aprobaciones multinivel, centros de costo y exportación a ERP. Su MCP permite consultar y aprobar en lote con herramientas autorizadas. | F5 debe unir solicitud, política, presupuesto, evidencia, aprobador, excepción y exportación sobre el mismo Business Graph. Las acciones de IA reutilizan permisos y auditoría; nunca evitan la aprobación humana. |
 | Clara Global | ✅ [plataforma Argentina](https://global.clara.com/es-AR) | Comprobante por WhatsApp/formulario, gasto con tarjeta y reembolso en un mismo flujo, roles diferenciados, entidades legales aisladas y reporte de pago estructurado. | Ingreso mobile/WhatsApp, reembolso y tarjeta externa convergen en una cola común sin mezclar organizaciones ni monedas. Solicitante, manager, contador y administrador ven alcances distintos. |
 | Rindegastos | ✅ [gestión de gastos](https://rindegastos.com/), [controles y flujos](https://rindegastos.com/es-mx/gestion-de-gastos) y [API](https://rindegastos.com/es-co/documentacion-api) | Rendiciones, anticipos/fondos, viáticos, kilometraje, captura offline, duplicados, políticas por centro de costo y aprobaciones por monto/tipo; API para usuarios, gastos, informes, fondos y políticas. | Expense Management necesita captura resiliente, fondos/reembolsos, política versionada, cola de infracciones y contrato de integración estable; el rol final sigue siendo responsable de la decisión. |
-| SAP Concur Argentina | ✅ [servicios financieros](https://www.concur.com.ar/servicios-financieros) | Viajes, gastos y facturas en una suite, captura automática y visibilidad fiscal/regulatoria. | Es referencia enterprise de cobertura y compliance, no alcance inmediato. Gestiona preserva evidencia fiscal argentina y escala por fases sin presentar una suite de viajes inexistente. |
+| SAP Concur Argentina | ✅ [servicios financieros](https://www.concur.com.ar/servicios-financieros) | Viajes, gastos y facturas en una suite, captura automática y visibilidad fiscal/regulatoria. | Es referencia enterprise de cobertura y compliance, no alcance inmediato. Nerqia preserva evidencia fiscal argentina y escala por fases sin presentar una suite de viajes inexistente. |
 
 📌 **Límite Finance:** tarjetas corporativas, custodia de fondos y viajes no
 entran en F3 ni se prometen por paridad. Primero se valida documento → matching
@@ -84,17 +84,17 @@ mover dinero exige demanda, socio regulado, economics y análisis legal propios.
 
 | Referencia | Evidencia | Patrón útil | Traducción, no copia |
 |---|---|---|---|
-| Tiendanube | ✅ [funcionalidades](https://www.tiendanube.com/funcionalidades), [Punto de Venta](https://ayuda.tiendanube.com/pdv/que-es-punto-de-venta-de-tiendanube) y [búsqueda/filtros de ventas](https://ayuda.tiendanube.com/es_AR/123288-mis-ventas/como-buscar-y-filtrar-mis-ventas) | Tienda, redes, marketplaces, PDV, stock sincronizado, pagos, envíos, marketing y ecosistema de apps. El PDV busca catálogo/clientes, ve stock, descuenta y lleva la orden al administrador; Ventas ofrece filtros ricos, vistas rápidas, exportación y acciones masivas. | La paridad Commerce incluye el recorrido completo y una operación de órdenes veloz; POS o stock compartido ya no son diferenciales. Gestiona debe explicar costo y margen por canal desde la misma orden y distinguir un ticket local pendiente del stock ya reconciliado. |
+| Tiendanube | ✅ [funcionalidades](https://www.tiendanube.com/funcionalidades), [Punto de Venta](https://ayuda.tiendanube.com/pdv/que-es-punto-de-venta-de-tiendanube) y [búsqueda/filtros de ventas](https://ayuda.tiendanube.com/es_AR/123288-mis-ventas/como-buscar-y-filtrar-mis-ventas) | Tienda, redes, marketplaces, PDV, stock sincronizado, pagos, envíos, marketing y ecosistema de apps. El PDV busca catálogo/clientes, ve stock, descuenta y lleva la orden al administrador; Ventas ofrece filtros ricos, vistas rápidas, exportación y acciones masivas. | La paridad Commerce incluye el recorrido completo y una operación de órdenes veloz; POS o stock compartido ya no son diferenciales. Nerqia debe explicar costo y margen por canal desde la misma orden y distinguir un ticket local pendiente del stock ya reconciliado. |
 | Empretienda | ✅ [plataforma](https://www.empretienda.com/), [productos](https://empretienda.helpjuice.com/es_AR/productos) y [carga de venta](https://empretienda.helpjuice.com/es_AR/conociendo-agregar-) | Administración desde cualquier dispositivo, carga/importación de productos, productos digitales/mayoristas, promociones y una venta presencial/WhatsApp que descuenta el mismo stock. | El segundo comercio debe poder empezar y vender desde el celular con menos configuración. La venta fuera del checkout sigue entrando al Core, no crea otro inventario. |
 | Contabilium | ✅ [ERP Argentina](https://contabilium.com/ar) y [ERP ecommerce](https://contabilium.com/ar/industrias/erp-ecommerce/) | Facturación, compras, stock, tesorería, contabilidad y POS con integraciones a Mercado Libre, Tiendanube, WooCommerce y Shopify; depósitos, precios, órdenes y clientes sincronizados. | El benchmark local no termina en ecommerce: onboarding, ARCA, depósitos, compras y conciliación deben funcionar juntos. La amplitud sin adopción no cuenta como ventaja. |
-| Xubio | ✅ [producto](https://xubio.com/ar/) y [matriz de empresas](https://xubio.com/ar/precios-empresas) | Facturación, cobranzas, pagos, compras, stock/depósitos, importaciones, impuestos, contabilidad, permisos e integraciones locales en una matriz de planes explícita. | El lenguaje fiscal y las tareas argentinas deben ser nativos. Gestiona compite con menor tiempo a valor y evidencia de margen, no con una lista más larga de módulos. |
+| Xubio | ✅ [producto](https://xubio.com/ar/) y [matriz de empresas](https://xubio.com/ar/precios-empresas) | Facturación, cobranzas, pagos, compras, stock/depósitos, importaciones, impuestos, contabilidad, permisos e integraciones locales en una matriz de planes explícita. | El lenguaje fiscal y las tareas argentinas deben ser nativos. Nerqia compite con menor tiempo a valor y evidencia de margen, no con una lista más larga de módulos. |
 | Colppy | ✅ [plataforma](https://colppy.com/) y [gestión para PyMEs](https://colppy.com/sistema-de-gestion-para-pymes) | Gestión y contabilidad cloud, facturación, bancos, pagos/cobros, stock, cash flow e integraciones con Mercado Pago, Tiendanube y Mercado Libre. | Finance y Business muestran continuidad entre operación, banco, impuesto y asiento, con estados conciliados y responsables visibles. |
 | Mercado Libre + Mercado Pago | ✅ [publicación](https://www.mercadolibre.com.ar/ayuda/como-publicar-en-mercado-libre_25316), [Orders API de Point](https://www.mercadopago.com.ar/developers/es/docs/mp-point/overview) y [marketplace fee](https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/how-tos/integrate-marketplace) | Catálogo/variantes/stock, fulfillment, cobro presencial y online, conciliación por notificaciones y comisión de marketplace mediante OAuth. | MercadoLibre es un canal del Core y Mercado Pago una infraestructura de cobro: cada evento se reconcilia, es idempotente y termina en orden, stock, pago y margen explicables. |
 
 📌 **Paridad local obligatoria:** catálogo/importación, venta de mostrador y
 online, stock único, promociones, pagos, envíos, dominio, facturación argentina,
 filtros/acciones de órdenes, uso mobile e integraciones. Ninguna de esas piezas
-aislada es el posicionamiento. El claim defendible a validar es que Gestiona
+aislada es el posicionamiento. El claim defendible a validar es que Nerqia
 reúne operación, Commerce y Finance con costo histórico, comisión, envío e IVA
 en la misma decisión de margen.
 
@@ -332,7 +332,7 @@ y la [prevención de IDOR de OWASP](https://cheatsheetseries.owasp.org/cheatshee
 - un enlace histórico sin capacidad exige número + email, limita intentos y no
   revela cuál de ambos datos fue incorrecto;
 - sin autenticación sólo se podría mostrar información pública redactada; en
-  Gestiona se deniega todo el detalle hasta verificar;
+  Nerqia se deniega todo el detalle hasta verificar;
 - pago, reintento y comunicaciones vuelven a validar la capacidad en servidor:
   ocultar el detalle en React no es control de acceso.
 
@@ -347,7 +347,7 @@ y su contrato de [webhooks al menos una vez](https://resend.com/docs/webhooks/in
 - el proveedor se invoca fuera de la transacción y el resultado sólo lo puede
   cerrar el token vigente; un lease acotado recupera workers caídos;
 - Resend recibe además una `Idempotency-Key` estable y conserva su segunda
-  barrera durante 24 horas. El ledger privado de Gestiona es la barrera durable
+  barrera durante 24 horas. El ledger privado de Nerqia es la barrera durable
   y también cubre SMTP, donde no se promete exactly-once del proveedor;
 - un aviso enviado se responde como éxito deduplicado; uno fallido puede
   reintentarse y conserva intento, proveedor, id saneado y error privado;
@@ -909,6 +909,6 @@ sin denominador ni mocks presentados como producción.
 - Si evidencia nueva contradice una decisión, se corrige la decisión y se deja
   razón; no se conserva por orgullo o costo hundido.
 
-La vara final es simple: Gestiona debe permitir que un comercio opere mejor y
+La vara final es simple: Nerqia debe permitir que un comercio opere mejor y
 que la plataforma escale con menos intervención, mientras cada número, permiso
 y efecto conserva una autoridad comprobable.

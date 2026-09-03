@@ -213,8 +213,9 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
         : baseCatLabel;
 
       // Preload logo for cover page
-      const coverLogoUrl = settings?.logo_url || `${window.location.origin}/exentry-logo.png`;
-      const coverLogoBase64 = await loadImageAsBase64(coverLogoUrl).catch(() => null);
+      const coverLogoBase64 = settings?.logo_url
+        ? await loadImageAsBase64(settings.logo_url).catch(() => null)
+        : null;
 
       // QR code → canvas → PNG
       let qrDataUrl: string | null = null;

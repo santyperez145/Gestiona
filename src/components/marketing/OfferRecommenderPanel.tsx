@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useOrg } from '@/lib/orgContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -407,7 +407,7 @@ export default function OfferRecommenderPanel() {
           <DialogHeader>
             <DialogTitle>Revertir cambio de precio</DialogTitle>
             <DialogDescription>
-              Gestiona restaura el precio anterior sólo si nadie lo modificó después. La decisión y el motivo quedan auditados.
+              Nerqia restaura el precio anterior sólo si nadie lo modificó después. La decisión y el motivo quedan auditados.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">

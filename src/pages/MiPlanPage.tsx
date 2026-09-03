@@ -223,7 +223,7 @@ export default function MiPlanPage() {
       <PageHeader
         icon={CreditCard}
         title="Mi plan"
-        description="Tu suscripción a Gestiona. Se cobra por MercadoPago."
+        description="Tu suscripción a Nerqia. Se cobra por MercadoPago."
         badge={{ label: badge.texto }}
       />
 

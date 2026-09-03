@@ -431,7 +431,7 @@ export default function PaymentSettlementsPanel() {
                 <p className="font-mono font-semibold">{fmt(Number(settlementTx.gross_amount))}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Comisión Gestiona aprobada</p>
+                <p className="text-xs text-muted-foreground">Comisión Nerqia aprobada</p>
                 <p className="font-mono">{fmt(Number(settlementTx.platform_fee))}</p>
               </div>
             </div>

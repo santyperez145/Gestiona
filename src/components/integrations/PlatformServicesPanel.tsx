@@ -1,7 +1,7 @@
 import { Sparkles, Mail, Database, MessageSquare, CreditCard, Info } from "lucide-react";
 
 /**
- * Shows the services that come bundled with the Gestiona platform.
+ * Shows the services that come bundled with the Nerqia platform.
  * These use platform-level API keys configured by the platform owner —
  * the org doesn't need to do anything.
  */
@@ -38,7 +38,7 @@ export default function PlatformServicesPanel() {
     {
       icon: CreditCard,
       label: "Cobros de suscripción",
-      description: "Tu plan de Gestiona se cobra por Stripe",
+      description: "Tu plan de Nerqia se cobra por Stripe",
       color: "text-indigo-400",
       bg: "bg-indigo-500/10",
     },
@@ -62,7 +62,7 @@ export default function PlatformServicesPanel() {
         <div className="flex items-start gap-2 mb-4 text-xs text-muted-foreground bg-muted/20 rounded-lg p-2.5">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/70" />
           <p>
-            Estos servicios funcionan automáticamente. <strong className="text-foreground">No necesitás contratar nada ni configurar API keys</strong> — vienen como parte de Gestiona.
+            Estos servicios funcionan automáticamente. <strong className="text-foreground">No necesitás contratar nada ni configurar API keys</strong> — vienen como parte de Nerqia.
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">

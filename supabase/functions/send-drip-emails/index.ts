@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
           .eq("org_id", enrollment.org_id)
           .maybeSingle();
         const smtpCfg = await smtpDeOrganizacion(enrollment.org_id);
-        const businessName: string = settings?.business_name || seq.name || "Gestiona";
+        const businessName: string = settings?.business_name || seq.name || "Nerqia";
 
         // 3. Generate unsubscribe token
         const unsubToken = generateToken();

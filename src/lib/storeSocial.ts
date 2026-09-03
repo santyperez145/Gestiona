@@ -117,7 +117,7 @@ export function displayInstagram(href: string | null | undefined): string {
 }
 
 /**
- * Consulta con el nombre de la tienda. El texto lo elige Gestiona, no el
+ * Consulta con el nombre de la tienda. El texto lo elige Nerqia, no el
  * comercio: un `text=` pegado podría ser un reclamo falso prearmado.
  */
 export function hrefWhatsAppConsultar(

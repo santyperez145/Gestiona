@@ -1,4 +1,8 @@
-# Gestiona — contexto para Codex
+# Nerqia — contexto para Codex
+
+**Identidad canónica desde 2026-09-03:** Nerqia / `https://nerqia.app`.
+Los namespaces técnicos heredados no se renombran sin migración compatible. Ver
+[docs/ADR_003_NERQIA_IDENTIDAD_Y_DOMINIO.md](docs/ADR_003_NERQIA_IDENTIDAD_Y_DOMINIO.md).
 
 **Commerce Operating System:** la tienda es la puerta; el Business Graph es el
 foso. El mostrador, la web y los marketplaces comparten stock, clientes, costos
@@ -15,7 +19,7 @@ a la vez** —costo con aduana, comisión del medio de pago, envío e IVA—. Un
 ecommerce no sabe el costo; un ERP no sabe la comisión. Ver
 [docs/ESTRATEGIA.md](docs/ESTRATEGIA.md).
 
-📌 **Lineamiento 2026-09-01 (ADR 002):** Gestiona se piensa como sistema
+📌 **Lineamiento 2026-09-01 (ADR 002):** Nerqia se piensa como sistema
 operativo de **comercio** omnicanal. El corazón sigue siendo el Business Core
 —productos, órdenes, clientes, finanzas e inventario—. POS, tienda,
 MercadoLibre, WhatsApp y Pay son canales o capas alrededor de ese núcleo. Si un
@@ -77,7 +81,7 @@ de interfaz**, leer
 [`docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md`](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
 Ese documento fija la investigación competitiva, los arquetipos de pantalla,
 los estados completos y la puerta tecnológica. Una referencia se traduce al
-trabajo real de Gestiona: no se copia, y una librería no entra por reputación
+trabajo real de Nerqia: no se copia, y una librería no entra por reputación
 sin gap, benchmark, accesibilidad, seguridad, costo de salida y criterio de
 éxito.
 
@@ -102,7 +106,7 @@ los restos y tiene que dar `0`.
 **El navegador se verifica contra `localhost`, no contra Vercel.** El deploy va
 del `git push`, así que hasta que no se pushea, el sitio publicado tiene el
 código viejo aunque las migraciones ya estén aplicadas. Verificar contra
-`exentryimports.vercel.app` da falsos negativos garantizados.
+`nerqia.app` da falsos negativos garantizados.
 
 ⚠️ **Pero eso necesita un `.env`, y no está en las dos PCs.** Sin
 `VITE_SUPABASE_URL` el cliente se construye con la URL vacía (ver
@@ -963,7 +967,7 @@ de cliente, que decían guardarse y no guardaban nada.
 
 ## Lenguaje visual y rediseno (2026-08-14)
 
-La UI de Gestiona toma de los kits de ecommerce la jerarquia, la densidad de informacion y la claridad de las acciones, pero no copia pantallas ni assets. El producto tiene que verse como un sistema operativo omnicanal, no como un template de tienda.
+La UI de Nerqia toma de los kits de ecommerce la jerarquia, la densidad de informacion y la claridad de las acciones, pero no copia pantallas ni assets. El producto tiene que verse como un sistema operativo omnicanal, no como un template de tienda.
 
 - La superficie de organizacion usa un workspace neutral con acciones en ambar; la superficie de plataforma conserva violeta para que nadie confunda tenant con staff.
 - El modo claro es el punto de entrada para leer tablas, metricas y estados. El modo oscuro sigue siendo una opcion completa.

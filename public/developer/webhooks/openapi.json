@@ -2,13 +2,13 @@
   "openapi": "3.1.1",
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
-    "title": "Gestiona Outbound Webhooks",
-    "summary": "Contrato versionado de eventos salientes de Gestiona.",
-    "description": "Gestiona envía POST HTTPS firmados. La entrega es al menos una vez, no garantiza orden y conserva `id` entre reintentos. El receptor debe validar la firma sobre el cuerpo crudo, deduplicar por `id`, encolar su trabajo y responder 2xx rápidamente.",
+    "title": "Nerqia Outbound Webhooks",
+    "summary": "Contrato versionado de eventos salientes de Nerqia.",
+    "description": "Nerqia envía POST HTTPS firmados. La entrega es al menos una vez, no garantiza orden y conserva `id` entre reintentos. El receptor debe validar la firma sobre el cuerpo crudo, deduplicar por `id`, encolar su trabajo y responder 2xx rápidamente.",
     "version": "2026-08-29",
     "license": {
-      "name": "Propietario — uso sujeto al contrato de Gestiona",
-      "identifier": "LicenseRef-Gestiona-Proprietary"
+      "name": "Propietario — uso sujeto al contrato de Nerqia",
+      "identifier": "LicenseRef-Nerqia-Proprietary"
     }
   },
   "servers": [
@@ -21,8 +21,8 @@
           "description": "Host público del receptor."
         },
         "receiverPath": {
-          "default": "gestiona",
-          "description": "Ruta que recibe los POST de Gestiona."
+          "default": "nerqia",
+          "description": "Ruta que recibe los POST de Nerqia."
         }
       }
     }
@@ -53,7 +53,7 @@
         },
         "responses": {
           "2XX": { "description": "Entrega aceptada. Procesar de forma asíncrona." },
-          "default": { "description": "Entrega no aceptada. Gestiona puede reintentarla." }
+          "default": { "description": "Entrega no aceptada. Nerqia puede reintentarla." }
         }
       }
     },
@@ -79,7 +79,7 @@
         },
         "responses": {
           "2XX": { "description": "Entrega aceptada. Procesar de forma asíncrona." },
-          "default": { "description": "Entrega no aceptada. Gestiona puede reintentarla." }
+          "default": { "description": "Entrega no aceptada. Nerqia puede reintentarla." }
         }
       }
     },

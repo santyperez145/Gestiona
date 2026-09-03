@@ -38,13 +38,13 @@ export default function FinanceProductGate({ children }: { children: React.React
         <div className="flex h-12 w-12 items-center justify-center rounded-[12px] border border-teal-500/25 bg-teal-500/10 text-teal-600 dark:text-teal-300">
           {requested ? <Clock3 className="h-5 w-5" /> : permissionDenied ? <LockKeyhole className="h-5 w-5" /> : <ReceiptText className="h-5 w-5" />}
         </div>
-        <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-600 dark:text-teal-300">Gestiona Finance</p>
+        <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-600 dark:text-teal-300">Nerqia Finance</p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
           {requested ? 'Solicitud en revisión' : permissionDenied ? 'Tu rol no tiene acceso a Finanzas' : 'Activá el piloto documental'}
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
           {requested
-            ? `Gestiona recibió la solicitud de ${activeOrg?.name || 'esta organización'}. Habilitar el producto no cambia compras, deudas ni asientos: Finance usa el mismo Business Core.`
+            ? `Nerqia recibió la solicitud de ${activeOrg?.name || 'esta organización'}. Habilitar el producto no cambia compras, deudas ni asientos: Finance usa el mismo Business Core.`
             : permissionDenied
               ? 'El producto está habilitado para la organización, pero el permiso finance.view está desactivado para tu rol. Pedile acceso a un owner o administrador.'
               : 'El piloto organiza facturas de proveedor sobre los proveedores, compras, obligaciones y ledger que ya existen. La captura nunca registra stock ni deuda sin revisión.'}

@@ -3,8 +3,8 @@ import { ArrowLeft, Shield } from 'lucide-react';
 import BrandLogo from '@/components/shared/BrandLogo';
 
 const LAST_UPDATED = '30 de agosto de 2026';
-const COMPANY = 'Gestiona';
-const EMAIL = 'privacidad@gestiona.app';
+const COMPANY = 'Nerqia';
+const EMAIL = 'privacidad@nerqia.app';
 
 export default function PrivacyPage() {
   return (

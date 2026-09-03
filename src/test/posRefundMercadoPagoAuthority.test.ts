@@ -80,7 +80,7 @@ describe("refund Mercado Pago de una devolución POS", () => {
     expect(page).toContain('operateProviderRefund(refund.id, "reconcile")');
     expect(page).toContain("Requiere permiso Pagos · Editar");
     expect(page).toContain("El dinero sigue pendiente hasta que Mercado Pago lo confirme");
-    expect(page).toContain("Gestiona nunca permite cerrarlo a mano");
+    expect(page).toContain("Nerqia nunca permite cerrarlo a mano");
   });
 
   it("la creación intenta el refund automáticamente sin perder la devolución", () => {

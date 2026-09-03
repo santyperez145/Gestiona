@@ -9,7 +9,7 @@ import { join } from "node:path";
  *
  * Medido el 2026-08-28 pidiendo la tienda real con el user-agent de un
  * crawler: la vista previa de WhatsApp está **bien resuelta** —nombre,
- * descripción e imagen del comercio, no de Gestiona— porque `vercel.json`
+ * descripción e imagen del comercio, no de Nerqia— porque `vercel.json`
  * reescribe `/tienda/*` a `/api/og` cuando el visitante es un bot.
  *
  * ⚠️ Pero **no había un solo dato estructurado**: 0 bloques

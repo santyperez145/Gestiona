@@ -27,6 +27,6 @@ describe("identity review CSV export", () => {
 
   it("names exports by entity and UTC date", () => {
     expect(identityReviewFilename("customers", new Date("2026-08-21T10:00:00Z")))
-      .toBe("gestiona-identidad-customers-2026-08-21.csv");
+      .toBe("nerqia-identidad-customers-2026-08-21.csv");
   });
 });

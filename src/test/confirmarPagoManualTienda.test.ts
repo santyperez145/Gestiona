@@ -7,6 +7,7 @@ const leer = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 
 describe("confirmar pago manual de tienda", () => {
   const migracion = leer("supabase/migrations/20260902000050_confirmar_pago_manual_tienda.sql");
+  const migracionMarca = leer("supabase/migrations/20260903000070_nerqia_identidad_canonica.sql");
   const inspector = leer("src/components/ecommerce/StoreOrderInspector.tsx");
   const page = leer("src/components/ecommerce/StoreOrdersWorkspace.tsx");
 
@@ -22,8 +23,9 @@ describe("confirmar pago manual de tienda", () => {
     expect(migracion).toMatch(/IF has_function_privilege\(\s*'anon'/);
   });
 
-  it("no deja confirmar Gestiona Pay a mano", () => {
+  it("no deja confirmar Nerqia Pay a mano", () => {
     expect(migracion).toContain("Gestiona Pay se acredita");
+    expect(migracionMarca).toContain("replace(v_definition, 'Gestiona Pay', 'Nerqia Pay')");
     expect(migracion).toContain("NOT IN ('transferencia', 'efectivo')");
   });
 

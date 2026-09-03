@@ -1,12 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
 
-describe('identidad canónica de Gestiona', () => {
+const runtimeFiles = (directory: string): string[] => readdirSync(resolve(process.cwd(), directory))
+  .flatMap(entry => {
+    const relative = `${directory}/${entry}`;
+    const absolute = resolve(process.cwd(), relative);
+    if (statSync(absolute).isDirectory()) {
+      if (relative === 'src/test') return [];
+      return runtimeFiles(relative);
+    }
+    return /\.(?:ts|tsx|json|html)$/.test(entry) && !/\.test\.tsx?$/.test(entry)
+      ? [relative]
+      : [];
+  });
+
+describe('identidad canónica de Nerqia', () => {
   it('versiona un símbolo PNG cuadrado con transparencia real', () => {
-    const mark = readFileSync(resolve(process.cwd(), 'public/brand/gestiona-mark.png'));
+    const mark = readFileSync(resolve(process.cwd(), 'public/brand/nerqia-mark.png'));
 
     expect(mark.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
     expect(mark.readUInt32BE(16)).toBe(mark.readUInt32BE(20));
@@ -15,9 +28,10 @@ describe('identidad canónica de Gestiona', () => {
 
   it('centraliza ruta, nombre accesible y dimensiones en un solo componente', () => {
     const component = source('src/components/shared/BrandLogo.tsx');
+    const brand = source('src/lib/brand.ts');
 
-    expect(component).toContain("'/brand/gestiona-mark.png'");
-    expect(component).toContain("const label = product ? `Gestiona ${product}` : 'Gestiona'");
+    expect(brand).toContain("BRAND_MARK_SRC = '/brand/nerqia-mark.png'");
+    expect(component).toContain('`${BRAND_NAME} ${product}`');
     expect(component).toContain('aria-label={decorative ? undefined : label}');
     expect(component).toContain('width="1254"');
     expect(component).toContain('height="1254"');
@@ -52,7 +66,7 @@ describe('identidad canónica de Gestiona', () => {
       .filter(path => path.endsWith('.tsx'));
 
     for (const path of storefrontFiles) {
-      expect(source(`src/storefront/${path}`), `${path} mezcló Gestiona con la tienda`).not.toContain('BrandLogo');
+      expect(source(`src/storefront/${path}`), `${path} mezcló Nerqia con la tienda`).not.toContain('BrandLogo');
     }
     const publicCatalog = source('src/pages/PublicCatalogPage.tsx');
     expect(publicCatalog).not.toContain('BrandLogo');
@@ -63,9 +77,44 @@ describe('identidad canónica de Gestiona', () => {
     const html = source('index.html');
     const vite = source('vite.config.ts');
 
-    expect(html.match(/\/brand\/gestiona-mark\.png/g)?.length).toBeGreaterThanOrEqual(4);
-    expect(vite).toContain('brand/gestiona-mark.png');
+    expect(html.match(/nerqia\.app\/brand\/nerqia-mark\.png|\/brand\/nerqia-mark\.png/g)?.length).toBeGreaterThanOrEqual(4);
+    expect(vite).toContain('brand/nerqia-mark.png');
     expect(vite).toContain('sizes: "1254x1254"');
     expect(vite).not.toContain("<text y='130'");
+  });
+
+  it('no deja reaparecer la marca o el dominio anterior en superficies activas', () => {
+    const files = [
+      ...runtimeFiles('src'),
+      ...runtimeFiles('supabase/functions'),
+      ...runtimeFiles('api'),
+      ...runtimeFiles('public/developer'),
+      'index.html',
+      'vite.config.ts',
+    ];
+
+    for (const path of files) {
+      const content = source(path)
+        // Compatibilidad deliberada: headers publicados, no copy visible.
+        .replaceAll(/X-Gestiona-[A-Za-z-]+/g, 'X-Legacy-Header')
+        // El origen Vercel anterior queda temporalmente en CORS durante el corte.
+        .replaceAll('https://exentryimports.vercel.app', 'https://legacy.invalid');
+      expect(content, `${path} conserva la marca visible anterior`).not.toMatch(/\bGestiona\b/);
+      expect(content, `${path} conserva un dominio anterior`).not.toMatch(/gestiona\.app|exentryimports\.vercel\.app/);
+    }
+  });
+
+  it('declara nerqia.app como origen canónico y preserva namespaces compatibles', () => {
+    const vercel = JSON.parse(source('vercel.json'));
+    const auth = source('supabase/config.toml');
+
+    expect(vercel.redirects).toContainEqual(expect.objectContaining({
+      destination: 'https://nerqia.app/:path*',
+      permanent: true,
+    }));
+    expect(auth).toContain('site_url = "https://nerqia.app"');
+    expect(source('src/App.tsx')).toContain('storageKey="gestiona-theme"');
+    expect(source('src/lib/gestionaPay.ts')).toContain('gestiona_pay');
+    expect(source('supabase/functions/_shared/outboundWebhook.ts')).toContain('"X-Gestiona-Signature"');
   });
 });

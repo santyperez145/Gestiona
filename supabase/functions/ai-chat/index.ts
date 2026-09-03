@@ -20,7 +20,7 @@ const corsHeaders = {
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
 
-const SYSTEM_PROMPT = `Sos el asistente de negocios de Gestiona, un ERP para comercios en Argentina.
+const SYSTEM_PROMPT = `Sos el asistente de negocios de Nerqia, un ERP para comercios en Argentina.
 Tu especialidad es responder preguntas sobre los datos reales del negocio del usuario: ventas, stock, ganancias, clientes, gastos y tendencias.
 
 REGLAS:

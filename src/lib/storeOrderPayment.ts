@@ -7,7 +7,7 @@ import { esMedioGestionaPay } from "@/lib/gestionaPay";
  */
 
 /**
- * Ventana en la que un cobro digital (Gestiona Pay / Mercado Pago) sigue
+ * Ventana en la que un cobro digital (Nerqia Pay / Mercado Pago) sigue
  * siendo trabajo de hoy. Shopify Abandoned checkouts y Tiendanube no ponen
  * en el home un checkout de hace un mes. La preferencia de MP ya venció;
  * confirmar a mano no aplica: el webhook es la autoridad.
@@ -39,7 +39,7 @@ export function esMedioPagoManualTienda(method: string | null | undefined) {
 
 /**
  * ¿El comercio puede marcar este pedido como cobrado desde el panel?
- * Gestiona Pay / mercadopago quedan afuera: los acredita el webhook.
+ * Nerqia Pay / mercadopago quedan afuera: los acredita el webhook.
  */
 export function canConfirmManualStorePayment(input: {
   payment_status?: StoreOrderPaymentStatus | null;
@@ -54,7 +54,7 @@ export function canConfirmManualStorePayment(input: {
  * ¿El Foco / Pulse debe gritar este cobro?
  *
  * Transferencia y efectivo: sí, el comercio puede acreditarlos.
- * Gestiona Pay: sólo si el pedido es reciente — un `pending` de julio no
+ * Nerqia Pay: sólo si el pedido es reciente — un `pending` de julio no
  * se cobra hoy y enseña a ignorar la lista (medido 2026-09-02: 3 de 4
  * pendientes de Exentry eran MP de 2026-07-29/31).
  */

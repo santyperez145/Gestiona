@@ -97,14 +97,14 @@ import { esMedioGestionaPay } from "@/lib/gestionaPay";
 
 /** Cómo se llama cada medio en pantalla. */
 export const NOMBRE_MEDIO: Record<string, string> = {
-  gestiona_pay: "Gestiona Pay",
-  mercadopago: "Gestiona Pay",
+  gestiona_pay: "Nerqia Pay",
+  mercadopago: "Nerqia Pay",
   transferencia: "transferencia",
   efectivo: "efectivo",
 };
 
 export function nombreMedio(metodo: string): string {
-  if (esMedioGestionaPay(metodo)) return "Gestiona Pay";
+  if (esMedioGestionaPay(metodo)) return "Nerqia Pay";
   return NOMBRE_MEDIO[metodo] ?? metodo;
 }
 

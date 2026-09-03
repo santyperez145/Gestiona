@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { cotizacionDe } from "@/lib/exchangeRate";
 import { useAuth } from "@/lib/auth";
@@ -202,7 +202,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
 <h2>Detalle de compras</h2>
 <table><thead><tr><th>Fecha</th><th>Producto</th><th>Proveedor</th><th style="text-align:center">Cant.</th><th style="text-align:right">Total USD</th><th style="text-align:right">Total ARS</th><th style="text-align:center">Tipo</th></tr></thead><tbody>${rows}</tbody>
 <tfoot><tr style="font-weight:bold;background:#f9fafb"><td colspan="4">TOTAL</td><td style="text-align:right">${fmtUSD(totalUSD)}</td><td style="text-align:right">${fmtARS(totalARS)}</td><td></td></tr></tfoot></table>
-<div class="footer">${activeOrg?.name || 'Sistema de Gestión'} · Gestiona</div></body></html>`;
+<div class="footer">${activeOrg?.name || 'Sistema de Gestión'} · Nerqia</div></body></html>`;
     const w = window.open('', '_blank');
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 400); }
   };

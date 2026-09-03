@@ -42,7 +42,7 @@ POS distingue comprobante interno de nota de crédito fiscal).
 ⚠️ **Hueco conocido (2026-08-27): el precio de la suscripción al SaaS no está
 relevado.** Todo lo que sigue en esta sección es sobre el precio que la **tienda
 del comercio** le muestra a un consumidor. Cambiarle el precio a un comercio que
-ya paga la suscripción de Gestiona es otra relación —Gestiona con su cliente,
+ya paga la suscripción de Nerqia es otra relación —Nerqia con su cliente,
 que además es una empresa— y no se analizó contra la normativa.
 
 Lo construido asume un preaviso de **30 días** para un aumento y ninguno para
@@ -153,7 +153,7 @@ tener responsable, fecha y evidencia archivada:
 | Rubros regulados | 🔴 Fuera del software | Revisión por catálogo/jurisdicción —por ejemplo ANMAT, aduana o habilitación municipal— antes de permitir que el merchant publique productos alcanzados. |
 
 Estas puertas quedan también en `ROADMAP.md`. Se pueden preparar y medir desde
-Gestiona, pero no se cierran con un test, una simulación ni una etiqueta en la
+Nerqia, pero no se cierran con un test, una simulación ni una etiqueta en la
 interfaz.
 
 ---

@@ -293,7 +293,7 @@ export default function AdvancedApiKeysPanel() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-emerald-600" /> API Key creada</DialogTitle>
-            <DialogDescription>Copiala a un secret manager. Gestiona sólo conserva su huella SHA-256.</DialogDescription>
+            <DialogDescription>Copiala a un secret manager. Nerqia sólo conserva su huella SHA-256.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-amber-800 dark:text-amber-200 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">Esta es la única vez que verás la clave completa.</p>

@@ -210,7 +210,7 @@ export default function UnitEconomicsWorkbench({
             <Landmark className="w-4 h-4 text-blue-400" />
             <h3 className="text-xs font-semibold">Costo del merchant</h3>
           </div>
-          <p className="text-[10px] text-muted-foreground">Arancel estimado del procesador; no es COGS de Gestiona.</p>
+          <p className="text-[10px] text-muted-foreground">Arancel estimado del procesador; no es COGS de Nerqia.</p>
           <NumberField label="Arancel proveedor" value={input.providerFeePercent} onChange={setNumber('providerFeePercent')} step={0.01} suffix="%" />
           <NumberField label="Fijo proveedor / transacción" value={input.providerFeeFixed} onChange={setNumber('providerFeeFixed')} />
           <NumberField label="Impuesto sobre arancel" value={input.providerFeeTaxRatePct} onChange={setNumber('providerFeeTaxRatePct')} step={0.5} suffix="%" />
@@ -223,7 +223,7 @@ export default function UnitEconomicsWorkbench({
         <section className="rounded-[10px] border border-border/60 bg-card p-3 space-y-2">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-amber-400" />
-            <h3 className="text-xs font-semibold">Costo de servir Gestiona</h3>
+            <h3 className="text-xs font-semibold">Costo de servir Nerqia</h3>
           </div>
           <NumberField label="Variable / transacción" value={input.variableCostPerTransaction} onChange={setNumber('variableCostPerTransaction')} />
           <NumberField label="Variable / merchant" value={input.variableCostPerMerchant} onChange={setNumber('variableCostPerMerchant')} />
@@ -259,7 +259,7 @@ export default function UnitEconomicsWorkbench({
             {[
               ['GMV cobrado', result.isModelUsable ? input.monthlyGmv : 0],
               ['Arancel + impuesto del proveedor', -result.providerCostToMerchant],
-              ['Cargo realizado de Gestiona', -result.platformChargeToMerchant],
+              ['Cargo realizado de Nerqia', -result.platformChargeToMerchant],
               ['Neto tras costos de cobro', result.merchantNetAfterPaymentCosts],
             ].map(([label, value]) => (
               <div key={String(label)} className="flex justify-between px-3 py-2">
@@ -273,7 +273,7 @@ export default function UnitEconomicsWorkbench({
         <section className="rounded-[10px] border border-border/60 bg-card overflow-hidden">
           <div className="px-3 py-2 border-b border-border/40 flex items-center gap-2">
             <Building2 className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-xs font-semibold">Economía de Gestiona</h3>
+            <h3 className="text-xs font-semibold">Economía de Nerqia</h3>
           </div>
           <div className="divide-y divide-border/30 text-xs">
             {[
@@ -334,7 +334,7 @@ export default function UnitEconomicsWorkbench({
           <p>
             <span className="text-foreground font-medium">Mercado Pago, mecánica oficial:</span>{' '}
             el procesador descuenta primero su costo al vendedor y luego separa la comisión del marketplace.
-            Por eso ese arancel afecta el neto del merchant, no la contribución de Gestiona.
+            Por eso ese arancel afecta el neto del merchant, no la contribución de Nerqia.
             {' '}<a className="text-primary hover:underline inline-flex items-center gap-1" target="_blank" rel="noreferrer"
               href="https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/how-tos/integrate-marketplace">
               Ver fuente <ExternalLink className="w-3 h-3" />

@@ -98,7 +98,7 @@ function ViewerGate() {
   );
 }
 
-function AppLoader({ label = 'Cargando Gestiona...' }: { label?: string }) {
+function AppLoader({ label = 'Cargando Nerqia...' }: { label?: string }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">

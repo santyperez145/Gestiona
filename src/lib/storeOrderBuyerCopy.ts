@@ -13,7 +13,7 @@ import { esMedioGestionaPay } from "@/lib/gestionaPay";
  * Hint del checkout según el medio elegido.
  * Tiendanube/Shopify muestran instrucción de transferencia o efectivo;
  * no «te contactamos» cuando el comprador ya tiene CBU en la página de gracias.
- * Null = Gestiona Pay u otro medio que no necesita aviso offline.
+ * Null = Nerqia Pay u otro medio que no necesita aviso offline.
  */
 export function avisoCheckoutMedioPago(opts: {
   metodo: string | null | undefined;
@@ -38,7 +38,7 @@ export function avisoCheckoutMedioPago(opts: {
 
 export function etiquetaMedioCheckout(metodo: string, esRetiro: boolean): string {
   const m = String(metodo ?? "").toLowerCase().trim();
-  if (esMedioGestionaPay(m)) return "Gestiona Pay";
+  if (esMedioGestionaPay(m)) return "Nerqia Pay";
   if (m === "transferencia") return "Transferencia bancaria";
   if (m === "efectivo") return esRetiro ? "Efectivo al retirar" : "Efectivo al recibir";
   return metodo;

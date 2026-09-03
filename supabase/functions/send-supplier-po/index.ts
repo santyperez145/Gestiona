@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
     <p style="font-size:13px;color:#1a1a2e;font-weight:600">Muchas gracias,<br>${businessName}</p>
   </div>
   <div class="footer">
-    Este pedido de compra fue generado automáticamente por ${businessName} via Gestiona.<br>
+    Este pedido de compra fue generado automáticamente por ${businessName} via Nerqia.<br>
     ${exchangeRate ? `TC referencia: $${Number(exchangeRate).toLocaleString("es-AR")} ARS/USD` : ""}
   </div>
 </div>

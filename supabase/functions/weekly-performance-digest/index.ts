@@ -140,8 +140,8 @@ serve(async (req) => {
       <p style="margin:4px 0 0;font-size:16px;font-weight:700">${saleCount} ventas · Ticket $${Math.round(avgTicket).toLocaleString("es-AR")} · ${uniqueCustomers} clientes</p>
     </td></tr>
   </table>
-  <a href="https://exentryimports.vercel.app" style="display:block;margin-top:24px;text-align:center;padding:14px;border-radius:12px;background:#D4A843;color:#000;font-weight:700;font-size:14px;text-decoration:none">Ver dashboard →</a>
-  <p style="margin-top:20px;text-align:center;font-size:10px;color:#ffffff30">Gestiona — sistema de gestión para pymes argentinas</p>
+  <a href="https://nerqia.app" style="display:block;margin-top:24px;text-align:center;padding:14px;border-radius:12px;background:#D4A843;color:#000;font-weight:700;font-size:14px;text-decoration:none">Ver dashboard →</a>
+  <p style="margin-top:20px;text-align:center;font-size:10px;color:#ffffff30">Nerqia — sistema de gestión para pymes argentinas</p>
 </div></body></html>`;
 
           await sendEmail(

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import CambioDePrecioDialog from "@/components/platform/CambioDePrecioDialog";
 import { useOrg } from '@/lib/orgContext';
@@ -1774,7 +1774,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
               <div className="flex items-center justify-between pt-2">
                 <div>
                   <Label className="font-normal">Enviar acceso seguro por email</Label>
-                    <p className="text-[10px] text-muted-foreground">Gestiona lo envía; Platform no recibe los datos sensibles</p>
+                    <p className="text-[10px] text-muted-foreground">Nerqia lo envía; Platform no recibe los datos sensibles</p>
                 </div>
                 <Switch
                   checked={newOrgForm.sendInvite}

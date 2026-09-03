@@ -1,14 +1,14 @@
-# Gestiona Orbit — módulo de playbooks operativos
+# Nerqia Orbit — módulo de playbooks operativos
 
 **Corte de discovery:** 2026-08-29
 **Estado:** propuesta de innovación transversal; no implementado ni autorizado
 para crear tablas o rutas.
-**Producto:** Gestiona Business Graph + Commerce + Finance + Platform +
+**Producto:** Nerqia Business Graph + Commerce + Finance + Platform +
 Intelligence.
 
 ## 1. La idea
 
-Gestiona ya puede describir una venta, una compra, un documento, un pago, un
+Nerqia ya puede describir una venta, una compra, un documento, un pago, un
 cliente, un stock y un margen. Orbit agrega una capacidad diferente: convertir
 señales de varios dominios en un **playbook operativo** que una persona pueda
 simular, aprobar, ejecutar y medir.
@@ -51,7 +51,7 @@ comercio:
 
 La conclusión es propia: los productos de automatización ofrecen pasos, pero no
 conocen el costo aterrizado, el margen por canal, el estado de stock, la
-recepción, el riesgo de caja y la autoridad de cada entidad de Gestiona al
+recepción, el riesgo de caja y la autoridad de cada entidad de Nerqia al
 mismo tiempo.
 
 ## 3. Diferencial de Orbit
@@ -121,7 +121,7 @@ irreversible sin confirmación. Debe mostrar:
 - por qué se abstuvo;
 - qué resultado se esperaba y qué ocurrió.
 
-## 4. Playbooks que cruzan todo Gestiona
+## 4. Playbooks que cruzan todo Nerqia
 
 Cada ejemplo tiene un dueño operativo y no crea una autoridad nueva.
 

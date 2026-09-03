@@ -1,4 +1,4 @@
-# Gestiona Cloud — Visión y roadmap ejecutivo
+# Nerqia Cloud — Visión y roadmap ejecutivo
 
 **Corte editorial:** 2026-09-03. Categoría Commerce OS:
 [`docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md`](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md).
@@ -21,7 +21,7 @@ medible antes de adoptar dependencias.
 
 ## 0. Resumen ejecutivo
 
-Gestiona construye el **Commerce Operating System** para PyMEs latinoamericanas:
+Nerqia construye el **Commerce Operating System** para PyMEs latinoamericanas:
 tienda de entrada, operación nativa, cobros orquestados, Finance y —con
 evidencia y partner— capital. Unifica esos productos sobre una única fuente de
 verdad: el mismo producto, stock, cliente, proveedor, orden, costo, cobro y
@@ -31,7 +31,7 @@ La propuesta no es «otro ERP», «otra tienda online», «alternativa a Tiendan
 ni «una plataforma con IA». Es esta:
 
 > Creá tu tienda, vendé en cualquier canal y gestioná todo tu negocio sin
-> cambiar de plataforma. Gestiona no sólo registra lo que vendiste: entiende
+> cambiar de plataforma. Nerqia no sólo registra lo que vendiste: entiende
 > cuánto ganaste.
 
 La visión es grande; la ejecución se ordena por evidencia:
@@ -63,7 +63,7 @@ No son North Star:
 
 ### Etapa actual
 
-Gestiona tiene una arquitectura avanzada para su tracción, pero todavía está en
+Nerqia tiene una arquitectura avanzada para su tracción, pero todavía está en
 la etapa de **demostrar verdad operacional y repetibilidad comercial**. El riesgo
 principal ya no es «si se puede construir»; es si un comercio externo puede
 activarse, operar, recuperarse de fallas y obtener valor sin intervención
@@ -96,27 +96,27 @@ primer comercio confiable
 
 ## 1. Portfolio de productos
 
-Gestiona Cloud es una plataforma con productos conectados, no seis aplicaciones
+Nerqia Cloud es una plataforma con productos conectados, no seis aplicaciones
 que duplican datos. Commerce es el insignia; el resto son capas. Orbit es
 Automate, no un Core aparte.
 
 ~~~text
-Gestiona Cloud
-├── Gestiona Commerce
+Nerqia Cloud
+├── Nerqia Commerce
 │   Storefront, checkout, canales, migraciones y B2B
-├── Gestiona Business
+├── Nerqia Business
 │   Operación, POS, CRM, compras e inventario
-├── Gestiona Pay
+├── Nerqia Pay
 │   Orquestación de cobros, conciliación y reintegros
-├── Gestiona Finance
+├── Nerqia Finance
 │   Documentos, gastos, payables, aprobaciones y conciliación
-├── Gestiona Capital
+├── Nerqia Capital
 │   Crédito con socio (congelado hasta datos y regulación)
-├── Gestiona Automate
+├── Nerqia Automate
 │   Hallazgos, playbooks (Orbit), acciones y resultados
-├── Gestiona Ship / Growth / Developers
+├── Nerqia Ship / Growth / Developers
 │   Logística, consultoría productizada, API y partners
-└── Gestiona Platform
+└── Nerqia Platform
     Control Plane, soporte, riesgo, billing y operaciones
 ~~~
 
@@ -124,7 +124,7 @@ Gestiona Cloud
 |---|---|---|---|
 | **Commerce** | Convertir catálogo y operación en ventas por tienda y canales. | Una tienda externa migra y vende sin perder continuidad. | Pagos, envíos, dominios y servicios de crecimiento. |
 | **Business** | Mantener la verdad de productos, stock, ventas, compras, clientes y margen. | Dos comercios operan sin correcciones manuales. | Base de adopción; pricing definitivo por validar. |
-| **Pay** | Onboard, cobrar, confirmar, conciliar, reembolsar y explicar comisión. | TPV Gestiona / GMV medible; webhooks recuperables. | Margen neto de procesamiento sin custodia. |
+| **Pay** | Onboard, cobrar, confirmar, conciliar, reembolsar y explicar comisión. | TPV Nerqia / GMV medible; webhooks recuperables. | Margen neto de procesamiento sin custodia. |
 | **Finance** | Convertir documentos y gastos en obligaciones y controles auditables. | Facturas reales terminan en borradores correctos y aprobados. | Uso documental, conectores y workflows avanzados. |
 | **Capital** | Financiar stock o adelantar ventas con uso controlado. | Partner firmante, underwriting versionado, repago por Pay. | Originación, servicing, revenue share. No VC en cartera. |
 | **Automate** | Detectar oportunidades y ejecutar acciones dentro de políticas. | AI Action Rate e impacto verificado (Orbit O1+). | Incluido, por uso o premium según economics. |
@@ -140,7 +140,7 @@ La topología actual se conserva:
 |---|---|---|---|
 | Organización | / | Miembros del comercio | AppLayout; no hereda permisos de Platform. |
 | Finance | /finance | Miembros con producto + `finance.view` | FinanceLayout; misma identidad/organización, sin heredar onboarding de Business. |
-| Plataforma | /platform | Staff de Gestiona | PlatformLayout, MFA y auditoría. |
+| Plataforma | /platform | Staff de Nerqia | PlatformLayout, MFA y auditoría. |
 | Tienda pública | /tienda/:slug | Comprador | StoreLayout y superficie pública mínima. |
 
 La evolución prevista puede separar Business, Finance, Platform, Storefront,
@@ -165,13 +165,13 @@ comparativas fechadas y con fuente oficial viven en `docs/ESTRATEGIA.md`; los
 patrones de producto/UX y la matriz de ejecución viven en
 `docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md`.
 
-| Campo competitivo | Paridad mínima | Diferencial Gestiona que debe probarse |
+| Campo competitivo | Paridad mínima | Diferencial Nerqia que debe probarse |
 |---|---|---|
 | ERP / operación | Contabilium, Xubio y Colppy ya combinan facturación argentina, compras, stock, caja/bancos, contabilidad e integraciones locales. | Menor tiempo de implementación y una verdad conectada a Commerce y Finance; la amplitud de módulos no es ventaja por sí sola. |
 | Commerce | Tiendanube y Empretienda fijan la paridad local: checkout, catálogo/importación, promociones, pagos, envíos, dominio, operación mobile y stock entre ventas online/presenciales; Tiendanube suma PDV, filtros/bulk y ecosistema. | Costo y margen del mismo Core que ejecuta la venta, con migración reconciliada y una operación más simple para el segundo comercio. |
 | Margen y rentabilidad | Shopify ya reporta profit por producto/orden/mercado y Odoo margen por línea/pedido; tener un reporte es paridad, no ventaja. | Cuatro fuentes persistidas —costo histórico, cobro, envío real e IVA— por venta/canal/operación, con mix, promoción y devoluciones. El POS ahora convierte cada parte del cobro en evidencia conciliable y bloquea el ticket mientras falte el arancel; la autoridad existe, pero su impacto todavía debe probarse con una decisión real. |
-| Cobro QR de mostrador | Mercado Pago Orders exige QR dinámico por operación, `external_pos_id`, idempotencia y consulta del estado real antes de entregar. | Gestiona reserva sin descontar stock, acredita desde el proveedor y recién entonces crea ticket, cobro, stock y margen del Business Core; reintentos/vencimiento no duplican ni venden. Falta certificar una compra escaneada y el webhook Orders en la cuenta real. |
-| Devolución de mostrador | Shopify POS fija devolución total/parcial, motivo, reposición y límite por el medio original; Square incluye el reembolso de efectivo en la sesión de caja; Mercado Pago exige refund total/parcial server-side e idempotencia. | Gestiona revierte ticket, stock, resultado y caja en una transacción; cada parte queda limitada por el cobro original y el dinero externo nace como deuda hasta tener evidencia. Para Mercado Pago deriva Order/Payment/monto desde el ticket, ejecuta o reconcilia con clave estable y sólo cancela el pasivo ante confirmación positiva. La nota interna no se presenta como fiscal. Falta certificar dinero live, no automatizarlo. |
+| Cobro QR de mostrador | Mercado Pago Orders exige QR dinámico por operación, `external_pos_id`, idempotencia y consulta del estado real antes de entregar. | Nerqia reserva sin descontar stock, acredita desde el proveedor y recién entonces crea ticket, cobro, stock y margen del Business Core; reintentos/vencimiento no duplican ni venden. Falta certificar una compra escaneada y el webhook Orders en la cuenta real. |
+| Devolución de mostrador | Shopify POS fija devolución total/parcial, motivo, reposición y límite por el medio original; Square incluye el reembolso de efectivo en la sesión de caja; Mercado Pago exige refund total/parcial server-side e idempotencia. | Nerqia revierte ticket, stock, resultado y caja en una transacción; cada parte queda limitada por el cobro original y el dinero externo nace como deuda hasta tener evidencia. Para Mercado Pago deriva Order/Payment/monto desde el ticket, ejecuta o reconcilia con clave estable y sólo cancela el pasivo ante confirmación positiva. La nota interna no se presenta como fiscal. Falta certificar dinero live, no automatizarlo. |
 | Marketplace | Sincronización de catálogo, stock, órdenes y postventa. | Sistema neutral que decide canal por margen, capital y disponibilidad. |
 | Spend / Finance | Odoo/QuickBooks fijan OCR, revisión y matching. Mendel, Clara, Rindegastos y Concur agregan control preventivo, presupuestos/políticas, roles, reembolsos, captura mobile/offline e integración ERP. | Finance comparte proveedor, producto, compra, stock y ledger nativos. F3 demuestra documento → matching → borradores aprobados; F5 agrega política, centro de costo, presupuesto y operación por excepción. Tarjetas/custodia/viajes quedan fuera sin demanda, partner regulado y economics. |
 | IA | Shopify Sidekick Pulse y QuickBooks Intuit Intelligence usan contexto de la empresa, priorización proactiva y tareas dentro del flujo; el patrón competitivo no es un chat suelto. | Contexto reconstruido server-side bajo RLS → recomendación explicable → revisión/aprobación → acción → resultado verificado. El Dashboard ya evita costo oculto y datos manipulables; falta instrumentar la acción y su outcome para que sea Business Copilot completo. |
@@ -188,7 +188,7 @@ patrones de producto/UX y la matriz de ejecución viven en
 ### Decisión Finance 2026-08-22 — Mendel-class como benchmark principal
 
 Mendel deja de ser una referencia regional más: es el **benchmark principal de
-producto y experiencia para Gestiona Finance**. La meta es alcanzar una
+producto y experiencia para Nerqia Finance**. La meta es alcanzar una
 experiencia comparable de control de gasto de punta a punta, no copiar su marca,
 assets o pantallas. Su propuesta oficial vigente combina control preventivo,
 presupuestos, reglas, aprobaciones multinivel, medios de pago, auditoría e
@@ -203,11 +203,11 @@ las superficies oficiales vigentes de plataforma, tarjetas propias y externas,
 reembolsos, recuperación de facturas, categorías, viajes, flotillas,
 beneficios, integraciones, Mendel AI y Mendel MCP. Esa cobertura se usa para
 verificar que F5 no omita trabajos ni roles, pero no convierte claims de
-marketing en evidencia de Gestiona y no adelanta capacidades reguladas.
+marketing en evidencia de Nerqia y no adelanta capacidades reguladas.
 
 **Contrato de paridad Mendel-class:**
 
-| Capacidad objetivo | Comportamiento obligatorio en Gestiona Finance | Evidencia antes de declararla comparable |
+| Capacidad objetivo | Comportamiento obligatorio en Nerqia Finance | Evidencia antes de declararla comparable |
 |---|---|---|
 | Control financiero | Inicio en tiempo real con gasto, disponible/comprometido/consumido, aprobaciones, comprobantes faltantes, anomalías y fuera de política. | Un responsable detecta y resuelve la excepción desde la misma superficie, sin planilla ni SQL. |
 | Presupuestos y políticas | Presupuestos únicos o recurrentes por persona/equipo/centro/proyecto/categoría; reglas versionadas por monto, categoría, comercio, ubicación, horario y frecuencia. | El servidor explica qué regla y versión permitió, escaló o bloqueó cada solicitud/transacción. |
@@ -218,7 +218,7 @@ marketing en evidencia de Gestiona y no adelanta capacidades reguladas.
 | Seguridad y operación | Roles mínimos, MFA para acciones sensibles, trazabilidad append-only, configuración por organización y observabilidad de integraciones. | Un usuario restringido no puede leer ni operar otra organización, credencial o etapa del flujo. |
 
 **Diferencial propio:** Mendel-class define la paridad de Spend Management;
-Gestiona debe superarla conectando ese gasto con el mismo proveedor, compra,
+Nerqia debe superarla conectando ese gasto con el mismo proveedor, compra,
 producto, recepción, stock, costo importado, venta y margen real del Business
 Graph. Esa continuidad —documento → obligación → recepción → costo → margen— es
 la tesis defendible para comercios, no tener otra tarjeta o dashboard.
@@ -289,7 +289,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 | Control Plane | Superficie operativa profesional en construcción. | Menor MTTR y menor intervención manual medidos. |
 | Finance documental | Custodia, extracción, revisión, matching, borradores y aprobación conectada al Core. | Primera factura autorizada procesada y recibida sin SQL; proveedor privado y métricas reales siguen pendientes. |
 | Finance product surface | Ruta, chrome, sesión compartida, entitlement, permiso y snapshot del Core. | Primer comercio habilitado y primer documento procesado; 0 adopción real al corte. |
-| Sistema visual v3 Figma | El workspace claro adopta obligatoriamente la dirección de los kits CRM/marketplace compartidos: canvas casi blanco, superficies blancas, primary violeta `252 83% 62%`, secundarios turquesa/coral, rail persistente, topbar y profundidad baja; se aplica a Business, Finance y Platform sin alterar el Business Core. El 2026-08-22 se eliminó la mutación global que convertía el color secundario de un comercio en fondo/rail del panel: Gestión mantiene tokens oficiales y las paletas quedan limitadas a tienda pública y catálogo PDF; Finance ya no fuerza un rail negro en modo claro. El 2026-08-23 se incorporó el símbolo oficial RGBA como identidad única de Gestiona: reemplaza letras e íconos improvisados en Business, Finance, Platform, landing, acceso y rutas institucionales, además de favicon/Apple/PWA; el logo del merchant queda aislado a Storefront y documentos comerciales. Las tres superficies ahora envuelven todas sus rutas en `workspace-route-surface`, por lo que más de cien páginas heredan el contrato aunque todavía no declaren la clase; Button, Card, Input, Select, Textarea, Tabs, Table, Badge, Dialog, Popover, Tooltip, EmptyState y skeletons fueron alineados a radios, foco, profundidad, estados y contraste del Figma. Ajustes, Perfil, resumen/Document Inbox de Finance y Anuncios de Platform adoptaron `PageHeader`; POS queda documentado como workspace de caja a viewport completo. `DESIGNROADMAP.md` separa desde ahora fases, cobertura, métricas y 26 slices visuales del plan de producto. D2.2–D2.3 retiraron 30 selects nativos: 20 de páginas y 10 de componentes; el SaaS queda en cero, mientras Storefront conserva sólo 3 excepciones mobile/autofill fijadas por test. D2.4 reemplaza los cinco paginadores manuales de Admin, Productos, Compras, Reportes y Ventas por `DataPagination`, con rango real, límites, respuesta mobile y anuncio accesible; sus 82 campos temporales de 46 archivos conservan semántica nativa bajo `Input`, con cero variantes manuales y tema claro/oscuro protegido. Los 16 transportes de archivo quedaron clasificados en importación, documento/cámara e imagen/branding; las cinco importaciones estructuradas ya comparten `FilePicker` con dropzone o botón, validación por extensión/MIME, busy y error accesible sin mover la autoridad de preview/aplicación fuera de cada flujo. D2.5 crea `WorkspaceState` con los 12 estados del estándar, skeleton estable, `alert/status` accesibles y recuperación; Finance/Compras y, desde el 2026-08-29, Reportes/Intelligence ya distinguen carga/refresh, primer uso/filtro, error, offline, stale, parcial y éxito sin convertir fallas en `[]`; Reportes además conserva la última lectura durante refresh y descarta respuestas de otra organización. D2.6 migra 16 overlays manuales de 11 archivos a Dialog/Sheet/Popover y fija en CI las únicas cuatro excepciones técnicas: rail mobile y tres scanners fullscreen. Dashboard conserva seis vistas persistidas y los hashes `#dashboard-*`; Platform organiza su rail por trabajo/rol. El estándar competitivo agrega anatomía, 12 arquetipos, árbol de overlays, segmentación, cobertura por producto y adopción tecnológica con umbral verificable. | Extender D2.5 al resto de rutas, converger documentos/cámara e imagen/branding y auditar combobox/menús de D2.4, auditar Storefront en D5 y validar los overlays y Reportes migrados en desktop/mobile; captura autenticada, revisión end-to-end y medición de tiempo a tarea antes de declarar la renovación visual validada. |
+| Sistema visual v3 Figma | El workspace claro adopta obligatoriamente la dirección de los kits CRM/marketplace compartidos: canvas casi blanco, superficies blancas, primary violeta `252 83% 62%`, secundarios turquesa/coral, rail persistente, topbar y profundidad baja; se aplica a Business, Finance y Platform sin alterar el Business Core. El 2026-08-22 se eliminó la mutación global que convertía el color secundario de un comercio en fondo/rail del panel: Gestión mantiene tokens oficiales y las paletas quedan limitadas a tienda pública y catálogo PDF; Finance ya no fuerza un rail negro en modo claro. El 2026-08-23 se incorporó el símbolo oficial RGBA como identidad única de Nerqia: reemplaza letras e íconos improvisados en Business, Finance, Platform, landing, acceso y rutas institucionales, además de favicon/Apple/PWA; el logo del merchant queda aislado a Storefront y documentos comerciales. Las tres superficies ahora envuelven todas sus rutas en `workspace-route-surface`, por lo que más de cien páginas heredan el contrato aunque todavía no declaren la clase; Button, Card, Input, Select, Textarea, Tabs, Table, Badge, Dialog, Popover, Tooltip, EmptyState y skeletons fueron alineados a radios, foco, profundidad, estados y contraste del Figma. Ajustes, Perfil, resumen/Document Inbox de Finance y Anuncios de Platform adoptaron `PageHeader`; POS queda documentado como workspace de caja a viewport completo. `DESIGNROADMAP.md` separa desde ahora fases, cobertura, métricas y 26 slices visuales del plan de producto. D2.2–D2.3 retiraron 30 selects nativos: 20 de páginas y 10 de componentes; el SaaS queda en cero, mientras Storefront conserva sólo 3 excepciones mobile/autofill fijadas por test. D2.4 reemplaza los cinco paginadores manuales de Admin, Productos, Compras, Reportes y Ventas por `DataPagination`, con rango real, límites, respuesta mobile y anuncio accesible; sus 82 campos temporales de 46 archivos conservan semántica nativa bajo `Input`, con cero variantes manuales y tema claro/oscuro protegido. Los 16 transportes de archivo quedaron clasificados en importación, documento/cámara e imagen/branding; las cinco importaciones estructuradas ya comparten `FilePicker` con dropzone o botón, validación por extensión/MIME, busy y error accesible sin mover la autoridad de preview/aplicación fuera de cada flujo. D2.5 crea `WorkspaceState` con los 12 estados del estándar, skeleton estable, `alert/status` accesibles y recuperación; Finance/Compras y, desde el 2026-08-29, Reportes/Intelligence ya distinguen carga/refresh, primer uso/filtro, error, offline, stale, parcial y éxito sin convertir fallas en `[]`; Reportes además conserva la última lectura durante refresh y descarta respuestas de otra organización. D2.6 migra 16 overlays manuales de 11 archivos a Dialog/Sheet/Popover y fija en CI las únicas cuatro excepciones técnicas: rail mobile y tres scanners fullscreen. Dashboard conserva seis vistas persistidas y los hashes `#dashboard-*`; Platform organiza su rail por trabajo/rol. El estándar competitivo agrega anatomía, 12 arquetipos, árbol de overlays, segmentación, cobertura por producto y adopción tecnológica con umbral verificable. | Extender D2.5 al resto de rutas, converger documentos/cámara e imagen/branding y auditar combobox/menús de D2.4, auditar Storefront en D5 y validar los overlays y Reportes migrados en desktop/mobile; captura autenticada, revisión end-to-end y medición de tiempo a tarea antes de declarar la renovación visual validada. |
 | Rediseño público v3 | Landing pública y Auth fueron reconstruidos el 2026-08-22 con propuesta omnicanal, preview del producto, registro directo desde CTA, responsive desktop/mobile y metadatos SEO alineados. D5.1 agrega resiliencia transversal de medios: un banner/producto/logo roto conserva fallback de marca y acción, mientras Gestión identifica el activo inválido y bloquea reactivarlo. `e63c0ad` quedó publicado y la tienda + Banners pasaron 360/768/1024/1440 sin overflow ni logs propios. | Medir conversión del CTA y continuar la auditoría de PLP/PDP/carrito/checkout; el comercio aún debe reemplazar la URL externa inválida. |
 | CRM command center v2 | Clientes / CRM reemplaza la referencia minimalista anterior por la estructura de gestión densa de Aerten y el lenguaje violeta/tintado de eMarketplace Admin, ambos inspeccionados en preview público el 2026-08-22. Incorpora resumen ejecutivo de cartera/actividad/recurrencia/riesgo, tabs persistidos, rail de segmentos, filtros, tabla responsive con relación/compras/facturación/ticket/salud y ficha 360; conserva campañas, notas, comunicaciones, permisos y el mismo Business Core. La comparativa visual y su traducción están en `docs/INTERFAZ.md`. | Captura autenticada desktop/mobile, validación con un comercio real y medición de tiempo para encontrar/actuar sobre un cliente; el rediseño está implementado, no validado comercialmente. |
 | Admin/marketplace workspace v1 | `WorkspaceViewTabs` extiende el contrato Figma a Productos, Ventas y Dashboard: Catálogo/Operación, Ventas/Rendimiento y seis vistas ejecutivas con contadores, meta contextual, responsive móvil y persistencia por organización; Settings, Admin, Integraciones, Reportes y Tienda quedan bajo el mismo contrato de tokens. El shell compartido expone identidad de workspace en topbar, breadcrumb, CTA, headers con acento, métricas con estados y plataforma con consola/rail violeta. | Captura autenticada de las superficies operativas y medición de tiempo a tarea antes de declarar la renovación visual validada. |
@@ -907,7 +907,7 @@ medida, no preferencia técnica.
 |---|---|---|---|
 | **A — Verdad** | ¿La operación funciona y se recupera? | Venta → pago → stock → factura → ledger → margen → devolución, con fallas probadas. | F0 |
 | **B — Repetibilidad** | ¿Otro comercio puede activarse? | Segundo y tercer merchant venden sin SQL ni cambios especiales. | F1 |
-| **C — Ventaja** | ¿Gestiona cambia una decisión y crea valor? | Margen por canal usado, acción aplicada y resultado medido. | F2 |
+| **C — Ventaja** | ¿Nerqia cambia una decisión y crea valor? | Margen por canal usado, acción aplicada y resultado medido. | F2 |
 | **D — Expansión** | ¿El mismo Core sostiene otro producto y una migración? | Finance real y tienda externa migrada. | F3–F6 |
 | **E — Red** | ¿Los flujos generan economics y terceros amplían valor? | Pay/Ship con margen, app externa y retención suficiente. | F7–F9 |
 
@@ -1001,7 +1001,7 @@ externa con segundo y tercer comercio.
   equipo dejaron de inflar el avance hacia la primera venta.
 - ~~Merchant 360 orientado a activación y soporte, sin acceso directo a tablas.~~
   **Entregado para activación 2026-08-21:** comparte la misma vista agregada,
-  muestra los ocho hitos y asigna el próximo bloqueo al comercio, a Gestiona o
+  muestra los ocho hitos y asigna el próximo bloqueo al comercio, a Nerqia o
   a ambos. Integraciones/incidentes siguen evolucionando en Platform.
 - ~~Alta desde Platform atómica, idempotente y sin sesión del owner.~~
   **Entregado 2026-08-22:** org, membresía, trial, ajustes, idempotencia y
@@ -1031,7 +1031,7 @@ orden online, intervenciones manuales, incidentes y tiempo de soporte.
 
 ### F2 — Margin Intelligence
 
-**Objetivo:** probar el diferencial central de Gestiona.
+**Objetivo:** probar el diferencial central de Nerqia.
 
 **Entregables**
 
@@ -1079,12 +1079,12 @@ detectó y corrigió que una venta POS sin override podía fallar por el nuevo c
 `NOT NULL`. Falta aplicar una decisión comercial real.
 
 **Salida:** un merchant cambia precio, canal, compra o promoción basándose en
-Gestiona y el resultado posterior queda medido contra una línea de base.
+Nerqia y el resultado posterior queda medido contra una línea de base.
 
 **Métricas:** cobertura de margen explicable, decisiones aplicadas, margen
 protegido/creado verificable y tiempo entre hallazgo y acción.
 
-### F3 — Gestiona Finance MVP
+### F3 — Nerqia Finance MVP
 
 **Objetivo:** lanzar la segunda superficie sin duplicar el Core.
 
@@ -1202,11 +1202,11 @@ transacción; no existe un segundo cálculo de orden ni un segundo stock. Falta
 certificar dos dispositivos con un comprador de prueba y completar las máquinas
 de estados independientes de cart/order/payment/fulfillment antes de cerrar F4.
 
-### F5 — Gestiona Finance Mendel-class
+### F5 — Nerqia Finance Mendel-class
 
 **Objetivo:** pasar de capturar documentos a una plataforma comparable con
 Mendel para controlar gasto por excepción, conectada nativamente al Business
-Graph de Gestiona.
+Graph de Nerqia.
 
 **Entregables**
 
@@ -1252,7 +1252,7 @@ revertirse.
 **Métricas:** straight-through processing, exception rate, aprobación,
 conciliación, AP aging, anomalías confirmadas y horas evitadas verificables.
 
-### Innovación transversal — Gestiona Orbit / Playbooks
+### Innovación transversal — Nerqia Orbit / Playbooks
 
 **Objetivo:** convertir señales correlacionadas del Business Graph en decisiones
 repetibles que se puedan simular, aprobar, ejecutar y medir a través de
@@ -1285,7 +1285,7 @@ autorizados.
 ### F6 — Commerce diferencial
 
 **Objetivo:** superar paridad funcional con razones concretas para elegir
-Gestiona.
+Nerqia.
 
 **Entregables**
 
@@ -1298,7 +1298,7 @@ Gestiona.
 - Store Builder asistido por IA con cambios revisables.
 - Experimentación sólo con tráfico y poder estadístico.
 
-**Salida:** merchants eligen Gestiona por una ventaja de operación/margen, no
+**Salida:** merchants eligen Nerqia por una ventaja de operación/margen, no
 sólo por precio, y al menos una capacidad diferencial muestra adopción.
 
 ### F7 — Pay y Ship
@@ -1315,7 +1315,7 @@ sólo por precio, y al menos una capacidad diferencial muestra adopción.
 - Abstracción de envíos, cotización, etiqueta, tracking y excepciones.
 - Margen logístico y de pagos por merchant/proveedor.
 
-**Salida:** Gestiona genera margen neto verificable en pagos y/o envíos sin
+**Salida:** Nerqia genera margen neto verificable en pagos y/o envíos sin
 custodiar fondos ni asumir riesgo fuera de una estructura permitida.
 
 ### F8 — Developer Ecosystem
@@ -1507,7 +1507,7 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     revalidados en servidor, outcome observacional, guard de concurrencia,
     auditoría/RLS y cero restos. Sigue abierto el gate comercial: producción
     tiene 25 recomendaciones descartadas, 0 aplicadas y 0 outcomes.
-17. ~~ADR, shell y acceso por producto de Gestiona Finance~~ — cerrado
+17. ~~ADR, shell y acceso por producto de Nerqia Finance~~ — cerrado
     técnicamente el 2026-08-22: `/finance` usa sesión/organización compartidas,
     entitlement y `finance.view` independientes, decisión Platform auditada y
     snapshot agregado del mismo proveedor/compra/obligación/ledger. Producción:
@@ -1692,7 +1692,7 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     siguen en cada dominio. Cinco pruebas puras cubren aceptación/rechazo y la
     guarda visual exige adopción en los cinco flujos. Restan 11 transportes de
     documento/cámara o imagen/branding, que requieren contratos diferentes.
-38. ~~Identidad oficial de Gestiona~~ — cerrada técnicamente el 2026-08-23:
+38. ~~Identidad oficial de Nerqia~~ — cerrada técnicamente el 2026-08-23:
     `BrandLogo` centraliza símbolo, nombre accesible y carga; Business, Finance,
     Platform, landing, Auth, MFA, onboarding, invitaciones, recuperación,
     precios, estado y legales dejan de dibujar letras o usar íconos sustitutos.
@@ -2151,13 +2151,13 @@ Finance Connect.
     organización. El navegador persiste antes de limpiar el carrito o mostrar
     el recibo; si `localStorage` falla, declara que la venta no se registró y
     bloquea otra operación offline. La UI responsive explica además que
-    Gestiona registra el ticket, no captura una tarjeta sin conexión. La
+    Nerqia registra el ticket, no captura una tarjeta sin conexión. La
     comparación oficial revalidada distingue [Tiendanube
     PDV](https://ayuda.tiendanube.com/pdv/que-es-punto-de-venta-de-tiendanube),
     que unifica catálogo/stock/orden, de [Square
     Offline](https://squareup.com/help/us/en/article/7777-process-card-payments-with-offline-mode),
     que expone pendiente, riesgo, ventana y resultado sobre hardware propio.
-    Gestiona adopta la transparencia de estado sin prometer ese procesamiento.
+    Nerqia adopta la transparencia de estado sin prometer ese procesamiento.
     La afirmación de idempotencia ya no depende del `id` que viajaba y se
     descartaba: `sale_transactions.client_transaction_id` tiene unicidad por
     organización, lock transaccional y comparación de renglones. El mismo
@@ -2223,7 +2223,7 @@ Finance Connect.
     2026-08-29: [Shopify Orders](https://help.shopify.com/en/manual/fulfillment/managing-orders/viewing-orders/searching-orders)
     conserva vistas/filtros al inspeccionar pedidos; [Square Order Manager](https://squareup.com/help/us/en/article/6923-pickup-orders-on-square-point-of-sale)
     reúne canales, estados, origen/pago y actividad; [Tiendanube Ventas](https://ayuda.tiendanube.com/es_AR/123288-mis-ventas/como-buscar-y-filtrar-mis-ventas)
-    fija la paridad regional de búsqueda, filtros, exportación y bulk. Gestiona
+    fija la paridad regional de búsqueda, filtros, exportación y bulk. Nerqia
     adopta orientación operativa, pero suma el ticket y su margen del mismo Core.
     Puerta completa medida el 2026-08-29: typecheck, lint con 0 errores/138 warnings conocidos, 196
     archivos/2.016 pruebas y build PWA; el chunk de Ventas mide 83,55 kB
@@ -2383,7 +2383,7 @@ Finance Connect.
     valores comerciales siguieron 10% / 5% / 0% / 0%. No se alteró una tasa
     real para probar. Queda ampliar la matriz visual de Ajustes a
     360/768/1024/1440; la tasa elegida sigue siendo decisión comercial/legal
-    del dueño, no una recomendación automática de Gestiona.
+    del dueño, no una recomendación automática de Nerqia.
 
 73. Turno de caja autoritativo por sucursal y ticket — cerrado técnicamente el
     2026-08-29; uso real pendiente. Caja tenía dos verdades incompatibles: el
@@ -2416,7 +2416,7 @@ Finance Connect.
     Benchmark oficial consultado el 2026-08-29: [Square](https://squareup.com/help/us/en/article/8344-start-and-end-a-cash-drawer-session)
     reúne fondo inicial, ventas/reembolsos, ingresos/retiros, esperado y conteo;
     [Shopify POS](https://help.shopify.com/en/manual/sell-in-person/shopify-pos/cash-register-management/register-sessions-in-shopify-pos)
-    agrega ubicación, responsable, métodos no efectivo y discrepancia. Gestiona
+    agrega ubicación, responsable, métodos no efectivo y discrepancia. Nerqia
     adopta esa paridad sobre su ticket/stock/cobro canónicos, sin presentarla como
     ventaja: producción tiene 0 sesiones y 0 movimientos reales.
 
@@ -2483,7 +2483,7 @@ Finance Connect.
     el monto del medio original; [Square](https://squareup.com/help/us/en/article/8344-start-and-end-a-cash-drawer-session)
     incluye reembolsos de efectivo en la sesión; [Mercado Pago](https://www.mercadopago.com.ar/developers/es/docs/sales-processing/cancellations-and-refunds)
     separa cancelación de refund y su [Order API](https://www.mercadopago.com.ar/developers/es/reference/online-payments/checkout-api/refund-order/post)
-    exige idempotencia. Gestiona alcanza la paridad interna y agrega el ledger
+    exige idempotencia. Nerqia alcanza la paridad interna y agrega el ledger
     del pendiente, pero no declara refund Mercado Pago live hasta certificarlo.
 
     La fixture productiva reversible abrió caja ARS 10.000, vendió 2 unidades
@@ -2535,7 +2535,7 @@ Finance Connect.
     [refund de Payments](https://www.mercadopago.com.ar/developers/es/reference/online-payments/checkout-pro/create-refund/post)
     y en el
     [refund de Orders](https://www.mercadopago.com.ar/developers/es/reference/online-payments/checkout-api/refund-order/post),
-    y recomienda Webhooks sobre IPN para cambios de estado. Gestiona adopta el
+    y recomienda Webhooks sobre IPN para cambios de estado. Nerqia adopta el
     contrato y agrega pasivo/conciliación propios; no atribuye al proveedor una
     disponibilidad que todavía no observó.
 
@@ -2644,7 +2644,7 @@ Finance Connect.
     investiga datos para proponer hasta cinco tareas; no cambia la tienda sin
     aprobación. [QuickBooks Intuit Intelligence](https://quickbooks.intuit.com/learn-support/en-us/help-article/intuit-assist/introducing-intuit-intelligence/L189976Da_US_en_US)
     combina IA/BI con datos de la compañía, insights y trabajo de varios pasos.
-    Gestiona adopta contexto + tarea + revisión y agrega tenant/plan/costo como
+    Nerqia adopta contexto + tarea + revisión y agrega tenant/plan/costo como
     barreras explícitas; no copia composición ni atribuye impacto todavía.
 
     La puerta local pasa typecheck, lint 0 errores/139 warnings conocidos,
@@ -2698,7 +2698,7 @@ Finance Connect.
     [Tiendanube](https://ayuda.tiendanube.com/es_ES/122998-carrusel-de-imagenes/cual-es-el-tamano-recomendado-del-slider-para-mi-tiendanube)
     contempla piezas desktop/mobile y recomienda que texto/botón se configuren
     en el editor de [banners](https://ayuda.tiendanube.com/es_CO/123046-banners/cual-es-el-tamano-recomendado-del-banner).
-    Gestiona adopta preview, contenido separado y resiliencia; no copia assets
+    Nerqia adopta preview, contenido separado y resiliencia; no copia assets
     ni afirma que la URL defectuosa quedó corregida.
 
     La puerta completa local del 2026-08-30 pasa typecheck, lint con 0 errores
@@ -2712,7 +2712,7 @@ Finance Connect.
     360/768/1024/1440. Gestión mostró el alerta completo en los cuatro anchos,
     sin guardar ni alterar el banner. La consola tuvo 0 logs propios; tres
     errores `No Listener` provinieron de `chrome-extension://` en Brave y no
-    del dominio ni del bundle de Gestiona. Evidencia:
+    del dominio ni del bundle de Nerqia. Evidencia:
     [`docs/evidencias/2026-08-30_storefront_media_resilience.md`](docs/evidencias/2026-08-30_storefront_media_resilience.md).
 
 79. Storefront D5.2: el número de pedido deja de ser una credencial — P0 de
@@ -2808,7 +2808,7 @@ Finance Connect.
     [`docs/evidencias/2026-08-30_store_order_email_idempotency.md`](docs/evidencias/2026-08-30_store_order_email_idempotency.md).
 
 81. Checkout D5.4: no ofrecer un cobro que no se puede ejecutar — 2026-09-01.
-    Activar Gestiona Pay y marcar Mercado Pago en la tienda eran dos
+    Activar Nerqia Pay y marcar Mercado Pago en la tienda eran dos
     interruptores. El default trae ambos medios; con transferencia el readiness
     no bloqueaba y el comprador veía Mercado Pago aunque no hubiera token.
     `get_store_by_slug` lista sólo medios vivos (token + medio habilitado;
@@ -2869,9 +2869,9 @@ Finance Connect.
     Verificado en este recorte: 2.160/2.160 pruebas en 221 archivos;
     typecheck OK; lint 0 errores y 139 warnings conocidos.
 
-86. Vitrina D5.9: que Google vea la tienda, no Gestiona — 2026-09-01.
+86. Vitrina D5.9: que Google vea la tienda, no Nerqia — 2026-09-01.
     Search Console inspeccionaba con `Google-InspectionTool` y recibía el
-    HTML de la SPA (`Gestiona`), no el de Exentry: ese UA no estaba en el
+    HTML de la SPA (`Nerqia`), no el de Exentry: ese UA no estaba en el
     rewrite. `robots.txt` nunca declaraba `Sitemap:`. El listado canibalizaba
     la home. La ficha decía `og:type=website` y un precio sin promoción.
     El borde ahora reconoce InspectionTool/AdsBot/Storebot/DuckDuckBot;
@@ -3102,7 +3102,7 @@ Finance Connect.
 
 103. Después del primer producto, Commerce no empuja Pay — 2026-09-02.
      El wizard online ya aterrizaba en Productos. Al volver a Commerce con
-     un SKU, el overview seguía abriendo con «Activar Gestiona Pay» aunque
+     un SKU, el overview seguía abriendo con «Activar Nerqia Pay» aunque
      el default es transferencia y el checkout no lista Mercado Pago hasta
      que Pay está vivo. El banner sólo aparece si el comercio marcó Mercado
      Pago, no hay otro medio y no hay conexión: ahí el checkout no cobra.
@@ -3142,7 +3142,7 @@ Finance Connect.
      mismo texto que Facturas y legales; el local de retiro puede ser otro.
 
 109. El checklist abre la pestaña correcta — 2026-09-02.
-     «Activar Gestiona Pay», slug, SEO y envío plano mandaban a
+     «Activar Nerqia Pay», slug, SEO y envío plano mandaban a
      `/tienda-online` sin tab: el overview. Ahora van a `settings` o
      `design`, donde está el control. Pay-rail igual.
 
@@ -3201,18 +3201,18 @@ Finance Connect.
      pide confirmación propia al aplicar y muestra AI Action Rate (G8);
      generar sin aplicar no se presenta como éxito.
 
-118. Pay Slice A: Gestiona Pay ≠ Mercado Pago — 2026-09-02.
+118. Pay Slice A: Nerqia Pay ≠ Mercado Pago — 2026-09-02.
      Medio canónico de tienda `gestiona_pay` (alias `mercadopago` en
-     lectura). Commerce y checkout dicen «Gestiona Pay»; letter chica
+     lectura). Commerce y checkout dicen «Nerqia Pay»; letter chica
      «procesado con Mercado Pago». `medios_de_pago_vivos` y el trigger
      aceptan ambos y normalizan al canónico. Rail OAuth sigue en
      `payment_connections.provider = mercadopago`. Guarda en
-     `commercePayHonesty`: no vuelve «Mercado Pago (Gestiona Pay)».
+     `commercePayHonesty`: no vuelve «Mercado Pago (Nerqia Pay)».
 
 119. Pay Slice B: catálogo OAuth vivo / próximamente — 2026-09-02.
-     Panel de Pay lee `medios_de_pago_de`. Gestiona Pay sigue siendo la
+     Panel de Pay lee `medios_de_pago_de`. Nerqia Pay sigue siendo la
      única activación. MODO, Naranja X y Go Cuotas se listan como
-     Próximamente sin Conectar. Catálogo SQL alineado (Gestiona Pay
+     Próximamente sin Conectar. Catálogo SQL alineado (Nerqia Pay
      producto; MP = rail). Sin segundo OAuth inventado.
 
 120. Commerce: confirmar cobro manual de transferencia — 2026-09-02.
@@ -3711,6 +3711,34 @@ Finance Connect.
      272 archivos (`npm test -- --maxWorkers=1 --fileParallelism=false`,
      2026-09-03); typecheck OK y lint 0 errores / 143 warnings conocidos.
 
+161. Identidad y dominio canónicos: Nerqia / `nerqia.app` — 2026-09-03.
+     La marca de plataforma dejó de depender de strings dispersos: nombre,
+     productos, origen y símbolo viven en `src/lib/brand.ts`; landing, Auth,
+     shells, PWA, legales, emails, API, Pay y Platform usan Nerqia. Storefront y
+     documentos siguen mostrando la identidad de cada comercio; se retiraron
+     los fallbacks que inyectaban Exentry Imports en organizaciones sin marca.
+
+     Vercel conserva el mismo proyecto y Project ID, renombrado a `nerqia`, con
+     `nerqia.app` y `www.nerqia.app` asignados, nameservers Vercel y TLS activo.
+     El origen raíz es canónico y `www` tiene redirect permanente declarado en
+     `vercel.json`. Supabase Auth usa el dominio nuevo como Site URL y admite
+     producción, previews y localhost; el origen anterior queda sólo durante la
+     transición. Los identificadores `gestiona_pay`, claves locales y headers
+     `X-Gestiona-*` no se renombran: son contratos compatibles, no copy visible.
+
+     Las migraciones `20260903000070` y `20260903000071` alinean catálogos y
+     mensajes SQL sin tocar precios, stock ni datos del comercio. `db push
+     --dry-run` quedó en brecha 0, Auth remoto al día y el preflight real de
+     `platform-admin-action` respondió 204 con `Access-Control-Allow-Origin:
+     https://nerqia.app`. Se desplegaron **74/74 Edge Functions** (`npm run
+     deploy:functions`, 2026-09-03). La landing y
+     Auth pasaron inspección local 1280×720, sin solapamientos ni errores de
+     consola. Puerta final: **2.554 tests / 272 archivos** (`npm test`,
+     2026-09-03), typecheck OK, lint 0 errores / 144 warnings conocidos, build
+     PWA, 107 enlaces internos y 529 migraciones verificadas (`npm run
+     check:conteos`, 2026-09-03). Correo con `@nerqia.app` sigue pendiente de los
+     registros DNS de Resend; Vercel no provee casillas.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
@@ -3728,9 +3756,9 @@ soporte quedan controlados.
 | Línea | Hipótesis de ingreso | Gate |
 |---|---|---|
 | Business | Base gratuita/freemium o plan simple. | Retención y costo de servir medidos. |
-| Gestiona Pay | Margen dentro del precio de procesamiento, conciliación y riesgo. | Contratos upstream, aprobación, fraude, impuestos y soporte. |
-| Gestiona Ship | Diferencia negociada, etiquetas y servicios logísticos. | Volumen, reclamos y costo operativo. |
-| Gestiona Finance | Documentos por uso, conectores, aprobación y auditoría avanzada. | Accuracy, costo por documento y disposición a pagar. |
+| Nerqia Pay | Margen dentro del precio de procesamiento, conciliación y riesgo. | Contratos upstream, aprobación, fraude, impuestos y soporte. |
+| Nerqia Ship | Diferencia negociada, etiquetas y servicios logísticos. | Volumen, reclamos y costo operativo. |
+| Nerqia Finance | Documentos por uso, conectores, aprobación y auditoría avanzada. | Accuracy, costo por documento y disposición a pagar. |
 | Communications | WhatsApp, SMS y email de volumen. | Consentimiento, entregabilidad y margen. |
 | Domains | Registro, renovación y DNS administrado. | Operación y soporte automatizados. |
 | Ecosistema | Revenue share de apps/themes y partners. | Merchants y desarrolladores activos. |
@@ -3839,7 +3867,7 @@ Antes de fijar un porcentaje se deben conocer:
 - margen de contribución;
 - valor adicional que recibe el merchant.
 
-Hipótesis preferida a validar: cuando el merchant usa Gestiona Pay, la plataforma
+Hipótesis preferida a validar: cuando el merchant usa Nerqia Pay, la plataforma
 monetiza dentro del procesamiento y evita una comisión adicional poco
 explicable. Con proveedor externo, cualquier cargo debe demostrar valor y
 economics.
@@ -3975,7 +4003,7 @@ Hasta abrir sus gates:
 - agentes autónomos sobre pagos, inventario o precios;
 - Pay regulado, Capital o custodia;
 - KYC/AML, selfie, score de fraude o motor de riesgo F7 sin partner ni volumen;
-- controladora fiscal (Hasar, Epson, Moretti u otra): Gestiona emite por WSFE/CAE, no por controlador; sin hardware homologado no se finge;
+- controladora fiscal (Hasar, Epson, Moretti u otra): Nerqia emite por WSFE/CAE, no por controlador; sin hardware homologado no se finge;
 - marketplace de apps/themes;
 - microservicios por moda;
 - multi-región, data residency o tenancy dedicado;
@@ -4220,7 +4248,7 @@ fixture destructiva-cero probó el RPC real y producción sirve `public-api` v42
   arquetipos de pantalla, overlays, segmentación, estados, cobertura por
   producto y puerta de adopción tecnológica.
 - docs/LEGAL.md: requisitos argentinos y estado fiscal/legal.
-- Gestiona v2, análisis recibido el 2026-08-21: referencia estratégica para
+- Nerqia v2, análisis recibido el 2026-08-21: referencia estratégica para
   portfolio, arquitectura, Finance, Commerce, Platform y monetización.
 - Build y suites locales del 2026-08-30: **2.102 tests en 213 archivos**,
   typecheck, lint sin errores (139 warnings de deuda conocida), build/PWA y 74

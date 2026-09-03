@@ -246,7 +246,7 @@ export default function InfluencerPortalPage() {
   }, [fetchData]);
 
   useEffect(() => {
-    document.title = "Portal del Influencer — Gestiona";
+    document.title = "Portal del Influencer — Nerqia";
   }, []);
 
   // ── Loading ──
@@ -319,7 +319,7 @@ export default function InfluencerPortalPage() {
         ))}
 
         <p className="text-center text-[11px] text-muted-foreground/60 pt-4">
-          Gestiona · Portal seguro del influencer
+          Nerqia · Portal seguro del influencer
         </p>
       </main>
     </div>

@@ -13,7 +13,7 @@ const overview = read('src/pages/FinanceOverviewPage.tsx');
 const platformEdge = read('supabase/functions/platform-admin-action/index.ts');
 const platformPanel = read('src/components/platform/ProductAccessPanel.tsx');
 
-describe('autoridad de la superficie Gestiona Finance', () => {
+describe('autoridad de la superficie Nerqia Finance', () => {
   it('separa entitlement de permisos y feature flags', () => {
     expect(migration).toContain('CREATE TABLE IF NOT EXISTS public.organization_product_access');
     expect(migration).toContain("public.has_permission(p_org_id, 'finance', 'view')");
@@ -46,9 +46,9 @@ describe('autoridad de la superficie Gestiona Finance', () => {
     expect(app).toContain('<Route path="/finance/*" element={<FinanceRoutes />} />');
     expect(app).toContain('<FinanceLayout>');
     expect(app).toContain('<FinanceProductGate>');
-    expect(financeLayout).toContain('Gestiona Business');
+    expect(financeLayout).toContain('Nerqia Business');
     expect(financeLayout).toContain('OrgSwitcher');
-    expect(businessLayout).toContain('Gestiona Finance');
+    expect(businessLayout).toContain('Nerqia Finance');
   });
 
   it('no hereda onboarding de Business ni acceso de staff sin membresía', () => {

@@ -1,8 +1,8 @@
-# Gestiona — sistema de interfaz
+# Nerqia — sistema de interfaz
 
 **Corte:** 2026-08-22
 
-Este documento fija la dirección visual de Gestiona. El producto se inspira en
+Este documento fija la dirección visual de Nerqia. El producto se inspira en
 los patrones de CRM, marketplace y admin panel de las referencias compartidas,
 pero no copia componentes, textos ni assets de terceros.
 
@@ -15,7 +15,7 @@ segmentos, estados, responsive, accesibilidad y puerta tecnológica— viven en 
 
 ## Dirección
 
-Gestiona es una herramienta operativa que se usa muchas horas seguidas. La
+Nerqia es una herramienta operativa que se usa muchas horas seguidas. La
 interfaz debe ayudar a escanear, comparar y ejecutar, no competir con los datos.
 
 - Rail lateral estable para identidad y navegación; claro en Business y
@@ -105,7 +105,7 @@ pendiente deben conservar una etiqueta legible y no depender sólo del color.
 
 La referencia anterior de CRM quedó descartada como dirección principal el
 2026-08-22: resolvía navegación y detalle, pero era demasiado minimalista para
-la densidad operativa de Gestiona y el resultado se confundía con la interfaz
+la densidad operativa de Nerqia y el resultado se confundía con la interfaz
 anterior. La nueva composición combina dos referencias verificadas en su
 preview público:
 
@@ -116,7 +116,7 @@ preview público:
   aporta el violeta protagonista, las superficies claras y las tarjetas
   tintadas que hacen distinguibles salud, recurrencia y atención.
 
-Gestiona traduce esos patrones al trabajo real del comercio: la lista sigue
+Nerqia traduce esos patrones al trabajo real del comercio: la lista sigue
 siendo el centro, los segmentos funcionan como navegación rápida y la ficha
 seleccionada conserva el contexto mientras se ejecutan acciones, se revisan
 compras o se programa seguimiento.
@@ -136,9 +136,9 @@ compras o se programa seguimiento.
 Este slice usa datos, permisos, exportaciones, notas, comunicaciones, cuotas y
 acciones existentes; el rediseño no crea un segundo modelo de clientes. El
 criterio competitivo es conservar la ficha 360 y el margen por cliente que ya
-existen en Gestiona, pero llevarlos a la velocidad de lectura de un CRM maduro.
+existen en Nerqia, pero llevarlos a la velocidad de lectura de un CRM maduro.
 
-| Referencia | Patrón observado | Traducción en Gestiona |
+| Referencia | Patrón observado | Traducción en Nerqia |
 |---|---|---|
 | Aerten | Gestión de registros con tabla, filtros, tabs, roles/estado y CTA. | Cartera densa con estado comercial, métricas y ficha 360. |
 | eMarketplace Admin | Violeta fuerte, canvas claro y tarjetas de señal diferenciadas. | Command center de cuatro señales con tonos violeta, mint, sky y coral. |
@@ -177,7 +177,7 @@ organización. `WorkspaceViewTabs` es el primitive común para este contrato.
   vista y mantiene montadas las acciones/modales que el flujo ya utiliza.
 
 Esta es la traducción del patrón de CRM, eMarketplace y marketplace kits a la
-operación omnicanal de Gestiona: lista primero, contexto visible, detalle bajo
+operación omnicanal de Nerqia: lista primero, contexto visible, detalle bajo
 demanda y una ruta clara a la acción.
 
 ### Primitives y cobertura transversal

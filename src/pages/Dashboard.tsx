@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { useCallback } from "react";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
@@ -85,7 +85,7 @@ function DashboardDataError({ message, onRetry }: { message: string; onRetry: ()
     <div className="workspace-page workspace-dashboard workspace-dashboard-error pb-12">
       <PageHeader
         icon={AlertCircle}
-        eyebrow="Gestiona / Datos del negocio"
+        eyebrow="Nerqia / Datos del negocio"
         title="No pudimos cargar el dashboard"
         description="Tu sesión está activa, pero una de las fuentes de datos no respondió correctamente."
       />
@@ -1356,7 +1356,7 @@ export default function Dashboard() {
     const margin = stats.grossProfitARS > 0 && stats.totalSalesARS > 0
       ? ` · Margen ${((stats.grossProfitARS / stats.totalSalesARS) * 100).toFixed(1)}%`
       : "";
-    const text = `📊 Resumen ${today}\n💰 Ventas: ${revenue} (${count} venta${count !== 1 ? "s" : ""}${margin})\n\nVía Gestiona`;
+    const text = `📊 Resumen ${today}\n💰 Ventas: ${revenue} (${count} venta${count !== 1 ? "s" : ""}${margin})\n\nVía Nerqia`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 

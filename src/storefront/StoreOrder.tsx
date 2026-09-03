@@ -398,7 +398,7 @@ export default function StoreOrder() {
         </div>
       )}
 
-      {/* Pago pendiente con Gestiona Pay: se ofrece pagar ahora.
+      {/* Pago pendiente con Nerqia Pay: se ofrece pagar ahora.
           Sirve tanto si el link falló al confirmar como si el comprador
           abandonó el checkout y volvió después. */}
       {puedeReintentarPago && esMedioGestionaPay(order.payment_method) && (
@@ -410,7 +410,7 @@ export default function StoreOrder() {
             {fallido ? "El pago no se completó" : "Tu pedido está esperando el pago"}
           </p>
           <p className="text-xs mt-1" style={{ color: "hsl(var(--st-muted))" }}>
-            Podés pagarlo ahora con Gestiona Pay y lo preparamos enseguida.
+            Podés pagarlo ahora con Nerqia Pay y lo preparamos enseguida.
           </p>
           {pagoEnProceso ? (
             <div className="mt-4 py-3 text-xs" style={{ color: "hsl(var(--st-muted))" }} aria-live="polite">
@@ -458,7 +458,7 @@ export default function StoreOrder() {
                 className="w-full sm:w-auto min-h-11 px-5 py-2.5 text-sm font-medium border disabled:opacity-60"
                 style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
               >
-                {pagando ? "Abriendo el pago..." : tarjetaDisponible ? "Otros medios" : "Pagar con Gestiona Pay"}
+                {pagando ? "Abriendo el pago..." : tarjetaDisponible ? "Otros medios" : "Pagar con Nerqia Pay"}
               </button>
             </div>
           )}

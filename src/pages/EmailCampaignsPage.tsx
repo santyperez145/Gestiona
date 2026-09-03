@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -438,7 +438,7 @@ export default function EmailCampaignsPage() {
           subject: camp.subject,
           bodyHtml: camp.body_html,
           recipients: audience.map(c => ({ email: c.email!, name: c.name })),
-          orgName: activeOrg?.name || "Gestiona",
+          orgName: activeOrg?.name || "Nerqia",
           orgId: activeOrg?.id,
           // metadata passed to Resend so webhook can update metrics
           metadata: { campaign_id: camp.id, org_id: activeOrg?.id },
@@ -539,7 +539,7 @@ export default function EmailCampaignsPage() {
       {/**
         * ⚠️ Acá había un cartel FIJO que decía: «configurá RESEND_API_KEY en las
         * variables de entorno de Supabase y verificá tu dominio. Los emails
-        * salen desde marketing@gestiona.app».
+        * salen desde marketing@nerqia.app».
         *
         * Tres problemas en tres renglones:
         *

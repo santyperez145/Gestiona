@@ -7,7 +7,7 @@
 ## Qué problema resuelve
 
 Un comercio nuevo no debería recibir un catálogo vacío ni necesitar que
-Gestiona programe una variante del producto para su rubro. El Business Profiler
+Nerqia programe una variante del producto para su rubro. El Business Profiler
 convierte la elección de industria en tipos y atributos útiles sobre el mismo
 Business Core.
 
@@ -123,7 +123,7 @@ ni cambios de esquema.
 ## Comparación de producto
 
 Los presets por rubro son paridad esperable frente a productos verticales y
-ERPs configurables. El diferencial que Gestiona debe demostrar no es la lista
+ERPs configurables. El diferencial que Nerqia debe demostrar no es la lista
 de campos: es que la adaptación es declarativa, idempotente y no destructiva
 sobre el mismo stock, costo, orden, cliente y margen omnicanal. Hasta que otro
 merchant lo use de punta a punta, esa ventaja es una hipótesis arquitectónica,
