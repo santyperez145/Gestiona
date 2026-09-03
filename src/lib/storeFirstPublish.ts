@@ -133,6 +133,29 @@ export function storeShouldSeedPagesOnCreate(creatingStore: boolean): boolean {
   return creatingStore === true;
 }
 
+/**
+ * Sin legales publicados el checklist bloquea. Después de CBU y retiro, el
+ * panel no puede abrir con OAuth: el próximo clic es Páginas (Tiendanube /
+ * Shopify: políticas antes de ir live). No publica por el dueño.
+ */
+export function storeShouldLeadSettingsWithLegal(input: {
+  storeId: string | null | undefined;
+  legalReady: boolean;
+}): boolean {
+  if (!input.storeId) return false;
+  if (input.legalReady) return false;
+  return true;
+}
+
+export function storeLegalLeadCopy() {
+  return {
+    title: 'Completá y publicá términos y privacidad',
+    description:
+      'Sin razón social, CUIT y páginas publicadas el comprador no sabe quién vende. Usá el generador en Páginas; Gestiona Pay puede esperar.',
+    actionLabel: 'Ir a Páginas',
+  };
+}
+
 /** Sin fila en ecommerce_stores el 2º comercio no puede publicar ni legales. */
 export function storeShouldShowStoreMissingHandoff(
   storeId: string | null | undefined,

@@ -3563,6 +3563,16 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+152. Privacidad en seed + lead legales antes de Pay — 2026-09-03.
+     Medido: `seed_store_pages` no creaba `politica-de-privacidad`
+     (obligatoria Ley 25.326 / checklist). Migración + backfill draft
+     con «Completá acá». Settings: lead a Páginas después de CBU/retiro.
+     No publica ni inventa CUIT.
+
+     Verificado en este recorte: **2.484 tests** / 264 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

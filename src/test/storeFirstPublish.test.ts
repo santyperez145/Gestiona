@@ -21,6 +21,8 @@ import {
   storeBankLeadCopy,
   storePickupLeadCopy,
   storeShouldSeedPagesOnCreate,
+  storeShouldLeadSettingsWithLegal,
+  storeLegalLeadCopy,
   storeAfterCreateCopy,
   storeWizardFinishCopy,
   urlPublicaDeTienda,
@@ -179,6 +181,25 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(identityLeadFoot).toBeGreaterThan(0);
     const afterFoot = STORE.slice(identityLeadFoot, identityLeadFoot + 280);
     expect(afterFoot).not.toContain('<PaymentConnectionsPanel');
+  });
+
+  it('después de CBU y retiro, legales van antes de OAuth', () => {
+    expect(storeShouldLeadSettingsWithLegal({
+      storeId: null,
+      legalReady: false,
+    })).toBe(false);
+    expect(storeShouldLeadSettingsWithLegal({
+      storeId: 'id',
+      legalReady: false,
+    })).toBe(true);
+    expect(storeShouldLeadSettingsWithLegal({
+      storeId: 'id',
+      legalReady: true,
+    })).toBe(false);
+    expect(storeLegalLeadCopy().actionLabel).toMatch(/Páginas/i);
+    expect(STORE).toContain('storeShouldLeadSettingsWithLegal');
+    expect(STORE).toContain('goToTab("pages")');
+    expect(STORE).toContain('!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal');
   });
 
   it('sin catálogo el overview pide el primer producto sin exigir el wizard', () => {

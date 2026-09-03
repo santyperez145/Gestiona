@@ -53,6 +53,8 @@ import {
   storeBankLeadCopy,
   storePickupLeadCopy,
   storeShouldSeedPagesOnCreate,
+  storeShouldLeadSettingsWithLegal,
+  storeLegalLeadCopy,
   storeAfterCreateCopy,
   urlPublicaDeTienda,
 } from "@/lib/storeFirstPublish";
@@ -723,9 +725,18 @@ export default function EcommerceStorePage() {
     pickupEnabled: !!storeForm.pickup_enabled,
     addressReady: Boolean(String(store?.pickup_address ?? "").trim()),
   });
+  const legalReady =
+    signals.legalPages.missingOrTemplate === 0 && signals.legalPages.drafts === 0;
+  const leadSettingsWithLegal = storeShouldLeadSettingsWithLegal({
+    storeId: store?.id,
+    legalReady,
+  });
   const bankLead = leadSettingsWithBank ? storeBankLeadCopy() : null;
   const pickupLead = !leadSettingsWithBank && leadSettingsWithPickup
     ? storePickupLeadCopy()
+    : null;
+  const legalLead = !leadSettingsWithBank && !leadSettingsWithPickup && leadSettingsWithLegal
+    ? storeLegalLeadCopy()
     : null;
   const afterCreate = justCreatedStore && store?.id && signals.publishedProducts === 0
     ? storeAfterCreateCopy()
@@ -1405,7 +1416,19 @@ export default function EcommerceStorePage() {
               </Button>
             </div>
           )}
-          {!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && (
+          {legalLead && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5 space-y-3">
+              <p className="text-sm font-semibold">{legalLead.title}</p>
+              <p className="text-[13px] text-muted-foreground leading-snug">{legalLead.description}</p>
+              <Button
+                className="min-h-11 w-full sm:w-auto"
+                onClick={() => goToTab("pages")}
+              >
+                {legalLead.actionLabel}
+              </Button>
+            </div>
+          )}
+          {!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal && (
             <PaymentConnectionsPanel onConnectionChange={reloadReadinessSignals} />
           )}
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
