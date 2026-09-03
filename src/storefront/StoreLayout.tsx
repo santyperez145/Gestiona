@@ -19,8 +19,15 @@ import { ShoppingBag, X, Plus, Minus, Trash2, Instagram, Menu, User, ChevronDown
 import { useStoreAuth } from "./storeAuth";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 import { parseStorefrontLayout, textoDeAnuncio } from "@/lib/storeHomeLayout";
-import { textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
+import { textoCoberturaDomicilio, etiquetaProvinciaCheckout } from "@/lib/storeShippingCoverage";
 import { hrefWhatsAppConsultar, parseStoreSocial } from "@/lib/storeSocial";
+import { AR_PROVINCES } from "@/lib/shippingCalc";
+import { quoteStoreShipping } from "@/lib/publicDataSource";
+import {
+  guardarProvinciaCarrito,
+  leerProvinciaCarrito,
+  resumenEnvioCarrito,
+} from "@/lib/storeCartProvince";
 
 /**
  * Un link del menú. Los externos salen del router: con `<Link>` un
@@ -44,10 +51,13 @@ function LinkDeMenu({
 }
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
-  const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingLabel, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf } = useStore();
+  const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingLabel, shippingPending, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
+  const [provinciaCarrito, setProvinciaCarrito] = useState("");
+  const [cotizandoCarrito, setCotizandoCarrito] = useState(false);
+  const [resumenCotizacion, setResumenCotizacion] = useState<{ amount: number; subtitle: string } | null>(null);
   const { customer } = useStoreAuth();
 
   const theme = useMemo(
@@ -95,6 +105,63 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     shippingProvinces: store?.shipping_provinces,
   });
   const coberturaEnvio = textoCoberturaDomicilio(store?.shipping_provinces);
+
+  // Provincia del drawer: sobrevive al checkout (sessionStorage) y no pide
+  // dirección completa — patrón Shopify/Tiendanube de cotizar con ubicación.
+  useEffect(() => {
+    if (!store?.slug) return;
+    setProvinciaCarrito(leerProvinciaCarrito(store.slug));
+  }, [store?.slug]);
+
+  useEffect(() => {
+    if (!shippingPending || !store?.slug || cart.length === 0 || !provinciaCarrito) {
+      setResumenCotizacion(null);
+      setCotizandoCarrito(false);
+      return;
+    }
+    let cancelado = false;
+    setCotizandoCarrito(true);
+    quoteStoreShipping({
+      slug: store.slug,
+      province: provinciaCarrito,
+      postalCode: null,
+      items: cart.map((l) => ({
+        product_id: l.productId,
+        variant_id: l.variantId ?? null,
+        quantity: l.qty,
+      })),
+    }).then((rows) => {
+      if (cancelado) return;
+      setCotizandoCarrito(false);
+      if (!rows) {
+        setResumenCotizacion(null);
+        return;
+      }
+      setResumenCotizacion(
+        resumenEnvioCarrito(
+          (rows as Array<{ carrier?: string; price?: number; is_free?: boolean; label?: string }>).map((r) => ({
+            carrier: String(r.carrier ?? ""),
+            price: Number(r.price) || 0,
+            is_free: !!r.is_free,
+            label: String(r.label ?? ""),
+          })),
+        ),
+      );
+    }, () => {
+      if (cancelado) return;
+      setCotizandoCarrito(false);
+      setResumenCotizacion(null);
+    });
+    return () => { cancelado = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shippingPending, store?.slug, provinciaCarrito, JSON.stringify(cart.map((l) => [l.productId, l.variantId, l.qty]))]);
+
+  const envioDrawerTexto = resumenCotizacion
+    ? (resumenCotizacion.amount === 0 ? "Gratis" : fmt(resumenCotizacion.amount))
+    : (cotizandoCarrito ? "Cotizando…" : shippingLabel);
+  const totalDrawer = resumenCotizacion
+    ? Math.max(0, subtotal - promo2x) + resumenCotizacion.amount
+    : total;
 
   // El menú sale de las categorías que la tienda realmente tiene. Hardcodear
   // "Perfumes árabes" servía para este negocio pero rompía el resto: esto es
@@ -647,6 +714,37 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                       {coberturaEnvio ? ` · ${coberturaEnvio}` : ""}
                     </p>
                   )}
+                  {shippingPending && (
+                    <label className="block text-xs space-y-1" style={{ color: "hsl(var(--st-muted))" }}>
+                      <span>Provincia para cotizar el envío</span>
+                      <select
+                        value={provinciaCarrito}
+                        onChange={(e) => {
+                          const code = e.target.value;
+                          setProvinciaCarrito(code);
+                          if (store?.slug) guardarProvinciaCarrito(store.slug, code);
+                        }}
+                        className="w-full min-h-11 px-2 text-sm"
+                        style={{
+                          borderRadius: "var(--st-radius)",
+                          border: "1px solid hsl(var(--st-border))",
+                          background: "hsl(var(--st-bg))",
+                          color: "hsl(var(--st-fg))",
+                        }}
+                        aria-label="Provincia para cotizar el envío"
+                      >
+                        <option value="">Elegí tu provincia</option>
+                        {AR_PROVINCES.map((p) => (
+                          <option key={p.code} value={p.code}>
+                            {etiquetaProvinciaCheckout(p.code, p.name, store?.shipping_provinces)}
+                          </option>
+                        ))}
+                      </select>
+                      {resumenCotizacion && (
+                        <span className="block text-[11px]">{resumenCotizacion.subtitle}</span>
+                      )}
+                    </label>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span style={{ color: "hsl(var(--st-muted))" }}>Subtotal</span>
                     <span>{fmt(subtotal)}</span>
@@ -659,11 +757,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                   )}
                   <div className="flex justify-between text-sm">
                     <span style={{ color: "hsl(var(--st-muted))" }}>Envío</span>
-                    <span>{shippingLabel}</span>
+                    <span>{envioDrawerTexto}</span>
                   </div>
                   <div className="flex justify-between font-semibold pt-1 border-t" style={{ borderColor: "hsl(var(--st-border))" }}>
                     <span>Total</span>
-                    <span>{fmt(total)}</span>
+                    <span>{fmt(totalDrawer)}</span>
                   </div>
                   <Link
                     to={`${base}/checkout`}

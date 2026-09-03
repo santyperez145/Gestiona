@@ -14,6 +14,7 @@ import { normalizarEmail } from "@/lib/couponRules";
 import { decisionEntregaCheckout, requiereDireccionDeEntrega } from "@/lib/checkoutDelivery";
 import { mediosDePagoOfrecibles, esMedioGestionaPay } from "@/lib/gestionaPay";
 import { avisoCheckoutMedioPago, etiquetaMedioCheckout } from "@/lib/storeOrderBuyerCopy";
+import { leerProvinciaCarrito } from "@/lib/storeCartProvince";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -75,6 +76,15 @@ export default function StoreCheckout() {
       cp: f.cp || d.cp || "",
     }));
   }, [customer]);
+
+  // Si eligió provincia en el carrito, no la volvemos a pedir vacía.
+  useEffect(() => {
+    if (!store?.slug) return;
+    const previa = leerProvinciaCarrito(store.slug);
+    if (!previa) return;
+    setForm((f) => (f.provincia ? f : { ...f, provincia: previa }));
+  }, [store?.slug]);
+
   const [enviando, setEnviando] = useState(false);
   /**
    * H1 — clave de idempotencia del intento de compra en curso.

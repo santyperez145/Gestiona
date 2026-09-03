@@ -3439,6 +3439,17 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+140. Cotización por provincia en el carrito — 2026-09-03.
+     ESTANDAR §5.10 / Shopify-Tiendanube: costo de envío antes de pedir
+     datos de más. El drawer en modo zones pide provincia, cotiza con
+     `quote_store_shipping` (autoridad server) y precarga el checkout vía
+     sessionStorage. No inventa tarifas; Exentry sigue con 1 provincia
+     tarifada. Allowlist select nativo en StoreLayout documentada.
+
+     Verificado en este recorte: **2.458 tests** / 261 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

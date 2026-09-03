@@ -43,6 +43,16 @@ describe("recorrido de compra a 360 px", () => {
     expect(helper).toContain("Se calcula con tu provincia");
   });
 
+  it("el carrito cotiza con provincia antes del checkout (estándar competitivo)", () => {
+    // ESTANDAR §5.10: costo/plazo de envío antes de pedir datos innecesarios.
+    const layout = leer("src/storefront/StoreLayout.tsx");
+    const checkout = leer("src/storefront/StoreCheckout.tsx");
+    expect(layout).toContain("quoteStoreShipping");
+    expect(layout).toContain("Provincia para cotizar el envío");
+    expect(layout).toContain("guardarProvinciaCarrito");
+    expect(checkout).toContain("leerProvinciaCarrito");
+  });
+
   it("filtros y checkout no esconden la acción primaria en el teléfono", () => {
     const productos = leer("src/storefront/StoreProducts.tsx");
     const checkout = leer("src/storefront/StoreCheckout.tsx");

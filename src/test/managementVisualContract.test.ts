@@ -203,9 +203,11 @@ describe('contrato visual transversal de Gestión', () => {
         .map(path => [path, source(`src/storefront/${path}`).match(/<select\b/g)?.length || 0] as const)
         .filter(([, count]) => count > 0),
     );
-    expect(storefrontExceptions, 'Checkout/listado mobile sólo admiten las excepciones documentadas')
+    expect(storefrontExceptions, 'Checkout/listado/carrito sólo admiten las excepciones documentadas')
       .toEqual({
         'StoreCheckout.tsx': 2,
+        // Drawer: cotizar flete por provincia antes del checkout (ESTANDAR §5.10).
+        'StoreLayout.tsx': 1,
         'StoreProducts.tsx': 1,
       });
   });
