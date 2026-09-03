@@ -3624,7 +3624,9 @@ Finance Connect.
      último Ready ~1h atrasado — reintentar deploy cuando baje el cupo.
      No inventa stock ni tarifario.
 
-     Verificado en este recorte: **PENDIENTE CI**.
+     Verificado en este recorte: **2.492 tests** / 265 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
