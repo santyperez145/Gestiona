@@ -186,9 +186,11 @@ export function storeDraftInicial(
     tiktok_pixel_id: "",
     logo_url: "",
     banner_url: "",
-    shipping_mode: "flat",
-    // Retiro primero: sin tarifario nacional el checkout todavía puede cerrar.
-    // Una fila existente conserva lo guardado (`storeFormDesdeFila`).
+    shipping_mode: "zones",
+    // Retiro primero: sin tarifas el comprador igual puede cerrar.
+    // Modo zonas: el checkout cotiza provincia→tarifa (Tiendanube), no un
+    // flat $0 que parece envío nacional. Una fila existente conserva lo
+    // guardado (`storeFormDesdeFila`).
     pickup_enabled: true,
     pickup_address: "",
     pickup_instructions: "",

@@ -77,6 +77,11 @@ describe("la tienda no nace con la identidad de Exentry", () => {
     expect(storeDraftInicial().payment_methods).toEqual(["transferencia"]);
   });
 
+  it("una tienda nueva cotiza por zonas (provincia), no flat $0 disfrazado", () => {
+    expect(storeDraftInicial().shipping_mode).toBe("zones");
+    expect(storeFormDesdeFila({ shipping_mode: "flat" }).shipping_mode).toBe("flat");
+  });
+
   it("una tienda nueva ofrece retiro: sin tarifas el comprador igual puede cerrar", () => {
     expect(storeDraftInicial().pickup_enabled).toBe(true);
     expect(storeFormDesdeFila({ pickup_enabled: false }).pickup_enabled).toBe(false);

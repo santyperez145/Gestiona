@@ -16,6 +16,7 @@ import {
   type CarrierCode, type ServiceCode, type StoreShippingConfig,
 } from '@/lib/shippingCalc';
 import CompletarTarifario from './CompletarTarifario';
+import ProvinceRatesPanel from './ProvinceRatesPanel';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 
 const fmt = (n: number) => `$${n.toLocaleString('es-AR', { maximumFractionDigits: 2 })}`;
@@ -181,8 +182,8 @@ export default function ShippingZonesTab() {
           <div>
             <p className="font-medium text-sm">Todavía no tenés zonas de envío</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Una zona agrupa provincias que pagan el mismo precio. Podés arrancar con
-              las 6 zonas que usa el mercado argentino y ajustarlas después.
+              Sembramos las regiones de Argentina; el precio lo cargás por provincia
+              (como en Tiendanube). Sin precio, esa provincia no tiene envío a domicilio.
             </p>
           </div>
           <Button onClick={seedZones} disabled={saving}>
@@ -206,6 +207,8 @@ export default function ShippingZonesTab() {
           </p>
         </div>
       )}
+
+      <ProvinceRatesPanel orgId={orgId} zonas={zones} rates={rates} onDone={load} />
 
       <CompletarTarifario orgId={orgId} zonas={zones} rates={rates} onDone={load} />
 
