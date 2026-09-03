@@ -381,15 +381,17 @@ export default function IntegrationsPage() {
               <code className="text-[11px] shrink-0 text-emerald-500">{scope}</code>
             </div>
           ))}
-          <p className="text-xs mt-2">Header: <code>Authorization: Bearer &lt;tu_api_key&gt;</code></p>
+          <p className="text-xs mt-2">
+            Encabezado de autenticación: <code>Authorization: Bearer &lt;tu clave de API&gt;</code>
+          </p>
           <p className="text-xs">
-            El costo de cada producto sólo viaja si la key tiene además{" "}
+            El costo de cada producto se envía solo si la clave tiene además{" "}
             <code>costs:read</code>.
           </p>
           <p className="text-xs">
-            En <code>POST /v1/sales</code>, <code>Idempotency-Key</code> es obligatorio: si
+            En <code>POST /v1/sales</code>, <code>Idempotency-Key</code> evita duplicados: si
             se corta la red y reintentás, devuelve la misma venta en vez de
-            duplicarla.
+            crear una nueva.
           </p>
           <p className="text-xs">
             ARS admite 2 decimales, costos USD 4, y el stock representa unidades
