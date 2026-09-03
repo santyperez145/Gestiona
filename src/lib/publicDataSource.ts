@@ -157,6 +157,21 @@ export interface CatalogProduct {
   [key: string]: unknown;
 }
 
+/** Branding mínimo que puede dibujar el catálogo legado. Sin credenciales. */
+export interface PublicCatalogBranding {
+  id?: string;
+  user_id?: string;
+  org_id?: string;
+  business_name?: string | null;
+  logo_url?: string | null;
+  primary_color?: string | null;
+  secondary_color?: string | null;
+  whatsapp_number?: string | null;
+}
+
+const PUBLIC_BRANDING_COLUMNS =
+  'id,user_id,org_id,business_name,logo_url,primary_color,secondary_color,whatsapp_number';
+
 /**
  * Productos de una organización, para la tienda online.
  * Ordenados con los destacados primero, igual que antes.
@@ -224,7 +239,7 @@ export async function fetchStoreProducts(orgId: string): Promise<LecturaPublica<
  * ofrece fraccionado hasta que la migración esté aplicada — preferible a
  * publicar la estructura de costos.
  */
-export async function fetchCatalogProducts(userId: string): Promise<CatalogProduct[]> {
+export async function fetchCatalogProducts(userId: string): Promise<LecturaPublica<CatalogProduct[]>> {
   const view = await retryPublicRead(() => supabase
     .from('catalog_products')
     .select(PRODUCT_COLUMNS_WITH_DECANTS)
@@ -233,10 +248,29 @@ export async function fetchCatalogProducts(userId: string): Promise<CatalogProdu
     .order('category')
     .order('name'));
 
-  if (!view.error) return (view.data ?? []) as unknown as CatalogProduct[];
+  if (!view.error) {
+    const rows = (view.data ?? []) as unknown as CatalogProduct[];
+    // Algunos links históricos se generaron con el id de organización. El
+    // catálogo público es una frontera de compatibilidad: probamos ese scope
+    // sólo cuando el scope de usuario no devolvió nada, sin mezclar tenants.
+    if (rows.length > 0) return { ok: true, data: rows };
+    const byOrg = await retryPublicRead(() => supabase
+      .from('catalog_products')
+      .select(PRODUCT_COLUMNS_WITH_DECANTS)
+      .eq('org_id', userId)
+      .gt('stock', 0)
+      .order('category')
+      .order('name'));
+    if (!byOrg.error) return { ok: true, data: (byOrg.data ?? []) as unknown as CatalogProduct[] };
+    if (!isMissingRelation(byOrg.error)) {
+      console.error('[catálogo] error leyendo catalog_products por organización:', byOrg.error.message);
+      return { ok: false, error: byOrg.error };
+    }
+    return { ok: true, data: [] };
+  }
   if (!isMissingRelation(view.error)) {
     console.error('[catálogo] error leyendo catalog_products:', view.error.message);
-    return [];
+    return { ok: false, error: view.error };
   }
 
   warnFallback('catalog_products');
@@ -250,9 +284,23 @@ export async function fetchCatalogProducts(userId: string): Promise<CatalogProdu
 
   if (raw.error) {
     console.error('[catálogo] error leyendo products:', raw.error.message);
-    return [];
+    return { ok: false, error: raw.error };
   }
-  return (raw.data ?? []) as unknown as CatalogProduct[];
+  const rows = (raw.data ?? []) as unknown as CatalogProduct[];
+  if (rows.length > 0) return { ok: true, data: rows };
+
+  const rawByOrg = await retryPublicRead(() => supabase
+    .from('products')
+    .select(PRODUCT_COLUMNS)
+    .eq('org_id', userId)
+    .gt('stock', 0)
+    .order('category')
+    .order('name'));
+  if (rawByOrg.error) {
+    console.error('[catálogo] error leyendo products por organización:', rawByOrg.error.message);
+    return { ok: false, error: rawByOrg.error };
+  }
+  return { ok: true, data: (rawByOrg.data ?? []) as unknown as CatalogProduct[] };
 }
 
 export interface CatalogSettings {
@@ -276,21 +324,95 @@ export interface CatalogSettings {
  * que es el que corresponde a este link. Sin el `order`, `.maybeSingle()`
  * fallaría con "multiple rows" y el catálogo entero mostraría "no encontrado".
  */
-export async function fetchCatalogSettings(userId: string): Promise<CatalogSettings | null> {
+export async function fetchCatalogSettings(userId: string): Promise<LecturaPublica<CatalogSettings | null>> {
   const cols = 'exchange_rate,volume_discount_threshold,volume_discount_percent';
 
   const view = await retryPublicRead(() => supabase
     .from('catalog_settings').select(cols).eq('user_id', userId)
     .order('org_id', { ascending: true }).limit(1).maybeSingle());
 
-  if (!view.error) return (view.data ?? null) as CatalogSettings | null;
-  if (!isMissingRelation(view.error)) return null;
+  if (!view.error && view.data) return { ok: true, data: view.data as CatalogSettings };
+  if (!view.error) {
+    const byOrg = await retryPublicRead(() => supabase
+      .from('catalog_settings').select(cols).eq('org_id', userId)
+      .order('org_id', { ascending: true }).limit(1).maybeSingle());
+    if (!byOrg.error) return { ok: true, data: (byOrg.data ?? null) as CatalogSettings | null };
+    if (!isMissingRelation(byOrg.error)) {
+      console.error('[catálogo] error leyendo catalog_settings por organización:', byOrg.error.message);
+      return { ok: false, error: byOrg.error };
+    }
+    return { ok: true, data: null };
+  }
+  if (!isMissingRelation(view.error)) {
+    console.error('[catálogo] error leyendo catalog_settings:', view.error.message);
+    return { ok: false, error: view.error };
+  }
 
   warnFallback('catalog_settings');
   const raw = await retryPublicRead(() => supabase
     .from('settings').select(cols).eq('user_id', userId)
     .order('created_at', { ascending: true }).limit(1).maybeSingle());
-  return (raw.data ?? null) as CatalogSettings | null;
+  if (raw.error) {
+    console.error('[catálogo] error leyendo settings:', raw.error.message);
+    return { ok: false, error: raw.error };
+  }
+  if (raw.data) return { ok: true, data: raw.data as CatalogSettings };
+
+  const rawByOrg = await retryPublicRead(() => supabase
+    .from('settings').select(cols).eq('org_id', userId)
+    .order('created_at', { ascending: true }).limit(1).maybeSingle());
+  if (rawByOrg.error) {
+    console.error('[catálogo] error leyendo settings por organización:', rawByOrg.error.message);
+    return { ok: false, error: rawByOrg.error };
+  }
+  return { ok: true, data: (rawByOrg.data ?? null) as CatalogSettings | null };
+}
+
+/**
+ * Branding público del catálogo, con la misma compatibilidad user/org que los
+ * productos. Mantenerlo en esta frontera evita que una página anónima consulte
+ * `settings` por su cuenta y hace visible un fallo de permisos o red.
+ */
+export async function fetchCatalogBranding(
+  userOrOrgId: string,
+): Promise<LecturaPublica<PublicCatalogBranding | null>> {
+  const view = await retryPublicRead(() => supabase
+    .from('settings_public').select(PUBLIC_BRANDING_COLUMNS).eq('user_id', userOrOrgId)
+    .order('org_id', { ascending: true }).limit(1).maybeSingle());
+
+  if (!view.error && view.data) return { ok: true, data: view.data as PublicCatalogBranding };
+  if (view.error && !isMissingRelation(view.error)) {
+    console.error('[catálogo] error leyendo settings_public:', view.error.message);
+    return { ok: false, error: view.error };
+  }
+
+  const byOrg = await retryPublicRead(() => supabase
+    .from('settings_public').select(PUBLIC_BRANDING_COLUMNS).eq('org_id', userOrOrgId)
+    .order('org_id', { ascending: true }).limit(1).maybeSingle());
+  if (!byOrg.error) return { ok: true, data: (byOrg.data ?? null) as PublicCatalogBranding | null };
+  if (!isMissingRelation(byOrg.error)) {
+    console.error('[catálogo] error leyendo settings_public por organización:', byOrg.error.message);
+    return { ok: false, error: byOrg.error };
+  }
+
+  warnFallback('settings_public');
+  const raw = await retryPublicRead(() => supabase
+    .from('settings').select(PUBLIC_BRANDING_COLUMNS).eq('user_id', userOrOrgId)
+    .order('org_id', { ascending: true }).limit(1).maybeSingle());
+  if (raw.error) {
+    console.error('[catálogo] error leyendo settings:', raw.error.message);
+    return { ok: false, error: raw.error };
+  }
+  if (raw.data) return { ok: true, data: raw.data as PublicCatalogBranding };
+
+  const rawByOrg = await retryPublicRead(() => supabase
+    .from('settings').select(PUBLIC_BRANDING_COLUMNS).eq('org_id', userOrOrgId)
+    .order('org_id', { ascending: true }).limit(1).maybeSingle());
+  if (rawByOrg.error) {
+    console.error('[catálogo] error leyendo settings por organización:', rawByOrg.error.message);
+    return { ok: false, error: rawByOrg.error };
+  }
+  return { ok: true, data: (rawByOrg.data ?? null) as PublicCatalogBranding | null };
 }
 
 // ── Link de pago público ────────────────────────────────────────────────────

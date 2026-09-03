@@ -162,6 +162,8 @@ describe('contrato visual transversal de Gestión', () => {
       .toEqual([]);
   });
 
+  // Recorre todo src/pages y src/components; en Windows puede superar el
+  // timeout global cuando la suite corre en paralelo con otros escaneos.
   it('las fechas de Gestión conservan semántica nativa bajo el Input canónico', () => {
     const withoutBlockComments = (contents: string) => contents.replace(/\/\*[\s\S]*?\*\//g, '');
     const rawTemporalInput = /<input\b[^>]*\btype=["'](?:date|datetime-local|month)["'][^>]*>/;
@@ -190,7 +192,7 @@ describe('contrato visual transversal de Gestión', () => {
     }
     expect(source('src/components/shared/FilePicker.tsx')).toContain('onDrop=');
     expect(source('src/components/shared/FilePicker.tsx')).toContain('role="alert"');
-  });
+  }, 15_000);
 
   it('los componentes internos usan Select y Storefront conserva sólo excepciones mobile explícitas', () => {
     const components = tsxFiles('src/components');
@@ -205,6 +207,8 @@ describe('contrato visual transversal de Gestión', () => {
     );
     expect(storefrontExceptions, 'Checkout/listado/carrito/PDP sólo admiten las excepciones documentadas')
       .toEqual({
+        // Drawer del carrito: cotizar flete por provincia antes del checkout.
+        'StoreCart.tsx': 1,
         'StoreCheckout.tsx': 2,
         // Drawer: cotizar flete por provincia antes del checkout (ESTANDAR §5.10).
         'StoreLayout.tsx': 1,

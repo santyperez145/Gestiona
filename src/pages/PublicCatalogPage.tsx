@@ -6,7 +6,7 @@ import { safeChannel } from "@/lib/realtimeChannel";
 import { loadPublicPromotions, bestPromoPrice } from "@/lib/promotions";
 import { nombreDeCategoria } from "@/lib/storeCategories";
 import {
-  fetchCatalogProducts, fetchCatalogSettings, fetchCatalogVariants,
+  fetchCatalogBranding, fetchCatalogProducts, fetchCatalogSettings, fetchCatalogVariants,
   fetchPublishedStoreSlugForOrg,
 } from "@/lib/publicDataSource";
 import {
@@ -31,6 +31,7 @@ import {
   Trash2,
   ChevronRight,
   Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -179,6 +180,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [valid, setValid] = useState<boolean | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [orgIdCuotas, setOrgIdCuotas] = useState<string | null>(null);
   const cuotasOfrecidas = useCuotasDelComercio(orgIdCuotas);
   const [search, setSearch] = useState("");
@@ -207,37 +209,51 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
   const fetchData = useCallback(async () => {
-    if (!userId) { setValid(false); return; }
+    if (!userId) { setValid(false); setLoadError(false); return; }
+    setLoadError(false);
     const [pRes, sRes, fsRes] = await Promise.all([
       // Vistas públicas saneadas: sin costos, sin márgenes, sin credenciales.
       // Los precios de decant vienen ya calculados desde la base.
       fetchCatalogProducts(userId),
-      // ⚠️ `.order().limit(1)` porque `settings.user_id` dejó de ser único el
-      // 2026-08-26: un dueño con dos comercios tiene dos filas, y sin esto
-      // `.maybeSingle()` fallaría con "multiple rows" y el catálogo diría
-      // "no encontrado". Se toma la del comercio original.
-      supabase.from("settings_public").select("*").eq("user_id", userId)
-        .order("org_id", { ascending: true }).limit(1).maybeSingle(),
+      // Un link viejo puede traer user_id u org_id. La frontera pública
+      // resuelve ambos sin pedirle a la página que lea settings por su cuenta.
+      fetchCatalogBranding(userId),
       fetchCatalogSettings(userId),
     ]);
-    if (!sRes.data) { setValid(false); return; }
+    const productosError = "error" in pRes ? pRes.error : null;
+    const brandingError = "error" in sRes ? sRes.error : null;
+    const productos = "data" in pRes ? pRes.data : [];
+    const branding = "data" in sRes ? sRes.data : null;
+    const reglasPrecio = "data" in fsRes ? fsRes.data : null;
+    if (productosError || brandingError) {
+      // Red/network/permission are not «catálogo sin productos». La pantalla
+      // tiene que ofrecer reintentar y dejar rastro para soporte.
+      console.error("[catálogo] no se pudo cargar la vidriera", {
+        productos: productosError,
+        branding: brandingError,
+      });
+      setLoadError(true);
+      setValid(null);
+      return;
+    }
+    if (!branding) { setValid(false); return; }
 
     // Promociones vigentes: sin esto la vidriera mostraba un precio y el POS
     // cobraba otro. Se leen por RPC (la RLS de `promotions` exige auth) y se
     // vuelcan sobre `discount_price_ars`, que es el campo que usa toda la
     // página para badges, % OFF, combos y el mensaje de WhatsApp.
-    const rows = pRes || [];
-    const orgId = (rows[0] as any)?.org_id as string | undefined;
+    const rows = productos;
+    const orgId = (rows[0] as any)?.org_id ?? branding.org_id;
     // Las cuotas que se muestran salen de lo que el comercio configuró.
     setOrgIdCuotas(orgId ?? null);
     if (orgId) {
-      fetchPublishedStoreSlugForOrg(orgId).then(setStoreSlug, () => setStoreSlug(null));
+      fetchPublishedStoreSlugForOrg(String(orgId)).then(setStoreSlug, () => setStoreSlug(null));
     } else {
       setStoreSlug(null);
     }
     let priced = rows;
     if (orgId) {
-      const promos = await loadPublicPromotions(orgId);
+      const promos = await loadPublicPromotions(String(orgId));
       if (promos.length) {
         priced = rows.map((p: any) => {
           const best = bestPromoPrice(p, promos);
@@ -248,12 +264,15 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
       }
     }
     setProducts(priced);
-    setSettings(sRes.data);
-    setFullSettings(fsRes || null);
+    setSettings(branding);
+    if ("error" in fsRes) {
+      console.error("[catálogo] no se pudieron cargar las reglas de precio", fsRes.error);
+    }
+    setFullSettings(reglasPrecio);
     setValid(true);
   }, [userId]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { void fetchData(); }, [fetchData]);
 
   useEffect(() => {
     if (!userId || !valid) return;
@@ -336,6 +355,27 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
             style={{ borderColor: `${primaryColor} transparent ${primaryColor} ${primaryColor}` }}
           />
           <p className="text-white/20 text-xs tracking-widest uppercase">Cargando catálogo…</p>
+        </div>
+      </div>
+    );
+
+  if (loadError)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#080812] text-white px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-20 h-20 bg-white/5 rounded-[14px] flex items-center justify-center mx-auto mb-5 border border-white/10">
+            <RefreshCw className="w-9 h-9 text-white/30" />
+          </div>
+          <h1 className="text-xl font-bold mb-2">No pudimos cargar el catálogo</h1>
+          <p className="text-white/45 text-sm">La tienda puede estar temporalmente sin conexión. Probá de nuevo en unos segundos.</p>
+          <button
+            type="button"
+            onClick={() => { void fetchData(); }}
+            className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-[9px] px-4 py-2 text-sm font-semibold"
+            style={{ background: primaryColor, color: "#000" }}
+          >
+            <RefreshCw className="w-4 h-4" /> Reintentar
+          </button>
         </div>
       </div>
     );

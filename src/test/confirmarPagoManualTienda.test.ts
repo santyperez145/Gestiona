@@ -8,7 +8,7 @@ const leer = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 describe("confirmar pago manual de tienda", () => {
   const migracion = leer("supabase/migrations/20260902000050_confirmar_pago_manual_tienda.sql");
   const inspector = leer("src/components/ecommerce/StoreOrderInspector.tsx");
-  const page = leer("src/pages/EcommerceStorePage.tsx");
+  const page = leer("src/components/ecommerce/StoreOrdersWorkspace.tsx");
 
   it("la RPC exige permiso, acota a offline y no queda abierta a anon", () => {
     expect(migracion).toContain("exigir_permiso");

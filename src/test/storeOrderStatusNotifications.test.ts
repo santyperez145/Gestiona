@@ -49,12 +49,12 @@ describe("avisos de estado de órdenes de tienda", () => {
   it("Marcar cobrado avisa payment_confirmed (transferencia = ATM)", () => {
     expect(edge).toContain('"payment_confirmed"');
     expect(edge).toContain('payment_status !== "paid"');
-    const page = readFileSync(
-      resolve(process.cwd(), "src/pages/EcommerceStorePage.tsx"),
+    const workspace = readFileSync(
+      resolve(process.cwd(), "src/components/ecommerce/StoreOrdersWorkspace.tsx"),
       "utf8",
     );
-    expect(page).toContain("confirmar_pago_manual_tienda");
-    expect(page).toContain('event: "payment_confirmed"');
-    expect(page).toContain("store-order-status-email");
+    expect(workspace).toContain("confirmar_pago_manual_tienda");
+    expect(workspace).toContain('event: "payment_confirmed"');
+    expect(workspace).toContain("store-order-status-email");
   });
 });

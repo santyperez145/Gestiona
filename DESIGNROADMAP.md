@@ -1,6 +1,6 @@
 # Gestiona — roadmap de diseño
 
-**Corte:** 2026-08-30
+**Corte:** 2026-09-03
 **Estado:** documento rector exclusivo del rediseño de producto.  
 **Documento de producto:** [ROADMAP.md](ROADMAP.md).
 
@@ -429,6 +429,14 @@ carrito recuperado y la cuenta pintaban vacío; el link de pago decía
 el email hasta que el servidor responde. Bulk sigue fuera: hay 2 órdenes
 pagas de $1, no una cola que justifique RPC masivo.
 
+D5.12 cierra una incompatibilidad de los enlaces heredados sin crear otra
+superficie de comercio: `/catalogo/:id` acepta tanto el `user_id` antiguo como
+el `org_id` del Business Core para productos y branding. La frontera de datos
+usa una lista explícita de columnas públicas, diferencia red/permisos de un
+catálogo realmente vacío y ofrece Reintentar sin borrar el último estado. La
+tienda canónica sigue siendo `/tienda/:slug`; este arreglo sólo mantiene vivo
+el legado hasta que exista una migración de enlaces con evidencia.
+
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto: CTA móvil hecho; faltan variantes densas y confianza extra;
 - carrito y checkout: objetivos táctiles y sticky en 360 px hechos;
@@ -480,7 +488,7 @@ declara validado porque “se ve mejor”.
 | 1 | Aislamiento de branding del backoffice | Hecho | Colores de tienda no mutan tokens SaaS. |
 | 2 | Primitives v3 transversales | Hecho | Tres layouts y contrato automático. |
 | 3 | Selects de páginas de gestión | Hecho 2026-08-22 | 20 migrados; guarda en tests. |
-| 4 | Selects de componentes + decisión Storefront | Hecho 2026-08-22 | 10 migrados; SaaS en cero y 3 excepciones públicas bajo guarda. |
+| 4 | Selects de componentes + decisión Storefront | Hecho 2026-08-22 | 10 migrados; SaaS en cero y 4 excepciones públicas bajo guarda. |
 | 5 | Estándar integral competitivo | Hecho 2026-08-29 | 20 benchmarks oficiales (10 globales, 4 Finance/spend y 6 argentinos), 4 Figma observados, arquetipos, overlays, segmentación, matriz de cobertura y puerta tecnológica bajo guarda CI. Shopify POS y Square ya fijan también el contrato de sesión física: ubicación, fondo, responsable, movimientos, esperado, conteo y diferencia. |
 | 6 | Estados unificados | Parcial 2026-08-29 | Contrato de 12 estados; Finance/Compras, Reportes/Intelligence, Dashboard y Productos migrados sin confundir vacío/error/parcial ni mezclar tenants. Auditoría y Sucursales adoptan el contrato; faltan rutas restantes y matriz visual. |
 | 7 | Modales, sheets y drawers | Hecho en Gestión 2026-08-22 | 16 overlays de 11 archivos migrados; tamaños canónicos, focus trap y cierre accesible. Sólo rail mobile + 3 scanners fullscreen quedan bajo allowlist CI; Storefront pertenece a D5. |
@@ -496,7 +504,7 @@ declara validado porque “se ve mejor”.
 | 17 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos, aprobación y handoff a recepción usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
 | 18 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
 | 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
-| 20 | Storefront home/PLP/PDP | Parcial D5.11 2026-09-01 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias. D5.7 deja el CTA de compra al pie en 360 px. D5.8 reserva geometría al cargar y declara tamaño de imagen. D5.9 hace que crawlers vean HTML del comercio. D5.10 distingue 404 de red caída y no pinta un catálogo vacío. D5.11 no pide email ni declara el carrito vencido si la red falló. Falta hero del comercio y flujo sandbox/real. |
+| 20 | Storefront home/PLP/PDP | Parcial D5.12 2026-09-03 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias. D5.7 deja el CTA de compra al pie en 360 px. D5.8 reserva geometría al cargar y declara tamaño de imagen. D5.9 hace que crawlers vean HTML del comercio. D5.10 distingue 404 de red caída y no pinta un catálogo vacío. D5.11 no pide email ni declara el carrito vencido si la red falló. D5.12 conserva enlaces `/catalogo/:id` user/org y separa error recuperable de vacío real. Falta hero del comercio y flujo sandbox/real. |
 | 21 | Carrito/checkout/pago | Parcial D5.11 2026-09-01 | Resultado protegido por capacidad; D5.3–D5.6 cierran avisos, Pay honesto, cola e inspector. D5.7 deja CTA de ficha/carrito/checkout a 44 px en 360. D5.10 reintenta `create_store_order_idem` ante un corte de red con la misma clave. D5.11 distingue link de pago inexistente de corte de red y no borra un pedido ya visto. Faltan compra sandbox/real y bulk con RPC. |
 | 22 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
 | 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |

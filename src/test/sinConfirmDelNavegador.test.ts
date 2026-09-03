@@ -31,6 +31,7 @@ function walk(dir: string, out: string[] = []): string[] {
 const NATIVE = /\bwindow\.confirm\s*\(|(?<![\w.])confirm\s*\(/g;
 
 describe("sin confirm del navegador", () => {
+  // Recorre todo src; el límite explícito evita falsos rojos por I/O paralelo.
   it("ningún archivo de UI llama confirm() o window.confirm()", () => {
     const hits: string[] = [];
     for (const file of walk(ROOT)) {
@@ -55,7 +56,7 @@ describe("sin confirm del navegador", () => {
       });
     }
     expect(hits, hits.join("\n")).toEqual([]);
-  });
+  }, 15_000);
 
   it("el primitivo propio existe y el hook lo usa", () => {
     const dialog = readFileSync(join(ROOT, "components/shared/ConfirmDialog.tsx"), "utf8");

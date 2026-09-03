@@ -52,7 +52,7 @@ describe("el comprador no baja el panel", () => {
     const grupos = cuerpo.match(/includeDependenciesRecursively\s*:\s*false/g) ?? [];
     expect(grupos, "utils, PDF, charts y xlsx deben conservar sus dependencias fuera del chunk pesado")
       .toHaveLength(4);
-  });
+  }, 15_000);
 
   it("el helper de import() de Vite tiene chunk propio", () => {
     /**

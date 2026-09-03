@@ -41,6 +41,7 @@ import {
 const ROOT = resolve(import.meta.dirname, '..', '..');
 const ONBOARDING = readFileSync(resolve(ROOT, 'src/pages/OnboardingPage.tsx'), 'utf8');
 const STORE = readFileSync(resolve(ROOT, 'src/pages/EcommerceStorePage.tsx'), 'utf8');
+const ORDERS_PAGE = readFileSync(resolve(ROOT, 'src/pages/StoreOrdersPage.tsx'), 'utf8');
 const PRODUCTS = readFileSync(resolve(ROOT, 'src/pages/ProductsPage.tsx'), 'utf8');
 
 describe('la primera publicación empieza por el catálogo', () => {
@@ -382,7 +383,7 @@ describe('el enlace de la tienda se puede copiar', () => {
     expect(storeShareIntentActive(null)).toBe(false);
     expect(storeShareIntentCopy().actionLabel).toBe('Copiar enlace');
     expect(STORE).toContain('storeShareIntentActive');
-    expect(STORE).toContain('publicStoreUrl={urlPublica}');
+    expect(ORDERS_PAGE).toContain('publicStoreUrl={urlPublica}');
   });
 
   it('Pedidos vacíos ofrecen copiar el link cuando hay URL pública', () => {

@@ -15,6 +15,19 @@ describe("publicDataSource catalog columns", () => {
     expect(catalogSection).not.toContain("STORE_PRODUCT_COLUMNS_WITH_DECANTS");
     expect(source).toContain("const STORE_PRODUCT_COLUMNS_WITH_DECANTS");
   });
+
+  it("resuelve links heredados por usuario u organización sin vaciar la tienda", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/lib/publicDataSource.ts"), "utf8");
+    const products = source.slice(
+      source.indexOf("export async function fetchCatalogProducts"),
+      source.indexOf("export interface CatalogSettings"),
+    );
+    expect(products).toContain(".eq('user_id', userId)");
+    expect(products).toContain(".eq('org_id', userId)");
+    expect(products).toContain("{ ok: false, error:");
+    expect(readFileSync(resolve(process.cwd(), "src/pages/PublicCatalogPage.tsx"), "utf8"))
+      .toContain("fetchCatalogBranding(userId)");
+  });
 });
 
 describe("publicDataSource public read recovery", () => {
@@ -88,5 +101,13 @@ describe("catálogo, checkout y cobro no mienten con la red caída", () => {
     expect(fuente).toContain("retryIdempotentWrite");
     expect(fuente).toContain("create_store_order_idem");
     expect(checkout).toContain("isTransientPublicError");
+  });
+
+  it("la pantalla pública diferencia error de catálogo vacío", () => {
+    const fuente = readFileSync(resolve(process.cwd(), "src/pages/PublicCatalogPage.tsx"), "utf8");
+    expect(fuente).toContain("const [loadError, setLoadError] = useState(false)");
+    expect(fuente).toContain("if (loadError)");
+    expect(fuente).toContain("No pudimos cargar el catálogo");
+    expect(fuente).toContain("setLoadError(true)");
   });
 });

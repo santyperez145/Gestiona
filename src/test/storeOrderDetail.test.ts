@@ -49,11 +49,11 @@ describe("inspector de un pedido de tienda", () => {
   });
 
   it("un filtro no es la fuente de la ficha: busca en la cola completa", () => {
-    const page = readFileSync(resolve(process.cwd(), "src/pages/EcommerceStorePage.tsx"), "utf8");
-    expect(page).toContain("findStoreOrderForInspect(orders,");
-    expect(page).not.toContain("findStoreOrderForInspect(visible");
-    expect(page).not.toContain("findStoreOrderForInspect(filtered");
-    expect(page).toContain(`.select("${STORE_ORDER_LIST_SELECT}")`);
+    const workspace = readFileSync(resolve(process.cwd(), "src/components/ecommerce/StoreOrdersWorkspace.tsx"), "utf8");
+    expect(workspace).toContain("findStoreOrderForInspect(orders,");
+    expect(workspace).not.toContain("findStoreOrderForInspect(visible");
+    expect(workspace).not.toContain("findStoreOrderForInspect(filtered");
+    expect(workspace).toContain(`.select(STORE_ORDER_LIST_SELECT)`);
     expect(STORE_ORDER_LIST_SELECT).not.toMatch(/public_access_token|access_token|cost_usd|cost_ars/);
   });
 

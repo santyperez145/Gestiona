@@ -10,6 +10,10 @@ const payPanel = readFileSync(
   resolve(import.meta.dirname, '..', 'components', 'integrations', 'PaymentConnectionsPanel.tsx'),
   'utf8',
 );
+const manifest = readFileSync(
+  resolve(import.meta.dirname, '..', 'app', 'routeManifest.ts'),
+  'utf8',
+);
 
 describe('Commerce Pay honesty', () => {
   it('ofrece Gestiona Pay como medio de tienda, no Mercado Pago como producto', () => {
@@ -73,7 +77,8 @@ describe('Commerce Pay honesty', () => {
   it('el workspace se presenta como Commerce, no como módulo extra', () => {
     expect(page).toContain('title="Gestiona Commerce"');
     expect(page).toContain('label: "Publicar"');
-    expect(page).toContain('label: "Pedidos"');
+    expect(manifest).toContain('id: "pedidos_online"');
+    expect(manifest).toContain('label: "Pedidos"');
     expect(page).toContain('label: "Pagos y envíos"');
     expect(page).toContain('PaymentConnectionsPanel');
   });

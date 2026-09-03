@@ -1,6 +1,6 @@
 # Gestiona Cloud — Visión y roadmap ejecutivo
 
-**Corte editorial:** 2026-09-01. Categoría Commerce OS:
+**Corte editorial:** 2026-09-03. Categoría Commerce OS:
 [`docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md`](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md).
 **Datos operativos:** 2026-08-22 salvo cuando una fila indique una fecha más
 reciente. La separación evita presentar una medición técnica nueva como si
@@ -1551,7 +1551,7 @@ Mientras los slices 1–3 esperan al dueño, el orden técnico es:
     La ejecución visual detallada se trasladó a `DESIGNROADMAP.md`; D2.2 cerró
     el 2026-08-22 retirando 20 selects nativos de las 12 páginas que aún los
     usaban. D2.3 sumó 10 migraciones en 6 componentes internos: páginas y
-    componentes del SaaS quedan en cero; Storefront conserva sólo 3 excepciones
+    componentes del SaaS quedan en cero; Storefront conserva sólo 4 excepciones
     mobile/autofill enumeradas y una guarda recursiva impide ampliar la deuda.
 25. Recuperación atómica entre deploys PWA — cerrado técnicamente el
     2026-08-22 después del incidente de chunks obsoletos: la salida ahora es
@@ -2993,7 +2993,8 @@ Finance Connect.
     el guardado. `pruebas Workspace` sigue con onboarding incompleto y 0
     productos — eso no se resuelve con un tablero de fraude.
 
-    Verificado en este recorte: **2.234/2.234 pruebas en 229 archivos**;
+    Verificado en este recorte: **2.234/2.234 pruebas en 229 archivos**
+    (`npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-09-01);
     typecheck OK; lint 0 errores y 139 warnings conocidos. Contra la base:
     20/20 pasos ok, 0 restos. El navegador de esta PC no tiene `VITE_*`:
     no se afirma la ficha compacta contra datos reales.
@@ -3011,7 +3012,8 @@ Finance Connect.
     si hay una térmica instalada. Controladora fiscal: no. Es otro régimen
     y otro hardware; queda en §13.
 
-    Verificado en este recorte: **2.244/2.244 pruebas en 230 archivos**;
+    Verificado en este recorte: **2.244/2.244 pruebas en 230 archivos**
+    (`npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-09-01);
     typecheck OK; lint 0 errores y 139 warnings conocidos. Contra la base:
     15/15 ok, 0 restos (`20260901_facturar_venta_pos.sql`). El navegador
     de esta PC no tiene `VITE_*`: no se afirma el checkbox contra una
@@ -3044,7 +3046,8 @@ Finance Connect.
      transferencia, no Mercado Pago desconectado. La base cambia el
      DEFAULT; no se backfillean vitrinas existentes.
 
-     Verificado en este recorte: **2.259/2.259 pruebas en 233 archivos**;
+     Verificado en este recorte: **2.259/2.259 pruebas en 233 archivos**
+     (`npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-09-01);
      typecheck OK; lint 0 errores y 138 warnings conocidos. Contra la
      base: defaults aplicados y anotados (`20260901000060`). El
      navegador de esta PC no tiene `VITE_*`: no se afirma el formulario
@@ -3077,7 +3080,8 @@ Finance Connect.
      ni se adivina desde el padrón, el retiro o el login. Exentry sigue
      esperando que lo declare.
 
-     Verificado en este recorte: **2.272/2.272 pruebas en 235 archivos**;
+     Verificado en este recorte: **2.272/2.272 pruebas en 235 archivos**
+     (`npm test -- --maxWorkers=1 --fileParallelism=false`, 2026-09-01);
      typecheck OK; lint 0 errores y 138 warnings conocidos. Contra la
      base: `save_afip_config` rechaza domicilio o razón vacíos, acepta
      ambos, restos 0 (`20260901000070`). Exentry sigue con domicilio
@@ -3638,6 +3642,24 @@ Finance Connect.
      Verificado en este recorte: **2.493 tests** / 265 archivos (`npm test --
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
+
+159. Catálogo heredado: user/org y error recuperable — 2026-09-03.
+     Medido: `/catalogo/:id` podía recibir el `org_id` de un enlace histórico
+     mientras productos y branding se buscaban sólo por `user_id`; además un
+     fallo de red quedaba indistinguible de una tienda sin productos. La
+     frontera `publicDataSource` resuelve ambos scopes con columnas públicas
+     explícitas, mantiene `/tienda/:slug` como tienda canónica y muestra
+     Reintentar ante red/permisos en vez de afirmar «catálogo vacío». No expone
+     costos, márgenes ni credenciales, y no crea otra tienda ni otra fuente de
+     stock.
+
+     Verificado en este recorte: **2.546 tests** / 271 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03); typecheck OK, lint
+     0 errores y 145 warnings conocidos, build OK, 105 enlaces internos y
+     conteos sin problemas. En localhost con el `.env` del checkout, la ruta
+     `/catalogo/42abf3d2-6650-407a-a5d2-9781c4ab6778` mostró marca, **42
+     productos**, categorías, precios y acciones, con 0 errores de consola;
+     la verificación fue de sólo lectura.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
