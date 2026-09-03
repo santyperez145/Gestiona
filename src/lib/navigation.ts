@@ -64,6 +64,44 @@ export const NAV_GROUPS: NavGroup[] = [
   { id: "sistema",   label: "Sistema",     hint: "Configuración, equipo e integraciones" },
 ];
 
+const NAV_ORDER_BY_GROUP: Record<NavGroupId, string[]> = {
+  diario: ["/", "/tienda-online", "/caja", "/ventas", "/productos", "/clientes"],
+  commerce: ["/envios", "/links-de-pago", "/cupones", "/promociones"],
+  trabajo: ["/tareas", "/calendario"],
+  compras: [
+    "/compras", "/ordenes-compra", "/proveedores", "/planificacion",
+    "/kardex", "/transferencias", "/sucursales", "/lotes",
+    "/bundles", "/listas-precios", "/valuacion-inventario",
+  ],
+  cobranzas: ["/deudas", "/presupuestos", "/cuotas", "/facturas", "/devoluciones"],
+  finanzas: [
+    "/billetera", "/movimientos", "/cash-flow", "/pl-dashboard",
+    "/libro", "/banco", "/gastos", "/comisiones",
+    "/impuestos", "/afip", "/multi-divisa", "/cheques", "/suscripciones",
+  ],
+  marketing: [
+    "/marketing", "/email-campaigns", "/whatsapp-campaigns",
+    "/fidelidad", "/catalogo", "/influencers", "/canjes",
+    "/afiliados", "/referidos",
+  ],
+  reportes: ["/reportes", "/analytics", "/ia"],
+  sistema: ["/alertas", "/integraciones", "/equipo", "/ajustes", "/admin", "/calidad-datos", "/mi-plan", "/perfil"],
+};
+
+function ordenarNavItems(items: NavItem[]): NavItem[] {
+  const fallbackIndex = new Map(items.map((item, idx) => [item.to, idx]));
+  const orderIndex = new Map<string, number>();
+  for (const [group, paths] of Object.entries(NAV_ORDER_BY_GROUP) as Array<[NavGroupId, string[]]>) {
+    paths.forEach((path, idx) => orderIndex.set(`${group}:${path}`, idx));
+  }
+  return [...items].sort((a, b) => {
+    const ai = orderIndex.get(`${a.group}:${a.to}`) ?? Number.MAX_SAFE_INTEGER;
+    const bi = orderIndex.get(`${b.group}:${b.to}`) ?? Number.MAX_SAFE_INTEGER;
+    if (ai !== bi) return ai - bi;
+    return (fallbackIndex.get(a.to) ?? 0) - (fallbackIndex.get(b.to) ?? 0);
+  });
+}
+
 /**
  * Los destinos del sidebar, derivados del manifest.
  *
@@ -79,19 +117,21 @@ export const NAV_ITEMS: NavItem[] = navRoutes().map(r => ({
   keywords: r.nav!.keywords,
 }));
 
+export const NAV_ITEMS_ORDENADOS: NavItem[] = ordenarNavItems(NAV_ITEMS);
+
 /** Los que van siempre a la vista, sin encabezado ni plegado. */
-export const ITEMS_DIARIOS = NAV_ITEMS.filter(i => i.group === "diario");
+export const ITEMS_DIARIOS = NAV_ITEMS_ORDENADOS.filter(i => i.group === "diario");
 
 /** Los grupos plegables, en orden, ya sin el diario. */
 export const GRUPOS_PLEGABLES = NAV_GROUPS.filter(g => g.id !== "diario");
 
 export function itemsDe(group: NavGroupId): NavItem[] {
-  return NAV_ITEMS.filter(i => i.group === group);
+  return NAV_ITEMS_ORDENADOS.filter(i => i.group === group);
 }
 
 /** En qué grupo cae una ruta, para abrir el correcto al entrar. */
 export function grupoDeRuta(path: string): NavGroupId | null {
-  return NAV_ITEMS.find(i => i.to === path)?.group ?? null;
+  return NAV_ITEMS_ORDENADOS.find(i => i.to === path)?.group ?? null;
 }
 
 /**
@@ -116,7 +156,7 @@ export function normalizar(texto: string): string {
 
 export function buscarItems(consulta: string, roles?: NavRole): NavItem[] {
   const q = normalizar(consulta);
-  const permitidos = roles ? NAV_ITEMS.filter(i => i.roles.includes(roles)) : NAV_ITEMS;
+  const permitidos = roles ? NAV_ITEMS_ORDENADOS.filter(i => i.roles.includes(roles)) : NAV_ITEMS_ORDENADOS;
   if (!q) return permitidos;
 
   const puntaje = (i: NavItem): number => {

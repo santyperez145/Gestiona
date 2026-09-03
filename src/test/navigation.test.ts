@@ -70,6 +70,24 @@ describe("estructura de la navegación", () => {
       expect.arrayContaining(["/envios", "/cupones", "/promociones"]),
     );
   });
+
+  it("ordena Commerce por flujo operativo", () => {
+    expect(itemsDe("commerce").map(i => i.to)).toEqual([
+      "/envios",
+      "/links-de-pago",
+      "/cupones",
+      "/promociones",
+    ]);
+  });
+
+  it("ordena Sistema con operación antes de configuración profunda", () => {
+    expect(itemsDe("sistema").map(i => i.to).slice(0, 4)).toEqual([
+      "/alertas",
+      "/integraciones",
+      "/equipo",
+      "/ajustes",
+    ]);
+  });
 });
 
 describe("normalizar", () => {
