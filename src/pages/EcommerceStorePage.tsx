@@ -184,6 +184,8 @@ export default function EcommerceStorePage() {
       if (next !== "orders") {
         params.delete("q");
         params.delete("pedido");
+        params.delete("orden");
+        params.delete("medio");
         if (next !== "carritos") params.delete("vista");
       }
       return params;

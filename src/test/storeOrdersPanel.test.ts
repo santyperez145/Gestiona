@@ -12,7 +12,11 @@ describe("cola de pedidos en Commerce", () => {
     expect(panel).toContain('params.set("tab", "orders")');
     expect(panel).toContain('params.set("vista", next.view)');
     expect(panel).toContain('params.set("q", next.query)');
+    expect(panel).toContain('params.set("orden", next.sort)');
+    expect(panel).toContain('params.set("medio", next.medio)');
     expect(panel).toContain("parseStoreOrderView");
+    expect(panel).toContain("parseStoreOrderSort");
+    expect(panel).toContain("parseStoreOrderMedio");
     expect(panel).not.toMatch(/\["pending", "processing"/);
   });
 
@@ -22,6 +26,10 @@ describe("cola de pedidos en Commerce", () => {
     expect(panel).toContain("Exportar CSV");
     expect(panel).not.toMatch(/seleccionad|bulk|Marcar como enviado/i);
     expect(panel).toContain("WorkspaceState");
+    expect(panel).toContain("STORE_ORDER_SORTS");
+    expect(panel).toContain("STORE_ORDER_MEDIOS");
+    expect(panel).toContain('aria-label="Ordenar pedidos"');
+    expect(panel).toContain('aria-label="Filtrar por medio de pago"');
     expect(panel).toContain("md:hidden");
   });
 
@@ -30,6 +38,8 @@ describe("cola de pedidos en Commerce", () => {
     expect(page).toContain("STORE_ORDER_QUEUE_LIMIT");
     expect(page).toContain('params.delete("q")');
     expect(page).toContain('params.delete("vista")');
+    expect(page).toContain('params.delete("orden")');
+    expect(page).toContain('params.delete("medio")');
     expect(page).toContain("publicStoreUrl={urlPublica}");
     expect(panel).toContain("storeOrdersEmptyShareCopy");
     expect(focus).toContain("/tienda-online?tab=orders&vista=despachar");

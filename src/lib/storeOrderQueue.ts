@@ -8,6 +8,7 @@
  * pantalla no decida sola qué es "para despachar" y qué es "para retirar".
  */
 import { csvCell } from "@/lib/csv";
+import { esMedioGestionaPay } from "@/lib/gestionaPay";
 import {
   canFulfillStoreOrder,
   canRetryStorePayment,
@@ -20,6 +21,7 @@ export const STORE_ORDER_VIEW_IDS = [
   "todas",
   "retirar",
   "despachar",
+  "atrasados",
   "pago",
   "enviadas",
   "entregadas",
@@ -32,6 +34,7 @@ export const STORE_ORDER_VIEWS: { id: StoreOrderView; label: string }[] = [
   { id: "todas", label: "Todas" },
   { id: "retirar", label: "Para retirar" },
   { id: "despachar", label: "Para despachar" },
+  { id: "atrasados", label: "Atrasados" },
   { id: "pago", label: "Pendientes de pago" },
   { id: "enviadas", label: "Enviadas" },
   { id: "entregadas", label: "Entregadas" },
@@ -56,10 +59,45 @@ export interface StoreOrderQueueRow {
 
 const FULFILLMENT_PENDING = new Set(["pending", "unfulfilled", "processing"]);
 
+/** Pagado y sin salir hace más de esto: entra a Atrasados (Shopify: unfulfilled aging). */
+export const STORE_ORDER_STALE_HOURS = 24;
+
+export const STORE_ORDER_SORT_IDS = ["recientes", "antiguos", "mayor", "menor"] as const;
+export type StoreOrderSort = typeof STORE_ORDER_SORT_IDS[number];
+
+export const STORE_ORDER_SORTS: { id: StoreOrderSort; label: string }[] = [
+  { id: "recientes", label: "Más recientes" },
+  { id: "antiguos", label: "Más antiguos" },
+  { id: "mayor", label: "Mayor monto" },
+  { id: "menor", label: "Menor monto" },
+];
+
+export const STORE_ORDER_MEDIO_IDS = ["todos", "transferencia", "efectivo", "digital"] as const;
+export type StoreOrderMedio = typeof STORE_ORDER_MEDIO_IDS[number];
+
+export const STORE_ORDER_MEDIOS: { id: StoreOrderMedio; label: string }[] = [
+  { id: "todos", label: "Cualquier medio" },
+  { id: "transferencia", label: "Transferencia" },
+  { id: "efectivo", label: "Efectivo" },
+  { id: "digital", label: "Gestiona Pay" },
+];
+
 export function parseStoreOrderView(raw: string | null | undefined): StoreOrderView {
   return STORE_ORDER_VIEW_IDS.includes(raw as StoreOrderView)
     ? (raw as StoreOrderView)
     : "todas";
+}
+
+export function parseStoreOrderSort(raw: string | null | undefined): StoreOrderSort {
+  return STORE_ORDER_SORT_IDS.includes(raw as StoreOrderSort)
+    ? (raw as StoreOrderSort)
+    : "recientes";
+}
+
+export function parseStoreOrderMedio(raw: string | null | undefined): StoreOrderMedio {
+  return STORE_ORDER_MEDIO_IDS.includes(raw as StoreOrderMedio)
+    ? (raw as StoreOrderMedio)
+    : "todos";
 }
 
 /** Square / Shopify: pickup no es un envío. Medido 2026-09-02: Exentry. */
@@ -164,6 +202,30 @@ export function isStoreOrderAwaitingShipment(order: StoreOrderQueueRow) {
   return isStoreOrderAwaitingFulfillment(order) && !esPedidoRetiro(order);
 }
 
+function createdAtMs(iso: string | null | undefined) {
+  const ms = Date.parse(String(iso ?? ""));
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+export function isStoreOrderStale(
+  order: Pick<StoreOrderQueueRow, "payment_status" | "fulfillment_status" | "created_at">,
+  now: Date = new Date(),
+) {
+  if (!isStoreOrderAwaitingFulfillment(order)) return false;
+  const created = createdAtMs(order.created_at);
+  if (!created) return false;
+  return (now.getTime() - created) > STORE_ORDER_STALE_HOURS * 3600e3;
+}
+
+export function orderMatchesStoreMedio(order: StoreOrderQueueRow, medio: StoreOrderMedio) {
+  if (medio === "todos") return true;
+  const method = String(order.payment_method ?? "").toLowerCase().trim();
+  if (medio === "digital") return esMedioGestionaPay(method);
+  if (medio === "transferencia") return method === "transferencia";
+  if (medio === "efectivo") return method === "efectivo";
+  return true;
+}
+
 /** Pulse: domicilio vs mostrador. La cola histórica sigue listando ambos. */
 export function countFulfillmentPulse(
   rows: Array<{
@@ -199,6 +261,8 @@ export function orderMatchesStoreView(order: StoreOrderQueueRow, view: StoreOrde
       return isStoreOrderAwaitingPickup(order);
     case "despachar":
       return isStoreOrderAwaitingShipment(order);
+    case "atrasados":
+      return isStoreOrderStale(order);
     case "pago":
       return canRetryStorePayment(order.payment_status);
     case "enviadas":
@@ -210,15 +274,38 @@ export function orderMatchesStoreView(order: StoreOrderQueueRow, view: StoreOrde
   }
 }
 
+export function sortStoreOrders(orders: StoreOrderQueueRow[], sort: StoreOrderSort) {
+  const byDateDesc = (a: StoreOrderQueueRow, b: StoreOrderQueueRow) => createdAtMs(b.created_at) - createdAtMs(a.created_at);
+  const list = [...orders];
+  switch (sort) {
+    case "antiguos":
+      return list.sort((a, b) => createdAtMs(a.created_at) - createdAtMs(b.created_at));
+    case "mayor":
+      return list.sort((a, b) => Number(b.total) - Number(a.total) || byDateDesc(a, b));
+    case "menor":
+      return list.sort((a, b) => Number(a.total) - Number(b.total) || byDateDesc(a, b));
+    case "recientes":
+    default:
+      return list.sort(byDateDesc);
+  }
+}
+
 export function filterStoreOrders(
   orders: StoreOrderQueueRow[],
-  input: { query?: string; view?: StoreOrderView },
+  input: { query?: string; view?: StoreOrderView; sort?: StoreOrderSort; medio?: StoreOrderMedio; now?: Date },
 ) {
   const view = parseStoreOrderView(input.view);
+  const sort = parseStoreOrderSort(input.sort);
+  const medio = parseStoreOrderMedio(input.medio);
   const query = input.query ?? "";
-  return orders.filter(order =>
-    orderMatchesStoreView(order, view) && matchesStoreOrderSearch(order, query),
+  const now = input.now ?? new Date();
+  const filtered = orders.filter(order =>
+    orderMatchesStoreView(order, view) && orderMatchesStoreMedio(order, medio) && matchesStoreOrderSearch(order, query),
   );
+  if (view === "atrasados") {
+    return sortStoreOrders(filtered, "antiguos");
+  }
+  return sortStoreOrders(filtered, sort);
 }
 
 export function countStoreOrderViews(orders: StoreOrderQueueRow[]): Record<StoreOrderView, number> {
@@ -226,6 +313,7 @@ export function countStoreOrderViews(orders: StoreOrderQueueRow[]): Record<Store
     todas: orders.length,
     retirar: 0,
     despachar: 0,
+    atrasados: 0,
     pago: 0,
     enviadas: 0,
     entregadas: 0,
@@ -234,6 +322,7 @@ export function countStoreOrderViews(orders: StoreOrderQueueRow[]): Record<Store
   for (const order of orders) {
     if (isStoreOrderAwaitingPickup(order)) counts.retirar += 1;
     if (isStoreOrderAwaitingShipment(order)) counts.despachar += 1;
+    if (isStoreOrderStale(order)) counts.atrasados += 1;
     if (canRetryStorePayment(order.payment_status)) counts.pago += 1;
     if (order.fulfillment_status === "shipped") counts.enviadas += 1;
     if (order.fulfillment_status === "delivered") counts.entregadas += 1;

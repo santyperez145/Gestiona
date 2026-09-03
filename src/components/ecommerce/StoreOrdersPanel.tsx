@@ -10,20 +10,27 @@ import { useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import WorkspaceState from "@/components/shared/WorkspaceState";
 import {
+  STORE_ORDER_MEDIOS,
   STORE_ORDER_QUEUE_LIMIT,
+  STORE_ORDER_SORTS,
   STORE_ORDER_VIEWS,
   buildStoreOrdersCsv,
   countStoreOrderViews,
   filterStoreOrders,
+  parseStoreOrderMedio,
+  parseStoreOrderSort,
   parseStoreOrderView,
   storeOrderFulfillmentLabel,
   storeOrderFulfillmentTone,
   storeOrderFulfillmentActionLabel,
   esPedidoRetiro,
   storeOrdersCsvFilename,
+  type StoreOrderMedio,
   type StoreOrderQueueRow,
+  type StoreOrderSort,
   type StoreOrderView,
 } from "@/lib/storeOrderQueue";
 import { canFulfillStoreOrder, storeOrderPaymentLabel, storeOrderPaymentTone } from "@/lib/storeOrderPayment";
@@ -45,7 +52,7 @@ interface Props {
 
 function writeQueueParams(
   prev: URLSearchParams,
-  next: { query?: string; view?: StoreOrderView },
+  next: { query?: string; view?: StoreOrderView; sort?: StoreOrderSort; medio?: StoreOrderMedio },
 ) {
   const params = new URLSearchParams(prev);
   params.set("tab", "orders");
@@ -57,6 +64,14 @@ function writeQueueParams(
   if (next.view !== undefined) {
     if (next.view === "todas") params.delete("vista");
     else params.set("vista", next.view);
+  }
+  if (next.sort !== undefined) {
+    if (next.sort === "recientes") params.delete("orden");
+    else params.set("orden", next.sort);
+  }
+  if (next.medio !== undefined) {
+    if (next.medio === "todos") params.delete("medio");
+    else params.set("medio", next.medio);
   }
   return params;
 }
@@ -82,14 +97,16 @@ export default function StoreOrdersPanel({
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") ?? "";
   const view = parseStoreOrderView(searchParams.get("vista"));
+  const sort = parseStoreOrderSort(searchParams.get("orden"));
+  const medio = parseStoreOrderMedio(searchParams.get("medio"));
   const ordersEmpty = storeOrdersEmptyShareCopy(Boolean(publicStoreUrl));
   const counts = useMemo(() => countStoreOrderViews(orders), [orders]);
   const visible = useMemo(
-    () => filterStoreOrders(orders, { query, view }),
-    [orders, query, view],
+    () => filterStoreOrders(orders, { query, view, sort, medio }),
+    [orders, query, view, sort, medio],
   );
   const capped = orders.length >= STORE_ORDER_QUEUE_LIMIT;
-  const hasFilters = query.trim().length > 0 || view !== "todas";
+  const hasFilters = query.trim().length > 0 || view !== "todas" || sort !== "recientes" || medio !== "todos";
 
   const setQuery = (q: string) => {
     setSearchParams(prev => writeQueueParams(prev, { query: q }), { replace: true });
@@ -97,8 +114,14 @@ export default function StoreOrdersPanel({
   const setView = (next: StoreOrderView) => {
     setSearchParams(prev => writeQueueParams(prev, { view: next }), { replace: true });
   };
+  const setSort = (next: StoreOrderSort) => {
+    setSearchParams(prev => writeQueueParams(prev, { sort: next }), { replace: true });
+  };
+  const setMedio = (next: StoreOrderMedio) => {
+    setSearchParams(prev => writeQueueParams(prev, { medio: next }), { replace: true });
+  };
   const clearFilters = () => {
-    setSearchParams(prev => writeQueueParams(prev, { query: "", view: "todas" }), { replace: true });
+    setSearchParams(prev => writeQueueParams(prev, { query: "", view: "todas", sort: "recientes", medio: "todos" }), { replace: true });
   };
 
   return (
@@ -142,6 +165,33 @@ export default function StoreOrdersPanel({
             <span className="ml-1.5 tabular-nums opacity-70">{counts[v.id]}</span>
           </button>
         ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Select value={sort} onValueChange={value => setSort(value as StoreOrderSort)}>
+          <SelectTrigger className="h-11 w-[170px]" aria-label="Ordenar pedidos">
+            <SelectValue placeholder="Ordenar pedidos" />
+          </SelectTrigger>
+          <SelectContent>
+            {STORE_ORDER_SORTS.map(option => (
+              <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={medio} onValueChange={value => setMedio(value as StoreOrderMedio)}>
+          <SelectTrigger className="h-11 w-[190px]" aria-label="Filtrar por medio de pago">
+            <SelectValue placeholder="Medio de pago" />
+          </SelectTrigger>
+          <SelectContent>
+            {STORE_ORDER_MEDIOS.map(option => (
+              <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {hasFilters && (
+          <Button variant="ghost" size="sm" className="h-11 px-3 text-xs" onClick={clearFilters}>
+            Quitar filtros
+          </Button>
+        )}
       </div>
 
       {capped && (

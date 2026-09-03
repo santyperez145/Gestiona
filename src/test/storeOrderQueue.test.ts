@@ -4,9 +4,13 @@ import {
   countFulfillmentPulse,
   countStoreOrderViews,
   filterStoreOrders,
+  isStoreOrderStale,
   isStoreOrderAwaitingFulfillment,
   matchesStoreOrderSearch,
+  parseStoreOrderMedio,
+  parseStoreOrderSort,
   parseStoreOrderView,
+  sortStoreOrders,
   storeOrderFulfillmentLabel,
   storeOrdersCsvFilename,
   type StoreOrderQueueRow,
@@ -34,8 +38,16 @@ describe("cola de pedidos de la tienda", () => {
   it("no trata un chip en inglés como vista", () => {
     expect(parseStoreOrderView("pending")).toBe("todas");
     expect(parseStoreOrderView("despachar")).toBe("despachar");
+    expect(parseStoreOrderView("atrasados")).toBe("atrasados");
     expect(parseStoreOrderView("retirar")).toBe("retirar");
     expect(parseStoreOrderView(null)).toBe("todas");
+  });
+
+  it("normaliza orden y medio desde la URL", () => {
+    expect(parseStoreOrderSort("mayor")).toBe("mayor");
+    expect(parseStoreOrderSort("otra")).toBe("recientes");
+    expect(parseStoreOrderMedio("digital")).toBe("digital");
+    expect(parseStoreOrderMedio("sin-medio")).toBe("todos");
   });
 
   it("etiqueta la entrega en el idioma de trabajo", () => {
@@ -89,14 +101,15 @@ describe("cola de pedidos de la tienda", () => {
 
   it("cuenta cada vista sobre la cola cargada, no sobre el recorte de búsqueda", () => {
     const rows = [
-      order({ id: "a", payment_status: "paid", fulfillment_status: "pending" }),
-      order({ id: "b", payment_status: "failed", fulfillment_status: "pending" }),
-      order({ id: "c", payment_status: "paid", fulfillment_status: "delivered" }),
+      order({ id: "a", payment_status: "paid", fulfillment_status: "pending", created_at: "2099-01-01T10:00:00Z" }),
+      order({ id: "b", payment_status: "failed", fulfillment_status: "pending", created_at: "2099-01-01T10:00:00Z" }),
+      order({ id: "c", payment_status: "paid", fulfillment_status: "delivered", created_at: "2099-01-01T10:00:00Z" }),
     ];
     expect(countStoreOrderViews(rows)).toEqual({
       todas: 3,
       retirar: 0,
       despachar: 1,
+      atrasados: 0,
       pago: 1,
       enviadas: 0,
       entregadas: 1,
@@ -116,6 +129,30 @@ describe("cola de pedidos de la tienda", () => {
     expect(filterStoreOrders([retiro, domicilio], { view: "retirar" }).map(r => r.id)).toEqual(["r"]);
     expect(filterStoreOrders([retiro, domicilio], { view: "despachar" }).map(r => r.id)).toEqual(["d"]);
     expect(countFulfillmentPulse([retiro, domicilio])).toEqual({ despachar: 1, retirar: 1 });
+  });
+
+  it("marca atrasados sólo para pagados sin fulfillment hace más de 24h", () => {
+    const now = new Date("2026-09-03T12:00:00Z");
+    const stale = order({ created_at: "2026-09-02T08:00:00Z", payment_status: "paid", fulfillment_status: "pending" });
+    const fresh = order({ created_at: "2026-09-03T10:00:00Z", payment_status: "paid", fulfillment_status: "pending" });
+    const unpaid = order({ created_at: "2026-09-01T08:00:00Z", payment_status: "pending", fulfillment_status: "pending" });
+    expect(isStoreOrderStale(stale, now)).toBe(true);
+    expect(isStoreOrderStale(fresh, now)).toBe(false);
+    expect(isStoreOrderStale(unpaid, now)).toBe(false);
+    expect(filterStoreOrders([stale, fresh, unpaid], { view: "atrasados", now }).length).toBe(1);
+  });
+
+  it("filtra por medio y ordena por monto cuando se pide", () => {
+    const rows = [
+      order({ id: "a", payment_method: "transferencia", total: 300 }),
+      order({ id: "b", payment_method: "efectivo", total: 100 }),
+      order({ id: "c", payment_method: "mercadopago", total: 200 }),
+    ];
+    const digital = filterStoreOrders(rows, { medio: "digital", sort: "mayor" });
+    expect(digital.map(r => r.id)).toEqual(["c"]);
+    const transfer = filterStoreOrders(rows, { medio: "transferencia", sort: "mayor" });
+    expect(transfer.map(r => r.id)).toEqual(["a"]);
+    expect(sortStoreOrders(rows, "menor").map(r => r.id)).toEqual(["b", "c", "a"]);
   });
 
   it("exporta el conjunto filtrado con celdas escapadas y sin fórmulas", () => {
