@@ -3352,8 +3352,9 @@ Finance Connect.
      Sin evento nuevo: sigue `delivered` en el claim. Deploy de
      `store-order-status-email` aparte del push.
 
-     Verificado en este recorte: **(CI de este commit)**. Esta PC no tiene
-     `VITE_*`.
+     Verificado en este recorte: **2.432 tests** / 257 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Deploy de
+     `store-order-status-email` aparte del push. Esta PC no tiene `VITE_*`.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
