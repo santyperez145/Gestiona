@@ -7,6 +7,7 @@ import {
   precioDeCatalogo,
   ROBOTS_DISALLOW_PANEL,
   STOREFRONT_CRAWLER_UA,
+  tituloDeRutaTienda,
 } from "@/lib/storefrontSeo";
 
 const leer = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
@@ -37,6 +38,43 @@ describe("rutas públicas de la tienda", () => {
     expect(parseRutaTienda("/tienda/exentryimports/arrepentimiento")?.kind).toBe("legal");
     expect(parseRutaTienda("/tienda/exentryimports/checkout")?.kind).toBe("private");
     expect(parseRutaTienda("/tienda/exentryimports/productos")?.kind).not.toBe("home");
+  });
+
+  it("el título de la pestaña nombra el producto, no sólo la tienda", () => {
+    const base = {
+      storeName: "Exentry Imports",
+      metaTitle: "Exentry — perfumes",
+    };
+    expect(tituloDeRutaTienda({
+      ...base, ruta: { kind: "home", slug: "exentryimports" },
+    })).toBe("Exentry — perfumes");
+    expect(tituloDeRutaTienda({
+      ...base,
+      ruta: { kind: "pdp", slug: "exentryimports", productId: "abc" },
+      productName: "Afnan 9am Dive",
+    })).toBe("Afnan 9am Dive — Exentry Imports");
+    expect(tituloDeRutaTienda({
+      ...base,
+      ruta: { kind: "plp", slug: "exentryimports", cat: "vaper" },
+      categoryLabel: "Vaper",
+    })).toBe("Vaper — Exentry Imports");
+    expect(tituloDeRutaTienda({
+      ...base,
+      ruta: { kind: "page", slug: "exentryimports", pageSlug: "privacidad" },
+      pageTitle: "Privacidad",
+    })).toBe("Privacidad — Exentry Imports");
+    expect(tituloDeRutaTienda({
+      ...base,
+      ruta: { kind: "private", slug: "exentryimports" },
+      pageTitle: "Checkout",
+    })).toBe("Checkout — Exentry Imports");
+  });
+
+  it("StorefrontPage aplica el título por ruta, no un título único de tienda", () => {
+    const pagina = leer("src/pages/StorefrontPage.tsx");
+    expect(pagina).toContain("tituloDeRutaTienda");
+    expect(pagina).toContain("parseRutaTienda");
+    expect(pagina).not.toContain("document.title = store.meta_title");
   });
 });
 

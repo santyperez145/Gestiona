@@ -109,6 +109,37 @@ export function parseRutaTienda(path: string, search: URLSearchParams | { get(na
   return { kind: "private", slug };
 }
 
+export function tituloDeRutaTienda(input: {
+  ruta: RutaTienda | null;
+  storeName: string;
+  metaTitle?: string | null;
+  productName?: string | null;
+  categoryLabel?: string | null;
+  pageTitle?: string | null;
+}): string {
+  const tienda = input.storeName.trim() || "Tienda";
+  const meta = input.metaTitle?.trim();
+  const home = meta || `${tienda} — Tienda online`;
+
+  if (!input.ruta || input.ruta.kind === "home") return home;
+
+  if (input.ruta.kind === "pdp") {
+    const prod = input.productName?.trim();
+    return prod ? `${prod} — ${tienda}` : home;
+  }
+  if (input.ruta.kind === "plp") {
+    const cat = input.categoryLabel?.trim();
+    return cat ? `${cat} — ${tienda}` : `Productos — ${tienda}`;
+  }
+  if (input.ruta.kind === "page") {
+    const page = input.pageTitle?.trim();
+    return page ? `${page} — ${tienda}` : home;
+  }
+  if (input.ruta.kind === "legal") return `Botón de arrepentimiento — ${tienda}`;
+  const privada = input.pageTitle?.trim();
+  return privada ? `${privada} — ${tienda}` : home;
+}
+
 export function cuerpoRobots(origin: string, sitemaps: string[]): string {
   const lineas = [
     "User-agent: *",

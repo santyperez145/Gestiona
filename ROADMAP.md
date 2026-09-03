@@ -3315,6 +3315,16 @@ Finance Connect.
      `20260902000110` aplicada y anotada (DO: INSERT tienda → 6 zonas,
      seed idempotente, 0 restos). Esta PC no tiene `VITE_*`.
 
+130. El título de la pestaña nombra el producto — 2026-09-02.
+     La SPA dejaba `meta_title` de la tienda en ficha, listado y checkout.
+     WhatsApp/Google no ejecutan JS (`api/og` ya cubre crawlers). El
+     comprador sí: al compartir o volver con muchas pestañas veía
+     «Tienda online». `tituloDeRutaTienda` es espejo de `parseRutaTienda`.
+     No se inventa precio ni se toca el borde.
+
+     Verificado en este recorte: **PENDIENTE** (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02).
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

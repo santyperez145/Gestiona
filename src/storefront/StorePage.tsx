@@ -19,7 +19,6 @@ export default function StorePage() {
 
   useEffect(() => {
     if (!page || !store) return;
-    document.title = `${page.title} — ${store.name}`;
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", page.meta_description || page.title);
   }, [page, store]);

@@ -28,11 +28,20 @@ import { WishlistProvider } from "@/storefront/wishlist";
 import StorefrontSkeleton from "@/storefront/StorefrontSkeleton";
 import StorefrontStatus from "@/storefront/StorefrontStatus";
 import { initTracking, trackPageView } from "@/storefront/tracking";
+import { parseRutaTienda, tituloDeRutaTienda } from "@/lib/storefrontSeo";
+import { nombreDeCategoria } from "@/lib/storeCategories";
+
+function tituloPrivadoDeRuta(pathname: string): string | null {
+  if (pathname.includes("/checkout")) return "Checkout";
+  if (pathname.includes("/cuenta")) return "Mi cuenta";
+  if (pathname.includes("/orden/")) return "Pedido";
+  return null;
+}
 
 function StoreShell() {
-  const { loading, notFound, loadError, store, reload } = useStore();
+  const { loading, notFound, loadError, store, products, pages, categorias, reload } = useStore();
   const { slug } = useParams<{ slug: string }>();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
 
   // Píxeles: se inicializan una vez, en cuanto se conoce la tienda.
   useEffect(() => {
@@ -47,11 +56,29 @@ function StoreShell() {
   // En una SPA el cambio de ruta no dispara PageView solo.
   useEffect(() => { if (store) trackPageView(); }, [pathname, store]);
 
-  // SEO: el panel deja configurar meta title y description.
+  // Título de la pestaña por ruta. WhatsApp/Google no ejecutan JS — eso es
+  // `api/og`. Acá es lo que ve el comprador al cambiar de ficha.
   useEffect(() => {
     if (!store) return;
-    document.title = store.meta_title || `${store.name} — Tienda online`;
-    if (store.meta_description) {
+    const ruta = parseRutaTienda(pathname, new URLSearchParams(search));
+    const productName = ruta?.kind === "pdp"
+      ? products.find(p => p.id === ruta.productId)?.name ?? null
+      : null;
+    const categoryLabel = ruta?.kind === "plp" && ruta.cat
+      ? nombreDeCategoria(ruta.cat, categorias)
+      : null;
+    const pageTitle = ruta?.kind === "page"
+      ? pages.find(p => p.slug === ruta.pageSlug)?.title ?? null
+      : tituloPrivadoDeRuta(pathname);
+    document.title = tituloDeRutaTienda({
+      ruta,
+      storeName: store.name,
+      metaTitle: store.meta_title,
+      productName,
+      categoryLabel,
+      pageTitle,
+    });
+    if (store.meta_description && (!ruta || ruta.kind === "home")) {
       let tag = document.querySelector('meta[name="description"]');
       if (!tag) {
         tag = document.createElement("meta");
@@ -60,7 +87,7 @@ function StoreShell() {
       }
       tag.setAttribute("content", store.meta_description);
     }
-  }, [store]);
+  }, [store, pathname, search, products, pages, categorias]);
 
   if (loading) {
     return <StorefrontSkeleton />;
