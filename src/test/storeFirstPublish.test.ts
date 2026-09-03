@@ -22,7 +22,9 @@ import {
   storePickupLeadCopy,
   storeShouldSeedPagesOnCreate,
   storeShouldLeadSettingsWithLegal,
+  storeShouldLeadSettingsWithEmail,
   storeLegalLeadCopy,
+  storeEmailLeadCopy,
   storeAfterCreateCopy,
   storeWizardFinishCopy,
   urlPublicaDeTienda,
@@ -200,6 +202,25 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(STORE).toContain('storeShouldLeadSettingsWithLegal');
     expect(STORE).toContain('goToTab("pages")');
     expect(STORE).toContain('!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal');
+  });
+
+  it('después de legales, el email de avisos va antes de OAuth', () => {
+    expect(storeShouldLeadSettingsWithEmail({
+      storeId: null,
+      emailReady: false,
+    })).toBe(false);
+    expect(storeShouldLeadSettingsWithEmail({
+      storeId: 'id',
+      emailReady: false,
+    })).toBe(true);
+    expect(storeShouldLeadSettingsWithEmail({
+      storeId: 'id',
+      emailReady: true,
+    })).toBe(false);
+    expect(storeEmailLeadCopy().title).toMatch(/email|avisos/i);
+    expect(STORE).toContain('storeShouldLeadSettingsWithEmail');
+    expect(STORE).toContain('Guardar email de avisos');
+    expect(STORE).toContain('!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal && !leadSettingsWithEmail');
   });
 
   it('sin catálogo el overview pide el primer producto sin exigir el wizard', () => {

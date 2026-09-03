@@ -54,7 +54,9 @@ import {
   storePickupLeadCopy,
   storeShouldSeedPagesOnCreate,
   storeShouldLeadSettingsWithLegal,
+  storeShouldLeadSettingsWithEmail,
   storeLegalLeadCopy,
+  storeEmailLeadCopy,
   storeAfterCreateCopy,
   urlPublicaDeTienda,
 } from "@/lib/storeFirstPublish";
@@ -731,12 +733,20 @@ export default function EcommerceStorePage() {
     storeId: store?.id,
     legalReady,
   });
+  const leadSettingsWithEmail = storeShouldLeadSettingsWithEmail({
+    storeId: store?.id,
+    emailReady: Boolean(String(store?.notification_email ?? "").trim()),
+  });
   const bankLead = leadSettingsWithBank ? storeBankLeadCopy() : null;
   const pickupLead = !leadSettingsWithBank && leadSettingsWithPickup
     ? storePickupLeadCopy()
     : null;
   const legalLead = !leadSettingsWithBank && !leadSettingsWithPickup && leadSettingsWithLegal
     ? storeLegalLeadCopy()
+    : null;
+  const emailLead = !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal
+    && leadSettingsWithEmail
+    ? storeEmailLeadCopy()
     : null;
   const afterCreate = justCreatedStore && store?.id && signals.publishedProducts === 0
     ? storeAfterCreateCopy()
@@ -1428,7 +1438,41 @@ export default function EcommerceStorePage() {
               </Button>
             </div>
           )}
-          {!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal && (
+          {emailLead && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5 space-y-3">
+              <p className="text-sm font-semibold">{emailLead.title}</p>
+              <p className="text-[13px] text-muted-foreground leading-snug">{emailLead.description}</p>
+              <div>
+                <Label className="text-xs text-muted-foreground">Email de avisos</Label>
+                <Input
+                  type="email"
+                  value={storeForm.notification_email}
+                  onChange={e => setStoreForm(p => ({ ...p, notification_email: e.target.value }))}
+                  placeholder="ventas@tunegocio.com"
+                  className="h-9 min-h-11 mt-1"
+                />
+              </div>
+              {emailAvisosSugerido && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11"
+                  onClick={() => setStoreForm(p => ({ ...p, notification_email: emailAvisosSugerido }))}
+                >
+                  Usar {emailAvisosSugerido}
+                </Button>
+              )}
+              <Button
+                className="min-h-11 w-full sm:w-auto"
+                disabled={loading || !String(storeForm.notification_email ?? "").trim()}
+                onClick={() => { void saveStore(); }}
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Guardar email de avisos
+              </Button>
+            </div>
+          )}
+          {!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal && !leadSettingsWithEmail && (
             <PaymentConnectionsPanel onConnectionChange={reloadReadinessSignals} />
           )}
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">

@@ -156,6 +156,28 @@ export function storeLegalLeadCopy() {
   };
 }
 
+/**
+ * Tras legales, el correo de avisos va antes de OAuth. Sin casilla de la tienda
+ * la primera venta cae al inbox del dueño o nadie la ve. Shopify/Tiendanube:
+ * contacto de la tienda en el setup, no Pay primero.
+ */
+export function storeShouldLeadSettingsWithEmail(input: {
+  storeId: string | null | undefined;
+  emailReady: boolean;
+}): boolean {
+  if (!input.storeId) return false;
+  if (input.emailReady) return false;
+  return true;
+}
+
+export function storeEmailLeadCopy() {
+  return {
+    title: 'Email para avisos de venta',
+    description:
+      'Cuando alguien compre, el aviso tiene que llegar a una casilla que mirás. Si falta, cae al correo del dueño. Gestiona Pay puede esperar.',
+  };
+}
+
 /** Sin fila en ecommerce_stores el 2º comercio no puede publicar ni legales. */
 export function storeShouldShowStoreMissingHandoff(
   storeId: string | null | undefined,
