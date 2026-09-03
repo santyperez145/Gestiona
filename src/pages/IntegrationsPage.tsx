@@ -389,9 +389,9 @@ export default function IntegrationsPage() {
             <code>costs:read</code>.
           </p>
           <p className="text-xs">
-            En <code>POST /v1/sales</code>, <code>Idempotency-Key</code> evita duplicados: si
-            se corta la red y reintentás, devuelve la misma venta en vez de
-            crear una nueva.
+            En <code>POST /v1/sales</code>, <code>Idempotency-Key</code> (clave anti-duplicados)
+            evita duplicados: si se corta la red y reintentás, devuelve la misma venta
+            en vez de crear una nueva.
           </p>
           <p className="text-xs">
             ARS admite 2 decimales, costos USD 4, y el stock representa unidades
