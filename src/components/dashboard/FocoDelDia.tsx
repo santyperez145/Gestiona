@@ -73,6 +73,7 @@ export default function FocoDelDia(p: Props) {
   const [productosSinPeso, setProductosSinPeso] = useState(0);
   const [zonasSinTarifa, setZonasSinTarifa] = useState(0);
   const [zonasActivas, setZonasActivas] = useState(0);
+  const [retiroSinHorario, setRetiroSinHorario] = useState(false);
 
   useEffect(() => {
     if (!p.orgId) return;
@@ -227,6 +228,28 @@ export default function FocoDelDia(p: Props) {
     return () => { cancelado = true; };
   }, [p.orgId]);
 
+  useEffect(() => {
+    if (!p.orgId) return;
+    let cancelado = false;
+    supabase
+      .from("ecommerce_stores")
+      .select("pickup_enabled, pickup_address, pickup_instructions")
+      .eq("org_id", p.orgId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("FocoDelDia / retiro:", error);
+          return;
+        }
+        if (cancelado) return;
+        const on = !!data?.pickup_enabled;
+        const dir = String(data?.pickup_address ?? "").trim();
+        const horario = String(data?.pickup_instructions ?? "").trim();
+        setRetiroSinHorario(on && dir.length > 0 && horario.length === 0);
+      });
+    return () => { cancelado = true; };
+  }, [p.orgId]);
+
   const datos: DatosFoco = {
     sinStock: p.sinStock,
     stockBajo: p.stockBajo,
@@ -249,6 +272,7 @@ export default function FocoDelDia(p: Props) {
     onboardingGoal: p.onboardingGoal,
     tiendaPublicada: p.tiendaPublicada,
     ordenesOnlinePagas: p.ordenesOnlinePagas,
+    retiroSinHorario,
   };
 
   const pendientes = construirPendientes(datos);

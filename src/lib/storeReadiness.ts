@@ -41,6 +41,7 @@ export interface StoreReadinessInput {
     shipping_mode?: string | null;
     pickup_enabled?: boolean | null;
     pickup_address?: string | null;
+    pickup_instructions?: string | null;
     shipping_cost?: number | null;
     notification_email?: string | null;
   } | null;
@@ -168,6 +169,7 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
   // ── Poder entregar ──────────────────────────────────────────────────────
   if (pickup) {
     const address = String(s?.pickup_address ?? '').trim();
+    const hours = String(s?.pickup_instructions ?? '').trim();
     checks.push({
       id: 'pickup-address',
       title: 'Decir dónde se retira',
@@ -179,6 +181,21 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
       actionLabel: 'Cargar dirección',
       actionHref: '/tienda-online?tab=settings',
     });
+    // Square/Shopify confirman pickup con lugar y horario. Sin horario no
+    // se inventa uno: aviso, no bloqueo — todavía se puede vender.
+    if (address) {
+      checks.push({
+        id: 'pickup-hours',
+        title: 'Decir cuándo se retira',
+        detail: hours
+          ? 'El comprador ve el horario junto a la dirección.'
+          : 'Retiro tiene dirección pero no horario: el pedido pagado no dice cuándo pasar. Cargalo; no se inventa.',
+        severity: 'warning',
+        done: !!hours,
+        actionLabel: 'Cargar horario',
+        actionHref: '/tienda-online?tab=settings',
+      });
+    }
   }
 
   if (mode === 'zones') {

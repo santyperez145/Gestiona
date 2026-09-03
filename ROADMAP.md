@@ -3326,6 +3326,24 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no tiene
      `VITE_*`: no se afirma la pestaña contra una sesión real.
 
+131. Gracias y mail no prometen envío en un retiro — 2026-09-02.
+     Medido: Exentry `pickup_enabled`, dirección en La Rioja,
+     `pickup_instructions` vacío, 2 órdenes pagas `carrier=retiro`.
+     El recorte 126 separó la cola del comercio; la página de gracias y
+     `store-order-email` seguían: «Ya estamos preparando tu envío».
+     Square/Shopify confirman pickup con lugar y horario. `get_store_by_slug`
+     expone `pickup_instructions` (NULL si vacío: no se inventa).
+     `get_store_order_secure` expone `carrier`/`shipping_service`.
+     Foco y readiness avisan «Cargar horario»; tarifario/pesos/CUIT siguen
+     del dueño.
+
+     Verificado en este recorte: **2.428 tests** / 257 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Migración
+     `20260902000120` aplicada y anotada (`get_store_by_slug` expone
+     `pickup_instructions`; Exentry sigue NULL — no se inventó horario).
+     Deploy de `store-order-email` aparte del `git push`. Esta PC no tiene
+     `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

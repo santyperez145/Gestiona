@@ -159,7 +159,7 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
 
   it('con retiro en local, la falta de cobertura molesta pero no bloquea', () => {
     const r = evaluateStoreReadiness(tiendaLista({
-      store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: 'Alsina 123' },
+      store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: 'Alsina 123', pickup_instructions: 'Lun a vie 10-18' },
       shippingZones: 6,
       zonesWithRates: 1,
       coveredProvinces: 1,
@@ -180,7 +180,7 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
 
   it('con retiro en tienda, la falta de tarifas molesta pero no bloquea', () => {
     const r = evaluateStoreReadiness(tiendaLista({
-      store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: 'Alsina 123' },
+      store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: 'Alsina 123', pickup_instructions: 'Lun a vie 10-18' },
       zonesWithRates: 0,
     }));
     expect(idsDe(r.blockers)).not.toContain('shipping-rates');
@@ -193,8 +193,25 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
       store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: null },
     }));
     expect(idsDe(r.blockers)).toContain('pickup-address');
+    expect(idsDe(r.warnings)).not.toContain('pickup-hours');
     expect(r.canPublish).toBe(false);
     expect(r.blockers.find(c => c.id === 'pickup-address')?.actionHref)
+      .toBe('/tienda-online?tab=settings');
+  });
+
+  it('retiro con dirección y sin horario molesta, no bloquea, y no inventa texto', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      store: {
+        ...tiendaLista().store!,
+        pickup_enabled: true,
+        pickup_address: 'Alsina 123',
+        pickup_instructions: null,
+      },
+    }));
+    expect(idsDe(r.blockers)).not.toContain('pickup-hours');
+    expect(idsDe(r.warnings)).toContain('pickup-hours');
+    expect(r.canPublish).toBe(true);
+    expect(r.warnings.find(c => c.id === 'pickup-hours')?.actionHref)
       .toBe('/tienda-online?tab=settings');
   });
 
@@ -286,7 +303,7 @@ describe('evaluateStoreReadiness — avisos', () => {
 
   it('con retiro, la cobertura no promete envío nacional', () => {
     const r = evaluateStoreReadiness(tiendaLista({
-      store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: 'Alsina 123' },
+      store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: 'Alsina 123', pickup_instructions: 'Lun a vie 10-18' },
       coveredProvinces: 1,
       zonesWithRates: 1,
     }));

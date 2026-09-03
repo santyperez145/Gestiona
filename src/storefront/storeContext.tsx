@@ -42,6 +42,8 @@ export interface StoreInfo {
   shipping_mode: string | null;
   pickup_enabled: boolean | null;
   pickup_address: string | null;
+  /** Horario u otras indicaciones. Vacío = no se inventa. */
+  pickup_instructions: string | null;
   meta_title: string | null;
   meta_description: string | null;
   social_links: Record<string, string> | null;

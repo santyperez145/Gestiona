@@ -8,6 +8,10 @@ import { getStoreOrderSecure, type StoreOrderAccessRow } from "@/lib/publicDataS
 import { useStore } from "./storeContext";
 import { trackPurchase } from "./tracking";
 import { canRetryStorePayment, isStorePaymentReversed } from "@/lib/storeOrderPayment";
+import { esPedidoRetiro } from "@/lib/storeOrderQueue";
+import {
+  etiquetaCostoEntrega, etiquetaDireccionEntrega, introPedidoPagado,
+} from "@/lib/storeOrderBuyerCopy";
 import { esMedioGestionaPay } from "@/lib/gestionaPay";
 import { consumeOrderAccessFragment, readOrderAccessToken, saveOrderAccessToken } from "./orderAccess";
 import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle, ShieldCheck, Copy } from "lucide-react";
@@ -314,6 +318,9 @@ export default function StoreOrder() {
 
   const dir = order.shipping_address ?? {};
   const dirTexto = [dir.calle, dir.ciudad, dir.provincia, dir.cp].filter(Boolean).join(", ");
+  const esRetiro = esPedidoRetiro(order);
+  const lugarRetiro = (store?.pickup_address || dirTexto || "").trim();
+  const horarioRetiro = store?.pickup_instructions?.trim() || "";
 
   const pagado = order.payment_status === "paid";
   const fallido = order.payment_status === "failed";
@@ -347,7 +354,7 @@ export default function StoreOrder() {
         </p>
         <p className="text-sm mt-2" style={{ color: "hsl(var(--st-muted))" }}>
           {pagado
-            ? <>Ya estamos preparando tu envío. Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> con las novedades.</>
+            ? <>{introPedidoPagado(esRetiro)} Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong>.</>
             : pagoRevertido
               ? <>El pedido no se enviará mientras gestionamos esta reversión. Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar los próximos pasos.</>
               : transferenciaPendiente
@@ -476,7 +483,7 @@ export default function StoreOrder() {
             <span>{fmt(Number(order.subtotal))}</span>
           </div>
           <div className="flex justify-between">
-            <span style={{ color: "hsl(var(--st-muted))" }}>Envío</span>
+            <span style={{ color: "hsl(var(--st-muted))" }}>{etiquetaCostoEntrega(esRetiro)}</span>
             <span>{Number(order.shipping_cost) === 0 ? "Gratis" : fmt(Number(order.shipping_cost))}</span>
           </div>
           <div className="flex justify-between font-semibold text-base pt-1">
@@ -484,10 +491,15 @@ export default function StoreOrder() {
           </div>
         </div>
 
-        {dirTexto && (
+        {(esRetiro ? lugarRetiro : dirTexto) && (
           <div className="pt-2 border-t text-sm" style={{ borderColor: "hsl(var(--st-border))" }}>
-            <p className="text-xs uppercase tracking-wide mb-0.5" style={{ color: "hsl(var(--st-muted))" }}>Envío a</p>
-            <p>{dirTexto}</p>
+            <p className="text-xs uppercase tracking-wide mb-0.5" style={{ color: "hsl(var(--st-muted))" }}>
+              {etiquetaDireccionEntrega(esRetiro)}
+            </p>
+            <p>{esRetiro ? lugarRetiro : dirTexto}</p>
+            {esRetiro && horarioRetiro ? (
+              <p className="text-xs mt-1" style={{ color: "hsl(var(--st-muted))" }}>{horarioRetiro}</p>
+            ) : null}
           </div>
         )}
       </div>

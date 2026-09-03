@@ -52842,6 +52842,7 @@ export type Database = {
           tiktok_pixel_id: string
           storefront_layout: Json
           shipping_provinces: string[]
+          pickup_instructions: string
         }[]
       }
       get_store_categories: {
@@ -52882,6 +52883,8 @@ export type Database = {
           shipping_cost: number
           subtotal: number
           total: number
+          carrier: string
+          shipping_service: string
         }[]
       }
       get_store_pages: {

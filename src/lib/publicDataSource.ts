@@ -465,6 +465,8 @@ export interface StoreOrderAccessRow {
   bank_name?: string | null;
   bank_cbu?: string | null;
   bank_alias?: string | null;
+  carrier?: string | null;
+  shipping_service?: string | null;
 }
 
 /**

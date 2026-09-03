@@ -36,6 +36,27 @@ const money = (n: unknown) =>
 
 interface Item { name?: string; quantity?: number; unit_price?: number; total?: number }
 
+/** Espejo de `esPedidoRetiro` / `storeOrderBuyerCopy.ts`. Deno no importa `@/`. */
+function esPedidoRetiro(order: { carrier?: unknown; shipping_service?: unknown }) {
+  const carrier = String(order?.carrier ?? "").toLowerCase().trim();
+  const service = String(order?.shipping_service ?? "").toLowerCase().trim();
+  return carrier === "retiro" || service === "sucursal";
+}
+
+function introPedidoPagado(esRetiro: boolean): string {
+  return esRetiro
+    ? "Te avisamos cuando el pedido esté listo para retirar."
+    : "Ya estamos preparando tu envío. Te avisamos cuando salga.";
+}
+
+function etiquetaCostoEntrega(esRetiro: boolean): string {
+  return esRetiro ? "Retiro" : "Envío";
+}
+
+function etiquetaDireccionEntrega(esRetiro: boolean): string {
+  return esRetiro ? "Retiro en" : "Envío a";
+}
+
 function itemsHtml(items: Item[], accent: string) {
   return items.map(i => `
     <tr>
@@ -52,9 +73,18 @@ function layout(opts: {
   accent: string; storeName: string; title: string; intro: string;
   order: any; itemsRows: string; footer: string; ctaUrl?: string; ctaLabel?: string;
   extraHtml?: string;
+  pickupAddress?: string | null;
+  pickupInstructions?: string | null;
 }) {
+  const retiro = esPedidoRetiro(opts.order);
   const dir = opts.order.shipping_address ?? {};
-  const dirTexto = [dir.calle, dir.ciudad, dir.provincia, dir.cp].filter(Boolean).join(", ");
+  const dirEnvio = [dir.calle, dir.ciudad, dir.provincia, dir.cp].filter(Boolean).join(", ");
+  const lugar = retiro
+    ? (String(opts.pickupAddress ?? "").trim() || dirEnvio)
+    : dirEnvio;
+  const horario = retiro ? String(opts.pickupInstructions ?? "").trim() : "";
+  const costoLabel = etiquetaCostoEntrega(retiro);
+  const dirLabel = etiquetaDireccionEntrega(retiro);
   return `
 <div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
   <div style="text-align:center;margin-bottom:24px">
@@ -69,10 +99,10 @@ function layout(opts: {
     <table style="width:100%;border-collapse:collapse;font-size:14px">${opts.itemsRows}</table>
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:12px">
       <tr><td style="color:#888">Subtotal</td><td style="text-align:right">${money(opts.order.subtotal)}</td></tr>
-      <tr><td style="color:#888">Envío</td><td style="text-align:right">${Number(opts.order.shipping_cost) === 0 ? "Gratis" : money(opts.order.shipping_cost)}</td></tr>
+      <tr><td style="color:#888">${esc(costoLabel)}</td><td style="text-align:right">${Number(opts.order.shipping_cost) === 0 ? "Gratis" : money(opts.order.shipping_cost)}</td></tr>
       <tr><td style="font-weight:700;padding-top:6px">Total</td><td style="text-align:right;font-weight:700;padding-top:6px">${money(opts.order.total)}</td></tr>
     </table>
-    ${dirTexto ? `<p style="margin:14px 0 0;font-size:13px;color:#555"><strong>Envío a:</strong> ${esc(dirTexto)}</p>` : ""}
+    ${lugar ? `<p style="margin:14px 0 0;font-size:13px;color:#555"><strong>${esc(dirLabel)}:</strong> ${esc(lugar)}${horario ? `<br>${esc(horario)}` : ""}</p>` : ""}
   </div>
 
   ${opts.extraHtml ?? ""}
@@ -99,14 +129,14 @@ Deno.serve(async (req) => {
 
     const { data: store } = await admin
       .from("ecommerce_stores")
-      .select("id, org_id, name, slug, primary_color, is_active, notification_email")
+      .select("id, org_id, name, slug, primary_color, is_active, notification_email, pickup_address, pickup_instructions")
       .ilike("slug", slug)
       .maybeSingle();
     if (!store?.is_active) return json({ error: "Tienda no encontrada" }, 404);
 
     const { data: order } = await admin
       .from("ecommerce_orders")
-      .select("id, order_number, customer_name, customer_email, customer_phone, items, subtotal, shipping_cost, total, payment_method, payment_status, shipping_address, public_access_token")
+      .select("id, order_number, customer_name, customer_email, customer_phone, items, subtotal, shipping_cost, total, payment_method, payment_status, shipping_address, public_access_token, carrier, shipping_service")
       .eq("store_id", store.id)
       .eq("order_number", orderNumber)
       .maybeSingle();
@@ -179,10 +209,12 @@ Deno.serve(async (req) => {
             accent, storeName: store.name,
             title: pagado ? "¡Pago confirmado!" : "¡Gracias por tu compra!",
             intro: pagado
-              ? "Ya estamos preparando tu envío. Te avisamos cuando salga."
+              ? introPedidoPagado(esPedidoRetiro(order))
               : introPendiente,
             order, itemsRows: rows,
             extraHtml: bloqueTransferencia || undefined,
+            pickupAddress: store.pickup_address,
+            pickupInstructions: store.pickup_instructions,
             ctaUrl: base ? orderUrl : undefined,
             ctaLabel: "Ver mi pedido",
             footer: `Guardá este número: <strong>${esc(order.order_number)}</strong><br>${esc(store.name)}`,
@@ -242,6 +274,8 @@ Deno.serve(async (req) => {
             title: "Entró un pedido nuevo",
             intro: `<strong>${contacto}</strong><br>Medio de pago: ${esc(order.payment_method)} · Estado: ${esc(order.payment_status)}`,
             order, itemsRows: rows,
+            pickupAddress: store.pickup_address,
+            pickupInstructions: store.pickup_instructions,
             ctaUrl: base ? `${base}/tienda-online` : undefined,
             ctaLabel: "Ver en el panel",
             footer: "Aviso automático de tu tienda online.",

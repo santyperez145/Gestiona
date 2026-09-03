@@ -585,6 +585,11 @@ export default function StoreCheckout() {
                 <p className="text-xs mt-1" style={{ color: "hsl(var(--st-muted))" }}>
                   {store?.pickup_address || "Te vamos a contactar para coordinar el retiro."}
                 </p>
+                {store?.pickup_instructions?.trim() ? (
+                  <p className="text-xs mt-1" style={{ color: "hsl(var(--st-text))" }}>
+                    {store.pickup_instructions.trim()}
+                  </p>
+                ) : null}
               </div>
             ) : requiereDomicilio && (
               <div className="grid sm:grid-cols-2 gap-3 mt-4">

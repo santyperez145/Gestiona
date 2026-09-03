@@ -122,6 +122,11 @@ export interface DatosFoco {
   tiendaPublicada?: boolean;
   /** Órdenes online con pago acreditado. Distinto de `nuncaVendio` (tabla `sales`). */
   ordenesOnlinePagas?: number;
+  /**
+   * Pickup activo, con dirección, sin `pickup_instructions`.
+   * `undefined` = no se midió; no se inventa un horario.
+   */
+  retiroSinHorario?: boolean;
 }
 
 /**
@@ -399,6 +404,18 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       accion: "Completar pesos",
       destino: "/productos?completar=pesos",
       urgencia: "normal",
+    });
+  }
+
+  // ATM Commerce: pickup sin horario confirma mal. Square/Shopify dicen
+  // dónde y cuándo; acá no se inventa el texto — el comercio lo carga.
+  if (d.tiendaPublicada === true && d.retiroSinHorario === true) {
+    lista.push({
+      id: "retiro-horario",
+      texto: "El retiro no dice horario",
+      accion: "Cargar horario",
+      destino: "/tienda-online?tab=settings",
+      urgencia: "atencion",
     });
   }
 

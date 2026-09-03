@@ -233,6 +233,19 @@ describe("construirPendientes", () => {
       ...VACIO, tiendaPublicada: false, zonasActivas: 0,
     }).map((x) => x.id)).not.toContain("zonas-envio");
   });
+
+  it("tienda publicada con retiro sin horario: no se inventa el texto", () => {
+    expect(construirPendientes({
+      ...VACIO, tiendaPublicada: true, retiroSinHorario: true,
+    })[0]).toMatchObject({
+      id: "retiro-horario",
+      accion: "Cargar horario",
+      destino: "/tienda-online?tab=settings",
+    });
+    expect(construirPendientes({
+      ...VACIO, tiendaPublicada: false, retiroSinHorario: true,
+    }).map((x) => x.id)).not.toContain("retiro-horario");
+  });
 });
 
 describe("leerVariacion", () => {
@@ -279,6 +292,12 @@ describe("FocoDelDia no cuenta fantasmas de Pay ni despacha un retiro", () => {
     expect(ui).toContain("onboardingGoal: p.onboardingGoal");
     expect(dashboard).toContain("onboardingGoal={activeOrg?.onboarding_goal}");
     expect(dashboard).toContain("tiendaPublicada={activationSignals?.online_channel_ready");
+  });
+
+  it("el Foco lee el horario de retiro de la tienda, no lo inventa", () => {
+    const ui = readFileSync(resolve(__dirname, "../components/dashboard/FocoDelDia.tsx"), "utf8");
+    expect(ui).toContain("pickup_enabled, pickup_address, pickup_instructions");
+    expect(ui).toContain("retiroSinHorario");
   });
 });
 
