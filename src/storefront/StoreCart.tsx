@@ -17,13 +17,13 @@ import {
 } from "@/lib/storeCartProvince";
 import { etiquetaProvinciaCheckout, textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
-import { ArrowLeft, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CloudOff, Loader2, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 
 export default function StoreCart() {
   const {
     store, products, variantsByProduct, cart, cartCount, subtotal, promo2x,
     shippingLabel, shippingPending, total, freeShippingGap, fmt, priceOf,
-    addToCart, setQty, removeFromCart, lineKeyOf,
+    addToCart, setQty, removeFromCart, lineKeyOf, cartSyncStatus, cartSyncNotice,
   } = useStore();
   const [provinciaCarrito, setProvinciaCarrito] = useState("");
   const [cotizandoCarrito, setCotizandoCarrito] = useState(false);
@@ -109,6 +109,32 @@ export default function StoreCart() {
       </Link>
 
       <h1 className="text-xl font-semibold mb-4">Tu carrito ({cartCount})</h1>
+
+      {cart.length > 0 && (
+        <div className="mb-5 space-y-1" aria-live="polite">
+          <p className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+            {cartSyncStatus === "error" ? (
+              <CloudOff className="h-3.5 w-3.5" aria-hidden />
+            ) : cartSyncStatus === "loading" || cartSyncStatus === "syncing" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+            )}
+            {cartSyncStatus === "error"
+              ? "No pudimos sincronizar; tu carrito sigue en este dispositivo"
+              : cartSyncStatus === "local"
+                ? "Guardado en este dispositivo"
+                : cartSyncStatus === "loading" || cartSyncStatus === "syncing"
+                  ? "Guardando carrito…"
+                  : "Carrito guardado"}
+          </p>
+          {cartSyncNotice && (
+            <p className="text-xs font-medium" style={{ color: "hsl(var(--st-accent))" }}>
+              {cartSyncNotice}
+            </p>
+          )}
+        </div>
+      )}
 
       {cart.length === 0 ? (
         <div className="py-16 text-center">

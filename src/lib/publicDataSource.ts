@@ -552,11 +552,100 @@ export async function fetchPublishedStoreSlugForOrg(orgId: string): Promise<stri
   return null;
 }
 
+export interface ActiveStoreCart {
+  found: boolean;
+  items: unknown[];
+  updated_at: string | null;
+  merged: boolean;
+  source: "device" | "account" | "merged" | null;
+}
+
+export async function getActiveStoreCart(args: {
+  slug: string;
+  token: string;
+}): Promise<{ data: ActiveStoreCart | null; error: PgError | null; supported: boolean }> {
+  const result = await retryPublicRead(() => supabase.rpc(
+    'get_store_cart' as never,
+    { p_slug: args.slug, p_token: args.token } as never,
+  ) as unknown as PromiseLike<{ data: unknown; error: PgError | null }>);
+
+  if (!result.error) {
+    return { data: (result.data as ActiveStoreCart | null) ?? null, error: null, supported: true };
+  }
+  if (isMissingFunction(result.error)) {
+    warnFallback('get_store_cart()');
+    return { data: null, error: null, supported: false };
+  }
+  console.error('[carrito] no se pudo recuperar la sesión activa:', result.error.message);
+  return { data: null, error: result.error, supported: true };
+}
+
+export interface StoreCartSaveLine {
+  productId: string;
+  variantId?: string | null;
+  name: string;
+  price: number;
+  qty: number;
+  image: string | null;
+}
+
+export async function saveActiveStoreCart(args: {
+  slug: string;
+  token: string;
+  lines: StoreCartSaveLine[];
+  email: string | null;
+}): Promise<{ data: unknown; error: PgError | null; supported: boolean }> {
+  const references = args.lines.map((line) => ({
+    product_id: line.productId,
+    variant_id: line.variantId ?? null,
+    quantity: line.qty,
+  }));
+  const canonical = await supabase.rpc('save_store_cart_v2' as never, {
+    p_slug: args.slug,
+    p_token: args.token,
+    p_items: references,
+    p_email: args.email,
+  } as never) as unknown as { data: unknown; error: PgError | null };
+
+  if (!canonical.error) return { ...canonical, supported: true };
+  if (!isMissingFunction(canonical.error)) {
+    console.error('[carrito] no se pudo sincronizar la sesión:', canonical.error.message);
+    return { ...canonical, supported: true };
+  }
+
+  // Ventana de deploy: el RPC anterior sigue recibiendo el snapshot visual,
+  // pero el checkout continúa recalculando precio y stock en el servidor.
+  warnFallback('save_store_cart_v2()');
+  const legacy = await supabase.rpc('save_store_cart', {
+    p_slug: args.slug,
+    p_token: args.token,
+    p_items: args.lines.map((line) => ({
+      product_id: line.productId,
+      variant_id: line.variantId ?? null,
+      name: line.name,
+      quantity: line.qty,
+      unit_price: line.price,
+      image_url: line.image,
+    })),
+    p_email: args.email,
+    p_subtotal: args.lines.reduce((sum, line) => sum + line.price * line.qty, 0),
+  });
+  return { data: legacy.data, error: legacy.error, supported: false };
+}
+
+export interface CreateStoreOrderResult {
+  data: unknown;
+  error: PgError | null;
+  cartLinked: boolean;
+}
+
 /**
  * Crea la orden. Si la firma con opción de envío todavía no está en la base, se
  * reintenta sin ese parámetro: mejor cobrar el envío plano que no poder vender.
  */
-export async function createStoreOrder(params: Record<string, unknown>) {
+export async function createStoreOrder(
+  params: Record<string, unknown>,
+): Promise<CreateStoreOrderResult> {
   // Los tipos generados exigen la forma exacta del RPC; el checkout arma el
   // objeto y acá sólo se reintenta sin el parámetro nuevo si no existe aún.
   type OrderArgs = Parameters<typeof supabase.rpc<'create_store_order'>>[1];
@@ -568,23 +657,43 @@ export async function createStoreOrder(params: Record<string, unknown>) {
   // Se cae al camino viejo sólo si la función todavía no está en la base, que
   // es el patrón de este archivo: el código no puede asumir que la migración
   // del mismo commit ya se aplicó.
+  if (params.p_idempotency_key && params.p_cart_token) {
+    const linked = await retryIdempotentWrite(() =>
+      supabase.rpc('create_store_order_from_cart_idem' as never, params as never));
+    if (!linked.error) {
+      return { data: linked.data, error: null, cartLinked: true };
+    }
+    if (!isMissingFunction(linked.error)) {
+      return { data: linked.data, error: linked.error, cartLinked: false } as CreateStoreOrderResult;
+    }
+    warnFallback('create_store_order_from_cart_idem()');
+  }
+
+  const { p_cart_token: _sinCarrito, ...sinCarrito } = params;
+  params = sinCarrito;
+
   if (params.p_idempotency_key) {
     const idem = await retryIdempotentWrite(() =>
       supabase.rpc('create_store_order_idem' as never, params as never));
-    if (!idem.error) return idem as { data: unknown; error: null };
-    if (!isMissingFunction(idem.error)) return idem as never;
+    if (!idem.error) return { data: idem.data, error: null, cartLinked: false };
+    if (!isMissingFunction(idem.error)) {
+      return { data: idem.data, error: idem.error, cartLinked: false } as CreateStoreOrderResult;
+    }
     warnFallback('create_store_order_idem()');
   }
 
   const { p_idempotency_key: _sinClave, ...sinIdem } = params;
   params = sinIdem;
   const conOpcion = await supabase.rpc('create_store_order', params as OrderArgs);
-  if (!conOpcion.error) return conOpcion;
-  if (!isMissingFunction(conOpcion.error)) return conOpcion;
+  if (!conOpcion.error) return { data: conOpcion.data, error: null, cartLinked: false };
+  if (!isMissingFunction(conOpcion.error)) {
+    return { data: conOpcion.data, error: conOpcion.error, cartLinked: false };
+  }
 
   warnFallback('create_store_order(… p_shipping_option)');
   const { p_shipping_option: _omitido, ...sinOpcion } = params;
-  return supabase.rpc('create_store_order', sinOpcion as OrderArgs);
+  const legacy = await supabase.rpc('create_store_order', sinOpcion as OrderArgs);
+  return { data: legacy.data, error: legacy.error, cartLinked: false };
 }
 
 export interface StoreOrderAccessRow {

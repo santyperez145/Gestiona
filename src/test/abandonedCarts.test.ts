@@ -110,8 +110,8 @@ describe("abandonedCarts", () => {
     const ctx = readFileSync(resolve(process.cwd(), "src/storefront/storeContext.tsx"), "utf8");
     const checkout = readFileSync(resolve(process.cwd(), "src/storefront/StoreCheckout.tsx"), "utf8");
     expect(ctx).toContain("rememberCartEmail");
-    expect(ctx).toContain("p_email: cartEmail");
-    expect(ctx).not.toContain("p_email: null");
+    expect(ctx).toContain("email: cartEmail");
+    expect(ctx).not.toContain("email: null");
     expect(checkout).toContain("rememberCartEmail(form.email)");
     const cron = readFileSync(
       resolve(process.cwd(), "supabase/functions/recover-abandoned-carts/index.ts"),

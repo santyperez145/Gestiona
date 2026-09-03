@@ -268,7 +268,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 | Finance matching | `20260822000012` propone proveedor/productos desde la última revisión humana con aliases o identidad exacta, guarda `none/ambiguous`, confirma por RPC y aprende vocabulario por tenant sin reasignarlo. Fixture de dos facturas: `exact_name` manual → `tax_alias` + `supplier_sku_alias`, homónimos 2 candidatos, outsider/retry/cero efectos/restos verificados. Producción: 0 runs, 0 aliases y 0 adopción. |
 | Finance drafts | `20260822000013` separa Supplier Invoice/Purchase/Payable Draft, exige resolución inventario/no inventariable y aprobación owner/admin. Aprobar crea una única orden `confirmed` y una deuda; recepción, `purchases`, stock y ledger permanecen afuera. Finance ahora entrega la orden al workflow idempotente existente mediante un enlace tenant-safe: enfoca la fila, limpia filtros y abre recepción sólo en `confirmed/partially_received`, sin consultas por id ni escrituras de stock desde el cliente. Fixture productivo: outsider/retry/RLS, dos líneas, stock 7→7 y restos 0. Producción: 0 borradores reales y 0 adopción. |
 | Finance precursor | El OCR anterior prellena una orden de compra y producción mostró un esquema distinto al archivo histórico (`extracted`, sin `document_type`). Sigue fuera de Finance porque no cumple custodia, revisión ni segregación, aunque el producto nuevo ya cubre extracción → matching → borradores → aprobación. |
-| Storefront | Funcional, pero aún comparte aplicación/ciclo de despliegue con el panel; falta aislamiento, dominios y carrito persistente completo. |
+| Storefront | Funcional y con carrito server-side canónico por dispositivo/cuenta, rehidratación contra catálogo vigente y vínculo atómico a la orden. Aún comparte aplicación/ciclo de despliegue con el panel; faltan aislamiento, dominios y prueba multidispositivo con comprador real. |
 | Recuperación | Backups programados y restore drill de datos aprobado el 2026-08-21: snapshot v3, 147 tablas / 63 filas, 937,22 ms y cero restos. Falta reconstrucción completa para RTO/RPO contractual. |
 | Observabilidad | Pagos ya conserva una correlación de checkout a ledger y ofrece timeline sin PII; faltan métricas/SLO, health checks activos y extender el contrato a los demás flujos críticos. |
 | Activación comercial | La cohorte ya está instrumentada, pero no existe muestra externa suficiente: 4 organizaciones históricas, 1 activada y 0 altas posteriores al watermark de soporte. Conversión, autoservicio y costo no son todavía estimaciones defendibles. |
@@ -1190,6 +1190,18 @@ operación.
 **Métricas:** tiempo a migrar, registros reconciliados, redirects correctos,
 rendimiento, conversión y errores de checkout.
 
+**Estado slice 20, 2026-09-03 — base técnica parcial.**
+`ecommerce_cart_sessions` ya es la sesión canónica de composición: guarda
+referencias saneadas por `resolve_store_line`, admite capacidad anónima, se
+vincula a la ficha `store_customers` de la tienda y consolida dispositivo más
+cuenta sin sumar cantidades accidentalmente. La UI hidrata antes de escribir,
+reconstruye precio/stock/variantes contra el catálogo vigente y declara si sólo
+pudo guardar localmente. `create_store_order_from_cart_idem` delega en el
+checkout idempotente existente y enlaza/convierte el carrito dentro de la misma
+transacción; no existe un segundo cálculo de orden ni un segundo stock. Falta
+certificar dos dispositivos con un comprador de prueba y completar las máquinas
+de estados independientes de cart/order/payment/fulfillment antes de cerrar F4.
+
 ### F5 — Gestiona Finance Mendel-class
 
 **Objetivo:** pasar de capturar documentos a una plataforma comparable con
@@ -1372,8 +1384,8 @@ contratos técnicos; **externo** = requiere dueño/proveedor/operación real;
 | P1-05 | F1 + F4 · slices 10/22 | **Parcial** | CSV/Excel está cerrado; faltan conectores priorizados, redirects y reconciliación de migración. |
 | P1-06 | F4 · slice 19 | **Pendiente** | Build/deploy/SLO del Storefront físicamente independientes. |
 | P1-07 | F4 · slice 21 | **Pendiente** | Dos stores de una organización sobre el mismo Core. |
-| P1-08 | F4 · slice 20 | **Pendiente** | Carrito server-side, multidevice e idempotente. |
-| P1-09 | F4 · slice 20 | **Pendiente** | State machines separadas y concurrencia/partial flows probados. |
+| P1-08 | F4 · slice 20 | **Parcial técnico 2026-09-03** | Sesión server-side, capacidad anónima, identidad por tienda, merge sin suma, rehidratación y orden enlazada están implementados; falta prueba real con dos dispositivos/cuenta. |
+| P1-09 | F4 · slice 20 | **Parcial técnico 2026-09-03** | Cart convierte atómicamente con la orden y el checkout conserva idempotencia; faltan state machines separadas y concurrencia/partial flows de payment/fulfillment. |
 | P1-10 | F4 · slice 22 | **Pendiente** | Dominio, SSL, canonical, redirects, health y takeover prevention. |
 | P1-11 | F4 · slice 22 + Design | **Parcial** | Themes existen; faltan draft/preview/publish/version/rollback y page contract. |
 | P1-12 | F4 · slice 22 | **Parcial** | Robots, índice, JSON-LD y OG por ruta salen del borde (D5.9). Faltan dominio propio, redirects, hreflang y reporte de migración. |
@@ -1443,7 +1455,7 @@ por eso puede crecer por encima de 25.
 | 17 | Supplier/product matching y alias memory | F3 | **Gate técnico cerrado 2026-08-22; evidencia real pendiente** | Primera factura exige confirmación; la segunda reutiliza CUIT/SKU. Homónimos ambiguos, retry idempotente, outsider bloqueado, cero efectos/restos. Producción: 0 runs/aliases. |
 | 18 | Invoice-to-purchase/payable draft | F3 | **Gate técnico cerrado 2026-08-22; evidencia real pendiente** | Tres borradores separados; preparar deja Core en 0. Owner/admin aprueba una orden y deuda idempotentes; stock 7→7 hasta recepción, outsider/restos 0. El handoff Finance→OC valida UUID, tenant cargado y estado; abre el RPC idempotente existente y degrada a consulta si ya fue recibida/cancelada. |
 | 19 | Split Storefront | F4 | Pendiente | Despliegue, SLO y fallas aislados del panel. |
-| 20 | Cart y order canónicos | F4 | Pendiente | Carrito server-side y estados independientes. |
+| 20 | Cart y order canónicos | F4 | **Base técnica parcial 2026-09-03** | Carrito server-side por dispositivo/cuenta, merge, catálogo vigente y vínculo idempotente a orden hechos; faltan prueba real multidispositivo y estados independientes completos. |
 | 21 | Store first-class | F4 | Pendiente | Una organización opera dos stores sin duplicar Core. |
 | 22 | Domains + migración inicial | F4 | Pendiente | Tienda externa migra, conecta SSL y vende. |
 | 23 | Finance Mendel-class piloto | F5 | Congelado hasta adopción F3 | Un piloto completa solicitud → presupuesto/política → aprobación → gasto/evidencia → conciliación/exportación; tarjetas externas primero y emisión sólo con gate regulado. |
@@ -3661,11 +3673,46 @@ Finance Connect.
      productos**, categorías, precios y acciones, con 0 errores de consola;
      la verificación fue de sólo lectura.
 
+160. F4 / carrito canónico: servidor, cuenta y orden — 2026-09-03.
+     Medido: `ecommerce_cart_sessions` existía, pero el RPC no guardaba nada
+     hasta conocer un email, aceptaba nombre/precio/subtotal del navegador y el
+     checkout convertía la sesión en un efecto best-effort separado de la
+     orden. La recuperación recorría líneas llamando `addToCart` contra el
+     mismo cierre React: con más de un producto sobrevivía sólo el último. La
+     cuenta además hacía upsert para la tienda correcta y después tomaba la
+     primera ficha del usuario sin filtrar el resultado por id/tienda.
+
+     `20260903000060_carrito_canonico` convierte la tabla existente en la única
+     sesión de carrito: capacidad anónima, vínculo a `store_customers`, un
+     activo por cuenta/tienda, merge dispositivo-cuenta por máximo (no suma
+     cantidades), vencimiento de 30 días y snapshot resuelto por
+     `resolve_store_line`. `get_store_cart` devuelve sólo ids/variantes/cantidad,
+     sin PII; la UI hidrata antes de escribir, compara timestamps, rearma contra
+     catálogo actual y muestra `sincronizando/guardado/local/error`. La salida
+     rota el token del dispositivo compartido. El recupero sustituye todas las
+     líneas de una vez y conserva variantes.
+
+     `create_store_order_from_cart_idem` no crea otro checkout: delega en
+     `create_store_order_idem` y enlaza/convierte la sesión dentro de la misma
+     transacción. Precio, promociones, stock y orden siguen teniendo una sola
+     autoridad. Comparación oficial: Shopify modela Cart + BuyerIdentity + costo
+     estimado; Tiendanube conserva 30 días y revalida precio/stock al retomar.
+
+     Producción: migración aplicada, `db push --dry-run` volvió a brecha 0; como
+     `anon`, token inexistente respondió `{found:false,items:[]}` y save vacío
+     `{ok:true,empty:true}` sin crear filas. Localhost mostró tienda y carrito
+     real con 0 errores/warnings de consola; no se creó un carrito ficticio ni
+     se tocó producto/stock real. Verificado en este recorte: **2.551 tests** /
+     272 archivos (`npm test -- --maxWorkers=1 --fileParallelism=false`,
+     2026-09-03); typecheck OK y lint 0 errores / 143 warnings conocidos.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
-habilita F3 sin declararlos cerrados. No se separa Storefront ni se salta a F4
-antes de cerrar el Document Inbox y el flujo Finance aprobado.
+habilitó F3 sin declararlos cerrados. Con la base técnica de Document Inbox y
+aprobación ya entregada, F4 avanza por slices sin declarar adopción Finance ni
+Commerce: la prueba real de dos dispositivos y una migración externa siguen
+siendo gates, no casillas que el código pueda inventar.
 
 ## 8. Modelo económico objetivo
 

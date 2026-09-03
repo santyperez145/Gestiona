@@ -437,6 +437,16 @@ catálogo realmente vacío y ofrece Reintentar sin borrar el último estado. La
 tienda canónica sigue siendo `/tienda/:slug`; este arreglo sólo mantiene vivo
 el legado hasta que exista una migración de enlaces con evidencia.
 
+D5.13 lleva el carrito al contrato visual y operativo de una tienda madura sin
+crear otra pantalla: la ruta existente muestra si está sincronizando, guardado
+en servidor, sólo local o con error, y explica ajustes de disponibilidad. La
+composición se rehidrata contra catálogo y variantes actuales; el recupero de
+email sustituye todas las líneas de una vez (antes sobrevivía sólo la última por
+estado React obsoleto). La cuenta se resuelve para el slug exacto antes de unir
+carritos y una salida rota la capacidad del dispositivo compartido. El precio y
+el stock siguen siendo del Core/checkout; el indicador no promete nube cuando
+el RPC todavía no está desplegado.
+
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto: CTA móvil hecho; faltan variantes densas y confianza extra;
 - carrito y checkout: objetivos táctiles y sticky en 360 px hechos;
@@ -504,7 +514,7 @@ declara validado porque “se ve mejor”.
 | 17 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos, aprobación y handoff a recepción usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
 | 18 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
 | 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
-| 20 | Storefront home/PLP/PDP | Parcial D5.12 2026-09-03 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias. D5.7 deja el CTA de compra al pie en 360 px. D5.8 reserva geometría al cargar y declara tamaño de imagen. D5.9 hace que crawlers vean HTML del comercio. D5.10 distingue 404 de red caída y no pinta un catálogo vacío. D5.11 no pide email ni declara el carrito vencido si la red falló. D5.12 conserva enlaces `/catalogo/:id` user/org y separa error recuperable de vacío real. Falta hero del comercio y flujo sandbox/real. |
+| 20 | Storefront home/PLP/PDP | Parcial D5.13 2026-09-03 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias. D5.7 deja el CTA de compra al pie en 360 px. D5.8 reserva geometría al cargar y declara tamaño de imagen. D5.9 hace que crawlers vean HTML del comercio. D5.10 distingue 404 de red caída y no pinta un catálogo vacío. D5.11 no pide email ni declara el carrito vencido si la red falló. D5.12 conserva enlaces `/catalogo/:id` user/org. D5.13 hace visible y honesta la persistencia server-side y recupera todas las líneas/variantes. Falta hero del comercio, prueba multidispositivo real y flujo sandbox/real. |
 | 21 | Carrito/checkout/pago | Parcial D5.11 2026-09-01 | Resultado protegido por capacidad; D5.3–D5.6 cierran avisos, Pay honesto, cola e inspector. D5.7 deja CTA de ficha/carrito/checkout a 44 px en 360. D5.10 reintenta `create_store_order_idem` ante un corte de red con la misma clave. D5.11 distingue link de pago inexistente de corte de red y no borra un pedido ya visto. Faltan compra sandbox/real y bulk con RPC. |
 | 22 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
 | 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |

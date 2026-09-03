@@ -14,12 +14,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { retryPublicRead } from "@/lib/publicDataSource";
 import { useStore } from "./storeContext";
 import { Loader2, ShoppingBag } from "lucide-react";
+import { parseStoreCartReferences } from "@/lib/storeCartSync";
 
 type EstadoRecuperacion = "cargando" | "vacio" | "error" | "catalogo" | "listo";
 
 export default function StoreCartRecovery() {
   const { token } = useParams<{ token: string }>();
-  const { store, products, addToCart, clearCart, loading, loadError, reload } = useStore();
+  const { store, restoreCart, loading, loadError, reload } = useStore();
   const navigate = useNavigate();
   const [estado, setEstado] = useState<EstadoRecuperacion>("cargando");
   const yaCorrio = useRef(false);
@@ -34,27 +35,19 @@ export default function StoreCartRecovery() {
       setEstado("error");
       return;
     }
-    const row = (Array.isArray(rpc.data) ? rpc.data[0] : rpc.data) as { items?: { product_id?: string; quantity?: number }[] } | undefined;
-    const items = row?.items ?? [];
+    const row = (Array.isArray(rpc.data) ? rpc.data[0] : rpc.data) as { items?: unknown } | undefined;
+    const items = parseStoreCartReferences(row?.items);
 
     if (!items.length) { setEstado("vacio"); return; }
 
-    // Se rearma contra el catálogo actual: el precio o el stock pueden haber
-    // cambiado desde que se mandó el email, y cobrar el precio viejo sería
-    // un problema.
-    clearCart();
-    let agregados = 0;
-    for (const it of items) {
-      const p = products.find(x => x.id === it.product_id);
-      if (!p || p.stock < 1) continue;
-      addToCart(p, Math.min(p.stock, Number(it.quantity) || 1));
-      agregados++;
-    }
-
-    if (agregados === 0) { setEstado("vacio"); return; }
+    // Una sola sustitución conserva todas las líneas y sus variantes. El loop
+    // anterior llamaba `addToCart` varias veces en el mismo render y cada alta
+    // partía del carrito viejo: en la práctica sobrevivía sólo la última.
+    const restored = restoreCart(items);
+    if (restored.restoredCount === 0) { setEstado("vacio"); return; }
     setEstado("listo");
     navigate(`/tienda/${store.slug}/checkout`, { replace: true });
-  }, [token, store, products, addToCart, clearCart, navigate]);
+  }, [token, store, restoreCart, navigate]);
 
   useEffect(() => {
     if (!token || !store || loading) return;

@@ -175,6 +175,18 @@ argumento. La ejecución tiene que bajar a lo concreto de §2.3: margen por
 producto y canal con costo de importación, comisión, envío e IVA, preservando
 la evidencia que compone el número y reduciendo el tiempo de implementación.
 
+✅ **Contrato de carrito reverificado el 2026-09-03.** Shopify trata el
+[Cart](https://shopify.dev/docs/api/storefront/2026-01/objects/Cart) como un
+objeto servidor con líneas, identidad del comprador, costo estimado y
+`updatedAt`; su guía vincula la cuenta mediante
+[`cartBuyerIdentityUpdate`](https://shopify.dev/docs/storefronts/headless/building-with-the-storefront-api/cart/manage).
+Tiendanube conserva el recupero durante 30 días, permite retomarlo con identidad
+Nube y [actualiza precio/stock al volver](https://ayuda.tiendanube.com/es_MX/123339-carritos-abandonados/como-recuperar-los-carritos-abandonados).
+La traducción propia no es copiar checkout: `ecommerce_cart_sessions` conserva
+composición e identidad, mientras `resolve_store_line` y
+`create_store_order_idem` siguen siendo las únicas autoridades de precio,
+stock y orden. Ese límite evita que Storefront clone el Business Core.
+
 ✅ **Margin facts medidos el 2026-08-22:** “tener margen” tampoco alcanza como
 argumento. Shopify ya documenta profit por orden/mercado y Odoo margen por
 línea/pedido. Gestiona ahora conserva por venta la fuente de costo, comisión,

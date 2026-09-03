@@ -137,12 +137,12 @@ export default function StorefrontPage() {
   const { slug } = useParams<{ slug: string }>();
   if (!slug) return null;
   return (
-    <StoreProvider slug={slug}>
-      <StoreAuthProvider slug={slug}>
+    <StoreAuthProvider slug={slug}>
+      <StoreProvider slug={slug}>
         <WishlistProvider slug={slug}>
           <StoreShell />
         </WishlistProvider>
-      </StoreAuthProvider>
-    </StoreProvider>
+      </StoreProvider>
+    </StoreAuthProvider>
   );
 }

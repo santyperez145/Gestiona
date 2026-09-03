@@ -35,7 +35,10 @@ interface ShippingOption {
 
 export default function StoreCheckout() {
   // `total` del contexto no se usa acá: el checkout calcula el suyo con el cupón.
-  const { store, products, cart, subtotal, promo2x, shippingCost, fmt, clearCart, rememberCartEmail } = useStore();
+  const {
+    store, products, cart, subtotal, promo2x, shippingCost, fmt,
+    clearCart, rememberCartEmail, cartToken,
+  } = useStore();
   const navigate = useNavigate();
   const base = `/tienda/${store?.slug ?? ""}`;
 
@@ -373,8 +376,9 @@ export default function StoreCheckout() {
     // que es exactamente lo que esto viene a evitar.
     if (!claveIdem.current) claveIdem.current = crypto.randomUUID();
 
-    const { data, error: rpcError } = await createStoreOrder({
+    const { data, error: rpcError, cartLinked } = await createStoreOrder({
       p_idempotency_key: claveIdem.current,
+      p_cart_token: cartToken || null,
       p_slug: store!.slug,
       p_items: cart.map(l => ({ product_id: l.productId, variant_id: l.variantId ?? null, quantity: l.qty })),
       p_customer_name: form.nombre,
@@ -440,15 +444,18 @@ export default function StoreCheckout() {
       }
     }
 
-    // Se cierra la sesión de carrito para que no le llegue un email de
-    // "te quedó algo pendiente" a quien acaba de comprar.
-    try {
-      const token = localStorage.getItem(`gestiona.store.session.${store!.slug}`);
-      if (token) {
-        supabase.rpc("convert_store_cart", { p_slug: store!.slug, p_token: token })
-          .then(undefined, () => {});
+    // Durante la ventana de deploy el wrapper nuevo puede no existir todavía.
+    // Sólo entonces se usa el cierre legacy; con el wrapper, carrito y orden
+    // ya quedaron enlazados en la misma transacción.
+    if (!cartLinked && cartToken) {
+      const { error: cartError } = await supabase.rpc("convert_store_cart", {
+        p_slug: store!.slug,
+        p_token: cartToken,
+      });
+      if (cartError) {
+        console.error("No se pudo cerrar la sesión legacy del carrito", cartError);
       }
-    } catch { /* sin localStorage */ }
+    }
 
     clearCart();
 

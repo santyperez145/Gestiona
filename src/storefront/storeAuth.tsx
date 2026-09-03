@@ -48,20 +48,38 @@ export function StoreAuthProvider({ slug, children }: { slug: string; children: 
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const { data: { session: s } } = await supabase.auth.getSession();
+    setLoading(true);
+    const { data: { session: s }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error("[cuenta tienda] no se pudo leer la sesión", sessionError);
+      setSession(null);
+      setCustomer(null);
+      setLoading(false);
+      return;
+    }
     setSession(s);
     if (!s) { setCustomer(null); setLoading(false); return; }
 
     try {
-      await supabase.rpc("upsert_store_customer", { p_slug: slug, p_name: null, p_phone: null });
-      const { data } = await supabase
+      const upsert = await supabase.rpc("upsert_store_customer", {
+        p_slug: slug,
+        p_name: null,
+        p_phone: null,
+      });
+      if (upsert.error) throw upsert.error;
+      const customerId = (upsert.data as { id?: string } | null)?.id;
+      if (!customerId) throw new Error("La ficha de comprador no devolvió un id");
+
+      const { data, error } = await supabase
         .from("store_customers")
         .select("id, email, name, phone, default_address")
-        .eq("user_id", s.user.id)
-        .limit(1);
-      const row = data?.[0];
+        .eq("id", customerId)
+        .maybeSingle();
+      if (error) throw error;
+      const row = data;
       setCustomer(row ? { ...row, default_address: (row.default_address ?? {}) as Record<string, string> } : null);
-    } catch {
+    } catch (error) {
+      console.error(`[cuenta tienda] no se pudo cargar la ficha de ${slug}`, error);
       setCustomer(null);
     }
     setLoading(false);
