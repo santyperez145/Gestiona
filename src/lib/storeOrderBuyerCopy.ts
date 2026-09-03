@@ -1,3 +1,5 @@
+import { esMedioGestionaPay } from "@/lib/gestionaPay";
+
 /**
  * Copy de confirmación: retiro ≠ envío.
  *
@@ -6,6 +8,41 @@
  * «preparando tu envío» con carrier=retiro. Estas frases son el espejo de
  * `esPedidoRetiro`: un solo criterio, dos superficies.
  */
+
+/**
+ * Hint del checkout según el medio elegido.
+ * Tiendanube/Shopify muestran instrucción de transferencia o efectivo;
+ * no «te contactamos» cuando el comprador ya tiene CBU en la página de gracias.
+ * Null = Gestiona Pay u otro medio que no necesita aviso offline.
+ */
+export function avisoCheckoutMedioPago(opts: {
+  metodo: string | null | undefined;
+  esRetiro: boolean;
+}): string | null {
+  const m = String(opts.metodo ?? "").toLowerCase().trim();
+  if (!m || esMedioGestionaPay(m)) return null;
+  if (m === "transferencia") {
+    return opts.esRetiro
+      ? "Al confirmar vas a ver los datos para transferir. Cuando acredite, te avisamos para retirar."
+      : "Al confirmar vas a ver los datos para transferir. Cuando acredite, preparamos el envío.";
+  }
+  if (m === "efectivo") {
+    return opts.esRetiro
+      ? "Pagás en efectivo al retirar el pedido."
+      : "Pagás en efectivo al recibir el pedido.";
+  }
+  return opts.esRetiro
+    ? "Te contactamos para coordinar el pago y el retiro."
+    : "Te contactamos para coordinar el pago y la entrega.";
+}
+
+export function etiquetaMedioCheckout(metodo: string, esRetiro: boolean): string {
+  const m = String(metodo ?? "").toLowerCase().trim();
+  if (esMedioGestionaPay(m)) return "Gestiona Pay";
+  if (m === "transferencia") return "Transferencia bancaria";
+  if (m === "efectivo") return esRetiro ? "Efectivo al retirar" : "Efectivo al recibir";
+  return metodo;
+}
 
 export function introPedidoPagado(esRetiro: boolean): string {
   return esRetiro

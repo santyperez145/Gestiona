@@ -13,6 +13,7 @@ import { precioConMedioDePago, porcentajeDe, nombreMedio } from "@/lib/paymentDi
 import { normalizarEmail } from "@/lib/couponRules";
 import { decisionEntregaCheckout, requiereDireccionDeEntrega } from "@/lib/checkoutDelivery";
 import { mediosDePagoOfrecibles, esMedioGestionaPay } from "@/lib/gestionaPay";
+import { avisoCheckoutMedioPago, etiquetaMedioCheckout } from "@/lib/storeOrderBuyerCopy";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -27,13 +28,6 @@ interface ShippingOption {
   zone_id: string | null;
   zone_name: string | null;
 }
-
-const METODO_LABEL: Record<string, string> = {
-  gestiona_pay: "Gestiona Pay",
-  mercadopago: "Gestiona Pay",
-  transferencia: "Transferencia bancaria",
-  efectivo: "Efectivo al recibir",
-};
 
 export default function StoreCheckout() {
   // `total` del contexto no se usa acá: el checkout calcula el suyo con el cupón.
@@ -170,6 +164,7 @@ export default function StoreCheckout() {
   // Mientras no haya cotización se usa el costo del contexto, que es el plano.
   const envio = opcion ? Number(opcion.price) : (opciones.length > 0 ? 0 : shippingCost);
   const esRetiro = opcion?.carrier === "retiro";
+  const avisoPago = avisoCheckoutMedioPago({ metodo: form.metodo, esRetiro });
   // Si el retiro todavía no llegó de la cotización, sólo se omite la dirección
   // cuando la tienda lo ofrece. Para cualquier entrega a domicilio los campos
   // son obligatorios: una orden que no se puede despachar no es una venta.
@@ -650,7 +645,7 @@ export default function StoreCheckout() {
                       checked={form.metodo === m}
                       onChange={() => set("metodo", m)}
                     />
-                    <span className="text-sm flex-1">{METODO_LABEL[m] ?? m}</span>
+                    <span className="text-sm flex-1">{etiquetaMedioCheckout(m, esRetiro)}</span>
                     {/* Se muestra el ahorro en pesos y no sólo el porcentaje:
                         "ahorrás $2.000" decide una compra, "10% off" hay que
                         calcularlo. El número que se cobra igual lo recalcula la
@@ -667,11 +662,9 @@ export default function StoreCheckout() {
                 );
               })}
             </div>
-            {metodos.some(m => !esMedioGestionaPay(m)) && (
-            <p className="text-xs mt-2" style={{ color: "hsl(var(--st-muted))" }}>
-              Te contactamos para coordinar el pago y la entrega apenas recibamos el pedido.
-            </p>
-            )}
+            {avisoPago ? (
+              <p className="text-xs mt-2" style={{ color: "hsl(var(--st-muted))" }}>{avisoPago}</p>
+            ) : null}
               </>
             )}
           </section>

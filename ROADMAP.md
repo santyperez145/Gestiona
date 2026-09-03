@@ -3380,6 +3380,18 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Migración
      `20260902000140` aplicada y anotada. Esta PC no tiene `VITE_*`.
 
+135. Checkout no promete «te contactamos» con transferencia — 2026-09-02.
+     Medido: con transferencia viva el checkout decía «Te contactamos
+     para coordinar el pago y la entrega» aunque la gracias ya muestra
+     CBU/alias; el aviso salía si *cualquier* medio offline estaba en
+     la lista, incluso eligiendo Pay. Tiendanube/Shopify instruyen el
+     medio elegido. `avisoCheckoutMedioPago` + rótulo de efectivo
+     retiro≠domicilio. No se inventa tarifario ni horario.
+
+     Verificado en este recorte: **2.436 tests** / 257 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
+  avisoCheckoutMedioPago,
   copyEstadoPedido,
   etiquetaCostoEntrega,
   etiquetaDireccionEntrega,
+  etiquetaMedioCheckout,
   etiquetaWhatsAppPedido,
   indicePasoSeguimiento,
   introPagoRevertido,
@@ -57,5 +61,24 @@ describe("confirmación al comprador: retiro no es envío", () => {
     expect(pasosSeguimiento(false).some((p) => p.label === "En camino")).toBe(true);
     expect(indicePasoSeguimiento("unfulfilled", true)).toBe(0);
     expect(indicePasoSeguimiento("delivered", true)).toBe(3);
+  });
+
+  it("el checkout no promete «te contactamos» cuando hay transferencia o efectivo", () => {
+    const transfer = avisoCheckoutMedioPago({ metodo: "transferencia", esRetiro: true });
+    expect(transfer).toMatch(/datos para transferir/i);
+    expect(transfer).not.toMatch(/te contactamos/i);
+    expect(transfer).toMatch(/retirar/i);
+    expect(avisoCheckoutMedioPago({ metodo: "transferencia", esRetiro: false })).toMatch(/envío/i);
+    expect(avisoCheckoutMedioPago({ metodo: "efectivo", esRetiro: true })).toMatch(/retirar/i);
+    expect(avisoCheckoutMedioPago({ metodo: "efectivo", esRetiro: false })).toMatch(/recibir/i);
+    expect(avisoCheckoutMedioPago({ metodo: "gestiona_pay", esRetiro: false })).toBeNull();
+    expect(etiquetaMedioCheckout("efectivo", true)).toMatch(/retirar/i);
+    expect(etiquetaMedioCheckout("efectivo", false)).toMatch(/recibir/i);
+    const checkout = readFileSync(
+      resolve(process.cwd(), "src/storefront/StoreCheckout.tsx"),
+      "utf8",
+    );
+    expect(checkout).toContain("avisoCheckoutMedioPago");
+    expect(checkout).not.toContain("Te contactamos para coordinar el pago y la entrega apenas recibamos el pedido.");
   });
 });
