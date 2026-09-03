@@ -59,6 +59,8 @@ import {
   storeEmailLeadCopy,
   storeAfterCreateCopy,
   urlPublicaDeTienda,
+  storeShareIntentActive,
+  storeShareIntentCopy,
 } from "@/lib/storeFirstPublish";
 import type { AbandonedCartRow } from "@/lib/abandonedCarts";
 import { filterAbandonedCartsForQueue } from "@/lib/abandonedCarts";
@@ -751,6 +753,17 @@ export default function EcommerceStorePage() {
   const afterCreate = justCreatedStore && store?.id && signals.publishedProducts === 0
     ? storeAfterCreateCopy()
     : null;
+  const shareIntent = storeShareIntentActive(searchParams.get("share")) && urlPublica
+    ? storeShareIntentCopy()
+    : null;
+
+  const copiarEnlacePublico = () => {
+    if (!urlPublica) return;
+    void navigator.clipboard.writeText(urlPublica).then(
+      () => toast.success("Enlace copiado"),
+      () => toast.error("No se pudo copiar"),
+    );
+  };
 
   useEffect(() => {
     if (signals.publishedProducts > 0) setJustCreatedStore(false);
@@ -792,12 +805,7 @@ export default function EcommerceStorePage() {
                   size="sm"
                   variant="outline"
                   className="gap-1.5 text-xs"
-                  onClick={() => {
-                    void navigator.clipboard.writeText(urlPublica).then(
-                      () => toast.success("Enlace copiado"),
-                      () => toast.error("No se pudo copiar"),
-                    );
-                  }}
+                  onClick={copiarEnlacePublico}
                 >
                   <Copy className="w-3 h-3" />Copiar enlace
                 </Button>
@@ -892,6 +900,21 @@ export default function EcommerceStorePage() {
       {/* ─── Overview ─── */}
       {tab === "overview" && (
         <div className="space-y-6">
+          {shareIntent && urlPublica ? (
+            <div className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/[0.06] p-4 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">{shareIntent.title}</p>
+                <p className="mt-0.5 text-[12px] text-muted-foreground leading-snug">
+                  {shareIntent.description}
+                </p>
+                <p className="mt-2 truncate font-mono text-[11px] text-muted-foreground">{urlPublica}</p>
+              </div>
+              <Button size="sm" className="min-h-11 shrink-0 gap-1.5" onClick={copiarEnlacePublico}>
+                <Copy className="w-3.5 h-3.5" />
+                {shareIntent.actionLabel}
+              </Button>
+            </div>
+          ) : null}
           {storeMissing && (
             <WorkspaceState
               kind="empty-first-use"
@@ -1047,6 +1070,7 @@ export default function EcommerceStorePage() {
           loading={ordersLoading}
           error={ordersError}
           selectedId={pedidoId}
+          publicStoreUrl={urlPublica}
           onRetry={() => { void loadOrders(); }}
           onInspect={order => openPedido(order.id)}
           onPrepare={order => {

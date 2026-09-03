@@ -28,6 +28,10 @@ import {
   storeAfterCreateCopy,
   storeWizardFinishCopy,
   urlPublicaDeTienda,
+  storeFirstSaleSharePath,
+  storeOrdersEmptyShareCopy,
+  storeShareIntentActive,
+  storeShareIntentCopy,
 } from '@/lib/storeFirstPublish';
 
 const ROOT = resolve(import.meta.dirname, '..', '..');
@@ -316,5 +320,20 @@ describe('el enlace de la tienda se puede copiar', () => {
   it('Commerce copia el mismo link que abre Ver tienda', () => {
     expect(STORE).toContain('urlPublicaDeTienda');
     expect(STORE).toContain('Copiar enlace');
+  });
+
+  it('Foco «Compartí el enlace» aterriza en overview con share accionable', () => {
+    expect(storeFirstSaleSharePath(true)).toBe('/tienda-online?tab=overview&share=1');
+    expect(storeFirstSaleSharePath(false)).toBe('/tienda-online');
+    expect(storeShareIntentActive('1')).toBe(true);
+    expect(storeShareIntentActive(null)).toBe(false);
+    expect(storeShareIntentCopy().actionLabel).toBe('Copiar enlace');
+    expect(STORE).toContain('storeShareIntentActive');
+    expect(STORE).toContain('publicStoreUrl={urlPublica}');
+  });
+
+  it('Pedidos vacíos ofrecen copiar el link cuando hay URL pública', () => {
+    expect(storeOrdersEmptyShareCopy(true).actionLabel).toBe('Copiar enlace de la tienda');
+    expect(storeOrdersEmptyShareCopy(false).actionLabel).toBeUndefined();
   });
 });

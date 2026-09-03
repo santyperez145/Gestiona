@@ -330,3 +330,42 @@ export function urlPublicaDeTienda(
   if (!host || !s) return null;
   return `${host}/tienda/${s}`;
 }
+
+/** Foco «Compartí el enlace»: deep-link a overview con intención de share. */
+export function storeFirstSaleSharePath(publicada: boolean): string {
+  return publicada
+    ? '/tienda-online?tab=overview&share=1'
+    : '/tienda-online';
+}
+
+/** Empty de Pedidos: CTA de share cuando el link público ya existe. */
+export function storeOrdersEmptyShareCopy(hasPublicUrl: boolean) {
+  if (hasPublicUrl) {
+    return {
+      title: 'Todavía no hay pedidos',
+      description:
+        'La cola se llena cuando alguien compra. Compartí el enlace de la tienda para traer el primer comprador.',
+      actionLabel: 'Copiar enlace de la tienda',
+    };
+  }
+  return {
+    title: 'Todavía no hay pedidos',
+    description:
+      'Cuando un comprador termine una compra, aparece acá para cobrar el pendiente, marcar un retiro o preparar el envío.',
+    actionLabel: undefined as string | undefined,
+  };
+}
+
+/** Deep-link `?share=1` desde Foco: banner accionable, no sólo tab. */
+export function storeShareIntentActive(shareParam: string | null | undefined): boolean {
+  return shareParam === '1' || shareParam === 'true';
+}
+
+export function storeShareIntentCopy() {
+  return {
+    title: 'Compartí el enlace de tu tienda',
+    description:
+      'Copiá el link y mandalo por WhatsApp, Instagram o mail. La primera venta online empieza cuando alguien abre la tienda.',
+    actionLabel: 'Copiar enlace',
+  };
+}

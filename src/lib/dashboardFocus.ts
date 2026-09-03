@@ -35,6 +35,8 @@
  * entregó. Eso va antes que un seguimiento.
  */
 
+import { storeFirstSaleSharePath } from "@/lib/storeFirstPublish";
+
 export type Urgencia = "critico" | "atencion" | "normal";
 
 export interface Pendiente {
@@ -191,7 +193,7 @@ function pendientePrimeraVenta(online: boolean, publicada: boolean): Pendiente {
       id: "primera-venta",
       texto: "Todavía no hay una venta online",
       accion: publicada ? "Compartí el enlace" : "Abrir Commerce",
-      destino: "/tienda-online",
+      destino: storeFirstSaleSharePath(publicada),
       urgencia: "atencion",
     };
   }

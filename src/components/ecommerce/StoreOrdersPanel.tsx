@@ -27,6 +27,8 @@ import {
   type StoreOrderView,
 } from "@/lib/storeOrderQueue";
 import { canFulfillStoreOrder, storeOrderPaymentLabel, storeOrderPaymentTone } from "@/lib/storeOrderPayment";
+import { storeOrdersEmptyShareCopy } from "@/lib/storeFirstPublish";
+import { toast } from "sonner";
 import { Download, Eye, Search, Store, Truck } from "lucide-react";
 
 interface Props {
@@ -34,6 +36,8 @@ interface Props {
   loading: boolean;
   error: string | null;
   selectedId?: string | null;
+  /** Link público de la tienda: empty-first-use puede copiarlo (ATM). */
+  publicStoreUrl?: string | null;
   onRetry: () => void;
   onInspect: (order: StoreOrderQueueRow) => void;
   onPrepare: (order: StoreOrderQueueRow) => void;
@@ -73,11 +77,12 @@ function downloadCsv(rows: StoreOrderQueueRow[]) {
 }
 
 export default function StoreOrdersPanel({
-  orders, loading, error, selectedId, onRetry, onInspect, onPrepare,
+  orders, loading, error, selectedId, publicStoreUrl, onRetry, onInspect, onPrepare,
 }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") ?? "";
   const view = parseStoreOrderView(searchParams.get("vista"));
+  const ordersEmpty = storeOrdersEmptyShareCopy(Boolean(publicStoreUrl));
   const counts = useMemo(() => countStoreOrderViews(orders), [orders]);
   const visible = useMemo(
     () => filterStoreOrders(orders, { query, view }),
@@ -158,8 +163,17 @@ export default function StoreOrdersPanel({
       ) : orders.length === 0 ? (
         <WorkspaceState
           kind="empty-first-use"
-          title="Todavía no hay pedidos"
-          description="Cuando un comprador termine una compra, aparece acá para cobrar el pendiente, marcar un retiro o preparar el envío."
+          title={ordersEmpty.title}
+          description={ordersEmpty.description}
+          actionLabel={ordersEmpty.actionLabel}
+          onAction={ordersEmpty.actionLabel && publicStoreUrl
+            ? () => {
+                void navigator.clipboard.writeText(publicStoreUrl).then(
+                  () => toast.success("Enlace copiado"),
+                  () => toast.error("No se pudo copiar el enlace"),
+                );
+              }
+            : undefined}
         />
       ) : visible.length === 0 ? (
         <WorkspaceState

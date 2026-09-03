@@ -133,7 +133,7 @@ describe("construirPendientes", () => {
       ...VACIO, onboardingGoal: "online", ordenesOnlinePagas: 0, tiendaPublicada: true,
     });
     expect(p[0].id).toBe("primera-venta");
-    expect(p[0].destino).toBe("/tienda-online");
+    expect(p[0].destino).toBe("/tienda-online?tab=overview&share=1");
     expect(p[0].accion).toBe("Compartí el enlace");
   });
 

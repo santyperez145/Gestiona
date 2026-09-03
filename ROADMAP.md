@@ -3583,6 +3583,15 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+154. Foco/Pedidos: share accionable hacia la primera venta — 2026-09-03.
+     Medido: «Compartí el enlace» iba a `/tienda-online` sin CTA de
+     copiar; Pedidos empty no ofrecía el link. Shopify/Tiendanube empty
+     orders + Pulse accionable. `storeFirstSaleSharePath` →
+     `?tab=overview&share=1`, banner + empty Pedidos con clipboard.
+     No inventa tráfico ni tarifario.
+
+     Verificado en este recorte: **PENDIENTE CI**.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

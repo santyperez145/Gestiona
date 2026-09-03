@@ -30,8 +30,11 @@ describe("cola de pedidos en Commerce", () => {
     expect(page).toContain("STORE_ORDER_QUEUE_LIMIT");
     expect(page).toContain('params.delete("q")');
     expect(page).toContain('params.delete("vista")');
+    expect(page).toContain("publicStoreUrl={urlPublica}");
+    expect(panel).toContain("storeOrdersEmptyShareCopy");
     expect(focus).toContain("/tienda-online?tab=orders&vista=despachar");
     expect(focus).toContain("/tienda-online?tab=orders&vista=retirar");
+    expect(focus).toContain("storeFirstSaleSharePath");
   });
 
   it("el inspector conserva la cola, representa la selección en URL y es fullscreen en mobile", () => {
