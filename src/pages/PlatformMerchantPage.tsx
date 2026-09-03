@@ -562,7 +562,7 @@ export default function PlatformMerchantPage() {
             )}
           </section>
 
-          <p className="text-[11px] text-muted-foreground/70 px-1">“Conectada” significa que hay configuración registrada, no que el proveedor esté disponible en este instante. “Ejecución reciente” es la última evidencia registrada por un flujo real, no un ping activo. Los health checks activos y los detalles de webhooks siguen en el roadmap.</p>
+          <p className="text-[11px] text-muted-foreground/70 px-1">“Conectada” significa que hay configuración registrada, no que el proveedor esté disponible en este instante. “Ejecución reciente” es la última evidencia registrada por un flujo real, no un ping activo. Los health checks activos y los detalles de integraciones siguen en el roadmap.</p>
         </TabsContent>
 
         <TabsContent value="products" className="space-y-4">
