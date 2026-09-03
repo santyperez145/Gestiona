@@ -3881,9 +3881,16 @@ Finance Connect.
      errores/143 warnings heredados; 2.592 tests verdes en 275 archivos;
      build/PWA y compilación NodeNext de middleware + handlers verdes. El
      runner local de Vercel vuelve a fallar por `spawn cmd.exe ENOENT` después
-     de instalar/auditar, así que no cuenta como prueba del routing. Falta la
-     prueba publicada posterior al deploy; no se declara corregido sólo por
-     tests.
+     de instalar/auditar, así que no contó como prueba del routing.
+
+     El commit `7209c138` quedó `READY` en producción. La matriz publicada
+     confirmó: Googlebot recibe home **Exentry Imports — Tienda online** con
+     canonical `https://exentryimports.nerqia.app`; Google Inspection recibe la
+     categoría **Perfume Árabe** con su query canónica; una persona sigue
+     recibiendo la SPA; y Googlebot sobre `nerqia.app` conserva el documento de
+     la plataforma. La sesión real del navegador rehidrató la tienda con ese
+     mismo título/canonical, H1 **Exentry Imports**, catálogo real y cero logs de
+     consola. El bug queda cerrado con evidencia publicada, no por inferencia.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

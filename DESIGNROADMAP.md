@@ -487,7 +487,10 @@ canonical y JSON-LD aun cuando Vercel tenga un `index.html` físico para la SPA.
 Un Routing Middleware único decide por host y User-Agent antes del filesystem;
 la persona sigue viendo la interfaz normal y el bot recibe el documento
 semántico del mismo Storefront. Se elimina la lista repetida de crawlers en
-`vercel.json` y se conserva una sola en `storefrontSeo.ts`.
+`vercel.json` y se conserva una sola en `storefrontSeo.ts`. El deploy
+`7209c138` quedó `READY`: Googlebot/Inspection recibieron título, descripción y
+canonical propios en home/categoría; el comprador conservó la SPA, y el
+navegador real mostró H1/canonical de la tienda sin errores de consola.
 
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto: CTA móvil hecho; faltan variantes densas y confianza extra;
