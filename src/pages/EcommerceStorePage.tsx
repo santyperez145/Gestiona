@@ -42,6 +42,7 @@ import {
   storePublishNudges,
   storeShouldLeadWithPay,
   storeShouldShowAfterCatalog,
+  storeShouldShowCatalogHandoff,
   storeShouldShowPerformanceChrome,
   urlPublicaDeTienda,
 } from "@/lib/storeFirstPublish";
@@ -594,7 +595,7 @@ export default function EcommerceStorePage() {
     ...signals,
   }), [storeForm, store?.logo_url, store?.slug, signals, bankForm]);
 
-  const catalogHandoff = fromWizard && signals.publishedProducts === 0
+  const catalogHandoff = storeShouldShowCatalogHandoff(signals.publishedProducts)
     ? storeHandoffCopy()
     : null;
   const afterCatalog = storeShouldShowAfterCatalog({

@@ -57,6 +57,11 @@ export function storeShouldLeadWithPay(input: {
   return true;
 }
 
+/** Sin catálogo no hay vitrina: el CTA manda a productos aunque no venga del wizard. */
+export function storeShouldShowCatalogHandoff(publishedProducts: number): boolean {
+  return Number(publishedProducts) <= 0;
+}
+
 /** El recorte de primera publicación no aplica a una vitrina ya activa. */
 export function storeShouldShowAfterCatalog(input: {
   fromWizard: boolean;

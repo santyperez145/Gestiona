@@ -3471,6 +3471,17 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+143. Mini-cart al agregar + handoff catálogo sin wizard — 2026-09-03.
+     Medido: `addToCart` no abría el drawer; cotización/cross-sell
+     quedaban detrás del ícono. `cartRevealTick` abre el mini-cart
+     (Shopify/Tiendanube), no en checkout. Commerce sin productos
+     muestra CTA al catálogo sin exigir `?onboarding=1` (ATM del 2º
+     comercio). No inventa tarifario ni Mendel F5.
+
+     Verificado en este recorte: **2.467 tests** / 261 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

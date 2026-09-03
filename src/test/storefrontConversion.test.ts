@@ -74,6 +74,16 @@ describe("recorrido de compra a 360 px", () => {
     expect(widget).toContain("guardarProvinciaCarrito");
   });
 
+  it("agregar al carrito abre el mini-cart (Shopify/Tiendanube)", () => {
+    const ctx = leer("src/storefront/storeContext.tsx");
+    const layout = leer("src/storefront/StoreLayout.tsx");
+    expect(ctx).toContain("cartRevealTick");
+    expect(ctx).toContain("setCartRevealTick");
+    expect(layout).toContain("cartRevealTick");
+    expect(layout).toContain("setCartOpen(true)");
+    expect(layout).toContain('pathname.includes("/checkout")');
+  });
+
   it("filtros y checkout no esconden la acción primaria en el teléfono", () => {
     const productos = leer("src/storefront/StoreProducts.tsx");
     const checkout = leer("src/storefront/StoreCheckout.tsx");

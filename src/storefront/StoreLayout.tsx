@@ -51,7 +51,7 @@ function LinkDeMenu({
 }
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
-  const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingLabel, shippingPending, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf } = useStore();
+  const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingLabel, shippingPending, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf, cartRevealTick } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
@@ -95,6 +95,15 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   // Al navegar se cierran los paneles: dejarlos abiertos sobre otra página
   // desorienta, sobre todo en el celular.
   useEffect(() => { setCartOpen(false); setMenuOpen(false); }, [pathname]);
+
+  // Shopify/Tiendanube: al agregar se abre el mini-cart (cotización + CTA).
+  // En checkout no: el formulario ya es el resumen.
+  useEffect(() => {
+    if (cartRevealTick === 0) return;
+    if (pathname.includes("/checkout")) return;
+    setCartOpen(true);
+    setMenuOpen(false);
+  }, [cartRevealTick, pathname]);
 
   const base = `/tienda/${store?.slug ?? ""}`;
   const social = parseStoreSocial(store?.social_links);

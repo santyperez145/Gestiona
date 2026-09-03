@@ -159,6 +159,11 @@ interface Ctx {
   /** Categorías que cargó el comercio. Vacío = todavía usa los nombres viejos. */
   categorias: CategoriaTienda[];
   addToCart: (p: StoreProduct, qty?: number, variant?: StoreVariant | null) => void;
+  /**
+   * Sube al agregar: el layout abre el drawer (mini-cart Shopify/Tiendanube).
+   * 0 = todavía no hubo un alta en esta sesión de página.
+   */
+  cartRevealTick: number;
   setQty: (lineKey: string, qty: number) => void;
   removeFromCart: (lineKey: string) => void;
   /** Clave única de una línea: producto, o producto+variante. */
@@ -201,6 +206,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
   const [loadError, setLoadError] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [cartRevealTick, setCartRevealTick] = useState(0);
 
   const reload = useCallback(() => {
     setLoadError(false);
@@ -389,7 +395,10 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     persist(existing
       ? cart.map(l => (lineKeyOf(l) === key ? line : l))
       : [...cart, line]);
-  }, [cart, persist, priceOf]);
+    // Mini-cart: sin esto la cotización y el cross-sell del drawer quedan
+    // detrás del ícono (medido sesión 143).
+    setCartRevealTick((t) => t + 1);
+  }, [cart, persist, priceOf, lineKeyOf]);
 
   const setQty = useCallback((lineKey: string, qty: number) => {
     if (qty <= 0) { persist(cart.filter(l => lineKeyOf(l) !== lineKey)); return; }
@@ -444,6 +453,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     return {
       loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias,
       addToCart, setQty, removeFromCart, clearCart, lineKeyOf,
+      cartRevealTick,
       cartCount: cart.reduce((s, l) => s + l.qty, 0),
       subtotal,
       promo2x,
@@ -456,7 +466,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         : null,
       priceOf, fmt,
     };
-  }, [loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, priceOf, fmt]);
+  }, [loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, cartRevealTick, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

@@ -10,6 +10,7 @@ import {
   storePublishNudges,
   storeShouldLeadWithPay,
   storeShouldShowAfterCatalog,
+  storeShouldShowCatalogHandoff,
   storeShouldShowPerformanceChrome,
   storeWizardFinishCopy,
   urlPublicaDeTienda,
@@ -67,6 +68,13 @@ describe('la primera publicación empieza por el catálogo', () => {
       wantsMercadoPago: true,
       hasOfflinePayment: false,
     })).toBe(false);
+  });
+
+  it('sin catálogo el overview pide el primer producto sin exigir el wizard', () => {
+    expect(storeShouldShowCatalogHandoff(0)).toBe(true);
+    expect(storeShouldShowCatalogHandoff(1)).toBe(false);
+    expect(STORE).toContain('storeShouldShowCatalogHandoff');
+    expect(STORE).not.toContain('fromWizard && signals.publishedProducts === 0');
   });
 
   it('después del primer producto el overview habla de publicar, no de Pay', () => {
