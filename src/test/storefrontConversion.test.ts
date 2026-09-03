@@ -65,6 +65,15 @@ describe("recorrido de compra a 360 px", () => {
     expect(checkout.indexOf(">Entrega<")).toBeLessThan(checkout.indexOf(">Tus datos<"));
   });
 
+  it("la ficha cotiza envío por provincia antes de agregar", () => {
+    const ficha = leer("src/storefront/StoreProduct.tsx");
+    const widget = leer("src/storefront/StoreShippingQuote.tsx");
+    expect(ficha).toContain("StoreShippingQuote");
+    expect(widget).toContain("quoteStoreShipping");
+    expect(widget).toContain("Envío a tu provincia");
+    expect(widget).toContain("guardarProvinciaCarrito");
+  });
+
   it("filtros y checkout no esconden la acción primaria en el teléfono", () => {
     const productos = leer("src/storefront/StoreProducts.tsx");
     const checkout = leer("src/storefront/StoreCheckout.tsx");

@@ -25,6 +25,7 @@ import ProductReviews from "./ProductReviews";
 import ProductQuestions from "./ProductQuestions";
 import StockAlertForm from "./StockAlertForm";
 import { useWishlist } from "./wishlist";
+import StoreShippingQuote from "./StoreShippingQuote";
 
 export default function StoreProduct() {
   const { productId } = useParams<{ productId: string }>();
@@ -301,6 +302,19 @@ export default function StoreProduct() {
               : stockEfectivo === 1 ? "¡Última unidad!"
               : `¡Últimas ${stockEfectivo} unidades!`}
           </p>
+
+          {store && (
+            <StoreShippingQuote
+              slug={store.slug}
+              productId={p.id}
+              variantId={variante?.id ?? null}
+              quantity={qty}
+              shippingMode={store.shipping_mode}
+              shippingProvinces={store.shipping_provinces}
+              pickupEnabled={!!store.pickup_enabled}
+              fmt={fmt}
+            />
+          )}
 
           {variantes.length > 0 && (
             <div className="mt-5">
