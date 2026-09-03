@@ -263,7 +263,7 @@ export default function StoreProducts() {
             <div className="py-20 text-center space-y-2">
               <p className="font-medium">Todavía no hay productos publicados</p>
               <p className="text-sm max-w-sm mx-auto" style={{ color: "hsl(var(--st-muted))" }}>
-                Cuando el comercio cargue el catálogo, el stock va a ser el mismo del mostrador.
+                Esta tienda todavía está preparando su catálogo. Volvé pronto para ver productos disponibles.
               </p>
             </div>
           ) : emptyKind === "filtered" ? (

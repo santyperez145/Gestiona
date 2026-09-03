@@ -860,7 +860,7 @@ export default function StoreCheckout() {
           </button>
 
           <p className="text-[11px] text-center" style={{ color: "hsl(var(--st-muted))" }}>
-            Los precios y el stock se validan en el servidor al confirmar.
+            Antes de confirmar, revisamos disponibilidad y total final para que tu compra salga correcta.
           </p>
         </aside>
       </form>

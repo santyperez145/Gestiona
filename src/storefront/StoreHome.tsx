@@ -169,8 +169,7 @@ export default function StoreHome() {
             </p>
           ) : null}
           <p className="text-sm" style={{ color: "hsl(var(--st-muted))" }}>
-            Todavía no hay productos publicados. Cuando el comercio cargue el catálogo,
-            el stock va a ser el mismo del mostrador.
+            Todavía no hay productos publicados. Volvé pronto para ver el catálogo disponible.
           </p>
         </div>
       </div>
@@ -275,7 +274,7 @@ function TrustBar({
           }] : []),
           { icon: Truck, t: tituloEnvio, s: detalleEnvio },
           { icon: ShieldCheck, t: "Compra protegida", s: "Datos claros y derecho de arrepentimiento" },
-          { icon: Sparkles, t: "Catálogo real", s: "Stock y precios del mismo sistema del comercio" },
+          { icon: Sparkles, t: "Catálogo actualizado", s: "Mostramos precios y disponibilidad al día" },
         ].map(({ icon: Icon, t, s }) => (
           <div key={t} className="storefront-trust-item flex items-start gap-3">
             <Icon className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--st-accent))" }} />
