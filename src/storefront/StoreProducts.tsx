@@ -8,6 +8,7 @@ import {
 import { normalizeText, queryTokens, matchesAllTokens } from "@/lib/searchText";
 import { FAMILIAS_OLFATIVAS, taxLabel } from "@/lib/scentTaxonomy";
 import { SlidersHorizontal, X } from "lucide-react";
+import { storeCatalogEmptyKind } from "@/lib/storeCatalogEmpty";
 
 const ORDENES = [
   { v: "relevancia", l: "Relevancia" },
@@ -110,7 +111,7 @@ export default function StoreProducts() {
     return out;
   }, [products, perfumes, q, cat, genero, familia, soloOferta, precioMin, precioMax, orden, priceOf]);
 
-  const activos = [cat, genero, familia, soloOferta ? "1" : "",
+  const activos = [q, cat, genero, familia, soloOferta ? "1" : "",
     precioMin > 0 ? "min" : "", precioMax > 0 ? "max" : ""].filter(Boolean).length;
 
   // Rango real del catálogo, para que los placeholders digan algo útil en vez
@@ -122,10 +123,15 @@ export default function StoreProducts() {
   }, [products, priceOf]);
 
   const limpiar = () => {
-    const next = new URLSearchParams();
-    if (q) next.set("q", q);
-    setParams(next, { replace: true });
+    // Incluye la búsqueda: dejar `q` hacía que «Limpiar» no limpiara nada.
+    setParams(new URLSearchParams(), { replace: true });
   };
+
+  const emptyKind = storeCatalogEmptyKind({
+    catalogCount: products.length,
+    filteredCount: filtrados.length,
+    hasActiveFilters: activos > 0,
+  });
 
   return (
     <div className="storefront-products max-w-6xl mx-auto px-4 py-8">
@@ -253,7 +259,14 @@ export default function StoreProducts() {
 
         {/* ── Grilla ──────────────────────────────────────────────── */}
         <div>
-          {filtrados.length === 0 ? (
+          {emptyKind === "first_use" ? (
+            <div className="py-20 text-center space-y-2">
+              <p className="font-medium">Todavía no hay productos publicados</p>
+              <p className="text-sm max-w-sm mx-auto" style={{ color: "hsl(var(--st-muted))" }}>
+                Cuando el comercio cargue el catálogo, el stock va a ser el mismo del mostrador.
+              </p>
+            </div>
+          ) : emptyKind === "filtered" ? (
             <div className="py-20 text-center">
               <p className="font-medium">No encontramos productos con esos filtros</p>
               {/* El aviso del rango invertido también vive en la barra de

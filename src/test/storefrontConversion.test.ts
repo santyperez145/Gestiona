@@ -94,6 +94,15 @@ describe("recorrido de compra a 360 px", () => {
     expect(home).toContain("logoUrl");
   });
 
+  it("el catálogo distingue vacío real de vacío por filtros", () => {
+    const plp = leer("src/storefront/StoreProducts.tsx");
+    expect(plp).toContain("storeCatalogEmptyKind");
+    expect(plp).toContain("Todavía no hay productos publicados");
+    expect(plp).toContain("No encontramos productos con esos filtros");
+    // Limpiar no debe conservar la búsqueda.
+    expect(plp).toContain("setParams(new URLSearchParams()");
+  });
+
   it("filtros y checkout no esconden la acción primaria en el teléfono", () => {
     const productos = leer("src/storefront/StoreProducts.tsx");
     const checkout = leer("src/storefront/StoreCheckout.tsx");
