@@ -210,7 +210,7 @@ function SaleTicketInspector({
                           <button
                             type="button"
                             className="text-sm font-medium text-primary underline-offset-2 hover:underline"
-                            onClick={() => navigate(`/tienda-online?tab=orders&pedido=${detail.ecommerceOrderId}`)}
+                            onClick={() => navigate(`/pedidos-online?pedido=${detail.ecommerceOrderId}`)}
                           >
                             Ver pedido en Tienda
                           </button>

@@ -18,11 +18,9 @@ import {
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
-import StoreOrdersPanel from "@/components/ecommerce/StoreOrdersPanel";
+import StoreOrdersWorkspace from "@/components/ecommerce/StoreOrdersWorkspace";
 import AbandonedCartsPanel from "@/components/ecommerce/AbandonedCartsPanel";
 import StockAlertsPanel from "@/components/ecommerce/StockAlertsPanel";
-import StoreOrderInspector from "@/components/ecommerce/StoreOrderInspector";
-import PaymentConnectionsPanel from "@/components/integrations/PaymentConnectionsPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
 import QuestionsModeration from "@/components/ecommerce/QuestionsModeration";
 import StorePagesEditor from "@/components/ecommerce/StorePagesEditor";
@@ -30,8 +28,7 @@ import CategoriesEditor from "@/components/ecommerce/CategoriesEditor";
 import MenuEditor from "@/components/ecommerce/MenuEditor";
 import QuantityDiscountsEditor from "@/components/ecommerce/QuantityDiscountsEditor";
 import StoreBannersEditor from "@/components/ecommerce/StoreBannersEditor";
-import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
-import ImageUpload from "@/components/shared/ImageUpload";
+import PaymentConnectionsPanel from "@/components/integrations/PaymentConnectionsPanel";
 import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
 import { storeBankTransferReady, storeOffersBankTransfer } from "@/lib/storeTransfer";
 import { parseActivationHandoff, storeHandoffCopy } from "@/lib/activationHandoff";
@@ -96,11 +93,10 @@ import {
   normalizarMediosTienda,
 } from "@/lib/gestionaPay";
 import { STORE_ORDER_QUEUE_LIMIT, storeOrderFulfillmentLabel, storeOrderFulfillmentTone } from "@/lib/storeOrderQueue";
-import { findStoreOrderForInspect, isStoreOrderInspectId } from "@/lib/storeOrderDetail";
-import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import PageHeader from "@/components/shared/PageHeader";
+import ImageUpload from "@/components/shared/ImageUpload";
 import KPICard from "@/components/shared/KPICard";
 import WorkspaceState from "@/components/shared/WorkspaceState";
+import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 function hsl(vars: Record<string, string>, key: string, alpha?: number) {
@@ -172,7 +168,6 @@ export default function EcommerceStorePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { ask, dialog } = useConfirmDialog();
   const { fromWizard } = parseActivationHandoff(searchParams);
   const requestedTab = searchParams.get("tab");
   const tab: StoreTab = isStoreTab(requestedTab) ? requestedTab : "overview";
@@ -226,10 +221,6 @@ export default function EcommerceStorePage() {
   /** Lead de CBU usa lo persistido: el form en vivo no puede esconder el Guardar. */
   const [bankPersistedReady, setBankPersistedReady] = useState(false);
   const [orders, setOrders] = useState<EcomOrder[]>([]);
-  const [envioDe, setEnvioDe] = useState<EcomOrder | null>(null);
-  const [confirmingPaid, setConfirmingPaid] = useState(false);
-  const [pedidoExtra, setPedidoExtra] = useState<EcomOrder | null>(null);
-  const [pedidoExtraLoading, setPedidoExtraLoading] = useState(false);
   const [funnelData, setFunnelData] = useState<FunnelRow[]>([]);
   const [abandonedCarts, setAbandonedCarts] = useState(0);
   const [abandonedCartRows, setAbandonedCartRows] = useState<AbandonedCartRow[]>([]);
@@ -284,100 +275,6 @@ export default function EcommerceStorePage() {
     }
     setOrdersLoading(false);
   }, [orgId]);
-
-  const pedidoId = searchParams.get("pedido");
-  const pedidoFromQueue = findStoreOrderForInspect(orders, pedidoId);
-  const inspectedOrder = pedidoFromQueue ?? pedidoExtra;
-
-  const openPedido = (orderId: string) => {
-    setSearchParams(prev => {
-      const params = new URLSearchParams(prev);
-      params.set("tab", "orders");
-      params.set("pedido", orderId);
-      return params;
-    });
-  };
-  const closePedido = () => {
-    setSearchParams(prev => {
-      const params = new URLSearchParams(prev);
-      params.delete("pedido");
-      return params;
-    }, { replace: true });
-  };
-
-  const confirmarPagoManual = async (order: { id: string; order_number: string; payment_method?: string | null }) => {
-    const medio = order.payment_method === "efectivo" ? "efectivo" : "transferencia";
-    if (!(await ask({
-      title: "¿Marcar como cobrado?",
-      description: medio === "efectivo"
-        ? `Confirmás que recibiste el pago en efectivo del pedido ${order.order_number}. Se acredita la venta y se puede despachar.`
-        : `Confirmás que viste la transferencia del pedido ${order.order_number}. Se acredita la venta y se puede despachar.`,
-      confirmText: "Marcar cobrado",
-    }))) return;
-    setConfirmingPaid(true);
-    const { data, error } = await supabase.rpc("confirmar_pago_manual_tienda", {
-      p_order_id: order.id,
-    });
-    setConfirmingPaid(false);
-    if (error) {
-      console.error("confirmar_pago_manual_tienda:", error);
-      toast.error(error.message || "No se pudo acreditar el pago.");
-      return;
-    }
-    if ((data as { ok?: boolean } | null)?.ok === false) {
-      toast.error("No se pudo acreditar el pago.");
-      return;
-    }
-    toast.success(`Pedido ${order.order_number} marcado como cobrado`);
-    // Promesa del storefront: «Cuando acredite, te avisamos». MP ya dispara
-    // payment_confirmed; transferencia/efectivo pasan por acá.
-    const { data: mailData, error: mailErr } = await supabase.functions.invoke(
-      "store-order-status-email",
-      { body: { orderId: order.id, event: "payment_confirmed" } },
-    );
-    const mailMsg = (mailData as { error?: string } | null)?.error;
-    if (mailErr || mailMsg) {
-      console.error("store-order-status-email / payment_confirmed:", mailErr ?? mailMsg);
-      toast.warning(
-        `Cobro acreditado, pero no pudimos avisar por email${mailMsg ? `: ${mailMsg}` : "."}`,
-      );
-    }
-    await loadOrders();
-  };
-
-  useEffect(() => {
-    const raw = searchParams.get("pedido");
-    if (!raw) {
-      setPedidoExtra(null);
-      setPedidoExtraLoading(false);
-      return;
-    }
-    if (findStoreOrderForInspect(orders, raw)) {
-      setPedidoExtra(null);
-      setPedidoExtraLoading(false);
-      return;
-    }
-    if (!orgId || !isStoreOrderInspectId(raw)) {
-      setPedidoExtra(null);
-      setPedidoExtraLoading(false);
-      return;
-    }
-    let cancelado = false;
-    setPedidoExtraLoading(true);
-    supabase
-      .from("ecommerce_orders")
-      .select("id, order_number, customer_name, customer_email, customer_phone, total, subtotal, shipping_cost, discount_amount, coupon_code, coupon_discount_ars, tax_amount, payment_status, payment_method, fulfillment_status, tracking_number, shipping_address, items, notes, shipped_at, delivered_at, created_at, carrier, shipping_service")
-      .eq("org_id", orgId)
-      .eq("id", raw)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (cancelado) return;
-        if (error) console.error("No se pudo leer el pedido del deep link", error);
-        setPedidoExtra((data as EcomOrder | null) ?? null);
-        setPedidoExtraLoading(false);
-      });
-    return () => { cancelado = true; };
-  }, [orgId, orders, searchParams]);
 
   useEffect(() => {
     if (!orgId) {
@@ -946,26 +843,6 @@ export default function EcommerceStorePage() {
 
       {tab === "banners" && <StoreBannersEditor storeId={store?.id ?? null} />}
 
-      <OrderShipmentDialog
-        order={envioDe as OrderForShipment | null}
-        storeName={store?.name ?? storeForm.name}
-        onClose={() => setEnvioDe(null)}
-        onDone={loadOrders}
-      />
-      <StoreOrderInspector
-        open={Boolean(pedidoId)}
-        orgId={orgId}
-        order={inspectedOrder}
-        requestedId={pedidoId}
-        loading={Boolean(pedidoId) && !inspectedOrder && (ordersLoading || pedidoExtraLoading)}
-        confirmingPaid={confirmingPaid}
-        onClose={closePedido}
-        onPrepare={order => {
-          setEnvioDe(order as EcomOrder);
-        }}
-        onConfirmPaid={order => { void confirmarPagoManual(order); }}
-      />
-      {dialog}
       {/* ─── Overview ─── */}
       {tab === "overview" && (
         <div className="space-y-6">
@@ -1110,7 +987,7 @@ export default function EcommerceStorePage() {
                   type="button"
                   key={o.id}
                   className="flex w-full items-center justify-between rounded-lg bg-muted/20 p-3 text-left hover:bg-muted/30"
-                  onClick={() => openPedido(o.id)}
+                  onClick={() => navigate(`/pedidos-online?pedido=${o.id}`)}
                 >
                   <div>
                     <p className="text-sm font-medium">{o.customer_name}</p>
@@ -1134,18 +1011,14 @@ export default function EcommerceStorePage() {
 
       {/* ─── Orders tab ─── */}
       {tab === "orders" && (
-        <StoreOrdersPanel
-          orders={orders}
-          loading={ordersLoading}
-          error={ordersError}
-          selectedId={pedidoId}
+        <StoreOrdersWorkspace
+          orgId={orgId}
+          storeName={store?.name ?? storeForm.name}
           publicStoreUrl={urlPublica}
-          onRetry={() => { void loadOrders(); }}
-          onInspect={order => openPedido(order.id)}
-          onPrepare={order => {
-            const full = orders.find(o => o.id === order.id) ?? inspectedOrder;
-            if (full) setEnvioDe(full as EcomOrder);
-          }}
+          orders={orders}
+          ordersLoading={ordersLoading}
+          ordersError={ordersError}
+          onReload={loadOrders}
         />
       )}
 

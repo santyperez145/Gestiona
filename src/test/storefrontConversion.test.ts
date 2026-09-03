@@ -81,7 +81,9 @@ describe("recorrido de compra a 360 px", () => {
     expect(ctx).toContain("setCartRevealTick");
     expect(layout).toContain("cartRevealTick");
     expect(layout).toContain("setCartOpen(true)");
+    expect(layout).toContain("Ver carrito completo");
     expect(layout).toContain('pathname.includes("/checkout")');
+    expect(layout).toContain("/carrito$");
   });
 
   it("la home prioriza la marca y no inventa pagos seguros", () => {
@@ -110,6 +112,13 @@ describe("recorrido de compra a 360 px", () => {
   it("filtros y checkout no esconden la acción primaria en el teléfono", () => {
     const productos = leer("src/storefront/StoreProducts.tsx");
     const checkout = leer("src/storefront/StoreCheckout.tsx");
+    const storefront = leer("src/pages/StorefrontPage.tsx");
+    const cartPage = leer("src/storefront/StoreCart.tsx");
+    expect(storefront).toContain('path="carrito"');
+    expect(storefront).toContain("StoreCart");
+    expect(cartPage).toContain("Finalizar compra");
+    expect(cartPage).toContain("Provincia para cotizar el envío");
+    expect(cartPage).toContain("min-h-11");
     expect(productos).toContain("sm:hidden inline-flex min-h-11");
     expect(productos).toContain("min-h-11 text-left");
     expect(checkout).toContain("w-full min-h-11 px-3");

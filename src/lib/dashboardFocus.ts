@@ -231,7 +231,7 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       id: "retirar",
       texto: `${n} ${n === 1 ? "pedido listo para retirar" : "pedidos listos para retirar"}`,
       accion: "Marcar retirado",
-      destino: "/tienda-online?tab=orders&vista=retirar",
+      destino: "/pedidos-online?vista=retirar",
       urgencia: "critico",
     });
   }
@@ -243,7 +243,7 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       id: "despachar",
       texto: `${d.pedidosPorDespachar} ${d.pedidosPorDespachar === 1 ? "pedido pagado sin despachar" : "pedidos pagados sin despachar"}`,
       accion: "Despachar",
-      destino: "/tienda-online?tab=orders&vista=despachar",
+      destino: "/pedidos-online?vista=despachar",
       urgencia: "critico",
     });
   }
@@ -258,7 +258,7 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       id: "pago-pendiente",
       texto: `${n} ${n === 1 ? "pedido pendiente de pago" : "pedidos pendientes de pago"}`,
       accion: "Revisar",
-      destino: "/tienda-online?tab=orders&vista=pago",
+      destino: "/pedidos-online?vista=pago",
       urgencia: "critico",
     });
   }

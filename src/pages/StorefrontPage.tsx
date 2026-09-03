@@ -22,6 +22,7 @@ import StorePage from "@/storefront/StorePage";
 import StoreOrder from "@/storefront/StoreOrder";
 import StoreAccount from "@/storefront/StoreAccount";
 import StoreCartRecovery from "@/storefront/StoreCartRecovery";
+import StoreCart from "@/storefront/StoreCart";
 import StoreArrepentimiento from "@/storefront/StoreArrepentimiento";
 import { StoreAuthProvider } from "@/storefront/storeAuth";
 import { WishlistProvider } from "@/storefront/wishlist";
@@ -33,6 +34,7 @@ import { nombreDeCategoria } from "@/lib/storeCategories";
 
 function tituloPrivadoDeRuta(pathname: string): string | null {
   if (pathname.includes("/checkout")) return "Checkout";
+  if (pathname.includes("/carrito") && !pathname.includes("/carrito/")) return "Carrito";
   if (pathname.includes("/cuenta")) return "Mi cuenta";
   if (pathname.includes("/orden/")) return "Pedido";
   return null;
@@ -114,6 +116,7 @@ function StoreShell() {
         <Route path="productos" element={<StoreProducts />} />
         <Route path="producto/:productId" element={<StoreProduct />} />
         <Route path="checkout" element={<StoreCheckout />} />
+        <Route path="carrito" element={<StoreCart />} />
         <Route path="orden/:orderNumber" element={<StoreOrder />} />
         <Route path="cuenta" element={<StoreAccount />} />
         <Route path="carrito/:token" element={<StoreCartRecovery />} />

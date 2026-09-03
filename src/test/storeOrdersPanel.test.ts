@@ -5,6 +5,9 @@ import { describe, expect, it } from "vitest";
 const ROOT = process.cwd();
 const panel = readFileSync(resolve(ROOT, "src/components/ecommerce/StoreOrdersPanel.tsx"), "utf8");
 const page = readFileSync(resolve(ROOT, "src/pages/EcommerceStorePage.tsx"), "utf8");
+const workspace = readFileSync(resolve(ROOT, "src/components/ecommerce/StoreOrdersWorkspace.tsx"), "utf8");
+const ordersPage = readFileSync(resolve(ROOT, "src/pages/StoreOrdersPage.tsx"), "utf8");
+const manifest = readFileSync(resolve(ROOT, "src/app/routeManifest.ts"), "utf8");
 const focus = readFileSync(resolve(ROOT, "src/lib/dashboardFocus.ts"), "utf8");
 
 describe("cola de pedidos en Commerce", () => {
@@ -34,25 +37,22 @@ describe("cola de pedidos en Commerce", () => {
   });
 
   it("el tab Pedidos deja de ser una tabla suelta y el Foco aterriza en la cola", () => {
-    expect(page).toContain("StoreOrdersPanel");
+    expect(page).toContain("StoreOrdersWorkspace");
     expect(page).toContain("STORE_ORDER_QUEUE_LIMIT");
-    expect(page).toContain('params.delete("q")');
-    expect(page).toContain('params.delete("vista")');
-    expect(page).toContain('params.delete("orden")');
-    expect(page).toContain('params.delete("medio")');
-    expect(page).toContain("publicStoreUrl={urlPublica}");
-    expect(panel).toContain("storeOrdersEmptyShareCopy");
-    expect(focus).toContain("/tienda-online?tab=orders&vista=despachar");
-    expect(focus).toContain("/tienda-online?tab=orders&vista=retirar");
+    expect(panel).toContain("standalone");
+    expect(focus).toContain("/pedidos-online?vista=despachar");
+    expect(focus).toContain("/pedidos-online?vista=retirar");
     expect(focus).toContain("storeFirstSaleSharePath");
   });
 
   it("el inspector conserva la cola, representa la selección en URL y es fullscreen en mobile", () => {
-    expect(page).toContain('searchParams.get("pedido")');
-    expect(page).toContain("findStoreOrderForInspect(orders,");
-    expect(page).toContain('params.set("pedido", orderId)');
-    expect(page).toContain('params.delete("pedido")');
-    expect(page).toContain("StoreOrderInspector");
+    expect(workspace).toContain('searchParams.get("pedido")');
+    expect(workspace).toContain("findStoreOrderForInspect(orders,");
+    expect(workspace).toContain('params.set("pedido", orderId)');
+    expect(workspace).toContain('params.delete("pedido")');
+    expect(workspace).toContain("StoreOrderInspector");
+    expect(manifest).toContain('path: "/pedidos-online"');
+    expect(manifest).toContain("StoreOrdersPage");
     expect(page).not.toContain("findStoreOrderForInspect(visible");
     const inspector = readFileSync(resolve(ROOT, "src/components/ecommerce/StoreOrderInspector.tsx"), "utf8");
     expect(inspector).toContain('data-testid="store-order-inspector"');

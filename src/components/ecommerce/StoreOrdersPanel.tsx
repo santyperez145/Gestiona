@@ -45,6 +45,8 @@ interface Props {
   selectedId?: string | null;
   /** Link público de la tienda: empty-first-use puede copiarlo (ATM). */
   publicStoreUrl?: string | null;
+  /** Ruta /pedidos-online: no escribe tab=orders en la URL. */
+  standalone?: boolean;
   onRetry: () => void;
   onInspect: (order: StoreOrderQueueRow) => void;
   onPrepare: (order: StoreOrderQueueRow) => void;
@@ -53,9 +55,10 @@ interface Props {
 function writeQueueParams(
   prev: URLSearchParams,
   next: { query?: string; view?: StoreOrderView; sort?: StoreOrderSort; medio?: StoreOrderMedio },
+  standalone?: boolean,
 ) {
   const params = new URLSearchParams(prev);
-  params.set("tab", "orders");
+  if (!standalone) params.set("tab", "orders");
   if (next.query !== undefined) {
     const q = next.query.trim();
     if (q) params.set("q", next.query);
@@ -92,7 +95,7 @@ function downloadCsv(rows: StoreOrderQueueRow[]) {
 }
 
 export default function StoreOrdersPanel({
-  orders, loading, error, selectedId, publicStoreUrl, onRetry, onInspect, onPrepare,
+  orders, loading, error, selectedId, publicStoreUrl, standalone, onRetry, onInspect, onPrepare,
 }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") ?? "";
@@ -109,19 +112,19 @@ export default function StoreOrdersPanel({
   const hasFilters = query.trim().length > 0 || view !== "todas" || sort !== "recientes" || medio !== "todos";
 
   const setQuery = (q: string) => {
-    setSearchParams(prev => writeQueueParams(prev, { query: q }), { replace: true });
+    setSearchParams(prev => writeQueueParams(prev, { query: q }, standalone), { replace: true });
   };
   const setView = (next: StoreOrderView) => {
-    setSearchParams(prev => writeQueueParams(prev, { view: next }), { replace: true });
+    setSearchParams(prev => writeQueueParams(prev, { view: next }, standalone), { replace: true });
   };
   const setSort = (next: StoreOrderSort) => {
-    setSearchParams(prev => writeQueueParams(prev, { sort: next }), { replace: true });
+    setSearchParams(prev => writeQueueParams(prev, { sort: next }, standalone), { replace: true });
   };
   const setMedio = (next: StoreOrderMedio) => {
-    setSearchParams(prev => writeQueueParams(prev, { medio: next }), { replace: true });
+    setSearchParams(prev => writeQueueParams(prev, { medio: next }, standalone), { replace: true });
   };
   const clearFilters = () => {
-    setSearchParams(prev => writeQueueParams(prev, { query: "", view: "todas", sort: "recientes", medio: "todos" }), { replace: true });
+    setSearchParams(prev => writeQueueParams(prev, { query: "", view: "todas", sort: "recientes", medio: "todos" }, standalone), { replace: true });
   };
 
   return (

@@ -54,7 +54,7 @@ describe("construirPendientes", () => {
     expect(p[0].id).toBe("retirar");
     expect(p[0].texto).toBe("2 pedidos listos para retirar");
     expect(p[0].accion).toBe("Marcar retirado");
-    expect(p[0].destino).toBe("/tienda-online?tab=orders&vista=retirar");
+    expect(p[0].destino).toBe("/pedidos-online?vista=retirar");
     expect(p[1].id).toBe("despachar");
   });
 
@@ -63,7 +63,7 @@ describe("construirPendientes", () => {
       ...VACIO, pedidosPorDespachar: 1, sinStock: 9, deudasVencidas30: 9,
     });
     expect(p[0].id).toBe("despachar");
-    expect(p[0].destino).toBe("/tienda-online?tab=orders&vista=despachar");
+    expect(p[0].destino).toBe("/pedidos-online?vista=despachar");
   });
 
   // Una deuda al día no es un pendiente: es el negocio funcionando.
@@ -163,7 +163,7 @@ describe("construirPendientes", () => {
     expect(uno.id).toBe("pago-pendiente");
     expect(uno.texto).toBe("1 pedido pendiente de pago");
     expect(uno.accion).toBe("Revisar");
-    expect(uno.destino).toBe("/tienda-online?tab=orders&vista=pago");
+    expect(uno.destino).toBe("/pedidos-online?vista=pago");
     expect(uno.urgencia).toBe("critico");
     const varios = construirPendientes({ ...VACIO, pedidosPendientesDePago: 2 })[0];
     expect(varios.texto).toBe("2 pedidos pendientes de pago");

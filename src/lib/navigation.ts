@@ -54,7 +54,7 @@ export interface NavGroup {
 
 export const NAV_GROUPS: NavGroup[] = [
   { id: "diario",    label: "",            hint: "Lo de todos los días — Inicio y Tienda online primero" },
-  { id: "commerce",  label: "Tienda y canales", hint: "Envíos, cupones y promociones de la venta online" },
+  { id: "commerce",  label: "Tienda y canales", hint: "Pedidos online, envíos, cupones y promociones" },
   { id: "trabajo",   label: "Mi trabajo",  hint: "Tareas, seguimientos y calendario" },
   { id: "compras",   label: "Compras y stock", hint: "Reponer, mover y controlar la mercadería" },
   { id: "cobranzas", label: "Cobranzas",   hint: "Lo que falta cobrar y los documentos de venta" },
@@ -66,7 +66,7 @@ export const NAV_GROUPS: NavGroup[] = [
 
 const NAV_ORDER_BY_GROUP: Record<NavGroupId, string[]> = {
   diario: ["/", "/tienda-online", "/caja", "/ventas", "/productos", "/clientes"],
-  commerce: ["/envios", "/links-de-pago", "/cupones", "/promociones"],
+  commerce: ["/pedidos-online", "/envios", "/links-de-pago", "/cupones", "/promociones"],
   trabajo: ["/tareas", "/calendario"],
   compras: [
     "/compras", "/ordenes-compra", "/proveedores", "/planificacion",

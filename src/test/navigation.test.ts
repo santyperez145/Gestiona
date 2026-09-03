@@ -67,12 +67,13 @@ describe("estructura de la navegación", () => {
   it("Tienda y canales va primero entre los plegables", () => {
     expect(GRUPOS_PLEGABLES[0]?.id).toBe("commerce");
     expect(itemsDe("commerce").map(i => i.to)).toEqual(
-      expect.arrayContaining(["/envios", "/cupones", "/promociones"]),
+      expect.arrayContaining(["/pedidos-online", "/envios", "/cupones", "/promociones"]),
     );
   });
 
   it("ordena Commerce por flujo operativo", () => {
     expect(itemsDe("commerce").map(i => i.to)).toEqual([
+      "/pedidos-online",
       "/envios",
       "/links-de-pago",
       "/cupones",

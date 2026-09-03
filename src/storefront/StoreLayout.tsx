@@ -101,6 +101,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (cartRevealTick === 0) return;
     if (pathname.includes("/checkout")) return;
+    if (/\/carrito$/.test(pathname)) return;
     setCartOpen(true);
     setMenuOpen(false);
   }, [cartRevealTick, pathname]);
@@ -772,6 +773,13 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                     <span>Total</span>
                     <span>{fmt(totalDrawer)}</span>
                   </div>
+                  <Link
+                    to={`${base}/carrito`}
+                    className="mt-1 flex min-h-11 items-center justify-center text-center text-sm font-medium underline-offset-2 hover:underline"
+                    style={{ color: "hsl(var(--st-muted))" }}
+                  >
+                    Ver carrito completo
+                  </Link>
                   <Link
                     to={`${base}/checkout`}
                     className="mt-2 flex min-h-11 items-center justify-center py-2.5 text-center font-medium"

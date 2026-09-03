@@ -184,7 +184,7 @@ export function evaluateActivationReadiness(signals: ActivationReadinessSignals)
       done: routeChosen && (online
         ? Number(signals.online_orders_total || 0) > 0
         : Number(signals.pos_sales_total || 0) > 0),
-      href: online ? '/tienda-online?tab=orders' : '/caja',
+      href: online ? '/pedidos-online' : '/caja',
       actionLabel: online ? 'Ver órdenes' : 'Registrar venta',
       owner: 'merchant',
     },
