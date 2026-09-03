@@ -57,6 +57,24 @@ export function storeShouldLeadWithPay(input: {
   return true;
 }
 
+/** En Pagos y envíos, identidad antes de OAuth cuando aún no hay fila. */
+export function storeShouldLeadSettingsWithIdentity(
+  storeId: string | null | undefined,
+): boolean {
+  return !storeId;
+}
+
+/** Tras el primer Guardar: puente al catálogo (Pay puede esperar). */
+export function storeAfterCreateCopy() {
+  return {
+    title: 'Tienda creada. Ahora el catálogo',
+    description:
+      'Ya hay vitrina con dirección. Cargá un producto con precio y stock; después publicás. Gestiona Pay puede esperar.',
+    actionLabel: 'Cargar el primer producto',
+    href: '/productos?onboarding=1&goal=online',
+  };
+}
+
 /** Sin fila en ecommerce_stores el 2º comercio no puede publicar ni legales. */
 export function storeShouldShowStoreMissingHandoff(
   storeId: string | null | undefined,

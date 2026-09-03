@@ -15,6 +15,8 @@ import {
   storeShouldShowPerformanceChrome,
   storeMissingCopy,
   storeStatusLabel,
+  storeShouldLeadSettingsWithIdentity,
+  storeAfterCreateCopy,
   storeWizardFinishCopy,
   urlPublicaDeTienda,
 } from '@/lib/storeFirstPublish';
@@ -88,6 +90,23 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(STORE).toContain('storeStatusLabel');
     expect(STORE).toContain('.select("*")');
     expect(STORE).toContain('.single()');
+  });
+
+  it('en settings la identidad va antes de Pay y tras crear hay handoff al catálogo', () => {
+    expect(storeShouldLeadSettingsWithIdentity(null)).toBe(true);
+    expect(storeShouldLeadSettingsWithIdentity('id')).toBe(false);
+    expect(storeAfterCreateCopy().href).toContain('/productos');
+    expect(storeAfterCreateCopy().title).toMatch(/catálogo/i);
+    expect(STORE).toContain('storeShouldLeadSettingsWithIdentity');
+    expect(STORE).toContain('storeAfterCreateCopy');
+    expect(STORE).toContain('Crear tienda');
+    expect(STORE).toContain('Primero nombre y dirección');
+    // Pay no es el primer hijo del tab cuando falta la fila.
+    const settingsIdx = STORE.indexOf('tab === "settings"');
+    const identityIdx = STORE.indexOf('Primero nombre y dirección', settingsIdx);
+    const payIdx = STORE.indexOf('<PaymentConnectionsPanel', settingsIdx);
+    expect(identityIdx).toBeGreaterThan(settingsIdx);
+    expect(payIdx).toBeGreaterThan(identityIdx);
   });
 
   it('sin catálogo el overview pide el primer producto sin exigir el wizard', () => {

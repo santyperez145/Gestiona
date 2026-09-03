@@ -3502,6 +3502,16 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+146. Settings: identidad antes de Pay + handoff al catálogo — 2026-09-03.
+     Medido: empty 145 mandaba a Pagos y envíos y el tab abría con
+     OAuth. Shopify/Tiendanube: nombre+slug primero. Card «Crear
+     tienda», Pay abajo; tras Guardar banner al primer producto.
+     Transferencia ya cobra; Pay puede esperar.
+
+     Verificado en este recorte: **2.472 tests** / 262 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

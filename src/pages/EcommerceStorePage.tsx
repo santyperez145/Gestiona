@@ -47,6 +47,8 @@ import {
   storeShouldShowPerformanceChrome,
   storeMissingCopy,
   storeStatusLabel,
+  storeShouldLeadSettingsWithIdentity,
+  storeAfterCreateCopy,
   urlPublicaDeTienda,
 } from "@/lib/storeFirstPublish";
 import type { AbandonedCartRow } from "@/lib/abandonedCarts";
@@ -179,6 +181,8 @@ export default function EcommerceStorePage() {
   // una fila que ya tiene siete.
   const [vozTab, setVozTab] = useState<"opiniones" | "preguntas">("opiniones");
   const [store, setStore] = useState<any>(null);
+  /** Tras el primer Guardar: banner al catálogo mientras siguen en settings. */
+  const [justCreatedStore, setJustCreatedStore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [storeForm, setStoreForm] = useState(() => storeDraftInicial(undefined, GLOBAL_FULFILLMENT_LOCATION));
   const [selectedTheme, setSelectedTheme] = useState("minimal");
@@ -483,6 +487,7 @@ export default function EcommerceStorePage() {
 
   const saveStore = async (opts?: { activate?: boolean }) => {
     if (!orgId) return;
+    const creatingStore = !store?.id;
     const name = storeForm.name.trim();
     if (!name) {
       toast.error("Poné el nombre de la tienda.");
@@ -583,6 +588,7 @@ export default function EcommerceStorePage() {
     // «Creá la tienda» con toast de guardado (medido sesión 145).
     setStore(saved);
     setStoreForm(storeFormDesdeFila(saved, GLOBAL_FULFILLMENT_LOCATION));
+    if (creatingStore) setJustCreatedStore(true);
   };
 
   // Se evalúa sobre el FORMULARIO y no sobre lo guardado: así el estado
@@ -682,6 +688,15 @@ export default function EcommerceStorePage() {
     typeof window === "undefined" ? "" : window.location.origin,
     store?.slug,
   );
+
+  const leadSettingsWithIdentity = storeShouldLeadSettingsWithIdentity(store?.id);
+  const afterCreate = justCreatedStore && store?.id && signals.publishedProducts === 0
+    ? storeAfterCreateCopy()
+    : null;
+
+  useEffect(() => {
+    if (signals.publishedProducts > 0) setJustCreatedStore(false);
+  }, [signals.publishedProducts]);
 
   return (
     <div className="workspace-page workspace-ecommerce space-y-6 pb-12">
@@ -1204,7 +1219,63 @@ export default function EcommerceStorePage() {
       {/* ─── Settings tab ─── */}
       {tab === "settings" && (
         <div className="space-y-5">
-          <PaymentConnectionsPanel onConnectionChange={reloadReadinessSignals} />
+          {afterCreate && (
+            <WorkspaceState
+              kind="empty-first-use"
+              icon={Package}
+              title={afterCreate.title}
+              description={afterCreate.description}
+              actionLabel={afterCreate.actionLabel}
+              onAction={() => navigate(afterCreate.href)}
+            />
+          )}
+          {leadSettingsWithIdentity && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5 space-y-3">
+              <p className="text-sm font-semibold">Primero nombre y dirección</p>
+              <p className="text-[13px] text-muted-foreground leading-snug">
+                Shopify y Tiendanube piden la identidad de la tienda antes del cobro.
+                Gestiona Pay puede esperar: sin slug no hay link ni páginas legales.
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Nombre de la tienda</label>
+                  <Input
+                    value={storeForm.name}
+                    onChange={e => setStoreForm(p => ({ ...p, name: e.target.value }))}
+                    className="h-9 min-h-11"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Slug (URL)</label>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground shrink-0 truncate max-w-[45%]">
+                      {typeof window !== "undefined" ? window.location.host : ""}/tienda/
+                    </span>
+                    <Input
+                      value={storeForm.slug}
+                      onChange={e => setStoreForm(p => ({
+                        ...p,
+                        slug: e.target.value.toLowerCase().replace(/\s+/g, "-"),
+                      }))}
+                      placeholder="mi-tienda"
+                      className="h-9 min-h-11"
+                    />
+                  </div>
+                </div>
+                <Button
+                  className="min-h-11 w-full sm:w-auto"
+                  disabled={loading}
+                  onClick={() => { void saveStore(); }}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Crear tienda
+                </Button>
+              </div>
+            </div>
+          )}
+          {!leadSettingsWithIdentity && (
+            <PaymentConnectionsPanel onConnectionChange={reloadReadinessSignals} />
+          )}
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -1726,6 +1797,14 @@ export default function EcommerceStorePage() {
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
             Guardar Configuración
           </Button>
+          {leadSettingsWithIdentity && (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Gestiona Pay puede esperar: primero guardá nombre y slug arriba.
+              </p>
+              <PaymentConnectionsPanel onConnectionChange={reloadReadinessSignals} />
+            </>
+          )}
         </div>
       )}
     </div>
