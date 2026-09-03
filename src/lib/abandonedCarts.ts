@@ -108,3 +108,22 @@ export function abandonedCartRecoveryHref(
   if (!slug || !token) return null;
   return `/tienda/${slug}/carrito/${token}`;
 }
+
+/**
+ * Honestidad de canal (Shopify Abandoned checkouts): el panel no miente
+ * sobre el email automático. Los CTAs de link funcionan igual.
+ */
+export function abandonedCartRecoveryChannelCopy(input: {
+  hasStoreSlug: boolean;
+}): { title: string; body: string } {
+  if (!input.hasStoreSlug) {
+    return {
+      title: "Falta el slug de la tienda",
+      body: "Sin tienda publicada no hay deep-link de recuperación. Completá Pagos y envíos y volvé.",
+    };
+  }
+  return {
+    title: "Email automático: una sola vez por carrito",
+    body: "El cron envía si la mensajería del comercio está configurada. Si no llega mail, Copiar / Abrir / WhatsApp usan el mismo link — no inventamos un segundo envío.",
+  };
+}

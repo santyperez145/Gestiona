@@ -9,6 +9,7 @@ import WorkspaceState from "@/components/shared/WorkspaceState";
 import { formatARS } from "@/lib/supabaseStore";
 import {
   abandonedCartItemCount,
+  abandonedCartRecoveryChannelCopy,
   abandonedCartRecoveryHref,
   abandonedCartRecoveryLabel,
   abandonedCartRecoveryState,
@@ -47,6 +48,7 @@ export default function AbandonedCartsPanel({
   carts, loading, error, storeSlug, onRetry,
 }: Props) {
   const rows = filterAbandonedCartsForQueue(carts);
+  const channel = abandonedCartRecoveryChannelCopy({ hasStoreSlug: Boolean(storeSlug?.trim()) });
 
   if (loading) {
     return <WorkspaceState kind="initial-loading" title="Cargando carritos abandonados" loadingRows={4} />;
@@ -85,9 +87,12 @@ export default function AbandonedCartsPanel({
 
   return (
     <div className="space-y-3">
+      <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+        <p className="text-xs font-medium">{channel.title}</p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">{channel.body}</p>
+      </div>
       <p className="text-xs text-muted-foreground">
         {rows.length} {rows.length === 1 ? "carrito abandonado" : "carritos abandonados"}.
-        El email de recuperación sale solo (una vez por carrito). Podés copiar el mismo link para WhatsApp o abrirlo.
       </p>
       <div className="rounded-lg border border-border/60 overflow-hidden">
         <div className="overflow-x-auto">

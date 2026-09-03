@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   abandonedCartItemCount,
+  abandonedCartRecoveryChannelCopy,
   abandonedCartRecoveryHref,
   abandonedCartRecoveryLabel,
   abandonedCartRecoveryState,
@@ -84,11 +85,14 @@ describe("abandonedCarts", () => {
     expect(abandonedCartRecoveryHref("mi-tienda", "tok-1")).toBe("/tienda/mi-tienda/carrito/tok-1");
     expect(abandonedCartRecoveryHref("", "tok-1")).toBeNull();
     expect(abandonedCartRecoveryHref("mi-tienda", null)).toBeNull();
+    expect(abandonedCartRecoveryChannelCopy({ hasStoreSlug: false }).title).toMatch(/slug/i);
+    expect(abandonedCartRecoveryChannelCopy({ hasStoreSlug: true }).body).toMatch(/SMTP|mensajer|WhatsApp/i);
     const panel = readFileSync(
       resolve(process.cwd(), "src/components/ecommerce/AbandonedCartsPanel.tsx"),
       "utf8",
     );
     expect(panel).toContain("abandonedCartRecoveryHref");
+    expect(panel).toContain("abandonedCartRecoveryChannelCopy");
     expect(panel).toContain("Copiar");
     expect(panel).toContain("Abrir");
   });

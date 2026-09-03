@@ -38,10 +38,12 @@ import {
   FINANCE_INBOX_VIEWS,
   countFinanceInboxViews,
   filterFinanceInbox,
+  findFinanceDocumentForInspect,
   financeDocumentAgeLabel,
   financeDocumentNextAction,
   parseFinanceInboxView,
 } from '@/lib/financeDocumentInbox';
+import FinanceDocumentInspector from '@/components/finance-product/FinanceDocumentInspector';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOrg } from '@/lib/orgContext';
@@ -416,6 +418,18 @@ export default function FinanceDocumentsPage() {
     () => filterFinanceInbox(visibleDocuments, inboxView, inboxQuery),
     [visibleDocuments, inboxView, inboxQuery],
   );
+  const documentoId = searchParams.get('documento');
+  const inspectedDocument = findFinanceDocumentForInspect(visibleDocuments, documentoId);
+  const openDocumento = (id: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('documento', id);
+    setSearchParams(next);
+  };
+  const closeDocumento = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('documento');
+    setSearchParams(next, { replace: true });
+  };
   const setInboxView = (vista: string) => {
     const next = new URLSearchParams(searchParams);
     const parsed = parseFinanceInboxView(vista);
@@ -563,7 +577,29 @@ export default function FinanceDocumentsPage() {
             onAction={() => { setInboxView('todos'); setInboxQuery(''); }}
           />
         ) : (
-          <div className="divide-y divide-border/60">{filteredDocuments.map(document => <DocumentRow key={document.id} document={document} online={online} openingPath={openingPath} inspectingVersionId={inspectingVersionId} extractingVersionId={extractingVersionId} matchingExtractionId={matchingExtractionId} draftingExtractionId={draftingExtractionId} onOpen={openDocument} onInspect={inspectDocument} onExtract={extractDocument} onReview={openReview} onMatch={openMatching} onDraft={openDrafts} onNewVersion={id => { clearFile(); setNewVersionFor(id); }} />)}</div>
+          <div className="divide-y divide-border/60">
+            {filteredDocuments.map(document => (
+              <DocumentRow
+                key={document.id}
+                document={document}
+                selected={document.id === documentoId}
+                online={online}
+                openingPath={openingPath}
+                inspectingVersionId={inspectingVersionId}
+                extractingVersionId={extractingVersionId}
+                matchingExtractionId={matchingExtractionId}
+                draftingExtractionId={draftingExtractionId}
+                onSelect={openDocumento}
+                onOpen={openDocument}
+                onInspect={inspectDocument}
+                onExtract={extractDocument}
+                onReview={openReview}
+                onMatch={openMatching}
+                onDraft={openDrafts}
+                onNewVersion={id => { clearFile(); setNewVersionFor(id); }}
+              />
+            ))}
+          </div>
         )}
       </section>
 
@@ -572,6 +608,27 @@ export default function FinanceDocumentsPage() {
         <Contract icon={FileSearch2} title="Revisable" detail="La inspección ocurre antes de extracción." />
         <Contract icon={FileCheck2} title="Sin efectos prematuros" detail="Aprobar será una acción explícita y auditable." />
       </div>
+
+      <FinanceDocumentInspector
+        open={Boolean(documentoId)}
+        document={inspectedDocument}
+        requestedId={documentoId}
+        loading={Boolean(documentoId) && !inspectedDocument && loading}
+        online={online}
+        openingPath={openingPath}
+        inspectingVersionId={inspectingVersionId}
+        extractingVersionId={extractingVersionId}
+        matchingExtractionId={matchingExtractionId}
+        draftingExtractionId={draftingExtractionId}
+        onClose={closeDocumento}
+        onOpenOriginal={openDocument}
+        onInspect={inspectDocument}
+        onExtract={extractDocument}
+        onReview={openReview}
+        onMatch={openMatching}
+        onDraft={openDrafts}
+        onNewVersion={id => { clearFile(); setNewVersionFor(id); }}
+      />
 
       <ExtractionReviewDialog
         extraction={reviewTarget}
@@ -611,7 +668,7 @@ export default function FinanceDocumentsPage() {
   );
 }
 
-function DocumentRow({ document, online, openingPath, inspectingVersionId, extractingVersionId, matchingExtractionId, draftingExtractionId, onOpen, onInspect, onExtract, onReview, onMatch, onDraft, onNewVersion }: { document: FinanceDocument; online: boolean; openingPath: string | null; inspectingVersionId: string | null; extractingVersionId: string | null; matchingExtractionId: string | null; draftingExtractionId: string | null; onOpen: (path: string) => void; onInspect: (documentId: string, versionId: string) => void; onExtract: (documentId: string, versionId: string) => void; onReview: (extraction: FinanceDocumentExtraction) => void; onMatch: (extraction: FinanceDocumentExtraction) => void; onDraft: (extraction: FinanceDocumentExtraction) => void; onNewVersion: (id: string) => void }) {
+function DocumentRow({ document, selected, online, openingPath, inspectingVersionId, extractingVersionId, matchingExtractionId, draftingExtractionId, onSelect, onOpen, onInspect, onExtract, onReview, onMatch, onDraft, onNewVersion }: { document: FinanceDocument; selected: boolean; online: boolean; openingPath: string | null; inspectingVersionId: string | null; extractingVersionId: string | null; matchingExtractionId: string | null; draftingExtractionId: string | null; onSelect: (id: string) => void; onOpen: (path: string) => void; onInspect: (documentId: string, versionId: string) => void; onExtract: (documentId: string, versionId: string) => void; onReview: (extraction: FinanceDocumentExtraction) => void; onMatch: (extraction: FinanceDocumentExtraction) => void; onDraft: (extraction: FinanceDocumentExtraction) => void; onNewVersion: (id: string) => void }) {
   const latest = document.versions[0];
   const extraction = latest?.extraction;
   const canVersion = document.status !== 'approved';
@@ -624,8 +681,16 @@ function DocumentRow({ document, online, openingPath, inspectingVersionId, extra
     && extraction?.matching?.status === 'confirmed'
     && !matchingStale;
   return (
-    <article className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex min-w-0 items-start gap-3">
+    <article
+      className={`flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between ${selected ? 'bg-primary/5' : ''}`}
+      data-selected={selected ? 'true' : undefined}
+    >
+      <button
+        type="button"
+        className="flex min-w-0 flex-1 items-start gap-3 text-left"
+        onClick={() => onSelect(document.id)}
+        aria-current={selected ? 'true' : undefined}
+      >
         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-border bg-muted/20 text-muted-foreground"><FileText className="h-4 w-4" /></span>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-medium">{document.title}</h3><StatusBadge status={document.status} /></div>
@@ -637,8 +702,11 @@ function DocumentRow({ document, online, openingPath, inspectingVersionId, extra
           {latest?.failureReason && <p className="mt-1 max-w-2xl text-[11px] text-amber-700 dark:text-amber-300">{latest.failureReason}</p>}
           {extraction && <ExtractionSummary extraction={extraction} />}
         </div>
-      </div>
+      </button>
       <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+        <Button type="button" variant="outline" size="xs" className="min-h-9" onClick={() => onSelect(document.id)}>
+          Abrir ficha
+        </Button>
         {latest && latest.uploadStatus === 'uploaded' && <Button variant="outline" size="xs" disabled={!online || openingPath === latest.storagePath} onClick={() => onOpen(latest.storagePath)}><FileCheck2 /> {openingPath === latest.storagePath ? 'Abriendo...' : 'Ver original'}</Button>}
         {latest && canInspect && <Button size="xs" disabled={!online || inspectingVersionId === latest.id} onClick={() => onInspect(document.id, latest.id)}>{inspectingVersionId === latest.id ? <Loader2 className="animate-spin" /> : <FileSearch2 />} {inspectingVersionId === latest.id ? 'Inspeccionando...' : 'Inspeccionar'}</Button>}
         {latest && canExtract && <Button size="xs" disabled={!online || extractingVersionId === latest.id} onClick={() => onExtract(document.id, latest.id)}>{extractingVersionId === latest.id ? <Loader2 className="animate-spin" /> : <Sparkles />} {extractingVersionId === latest.id ? 'Extrayendo...' : extraction?.status === 'failed' ? 'Reintentar extracción' : 'Extraer datos'}</Button>}

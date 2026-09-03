@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   countFinanceInboxViews,
   filterFinanceInbox,
+  findFinanceDocumentForInspect,
   financeDocumentAgeLabel,
+  financeDocumentInspectPath,
   financeDocumentNextAction,
+  isFinanceDocumentInspectId,
   parseFinanceInboxView,
 } from "@/lib/financeDocumentInbox";
 import type { FinanceDocument } from "@/lib/financeDocumentUpload";
@@ -165,5 +168,21 @@ describe("financeDocumentInbox", () => {
     const now = Date.parse("2026-09-03T12:00:00Z");
     expect(financeDocumentAgeLabel("2026-09-03T11:10:00Z", now)).toBe("hace 50 min");
     expect(financeDocumentAgeLabel("2026-09-01T12:00:00Z", now)).toBe("hace 2 días");
+  });
+
+  it("el inspector usa documento= sobre la cola completa", () => {
+    const rows = [
+      doc({ status: "awaiting_inspection", title: "A" }),
+      { ...doc({ status: "quarantined", title: "B" }), id: "11111111-1111-4111-8111-111111111111" },
+    ];
+    rows[0] = { ...rows[0], id: "22222222-2222-4222-8222-222222222222" };
+    expect(isFinanceDocumentInspectId("no-uuid")).toBe(false);
+    expect(findFinanceDocumentForInspect(rows, rows[0].id)?.title).toBe("A");
+    expect(findFinanceDocumentForInspect(rows, "33333333-3333-4333-8333-333333333333")).toBeNull();
+    expect(financeDocumentInspectPath({
+      documentId: rows[0].id,
+      view: "revisar",
+      query: "acme",
+    })).toBe(`/finance/documentos?vista=revisar&q=acme&documento=${rows[0].id}`);
   });
 });

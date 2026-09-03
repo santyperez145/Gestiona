@@ -84,7 +84,14 @@ describe('autoridad de la superficie Gestiona Finance', () => {
     const documentsPage = read('src/pages/FinanceDocumentsPage.tsx');
     expect(documentsPage).toContain('WorkspaceViewTabs');
     expect(documentsPage).toContain('financeDocumentNextAction');
+    expect(documentsPage).toContain('FinanceDocumentInspector');
+    expect(documentsPage).toContain('documento');
     expect(documentsPage).toContain('Probá otra vista o limpiá la búsqueda');
+    const inspector = read('src/components/finance-product/FinanceDocumentInspector.tsx');
+    expect(inspector).toContain('data-testid="finance-document-inspector"');
+    expect(inspector).toContain('Capacidades F5 no viven');
+    expect(inspector).not.toContain('/finance/presupuestos');
+    expect(inspector).not.toContain('/finance/politicas');
   });
 
   it('el Foco de Finance es Pulse: evidencia, tope de cinco, sin clonar Core', () => {

@@ -139,3 +139,36 @@ export function financeDocumentAgeLabel(iso: string, now = Date.now()): string {
   const days = Math.floor(hours / 24);
   return `hace ${days} días`;
 }
+
+const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isFinanceDocumentInspectId(value: string | null | undefined): value is string {
+  return Boolean(value && UUID.test(value));
+}
+
+/**
+ * La ficha se arma sobre la cola completa, nunca sobre el recorte de búsqueda:
+ * un filtro no puede hacer desaparecer un deep link de la misma organización.
+ */
+export function findFinanceDocumentForInspect(
+  documents: FinanceDocument[],
+  selectedId: string | null | undefined,
+): FinanceDocument | null {
+  if (!isFinanceDocumentInspectId(selectedId)) return null;
+  return documents.find((document) => document.id === selectedId) ?? null;
+}
+
+/** Deep-link Mendel: vista + documento sin inventar rutas F5. */
+export function financeDocumentInspectPath(input: {
+  documentId: string;
+  view?: FinanceInboxView | null;
+  query?: string | null;
+}): string {
+  const params = new URLSearchParams();
+  if (input.view && input.view !== "todos") params.set("vista", input.view);
+  const q = input.query?.trim();
+  if (q) params.set("q", q);
+  params.set("documento", input.documentId);
+  return `/finance/documentos?${params.toString()}`;
+}
