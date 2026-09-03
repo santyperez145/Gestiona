@@ -82,4 +82,25 @@ describe('autoridad de la superficie Gestiona Finance', () => {
     expect(overview).toContain('No tiene cadena de custodia, deduplicación ni aprobación');
     expect(overview).toContain('Ningún archivo mueve stock');
   });
+
+  it('el Foco de Finance es Pulse: evidencia, tope de cinco, sin clonar Core', () => {
+    expect(overview).toContain('financeFocoFromSnapshot');
+    expect(overview).toContain('Hasta cinco movimientos');
+    const db = read('src/lib/financeProductDB.ts');
+    expect(db).toContain('return items.slice(0, 5)');
+    expect(db).toContain('to: "/finance/documentos"');
+    expect(db).toContain('to: "/ordenes-compra"');
+    expect(db).not.toContain('INSERT INTO public.expenses');
+  });
+
+  it('enlace al Core sin clonar pantallas de compras o gastos', () => {
+    expect(overview).toContain('sin duplicar');
+    expect(overview).toContain('to="/gastos"');
+    expect(overview).toContain('to="/ordenes-compra"');
+    expect(overview).toContain('to="/libro"');
+    expect(overview).toContain('to="/banco"');
+    expect(overview).not.toContain('ExpensesPage');
+    expect(financeLayout).toContain('En el Core');
+    expect(financeLayout).toContain("to: '/gastos'");
+  });
 });

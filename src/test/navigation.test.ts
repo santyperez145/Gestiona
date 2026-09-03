@@ -58,8 +58,17 @@ describe("estructura de la navegación", () => {
 
   it("cada ruta resuelve a su grupo", () => {
     expect(grupoDeRuta("/caja")).toBe("diario");
+    expect(grupoDeRuta("/envios")).toBe("commerce");
+    expect(grupoDeRuta("/cupones")).toBe("commerce");
     expect(grupoDeRuta("/kardex")).toBe("compras");
     expect(grupoDeRuta("/no-existe")).toBeNull();
+  });
+
+  it("Tienda y canales va primero entre los plegables", () => {
+    expect(GRUPOS_PLEGABLES[0]?.id).toBe("commerce");
+    expect(itemsDe("commerce").map(i => i.to)).toEqual(
+      expect.arrayContaining(["/envios", "/cupones", "/promociones"]),
+    );
   });
 });
 

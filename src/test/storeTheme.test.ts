@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { resolveTheme, hexToHsl, THEME_IDS, resolveFont, googleFontHref, STORE_FONTS } from "@/storefront/theme";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { resolveTheme, hexToHsl, THEME_IDS, resolveFont, googleFontHref, STORE_FONTS, STORE_THEMES, themePaintsHeader } from "@/storefront/theme";
 
 describe("hexToHsl", () => {
   it("convierte un hex a la forma que usan las variables CSS", () => {
@@ -25,7 +27,7 @@ describe("resolveTheme", () => {
     // un tema no tiene que obligar a tocar el test, pero olvidarse una variable
     // sí tiene que fallar.
     expect(THEME_IDS.length).toBeGreaterThanOrEqual(5);
-    const requeridas = ["--st-bg", "--st-surface", "--st-border", "--st-text", "--st-muted", "--st-accent", "--st-accent-fg", "--st-header"];
+    const requeridas = ["--st-bg", "--st-surface", "--st-border", "--st-text", "--st-muted", "--st-accent", "--st-accent-fg", "--st-header", "--st-header-fg"];
     for (const id of THEME_IDS) {
       const t = resolveTheme(id, null);
       for (const v of requeridas) expect(t.vars[v], `${id} sin ${v}`).toBeTruthy();
@@ -47,6 +49,28 @@ describe("resolveTheme", () => {
     expect(resolveTheme("minimal", "#1a1a2e").vars["--st-accent-fg"]).toBe("0 0% 100%");
     // Uno claro necesita texto oscuro, o el botón queda ilegible.
     expect(resolveTheme("minimal", "#ffe066").vars["--st-accent-fg"]).toBe("0 0% 10%");
+  });
+
+  it("Luxury conserva el header: la marca pinta el botón, no el cromo", () => {
+    const base = resolveTheme("luxury", null);
+    const t = resolveTheme("luxury", "#f59e0b");
+    expect(themePaintsHeader("luxury")).toBe(false);
+    expect(t.vars["--st-header"]).toBe(base.vars["--st-header"]);
+    expect(t.vars["--st-accent"]).toBe(hexToHsl("#f59e0b"));
+  });
+
+  it("Bold sí pinta el header porque el tema ya es de color", () => {
+    expect(themePaintsHeader("bold")).toBe(true);
+    expect(resolveTheme("bold", "#1a1a2e").vars["--st-header"]).toBe(hexToHsl("#1a1a2e"));
+  });
+
+  it("el panel y la vitrina enumeran los mismos temas", () => {
+    expect(STORE_THEMES.map(t => t.id)).toEqual(THEME_IDS);
+    const page = readFileSync(resolve(process.cwd(), "src/pages/EcommerceStorePage.tsx"), "utf8");
+    expect(page).toContain("STORE_THEMES");
+    expect(page).toContain("resolveTheme");
+    expect(page).not.toMatch(/const THEMES = \[/);
+    expect(page).not.toContain("Perfume 100ml");
   });
 
   it("un color de marca inválido no rompe el tema base", () => {

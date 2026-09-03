@@ -77,7 +77,7 @@ export type LazyPage = LazyExoticComponent<ComponentType<Record<string, never>>>
 export type NavRole = "admin" | "vendedor" | "viewer";
 
 export type NavGroupId =
-  | "diario" | "trabajo" | "compras" | "cobranzas"
+  | "diario" | "commerce" | "trabajo" | "compras" | "cobranzas"
   | "finanzas" | "marketing" | "reportes" | "sistema";
 
 /**
@@ -213,8 +213,8 @@ export const ROUTES: RouteDefinition[] = [
   { id: "presupuestos", path: "/presupuestos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PresupuestosPage")), module: "sales", status: "canonical", nav: { label: "Presupuestos", icon: ClipboardList, group: "cobranzas", keywords: ["cotización", "quotes", "proforma"] } },
   { id: "facturas", path: "/facturas", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/InvoicesPage")), module: "invoices", status: "canonical", nav: { label: "Facturas", icon: FileText, group: "cobranzas", keywords: ["comprobantes", "invoices"] } },
   { id: "devoluciones", path: "/devoluciones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/DevolucionesPage")), module: "sales", aliases: [{ path: "/devoluciones-rma", redirectTo: "/devoluciones" }], status: "canonical", nav: { label: "Devoluciones", icon: RotateCcw, group: "cobranzas", keywords: ["cambios", "rma", "reembolso"] } },
-  { id: "envios", path: "/envios", roles: AMBOS, component: lazy(() => import("@/pages/DeliveryTrackingPage")), module: "shipping", status: "canonical", nav: { label: "Envíos", icon: Truck, group: "cobranzas", keywords: ["seguimiento", "tracking", "despacho", "correo", "andreani"] } },
-  { id: "links_de_pago", path: "/links-de-pago", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PaymentLinksPage")), module: "payments", status: "canonical", nav: { label: "Links de pago", icon: Link2, group: "cobranzas", keywords: ["cobrar a distancia", "link mercadopago"] } },
+  { id: "envios", path: "/envios", roles: AMBOS, component: lazy(() => import("@/pages/DeliveryTrackingPage")), module: "shipping", status: "canonical", nav: { label: "Envíos", icon: Truck, group: "commerce", keywords: ["seguimiento", "tracking", "despacho", "correo", "andreani", "tarifario", "zonas"] } },
+  { id: "links_de_pago", path: "/links-de-pago", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PaymentLinksPage")), module: "payments", status: "canonical", nav: { label: "Links de pago", icon: Link2, group: "commerce", keywords: ["cobrar a distancia", "link mercadopago", "tienda online"] } },
   { id: "mi_plan", path: "/mi-plan", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/MiPlanPage")), module: "settings", status: "canonical", nav: { label: "Mi plan", icon: CreditCard, group: "sistema", keywords: ["suscripcion", "plan", "pagar", "mercadopago", "facturacion", "abono"] } },
   { id: "billetera", path: "/billetera", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/WalletPage")), module: "finance", status: "canonical", nav: { label: "Billetera", icon: Wallet, group: "finanzas", keywords: ["saldo", "plata", "retirar", "retiro", "cobros", "disponible", "acreditado", "cbu"] } },
   { id: "gastos", path: "/gastos", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/ExpensesPage")), module: "expenses", status: "canonical", nav: { label: "Gastos", icon: Wallet, group: "finanzas", keywords: ["egresos", "pagos", "costos fijos"] } },
@@ -234,8 +234,8 @@ export const ROUTES: RouteDefinition[] = [
     // muestran la MISMA tabla (social_posts). Dos páginas para una autoridad
     // eran el duplicado; el planner es ahora la vista ?vista=planner.
     { path: "/planner-social", redirectTo: "/marketing?vista=planner" }], status: "canonical", nav: { label: "Campañas", icon: Megaphone, group: "marketing", keywords: ["marketing", "publicidad", "anuncios", "planner", "calendario de contenido", "posteos", "instagram", "redes", "ofertas ia"] } },
-  { id: "cupones", path: "/cupones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CouponsPage")), module: "marketing", status: "canonical", nav: { label: "Cupones", icon: Tag, group: "marketing", keywords: ["descuentos", "códigos", "promo"] } },
-  { id: "promociones", path: "/promociones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PromotionsPage")), module: "marketing", status: "canonical", nav: { label: "Promociones", icon: Zap, group: "marketing", keywords: ["ofertas", "flash sale", "2x1", "liquidación"] } },
+  { id: "cupones", path: "/cupones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/CouponsPage")), module: "marketing", status: "canonical", nav: { label: "Cupones", icon: Tag, group: "commerce", keywords: ["descuentos", "códigos", "promo", "tienda"] } },
+  { id: "promociones", path: "/promociones", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/PromotionsPage")), module: "marketing", status: "canonical", nav: { label: "Promociones", icon: Zap, group: "commerce", keywords: ["ofertas", "flash sale", "2x1", "liquidación", "tienda"] } },
   { id: "email_campaigns", path: "/email-campaigns", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/EmailCampaignsPage")), module: "marketing", aliases: [{ path: "/secuencias-email", redirectTo: "/email-campaigns" }], status: "canonical", nav: { label: "Email", icon: Mail, group: "marketing", keywords: ["newsletter", "mailing", "correo masivo"] } },
   { id: "whatsapp_campaigns", path: "/whatsapp-campaigns", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/WhatsAppCampaignsPage")), module: "marketing", status: "canonical", nav: { label: "WhatsApp", icon: MessageCircle, group: "marketing", keywords: ["difusión", "wsp", "mensajes masivos"] } },
   { id: "fidelidad", path: "/fidelidad", roles: SOLO_ADMIN, component: lazy(() => import("@/pages/LoyaltyAdvancedPage")), module: "marketing", aliases: [{ path: "/fidelidad-avanzada", redirectTo: "/fidelidad" }], status: "canonical", nav: { label: "Fidelidad", icon: Star, group: "marketing", keywords: ["puntos", "recompensas", "loyalty", "clientes frecuentes"] } },

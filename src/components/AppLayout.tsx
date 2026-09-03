@@ -84,7 +84,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
    */
   const [fijados, setFijados] = useState<Set<string>>(() => {
     try {
-      const saved = localStorage.getItem('gestiona.sidebar.expanded.v2');
+      const saved = localStorage.getItem('gestiona.sidebar.expanded.v3');
       if (saved) return new Set(JSON.parse(saved) as string[]);
     } catch { /* ignore */ }
     return new Set();
@@ -94,7 +94,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setFijados(prev => {
       const next = new Set(prev);
       if (next.has(section)) { next.delete(section); } else { next.add(section); }
-      try { localStorage.setItem('gestiona.sidebar.expanded.v2', JSON.stringify([...next])); } catch { /* ignore */ }
+      try { localStorage.setItem('gestiona.sidebar.expanded.v3', JSON.stringify([...next])); } catch { /* ignore */ }
       return next;
     });
   };

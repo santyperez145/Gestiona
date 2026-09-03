@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpenCheck, Building2, FileClock, FileStack, Landmark, Loader2, ReceiptText, ShoppingCart } from 'lucide-react';
+import { BookOpenCheck, Building2, FileClock, FileStack, Landmark, Loader2, ReceiptText, ShoppingCart, Wallet, ArrowUpRight } from 'lucide-react';
 import { useOrg } from '@/lib/orgContext';
-import { getFinanceCoreSnapshot, type FinanceCoreSnapshot } from '@/lib/financeProductDB';
+import { financeFocoFromSnapshot, getFinanceCoreSnapshot, type FinanceCoreSnapshot } from '@/lib/financeProductDB';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/shared/PageHeader';
@@ -16,6 +16,7 @@ export default function FinanceOverviewPage() {
   const { activeOrg } = useOrg();
   const [snapshot, setSnapshot] = useState<FinanceCoreSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const foco = useMemo(() => snapshot ? financeFocoFromSnapshot(snapshot) : [], [snapshot]);
 
   useEffect(() => {
     if (!activeOrg?.id) return;
@@ -62,6 +63,100 @@ export default function FinanceOverviewPage() {
         </div>
       )}
 
+      {foco.length > 0 && (
+        <section className="rounded-[12px] border border-teal-500/20 bg-card p-5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-600 dark:text-teal-300">Foco</p>
+          <h2 className="mt-1 text-sm font-semibold">Hasta cinco movimientos con evidencia</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Como Pulse: no hay feed infinito. Lo que no tiene dato no aparece.</p>
+          <ol className="mt-4 space-y-2">
+            {foco.map((item, i) => (
+              <li key={`${item.to}-${item.label}`}>
+                <Link
+                  to={item.to}
+                  className="flex items-start gap-3 rounded-[8px] border border-border/60 bg-muted/15 px-3 py-2.5 hover:border-teal-500/30 hover:bg-teal-500/[0.06]"
+                >
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-500/10 text-[10px] font-bold text-teal-700 dark:text-teal-300">{i + 1}</span>
+                  <span className="min-w-0">
+                    <span className="block text-xs font-medium">{item.label}</span>
+                    <span className="mt-0.5 block text-[11px] text-muted-foreground">{item.detail}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <section className="rounded-[12px] border border-border/70 bg-card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-600 dark:text-teal-300">Business Core · sin duplicar</p>
+            <h2 className="mt-1 text-sm font-semibold">Operar gastos y compras donde ya viven</h2>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+              Como Mendel, Finance orquesta evidencia y aprobación. Compras, gastos, banco y libro
+              siguen en Gestiona Business — acá sólo hay puentes, no una segunda contabilidad.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <Link
+            to="/gastos"
+            className="group flex items-start gap-3 rounded-[8px] border border-border/60 bg-muted/20 p-3 transition-colors hover:border-teal-500/30 hover:bg-teal-500/[0.06]"
+          >
+            <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-teal-600 dark:text-teal-300" />
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1 text-xs font-medium">
+                Gastos
+                <ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-70" />
+              </span>
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">Egresos del Core</span>
+            </span>
+          </Link>
+
+          <Link
+            to="/ordenes-compra"
+            className="group flex items-start gap-3 rounded-[8px] border border-border/60 bg-muted/20 p-3 transition-colors hover:border-teal-500/30 hover:bg-teal-500/[0.06]"
+          >
+            <ShoppingCart className="mt-0.5 h-4 w-4 shrink-0 text-teal-600 dark:text-teal-300" />
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1 text-xs font-medium">
+                Órdenes de compra
+                <ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-70" />
+              </span>
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">Proveedor y recepción</span>
+            </span>
+          </Link>
+
+          <Link
+            to="/libro"
+            className="group flex items-start gap-3 rounded-[8px] border border-border/60 bg-muted/20 p-3 transition-colors hover:border-teal-500/30 hover:bg-teal-500/[0.06]"
+          >
+            <BookOpenCheck className="mt-0.5 h-4 w-4 shrink-0 text-teal-600 dark:text-teal-300" />
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1 text-xs font-medium">
+                Libro mayor
+                <ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-70" />
+              </span>
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">Asientos canónicos</span>
+            </span>
+          </Link>
+
+          <Link
+            to="/banco"
+            className="group flex items-start gap-3 rounded-[8px] border border-border/60 bg-muted/20 p-3 transition-colors hover:border-teal-500/30 hover:bg-teal-500/[0.06]"
+          >
+            <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-teal-600 dark:text-teal-300" />
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1 text-xs font-medium">
+                Banco
+                <ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-70" />
+              </span>
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">Conciliación</span>
+            </span>
+          </Link>
+        </div>
+      </section>
+
       <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
         <section className="rounded-[12px] border border-border/70 bg-card p-5">
           <div className="flex items-center gap-2"><BookOpenCheck className="h-4 w-4 text-teal-500" /><h2 className="text-sm font-semibold">Contrato del MVP</h2></div>
@@ -88,6 +183,7 @@ export default function FinanceOverviewPage() {
             <li>• Ninguna extracción crea deuda automáticamente.</li>
             <li>• Ninguna confianza se reemplaza por un cero.</li>
             <li>• Ningún proveedor de IA será dependencia crítica.</li>
+            <li>• Políticas, presupuestos, tarjetas y viajes quedan en F5 / gate — no se fingen acá.</li>
           </ul>
         </section>
       </div>

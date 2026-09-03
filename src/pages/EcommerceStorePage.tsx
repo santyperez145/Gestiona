@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MAX_DESCUENTO_PORCENTAJE } from "@/lib/paymentDiscount";
-import { STORE_FONTS } from "@/storefront/theme";
+import { STORE_FONTS, STORE_THEMES, resolveFont, resolveTheme } from "@/storefront/theme";
 import { Badge } from "@/components/ui/badge";
 import {
   ShoppingBag, Globe, Package, ShoppingCart, TrendingUp, Settings,
@@ -103,15 +103,10 @@ import KPICard from "@/components/shared/KPICard";
 import WorkspaceState from "@/components/shared/WorkspaceState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
-const THEMES = [
-  { id: "minimal", label: "Minimal", desc: "Limpio y moderno", preview: "bg-white" },
-  { id: "bold",    label: "Bold",    desc: "Colores vibrantes", preview: "bg-yellow-400" },
-  { id: "luxury",  label: "Luxury",  desc: "Dark & premium",   preview: "bg-zinc-900" },
-  { id: "sport",   label: "Sport",   desc: "Dinámico",         preview: "bg-blue-600" },
-  { id: "natural", label: "Natural", desc: "Orgánico, verde",   preview: "bg-emerald-600" },
-  { id: "noche",   label: "Noche",   desc: "Oscuro y neutro",   preview: "bg-slate-900" },
-  { id: "pastel",  label: "Pastel",  desc: "Claro y cálido",    preview: "bg-rose-200" },
-];
+function hsl(vars: Record<string, string>, key: string, alpha?: number) {
+  const value = vars[key];
+  return alpha == null ? `hsl(${value})` : `hsl(${value} / ${alpha})`;
+}
 
 const SHIPPING_MODES = [
   { id: "flat",  label: "Precio plano",   hint: "Un mismo costo para todo el país." },
@@ -1266,18 +1261,39 @@ export default function EcommerceStorePage() {
       {tab === "design" && (
         <div className="space-y-5">
           <div className="bg-card border border-border/40 rounded-xl p-5">
-            <h3 className="font-semibold flex items-center gap-2 mb-4"><Palette className="w-4 h-4 text-primary" />Tema de la Tienda</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-              {THEMES.map(t => (
-                <button key={t.id} onClick={() => setSelectedTheme(t.id)}
-                  className={`p-3 rounded-xl border-2 text-center transition-all ${selectedTheme === t.id ? "border-primary" : "border-border/40 hover:border-primary/40"}`}>
-                  <div className={`w-full h-12 rounded-lg mb-2 ${t.preview} border border-border/20`} />
-                  <p className="text-xs font-semibold">{t.label}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.desc}</p>
-                  {selectedTheme === t.id && <Check className="w-3 h-3 text-primary mx-auto mt-1" />}
-                </button>
-              ))}
+            <h3 className="font-semibold flex items-center gap-2 mb-1"><Palette className="w-4 h-4 text-primary" />Tema de la Tienda</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              La muestra usa las mismas variables que ve el comprador, no un recuadro de Tailwind.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+              {STORE_THEMES.map(t => {
+                const preview = resolveTheme(t.id, null);
+                return (
+                  <button key={t.id} type="button" onClick={() => setSelectedTheme(t.id)}
+                    className={`p-3 rounded-xl border-2 text-left transition-all ${selectedTheme === t.id ? "border-primary" : "border-border/40 hover:border-primary/40"}`}>
+                    <div
+                      className="w-full h-12 rounded-lg mb-2 overflow-hidden border"
+                      style={{
+                        background: hsl(preview.vars, "--st-bg"),
+                        borderColor: hsl(preview.vars, "--st-border"),
+                      }}
+                    >
+                      <div className="h-4" style={{ background: hsl(preview.vars, "--st-header") }} />
+                      <div className="mx-2 mt-1.5 h-2 w-8 rounded-full" style={{ background: hsl(preview.vars, "--st-accent") }} />
+                    </div>
+                    <p className="text-xs font-semibold">{t.label}</p>
+                    <p className="text-[10px] text-muted-foreground">{t.hint}</p>
+                    {selectedTheme === t.id && <Check className="w-3 h-3 text-primary mt-1" />}
+                  </button>
+                );
+              })}
             </div>
+            <StoreBrandPreview
+              themeId={selectedTheme}
+              primaryColor={storeForm.primary_color}
+              fontId={storeForm.font}
+              storeName={storeForm.name || "Tu tienda"}
+            />
           </div>
           <div className="bg-card border border-border/40 rounded-xl p-5">
             <h3 className="font-semibold flex items-center gap-2 mb-1">
@@ -1300,7 +1316,7 @@ export default function EcommerceStorePage() {
                     {/* La previa se renderiza con la fuente real: elegir a ciegas
                         por el nombre es cómo se termina con una tienda ilegible. */}
                     <p className="text-lg leading-tight" style={{ fontFamily: f.stack }}>
-                      Aa <span className="text-sm">Perfume 100ml</span>
+                      Aa <span className="text-sm">Tu tienda</span>
                     </p>
                     <p className="text-xs font-semibold mt-1.5">{f.label}</p>
                     <p className="text-[10px] text-muted-foreground leading-snug">{f.hint}</p>
@@ -1930,7 +1946,7 @@ export default function EcommerceStorePage() {
               <Input
                 value={storeForm.meta_title}
                 onChange={e => setStoreForm(p => ({ ...p, meta_title: e.target.value.slice(0, 60) }))}
-                placeholder={`${storeForm.name} — Perfumes importados`}
+                placeholder={`${storeForm.name} — Tienda online`}
                 className="h-9"
               />
             </div>
@@ -1941,7 +1957,7 @@ export default function EcommerceStorePage() {
               <Input
                 value={storeForm.meta_description}
                 onChange={e => setStoreForm(p => ({ ...p, meta_description: e.target.value.slice(0, 160) }))}
-                placeholder="Perfumes árabes y de diseñador originales, con envío a todo el país."
+                placeholder="Qué vendés y a dónde enviás. Lo ve quien pega el link."
                 className="h-9"
               />
             </div>
@@ -2202,6 +2218,55 @@ export default function EcommerceStorePage() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Muestra header + botón con los tokens reales del tema y el color de marca. */
+function StoreBrandPreview({
+  themeId, primaryColor, fontId, storeName,
+}: {
+  themeId: string;
+  primaryColor: string;
+  fontId: string;
+  storeName: string;
+}) {
+  const theme = resolveTheme(themeId, primaryColor);
+  const font = resolveFont(fontId);
+  return (
+    <div
+      className="mt-4 overflow-hidden border"
+      style={{
+        background: hsl(theme.vars, "--st-bg"),
+        color: hsl(theme.vars, "--st-text"),
+        borderColor: hsl(theme.vars, "--st-border"),
+        borderRadius: theme.radius,
+        fontFamily: font?.stack,
+      }}
+    >
+      <div
+        className="flex items-center justify-between px-3 h-10 text-xs font-semibold"
+        style={{ background: hsl(theme.vars, "--st-header"), color: hsl(theme.vars, "--st-header-fg") }}
+      >
+        <span className="truncate">{storeName}</span>
+        <span className="opacity-70">Catálogo</span>
+      </div>
+      <div className="flex items-center justify-between gap-3 px-3 py-3">
+        <div>
+          <p className="text-sm font-medium">Producto destacado</p>
+          <p className="text-[11px]" style={{ color: hsl(theme.vars, "--st-muted") }}>Así se ve el acento sobre este tema</p>
+        </div>
+        <span
+          className="shrink-0 px-3 py-1.5 text-[11px] font-semibold"
+          style={{
+            background: hsl(theme.vars, "--st-accent"),
+            color: hsl(theme.vars, "--st-accent-fg"),
+            borderRadius: theme.radius,
+          }}
+        >
+          Agregar
+        </span>
+      </div>
     </div>
   );
 }

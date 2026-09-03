@@ -275,7 +275,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             className="lg:hidden p-2 -ml-2 min-h-11 min-w-11 grid place-items-center"
             onClick={() => setMenuOpen(v => !v)}
             aria-label="Menú"
-            style={{ color: "hsl(var(--st-accent-fg))" }}
+            style={{ color: "hsl(var(--st-header-fg))" }}
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -299,7 +299,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             </span>
             <span
               className="font-semibold truncate max-w-[9rem] sm:max-w-none"
-              style={{ color: "hsl(var(--st-accent-fg))" }}
+              style={{ color: "hsl(var(--st-header-fg))" }}
             >
               {store?.name}
             </span>
@@ -315,7 +315,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                 key={n.label}
                 item={n}
                 className="opacity-80 hover:opacity-100 transition-opacity whitespace-nowrap"
-                style={{ color: "hsl(var(--st-accent-fg))" }}
+                style={{ color: "hsl(var(--st-header-fg))" }}
               />
             ) : (
               // El padre sigue siendo un link: entrar a "Perfumes" muestra todo
@@ -326,11 +326,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                 <LinkDeMenu
                   item={n}
                   className="inline-flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity whitespace-nowrap"
-                  style={{ color: "hsl(var(--st-accent-fg))" }}
+                  style={{ color: "hsl(var(--st-header-fg))" }}
                 />
                 <ChevronDown
                   className="w-3 h-3 inline-block ml-0.5 opacity-60 pointer-events-none"
-                  style={{ color: "hsl(var(--st-accent-fg))" }}
+                  style={{ color: "hsl(var(--st-header-fg))" }}
                 />
                 {/* `focus-within` además de `hover` para que se pueda recorrer
                     con el teclado. El `pt-2` es el puente: sin él, el mouse
@@ -376,7 +376,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             className="p-2 ml-auto sm:ml-2 min-h-11 min-w-11 grid place-items-center"
             aria-label={customer ? "Mi cuenta" : "Iniciar sesión"}
             title={customer ? "Mi cuenta" : "Iniciar sesión"}
-            style={{ color: "hsl(var(--st-accent-fg))" }}
+            style={{ color: "hsl(var(--st-header-fg))" }}
           >
             <User className="w-5 h-5" />
           </Link>
@@ -389,7 +389,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               aria-label="Consultar por WhatsApp"
               title="Consultar por WhatsApp"
               className="min-h-11 min-w-11 grid place-items-center"
-              style={{ color: "hsl(var(--st-accent-fg))" }}
+              style={{ color: "hsl(var(--st-header-fg))" }}
             >
               <MessageCircle className="w-5 h-5" />
             </a>
@@ -399,7 +399,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             onClick={() => setCartOpen(true)}
             className="relative p-2 min-h-11 min-w-11 grid place-items-center"
             aria-label={`Carrito, ${cartCount} ${cartCount === 1 ? "artículo" : "artículos"}`}
-            style={{ color: "hsl(var(--st-accent-fg))" }}
+            style={{ color: "hsl(var(--st-header-fg))" }}
           >
             <ShoppingBag className="w-5 h-5" />
             {cartCount > 0 && (
@@ -420,7 +420,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                 <LinkDeMenu
                   item={n}
                   className="block py-2 text-sm"
-                  style={{ color: "hsl(var(--st-accent-fg))" }}
+                  style={{ color: "hsl(var(--st-header-fg))" }}
                 />
                 {/* En el celular no hay hover: las hijas van indentadas y
                     siempre visibles. Un desplegable que necesita otro toque
@@ -429,7 +429,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                   <Link
                     key={h.to} to={h.to}
                     className="block py-1.5 pl-4 text-sm opacity-70"
-                    style={{ color: "hsl(var(--st-accent-fg))" }}
+                    style={{ color: "hsl(var(--st-header-fg))" }}
                   >
                     {h.label}
                   </Link>

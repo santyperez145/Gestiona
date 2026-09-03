@@ -17,8 +17,10 @@
  * ── Las tres decisiones que siguen valiendo ───────────────────────────────
  *
  * **1. Jerarquía por uso, no por catálogo.** Los destinos `diario` quedan
- * siempre a la vista, sin encabezado. El resto vive en grupos que arrancan
- * cerrados salvo el que contiene la página actual.
+ * siempre a la vista, sin encabezado — Inicio y Tienda online primero.
+ * `commerce` agrupa envíos, cupones y promociones junto a la puerta de venta
+ * online. El resto vive en grupos que arrancan cerrados salvo el que contiene
+ * la página actual.
  *
  * **2. Lenguaje de tarea, no de jerga.** "Kardex" es "Movimientos de stock";
  * "RFM" es "Segmentación de clientes". El comercio piensa "¿cuánto stock
@@ -51,12 +53,13 @@ export interface NavGroup {
 }
 
 export const NAV_GROUPS: NavGroup[] = [
-  { id: "diario",    label: "",            hint: "Lo de todos los días" },
+  { id: "diario",    label: "",            hint: "Lo de todos los días — Inicio y Tienda online primero" },
+  { id: "commerce",  label: "Tienda y canales", hint: "Envíos, cupones y promociones de la venta online" },
   { id: "trabajo",   label: "Mi trabajo",  hint: "Tareas, seguimientos y calendario" },
   { id: "compras",   label: "Compras y stock", hint: "Reponer, mover y controlar la mercadería" },
   { id: "cobranzas", label: "Cobranzas",   hint: "Lo que falta cobrar y los documentos de venta" },
-  { id: "finanzas",  label: "Finanzas",    hint: "Plata que entra, plata que sale e impuestos" },
-  { id: "marketing", label: "Marketing",   hint: "Traer y retener compradores" },
+  { id: "finanzas",  label: "Contabilidad", hint: "Gastos, libro, banco e impuestos del Business Core — no es Gestiona Finance" },
+  { id: "marketing", label: "Marketing",   hint: "Campañas, email, WhatsApp y fidelidad" },
   { id: "reportes",  label: "Reportes",    hint: "Ver cómo viene el negocio" },
   { id: "sistema",   label: "Sistema",     hint: "Configuración, equipo e integraciones" },
 ];

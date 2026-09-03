@@ -13,6 +13,8 @@
 export interface StoreTheme {
   id: string;
   label: string;
+  /** Una línea para el selector del panel: no adivina rubro. */
+  hint: string;
   vars: Record<string, string>;
   /** Clases extra para el contenedor raíz (tipografía, tracking). */
   rootClass: string;
@@ -24,6 +26,7 @@ const THEMES: Record<string, StoreTheme> = {
   minimal: {
     id: "minimal",
     label: "Minimal",
+    hint: "Fondo claro, header blanco",
     rootClass: "font-sans",
     radius: "0.5rem",
     vars: {
@@ -35,11 +38,13 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-accent": "0 0% 9%",
       "--st-accent-fg": "0 0% 100%",
       "--st-header": "0 0% 100%",
+      "--st-header-fg": "0 0% 9%",
     },
   },
   bold: {
     id: "bold",
     label: "Bold",
+    hint: "Header de color, acento fuerte",
     rootClass: "font-sans",
     radius: "1rem",
     vars: {
@@ -51,11 +56,13 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-accent": "38 92% 50%",
       "--st-accent-fg": "24 10% 10%",
       "--st-header": "38 92% 50%",
+      "--st-header-fg": "24 10% 10%",
     },
   },
   luxury: {
     id: "luxury",
     label: "Luxury",
+    hint: "Oscuro editorial, serif",
     rootClass: "font-serif tracking-tight",
     radius: "0.25rem",
     vars: {
@@ -67,11 +74,13 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-accent": "43 74% 58%",
       "--st-accent-fg": "240 12% 6%",
       "--st-header": "240 12% 6%",
+      "--st-header-fg": "40 20% 96%",
     },
   },
   sport: {
     id: "sport",
     label: "Sport",
+    hint: "Header oscuro, acento azul",
     rootClass: "font-sans",
     radius: "0.75rem",
     vars: {
@@ -83,11 +92,13 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-accent": "221 83% 53%",
       "--st-accent-fg": "0 0% 100%",
       "--st-header": "222 47% 11%",
+      "--st-header-fg": "0 0% 100%",
     },
   },
   natural: {
     id: "natural",
     label: "Natural",
+    hint: "Header verde, formas suaves",
     rootClass: "font-sans",
     radius: "1.25rem",
     vars: {
@@ -99,6 +110,7 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-accent": "158 64% 32%",
       "--st-accent-fg": "0 0% 100%",
       "--st-header": "158 64% 32%",
+      "--st-header-fg": "0 0% 100%",
     },
   },
   // Oscuro sin ser Luxury: Luxury es dorado y serif, muy marcado. Éste es
@@ -106,6 +118,7 @@ const THEMES: Record<string, StoreTheme> = {
   noche: {
     id: "noche",
     label: "Noche",
+    hint: "Oscuro neutro, sin dorado",
     rootClass: "font-sans",
     radius: "0.625rem",
     vars: {
@@ -117,6 +130,7 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-accent": "199 89% 55%",
       "--st-accent-fg": "222 18% 9%",
       "--st-header": "222 18% 9%",
+      "--st-header-fg": "210 20% 96%",
     },
   },
   // Claro y cálido, con mucho aire. Es el que mejor le sienta a catálogos de
@@ -124,6 +138,7 @@ const THEMES: Record<string, StoreTheme> = {
   pastel: {
     id: "pastel",
     label: "Pastel",
+    hint: "Claro y cálido",
     rootClass: "font-sans",
     radius: "1.5rem",
     vars: {
@@ -135,6 +150,7 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-accent": "340 65% 62%",
       "--st-accent-fg": "0 0% 100%",
       "--st-header": "0 0% 100%",
+      "--st-header-fg": "340 15% 16%",
     },
   },
 };
@@ -188,13 +204,32 @@ export function resolveTheme(themeId?: string | null, primaryColor?: string | nu
       ...base.vars,
       "--st-accent": custom,
       "--st-accent-fg": lightnessOf(custom) > 62 ? "0 0% 10%" : "0 0% 100%",
-      // En los temas con header de color, el header sigue al acento.
-      ...(base.id === "bold" || base.id === "natural" ? { "--st-header": custom } : {}),
+      // Bold y Natural ya tienen header de color: ahí la marca pinta el cromo.
+      // Luxury / Minimal / Noche conservan su header — pintar todo el topbar
+      // con el acento se ve de plantilla, no de boutique (Shopify: acento ≠ chrome).
+      ...(themePaintsHeader(base.id)
+        ? {
+            "--st-header": custom,
+            "--st-header-fg": lightnessOf(custom) > 62 ? "0 0% 10%" : "0 0% 100%",
+          }
+        : {}),
     },
   };
 }
 
+/** Temas cuyo header sigue al color de marca. El resto sólo pinta botones. */
+export function themePaintsHeader(themeId: string): boolean {
+  return themeId === "bold" || themeId === "natural";
+}
+
 export const THEME_IDS = Object.keys(THEMES);
+
+/** Catálogo del panel: misma lista que resuelve la vitrina, sin ids sueltos. */
+export const STORE_THEMES = Object.values(THEMES).map(t => ({
+  id: t.id,
+  label: t.label,
+  hint: t.hint,
+}));
 
 /**
  * Tipografías que puede elegir el comercio.

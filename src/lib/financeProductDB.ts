@@ -66,3 +66,42 @@ export async function getFinanceCoreSnapshot(orgId: string): Promise<FinanceCore
     precursorOcrDocuments: Number(row.precursor_ocr_documents || 0),
   };
 }
+
+export type FinanceFocoItem = { to: string; label: string; detail: string };
+
+/**
+ * Pulse de Finance: como máximo cinco acciones, sólo si el snapshot tiene
+ * evidencia. No inventa colas de política/tarjeta (eso es F5 / gate).
+ */
+export function financeFocoFromSnapshot(s: FinanceCoreSnapshot): FinanceFocoItem[] {
+  const items: FinanceFocoItem[] = [];
+  if (s.precursorOcrDocuments > 0) {
+    items.push({
+      to: "/finance/documentos",
+      label: "Inspeccionar documentos",
+      detail: `${s.precursorOcrDocuments} precursor${s.precursorOcrDocuments === 1 ? "" : "es"} OCR sin cadena de custodia`,
+    });
+  }
+  if (s.openPurchaseOrders > 0) {
+    items.push({
+      to: "/ordenes-compra",
+      label: "Cerrar órdenes de compra",
+      detail: `${s.openPurchaseOrders} abierta${s.openPurchaseOrders === 1 ? "" : "s"} en el Core`,
+    });
+  }
+  if (s.openPayablesCount > 0) {
+    items.push({
+      to: "/ordenes-compra",
+      label: "Saldar obligaciones",
+      detail: `${s.openPayablesCount} pendiente${s.openPayablesCount === 1 ? "" : "s"} · no se clona en Finance`,
+    });
+  }
+  if (s.ledgerEntriesCount === 0 && s.suppliersCount > 0) {
+    items.push({
+      to: "/libro",
+      label: "El libro todavía no tiene asientos",
+      detail: "Hay proveedores en el Core y el ledger está vacío",
+    });
+  }
+  return items.slice(0, 5);
+}

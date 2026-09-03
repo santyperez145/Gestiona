@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { ArrowLeftRight, FileStack, LayoutDashboard, LogOut } from 'lucide-react';
+import { ArrowLeftRight, FileStack, LayoutDashboard, LogOut, Landmark, ShoppingCart, Wallet, BookOpen } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/lib/orgContext';
 import OrgSwitcher from '@/components/shared/OrgSwitcher';
@@ -9,6 +9,14 @@ import BrandLogo from '@/components/shared/BrandLogo';
 const NAV = [
   { to: '/finance', label: 'Resumen', icon: LayoutDashboard, end: true },
   { to: '/finance/documentos', label: 'Documentos', icon: FileStack, end: false },
+];
+
+/** Puentes al Core: no son páginas de Finance; evitan clonar Mendel en dos lados. */
+const CORE_BRIDGES = [
+  { to: '/gastos', label: 'Gastos', icon: Wallet },
+  { to: '/ordenes-compra', label: 'Compras', icon: ShoppingCart },
+  { to: '/libro', label: 'Libro', icon: BookOpen },
+  { to: '/banco', label: 'Banco', icon: Landmark },
 ];
 
 export default function FinanceLayout({ children }: { children: React.ReactNode }) {
@@ -49,6 +57,18 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
             >
               <item.icon className="h-3.5 w-3.5" /> {item.label}
             </NavLink>
+          ))}
+          <p className="mt-3 hidden px-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/80 lg:block">
+            En el Core
+          </p>
+          {CORE_BRIDGES.map(item => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="flex shrink-0 items-center gap-2 rounded-[7px] border border-transparent px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+            >
+              <item.icon className="h-3.5 w-3.5" /> {item.label}
+            </Link>
           ))}
         </div>
 

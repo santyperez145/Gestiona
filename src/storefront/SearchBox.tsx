@@ -101,7 +101,7 @@ export default function SearchBox({
       <form onSubmit={e => { e.preventDefault(); buscarTexto(); }} className="relative flex items-center">
         <Search
           className="w-4 h-4 absolute left-2.5 opacity-50 pointer-events-none"
-          style={{ color: enHeader ? "hsl(var(--st-accent-fg))" : "inherit" }}
+          style={{ color: enHeader ? "hsl(var(--st-header-fg))" : "inherit" }}
         />
         <input
           value={q}
@@ -118,7 +118,7 @@ export default function SearchBox({
               ? "h-9 w-full rounded-full pl-8 pr-8 text-sm bg-white/15 placeholder:opacity-60 outline-none focus:bg-white/25 transition-colors"
               : "w-full h-9 rounded-full pl-8 pr-8 text-sm bg-white/15 outline-none"
           }
-          style={{ color: "hsl(var(--st-accent-fg))" }}
+          style={{ color: enHeader ? "hsl(var(--st-header-fg))" : "hsl(var(--st-accent-fg))" }}
         />
         {q && (
           <button
@@ -126,7 +126,7 @@ export default function SearchBox({
             onClick={() => { setQ(""); setAbierto(false); }}
             className="absolute right-2 opacity-60 hover:opacity-100"
             aria-label="Borrar la búsqueda"
-            style={{ color: "hsl(var(--st-accent-fg))" }}
+            style={{ color: enHeader ? "hsl(var(--st-header-fg))" : "hsl(var(--st-accent-fg))" }}
           >
             <X className="w-3.5 h-3.5" />
           </button>
