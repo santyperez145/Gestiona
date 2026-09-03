@@ -20,6 +20,7 @@ import {
 } from "@/lib/publicDataSource";
 import { mediosDePagoOfrecibles } from "@/lib/gestionaPay";
 import { cartShippingCellText, cartShippingDisplay } from "@/lib/storeCartShipping";
+import { normalizarEmail } from "@/lib/couponRules";
 
 export interface StoreInfo {
   org_id: string;
@@ -169,6 +170,11 @@ interface Ctx {
   /** Clave única de una línea: producto, o producto+variante. */
   lineKeyOf: (l: CartLine) => string;
   clearCart: () => void;
+  /**
+   * Email del checkout para `save_store_cart`. Sin email el RPC saltea
+   * (recovery built-but-dark). No inventa casilla.
+   */
+  rememberCartEmail: (email: string | null | undefined) => void;
   cartCount: number;
   subtotal: number;
   /**
@@ -207,6 +213,8 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
   const [reloadTick, setReloadTick] = useState(0);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartRevealTick, setCartRevealTick] = useState(0);
+  /** Email tipado en checkout → recovery. Null = RPC saltea (honestidad). */
+  const [cartEmail, setCartEmail] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     setLoadError(false);
@@ -324,6 +332,10 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     try { localStorage.setItem(cartKey(slug), JSON.stringify(next)); } catch { /* cuota */ }
   }, [slug]);
 
+  const rememberCartEmail = useCallback((raw: string | null | undefined) => {
+    setCartEmail(normalizarEmail(raw));
+  }, []);
+
   // ── Sesión de carrito, para poder recuperarlo si lo abandonan ───────────
   // Se guarda del lado del servidor con un token estable por navegador. Solo
   // sirve de algo si además hay email, cosa que valida el propio RPC.
@@ -348,13 +360,13 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
           product_id: l.productId, name: l.name, quantity: l.qty,
           unit_price: l.price, image_url: l.image,
         })),
-        p_email: null,
+        p_email: cartEmail,
         p_subtotal: cart.reduce((s, l) => s + l.price * l.qty, 0),
       }).then(undefined, () => {});
     }, 2500);
 
     return () => clearTimeout(t);
-  }, [cart, slug, loading, store]);
+  }, [cart, slug, loading, store, cartEmail]);
 
   /**
    * Clave de línea del carrito. Dos variantes del mismo producto son dos
@@ -452,7 +464,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
 
     return {
       loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias,
-      addToCart, setQty, removeFromCart, clearCart, lineKeyOf,
+      addToCart, setQty, removeFromCart, clearCart, rememberCartEmail, lineKeyOf,
       cartRevealTick,
       cartCount: cart.reduce((s, l) => s + l.qty, 0),
       subtotal,
@@ -466,7 +478,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         : null,
       priceOf, fmt,
     };
-  }, [loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, cartRevealTick, priceOf, fmt]);
+  }, [loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, rememberCartEmail, lineKeyOf, cartRevealTick, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

@@ -3,6 +3,10 @@
  *
  * El cron `recover-abandoned-carts` manda el email UNA vez. Acá el comercio ve
  * la población y el estado del aviso; no inventa un segundo canal de envío.
+ *
+ * La cola tiene que coincidir con `pending_abandoned_carts`: active + email +
+ * ítems + idle ≥1 h. Filtrar sólo `status=abandoned` escondía los recuperables
+ * (el RPC de save deja active; abandoned aparece al vaciar el carrito).
  */
 
 export interface AbandonedCartItem {
@@ -24,6 +28,9 @@ export interface AbandonedCartRow {
 }
 
 export type AbandonedRecoveryState = "enviado" | "pendiente" | "sin_email";
+
+/** Misma espera que `pending_abandoned_carts(1)` — no avisar a quien todavía compra. */
+export const ABANDONED_CART_IDLE_MS = 60 * 60 * 1000;
 
 export function abandonedCartItemCount(items: unknown): number {
   if (!Array.isArray(items)) return 0;
@@ -60,10 +67,29 @@ export function abandonedCartRecoveryTone(state: AbandonedRecoveryState): string
   return "bg-yellow-500/15 text-yellow-500 border-0";
 }
 
-/** Sólo abandonados con al menos un ítem — un carrito vacío no es recuperable. */
-export function filterAbandonedCartsForQueue(rows: AbandonedCartRow[]): AbandonedCartRow[] {
+export function isRecoverableAbandonedCart(
+  row: Pick<AbandonedCartRow, "status" | "customer_email" | "items" | "updated_at">,
+  nowMs = Date.now(),
+  idleMs = ABANDONED_CART_IDLE_MS,
+): boolean {
+  if (abandonedCartItemCount(row.items) <= 0) return false;
+  if (row.status === "converted") return false;
+  if (row.status === "abandoned") return true;
+  if (row.status !== "active") return false;
+  if (!String(row.customer_email ?? "").trim()) return false;
+  const updated = Date.parse(row.updated_at);
+  if (Number.isNaN(updated)) return true;
+  return nowMs - updated >= idleMs;
+}
+
+/** Cola = mismos carritos que el cron puede recuperar (+ abandoned con ítems). */
+export function filterAbandonedCartsForQueue(
+  rows: AbandonedCartRow[],
+  nowMs = Date.now(),
+  idleMs = ABANDONED_CART_IDLE_MS,
+): AbandonedCartRow[] {
   return rows
-    .filter((row) => row.status === "abandoned" && abandonedCartItemCount(row.items) > 0)
+    .filter((row) => isRecoverableAbandonedCart(row, nowMs, idleMs))
     .sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
 }
 

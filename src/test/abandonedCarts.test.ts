@@ -5,6 +5,8 @@ import {
   abandonedCartRecoveryState,
   abandonedCartsQueueHref,
   filterAbandonedCartsForQueue,
+  isRecoverableAbandonedCart,
+  ABANDONED_CART_IDLE_MS,
 } from "@/lib/abandonedCarts";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -26,7 +28,8 @@ describe("abandonedCarts", () => {
     expect(abandonedCartRecoveryLabel("pendiente")).toContain("Pendiente");
   });
 
-  it("la cola ignora vacíos y no-abandonados", () => {
+  it("la cola incluye active idle con email (como el cron), no sólo abandoned", () => {
+    const now = Date.parse("2026-09-03T15:00:00Z");
     const rows = filterAbandonedCartsForQueue([
       {
         id: "1", status: "abandoned", customer_email: "a@b.c", items: [{ quantity: 1 }],
@@ -41,10 +44,27 @@ describe("abandonedCarts", () => {
       {
         id: "3", status: "active", customer_email: "c@d.e", items: [{ quantity: 2 }],
         subtotal: 20, total: 20, abandoned_email_sent: false,
-        updated_at: "2026-09-02T14:00:00Z", created_at: "2026-09-02T14:00:00Z",
+        updated_at: "2026-09-03T13:00:00Z", created_at: "2026-09-03T12:00:00Z",
       },
-    ]);
-    expect(rows.map((r) => r.id)).toEqual(["1"]);
+      {
+        id: "4", status: "active", customer_email: "fresh@d.e", items: [{ quantity: 1 }],
+        subtotal: 5, total: 5, abandoned_email_sent: false,
+        updated_at: "2026-09-03T14:30:00Z", created_at: "2026-09-03T14:30:00Z",
+      },
+    ], now);
+    expect(rows.map((r) => r.id)).toEqual(["3", "1"]);
+    expect(isRecoverableAbandonedCart({
+      status: "active",
+      customer_email: "x@y.z",
+      items: [{ quantity: 1 }],
+      updated_at: new Date(now - ABANDONED_CART_IDLE_MS - 1).toISOString(),
+    }, now)).toBe(true);
+    expect(isRecoverableAbandonedCart({
+      status: "active",
+      customer_email: "x@y.z",
+      items: [{ quantity: 1 }],
+      updated_at: new Date(now - 1000).toISOString(),
+    }, now)).toBe(false);
   });
 
   it("el deep-link y Commerce exponen la cola", () => {
@@ -55,5 +75,20 @@ describe("abandonedCarts", () => {
     const focus = readFileSync(resolve(process.cwd(), "src/lib/dashboardFocus.ts"), "utf8");
     expect(focus).toContain("carritosAbandonados");
     expect(focus).toContain("/tienda-online?tab=carritos");
+  });
+
+  it("el checkout manda el email a save_store_cart (Shopify recovery)", () => {
+    const ctx = readFileSync(resolve(process.cwd(), "src/storefront/storeContext.tsx"), "utf8");
+    const checkout = readFileSync(resolve(process.cwd(), "src/storefront/StoreCheckout.tsx"), "utf8");
+    expect(ctx).toContain("rememberCartEmail");
+    expect(ctx).toContain("p_email: cartEmail");
+    expect(ctx).not.toContain("p_email: null");
+    expect(checkout).toContain("rememberCartEmail(form.email)");
+    const cron = readFileSync(
+      resolve(process.cwd(), "supabase/functions/recover-abandoned-carts/index.ts"),
+      "utf8",
+    );
+    expect(cron).toContain("falta PUBLIC_BASE_URL");
+    expect(cron).not.toMatch(/\$\{link \? `/);
   });
 });

@@ -86,6 +86,13 @@ Deno.serve(async (req) => {
           ? `${baseUrl}/tienda/${c.store_slug}/carrito/${c.recovery_token}`
           : "";
 
+        // Sin PUBLIC_BASE_URL el mail no tiene CTA. Marcar enviado igual
+        // quemaba el único intento (Shopify: link usable o no se cuenta).
+        if (!link) {
+          errores.push(`${c.customer_email}: falta PUBLIC_BASE_URL`);
+          continue;
+        }
+
         const res = await sendEmail(smtpCfg, resendKey, resendFrom, {
           to: c.customer_email,
           subject: `Te quedó algo en el carrito 🛒`,
@@ -105,9 +112,9 @@ Deno.serve(async (req) => {
       </tr>
     </table>
   </div>
-  ${link ? `<div style="text-align:center;margin-bottom:20px">
+  <div style="text-align:center;margin-bottom:20px">
     <a href="${esc(link)}" style="display:inline-block;padding:12px 28px;border-radius:8px;background:#111;color:#fff;font-weight:600;text-decoration:none;font-size:14px">Retomar mi compra</a>
-  </div>` : ""}
+  </div>
   <p style="color:#888;font-size:12px;text-align:center;line-height:1.5;margin:0">
     Si ya compraste o no te interesa, ignorá este mensaje: no vamos a volver a escribirte por este carrito.
   </p>

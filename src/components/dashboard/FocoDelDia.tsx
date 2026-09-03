@@ -25,6 +25,7 @@ import {
 } from "@/lib/dashboardFocus";
 import { countActionableUnpaidOrders } from "@/lib/storeOrderPayment";
 import { countFulfillmentPulse } from "@/lib/storeOrderQueue";
+import { filterAbandonedCartsForQueue, type AbandonedCartRow } from "@/lib/abandonedCarts";
 import { ArrowUp, ArrowDown, Minus, AlertTriangle, AlertCircle, Circle, Check, ArrowRight } from "lucide-react";
 
 const COLOR_URGENCIA: Record<Urgencia, string> = {
@@ -189,15 +190,18 @@ export default function FocoDelDia(p: Props) {
     let cancelado = false;
     supabase
       .from("ecommerce_cart_sessions")
-      .select("id", { count: "exact", head: true })
+      .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, updated_at, created_at")
       .eq("org_id", p.orgId)
-      .eq("status", "abandoned")
-      .then(({ count, error }) => {
+      .in("status", ["abandoned", "active"])
+      .then(({ data, error }) => {
         if (error) {
           console.error("FocoDelDia / carritos abandonados:", error);
           return;
         }
-        if (!cancelado) setCarritosAbandonados(count ?? 0);
+        if (!cancelado) {
+          const rows = (data ?? []) as AbandonedCartRow[];
+          setCarritosAbandonados(filterAbandonedCartsForQueue(rows).length);
+        }
       });
     return () => { cancelado = true; };
   }, [p.orgId]);

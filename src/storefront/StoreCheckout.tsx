@@ -33,7 +33,7 @@ interface ShippingOption {
 
 export default function StoreCheckout() {
   // `total` del contexto no se usa acá: el checkout calcula el suyo con el cupón.
-  const { store, products, cart, subtotal, promo2x, shippingCost, fmt, clearCart } = useStore();
+  const { store, products, cart, subtotal, promo2x, shippingCost, fmt, clearCart, rememberCartEmail } = useStore();
   const navigate = useNavigate();
   const base = `/tienda/${store?.slug ?? ""}`;
 
@@ -77,6 +77,15 @@ export default function StoreCheckout() {
       cp: f.cp || d.cp || "",
     }));
   }, [customer]);
+
+  // Shopify Abandoned checkouts: el email del checkout habilita recovery.
+  // Sin esto save_store_cart siempre salteaba (`p_email: null`).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      rememberCartEmail(form.email);
+    }, 600);
+    return () => clearTimeout(t);
+  }, [form.email, rememberCartEmail]);
 
   // Si eligió provincia en el carrito, no la volvemos a pedir vacía.
   useEffect(() => {

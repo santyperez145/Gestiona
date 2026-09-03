@@ -3604,6 +3604,17 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+156. Recovery de carritos: email en checkout + cola honesta — 2026-09-03.
+     Medido: `save_store_cart` siempre con `p_email: null` → skipped;
+     cola/Foco sólo `status=abandoned` mientras el cron recupera `active`
+     idle. Shopify Abandoned checkouts. Checkout → `rememberCartEmail`;
+     cola alineada a `pending_abandoned_carts`; sin PUBLIC_BASE_URL no
+     se marca enviado. No inventa email ni tarifario.
+
+     Verificado en este recorte: **2.490 tests** / 264 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
