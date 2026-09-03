@@ -66,7 +66,7 @@ describe('autoridad de la superficie Gestiona Finance', () => {
     expect(migration).toContain('FROM public.supplier_debts');
     expect(migration).toContain('FROM public.ledger_entries');
     expect(overview).not.toMatch(/\.from\(['"](?:suppliers|purchase_orders|supplier_debts|ledger_entries)/);
-    expect(overview).toContain('Business Core compartido');
+    expect(overview).toContain('Operación conectada');
   });
 
   it('Platform aplica la misma matriz de roles en Edge y base', () => {
@@ -77,10 +77,10 @@ describe('autoridad de la superficie Gestiona Finance', () => {
     expect(platformPanel).not.toContain("from('organization_product_access')");
   });
 
-  it('no presenta el OCR precursor como Finance terminado', () => {
-    expect(overview).toContain('OCR precursor');
-    expect(overview).toContain('No tiene cadena de custodia, deduplicación ni aprobación');
-    expect(overview).toContain('Ningún archivo mueve stock');
+  it('no presenta la carga asistida como Finance terminado', () => {
+    expect(overview).toContain('Documentos por revisar');
+    expect(overview).toContain('La validación final siempre requiere revisión humana');
+    expect(overview).toContain('Cada documento se revisa antes de confirmarse');
   });
 
   it('el Foco de Finance es Pulse: evidencia, tope de cinco, sin clonar Core', () => {

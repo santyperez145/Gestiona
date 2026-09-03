@@ -23,7 +23,7 @@ export default function FinanceOverviewPage() {
     let cancelled = false;
     getFinanceCoreSnapshot(activeOrg.id).then(
       data => { if (!cancelled) { setSnapshot(data); setError(null); } },
-      cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'No se pudo leer el Business Core.'); },
+      cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'No pudimos cargar el resumen financiero.'); },
     );
     return () => { cancelled = true; };
   }, [activeOrg?.id]);
@@ -34,7 +34,7 @@ export default function FinanceOverviewPage() {
         icon={ReceiptText}
         eyebrow="Gestiona Finance / Resumen"
         title="Finance"
-        description={`Evidencia documental, obligaciones y asientos conectados al mismo Business Core de ${activeOrg?.name || 'la organización'}.`}
+        description={`Documentos, obligaciones y movimientos contables conectados para ${activeOrg?.name || 'tu organización'}.`}
         actions={(
           <Button asChild variant="secondary" className="!border-teal-600/20 !bg-teal-600 !text-white shadow-[0_10px_22px_-14px_rgba(13,148,136,.8)] hover:!bg-teal-700">
             <Link to="/finance/documentos"><FileStack className="h-3.5 w-3.5" />Ver bandeja documental</Link>
@@ -43,15 +43,15 @@ export default function FinanceOverviewPage() {
       />
 
       <section className="rounded-[14px] border border-teal-500/20 bg-gradient-to-br from-teal-500/[0.08] via-card to-card p-5 sm:p-7">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-600 dark:text-teal-300">Finance MVP · Business Core compartido</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-600 dark:text-teal-300">Finance · Operación conectada</p>
         <h2 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">Documentos que terminan en datos revisables</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Finance no crea otra contabilidad: conecta cada comprobante con el proveedor, la compra, la obligación y el asiento.</p>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Cada comprobante se vincula con proveedor, compra, obligación y movimiento contable, sin repetir carga de trabajo.</p>
       </section>
 
       {error ? (
         <div className="rounded-[10px] border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{error}</div>
       ) : !snapshot ? (
-        <div className="flex items-center justify-center py-14 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Leyendo el Core compartido...</div>
+        <div className="flex items-center justify-center py-14 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Actualizando indicadores...</div>
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
           <Metric icon={Building2} label="Proveedores" value={snapshot.suppliersCount.toLocaleString('es-AR')} />
@@ -59,7 +59,7 @@ export default function FinanceOverviewPage() {
           <Metric icon={ReceiptText} label="Obligaciones" value={snapshot.openPayablesCount.toLocaleString('es-AR')} />
           <Metric icon={FileClock} label="Saldo pendiente" value={formatArs(snapshot.openPayablesArs)} wide />
           <Metric icon={Landmark} label="Asientos" value={snapshot.ledgerEntriesCount.toLocaleString('es-AR')} />
-          <Metric icon={FileStack} label="OCR precursor" value={snapshot.precursorOcrDocuments.toLocaleString('es-AR')} />
+          <Metric icon={FileStack} label="Documentos por revisar" value={snapshot.precursorOcrDocuments.toLocaleString('es-AR')} />
         </div>
       )}
 
@@ -67,7 +67,7 @@ export default function FinanceOverviewPage() {
         <section className="rounded-[12px] border border-teal-500/20 bg-card p-5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-600 dark:text-teal-300">Foco</p>
           <h2 className="mt-1 text-sm font-semibold">Hasta cinco movimientos con evidencia</h2>
-          <p className="mt-1 text-xs text-muted-foreground">Como Pulse: no hay feed infinito. Lo que no tiene dato no aparece.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Mostramos sólo prioridades accionables con datos reales.</p>
           <ol className="mt-4 space-y-2">
             {foco.map((item, i) => (
               <li key={`${item.to}-${item.label}`}>
@@ -90,11 +90,11 @@ export default function FinanceOverviewPage() {
       <section className="rounded-[12px] border border-border/70 bg-card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-600 dark:text-teal-300">Business Core · sin duplicar</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-600 dark:text-teal-300">Operación central · sin duplicar</p>
             <h2 className="mt-1 text-sm font-semibold">Operar gastos y compras donde ya viven</h2>
             <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-              Como Mendel, Finance orquesta evidencia y aprobación. Compras, gastos, banco y libro
-              siguen en Gestiona Business — acá sólo hay puentes, no una segunda contabilidad.
+              Finance ordena evidencia y aprobaciones. Compras, gastos, banco y libro
+              mantienen su operación principal y acá accedés directo sin repetir pantallas.
             </p>
           </div>
         </div>
@@ -109,7 +109,7 @@ export default function FinanceOverviewPage() {
                 Gastos
                 <ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-70" />
               </span>
-              <span className="mt-0.5 block text-[11px] text-muted-foreground">Egresos del Core</span>
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">Egresos del negocio</span>
             </span>
           </Link>
 
@@ -137,7 +137,7 @@ export default function FinanceOverviewPage() {
                 Libro mayor
                 <ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-70" />
               </span>
-              <span className="mt-0.5 block text-[11px] text-muted-foreground">Asientos canónicos</span>
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">Movimientos contables</span>
             </span>
           </Link>
 
@@ -159,7 +159,7 @@ export default function FinanceOverviewPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
         <section className="rounded-[12px] border border-border/70 bg-card p-5">
-          <div className="flex items-center gap-2"><BookOpenCheck className="h-4 w-4 text-teal-500" /><h2 className="text-sm font-semibold">Contrato del MVP</h2></div>
+          <div className="flex items-center gap-2"><BookOpenCheck className="h-4 w-4 text-teal-500" /><h2 className="text-sm font-semibold">Flujo de trabajo</h2></div>
           <div className="mt-4 space-y-3">
             {[
               ['1', 'Ingresar', 'Archivo privado y original inmutable.'],
@@ -176,14 +176,14 @@ export default function FinanceOverviewPage() {
         </section>
 
         <section className="rounded-[12px] border border-amber-500/20 bg-amber-500/[0.04] p-5">
-          <h2 className="text-sm font-semibold">Qué todavía no se promete</h2>
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">El OCR existente sólo prellena compras. No tiene cadena de custodia, deduplicación ni aprobación; por eso aparece como precursor y no como documentos procesados.</p>
+          <h2 className="text-sm font-semibold">Alcance actual</h2>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">La carga asistida hoy ayuda a precompletar compras. La validación final siempre requiere revisión humana antes de impactar la operación.</p>
           <ul className="mt-4 space-y-2 text-xs text-muted-foreground">
-            <li>• Ningún archivo mueve stock.</li>
-            <li>• Ninguna extracción crea deuda automáticamente.</li>
-            <li>• Ninguna confianza se reemplaza por un cero.</li>
-            <li>• Ningún proveedor de IA será dependencia crítica.</li>
-            <li>• Políticas, presupuestos, tarjetas y viajes quedan en F5 / gate — no se fingen acá.</li>
+            <li>• Cada documento se revisa antes de confirmarse.</li>
+            <li>• La información sugerida no reemplaza la validación del equipo.</li>
+            <li>• Ningún dato incompleto se guarda como definitivo.</li>
+            <li>• La automatización se activa por etapas, con evidencia.</li>
+            <li>• Funciones avanzadas se habilitan cuando estén listas para operar.</li>
           </ul>
         </section>
       </div>

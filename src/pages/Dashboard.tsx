@@ -1578,7 +1578,7 @@ export default function Dashboard() {
         meta={(
           <span className="dashboard-tabs-meta" aria-live="polite">
             <span className="dashboard-context-bar__dot" />
-            {activeDashboardMeta.label} · Business Core conectado
+            {activeDashboardMeta.label} · Operación conectada
           </span>
         )}
       />

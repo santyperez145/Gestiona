@@ -843,7 +843,7 @@ export default function EcommerceStorePage() {
       <PageHeader
         icon={ShoppingBag}
         title="Gestiona Commerce"
-        description="Publicá la tienda, cobrá con Gestiona Pay (Mercado Pago) y despachá. El catálogo y el stock son los del Business Core."
+        description="Publicá tu tienda, cobrá con Gestiona Pay (Mercado Pago) y gestioná envíos en un solo lugar."
         actions={
           <div className="flex items-center flex-wrap gap-2">
             {/* Una tienda activa que no puede cobrar o no puede cotizar el envío
