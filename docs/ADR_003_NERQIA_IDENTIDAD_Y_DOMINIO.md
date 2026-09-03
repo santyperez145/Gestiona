@@ -80,6 +80,10 @@ sin versión, telemetría de adopción y ventana de migración.
 ## Configuración operativa
 
 - Vercel sirve el dominio y emite TLS automáticamente.
+- El HTML de crawlers se decide en `middleware.ts`, antes del cache y del
+  filesystem de Vercel. Un rewrite condicionado por User-Agent no alcanza para
+  `/`, porque el `index.html` físico tiene precedencia; ese comportamiento fue
+  medido en producción y coincide con la documentación oficial del proveedor.
 - Supabase Auth usa `https://nerqia.app` como Site URL y permite los callbacks
   exactos de producción, `www`, previews y localhost.
 - Los callbacks enviados por email desde un dominio propio vuelven al

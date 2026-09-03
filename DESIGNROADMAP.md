@@ -481,6 +481,14 @@ un formulario cosmético, la UI consume una Edge Function owner/admin y el
 resolver público mínimo; queda pendiente la matriz publicada con un dominio
 externo real cuando exista la credencial dedicada.
 
+D5.17 corrige la primera impresión para buscadores y previews sociales. La
+home de cada tienda debe entregar su propio título, descripción, imagen,
+canonical y JSON-LD aun cuando Vercel tenga un `index.html` físico para la SPA.
+Un Routing Middleware único decide por host y User-Agent antes del filesystem;
+la persona sigue viendo la interfaz normal y el bot recibe el documento
+semántico del mismo Storefront. Se elimina la lista repetida de crawlers en
+`vercel.json` y se conserva una sola en `storefrontSeo.ts`.
+
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto: CTA móvil hecho; faltan variantes densas y confianza extra;
 - carrito y checkout: objetivos táctiles y sticky en 360 px hechos;

@@ -131,7 +131,9 @@ describe('host canónico de una tienda Nerqia', () => {
     expect(custom.some(rule => rule.source === '/robots.txt')).toBe(true);
     expect(custom.some(rule => rule.source === '/sitemap.xml')).toBe(true);
     expect(custom.some(rule => rule.source === '/feed.xml')).toBe(true);
-    expect(custom.some(rule => rule.destination.includes('/api/og'))).toBe(true);
+    const middleware = source('middleware.ts');
+    expect(middleware).toContain("source.pathname = '/api/og'");
+    expect(middleware).toContain("from '@vercel/functions/middleware'");
     expect(source('api/robots.ts')).toContain('resolution.customDomain && !hostedSlug');
     expect(source('api/sitemap.ts')).toContain('xml("", 404, false)');
     expect(source('api/feed.ts')).toContain('404, false');
@@ -145,7 +147,7 @@ describe('host canónico de una tienda Nerqia', () => {
     expect(hosted.some(rule => rule.source === '/robots.txt')).toBe(true);
     expect(hosted.some(rule => rule.source === '/sitemap.xml')).toBe(true);
     expect(hosted.some(rule => rule.source === '/feed.xml')).toBe(true);
-    expect(hosted.some(rule => rule.destination.includes('/api/og'))).toBe(true);
+    expect(source('middleware.ts')).toContain('storeSlugFromHostname(source.hostname)');
 
     const hostPattern = hosted[0]?.has?.find(condition => condition.type === 'host')?.value ?? '';
     const regex = new RegExp(hostPattern);

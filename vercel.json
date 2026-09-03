@@ -55,47 +55,6 @@
       "source": "/tienda/:slug/feed.xml",
       "destination": "/api/feed?path=/tienda/:slug"
     },
-    {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "^(?!(?:www|app|api|admin|platform|finance|auth|docs|help|status|soporte|mail|cdn|assets|developer)\\.nerqia\\.app$)(?<storeSlug>[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\\.nerqia\\.app$"
-        },
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*(facebookexternalhit|Facebot|facebookcatalog|WhatsApp|Twitterbot|Slackbot|LinkedInBot|TelegramBot|Discordbot|Googlebot|Google-InspectionTool|AdsBot-Google|Storebot-Google|GoogleOther|bingbot|BingPreview|DuckDuckBot|YandexBot|Applebot|Pinterest|redditbot|SkypeUriPreview|vkShare|W3C_Validator|embedly).*"
-        }
-      ],
-      "destination": "/api/og?hostSlug=:storeSlug&path=/:path*"
-    },
-    {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "^(?<customHost>(?!\\d{1,3}(?:\\.\\d{1,3}){3}$)(?!(?:.+\\.)?nerqia\\.app$)(?!(?:.+\\.)?vercel\\.app$)[a-z0-9](?:[a-z0-9.-]{1,251}[a-z0-9])?)$"
-        },
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*(facebookexternalhit|Facebot|facebookcatalog|WhatsApp|Twitterbot|Slackbot|LinkedInBot|TelegramBot|Discordbot|Googlebot|Google-InspectionTool|AdsBot-Google|Storebot-Google|GoogleOther|bingbot|BingPreview|DuckDuckBot|YandexBot|Applebot|Pinterest|redditbot|SkypeUriPreview|vkShare|W3C_Validator|embedly).*"
-        }
-      ],
-      "destination": "/api/og?customHost=:customHost&path=/:path*"
-    },
-    {
-      "source": "/tienda/:path*",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*(facebookexternalhit|Facebot|facebookcatalog|WhatsApp|Twitterbot|Slackbot|LinkedInBot|TelegramBot|Discordbot|Googlebot|Google-InspectionTool|AdsBot-Google|Storebot-Google|GoogleOther|bingbot|BingPreview|DuckDuckBot|YandexBot|Applebot|Pinterest|redditbot|SkypeUriPreview|vkShare|W3C_Validator|embedly).*"
-        }
-      ],
-      "destination": "/api/og?path=/tienda/:path*"
-    },
     { "source": "/((?!api/|assets/|developer/|robots\\.txt|sitemap\\.xml).*)", "destination": "/index.html" }
   ],
   "headers": [

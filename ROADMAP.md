@@ -3861,6 +3861,30 @@ Finance Connect.
      confirmación explícita. Sin ella la UI informa
      `provider_not_configured`; no simula que conectó.
 
+166. SEO de tiendas antes del filesystem — 2026-09-03.
+     La prueba publicada del commit `f8a477b` encontró una regresión crítica
+     que no aparece en un build: home del subdominio devolvía a Googlebot,
+     Search Console, WhatsApp y Facebook el `index.html` estático de la
+     plataforma, con título Nerqia y canonical `https://nerqia.app/`. Robots,
+     sitemap y feed estaban bien, pero la URL comercial principal se
+     autocanonizaba fuera de la tienda.
+
+     La causa quedó confirmada contra la documentación oficial: Vercel prioriza
+     el filesystem antes de aplicar rewrites condicionales. Se reemplazan las
+     tres reglas duplicadas de User-Agent por un único Routing Middleware, que
+     corre antes del cache/filesystem, consume la lista canónica de crawlers y
+     deriva subdominio, dominio propio o path heredado al mismo `/api/og`. El
+     comprador continúa a la SPA y la query de categoría/campaña se conserva.
+     `@vercel/functions` queda fijado en `3.9.5`; su instalación también refrescó
+     la auditoría y se fijaron cuatro transitivas compatibles, llevando
+     `npm audit` a 0 vulnerabilidades. Puerta local: typecheck verde; lint 0
+     errores/143 warnings heredados; 2.592 tests verdes en 275 archivos;
+     build/PWA y compilación NodeNext de middleware + handlers verdes. El
+     runner local de Vercel vuelve a fallar por `spawn cmd.exe ENOENT` después
+     de instalar/auditar, así que no cuenta como prueba del routing. Falta la
+     prueba publicada posterior al deploy; no se declara corregido sólo por
+     tests.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

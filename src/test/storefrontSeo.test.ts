@@ -105,17 +105,15 @@ describe("robots e índice salen del servidor", () => {
     expect(txt).not.toContain("# El panel de gestión");
   });
 
-  it("Search Console y AdsBot ven la misma lista que Vercel", () => {
+  it("Search Console y AdsBot pasan por el middleware previo al filesystem", () => {
     const vercel = JSON.parse(leer("vercel.json")) as {
       rewrites: Array<{ destination?: string; has?: Array<{ value: string }>; source: string }>;
     };
-    const og = vercel.rewrites.find(r => r.source === "/tienda/:path*" && r.destination?.includes("/api/og"));
-    const ua = og?.has?.[0]?.value ?? "";
-    expect(ua).toContain("Google-InspectionTool");
-    expect(ua).toContain("AdsBot-Google");
-    for (const token of STOREFRONT_CRAWLER_UA.split("|")) {
-      expect(ua, `falta ${token} en vercel.json`).toContain(token);
-    }
+    const routingMiddleware = leer("middleware.ts");
+    expect(routingMiddleware).toContain("STOREFRONT_CRAWLER_UA");
+    expect(routingMiddleware).toContain("source.pathname = '/api/og'");
+    expect(STOREFRONT_CRAWLER_UA).toContain("Google-InspectionTool");
+    expect(STOREFRONT_CRAWLER_UA).toContain("AdsBot-Google");
     expect(vercel.rewrites[0]?.source).toBe("/robots.txt");
     expect(vercel.rewrites.some(r => r.source === "/sitemap.xml")).toBe(true);
   });
