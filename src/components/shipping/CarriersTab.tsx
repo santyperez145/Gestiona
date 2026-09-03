@@ -50,7 +50,7 @@ const CARRIER_SPEC: Record<CarrierCode, {
       { key: 'password', label: 'Contraseña', type: 'password' },
       { key: 'customer_id', label: 'ID de cliente', hint: 'El que te dieron al firmar el contrato' },
     ],
-    note: 'Necesitás un contrato de Mi Correo / Paq.ar. Sin contrato, usá el tarifario propio.',
+    note: 'Necesitás un contrato de Mi Correo / Paq.ar. Sin contrato verificado, usá tarifario propio (Envíos → Zonas). La cotización API no se presenta como lista hasta probar el contrato.',
   },
   andreani: {
     supportsApi: true,
@@ -61,7 +61,7 @@ const CARRIER_SPEC: Record<CarrierCode, {
       { key: 'contract', label: 'Número de contrato' },
       { key: 'client_code', label: 'Código de cliente', hint: 'Opcional según el contrato' },
     ],
-    note: 'Requiere cuenta de empresa con Andreani y credenciales de su portal de desarrolladores.',
+    note: 'Requiere cuenta de empresa Andreani. Sin contrato verificado, cotizá con tarifario propio. No se inventa etiqueta live.',
   },
   oca: {
     supportsApi: false,
@@ -69,7 +69,7 @@ const CARRIER_SPEC: Record<CarrierCode, {
       { key: 'cuit', label: 'CUIT' },
       { key: 'account', label: 'Número de cuenta' },
     ],
-    note: 'Todavía cotizamos OCA sólo con tarifario propio. La cotización en vivo está pendiente.',
+    note: 'OCA ePak: cotización en vivo pendiente de contrato. Hoy se usa tarifario propio (precios por provincia).',
   },
   propio: {
     supportsApi: false,

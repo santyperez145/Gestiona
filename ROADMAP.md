@@ -3415,6 +3415,18 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+138. Mercado de integraciones + envíos AR honestos — 2026-09-03.
+     Pedido: integraciones de envío AR + “marketplace” tipo Tiendanube.
+     No se inventa Envío Nube ni etiqueta live sin contrato. Vista
+     `merchant_integration_catalog` (sin secretos); tab Mercado en
+     `/integraciones`; siembra `gestiona_envios` (production) + OCA
+     (`needs_contract`); Correo/Andreani siguen `needs_contract`.
+     Transportistas: copy que no promete API verificada.
+
+     Verificado en este recorte: **2.449 tests** / 259 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Migración
+     `20260903000010` aplicada y anotada. Esta PC no tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

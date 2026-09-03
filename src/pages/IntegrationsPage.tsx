@@ -25,6 +25,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import AdvancedApiKeysPanel from "@/components/integrations/AdvancedApiKeysPanel";
 import AdvancedWebhooksPanel from "@/components/integrations/AdvancedWebhooksPanel";
+import IntegrationsMarketplace from "@/components/integrations/IntegrationsMarketplace";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
@@ -64,7 +65,7 @@ export default function IntegrationsPage() {
   usePageTitle("Integraciones & API");
   const { activeOrg } = useOrg();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get("tab") || "conexiones";
+  const initialTab = searchParams.get("tab") || "mercado";
 
   // Integration health
   const [healthMap, setHealthMap] = useState<Record<string, IntegrationHealth>>({});
@@ -222,7 +223,7 @@ export default function IntegrationsPage() {
       <PageHeader
         icon={Link2}
         title="Integraciones & API"
-        description="Conexiones con servicios externos, claves API y webhooks salientes."
+        description="Mercado de integraciones, conexiones, claves API y webhooks. El estado de producto no inventa una API de correo sin contrato."
         actions={
           <Button variant="outline" size="sm" className="text-xs" onClick={loadHealth} disabled={loadingHealth}>
             <Activity className={`w-3.5 h-3.5 mr-1.5 ${loadingHealth ? "animate-pulse" : ""}`} />
@@ -236,15 +237,20 @@ export default function IntegrationsPage() {
         defaultValue={initialTab}
         onValueChange={(v) => {
           const next = new URLSearchParams(searchParams);
-          if (v === "conexiones") next.delete("tab"); else next.set("tab", v);
+          if (v === "mercado") next.delete("tab"); else next.set("tab", v);
           setSearchParams(next, { replace: true });
         }}
       >
         <TabsList className="workspace-tabs-nav mb-0">
+          <TabsTrigger value="mercado" className="gap-1.5"><ShoppingBag className="w-3.5 h-3.5" />Mercado</TabsTrigger>
           <TabsTrigger value="conexiones" className="gap-1.5"><Link2 className="w-3.5 h-3.5" />Conexiones</TabsTrigger>
           <TabsTrigger value="apikeys" className="gap-1.5"><KeyRound className="w-3.5 h-3.5" />API Keys</TabsTrigger>
           <TabsTrigger value="webhooks" className="gap-1.5"><Webhook className="w-3.5 h-3.5" />Webhooks</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="mercado" className="space-y-6 mt-4">
+          <IntegrationsMarketplace />
+        </TabsContent>
 
         {/* ── CONEXIONES TAB ───────────────────────────────────────── */}
         <TabsContent value="conexiones" className="space-y-6 mt-4">
