@@ -42,6 +42,15 @@ export const ROBOTS_DISALLOW_TIENDA = [
   "/tienda/*/seguimiento",
 ] as const;
 
+/** Las mismas pantallas privadas cuando la tienda vive en su propio host. */
+export const ROBOTS_DISALLOW_HOSTED_STORE = [
+  "/checkout",
+  "/cuenta",
+  "/orden",
+  "/carrito",
+  "/seguimiento",
+] as const;
+
 export interface PrecioDeCatalogo {
   sale_price_ars?: number | null;
   discount_price_ars?: number | null;
@@ -80,13 +89,20 @@ function slugLimpio(value: string): string {
  * Interpreta la URL pública de una tienda. El rewrite de Vercel manda el path
  * original en `?path=`; la query de categoría viaja aparte.
  */
-export function parseRutaTienda(path: string, search: URLSearchParams | { get(name: string): string | null } = new URLSearchParams()): RutaTienda | null {
+export function parseRutaTienda(
+  path: string,
+  search: URLSearchParams | { get(name: string): string | null } = new URLSearchParams(),
+  hostedStoreSlug?: string | null,
+): RutaTienda | null {
   const raw = path.split("?")[0] ?? "";
   const partes = raw.split("/").filter(Boolean);
-  if (partes[0] !== "tienda" || !partes[1]) return null;
-
-  const slug = slugLimpio(partes[1]);
-  const resto = partes.slice(2);
+  const slug = hostedStoreSlug?.trim()
+    ? slugLimpio(hostedStoreSlug.trim())
+    : partes[0] === "tienda" && partes[1]
+      ? slugLimpio(partes[1])
+      : null;
+  if (!slug) return null;
+  const resto = hostedStoreSlug?.trim() ? partes : partes.slice(2);
 
   if (resto.length === 0) return { kind: "home", slug };
 
@@ -141,7 +157,23 @@ export function tituloDeRutaTienda(input: {
   return privada ? `${privada} — ${tienda}` : home;
 }
 
-export function cuerpoRobots(origin: string, sitemaps: string[]): string {
+/** Sufijo canónico común para path heredado, wildcard y futuro dominio propio. */
+export function canonicalStorefrontPath(ruta: RutaTienda | null): string | null {
+  if (!ruta || ruta.kind === "home") return "";
+  if (ruta.kind === "plp") {
+    return ruta.cat ? `/productos?cat=${encodeURIComponent(ruta.cat)}` : "/productos";
+  }
+  if (ruta.kind === "pdp") return `/producto/${encodeURIComponent(ruta.productId)}`;
+  if (ruta.kind === "page") return `/pagina/${encodeURIComponent(ruta.pageSlug)}`;
+  if (ruta.kind === "legal") return "/arrepentimiento";
+  return null;
+}
+
+export function cuerpoRobots(
+  origin: string,
+  sitemaps: string[],
+  options: { hostedStore?: boolean } = {},
+): string {
   const lineas = [
     "User-agent: *",
     "Allow: /",
@@ -151,10 +183,10 @@ export function cuerpoRobots(origin: string, sitemaps: string[]): string {
     ...ROBOTS_DISALLOW_PANEL.map(p => `Disallow: ${p}`),
     "",
     "# Checkout, cuenta y seguimiento no son catálogo.",
-    ...ROBOTS_DISALLOW_TIENDA.map(p => `Disallow: ${p}`),
+    ...(options.hostedStore ? ROBOTS_DISALLOW_HOSTED_STORE : ROBOTS_DISALLOW_TIENDA)
+      .map(p => `Disallow: ${p}`),
     "",
-    "Allow: /tienda/",
-    "Allow: /catalogo/",
+    ...(options.hostedStore ? ["Allow: /productos", "Allow: /producto/"] : ["Allow: /tienda/", "Allow: /catalogo/"]),
     "",
   ];
   const unicos = [...new Set(sitemaps.filter(Boolean))];

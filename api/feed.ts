@@ -21,7 +21,8 @@
  * correcta de decir "esto no tiene código universal". Cuando el catálogo cargue
  * códigos de barras de verdad, se agrega.
  */
-import { precioDeCatalogo } from "../src/lib/storefrontSeo";
+import { precioDeCatalogo } from "../src/lib/storefrontSeo.js";
+import { hostedStoreOrigin, hostedStoreSlugFromUrl, publicStoreBaseUrl } from "../src/lib/storefrontHost.js";
 
 export const config = { runtime: "edge" };
 
@@ -63,9 +64,11 @@ interface FilaCatalogo {
 
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const origin = `${url.protocol}//${url.host}`;
+  const hostedSlug = hostedStoreSlugFromUrl(url);
+  const origin = hostedStoreOrigin(url, hostedSlug);
   const path = url.searchParams.get("path") ?? url.pathname;
-  const slug = decodeURIComponent(/^\/tienda\/([^/]+)/.exec(path)?.[1] ?? "");
+  const slug = hostedSlug ?? decodeURIComponent(/^\/tienda\/([^/]+)/.exec(path)?.[1] ?? "");
+  const storeBase = publicStoreBaseUrl(origin, slug, Boolean(hostedSlug));
 
   const xml = (titulo: string, items: string) =>
     new Response(
@@ -73,7 +76,7 @@ export default async function handler(req: Request): Promise<Response> {
       `<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n` +
       `<channel>\n` +
       `  <title>${esc(titulo)}</title>\n` +
-      `  <link>${esc(origin)}/tienda/${esc(slug)}</link>\n` +
+      `  <link>${esc(storeBase)}</link>\n` +
       `  <description>Catálogo de ${esc(titulo)}</description>\n` +
       `${items}\n` +
       `</channel>\n</rss>`,
@@ -110,7 +113,7 @@ export default async function handler(req: Request): Promise<Response> {
     );
     const productos: FilaCatalogo[] = pRes.ok ? await pRes.json() : [];
 
-    const base = `${origin}/tienda/${encodeURIComponent(slug)}`;
+    const base = storeBase;
     const moneda = String(store.currency ?? "ARS");
 
     const items = productos

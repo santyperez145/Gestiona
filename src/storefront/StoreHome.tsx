@@ -23,14 +23,13 @@ import { textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
 import { storeHomeShowsCommerceChrome, textoMediosHero } from "@/lib/storeHomeHero";
 
 export default function StoreHome() {
-  const { store, products, banners, categorias: cats2, priceOf, fmt, cart } = useStore();
+  const { store, products, banners, categorias: cats2, priceOf, fmt, cart, basePath: base } = useStore();
   const { customer } = useStoreAuth();
 
   // El mejor descuento que la tienda ofrece hoy, o null. Sólo cuenta los
   // medios que además están habilitados: anunciar uno que no se acepta sería
   // prometer algo que en el checkout no aparece.
   const descuentoPago = mejorDescuento(store?.payment_methods ?? null, store?.payment_discounts ?? null);
-  const base = `/tienda/${store?.slug ?? ""}`;
   const commerceChrome = storeHomeShowsCommerceChrome(products.length);
 
   // Las vitrinas de la home son curadas: ofrecer un agotado en "Destacados"

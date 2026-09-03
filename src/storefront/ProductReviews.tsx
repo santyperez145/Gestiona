@@ -51,9 +51,8 @@ export function Stars({
 }
 
 export default function ProductReviews({ productId }: { productId: string }) {
-  const { store } = useStore();
+  const { store, basePath: base } = useStore();
   const { customer } = useStoreAuth();
-  const base = `/tienda/${store?.slug ?? ""}`;
 
   const [reviews, setReviews] = useState<StoreReview[]>([]);
   const [cargando, setCargando] = useState(true);

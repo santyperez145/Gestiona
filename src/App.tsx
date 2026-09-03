@@ -26,6 +26,7 @@ import {
   recoverFromStaleBuild,
 } from "@/lib/staleBuildRecovery";
 import { ShieldAlert, BookOpen } from "lucide-react";
+import { storeSlugFromHostname } from "@/lib/storefrontHost";
 
 // ── Eager (needed for first paint / public routes) ──────────────────────────
 import AuthPage from "@/pages/AuthPage";
@@ -278,6 +279,43 @@ function ProtectedRoutes() {
   );
 }
 
+function ApplicationRoutes() {
+  const hostedSlug = storeSlugFromHostname(window.location.hostname);
+
+  if (hostedSlug) {
+    return (
+      <Routes>
+        <Route path="/*" element={<StorefrontPage hostedSlug={hostedSlug} basePath="" />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <Routes>
+      {/* `/login` no sale del manifest: AuthPage no es lazy —es la
+          primera pantalla y cargarla en dos pasos se ve peor. */}
+      <Route path="/login" element={<AuthPage />} />
+      {publicPages().map(r => (
+        <Route key={r.id} path={r.path} element={<r.component />} />
+      ))}
+      {publicAliases().map(([desde, hacia]) => (
+        <Route key={desde} path={desde} element={<Navigate to={hacia} replace />} />
+      ))}
+
+      {/* A mano: llevan parámetros, que el manifest todavía no modela. */}
+      <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
+      <Route path="/tienda/:slug/*" element={<StorefrontPage />} />
+      <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
+      <Route path="/portal-influencer/:token" element={<InfluencerPortalPage />} />
+      <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />
+      <Route path="/platform/*" element={<PlatformRoutes />} />
+      <Route path="/finance/*" element={<FinanceRoutes />} />
+      <Route path="/app/*" element={<ProtectedRoutes />} />
+      <Route path="/*" element={<ProtectedRoutes />} />
+    </Routes>
+  );
+}
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="gestiona-theme">
   <Sentry.ErrorBoundary fallback={({ error }) => {
@@ -321,28 +359,7 @@ const App = () => (
         <OrgProvider>
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
-              <Routes>
-                {/* `/login` no sale del manifest: AuthPage no es lazy —es la
-                    primera pantalla y cargarla en dos pasos se ve peor. */}
-                <Route path="/login" element={<AuthPage />} />
-                {publicPages().map(r => (
-                  <Route key={r.id} path={r.path} element={<r.component />} />
-                ))}
-                {publicAliases().map(([desde, hacia]) => (
-                  <Route key={desde} path={desde} element={<Navigate to={hacia} replace />} />
-                ))}
-
-                {/* A mano: llevan parámetros, que el manifest todavía no modela. */}
-                <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
-                <Route path="/tienda/:slug/*" element={<StorefrontPage />} />
-                <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
-                <Route path="/portal-influencer/:token" element={<InfluencerPortalPage />} />
-                <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />
-                <Route path="/platform/*" element={<PlatformRoutes />} />
-                <Route path="/finance/*" element={<FinanceRoutes />} />
-                <Route path="/app/*" element={<ProtectedRoutes />} />
-                <Route path="/*" element={<ProtectedRoutes />} />
-              </Routes>
+              <ApplicationRoutes />
             </Suspense>
           </BrowserRouter>
         </OrgProvider>

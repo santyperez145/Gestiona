@@ -37,10 +37,9 @@ export default function StoreCheckout() {
   // `total` del contexto no se usa acá: el checkout calcula el suyo con el cupón.
   const {
     store, products, cart, subtotal, promo2x, shippingCost, fmt,
-    clearCart, rememberCartEmail, cartToken,
+    clearCart, rememberCartEmail, cartToken, basePath: base,
   } = useStore();
   const navigate = useNavigate();
-  const base = `/tienda/${store?.slug ?? ""}`;
 
   const { customer, signUp } = useStoreAuth();
   const metodos = mediosDePagoOfrecibles(store?.payment_methods);

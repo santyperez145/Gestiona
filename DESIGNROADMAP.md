@@ -440,8 +440,8 @@ superficie de comercio: `/catalogo/:id` acepta tanto el `user_id` antiguo como
 el `org_id` del Business Core para productos y branding. La frontera de datos
 usa una lista explícita de columnas públicas, diferencia red/permisos de un
 catálogo realmente vacío y ofrece Reintentar sin borrar el último estado. La
-tienda canónica sigue siendo `/tienda/:slug`; este arreglo sólo mantiene vivo
-el legado hasta que exista una migración de enlaces con evidencia.
+tienda canónica migra en D5.14 a `<slug>.nerqia.app`; este arreglo mantiene
+vivo el legado sin convertirlo en otra tienda.
 
 D5.13 lleva el carrito al contrato visual y operativo de una tienda madura sin
 crear otra pantalla: la ruta existente muestra si está sincronizando, guardado
@@ -452,6 +452,14 @@ estado React obsoleto). La cuenta se resuelve para el slug exacto antes de unir
 carritos y una salida rota la capacidad del dispositivo compartido. El precio y
 el stock siguen siendo del Core/checkout; el indicador no promete nube cuando
 el RPC todavía no está desplegado.
+
+D5.14 implementa la URL limpia sin bifurcar experiencia: todos los componentes
+consumen `basePath` desde StoreContext, por lo que home, PLP, PDP, carrito,
+checkout, cuenta y pedido tienen las mismas vistas y estados en path heredado y
+subdominio. Canonical, robots, sitemap, feed y previews sociales también
+resuelven por host. La aceptación visual exige publicar el wildcard y recorrer
+home → PDP → carrito → checkout a 360/768/1024/1440; DNS que resuelve no cuenta
+como evidencia de UI, TLS o checkout funcional.
 
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto: CTA móvil hecho; faltan variantes densas y confianza extra;
@@ -520,7 +528,7 @@ declara validado porque “se ve mejor”.
 | 17 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos, aprobación y handoff a recepción usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
 | 18 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
 | 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
-| 20 | Storefront home/PLP/PDP | Parcial D5.13 2026-09-03 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias. D5.7 deja el CTA de compra al pie en 360 px. D5.8 reserva geometría al cargar y declara tamaño de imagen. D5.9 hace que crawlers vean HTML del comercio. D5.10 distingue 404 de red caída y no pinta un catálogo vacío. D5.11 no pide email ni declara el carrito vencido si la red falló. D5.12 conserva enlaces `/catalogo/:id` user/org. D5.13 hace visible y honesta la persistencia server-side y recupera todas las líneas/variantes. Falta hero del comercio, prueba multidispositivo real y flujo sandbox/real. |
+| 20 | Storefront home/PLP/PDP | Parcial D5.14 2026-09-03 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias. D5.7 deja el CTA de compra al pie en 360 px. D5.8 reserva geometría al cargar y declara tamaño de imagen. D5.9 hace que crawlers vean HTML del comercio. D5.10 distingue 404 de red caída y no pinta un catálogo vacío. D5.11 no pide email ni declara el carrito vencido si la red falló. D5.12 conserva enlaces `/catalogo/:id` user/org. D5.13 hace visible y honesta la persistencia server-side y recupera todas las líneas/variantes. D5.14 reutiliza ese mismo Storefront en `<slug>.nerqia.app` con base, canonical, robots, sitemap, feed y previews resueltos por host. Falta validación publicada multidispositivo y flujo sandbox/real. |
 | 21 | Carrito/checkout/pago | Parcial D5.11 2026-09-01 | Resultado protegido por capacidad; D5.3–D5.6 cierran avisos, Pay honesto, cola e inspector. D5.7 deja CTA de ficha/carrito/checkout a 44 px en 360. D5.10 reintenta `create_store_order_idem` ante un corte de red con la misma clave. D5.11 distingue link de pago inexistente de corte de red y no borra un pedido ya visto. Faltan compra sandbox/real y bulk con RPC. |
 | 22 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
 | 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |

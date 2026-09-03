@@ -153,14 +153,14 @@ Nerqia Cloud
 
 ### Superficies
 
-La topología actual se conserva:
+La topología lógica conserva sus límites y Commerce suma host canónico propio:
 
 | Superficie | Ruta actual | Usuario | Límite |
 |---|---|---|---|
-| Organización | / | Miembros del comercio | AppLayout; no hereda permisos de Platform. |
-| Finance | /finance | Miembros con producto + `finance.view` | FinanceLayout; misma identidad/organización, sin heredar onboarding de Business. |
-| Plataforma | /platform | Staff de Nerqia | PlatformLayout, MFA y auditoría. |
-| Tienda pública | /tienda/:slug | Comprador | StoreLayout y superficie pública mínima. |
+| Organización | `nerqia.app` y objetivo `app.nerqia.app` | Miembros del comercio | AppLayout; no hereda permisos de Platform. |
+| Finance | `/finance` | Miembros con producto + `finance.view` | FinanceLayout; misma identidad/organización, sin heredar onboarding de Business. |
+| Plataforma | `/platform` | Staff de Nerqia | PlatformLayout, MFA y auditoría. |
+| Tienda pública | `<slug>.nerqia.app`; `/tienda/:slug` compatible | Comprador | Un único StoreLayout/StoreContext y superficie pública mínima. |
 
 La evolución prevista puede separar Business, Finance, Platform, Storefront,
 Auth, Developers y Status en aplicaciones o subdominios. Eso es una
@@ -3779,6 +3779,33 @@ Finance Connect.
      conocidos, **2.555 tests / 272 archivos** y build/PWA productivo
      (2026-09-03). Próximo slice: resolver host/subdominio en código, canónicos
      y redirecciones con pruebas antes de habilitar dominios propios.
+
+163. Subdominio incluido sin duplicar Storefront — 2026-09-03.
+     Implementado localmente: `storefrontHost.ts` valida labels DNS, reserva
+     hosts de producto y resuelve `<slug>.nerqia.app`; `ApplicationRoutes`
+     monta la misma `StorefrontPage`, mientras `StoreContext` entrega una única
+     base de navegación a home, PLP, PDP, carrito, checkout, cuenta, pedido,
+     preguntas y reseñas. Se retiraron doce reconstrucciones independientes de
+     `/tienda/:slug`. Auth del comprador, recuperación de carrito y enlaces
+     internos usan el mismo contrato.
+
+     El borde reconoce el host para HTML de crawlers, canonical, robots,
+     sitemap y feed. Los recorridos privados salen con `noindex`; el índice raíz
+     enumera los sitemaps canónicos por tienda. `vercel.json` prioriza cuatro
+     rewrites condicionados por host y excluye los quince nombres reservados;
+     Supabase Auth declara el wildcard de callback del storefront. El vínculo
+     wildcard con el proyecto Vercel, el push de Auth y la prueba HTTPS
+     publicada se ejecutan después de la puerta local: hasta entonces es
+     **implementación**, no dominio operativo. El dominio propio del merchant
+     sigue separado: requiere modelo tenant-scoped, challenge DNS y alta
+     server-side en Vercel, sin exponer su token al navegador.
+
+     Puerta local (2026-09-03): `npm run typecheck` verde; lint 0 errores y
+     143 warnings heredados; 2.566 tests verdes en 273 archivos; build/PWA
+     verde; las 74 Edge Functions pasan `check:functions`; los cinco handlers
+     SEO de Vercel pasan TypeScript NodeNext y bundling independiente. El
+     runner local de Vercel en Windows falló al lanzar `cmd.exe` después de
+     instalar dependencias, por lo que no se toma como prueba de despliegue.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

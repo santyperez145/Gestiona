@@ -38,11 +38,12 @@ interface Ctx {
 
 const StoreAuthContext = createContext<Ctx | null>(null);
 
-function storeAccountRedirect(slug: string): string {
-  return `${window.location.origin}/tienda/${slug}/cuenta`;
+function storeAccountRedirect(slug: string, basePath?: string): string {
+  const base = basePath ?? `/tienda/${encodeURIComponent(slug)}`;
+  return `${window.location.origin}${base}/cuenta`;
 }
 
-export function StoreAuthProvider({ slug, children }: { slug: string; children: ReactNode }) {
+export function StoreAuthProvider({ slug, basePath, children }: { slug: string; basePath?: string; children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [customer, setCustomer] = useState<StoreCustomer | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,7 +107,7 @@ export function StoreAuthProvider({ slug, children }: { slug: string; children: 
           // `account_type` evita que el trigger de Supabase le cree una
           // organización y un trial: es un comprador, no un usuario del SaaS.
           data: { full_name: name, account_type: "store_customer", store_slug: slug },
-          emailRedirectTo: storeAccountRedirect(slug),
+          emailRedirectTo: storeAccountRedirect(slug, basePath),
         },
       });
       if (error) return { error: error.message };
@@ -136,7 +137,7 @@ export function StoreAuthProvider({ slug, children }: { slug: string; children: 
         email: email.trim(),
         options: {
           shouldCreateUser: createUser,
-          emailRedirectTo: storeAccountRedirect(slug),
+          emailRedirectTo: storeAccountRedirect(slug, basePath),
           data: createUser
             ? {
                 full_name: opts.name?.trim() || undefined,
@@ -168,13 +169,13 @@ export function StoreAuthProvider({ slug, children }: { slug: string; children: 
 
     resetPassword: async (email) => {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: storeAccountRedirect(slug),
+        redirectTo: storeAccountRedirect(slug, basePath),
       });
       return error ? { error: error.message } : {};
     },
 
     refresh,
-  }), [loading, session, customer, slug, refresh]);
+  }), [loading, session, customer, slug, basePath, refresh]);
 
   return <StoreAuthContext.Provider value={value}>{children}</StoreAuthContext.Provider>;
 }

@@ -11,9 +11,8 @@ import { useStore } from "./storeContext";
 import { saveOrderAccessToken } from "./orderAccess";
 
 export default function StoreOrderLookup() {
-  const { store } = useStore();
+  const { store, basePath: base } = useStore();
   const navigate = useNavigate();
-  const base = `/tienda/${store?.slug ?? ""}`;
   const [orderNumber, setOrderNumber] = useState("");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -113,7 +112,7 @@ export default function StoreOrderLookup() {
           <p className="mt-3 text-center text-xs text-red-600" role="alert">{error}</p>
         )}
         <Link
-          to={base}
+          to={base || "/"}
           className="mt-5 block text-center text-sm hover:underline"
           style={{ color: "hsl(var(--st-accent))" }}
         >

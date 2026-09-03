@@ -17,7 +17,6 @@ const TOKENS = {
 
 export default function StorefrontStatus({
   kind,
-  slug,
   storeName,
   title,
   detail,
@@ -36,7 +35,7 @@ export default function StorefrontStatus({
     : "Tienda no encontrada");
   const detalle = detail ?? (error
     ? "La red falló o el catálogo no respondió. Tu carrito sigue guardado; reintentá."
-    : `No hay ninguna tienda activa en /tienda/${slug ?? ""}. Puede que la dirección haya cambiado o que esté desactivada.`);
+    : "No hay ninguna tienda activa en esta dirección. Puede que haya cambiado o que esté desactivada.");
 
   return (
     <div

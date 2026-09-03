@@ -24,12 +24,12 @@ export default function StoreCart() {
     store, products, variantsByProduct, cart, cartCount, subtotal, promo2x,
     shippingLabel, shippingPending, total, freeShippingGap, fmt, priceOf,
     addToCart, setQty, removeFromCart, lineKeyOf, cartSyncStatus, cartSyncNotice,
+    basePath: base,
   } = useStore();
   const [provinciaCarrito, setProvinciaCarrito] = useState("");
   const [cotizandoCarrito, setCotizandoCarrito] = useState(false);
   const [resumenCotizacion, setResumenCotizacion] = useState<{ amount: number; subtitle: string } | null>(null);
 
-  const base = `/tienda/${store?.slug ?? ""}`;
   const coberturaEnvio = textoCoberturaDomicilio(store?.shipping_provinces);
 
   useEffect(() => {

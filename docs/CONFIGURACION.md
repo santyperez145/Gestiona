@@ -8,7 +8,7 @@ Estado al 2026-08-30. Lo que **no** esté acá, ya funciona sin tocar nada.
 |---|---|
 | Base de datos, RLS, migraciones | ✅ Listo |
 | Cron jobs (13) | ✅ Arreglados, ver `docs/CRON.md` |
-| Tienda online `/tienda/:slug` | ✅ Funciona |
+| Tienda online `<slug>.nerqia.app` | 🟠 Implementada; falta prueba publicada del wildcard |
 | Catálogo público `/catalogo/:userId` | ✅ Funciona |
 | Notificaciones push | ✅ VAPID cargado |
 | **IA** (chat, descripciones, insights, OCR) | ⚠️ Falta `ANTHROPIC_API_KEY` para IA generativa; el comprobante de Gastos exige además aprobación legal y `EXPENSE_RECEIPT_EXTRACTION_ENABLED=true`. `predict-sales` conserva un respaldo estadístico |
@@ -102,8 +102,14 @@ silencio. Detalle en `docs/CRON.md`.
 y tiene TLS activo desde 2026-09-03. `www.nerqia.app` está asignado al mismo
 proyecto y redirige al dominio raíz mediante `vercel.json`.
 
+El storefront incluido usa `<slug>.nerqia.app` y conserva
+`/tienda/:slug` como compatibilidad. No es otra tienda: router, catálogo,
+carrito, checkout y órdenes son los mismos. Para operarlo hay que asociar
+`*.nerqia.app` al proyecto `nerqia`; que el wildcard responda DNS no demuestra
+que Vercel lo haya asociado ni emitido el certificado.
+
 Supabase Auth declara `https://nerqia.app` como Site URL. Los callbacks de
-producción, `www`, previews de Vercel y localhost se versionan en
+producción, `www`, `*.nerqia.app`, previews de Vercel y localhost se versionan en
 `supabase/config.toml`; después de editarlos hay que ejecutar
 `npx supabase config push`.
 

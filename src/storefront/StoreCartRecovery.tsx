@@ -20,7 +20,7 @@ type EstadoRecuperacion = "cargando" | "vacio" | "error" | "catalogo" | "listo";
 
 export default function StoreCartRecovery() {
   const { token } = useParams<{ token: string }>();
-  const { store, restoreCart, loading, loadError, reload } = useStore();
+  const { store, restoreCart, loading, loadError, reload, basePath: base } = useStore();
   const navigate = useNavigate();
   const [estado, setEstado] = useState<EstadoRecuperacion>("cargando");
   const yaCorrio = useRef(false);
@@ -46,8 +46,8 @@ export default function StoreCartRecovery() {
     const restored = restoreCart(items);
     if (restored.restoredCount === 0) { setEstado("vacio"); return; }
     setEstado("listo");
-    navigate(`/tienda/${store.slug}/checkout`, { replace: true });
-  }, [token, store, restoreCart, navigate]);
+    navigate(`${base}/checkout`, { replace: true });
+  }, [token, store, restoreCart, navigate, base]);
 
   useEffect(() => {
     if (!token || !store || loading) return;
@@ -109,7 +109,7 @@ export default function StoreCartRecovery() {
       "Puede que ya lo hayas comprado, o que los productos se hayan agotado.",
       {
         label: "Ver productos",
-        onClick: () => navigate(`/tienda/${store?.slug ?? ""}/productos`),
+        onClick: () => navigate(`${base}/productos`),
       },
       "cart-empty",
     );

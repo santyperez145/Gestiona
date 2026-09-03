@@ -1,9 +1,11 @@
 /**
  * Índice de sitemaps: una URL que Search Console puede pegar una sola vez.
  *
- * Cada tienda activa declara la suya en `/tienda/<slug>/sitemap.xml`. Este
+ * Cada tienda activa declara la suya en `<slug>.nerqia.app/sitemap.xml`. Este
  * archivo las junta para no depender de que alguien recorra la home.
  */
+import { BRAND_DOMAIN } from "../src/lib/brand.js";
+
 export const config = { runtime: "edge" };
 
 const SUPABASE_URL =
@@ -18,9 +20,7 @@ const esc = (s: unknown) =>
   String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c]!));
 
-export default async function handler(req: Request): Promise<Response> {
-  const url = new URL(req.url);
-  const origin = `${url.protocol}//${url.host}`;
+export default async function handler(_req: Request): Promise<Response> {
   const locs: string[] = [];
 
   if (SUPABASE_URL && SUPABASE_KEY) {
@@ -39,7 +39,7 @@ export default async function handler(req: Request): Promise<Response> {
         ? rows.map((r: { slug?: string }) => String(r?.slug ?? "").trim()).filter(Boolean)
         : [];
       for (const slug of slugs) {
-        locs.push(`${origin}/tienda/${encodeURIComponent(slug)}/sitemap.xml`);
+        locs.push(`https://${encodeURIComponent(slug)}.${BRAND_DOMAIN}/sitemap.xml`);
       }
     } catch { /* índice vacío es honesto */ }
   }

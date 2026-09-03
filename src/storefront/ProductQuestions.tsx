@@ -38,9 +38,8 @@ const fecha = (iso: string) =>
   new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
 
 export default function ProductQuestions({ productId }: { productId: string }) {
-  const { store } = useStore();
+  const { store, basePath: base } = useStore();
   const { customer } = useStoreAuth();
-  const base = `/tienda/${store?.slug ?? ""}`;
 
   const [preguntas, setPreguntas] = useState<StoreQuestion[]>([]);
   const [mias, setMias] = useState<MiPregunta[]>([]);

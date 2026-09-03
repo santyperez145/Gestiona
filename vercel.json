@@ -11,6 +11,21 @@
   "rewrites": [
     {
       "source": "/robots.txt",
+      "has": [{ "type": "host", "value": "^(?!(?:www|app|api|admin|platform|finance|auth|docs|help|status|soporte|mail|cdn|assets|developer)\\.nerqia\\.app$)(?<storeSlug>[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\\.nerqia\\.app$" }],
+      "destination": "/api/robots?hostSlug=:storeSlug"
+    },
+    {
+      "source": "/sitemap.xml",
+      "has": [{ "type": "host", "value": "^(?!(?:www|app|api|admin|platform|finance|auth|docs|help|status|soporte|mail|cdn|assets|developer)\\.nerqia\\.app$)(?<storeSlug>[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\\.nerqia\\.app$" }],
+      "destination": "/api/sitemap?hostSlug=:storeSlug&path=/"
+    },
+    {
+      "source": "/feed.xml",
+      "has": [{ "type": "host", "value": "^(?!(?:www|app|api|admin|platform|finance|auth|docs|help|status|soporte|mail|cdn|assets|developer)\\.nerqia\\.app$)(?<storeSlug>[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\\.nerqia\\.app$" }],
+      "destination": "/api/feed?hostSlug=:storeSlug&path=/"
+    },
+    {
+      "source": "/robots.txt",
       "destination": "/api/robots"
     },
     {
@@ -24,6 +39,21 @@
     {
       "source": "/tienda/:slug/feed.xml",
       "destination": "/api/feed?path=/tienda/:slug"
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "^(?!(?:www|app|api|admin|platform|finance|auth|docs|help|status|soporte|mail|cdn|assets|developer)\\.nerqia\\.app$)(?<storeSlug>[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\\.nerqia\\.app$"
+        },
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Facebot|facebookcatalog|WhatsApp|Twitterbot|Slackbot|LinkedInBot|TelegramBot|Discordbot|Googlebot|Google-InspectionTool|AdsBot-Google|Storebot-Google|GoogleOther|bingbot|BingPreview|DuckDuckBot|YandexBot|Applebot|Pinterest|redditbot|SkypeUriPreview|vkShare|W3C_Validator|embedly).*"
+        }
+      ],
+      "destination": "/api/og?hostSlug=:storeSlug&path=/:path*"
     },
     {
       "source": "/tienda/:path*",

@@ -36,9 +36,8 @@ const ESTADO_ENVIO: Record<string, string> = {
 };
 
 export default function StoreAccount() {
-  const { store, products, fmt } = useStore();
+  const { store, products, fmt, basePath: base } = useStore();
   const { loading, customer, signIn, signUp, signOut, resetPassword, signInWithEmailOtp, verifyEmailOtp } = useStoreAuth();
-  const base = `/tienda/${store?.slug ?? ""}`;
 
   const [modo, setModo] = useState<"login" | "registro" | "otp">("login");
   const [form, setForm] = useState({ email: "", password: "", name: "", otp: "" });

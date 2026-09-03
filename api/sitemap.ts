@@ -6,8 +6,10 @@
  * y volverlo a pedir cuando reingrese stock gasta presupuesto de rastreo.
  * La disponibilidad la declara el JSON-LD de la ficha, no la presencia acá.
  *
- * Uso: /tienda/:slug/sitemap.xml
+ * Uso: /tienda/:slug/sitemap.xml o https://slug.nerqia.app/sitemap.xml
  */
+import { hostedStoreOrigin, hostedStoreSlugFromUrl, publicStoreBaseUrl } from "../src/lib/storefrontHost.js";
+
 export const config = { runtime: "edge" };
 
 const SUPABASE_URL =
@@ -24,9 +26,10 @@ const esc = (s: unknown) =>
 
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const origin = `${url.protocol}//${url.host}`;
+  const hostedSlug = hostedStoreSlugFromUrl(url);
+  const origin = hostedStoreOrigin(url, hostedSlug);
   const path = url.searchParams.get("path") ?? url.pathname;
-  const slug = decodeURIComponent(/^\/tienda\/([^/]+)/.exec(path)?.[1] ?? "");
+  const slug = hostedSlug ?? decodeURIComponent(/^\/tienda\/([^/]+)/.exec(path)?.[1] ?? "");
 
   const xml = (body: string) =>
     new Response(
@@ -82,7 +85,7 @@ export default async function handler(req: Request): Promise<Response> {
       categorias = cats.ok ? await cats.json() : [];
     } catch { /* el catálogo igual se indexa */ }
 
-    const base = `${origin}/tienda/${encodeURIComponent(slug)}`;
+    const base = publicStoreBaseUrl(origin, slug, Boolean(hostedSlug));
     const hoy = new Date().toISOString().slice(0, 10);
 
     const urls = [

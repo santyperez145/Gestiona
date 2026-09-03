@@ -5,6 +5,7 @@ site_url = "https://nerqia.app"
 additional_redirect_urls = [
   "https://nerqia.app/**",
   "https://www.nerqia.app/**",
+  "https://*.nerqia.app/**",
   "https://nerqia-*-santyperez145sgmailcoms-projects.vercel.app/**",
   "https://exentryimports.vercel.app/**",
   "https://exentryimports-*-santyperez145sgmailcoms-projects.vercel.app/**",

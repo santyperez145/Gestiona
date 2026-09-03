@@ -54,7 +54,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
 
 export default function StoreOrder() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
-  const { store, fmt } = useStore();
+  const { store, fmt, basePath: base } = useStore();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -70,7 +70,6 @@ export default function StoreOrder() {
   const [brickConfig, setBrickConfig] = useState<StorePaymentBrickConfig | null>(null);
   const [tarjetaDisponible, setTarjetaDisponible] = useState(true);
   const [pagoEnProceso, setPagoEnProceso] = useState(false);
-  const base = `/tienda/${store?.slug ?? ""}`;
   const pedidoPendiente = order?.payment_status === "pending";
 
   const cargar = useCallback(async (email?: string): Promise<CargaPedido> => {
@@ -252,7 +251,7 @@ export default function StoreOrder() {
           >
             Reintentar
           </button>
-          <Link to={base} className="inline-block mt-5 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
+          <Link to={base || "/"} className="inline-block mt-5 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
             Volver a la tienda
           </Link>
         </div>
@@ -312,7 +311,7 @@ export default function StoreOrder() {
           <Link to={`${base}/seguimiento`} className="inline-block mt-4 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
             ¿No tenés el link? Consultá con número y email
           </Link>
-          <Link to={base} className="inline-block mt-3 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
+          <Link to={base || "/"} className="inline-block mt-3 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
             Volver a la tienda
           </Link>
         </div>

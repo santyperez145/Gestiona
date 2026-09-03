@@ -13,8 +13,7 @@ import { renderMarkdown } from "./miniMarkdown";
 
 export default function StorePage() {
   const { pageSlug } = useParams();
-  const { store, pages, loading } = useStore();
-  const base = `/tienda/${store?.slug ?? ""}`;
+  const { store, pages, loading, basePath: base } = useStore();
   const page = pages.find(p => p.slug === pageSlug);
 
   useEffect(() => {
@@ -34,7 +33,7 @@ export default function StorePage() {
           Puede que todavía no esté publicada.
         </p>
         <Link
-          to={base}
+          to={base || "/"}
           className="inline-block mt-5 px-4 py-2 text-sm font-medium"
           style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
         >
@@ -47,7 +46,7 @@ export default function StorePage() {
   return (
     <article className="max-w-3xl mx-auto px-4 py-10">
       <nav className="text-xs mb-4" style={{ color: "hsl(var(--st-muted))" }}>
-        <Link to={base} className="hover:underline">Inicio</Link> / {page.title}
+        <Link to={base || "/"} className="hover:underline">Inicio</Link> / {page.title}
       </nav>
       <h1 className="text-2xl font-semibold">{page.title}</h1>
       <div className="mt-6">{renderMarkdown(page.content)}</div>

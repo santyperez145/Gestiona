@@ -1,5 +1,5 @@
 /**
- * StorefrontPage — la tienda online en `/tienda/:slug`.
+ * StorefrontPage — una sola tienda para `/tienda/:slug` y `slug.nerqia.app`.
  *
  * Es una tienda de verdad, no el catálogo con otro nombre: home con hero y
  * secciones, listado con filtros, ficha de producto con perfil olfativo,
@@ -30,8 +30,9 @@ import { WishlistProvider } from "@/storefront/wishlist";
 import StorefrontSkeleton from "@/storefront/StorefrontSkeleton";
 import StorefrontStatus from "@/storefront/StorefrontStatus";
 import { initTracking, trackPageView } from "@/storefront/tracking";
-import { parseRutaTienda, tituloDeRutaTienda } from "@/lib/storefrontSeo";
+import { canonicalStorefrontPath, parseRutaTienda, tituloDeRutaTienda } from "@/lib/storefrontSeo";
 import { nombreDeCategoria } from "@/lib/storeCategories";
+import { hostedStoreUrl } from "@/lib/storefrontHost";
 
 function tituloPrivadoDeRuta(pathname: string): string | null {
   if (pathname.includes("/checkout")) return "Checkout";
@@ -43,8 +44,7 @@ function tituloPrivadoDeRuta(pathname: string): string | null {
 }
 
 function StoreShell() {
-  const { loading, notFound, loadError, store, products, pages, categorias, reload } = useStore();
-  const { slug } = useParams<{ slug: string }>();
+  const { basePath, loading, notFound, loadError, store, products, pages, categorias, reload } = useStore();
   const { pathname, search } = useLocation();
 
   // Píxeles: se inicializan una vez, en cuanto se conoce la tienda.
@@ -64,7 +64,11 @@ function StoreShell() {
   // `api/og`. Acá es lo que ve el comprador al cambiar de ficha.
   useEffect(() => {
     if (!store) return;
-    const ruta = parseRutaTienda(pathname, new URLSearchParams(search));
+    const ruta = parseRutaTienda(
+      pathname,
+      new URLSearchParams(search),
+      basePath === '' ? store?.slug : null,
+    );
     const productName = ruta?.kind === "pdp"
       ? products.find(p => p.id === ruta.productId)?.name ?? null
       : null;
@@ -82,6 +86,28 @@ function StoreShell() {
       categoryLabel,
       pageTitle,
     });
+
+    const hostedHome = hostedStoreUrl(window.location.origin, store.slug);
+    const canonicalHome = hostedHome ?? `${window.location.origin}${basePath}`;
+    const canonicalPath = canonicalStorefrontPath(ruta);
+    let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.rel = "canonical";
+      document.head.appendChild(canonical);
+    }
+    canonical.href = canonicalPath === null ? canonicalHome : `${canonicalHome}${canonicalPath}`;
+
+    const previousRobots = document.querySelector<HTMLMetaElement>('meta[name="robots"][data-storefront]');
+    if (canonicalPath === null) {
+      const robots = previousRobots ?? document.createElement("meta");
+      robots.name = "robots";
+      robots.content = "noindex,nofollow";
+      robots.dataset.storefront = "true";
+      if (!previousRobots) document.head.appendChild(robots);
+    } else {
+      previousRobots?.remove();
+    }
     if (store.meta_description && (!ruta || ruta.kind === "home")) {
       let tag = document.querySelector('meta[name="description"]');
       if (!tag) {
@@ -91,7 +117,7 @@ function StoreShell() {
       }
       tag.setAttribute("content", store.meta_description);
     }
-  }, [store, pathname, search, products, pages, categorias]);
+  }, [store, basePath, pathname, search, products, pages, categorias]);
 
   if (loading) {
     return <StorefrontSkeleton />;
@@ -108,7 +134,7 @@ function StoreShell() {
   }
 
   if (notFound || !store) {
-    return <StorefrontStatus kind="not-found" slug={slug} />;
+    return <StorefrontStatus kind="not-found" />;
   }
 
   return (
@@ -133,12 +159,19 @@ function StoreShell() {
   );
 }
 
-export default function StorefrontPage() {
-  const { slug } = useParams<{ slug: string }>();
+export default function StorefrontPage({
+  hostedSlug,
+  basePath,
+}: {
+  hostedSlug?: string;
+  basePath?: string;
+} = {}) {
+  const { slug: routeSlug } = useParams<{ slug: string }>();
+  const slug = hostedSlug ?? routeSlug;
   if (!slug) return null;
   return (
-    <StoreAuthProvider slug={slug}>
-      <StoreProvider slug={slug}>
+    <StoreAuthProvider slug={slug} basePath={basePath}>
+      <StoreProvider slug={slug} basePath={basePath}>
         <WishlistProvider slug={slug}>
           <StoreShell />
         </WishlistProvider>

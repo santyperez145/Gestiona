@@ -29,7 +29,7 @@ import StoreShippingQuote from "./StoreShippingQuote";
 
 export default function StoreProduct() {
   const { productId } = useParams<{ productId: string }>();
-  const { store, products, perfumes, variantsByProduct, priceOf, fmt, addToCart } = useStore();
+  const { store, products, perfumes, variantsByProduct, priceOf, fmt, addToCart, basePath: base } = useStore();
 
   // El mejor descuento por medio de pago que ofrece la tienda, o null.
   const descuentoPago = mejorDescuento(store?.payment_methods ?? null, store?.payment_discounts ?? null);
@@ -42,7 +42,6 @@ export default function StoreProduct() {
   const [atcVisible, setAtcVisible] = useState(true);
   const atcRef = useRef<HTMLDivElement | null>(null);
 
-  const base = `/tienda/${store?.slug ?? ""}`;
   const p = products.find(x => x.id === productId);
   const d = productId ? perfumes[productId] : undefined;
 

@@ -52,7 +52,7 @@ function LinkDeMenu({
 }
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
-  const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingLabel, shippingPending, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf, cartRevealTick } = useStore();
+  const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingLabel, shippingPending, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf, cartRevealTick, basePath: base } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname, search } = useLocation();
@@ -113,7 +113,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     setMenuOpen(false);
   }, [cartRevealTick, pathname]);
 
-  const base = `/tienda/${store?.slug ?? ""}`;
   const social = parseStoreSocial(store?.social_links);
   const waConsultar = hrefWhatsAppConsultar(social.whatsapp, store?.name);
   const anuncio = textoDeAnuncio(parseStorefrontLayout(store?.storefront_layout), {
@@ -288,7 +287,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <Menu className="w-5 h-5" />
           </button>
 
-          <Link to={base} className="storefront-brand flex items-center gap-2 min-w-0 shrink-0">
+          <Link to={base || "/"} className="storefront-brand flex items-center gap-2 min-w-0 shrink-0">
             <span
               className="relative h-8 w-8 shrink-0 rounded grid place-items-center overflow-hidden text-sm font-bold"
               style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))" }}

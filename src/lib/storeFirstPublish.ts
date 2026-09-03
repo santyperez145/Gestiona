@@ -11,6 +11,8 @@
  *    mismo vicio en otra pantalla.
  */
 
+import { hostedStoreUrl } from '@/lib/storefrontHost';
+
 export type StoreCartSession = {
   status: string | null;
   items: unknown;
@@ -345,7 +347,7 @@ export function storeAbandonedCartCount(sessions: StoreCartSession[]): number {
 
 /**
  * El link que el comercio comparte. Sin slug no hay puerta.
- * El origin lo pone el navegador; no se inventa un dominio propio (F4).
+ * En producción usa el subdominio incluido; previews/localhost conservan path.
  */
 export function urlPublicaDeTienda(
   origin: string,
@@ -354,11 +356,13 @@ export function urlPublicaDeTienda(
   const host = origin.trim().replace(/\/$/, '');
   const s = (slug ?? '').trim();
   if (!host || !s) return null;
+  const hosted = hostedStoreUrl(host, s);
+  if (hosted) return hosted;
   return `${host}/tienda/${s}`;
 }
 
 /**
- * Qué URL se comparte. Si hay tienda activa, es `/tienda/:slug` (checkout).
+ * Qué URL se comparte. Si hay tienda activa, es el storefront canónico.
  * El catálogo `/catalogo/:userId` queda como vidriera WhatsApp, no como cobro.
  */
 export function enlaceCanonicoDeVitrina(input: {

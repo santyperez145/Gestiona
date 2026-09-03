@@ -150,6 +150,8 @@ export interface CartLine {
 export type CartSyncStatus = "loading" | "syncing" | "synced" | "local" | "error";
 
 interface Ctx {
+  /** Vacío en slug.nerqia.app; /tienda/:slug en el host compartido. */
+  basePath: string;
   loading: boolean;
   notFound: boolean;
   /** Red o catálogo fallaron: no es un 404. */
@@ -223,7 +225,15 @@ const cartKey = (slug: string) => `gestiona.store.cart.${slug}`;
 const cartUpdatedKey = (slug: string) => `gestiona.store.cart.updated.${slug}`;
 const cartSessionKey = (slug: string) => `gestiona.store.session.${slug}`;
 
-export function StoreProvider({ slug, children }: { slug: string; children: ReactNode }) {
+export function StoreProvider({
+  slug,
+  basePath = `/tienda/${encodeURIComponent(slug)}`,
+  children,
+}: {
+  slug: string;
+  basePath?: string;
+  children: ReactNode;
+}) {
   const {
     loading: buyerIdentityLoading,
     session: buyerSession,
@@ -605,6 +615,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     const shippingLabel = cartShippingCellText(ship, fmt);
 
     return {
+      basePath,
       loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias,
       addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf,
       cartSyncStatus, cartSyncNotice, cartToken,
@@ -621,7 +632,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         : null,
       priceOf, fmt,
     };
-  }, [loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf, cartRevealTick, cartSyncStatus, cartSyncNotice, cartToken, priceOf, fmt]);
+  }, [basePath, loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf, cartRevealTick, cartSyncStatus, cartSyncNotice, cartToken, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

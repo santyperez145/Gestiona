@@ -40,6 +40,15 @@ describe("rutas públicas de la tienda", () => {
     expect(parseRutaTienda("/tienda/exentryimports/productos")?.kind).not.toBe("home");
   });
 
+  it("interpreta las mismas rutas limpias cuando el slug viene del host", () => {
+    expect(parseRutaTienda("/", new URLSearchParams(), "mi-tienda"))
+      .toEqual({ kind: "home", slug: "mi-tienda" });
+    expect(parseRutaTienda("/producto/abc", new URLSearchParams(), "mi-tienda"))
+      .toEqual({ kind: "pdp", slug: "mi-tienda", productId: "abc" });
+    expect(parseRutaTienda("/checkout", new URLSearchParams(), "mi-tienda")?.kind)
+      .toBe("private");
+  });
+
   it("el título de la pestaña nombra el producto, no sólo la tienda", () => {
     const base = {
       storeName: "Exentry Imports",
@@ -87,11 +96,19 @@ describe("robots e índice salen del servidor", () => {
     expect(txt).toContain("Disallow: /platform");
   });
 
+  it("en un host de tienda niega checkout/cuenta sin el prefijo heredado", () => {
+    const txt = cuerpoRobots("https://demo.nerqia.app", ["/sitemap.xml"], { hostedStore: true });
+    expect(txt).toContain("Disallow: /checkout");
+    expect(txt).toContain("Disallow: /cuenta");
+    expect(txt).not.toContain("Disallow: /tienda/*/checkout");
+    expect(txt).toContain("Allow: /producto/");
+  });
+
   it("Search Console y AdsBot ven la misma lista que Vercel", () => {
     const vercel = JSON.parse(leer("vercel.json")) as {
       rewrites: Array<{ destination?: string; has?: Array<{ value: string }>; source: string }>;
     };
-    const og = vercel.rewrites.find(r => r.destination?.includes("/api/og"));
+    const og = vercel.rewrites.find(r => r.source === "/tienda/:path*" && r.destination?.includes("/api/og"));
     const ua = og?.has?.[0]?.value ?? "";
     expect(ua).toContain("Google-InspectionTool");
     expect(ua).toContain("AdsBot-Google");

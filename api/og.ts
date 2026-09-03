@@ -6,7 +6,8 @@
  * Corre en el borde y devuelve HTML plano. `vercel.json` la usa SOLO para
  * user-agents de crawlers; el comprador sigue recibiendo la SPA.
  */
-import { parseRutaTienda, precioDeCatalogo } from "../src/lib/storefrontSeo";
+import { parseRutaTienda, precioDeCatalogo } from "../src/lib/storefrontSeo.js";
+import { hostedStoreOrigin, hostedStoreSlugFromUrl, publicStoreBaseUrl } from "../src/lib/storefrontHost.js";
 
 export const config = { runtime: "edge" };
 
@@ -101,13 +102,15 @@ const html = (body: string, status = 200, cache = "public, max-age=300") =>
 
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const origin = `${url.protocol}//${url.host}`;
+  const hostedSlug = hostedStoreSlugFromUrl(url);
+  const origin = hostedStoreOrigin(url, hostedSlug);
   const path = url.searchParams.get("path") ?? url.pathname;
-  const ruta = parseRutaTienda(path, url.searchParams);
+  const ruta = parseRutaTienda(path, url.searchParams, hostedSlug);
 
   if (!ruta) return new Response("Not found", { status: 404 });
 
-  const sitemap = `${origin}/tienda/${encodeURIComponent(ruta.slug)}/sitemap.xml`;
+  const homeUrl = publicStoreBaseUrl(origin, ruta.slug, Boolean(hostedSlug));
+  const sitemap = `${homeUrl}/sitemap.xml`;
   const stores = await rpc<any[]>("get_store_by_slug", { p_slug: ruta.slug });
   const store = Array.isArray(stores) ? stores[0] : stores;
 
@@ -115,7 +118,7 @@ export default async function handler(req: Request): Promise<Response> {
     return html(page({
       title: "Tienda no encontrada",
       description: "Esta tienda no existe o fue desactivada.",
-      url: `${origin}/tienda/${encodeURIComponent(ruta.slug)}`,
+      url: homeUrl,
       siteName: "Nerqia",
       sitemap: `${origin}/sitemap.xml`,
       indexable: false,
@@ -123,7 +126,6 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const storeName = store.name ?? "Tienda online";
-  const homeUrl = `${origin}/tienda/${encodeURIComponent(ruta.slug)}`;
   const storeDatos = {
     "@context": "https://schema.org",
     "@type": "Store",

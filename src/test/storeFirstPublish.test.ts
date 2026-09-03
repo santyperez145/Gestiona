@@ -352,6 +352,13 @@ describe('el enlace de la tienda se puede copiar', () => {
     expect(urlPublicaDeTienda('', 'exentryimports')).toBeNull();
   });
 
+  it('usa slug.nerqia.app cuando la tienda se comparte desde producción', () => {
+    expect(urlPublicaDeTienda('https://nerqia.app', 'mi-tienda'))
+      .toBe('https://mi-tienda.nerqia.app');
+    expect(urlPublicaDeTienda('https://app.nerqia.app', 'mi-tienda'))
+      .toBe('https://mi-tienda.nerqia.app');
+  });
+
   it('si la tienda está activa se comparte /tienda/:slug, no el catálogo WhatsApp', () => {
     expect(enlaceCanonicoDeVitrina({
       origin: 'https://app.example',

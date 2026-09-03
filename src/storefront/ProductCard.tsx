@@ -7,11 +7,10 @@ import { ShoppingBag, Heart } from "lucide-react";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 
 export default function ProductCard({ p }: { p: StoreProduct }) {
-  const { store, priceOf, fmt, addToCart, reviewsByProduct, variantsByProduct } = useStore();
+  const { priceOf, fmt, addToCart, reviewsByProduct, variantsByProduct, basePath: base } = useStore();
   const variantes = variantsByProduct[p.id] ?? [];
   const [varianteId, setVarianteId] = useState<string | null>(null);
   const [avisoOpcion, setAvisoOpcion] = useState(false);
-  const base = `/tienda/${store?.slug ?? ""}`;
   const opiniones = reviewsByProduct[p.id];
   const { has, toggle } = useWishlist();
   const deseado = has(p.id);

@@ -8,7 +8,9 @@
  * ⚠️ No puede existir `public/robots.txt`: Vercel entrega el estático antes
  * del rewrite y esta función no corre. Lo midió el deploy de D5.9.
  */
-import { cuerpoRobots } from "../src/lib/storefrontSeo";
+import { cuerpoRobots } from "../src/lib/storefrontSeo.js";
+import { BRAND_DOMAIN } from "../src/lib/brand.js";
+import { hostedStoreOrigin, hostedStoreSlugFromUrl } from "../src/lib/storefrontHost.js";
 
 export const config = { runtime: "edge" };
 
@@ -22,10 +24,11 @@ const SUPABASE_KEY =
 
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const origin = `${url.protocol}//${url.host}`;
+  const hostedSlug = hostedStoreSlugFromUrl(url);
+  const origin = hostedStoreOrigin(url, hostedSlug);
   const sitemaps = ["/sitemap.xml"];
 
-  if (SUPABASE_URL && SUPABASE_KEY) {
+  if (!hostedSlug && SUPABASE_URL && SUPABASE_KEY) {
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/list_published_store_slugs`, {
         method: "POST",
@@ -41,14 +44,14 @@ export default async function handler(req: Request): Promise<Response> {
         ? rows.map((r: { slug?: string }) => String(r?.slug ?? "").trim()).filter(Boolean)
         : [];
       for (const slug of slugs) {
-        sitemaps.push(`/tienda/${encodeURIComponent(slug)}/sitemap.xml`);
+        sitemaps.push(`https://${slug}.${BRAND_DOMAIN}/sitemap.xml`);
       }
     } catch {
       /* el índice raíz sigue yendo */
     }
   }
 
-  return new Response(cuerpoRobots(origin, sitemaps), {
+  return new Response(cuerpoRobots(origin, sitemaps, { hostedStore: Boolean(hostedSlug) }), {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "public, max-age=3600",

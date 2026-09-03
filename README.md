@@ -194,10 +194,10 @@ código, y código que existe no es código que funcionó.
 
 | Superficie | Ruta | Quién entra | Aislamiento |
 |---|---|---|---|
-| Gestión | `/` | miembros de una organización (`memberships`) | RLS por `org_id` |
+| Nerqia Business | `/` (objetivo `app.nerqia.app`) | miembros de una organización (`memberships`) | RLS por `org_id` |
 | Finance | `/finance` | miembros **con el producto habilitado** y `finance.view` | entitlement por organización + permiso por persona |
 | Plataforma | `/platform` | staff del SaaS (`platform_admins`) | no da permisos dentro de una org |
-| Tienda pública | `/tienda/:slug` | comprador anónimo o con cuenta | RPCs `security definer` con columnas saneadas |
+| Tienda pública | `<slug>.nerqia.app` (`/tienda/:slug` compatible) | comprador anónimo o con cuenta | RPCs `security definer` con columnas saneadas |
 
 Ser staff de plataforma **no** habilita nada dentro de una organización, y un
 comprador con cuenta en una tienda **no** es usuario del panel de gestión.
@@ -212,7 +212,8 @@ porqué de esa separación —y cuándo justificaría otra aplicación física�
 
 ## Tienda online
 
-Una tienda completa por organización, en `/tienda/:slug`:
+Una tienda completa por organización, en `<slug>.nerqia.app`; el path
+`/tienda/:slug` se conserva durante la transición:
 
 - Home con hero, categorías y filas de ofertas, destacados y novedades
 - Listado con filtros (categoría, género, familia olfativa, ofertas) y orden,
