@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { financeFocoFromSnapshot, type FinanceCoreSnapshot } from "@/lib/financeProductDB";
+import {
+  financeFocoFromSnapshot,
+  financeMetricHref,
+  type FinanceCoreSnapshot,
+} from "@/lib/financeProductDB";
 
 const vacio: FinanceCoreSnapshot = {
   suppliersCount: 0,
@@ -11,11 +15,14 @@ const vacio: FinanceCoreSnapshot = {
 };
 
 describe("financeFocoFromSnapshot", () => {
-  it("sin evidencia no inventa oportunidades", () => {
-    expect(financeFocoFromSnapshot(vacio)).toEqual([]);
+  it("sin operación sugiere cargar proveedor, no inventa colas F5", () => {
+    const foco = financeFocoFromSnapshot(vacio);
+    expect(foco).toHaveLength(1);
+    expect(foco[0]?.to).toBe("/proveedores");
+    expect(foco[0]?.label).toMatch(/proveedor/i);
   });
 
-  it("prioriza la bandeja documental y no pasa de cinco", () => {
+  it("prioriza la bandeja documental con vista y no pasa de cinco", () => {
     const foco = financeFocoFromSnapshot({
       ...vacio,
       precursorOcrDocuments: 2,
@@ -24,8 +31,25 @@ describe("financeFocoFromSnapshot", () => {
       suppliersCount: 4,
     });
     expect(foco.length).toBeLessThanOrEqual(5);
-    expect(foco[0]?.to).toBe("/finance/documentos");
+    expect(foco[0]?.to).toBe("/finance/documentos?vista=revisar");
     expect(foco.some(i => i.to === "/ordenes-compra")).toBe(true);
     expect(foco.some(i => i.to === "/libro")).toBe(true);
+  });
+
+  it("cada métrica con evidencia abre la cola exacta", () => {
+    const s: FinanceCoreSnapshot = {
+      ...vacio,
+      precursorOcrDocuments: 1,
+      openPurchaseOrders: 2,
+      openPayablesCount: 3,
+      openPayablesArs: 1000,
+      suppliersCount: 5,
+      ledgerEntriesCount: 9,
+    };
+    expect(financeMetricHref("precursorOcrDocuments", s)).toBe("/finance/documentos?vista=revisar");
+    expect(financeMetricHref("openPurchaseOrders", s)).toBe("/ordenes-compra");
+    expect(financeMetricHref("openPayablesCount", s)).toBe("/ordenes-compra");
+    expect(financeMetricHref("suppliersCount", s)).toBe("/proveedores");
+    expect(financeMetricHref("ledgerEntriesCount", s)).toBe("/libro");
   });
 });

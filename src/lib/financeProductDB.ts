@@ -69,6 +69,28 @@ export async function getFinanceCoreSnapshot(orgId: string): Promise<FinanceCore
 
 export type FinanceFocoItem = { to: string; label: string; detail: string };
 
+/** Destinos de las métricas del Resumen: cada señal abre la cola exacta (Mendel). */
+export function financeMetricHref(
+  key: keyof FinanceCoreSnapshot,
+  snapshot: FinanceCoreSnapshot,
+): string | null {
+  switch (key) {
+    case 'precursorOcrDocuments':
+      return snapshot.precursorOcrDocuments > 0 ? '/finance/documentos?vista=revisar' : '/finance/documentos';
+    case 'openPurchaseOrders':
+      return snapshot.openPurchaseOrders > 0 ? '/ordenes-compra' : null;
+    case 'openPayablesCount':
+    case 'openPayablesArs':
+      return snapshot.openPayablesCount > 0 ? '/ordenes-compra' : null;
+    case 'suppliersCount':
+      return snapshot.suppliersCount > 0 ? '/proveedores' : '/proveedores';
+    case 'ledgerEntriesCount':
+      return '/libro';
+    default:
+      return null;
+  }
+}
+
 /**
  * Pulse de Finance: como máximo cinco acciones, sólo si el snapshot tiene
  * evidencia. No inventa colas de política/tarjeta (eso es F5 / gate).
@@ -77,30 +99,37 @@ export function financeFocoFromSnapshot(s: FinanceCoreSnapshot): FinanceFocoItem
   const items: FinanceFocoItem[] = [];
   if (s.precursorOcrDocuments > 0) {
     items.push({
-      to: "/finance/documentos",
-      label: "Inspeccionar documentos",
-      detail: `${s.precursorOcrDocuments} precursor${s.precursorOcrDocuments === 1 ? "" : "es"} OCR sin cadena de custodia`,
+      to: '/finance/documentos?vista=revisar',
+      label: 'Revisar documentos pendientes',
+      detail: `${s.precursorOcrDocuments} documento${s.precursorOcrDocuments === 1 ? '' : 's'} esperando revisión humana`,
     });
   }
   if (s.openPurchaseOrders > 0) {
     items.push({
-      to: "/ordenes-compra",
-      label: "Cerrar órdenes de compra",
-      detail: `${s.openPurchaseOrders} abierta${s.openPurchaseOrders === 1 ? "" : "s"} en el Core`,
+      to: '/ordenes-compra',
+      label: 'Cerrar órdenes de compra',
+      detail: `${s.openPurchaseOrders} abierta${s.openPurchaseOrders === 1 ? '' : 's'} en Compras`,
     });
   }
   if (s.openPayablesCount > 0) {
     items.push({
-      to: "/ordenes-compra",
-      label: "Saldar obligaciones",
-      detail: `${s.openPayablesCount} pendiente${s.openPayablesCount === 1 ? "" : "s"} · no se clona en Finance`,
+      to: '/ordenes-compra',
+      label: 'Atender saldos a proveedores',
+      detail: `${s.openPayablesCount} obligación${s.openPayablesCount === 1 ? '' : 'es'} · se operan en el Core`,
     });
   }
   if (s.ledgerEntriesCount === 0 && s.suppliersCount > 0) {
     items.push({
-      to: "/libro",
-      label: "El libro todavía no tiene asientos",
-      detail: "Hay proveedores en el Core y el ledger está vacío",
+      to: '/libro',
+      label: 'El libro todavía no tiene asientos',
+      detail: 'Hay proveedores y el mayor está vacío',
+    });
+  }
+  if (items.length === 0 && s.suppliersCount === 0) {
+    items.push({
+      to: '/proveedores',
+      label: 'Cargar el primer proveedor',
+      detail: 'Sin proveedores no hay documentos ni obligaciones que revisar',
     });
   }
   return items.slice(0, 5);

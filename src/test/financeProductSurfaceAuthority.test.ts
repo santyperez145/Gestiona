@@ -90,10 +90,12 @@ describe('autoridad de la superficie Gestiona Finance', () => {
   it('el Foco de Finance es Pulse: evidencia, tope de cinco, sin clonar Core', () => {
     expect(overview).toContain('financeFocoFromSnapshot');
     expect(overview).toContain('Hasta cinco movimientos');
+    expect(overview).toContain('financeMetricHref');
+    expect(overview).toContain('WorkspaceState');
     const db = read('src/lib/financeProductDB.ts');
     expect(db).toContain('return items.slice(0, 5)');
-    expect(db).toContain('to: "/finance/documentos"');
-    expect(db).toContain('to: "/ordenes-compra"');
+    expect(db).toContain("/finance/documentos?vista=revisar");
+    expect(db).toContain('/ordenes-compra');
     expect(db).not.toContain('INSERT INTO public.expenses');
   });
 

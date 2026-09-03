@@ -2,10 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpenCheck, Building2, FileClock, FileStack, Landmark, Loader2, ReceiptText, ShoppingCart, Wallet, ArrowUpRight } from 'lucide-react';
 import { useOrg } from '@/lib/orgContext';
-import { financeFocoFromSnapshot, getFinanceCoreSnapshot, type FinanceCoreSnapshot } from '@/lib/financeProductDB';
+import {
+  financeFocoFromSnapshot,
+  financeMetricHref,
+  getFinanceCoreSnapshot,
+  type FinanceCoreSnapshot,
+} from '@/lib/financeProductDB';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/shared/PageHeader';
+import WorkspaceState from '@/components/shared/WorkspaceState';
 
 function formatArs(value: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(value);
@@ -32,42 +38,94 @@ export default function FinanceOverviewPage() {
     <div className="space-y-6">
       <PageHeader
         icon={ReceiptText}
-        eyebrow="Gestiona Finance / Resumen"
-        title="Finance"
-        description={`Documentos, obligaciones y movimientos contables conectados para ${activeOrg?.name || 'tu organización'}.`}
+        eyebrow="Finance"
+        title="Resumen"
+        description={`Pendientes documentales y puentes al Core para ${activeOrg?.name || 'tu organización'}.`}
         actions={(
           <Button asChild variant="secondary" className="!border-teal-600/20 !bg-teal-600 !text-white shadow-[0_10px_22px_-14px_rgba(13,148,136,.8)] hover:!bg-teal-700">
-            <Link to="/finance/documentos"><FileStack className="h-3.5 w-3.5" />Ver bandeja documental</Link>
+            <Link to="/finance/documentos"><FileStack className="h-3.5 w-3.5" />Ver bandeja</Link>
           </Button>
         )}
       />
 
       <section className="rounded-[14px] border border-teal-500/20 bg-gradient-to-br from-teal-500/[0.08] via-card to-card p-5 sm:p-7">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-600 dark:text-teal-300">Finance · Operación conectada</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-600 dark:text-teal-300">Operación conectada</p>
         <h2 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">Documentos que terminan en datos revisables</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Cada comprobante se vincula con proveedor, compra, obligación y movimiento contable, sin repetir carga de trabajo.</p>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          Cada comprobante se vincula con proveedor, compra, obligación y movimiento contable.
+          Compras y gastos se operan en el Core: acá no se duplican pantallas.
+        </p>
       </section>
 
       {error ? (
-        <div className="rounded-[10px] border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{error}</div>
+        <WorkspaceState
+          kind="error-recoverable"
+          title="No pudimos cargar el resumen"
+          description={error}
+          actionLabel="Reintentar"
+          onAction={() => {
+            if (!activeOrg?.id) return;
+            setSnapshot(null);
+            setError(null);
+            getFinanceCoreSnapshot(activeOrg.id).then(
+              data => { setSnapshot(data); setError(null); },
+              cause => { setError(cause instanceof Error ? cause.message : 'No pudimos cargar el resumen financiero.'); },
+            );
+          }}
+        />
       ) : !snapshot ? (
         <div className="flex items-center justify-center py-14 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Actualizando indicadores...</div>
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-          <Metric icon={Building2} label="Proveedores" value={snapshot.suppliersCount.toLocaleString('es-AR')} />
-          <Metric icon={ShoppingCart} label="Órdenes abiertas" value={snapshot.openPurchaseOrders.toLocaleString('es-AR')} />
-          <Metric icon={ReceiptText} label="Obligaciones" value={snapshot.openPayablesCount.toLocaleString('es-AR')} />
-          <Metric icon={FileClock} label="Saldo pendiente" value={formatArs(snapshot.openPayablesArs)} wide />
-          <Metric icon={Landmark} label="Asientos" value={snapshot.ledgerEntriesCount.toLocaleString('es-AR')} />
-          <Metric icon={FileStack} label="Documentos por revisar" value={snapshot.precursorOcrDocuments.toLocaleString('es-AR')} />
+          <Metric
+            icon={Building2}
+            label="Proveedores"
+            value={snapshot.suppliersCount.toLocaleString('es-AR')}
+            href={financeMetricHref('suppliersCount', snapshot)}
+          />
+          <Metric
+            icon={ShoppingCart}
+            label="Órdenes abiertas"
+            value={snapshot.openPurchaseOrders.toLocaleString('es-AR')}
+            href={financeMetricHref('openPurchaseOrders', snapshot)}
+            attention={snapshot.openPurchaseOrders > 0}
+          />
+          <Metric
+            icon={ReceiptText}
+            label="Obligaciones"
+            value={snapshot.openPayablesCount.toLocaleString('es-AR')}
+            href={financeMetricHref('openPayablesCount', snapshot)}
+            attention={snapshot.openPayablesCount > 0}
+          />
+          <Metric
+            icon={FileClock}
+            label="Saldo pendiente"
+            value={formatArs(snapshot.openPayablesArs)}
+            wide
+            href={financeMetricHref('openPayablesArs', snapshot)}
+            attention={snapshot.openPayablesArs > 0}
+          />
+          <Metric
+            icon={Landmark}
+            label="Asientos"
+            value={snapshot.ledgerEntriesCount.toLocaleString('es-AR')}
+            href={financeMetricHref('ledgerEntriesCount', snapshot)}
+          />
+          <Metric
+            icon={FileStack}
+            label="Documentos por revisar"
+            value={snapshot.precursorOcrDocuments.toLocaleString('es-AR')}
+            href={financeMetricHref('precursorOcrDocuments', snapshot)}
+            attention={snapshot.precursorOcrDocuments > 0}
+          />
         </div>
       )}
 
-      {foco.length > 0 && (
-        <section className="rounded-[12px] border border-teal-500/20 bg-card p-5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-600 dark:text-teal-300">Foco</p>
-          <h2 className="mt-1 text-sm font-semibold">Hasta cinco movimientos con evidencia</h2>
-          <p className="mt-1 text-xs text-muted-foreground">Mostramos sólo prioridades accionables con datos reales.</p>
+      <section className="rounded-[12px] border border-teal-500/20 bg-card p-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-600 dark:text-teal-300">Foco</p>
+        <h2 className="mt-1 text-sm font-semibold">Hasta cinco movimientos con evidencia</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Solo prioridades accionables. Cada ítem abre la cola exacta.</p>
+        {foco.length > 0 ? (
           <ol className="mt-4 space-y-2">
             {foco.map((item, i) => (
               <li key={`${item.to}-${item.label}`}>
@@ -84,8 +142,12 @@ export default function FinanceOverviewPage() {
               </li>
             ))}
           </ol>
-        </section>
-      )}
+        ) : snapshot ? (
+          <p className="mt-4 rounded-[8px] border border-border/50 bg-muted/10 px-3 py-3 text-xs text-muted-foreground">
+            Nada urgente ahora. Cuando llegue un documento o una obligación, aparece acá.
+          </p>
+        ) : null}
+      </section>
 
       <section className="rounded-[12px] border border-border/70 bg-card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -191,12 +253,39 @@ export default function FinanceOverviewPage() {
   );
 }
 
-function Metric({ icon: Icon, label, value, wide = false }: { icon: typeof Building2; label: string; value: string; wide?: boolean }) {
-  return (
-    <article className={`rounded-[10px] border border-border/70 bg-card p-3.5 ${wide ? 'col-span-2 lg:col-span-2' : ''}`}>
-      <Icon className="h-3.5 w-3.5 text-teal-500" />
+function Metric({
+  icon: Icon,
+  label,
+  value,
+  wide = false,
+  href,
+  attention = false,
+}: {
+  icon: typeof Building2;
+  label: string;
+  value: string;
+  wide?: boolean;
+  href?: string | null;
+  attention?: boolean;
+}) {
+  const className = `rounded-[10px] border bg-card p-3.5 transition-colors ${
+    wide ? 'col-span-2 lg:col-span-2' : ''
+  } ${
+    attention
+      ? 'border-amber-500/35 hover:border-amber-500/50'
+      : 'border-border/70 hover:border-teal-500/30'
+  } ${href ? 'block hover:bg-teal-500/[0.04]' : ''}`;
+
+  const body = (
+    <>
+      <Icon className={`h-3.5 w-3.5 ${attention ? 'text-amber-600 dark:text-amber-400' : 'text-teal-500'}`} />
       <p className="mt-3 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
       <p className="mt-1 truncate text-base font-semibold tabular-nums">{value}</p>
-    </article>
+    </>
   );
+
+  if (href) {
+    return <Link to={href} className={className}>{body}</Link>;
+  }
+  return <article className={className}>{body}</article>;
 }
