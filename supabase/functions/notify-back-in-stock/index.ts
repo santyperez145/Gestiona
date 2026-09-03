@@ -64,6 +64,12 @@ Deno.serve(async (req) => {
           ? `${a.product_name} — ${a.variant_name}`
           : String(a.product_name);
         const link = baseUrl ? `${baseUrl}/tienda/${a.store_slug}/producto/${a.product_id}` : "";
+        // Sin PUBLIC_BASE_URL el mail no tiene CTA. Marcar notified_at igual
+        // quemaba el único intento (paridad con recover-abandoned-carts 156).
+        if (!link) {
+          errores.push(`${a.email}: falta PUBLIC_BASE_URL`);
+          continue;
+        }
         // Con poco stock se dice cuánto queda: es la diferencia entre volver
         // hoy y volver la semana que viene cuando ya no está.
         const quedan = Number(a.stock) || 0;
@@ -79,9 +85,9 @@ Deno.serve(async (req) => {
     <strong>${esc(nombre)}</strong> está disponible otra vez.
     ${quedan > 0 && quedan <= 5 ? `Quedan ${quedan} unidades.` : ""}
   </p>
-  ${link ? `<div style="text-align:center;margin-bottom:20px">
+  <div style="text-align:center;margin-bottom:20px">
     <a href="${esc(link)}" style="display:inline-block;padding:12px 28px;border-radius:8px;background:#111;color:#fff;font-weight:600;text-decoration:none;font-size:14px">Verlo en la tienda</a>
-  </div>` : ""}
+  </div>
   <p style="color:#888;font-size:12px;text-align:center;line-height:1.5;margin:0">
     Recibís este mensaje porque pediste que te avisáramos. Es el único aviso por este pedido.
   </p>

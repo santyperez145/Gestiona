@@ -3615,6 +3615,17 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+157. Avisos de reposición honestos + cola en Recuperación — 2026-09-03.
+     Medido: storefront promete «te avisamos»; cron podía marcar enviado
+     sin PUBLIC_BASE_URL; Commerce no leía `store_stock_alerts` (0 filas
+     hoy). Shopify/Klaviyo Back in stock. Cron sin link no marca;
+     tab Recuperación (carritos + reposición); Foco → vista=reposicion.
+     Vercel: deploy CLI bloqueado (free 100/día); GitHub en 93e4006;
+     último Ready ~1h atrasado — reintentar deploy cuando baje el cupo.
+     No inventa stock ni tarifario.
+
+     Verificado en este recorte: **PENDIENTE CI**.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

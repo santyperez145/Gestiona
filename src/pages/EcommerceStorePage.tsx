@@ -20,6 +20,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
 import StoreOrdersPanel from "@/components/ecommerce/StoreOrdersPanel";
 import AbandonedCartsPanel from "@/components/ecommerce/AbandonedCartsPanel";
+import StockAlertsPanel from "@/components/ecommerce/StockAlertsPanel";
 import StoreOrderInspector from "@/components/ecommerce/StoreOrderInspector";
 import PaymentConnectionsPanel from "@/components/integrations/PaymentConnectionsPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
@@ -66,6 +67,10 @@ import {
 } from "@/lib/storeFirstPublish";
 import type { AbandonedCartRow } from "@/lib/abandonedCarts";
 import { filterAbandonedCartsForQueue } from "@/lib/abandonedCarts";
+import {
+  countPendingStockAlerts,
+  type StockAlertRow,
+} from "@/lib/stockAlerts";
 import {
   costoEnvioAlGuardar,
   envioGratisAlGuardar,
@@ -183,8 +188,8 @@ export default function EcommerceStorePage() {
       else params.set("tab", next);
       if (next !== "orders") {
         params.delete("q");
-        params.delete("vista");
         params.delete("pedido");
+        if (next !== "carritos") params.delete("vista");
       }
       return params;
     }, { replace: true });
@@ -233,6 +238,10 @@ export default function EcommerceStorePage() {
   const [abandonedCartRows, setAbandonedCartRows] = useState<AbandonedCartRow[]>([]);
   const [abandonedLoading, setAbandonedLoading] = useState(false);
   const [abandonedError, setAbandonedError] = useState<string | null>(null);
+  const [stockAlertRows, setStockAlertRows] = useState<StockAlertRow[]>([]);
+  const [stockAlertsLoading, setStockAlertsLoading] = useState(false);
+  const [stockAlertsError, setStockAlertsError] = useState<string | null>(null);
+  const [stockAlertsPending, setStockAlertsPending] = useState(0);
   // Opciones para armar el menú: las categorías y las páginas publicadas.
   const [menuCategorias, setMenuCategorias] = useState<{ slug: string; name: string }[]>([]);
   const [menuPaginas, setMenuPaginas] = useState<{ slug: string; title: string }[]>([]);
@@ -450,7 +459,43 @@ export default function EcommerceStorePage() {
           setAbandonedLoading(false);
         });
     };
+    const loadStockAlerts = () => {
+      setStockAlertsLoading(true);
+      setStockAlertsError(null);
+      supabase
+        .from("store_stock_alerts")
+        .select("id, email, product_id, variant_id, notified_at, created_at, products(name, stock)")
+        .eq("org_id", orgId)
+        .is("notified_at", null)
+        .order("created_at", { ascending: false })
+        .then(({ data, error }) => {
+          if (error) {
+            console.error("EcommerceStorePage / avisos reposición:", error);
+            setStockAlertsError(error.message);
+            setStockAlertsLoading(false);
+            return;
+          }
+          const rows: StockAlertRow[] = (data ?? []).map((raw) => {
+            const r = raw as Record<string, unknown>;
+            const prod = r.products as { name?: string; stock?: number } | null;
+            return {
+              id: String(r.id),
+              email: String(r.email),
+              product_id: String(r.product_id),
+              variant_id: (r.variant_id as string | null) ?? null,
+              notified_at: (r.notified_at as string | null) ?? null,
+              created_at: String(r.created_at),
+              product_name: prod?.name ?? null,
+              product_stock: prod?.stock ?? null,
+            };
+          });
+          setStockAlertRows(rows);
+          setStockAlertsPending(countPendingStockAlerts(rows));
+          setStockAlertsLoading(false);
+        });
+    };
     loadCartSessions();
+    loadStockAlerts();
   }, [orgId, org, loadOrders]);
 
   // Las señales viven en otras pestañas (Páginas, Pay, Productos). Si sólo se
@@ -672,7 +717,7 @@ export default function EcommerceStorePage() {
   const TABS: { id: StoreTab; label: string }[] = [
     { id: "overview",  label: "Publicar" },
     { id: "orders",    label: "Pedidos" },
-    { id: "carritos",  label: "Carritos" },
+    { id: "carritos",  label: "Recuperación" },
     { id: "reviews",   label: "Opiniones y preguntas" },
     { id: "categorias", label: "Categorías" },
     { id: "pages",     label: "Páginas" },
@@ -680,6 +725,8 @@ export default function EcommerceStorePage() {
     { id: "design",    label: "Diseño y tema" },
     { id: "settings",  label: "Pagos y envíos" },
   ];
+  const recoveryVista = searchParams.get("vista") === "reposicion" ? "reposicion" : "abandonados";
+  const recoveryBadge = abandonedCarts + stockAlertsPending;
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayOrders = useMemo(() => orders.filter(o => o.created_at.slice(0, 10) === todayStr), [orders, todayStr]);
@@ -842,9 +889,9 @@ export default function EcommerceStorePage() {
           <button key={t.id} onClick={() => goToTab(t.id)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {t.label}
-            {t.id === "carritos" && abandonedCarts > 0 ? (
+            {t.id === "carritos" && recoveryBadge > 0 ? (
               <span className="ml-1.5 text-[10px] tabular-nums text-amber-600 dark:text-amber-400">
-                {abandonedCarts}
+                {recoveryBadge}
               </span>
             ) : null}
           </button>
@@ -1093,33 +1140,113 @@ export default function EcommerceStorePage() {
       )}
 
       {tab === "carritos" && (
-        <AbandonedCartsPanel
-          carts={abandonedCartRows}
-          loading={abandonedLoading}
-          error={abandonedError}
-          onRetry={() => {
-            if (!orgId) return;
-            setAbandonedLoading(true);
-            setAbandonedError(null);
-            supabase
-              .from("ecommerce_cart_sessions")
-              .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, updated_at, created_at")
-              .eq("org_id", orgId)
-              .then(({ data, error }) => {
-                if (error) {
-                  console.error("EcommerceStorePage / carritos:", error);
-                  setAbandonedError(error.message);
-                  setAbandonedLoading(false);
-                  return;
-                }
-                const rows = (data ?? []) as AbandonedCartRow[];
-                setFunnelData(storeFunnelFromCarts(rows));
-                setAbandonedCarts(storeAbandonedCartCount(rows));
-                setAbandonedCartRows(filterAbandonedCartsForQueue(rows));
-                setAbandonedLoading(false);
-              });
-          }}
-        />
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant={recoveryVista === "abandonados" ? "default" : "outline"}
+              className="min-h-11"
+              onClick={() => {
+                setSearchParams((prev) => {
+                  const p = new URLSearchParams(prev);
+                  p.set("tab", "carritos");
+                  p.delete("vista");
+                  return p;
+                }, { replace: true });
+              }}
+            >
+              Carritos abandonados
+              {abandonedCarts > 0 ? ` (${abandonedCarts})` : ""}
+            </Button>
+            <Button
+              size="sm"
+              variant={recoveryVista === "reposicion" ? "default" : "outline"}
+              className="min-h-11"
+              onClick={() => {
+                setSearchParams((prev) => {
+                  const p = new URLSearchParams(prev);
+                  p.set("tab", "carritos");
+                  p.set("vista", "reposicion");
+                  return p;
+                }, { replace: true });
+              }}
+            >
+              Avisos de reposición
+              {stockAlertsPending > 0 ? ` (${stockAlertsPending})` : ""}
+            </Button>
+          </div>
+          {recoveryVista === "reposicion" ? (
+            <StockAlertsPanel
+              alerts={stockAlertRows}
+              loading={stockAlertsLoading}
+              error={stockAlertsError}
+              onRetry={() => {
+                if (!orgId) return;
+                setStockAlertsLoading(true);
+                setStockAlertsError(null);
+                supabase
+                  .from("store_stock_alerts")
+                  .select("id, email, product_id, variant_id, notified_at, created_at, products(name, stock)")
+                  .eq("org_id", orgId)
+                  .is("notified_at", null)
+                  .order("created_at", { ascending: false })
+                  .then(({ data, error }) => {
+                    if (error) {
+                      console.error("EcommerceStorePage / avisos reposición:", error);
+                      setStockAlertsError(error.message);
+                      setStockAlertsLoading(false);
+                      return;
+                    }
+                    const rows: StockAlertRow[] = (data ?? []).map((raw) => {
+                      const r = raw as Record<string, unknown>;
+                      const prod = r.products as { name?: string; stock?: number } | null;
+                      return {
+                        id: String(r.id),
+                        email: String(r.email),
+                        product_id: String(r.product_id),
+                        variant_id: (r.variant_id as string | null) ?? null,
+                        notified_at: (r.notified_at as string | null) ?? null,
+                        created_at: String(r.created_at),
+                        product_name: prod?.name ?? null,
+                        product_stock: prod?.stock ?? null,
+                      };
+                    });
+                    setStockAlertRows(rows);
+                    setStockAlertsPending(countPendingStockAlerts(rows));
+                    setStockAlertsLoading(false);
+                  });
+              }}
+            />
+          ) : (
+            <AbandonedCartsPanel
+              carts={abandonedCartRows}
+              loading={abandonedLoading}
+              error={abandonedError}
+              onRetry={() => {
+                if (!orgId) return;
+                setAbandonedLoading(true);
+                setAbandonedError(null);
+                supabase
+                  .from("ecommerce_cart_sessions")
+                  .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, updated_at, created_at")
+                  .eq("org_id", orgId)
+                  .then(({ data, error }) => {
+                    if (error) {
+                      console.error("EcommerceStorePage / carritos:", error);
+                      setAbandonedError(error.message);
+                      setAbandonedLoading(false);
+                      return;
+                    }
+                    const rows = (data ?? []) as AbandonedCartRow[];
+                    setFunnelData(storeFunnelFromCarts(rows));
+                    setAbandonedCarts(storeAbandonedCartCount(rows));
+                    setAbandonedCartRows(filterAbandonedCartsForQueue(rows));
+                    setAbandonedLoading(false);
+                  });
+              }}
+            />
+          )}
+        </div>
       )}
 
       {/* ─── Design tab ─── */}

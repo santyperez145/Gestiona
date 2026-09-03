@@ -54,3 +54,6 @@ e2e/.auth/
 # Archivos de trabajo de una sesión (medición, listas temporales)
 /.*.txt
 /.*.sql
+
+.vercel
+.env*

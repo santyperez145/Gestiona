@@ -101,6 +101,11 @@ export interface DatosFoco {
    * (paridad Shopify Abandoned checkouts).
    */
   carritosAbandonados?: number;
+  /**
+   * Avisos «Avisame cuando vuelva» sin notificar — cola Recuperación.
+   * (Shopify / Klaviyo Back in stock).
+   */
+  avisosReposicion?: number;
   /** Productos con stock+precio sin weight_kg — envío cotiza con estimado. */
   productosSinPeso?: number;
   /** Zonas activas sin tarifa — Completar tarifario. */
@@ -369,6 +374,19 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       texto: `${n} ${n === 1 ? "carrito abandonado" : "carritos abandonados"}`,
       accion: "Ver",
       destino: "/tienda-online?tab=carritos",
+      urgencia: "atencion",
+    });
+  }
+
+  // Shopify / Klaviyo Back in stock: demanda OOS visible. El cron avisa;
+  // el Foco lleva a la cola bajo Recuperación.
+  if ((d.avisosReposicion ?? 0) > 0) {
+    const n = d.avisosReposicion!;
+    lista.push({
+      id: "avisos-reposicion",
+      texto: `${n} ${n === 1 ? "aviso de reposición pendiente" : "avisos de reposición pendientes"}`,
+      accion: "Ver",
+      destino: "/tienda-online?tab=carritos&vista=reposicion",
       urgencia: "atencion",
     });
   }

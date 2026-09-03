@@ -26,6 +26,7 @@ import {
 import { countActionableUnpaidOrders } from "@/lib/storeOrderPayment";
 import { countFulfillmentPulse } from "@/lib/storeOrderQueue";
 import { filterAbandonedCartsForQueue, type AbandonedCartRow } from "@/lib/abandonedCarts";
+import { countPendingStockAlerts, type StockAlertRow } from "@/lib/stockAlerts";
 import { ArrowUp, ArrowDown, Minus, AlertTriangle, AlertCircle, Circle, Check, ArrowRight } from "lucide-react";
 
 const COLOR_URGENCIA: Record<Urgencia, string> = {
@@ -71,6 +72,7 @@ export default function FocoDelDia(p: Props) {
   const [sinConteo, setSinConteo] = useState(false);
   const [ofertasPendientes, setOfertasPendientes] = useState(0);
   const [carritosAbandonados, setCarritosAbandonados] = useState(0);
+  const [avisosReposicion, setAvisosReposicion] = useState(0);
   const [productosSinPeso, setProductosSinPeso] = useState(0);
   const [zonasSinTarifa, setZonasSinTarifa] = useState(0);
   const [zonasActivas, setZonasActivas] = useState(0);
@@ -206,6 +208,26 @@ export default function FocoDelDia(p: Props) {
     return () => { cancelado = true; };
   }, [p.orgId]);
 
+  useEffect(() => {
+    if (!p.orgId) return;
+    let cancelado = false;
+    supabase
+      .from("store_stock_alerts")
+      .select("id, email, product_id, variant_id, notified_at, created_at")
+      .eq("org_id", p.orgId)
+      .is("notified_at", null)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("FocoDelDia / avisos reposición:", error);
+          return;
+        }
+        if (!cancelado) {
+          setAvisosReposicion(countPendingStockAlerts((data ?? []) as StockAlertRow[]));
+        }
+      });
+    return () => { cancelado = true; };
+  }, [p.orgId]);
+
   // Señales ATM de conversión (pesos / tarifario) — mismas reglas que Tienda.
   useEffect(() => {
     if (!p.orgId) return;
@@ -270,6 +292,7 @@ export default function FocoDelDia(p: Props) {
     sinConteoFisico: sinConteo,
     ofertasIaPendientes: ofertasPendientes,
     carritosAbandonados,
+    avisosReposicion,
     productosSinPeso,
     zonasSinTarifa,
     zonasActivas,
