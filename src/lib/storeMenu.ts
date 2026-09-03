@@ -54,7 +54,10 @@ export function destinoDe(link: LinkMenu, base: string): ItemMenu | null {
   if (!label) return null;
 
   switch (link.tipo) {
-    case "inicio":    return { label, to: base };
+    // En el host canónico `base` es vacío. React Router interpreta `to=""`
+    // como "quedate en esta pantalla", no como home; por eso siempre se
+    // materializa la raíz.
+    case "inicio":    return { label, to: base || "/" };
     case "productos": return { label, to: `${base}/productos` };
     case "ofertas":   return { label, to: `${base}/productos?oferta=1` };
     case "categoria":
@@ -79,7 +82,7 @@ export interface ContextoMenu {
 /** El menú de siempre, para una tienda que no configuró el suyo. */
 export function menuAutomatico({ base, categorias }: ContextoMenu): ItemMenu[] {
   return [
-    { label: "Inicio", to: base },
+    { label: "Inicio", to: base || "/" },
     { label: "Productos", to: `${base}/productos` },
     ...categorias.slice(0, 2).map(c => ({
       label: c.label,

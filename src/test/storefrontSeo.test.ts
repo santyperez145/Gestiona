@@ -101,7 +101,8 @@ describe("robots e índice salen del servidor", () => {
     expect(txt).toContain("Disallow: /checkout");
     expect(txt).toContain("Disallow: /cuenta");
     expect(txt).not.toContain("Disallow: /tienda/*/checkout");
-    expect(txt).toContain("Allow: /producto/");
+    expect(txt).not.toContain("Disallow: /productos");
+    expect(txt).not.toContain("# El panel de gestión");
   });
 
   it("Search Console y AdsBot ven la misma lista que Vercel", () => {

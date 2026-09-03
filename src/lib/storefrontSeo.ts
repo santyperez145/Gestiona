@@ -178,15 +178,17 @@ export function cuerpoRobots(
     "User-agent: *",
     "Allow: /",
     "",
-    "# El panel de gestión no aporta nada en los buscadores y solo gasta",
-    "# presupuesto de rastreo: lo que interesa indexar son las tiendas.",
-    ...ROBOTS_DISALLOW_PANEL.map(p => `Disallow: ${p}`),
-    "",
+    ...(!options.hostedStore ? [
+      "# El panel de gestión no aporta nada en los buscadores y solo gasta",
+      "# presupuesto de rastreo: lo que interesa indexar son las tiendas.",
+      ...ROBOTS_DISALLOW_PANEL.map(p => `Disallow: ${p}`),
+      "",
+    ] : []),
     "# Checkout, cuenta y seguimiento no son catálogo.",
     ...(options.hostedStore ? ROBOTS_DISALLOW_HOSTED_STORE : ROBOTS_DISALLOW_TIENDA)
       .map(p => `Disallow: ${p}`),
     "",
-    ...(options.hostedStore ? ["Allow: /productos", "Allow: /producto/"] : ["Allow: /tienda/", "Allow: /catalogo/"]),
+    ...(options.hostedStore ? [] : ["Allow: /tienda/", "Allow: /catalogo/"]),
     "",
   ];
   const unicos = [...new Set(sitemaps.filter(Boolean))];

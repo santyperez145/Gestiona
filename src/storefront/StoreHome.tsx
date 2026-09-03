@@ -177,6 +177,9 @@ export default function StoreHome() {
 
   return (
     <div className="storefront-home">
+      {!mostrarHero && (
+        <h1 className="sr-only">{store?.name ?? "Tienda online"}</h1>
+      )}
       {layout.sections.map((s) => bloque(s.id))}
     </div>
   );

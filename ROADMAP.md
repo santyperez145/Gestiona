@@ -3807,6 +3807,24 @@ Finance Connect.
      runner local de Vercel en Windows falló al lanzar `cmd.exe` después de
      instalar dependencias, por lo que no se toma como prueba de despliegue.
 
+164. Wildcard operativo y hallazgo de navegación real — 2026-09-03.
+     El commit `4c85059` quedó `READY` en Vercel con `nerqia.app`, `www`, el
+     dominio legado y `*.nerqia.app` como aliases. Vercel verificó el wildcard
+     sin issues y Supabase Auth recibió `https://*.nerqia.app/**`. La única
+     tienda publicada apareció en el índice como
+     `https://exentryimports.nerqia.app/sitemap.xml`; home, robots, sitemap y
+     feed respondieron 200 con TLS válido, URLs limpias y datos reales.
+
+     La recorrida visual de home → PDP cargó catálogo, descuentos, cobertura,
+     precio, stock, preguntas y opiniones sin errores de consola, y comprobó el
+     canonical de ambas pantallas. También encontró una falla que no aparecía
+     en unitarios: un ítem de menú `Inicio` con destino vacío se resolvía a la
+     página actual. Se materializa `/`, se agrega la regresión, se elimina la
+     contradicción `Disallow /productos` + `Allow /productos` del robots del
+     subdominio y se garantiza un H1 semántico cuando el comercio oculta el
+     hero. Estas tres correcciones quedan como implementación hasta que termine
+     su nuevo deploy y se repita la recorrida publicada.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

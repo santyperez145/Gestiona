@@ -74,6 +74,11 @@ describe("menuAutomatico", () => {
     expect(menuAutomatico({ base, categorias: [] }).map(m => m.label))
       .toEqual(["Inicio", "Productos", "Ofertas"]);
   });
+
+  it("en el subdominio Inicio apunta a la raíz y no a la página actual", () => {
+    expect(menuAutomatico({ base: "", categorias: [] })[0]?.to).toBe("/");
+    expect(destinoDe({ label: "Inicio", tipo: "inicio" }, "")?.to).toBe("/");
+  });
 });
 
 describe("menuEfectivo", () => {
