@@ -80,12 +80,98 @@ describe("estructura de la navegación", () => {
     ]);
   });
 
+  it("ordena Trabajo por uso diario", () => {
+    expect(itemsDe("trabajo").map(i => i.to)).toEqual([
+      "/tareas",
+      "/calendario",
+    ]);
+  });
+
+  it("ordena Compras por pipeline de inventario", () => {
+    expect(itemsDe("compras").map(i => i.to)).toEqual([
+      "/compras",
+      "/ordenes-compra",
+      "/proveedores",
+      "/planificacion",
+      "/kardex",
+      "/transferencias",
+      "/sucursales",
+      "/lotes",
+      "/bundles",
+      "/listas-precios",
+      "/valuacion-inventario",
+    ]);
+  });
+
+  it("ordena Cobranzas por documento", () => {
+    expect(itemsDe("cobranzas").map(i => i.to)).toEqual([
+      "/deudas",
+      "/presupuestos",
+      "/cuotas",
+      "/facturas",
+      "/devoluciones",
+    ]);
+  });
+
+  it("ordena Finanzas por ciclo de autoridad", () => {
+    expect(itemsDe("finanzas").map(i => i.to)).toEqual([
+      "/billetera",
+      "/movimientos",
+      "/cash-flow",
+      "/pl-dashboard",
+      "/libro",
+      "/banco",
+      "/gastos",
+      "/comisiones",
+      "/impuestos",
+      "/afip",
+      "/multi-divisa",
+      "/cheques",
+      "/suscripciones",
+    ]);
+  });
+
+  it("ordena Marketing por canal de conversión", () => {
+    expect(itemsDe("marketing").map(i => i.to)).toEqual([
+      "/marketing",
+      "/email-campaigns",
+      "/whatsapp-campaigns",
+      "/fidelidad",
+      "/catalogo",
+      "/influencers",
+      "/canjes",
+      "/afiliados",
+      "/referidos",
+    ]);
+  });
+
+  it("ordena Reportes por lectura de negocio", () => {
+    expect(itemsDe("reportes").map(i => i.to)).toEqual([
+      "/reportes",
+      "/analytics",
+      "/ia",
+    ]);
+  });
+
   it("ordena Sistema con operación antes de configuración profunda", () => {
     expect(itemsDe("sistema").map(i => i.to).slice(0, 4)).toEqual([
       "/alertas",
       "/integraciones",
       "/equipo",
       "/ajustes",
+    ]);
+  });
+
+  it("ordena Sistema con estructura completa", () => {
+    expect(itemsDe("sistema").map(i => i.to)).toEqual([
+      "/alertas",
+      "/integraciones",
+      "/equipo",
+      "/ajustes",
+      "/admin",
+      "/calidad-datos",
+      "/mi-plan",
+      "/perfil",
     ]);
   });
 });
