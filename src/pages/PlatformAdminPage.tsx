@@ -1774,7 +1774,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
               <div className="flex items-center justify-between pt-2">
                 <div>
                   <Label className="font-normal">Enviar acceso seguro por email</Label>
-                  <p className="text-[10px] text-muted-foreground">Gestiona lo envía; Platform nunca ve el token</p>
+                    <p className="text-[10px] text-muted-foreground">Gestiona lo envía; Platform no recibe los datos sensibles</p>
                 </div>
                 <Switch
                   checked={newOrgForm.sendInvite}

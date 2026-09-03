@@ -116,7 +116,7 @@ export default function PlatformOperationsPage() {
       <PageHeader
         icon={ShieldCheck}
         title="Operaciones"
-        description={`Incidentes activos de entrega, webhooks, pagos y cron${loadedAt ? ` · actualizado ${formatDateTime(loadedAt)}` : ''}`}
+        description={`Incidentes activos de entrega, confirmaciones, pagos y tareas automáticas${loadedAt ? ` · actualizado ${formatDateTime(loadedAt)}` : ''}`}
         badge={{ label: 'Control Plane', variant: 'default' }}
         actions={(
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
@@ -136,7 +136,7 @@ export default function PlatformOperationsPage() {
         <KPICard label="Incidentes activos" value={loading ? '—' : rows.length} icon={AlertTriangle} color={rows.length > 0 ? 'warning' : 'success'} sub="fuentes cubiertas por la cola" />
         <KPICard label="Críticos" value={loading ? '—' : metrics.critical} icon={AlertTriangle} color={metrics.critical > 0 ? 'destructive' : 'success'} sub="prioridad de atención" />
         <KPICard label="Reintentables" value={loading ? '—' : metrics.retryable} icon={RotateCcw} color={metrics.retryable > 0 ? 'purple' : 'success'} sub="sólo entrega descartada" />
-        <KPICard label="Sin avance" value={loading ? '—' : metrics.stalled} icon={Clock3} color={metrics.stalled > 0 ? 'warning' : 'success'} sub="worker o webhook detenido" />
+        <KPICard label="Sin avance" value={loading ? '—' : metrics.stalled} icon={Clock3} color={metrics.stalled > 0 ? 'warning' : 'success'} sub="procesos de entrega en pausa" />
       </div>
 
       <section className="border border-violet-500/20 bg-violet-500/[0.04] rounded-[10px] p-4 text-sm">
@@ -163,7 +163,7 @@ export default function PlatformOperationsPage() {
           <div className="flex flex-col items-center text-center py-16 px-6">
             <CheckCircle2 className="w-7 h-7 text-emerald-400 mb-3" />
             <p className="text-sm font-medium">No hay incidentes activos en las fuentes cubiertas</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-lg">No se infiere que todos los proveedores estén sanos: significa que no hay entregas fallidas, webhooks detenidos, errores técnicos de pago ni crons fallando en esta lectura.</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-lg">No se infiere que todos los proveedores estén sanos: significa que no hay entregas fallidas, confirmaciones detenidas, errores técnicos de pago ni tareas automáticas fallando en esta lectura.</p>
           </div>
         ) : (
           <div className="divide-y divide-border/50">

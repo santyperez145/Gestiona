@@ -545,7 +545,7 @@ export default function PlatformMetricsPage() {
               </div>
 
               <section className="border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm">
-                <div className="flex items-start gap-3"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" /><div><p className="font-semibold text-violet-200">Acciones verificables, no engagement decorativo</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Este primer corte de G8 mide sólo recomendaciones de oferta guardadas. “Aplicada” significa que el RPC de la base validó margen y precio, actualizó el producto y registró el evento. Chats, sugerencias no persistidas y descartes quedan fuera del numerador.</p></div></div>
+                <div className="flex items-start gap-3"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" /><div><p className="font-semibold text-violet-200">Acciones verificables, no engagement decorativo</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Este primer corte de G8 mide sólo recomendaciones de oferta guardadas. “Aplicada” significa que la base validó margen y precio, actualizó el producto y registró el evento. Chats, sugerencias no persistidas y descartes quedan fuera del numerador.</p></div></div>
               </section>
 
               <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card">

@@ -69,7 +69,7 @@ describe('autoridad del alta de comercios', () => {
     expect(edgeAction).not.toContain('action_link');
     expect(edgeAction).not.toContain('hashed_token');
     expect(platformPage).toContain('idempotencyKey: provisioningKey');
-    expect(platformPage).toContain('Platform nunca ve el token');
+    expect(platformPage).toContain('Platform no recibe los datos sensibles');
     expect(platformPage).not.toContain('createdInviteLink');
   });
 });
