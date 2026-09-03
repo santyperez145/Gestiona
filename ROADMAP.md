@@ -3523,6 +3523,16 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+148. Home first-use sin trust/hero de conversión — 2026-09-03.
+     Medido: con 0 productos la home montaba hero («0 disponibles»,
+     Explorar catálogo) y trust (envío gratis / compra protegida)
+     encima del vacío. ESTANDAR empty-first-use: una composición de
+     marca. `storeHomeShowsCommerceChrome`. No inventa catálogo.
+
+     Verificado en este recorte: **2.478 tests** / 263 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

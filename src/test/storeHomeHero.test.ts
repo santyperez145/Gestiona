@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { textoMediosHero } from "@/lib/storeHomeHero";
+import { storeHomeShowsCommerceChrome, textoMediosHero } from "@/lib/storeHomeHero";
 
 describe("textoMediosHero", () => {
   it("no inventa «pagos seguros» sin medios", () => {
@@ -10,5 +10,15 @@ describe("textoMediosHero", () => {
   it("lista los medios reales", () => {
     expect(textoMediosHero(["transferencia"])).toMatch(/transferencia/i);
     expect(textoMediosHero(["transferencia", "gestiona_pay"])).toMatch(/ o /);
+  });
+});
+
+describe("storeHomeShowsCommerceChrome", () => {
+  it("sin catálogo no monta trust ni hero de conversión", () => {
+    expect(storeHomeShowsCommerceChrome(0)).toBe(false);
+  });
+
+  it("con al menos un producto sí", () => {
+    expect(storeHomeShowsCommerceChrome(1)).toBe(true);
   });
 });

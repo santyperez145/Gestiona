@@ -1,9 +1,18 @@
 /**
- * Textos del hero de la home: sin promesas genéricas tipo «pagos seguros»
+ * Hechos del hero de la home: sin promesas genéricas tipo «pagos seguros»
  * si no hay medios, y sin inventar cobertura nacional.
  */
 
 import { nombreMedio } from "@/lib/paymentDiscount";
+
+/**
+ * Sin catálogo no hay vitrina de conversión.
+ * ESTANDAR empty-first-use / Shopify-Tiendanube: no trust bar ni «0 productos
+ * disponibles» encima del vacío real.
+ */
+export function storeHomeShowsCommerceChrome(catalogCount: number): boolean {
+  return Number(catalogCount) > 0;
+}
 
 /** Rótulo honesto de medios aceptados para el aside del hero. */
 export function textoMediosHero(methods: string[] | null | undefined): string {

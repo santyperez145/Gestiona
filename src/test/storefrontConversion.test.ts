@@ -92,6 +92,10 @@ describe("recorrido de compra a 360 px", () => {
     expect(home).toContain("storefront-hero--ambient");
     expect(home).toContain("min-h-11");
     expect(home).toContain("logoUrl");
+    // First-use: sin trust/hero de conversión encima del vacío.
+    expect(home).toContain("storeHomeShowsCommerceChrome");
+    expect(home).toContain("storefront-home--first-use");
+    expect(home).toContain("Todavía no hay productos publicados");
   });
 
   it("el catálogo distingue vacío real de vacío por filtros", () => {

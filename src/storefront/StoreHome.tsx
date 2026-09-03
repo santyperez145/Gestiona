@@ -20,7 +20,7 @@ import {
   type HomeSectionId,
 } from "@/lib/storeHomeLayout";
 import { textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
-import { textoMediosHero } from "@/lib/storeHomeHero";
+import { storeHomeShowsCommerceChrome, textoMediosHero } from "@/lib/storeHomeHero";
 
 export default function StoreHome() {
   const { store, products, banners, categorias: cats2, priceOf, fmt, cart } = useStore();
@@ -31,6 +31,7 @@ export default function StoreHome() {
   // prometer algo que en el checkout no aparece.
   const descuentoPago = mejorDescuento(store?.payment_methods ?? null, store?.payment_discounts ?? null);
   const base = `/tienda/${store?.slug ?? ""}`;
+  const commerceChrome = storeHomeShowsCommerceChrome(products.length);
 
   // Las vitrinas de la home son curadas: ofrecer un agotado en "Destacados"
   // es prometer algo que no se puede cumplir. En el listado completo sí
@@ -143,11 +144,11 @@ export default function StoreHome() {
     }
   };
 
-  return (
-    <div className="storefront-home">
-      {layout.sections.map((s) => bloque(s.id))}
-
-      {products.length === 0 && (
+  // First-use: una sola composición de marca. El trust bar y el hero con
+  // «0 productos» / envío gratis encima del vacío mentían al comprador.
+  if (!commerceChrome) {
+    return (
+      <div className="storefront-home storefront-home--first-use">
         <div className="max-w-lg mx-auto px-4 py-20 text-center space-y-4">
           {store?.logo_url ? (
             <img
@@ -159,13 +160,26 @@ export default function StoreHome() {
               className="mx-auto h-14 w-14 object-contain"
             />
           ) : null}
-          <h2 className="text-xl font-semibold tracking-tight">{store?.name ?? "Esta tienda"}</h2>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+            {store?.name ?? "Esta tienda"}
+          </h1>
+          {store?.description ? (
+            <p className="text-sm" style={{ color: "hsl(var(--st-muted))" }}>
+              {store.description}
+            </p>
+          ) : null}
           <p className="text-sm" style={{ color: "hsl(var(--st-muted))" }}>
             Todavía no hay productos publicados. Cuando el comercio cargue el catálogo,
             el stock va a ser el mismo del mostrador.
           </p>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="storefront-home">
+      {layout.sections.map((s) => bloque(s.id))}
     </div>
   );
 }
