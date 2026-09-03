@@ -25,6 +25,8 @@ import {
   storeShouldLeadSettingsWithEmail,
   storeLegalLeadCopy,
   storeEmailLeadCopy,
+  storeShouldLeadSettingsWithHours,
+  storeHoursLeadCopy,
   storeAfterCreateCopy,
   storeWizardFinishCopy,
   urlPublicaDeTienda,
@@ -224,7 +226,37 @@ describe('la primera publicación empieza por el catálogo', () => {
     expect(storeEmailLeadCopy().title).toMatch(/email|avisos/i);
     expect(STORE).toContain('storeShouldLeadSettingsWithEmail');
     expect(STORE).toContain('Guardar email de avisos');
-    expect(STORE).toContain('!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal && !leadSettingsWithEmail');
+    expect(STORE).toContain('!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal && !leadSettingsWithEmail && !leadSettingsWithHours');
+  });
+
+  it('después del email, el horario de retiro va antes de OAuth', () => {
+    expect(storeShouldLeadSettingsWithHours({
+      storeId: null,
+      pickupEnabled: true,
+      addressReady: true,
+      hoursReady: false,
+    })).toBe(false);
+    expect(storeShouldLeadSettingsWithHours({
+      storeId: 'id',
+      pickupEnabled: true,
+      addressReady: false,
+      hoursReady: false,
+    })).toBe(false);
+    expect(storeShouldLeadSettingsWithHours({
+      storeId: 'id',
+      pickupEnabled: true,
+      addressReady: true,
+      hoursReady: false,
+    })).toBe(true);
+    expect(storeShouldLeadSettingsWithHours({
+      storeId: 'id',
+      pickupEnabled: true,
+      addressReady: true,
+      hoursReady: true,
+    })).toBe(false);
+    expect(storeHoursLeadCopy().title).toMatch(/cuándo|horario/i);
+    expect(STORE).toContain('storeShouldLeadSettingsWithHours');
+    expect(STORE).toContain('Guardar horario de retiro');
   });
 
   it('sin catálogo el overview pide el primer producto sin exigir el wizard', () => {

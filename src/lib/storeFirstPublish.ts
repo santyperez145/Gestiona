@@ -178,6 +178,32 @@ export function storeEmailLeadCopy() {
   };
 }
 
+/**
+ * Retiro con dirección pero sin horario: el pedido pagado no dice cuándo pasar.
+ * Square/Shopify confirman lugar y horario. Va después de email (aviso de
+ * venta) y antes de OAuth. No inventa el texto — el comercio lo carga.
+ */
+export function storeShouldLeadSettingsWithHours(input: {
+  storeId: string | null | undefined;
+  pickupEnabled: boolean;
+  addressReady: boolean;
+  hoursReady: boolean;
+}): boolean {
+  if (!input.storeId) return false;
+  if (!input.pickupEnabled) return false;
+  if (!input.addressReady) return false;
+  if (input.hoursReady) return false;
+  return true;
+}
+
+export function storeHoursLeadCopy() {
+  return {
+    title: 'Decí cuándo se retira',
+    description:
+      'La dirección ya está. Sin horario el comprador no sabe cuándo pasar. Cargalo; no se inventa. Gestiona Pay puede esperar.',
+  };
+}
+
 /** Sin fila en ecommerce_stores el 2º comercio no puede publicar ni legales. */
 export function storeShouldShowStoreMissingHandoff(
   storeId: string | null | undefined,

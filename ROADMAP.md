@@ -3594,6 +3594,16 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+155. Settings: horario de retiro antes de OAuth — 2026-09-03.
+     Medido: Exentry con dirección y `pickup_instructions` vacío; Foco
+     ya pedía horario → Settings y el tab abría Pay. Square/Shopify:
+     lugar y cuándo. `storeShouldLeadSettingsWithHours` después de
+     email. No inventa el texto del horario.
+
+     Verificado en este recorte: **2.488 tests** / 264 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

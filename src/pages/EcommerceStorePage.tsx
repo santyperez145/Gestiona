@@ -57,6 +57,8 @@ import {
   storeShouldLeadSettingsWithEmail,
   storeLegalLeadCopy,
   storeEmailLeadCopy,
+  storeShouldLeadSettingsWithHours,
+  storeHoursLeadCopy,
   storeAfterCreateCopy,
   urlPublicaDeTienda,
   storeShareIntentActive,
@@ -739,6 +741,12 @@ export default function EcommerceStorePage() {
     storeId: store?.id,
     emailReady: Boolean(String(store?.notification_email ?? "").trim()),
   });
+  const leadSettingsWithHours = storeShouldLeadSettingsWithHours({
+    storeId: store?.id,
+    pickupEnabled: !!storeForm.pickup_enabled,
+    addressReady: Boolean(String(store?.pickup_address ?? "").trim()),
+    hoursReady: Boolean(String(store?.pickup_instructions ?? "").trim()),
+  });
   const bankLead = leadSettingsWithBank ? storeBankLeadCopy() : null;
   const pickupLead = !leadSettingsWithBank && leadSettingsWithPickup
     ? storePickupLeadCopy()
@@ -749,6 +757,10 @@ export default function EcommerceStorePage() {
   const emailLead = !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal
     && leadSettingsWithEmail
     ? storeEmailLeadCopy()
+    : null;
+  const hoursLead = !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal
+    && !leadSettingsWithEmail && leadSettingsWithHours
+    ? storeHoursLeadCopy()
     : null;
   const afterCreate = justCreatedStore && store?.id && signals.publishedProducts === 0
     ? storeAfterCreateCopy()
@@ -1496,7 +1508,30 @@ export default function EcommerceStorePage() {
               </Button>
             </div>
           )}
-          {!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal && !leadSettingsWithEmail && (
+          {hoursLead && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5 space-y-3">
+              <p className="text-sm font-semibold">{hoursLead.title}</p>
+              <p className="text-[13px] text-muted-foreground leading-snug">{hoursLead.description}</p>
+              <div>
+                <Label className="text-xs text-muted-foreground">Horario de retiro</Label>
+                <Input
+                  value={storeForm.pickup_instructions}
+                  onChange={e => setStoreForm(p => ({ ...p, pickup_instructions: e.target.value }))}
+                  placeholder="Lun a vie 10–18"
+                  className="h-9 min-h-11 mt-1"
+                />
+              </div>
+              <Button
+                className="min-h-11 w-full sm:w-auto"
+                disabled={loading || !storeForm.pickup_instructions.trim()}
+                onClick={() => { void saveStore(); }}
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Guardar horario de retiro
+              </Button>
+            </div>
+          )}
+          {!leadSettingsWithIdentity && !leadSettingsWithBank && !leadSettingsWithPickup && !leadSettingsWithLegal && !leadSettingsWithEmail && !leadSettingsWithHours && (
             <PaymentConnectionsPanel onConnectionChange={reloadReadinessSignals} />
           )}
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
