@@ -3450,6 +3450,17 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+141. Checkout honesto: flete + entrega primero + autofill — 2026-09-03.
+     Medido: el resumen decía «Gratis» con `envio=0` sin opción elegida
+     en modo zones (misma mentira del carrito 139). `checkoutShippingDisplay`
+     no cierra flete pendiente; total muestra «+ envío». Orden Entrega →
+     datos (ESTANDAR §5.10) con autofill/name y copy de invitado. No
+     inventa tarifario; Finance Mendel F5 sigue gated por blueprint.
+
+     Verificado en este recorte: **2.462 tests** / 261 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
