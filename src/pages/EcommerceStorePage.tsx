@@ -332,6 +332,19 @@ export default function EcommerceStorePage() {
       return;
     }
     toast.success(`Pedido ${order.order_number} marcado como cobrado`);
+    // Promesa del storefront: «Cuando acredite, te avisamos». MP ya dispara
+    // payment_confirmed; transferencia/efectivo pasan por acá.
+    const { data: mailData, error: mailErr } = await supabase.functions.invoke(
+      "store-order-status-email",
+      { body: { orderId: order.id, event: "payment_confirmed" } },
+    );
+    const mailMsg = (mailData as { error?: string } | null)?.error;
+    if (mailErr || mailMsg) {
+      console.error("store-order-status-email / payment_confirmed:", mailErr ?? mailMsg);
+      toast.warning(
+        `Cobro acreditado, pero no pudimos avisar por email${mailMsg ? `: ${mailMsg}` : "."}`,
+      );
+    }
     await loadOrders();
   };
 

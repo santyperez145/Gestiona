@@ -3628,6 +3628,17 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+158. Aviso de pago confirmado al marcar cobrado (transferencia) — 2026-09-03.
+     Medido: storefront promete «Cuando acredite, te avisamos»; MP dispara
+     `store-order-email`; `confirmarPagoManual` sólo acreditaba. Shopify/
+     Tiendanube: offline paid → confirmación. Extiende
+     `store-order-status-email` con `payment_confirmed` + invoke post-RPC.
+     Vercel free sigue en tope 100/día. No inventa tarifario/CUIT.
+
+     Verificado en este recorte: **2.493 tests** / 265 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

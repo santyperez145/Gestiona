@@ -1,12 +1,14 @@
 /**
- * store-order-status-email — avisa que una orden ya salió o fue entregada.
+ * store-order-status-email — avisa al comprador sobre un cambio de estado.
  *
- * No es pública: a diferencia de la confirmación inicial, sólo personal de la
- * organización puede cambiar el estado. `requireUser` es esencial porque
- * RESEND_API_KEY representa crédito real y la anon key del storefront es
- * pública. La idempotencia vive en un claim SQL atómico: un doble click, una
- * recarga, un reintento o dos instancias simultáneas no llenan la casilla del
- * comprador.
+ * Eventos:
+ *   - payment_confirmed: cobro manual (transferencia/efectivo) acreditado
+ *   - shipped / delivered: despacho o entrega
+ *
+ * No es pública: `requireUser` + permiso ecommerce.edit. La idempotencia vive
+ * en claim SQL atómico. MP ya dispara payment_confirmed vía store-order-email;
+ * sin este camino el checkout prometía «te avisamos» y Marcar cobrado no
+ * mandaba nada (ATM / transferencia).
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
@@ -16,6 +18,7 @@ import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
 import {
   claimStoreOrderEmail,
   finishStoreOrderEmail,
+  type StoreOrderEmailEvent,
 } from "../_shared/storeOrderEmailDelivery.ts";
 
 const corsHeaders = {
@@ -31,7 +34,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const esc = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, char =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]!));
 
-type Event = "shipped" | "delivered";
+type StatusEvent = Extract<StoreOrderEmailEvent, "payment_confirmed" | "shipped" | "delivered">;
 
 /** Espejo de `esPedidoRetiro` / `copyEstadoPedido` en storeOrderBuyerCopy.ts. */
 function esPedidoRetiro(order: { carrier?: unknown; shipping_service?: unknown }) {
@@ -40,7 +43,14 @@ function esPedidoRetiro(order: { carrier?: unknown; shipping_service?: unknown }
   return carrier === "retiro" || service === "sucursal";
 }
 
-function copyEstadoPedido(event: Event, esRetiro: boolean) {
+function copyEstadoPedido(event: StatusEvent, esRetiro: boolean) {
+  if (event === "payment_confirmed") {
+    return {
+      subject: "Pago confirmado",
+      title: "¡Pago confirmado!",
+      intro: "Ya acreditamos tu pago. Seguimos con la preparación de tu pedido.",
+    };
+  }
   if (esRetiro) {
     if (event === "delivered") {
       return {
@@ -73,7 +83,7 @@ function emailHtml(opts: {
   accent: string;
   storeName: string;
   orderNumber: string;
-  event: Event;
+  event: StatusEvent;
   esRetiro: boolean;
   carrier?: string | null;
   tracking?: string | null;
@@ -98,6 +108,13 @@ function emailHtml(opts: {
 </div>`;
 }
 
+function parseEvent(raw: unknown): StatusEvent | null {
+  if (raw === "payment_confirmed" || raw === "shipped" || raw === "delivered") {
+    return raw;
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método no permitido" }, 405);
@@ -108,28 +125,29 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const orderId = typeof body.orderId === "string" ? body.orderId : "";
-    const event = body.event === "shipped" || body.event === "delivered" ? body.event as Event : null;
+    const event = parseEvent(body.event);
     const baseUrl = String(Deno.env.get("PUBLIC_BASE_URL") ?? "").replace(/\/+$/, "");
-    if (!orderId || !event) return json({ error: "Faltan la orden o el evento de envío" }, 400);
+    if (!orderId || !event) return json({ error: "Faltan la orden o el evento" }, 400);
 
     const admin = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
     const { data: order, error: orderError } = await admin
       .from("ecommerce_orders")
-      .select("id, org_id, store_id, order_number, customer_email, fulfillment_status, tracking_number, public_access_token, carrier, shipping_service")
+      .select("id, org_id, store_id, order_number, customer_email, payment_status, fulfillment_status, tracking_number, public_access_token, carrier, shipping_service")
       .eq("id", orderId)
       .maybeSingle();
     if (orderError || !order) return json({ error: "Orden no encontrada" }, 404);
 
-    if (order.fulfillment_status !== event) {
+    if (event === "payment_confirmed") {
+      if (order.payment_status !== "paid") {
+        return json({ error: "La orden todavía no figura como pagada" }, 409);
+      }
+    } else if (order.fulfillment_status !== event) {
       return json({ error: "La orden no está en el estado que se quiere avisar" }, 409);
     }
 
     const retiro = esPedidoRetiro(order);
     const copy = copyEstadoPedido(event, retiro);
 
-    // La matriz fina decide si puede operar ecommerce. No se reemplaza por una
-    // lista de roles: `vendedor` puede despachar cuando la organización le dio
-    // ese permiso, y un admin al que se le revocó el módulo no lo saltea.
     const userClient = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_ANON_KEY"), {
       global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
     });
@@ -142,7 +160,9 @@ Deno.serve(async (req) => {
 
     const [{ data: store }, { data: delivery }] = await Promise.all([
       admin.from("ecommerce_stores").select("name, slug, primary_color").eq("id", order.store_id).maybeSingle(),
-      admin.from("deliveries").select("carrier, external_tracking").eq("ecommerce_order_id", order.id).order("created_at").limit(1).maybeSingle(),
+      event === "payment_confirmed"
+        ? Promise.resolve({ data: null })
+        : admin.from("deliveries").select("carrier, external_tracking").eq("ecommerce_order_id", order.id).order("created_at").limit(1).maybeSingle(),
     ]);
     if (!store) return json({ error: "Tienda no encontrada" }, 404);
 
