@@ -61,3 +61,34 @@ export function cartShippingCellText(
   if (display.amount === 0) return display.label || "Gratis";
   return fmt(display.amount);
 }
+
+/**
+ * Línea Envío del resumen de checkout.
+ * Misma regla que el carrito: sin opción elegida no se inventa $0 = Gratis.
+ */
+export function checkoutShippingDisplay(opts: {
+  /** Precio de la opción elegida; null si todavía no hay. */
+  selectedPrice: number | null;
+  hasOptions: boolean;
+  zonesMode: boolean;
+  quoting: boolean;
+  /** RPC ausente: se cae al costo plano de la tienda. */
+  quoteUnavailable: boolean;
+  flatShippingCost: number;
+}): CartShippingDisplay {
+  if (opts.selectedPrice != null && Number.isFinite(opts.selectedPrice)) {
+    const n = Math.max(0, Number(opts.selectedPrice) || 0);
+    return { label: n === 0 ? "Gratis" : "", amount: n };
+  }
+  if (opts.quoting) {
+    return { label: "Cotizando…", amount: null };
+  }
+  if (opts.quoteUnavailable || !opts.zonesMode) {
+    const flat = Math.max(0, Number(opts.flatShippingCost) || 0);
+    return { label: flat === 0 ? "Gratis" : "", amount: flat };
+  }
+  if (opts.hasOptions) {
+    return { label: "Elegí una opción", amount: null };
+  }
+  return { label: "Se calcula con tu provincia", amount: null };
+}

@@ -53,6 +53,18 @@ describe("recorrido de compra a 360 px", () => {
     expect(checkout).toContain("leerProvinciaCarrito");
   });
 
+  it("el checkout no inventa Gratis y prioriza entrega + autofill", () => {
+    const checkout = leer("src/storefront/StoreCheckout.tsx");
+    expect(checkout).toContain("checkoutShippingDisplay");
+    expect(checkout).toContain("envioResumenTexto");
+    expect(checkout).not.toMatch(/opciones\.length > 0 \? 0 : shippingCost/);
+    expect(checkout).toContain("Comprás como invitado");
+    expect(checkout).toContain('autoComplete="email"');
+    expect(checkout).toContain('autoComplete="name"');
+    // Entrega aparece antes que contacto (índice en el archivo).
+    expect(checkout.indexOf(">Entrega<")).toBeLessThan(checkout.indexOf(">Tus datos<"));
+  });
+
   it("filtros y checkout no esconden la acción primaria en el teléfono", () => {
     const productos = leer("src/storefront/StoreProducts.tsx");
     const checkout = leer("src/storefront/StoreCheckout.tsx");

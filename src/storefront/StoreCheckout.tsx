@@ -14,7 +14,8 @@ import { normalizarEmail } from "@/lib/couponRules";
 import { decisionEntregaCheckout, requiereDireccionDeEntrega } from "@/lib/checkoutDelivery";
 import { mediosDePagoOfrecibles, esMedioGestionaPay } from "@/lib/gestionaPay";
 import { avisoCheckoutMedioPago, etiquetaMedioCheckout } from "@/lib/storeOrderBuyerCopy";
-import { leerProvinciaCarrito } from "@/lib/storeCartProvince";
+import { leerProvinciaCarrito, guardarProvinciaCarrito } from "@/lib/storeCartProvince";
+import { cartShippingCellText, checkoutShippingDisplay } from "@/lib/storeCartShipping";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -171,8 +172,17 @@ export default function StoreCheckout() {
     }),
     [cotizando, quoteFailed, quoteUnavailable, opciones, opcionElegida, form.provincia, porZona],
   );
-  // Mientras no haya cotización se usa el costo del contexto, que es el plano.
-  const envio = opcion ? Number(opcion.price) : (opciones.length > 0 ? 0 : shippingCost);
+  // Mientras no haya opción elegida no se inventa $0 = Gratis (sesión 141).
+  const shipDisp = checkoutShippingDisplay({
+    selectedPrice: opcion ? Number(opcion.price) : null,
+    hasOptions: opciones.length > 0,
+    zonesMode: porZona,
+    quoting: cotizando,
+    quoteUnavailable,
+    flatShippingCost: shippingCost,
+  });
+  const envio = shipDisp.amount ?? 0;
+  const envioPendiente = shipDisp.amount === null;
   const esRetiro = opcion?.carrier === "retiro";
   const avisoPago = avisoCheckoutMedioPago({ metodo: form.metodo, esRetiro });
   // Si el retiro todavía no llegó de la cotización, sólo se omite la dirección
@@ -253,8 +263,14 @@ export default function StoreCheckout() {
 
   const descuento = cuponAplicado?.discount ?? 0;
   // Nunca más que el envío cotizado: el cupón bonifica flete, no devuelve plata.
-  const bonifEnvio = Math.min(cuponAplicado?.shippingDiscount ?? 0, envio);
-  const envioACobrar = envio - bonifEnvio;
+  const bonifEnvio = envioPendiente ? 0 : Math.min(cuponAplicado?.shippingDiscount ?? 0, envio);
+  const envioACobrar = envioPendiente ? 0 : envio - bonifEnvio;
+  const envioResumenTexto = envioPendiente
+    ? shipDisp.label
+    : cartShippingCellText(
+        { label: envioACobrar === 0 ? "Gratis" : "", amount: envioACobrar },
+        fmt,
+      );
 
   // Mismo orden que `create_store_order`: primero la promo "llevando 2"
   // —que es un precio, no una rebaja—, después el cupón sobre lo que queda, y
@@ -446,34 +462,19 @@ export default function StoreCheckout() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Finalizar compra</h1>
+      <h1 className="text-2xl font-bold mb-1">Finalizar compra</h1>
+      <p className="text-sm mb-6" style={{ color: "hsl(var(--st-muted))" }}>
+        Comprás como invitado. La cuenta es opcional si querés seguir el pedido más fácil.
+      </p>
 
       <form onSubmit={confirmar} className="grid md:grid-cols-[1fr_20rem] gap-8 items-start">
         <div className="space-y-6">
           <section>
-            <h2 className="font-semibold mb-3">Tus datos</h2>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <label className="sm:col-span-2">
-                <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Nombre y apellido *</span>
-                <input required value={form.nombre} onChange={e => set("nombre", e.target.value)} className={input} style={inputStyle} />
-              </label>
-              <label>
-                <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Email *</span>
-                <input required type="email" value={form.email} onChange={e => set("email", e.target.value)} className={input} style={inputStyle} />
-              </label>
-              <label>
-                <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Teléfono</span>
-                <input value={form.telefono} onChange={e => set("telefono", e.target.value)} className={input} style={inputStyle} inputMode="tel" />
-              </label>
-            </div>
-          </section>
-
-          <section>
             <h2 className="font-semibold mb-3">Entrega</h2>
 
-            {/* La provincia aparece antes de las opciones porque habilita la
-                cotización a domicilio. Si hay retiro, es opcional: no se le
-                pide un dato irrelevante a quien sólo va a buscar su pedido. */}
+            {/* ESTANDAR §5.10: costo/plazo antes de pedir datos de contacto.
+                La provincia aparece antes de las opciones porque habilita la
+                cotización a domicilio. Si hay retiro, es opcional. */}
             {porZona && (
               <label className="block mb-3">
                 <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
@@ -482,9 +483,14 @@ export default function StoreCheckout() {
                 <select
                   required={!store?.pickup_enabled}
                   value={form.provincia}
-                  onChange={e => set("provincia", e.target.value)}
+                  onChange={e => {
+                    const code = e.target.value;
+                    set("provincia", code);
+                    if (store?.slug) guardarProvinciaCarrito(store.slug, code);
+                  }}
                   className={input}
                   style={inputStyle}
+                  autoComplete="address-level1"
                 >
                   <option value="">Elegí tu provincia</option>
                   {AR_PROVINCES.map(p => (
@@ -600,11 +606,11 @@ export default function StoreCheckout() {
               <div className="grid sm:grid-cols-2 gap-3 mt-4">
                 <label className="sm:col-span-2">
                   <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Calle y número *</span>
-                  <input required value={form.calle} onChange={e => set("calle", e.target.value)} className={input} style={inputStyle} autoComplete="street-address" />
+                  <input required value={form.calle} onChange={e => set("calle", e.target.value)} className={input} style={inputStyle} autoComplete="street-address" name="street-address" />
                 </label>
                 <label>
                   <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Ciudad *</span>
-                  <input required value={form.ciudad} onChange={e => set("ciudad", e.target.value)} className={input} style={inputStyle} autoComplete="address-level2" />
+                  <input required value={form.ciudad} onChange={e => set("ciudad", e.target.value)} className={input} style={inputStyle} autoComplete="address-level2" name="address-level2" />
                 </label>
                 {!porZona && (
                   <label>
@@ -619,10 +625,28 @@ export default function StoreCheckout() {
                 )}
                 <label className={porZona ? "sm:col-span-2" : ""}>
                   <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Código postal *</span>
-                  <input required value={form.cp} onChange={e => set("cp", e.target.value.toUpperCase())} className={input} style={inputStyle} autoComplete="postal-code" maxLength={10} />
+                  <input required value={form.cp} onChange={e => set("cp", e.target.value.toUpperCase())} className={input} style={inputStyle} autoComplete="postal-code" name="postal-code" maxLength={10} />
                 </label>
               </div>
             )}
+          </section>
+
+          <section>
+            <h2 className="font-semibold mb-3">Tus datos</h2>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <label className="sm:col-span-2">
+                <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Nombre y apellido *</span>
+                <input required value={form.nombre} onChange={e => set("nombre", e.target.value)} className={input} style={inputStyle} autoComplete="name" name="name" />
+              </label>
+              <label>
+                <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Email *</span>
+                <input required type="email" value={form.email} onChange={e => set("email", e.target.value)} className={input} style={inputStyle} autoComplete="email" name="email" inputMode="email" />
+              </label>
+              <label>
+                <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Teléfono</span>
+                <input value={form.telefono} onChange={e => set("telefono", e.target.value)} className={input} style={inputStyle} inputMode="tel" autoComplete="tel" name="tel" />
+              </label>
+            </div>
           </section>
 
           <section>
@@ -797,11 +821,16 @@ export default function StoreCheckout() {
                     {fmt(envio)}
                   </span>
                 )}
-                {envioACobrar === 0 ? "Gratis" : fmt(envioACobrar)}
+                {envioResumenTexto}
               </span>
             </div>
             <div className="flex justify-between font-semibold text-base pt-1">
-              <span>Total</span><span>{fmt(totalFinal)}</span>
+              <span>Total</span>
+              <span>
+                {envioPendiente
+                  ? `${fmt(Math.max(0, baseMercaderia - descuentoPago))} + envío`
+                  : fmt(totalFinal)}
+              </span>
             </div>
           </div>
 
