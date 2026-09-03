@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { storeOrdersCanonicalPath } from "@/lib/storeOrdersCanonical";
+import {
+  abandonedCartsQueueHref,
+  parseStoreOrdersCola,
+  storeOrdersCanonicalPath,
+  storeRecoveryCanonicalPath,
+} from "@/lib/storeOrdersCanonical";
 
 describe("storeOrdersCanonicalPath", () => {
   it("arma /pedidos-online sin tab=orders", () => {
@@ -11,5 +16,18 @@ describe("storeOrdersCanonicalPath", () => {
     expect(storeOrdersCanonicalPath(new URLSearchParams("orden=monto&medio=transferencia"))).toBe(
       "/pedidos-online?orden=monto&medio=transferencia",
     );
+  });
+
+  it("bookmarks tab=carritos van a Recuperación", () => {
+    expect(abandonedCartsQueueHref()).toBe("/pedidos-online?cola=recuperacion");
+    expect(abandonedCartsQueueHref("reposicion")).toBe(
+      "/pedidos-online?cola=recuperacion&vista=reposicion",
+    );
+    expect(storeRecoveryCanonicalPath("tab=carritos")).toBe("/pedidos-online?cola=recuperacion");
+    expect(storeRecoveryCanonicalPath("?tab=carritos&vista=reposicion")).toBe(
+      "/pedidos-online?cola=recuperacion&vista=reposicion",
+    );
+    expect(parseStoreOrdersCola("recuperacion")).toBe("recuperacion");
+    expect(parseStoreOrdersCola(null)).toBe("pedidos");
   });
 });

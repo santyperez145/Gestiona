@@ -83,5 +83,5 @@ export function stockAlertsByProduct(rows: StockAlertRow[]): {
 }
 
 export function stockAlertsQueueHref(): string {
-  return "/tienda-online?tab=carritos&vista=reposicion";
+  return "/pedidos-online?cola=recuperacion&vista=reposicion";
 }

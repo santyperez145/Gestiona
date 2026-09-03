@@ -95,7 +95,7 @@ export function filterAbandonedCartsForQueue(
 }
 
 export function abandonedCartsQueueHref(): string {
-  return "/tienda-online?tab=carritos";
+  return "/pedidos-online?cola=recuperacion";
 }
 
 /** Deep-link que el cron ya usa: /tienda/:slug/carrito/:token */

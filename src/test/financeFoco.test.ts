@@ -36,6 +36,22 @@ describe("financeFocoFromSnapshot", () => {
     expect(foco.some(i => i.to === "/libro")).toBe(true);
   });
 
+  it("con id concreto abre el inspector Mendel (?documento=)", () => {
+    const id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+    const foco = financeFocoFromSnapshot(
+      { ...vacio, precursorOcrDocuments: 1, suppliersCount: 1 },
+      { nextReviewDocumentId: id },
+    );
+    expect(foco[0]?.to).toBe(
+      `/finance/documentos?vista=revisar&documento=${id}`,
+    );
+    expect(financeMetricHref(
+      "precursorOcrDocuments",
+      { ...vacio, precursorOcrDocuments: 1 },
+      { nextReviewDocumentId: id },
+    )).toBe(`/finance/documentos?vista=revisar&documento=${id}`);
+  });
+
   it("cada métrica con evidencia abre la cola exacta", () => {
     const s: FinanceCoreSnapshot = {
       ...vacio,

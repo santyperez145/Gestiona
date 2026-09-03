@@ -373,7 +373,7 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       id: "carritos-abandonados",
       texto: `${n} ${n === 1 ? "carrito abandonado" : "carritos abandonados"}`,
       accion: "Ver",
-      destino: "/tienda-online?tab=carritos",
+      destino: "/pedidos-online?cola=recuperacion",
       urgencia: "atencion",
     });
   }
@@ -386,7 +386,7 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       id: "avisos-reposicion",
       texto: `${n} ${n === 1 ? "aviso de reposición pendiente" : "avisos de reposición pendientes"}`,
       accion: "Ver",
-      destino: "/tienda-online?tab=carritos&vista=reposicion",
+      destino: "/pedidos-online?cola=recuperacion&vista=reposicion",
       urgencia: "atencion",
     });
   }

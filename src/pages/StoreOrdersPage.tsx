@@ -1,27 +1,32 @@
 /**
  * Pedidos de la tienda online — cola operativa de primer nivel.
  *
- * Shopify/Tiendanube separan Pedidos de Diseño/Pagos. Acá el vendedor puede
- * despachar y cobrar sin entrar al workspace de configuración.
+ * Shopify/Tiendanube separan Pedidos de Diseño/Pagos. Recuperación
+ * (abandonados + reposición) vive acá como hermano, no en Ajustes.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import PageHeader from "@/components/shared/PageHeader";
 import WorkspaceState from "@/components/shared/WorkspaceState";
+import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import StoreOrdersWorkspace from "@/components/ecommerce/StoreOrdersWorkspace";
+import StoreRecoveryWorkspace from "@/components/ecommerce/StoreRecoveryWorkspace";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { STORE_ORDER_QUEUE_LIMIT } from "@/lib/storeOrderQueue";
 import { STORE_ORDER_LIST_SELECT, type StoreOrderInspectRow } from "@/lib/storeOrderDetail";
+import { parseStoreOrdersCola } from "@/lib/storeOrdersCanonical";
 import { urlPublicaDeTienda } from "@/lib/storeFirstPublish";
-import { ShoppingBag, Settings } from "lucide-react";
+import { RotateCcw, Settings, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function StoreOrdersPage() {
   usePageTitle("Pedidos online");
   const { orgId } = useOrganization();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const cola = parseStoreOrdersCola(searchParams.get("cola"));
   const [storeSlug, setStoreSlug] = useState<string | null>(null);
   const [storeName, setStoreName] = useState("Tu tienda");
   const [orders, setOrders] = useState<StoreOrderInspectRow[]>([]);
@@ -75,12 +80,29 @@ export default function StoreOrdersPage() {
     storeSlug,
   );
 
+  const setCola = (next: string) => {
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      if (next === "recuperacion") {
+        p.set("cola", "recuperacion");
+        p.delete("pedido");
+        p.delete("q");
+        p.delete("orden");
+        p.delete("medio");
+      } else {
+        p.delete("cola");
+        if (p.get("vista") === "reposicion") p.delete("vista");
+      }
+      return p;
+    }, { replace: true });
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         icon={ShoppingBag}
         title="Pedidos online"
-        description="Cola de pedidos de la tienda: cobrar, despachar y exportar. Misma autoridad que el checkout público."
+        description="Cola de pedidos y recuperación de carritos: cobrar, despachar y recuperar GMV. Misma autoridad que el checkout público."
         actions={(
           <Button variant="outline" size="sm" className="min-h-11 gap-1.5" asChild>
             <Link to="/tienda-online">
@@ -91,7 +113,17 @@ export default function StoreOrdersPage() {
         )}
       />
 
-      {!storeSlug && !ordersLoading ? (
+      <WorkspaceViewTabs
+        ariaLabel="Colas de la tienda online"
+        activeTab={cola}
+        onChange={setCola}
+        tabs={[
+          { id: "pedidos", label: "Pedidos", icon: ShoppingBag },
+          { id: "recuperacion", label: "Recuperación", icon: RotateCcw },
+        ]}
+      />
+
+      {!storeSlug && !ordersLoading && cola === "pedidos" ? (
         <WorkspaceState
           kind="empty-first-use"
           icon={ShoppingBag}
@@ -100,6 +132,8 @@ export default function StoreOrdersPage() {
           actionLabel="Ir a Tienda online"
           onAction={() => navigate("/tienda-online")}
         />
+      ) : cola === "recuperacion" ? (
+        <StoreRecoveryWorkspace orgId={orgId} storeSlug={storeSlug} />
       ) : (
         <StoreOrdersWorkspace
           orgId={orgId}

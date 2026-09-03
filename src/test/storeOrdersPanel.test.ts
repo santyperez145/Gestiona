@@ -39,13 +39,23 @@ describe("cola de pedidos en Commerce", () => {
   it("Pedidos vive en /pedidos-online; Commerce redirige bookmarks tab=orders", () => {
     expect(page).not.toContain("StoreOrdersWorkspace");
     expect(page).toContain("storeOrdersCanonicalPath");
-    expect(page).toContain('requestedTab !== "orders"');
+    expect(page).toContain('requestedTab === "orders"');
     expect(page).toContain('to="/pedidos-online"');
     expect(page).not.toContain('id: "orders"');
     expect(panel).not.toContain("standalone");
     expect(focus).toContain("/pedidos-online?vista=despachar");
     expect(focus).toContain("/pedidos-online?vista=retirar");
     expect(focus).toContain("storeFirstSaleSharePath");
+  });
+
+  it("Recuperación es hermano de Pedidos, no tab de Commerce", () => {
+    expect(ordersPage).toContain("StoreRecoveryWorkspace");
+    expect(ordersPage).toContain('id: "recuperacion"');
+    expect(page).toContain("storeRecoveryCanonicalPath");
+    expect(page).toContain('requestedTab === "carritos"');
+    expect(page).not.toContain("AbandonedCartsPanel");
+    expect(page).not.toContain("StockAlertsPanel");
+    expect(focus).toContain("/pedidos-online?cola=recuperacion");
   });
 
   it("el inspector conserva la cola, representa la selección en URL y es fullscreen en mobile", () => {

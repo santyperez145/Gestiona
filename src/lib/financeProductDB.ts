@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { financeDocumentInspectPath } from '@/lib/financeDocumentInbox';
 
 export type ProductAccessStatus = 'available' | 'requested' | 'enabled';
 
@@ -69,14 +70,27 @@ export async function getFinanceCoreSnapshot(orgId: string): Promise<FinanceCore
 
 export type FinanceFocoItem = { to: string; label: string; detail: string };
 
+export type FinanceFocoOptions = {
+  /** Primer documento de la cola «Por revisar»; sin id se abre la bandeja. */
+  nextReviewDocumentId?: string | null;
+};
+
 /** Destinos de las métricas del Resumen: cada señal abre la cola exacta (Mendel). */
 export function financeMetricHref(
   key: keyof FinanceCoreSnapshot,
   snapshot: FinanceCoreSnapshot,
+  opts?: FinanceFocoOptions,
 ): string | null {
   switch (key) {
     case 'precursorOcrDocuments':
-      return snapshot.precursorOcrDocuments > 0 ? '/finance/documentos?vista=revisar' : '/finance/documentos';
+      if (snapshot.precursorOcrDocuments <= 0) return '/finance/documentos';
+      if (opts?.nextReviewDocumentId) {
+        return financeDocumentInspectPath({
+          documentId: opts.nextReviewDocumentId,
+          view: 'revisar',
+        });
+      }
+      return '/finance/documentos?vista=revisar';
     case 'openPurchaseOrders':
       return snapshot.openPurchaseOrders > 0 ? '/ordenes-compra' : null;
     case 'openPayablesCount':
@@ -95,11 +109,19 @@ export function financeMetricHref(
  * Pulse de Finance: como máximo cinco acciones, sólo si el snapshot tiene
  * evidencia. No inventa colas de política/tarjeta (eso es F5 / gate).
  */
-export function financeFocoFromSnapshot(s: FinanceCoreSnapshot): FinanceFocoItem[] {
+export function financeFocoFromSnapshot(
+  s: FinanceCoreSnapshot,
+  opts?: FinanceFocoOptions,
+): FinanceFocoItem[] {
   const items: FinanceFocoItem[] = [];
   if (s.precursorOcrDocuments > 0) {
     items.push({
-      to: '/finance/documentos?vista=revisar',
+      to: opts?.nextReviewDocumentId
+        ? financeDocumentInspectPath({
+          documentId: opts.nextReviewDocumentId,
+          view: 'revisar',
+        })
+        : '/finance/documentos?vista=revisar',
       label: 'Revisar documentos pendientes',
       detail: `${s.precursorOcrDocuments} documento${s.precursorOcrDocuments === 1 ? '' : 's'} esperando revisión humana`,
     });

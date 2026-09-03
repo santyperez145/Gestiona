@@ -8,6 +8,8 @@ import {
   getFinanceCoreSnapshot,
   type FinanceCoreSnapshot,
 } from '@/lib/financeProductDB';
+import { filterFinanceInbox } from '@/lib/financeDocumentInbox';
+import { getFinanceDocuments } from '@/lib/financeDocumentUpload';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/shared/PageHeader';
@@ -21,15 +23,40 @@ export default function FinanceOverviewPage() {
   usePageTitle('Finance');
   const { activeOrg } = useOrg();
   const [snapshot, setSnapshot] = useState<FinanceCoreSnapshot | null>(null);
+  const [nextReviewDocumentId, setNextReviewDocumentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const foco = useMemo(() => snapshot ? financeFocoFromSnapshot(snapshot) : [], [snapshot]);
+  const focoOpts = useMemo(() => ({ nextReviewDocumentId }), [nextReviewDocumentId]);
+  const foco = useMemo(
+    () => (snapshot ? financeFocoFromSnapshot(snapshot, focoOpts) : []),
+    [snapshot, focoOpts],
+  );
 
   useEffect(() => {
     if (!activeOrg?.id) return;
     let cancelled = false;
     getFinanceCoreSnapshot(activeOrg.id).then(
-      data => { if (!cancelled) { setSnapshot(data); setError(null); } },
-      cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'No pudimos cargar el resumen financiero.'); },
+      async (data) => {
+        if (cancelled) return;
+        setSnapshot(data);
+        setError(null);
+        if (data.precursorOcrDocuments <= 0) {
+          setNextReviewDocumentId(null);
+          return;
+        }
+        try {
+          const docs = await getFinanceDocuments(activeOrg.id);
+          if (cancelled) return;
+          const next = filterFinanceInbox(docs, 'revisar')[0]?.id ?? null;
+          setNextReviewDocumentId(next);
+        } catch (cause) {
+          console.error('FinanceOverview / próximo documento:', cause);
+          if (!cancelled) setNextReviewDocumentId(null);
+        }
+      },
+      cause => {
+        if (cancelled) return;
+        setError(cause instanceof Error ? cause.message : 'No pudimos cargar el resumen financiero.');
+      },
     );
     return () => { cancelled = true; };
   }, [activeOrg?.id]);
@@ -115,7 +142,7 @@ export default function FinanceOverviewPage() {
             icon={FileStack}
             label="Documentos por revisar"
             value={snapshot.precursorOcrDocuments.toLocaleString('es-AR')}
-            href={financeMetricHref('precursorOcrDocuments', snapshot)}
+            href={financeMetricHref('precursorOcrDocuments', snapshot, focoOpts)}
             attention={snapshot.precursorOcrDocuments > 0}
           />
         </div>

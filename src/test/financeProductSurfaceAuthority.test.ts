@@ -98,9 +98,12 @@ describe('autoridad de la superficie Gestiona Finance', () => {
     expect(overview).toContain('financeFocoFromSnapshot');
     expect(overview).toContain('Hasta cinco movimientos');
     expect(overview).toContain('financeMetricHref');
+    expect(overview).toContain('getFinanceDocuments');
+    expect(overview).toContain('filterFinanceInbox');
     expect(overview).toContain('WorkspaceState');
     const db = read('src/lib/financeProductDB.ts');
     expect(db).toContain('return items.slice(0, 5)');
+    expect(db).toContain('financeDocumentInspectPath');
     expect(db).toContain("/finance/documentos?vista=revisar");
     expect(db).toContain('/ordenes-compra');
     expect(db).not.toContain('INSERT INTO public.expenses');

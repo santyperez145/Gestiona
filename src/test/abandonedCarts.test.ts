@@ -69,16 +69,25 @@ describe("abandonedCarts", () => {
     }, now)).toBe(false);
   });
 
-  it("el deep-link y Commerce exponen la cola", () => {
-    expect(abandonedCartsQueueHref()).toBe("/tienda-online?tab=carritos");
-    const page = readFileSync(resolve(process.cwd(), "src/pages/EcommerceStorePage.tsx"), "utf8");
-    expect(page).toContain('"carritos"');
-    expect(page).toContain("AbandonedCartsPanel");
-    expect(page).toContain("recovery_token");
-    expect(page).toContain("storeSlug={store?.slug");
+  it("el deep-link aterriza en Pedidos → Recuperación", () => {
+    expect(abandonedCartsQueueHref()).toBe("/pedidos-online?cola=recuperacion");
+    const ordersPage = readFileSync(resolve(process.cwd(), "src/pages/StoreOrdersPage.tsx"), "utf8");
+    expect(ordersPage).toContain("StoreRecoveryWorkspace");
+    expect(ordersPage).toContain("recuperacion");
+    const recovery = readFileSync(
+      resolve(process.cwd(), "src/components/ecommerce/StoreRecoveryWorkspace.tsx"),
+      "utf8",
+    );
+    expect(recovery).toContain("AbandonedCartsPanel");
+    expect(recovery).toContain("recovery_token");
+    expect(recovery).toContain("storeSlug={storeSlug");
+    const commerce = readFileSync(resolve(process.cwd(), "src/pages/EcommerceStorePage.tsx"), "utf8");
+    expect(commerce).toContain("storeRecoveryCanonicalPath");
+    expect(commerce).toContain('requestedTab === "carritos"');
+    expect(commerce).not.toContain("AbandonedCartsPanel");
     const focus = readFileSync(resolve(process.cwd(), "src/lib/dashboardFocus.ts"), "utf8");
     expect(focus).toContain("carritosAbandonados");
-    expect(focus).toContain("/tienda-online?tab=carritos");
+    expect(focus).toContain("/pedidos-online?cola=recuperacion");
   });
 
   it("arma el deep-link de recuperación con slug y token", () => {

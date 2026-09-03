@@ -18,8 +18,6 @@ import {
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
-import AbandonedCartsPanel from "@/components/ecommerce/AbandonedCartsPanel";
-import StockAlertsPanel from "@/components/ecommerce/StockAlertsPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
 import QuestionsModeration from "@/components/ecommerce/QuestionsModeration";
 import StorePagesEditor from "@/components/ecommerce/StorePagesEditor";
@@ -62,11 +60,7 @@ import {
   storeShareIntentCopy,
 } from "@/lib/storeFirstPublish";
 import type { AbandonedCartRow } from "@/lib/abandonedCarts";
-import { filterAbandonedCartsForQueue } from "@/lib/abandonedCarts";
-import {
-  countPendingStockAlerts,
-  type StockAlertRow,
-} from "@/lib/stockAlerts";
+import { countPendingStockAlerts } from "@/lib/stockAlerts";
 import {
   costoEnvioAlGuardar,
   envioGratisAlGuardar,
@@ -92,7 +86,7 @@ import {
   normalizarMediosTienda,
 } from "@/lib/gestionaPay";
 import { STORE_ORDER_QUEUE_LIMIT, storeOrderFulfillmentLabel, storeOrderFulfillmentTone } from "@/lib/storeOrderQueue";
-import { storeOrdersCanonicalPath } from "@/lib/storeOrdersCanonical";
+import { storeOrdersCanonicalPath, storeRecoveryCanonicalPath } from "@/lib/storeOrdersCanonical";
 import ImageUpload from "@/components/shared/ImageUpload";
 import KPICard from "@/components/shared/KPICard";
 import WorkspaceState from "@/components/shared/WorkspaceState";
@@ -155,7 +149,7 @@ interface FunnelRow {
   color: string;
 }
 
-const STORE_TAB_IDS = ["overview", "carritos", "reviews", "categorias", "pages", "banners", "design", "settings"] as const;
+const STORE_TAB_IDS = ["overview", "reviews", "categorias", "pages", "banners", "design", "settings"] as const;
 type StoreTab = typeof STORE_TAB_IDS[number];
 
 function isStoreTab(value: string | null): value is StoreTab {
@@ -171,10 +165,15 @@ export default function EcommerceStorePage() {
   const { fromWizard } = parseActivationHandoff(searchParams);
   const requestedTab = searchParams.get("tab");
 
-  // Shopify/Tiendanube: Pedidos es superficie propia. Bookmarks viejos aterrizan ahí.
+  // Shopify/Tiendanube: Pedidos y Recuperación son superficie propia.
   useEffect(() => {
-    if (requestedTab !== "orders") return;
-    navigate(storeOrdersCanonicalPath(searchParams), { replace: true });
+    if (requestedTab === "orders") {
+      navigate(storeOrdersCanonicalPath(searchParams), { replace: true });
+      return;
+    }
+    if (requestedTab === "carritos") {
+      navigate(storeRecoveryCanonicalPath(searchParams), { replace: true });
+    }
   }, [requestedTab, searchParams, navigate]);
 
   const tab: StoreTab = isStoreTab(requestedTab) ? requestedTab : "overview";
@@ -187,7 +186,7 @@ export default function EcommerceStorePage() {
       params.delete("pedido");
       params.delete("orden");
       params.delete("medio");
-      if (next !== "carritos") params.delete("vista");
+      params.delete("vista");
       return params;
     }, { replace: true });
   };
@@ -228,12 +227,6 @@ export default function EcommerceStorePage() {
   const [orders, setOrders] = useState<EcomOrder[]>([]);
   const [funnelData, setFunnelData] = useState<FunnelRow[]>([]);
   const [abandonedCarts, setAbandonedCarts] = useState(0);
-  const [abandonedCartRows, setAbandonedCartRows] = useState<AbandonedCartRow[]>([]);
-  const [abandonedLoading, setAbandonedLoading] = useState(false);
-  const [abandonedError, setAbandonedError] = useState<string | null>(null);
-  const [stockAlertRows, setStockAlertRows] = useState<StockAlertRow[]>([]);
-  const [stockAlertsLoading, setStockAlertsLoading] = useState(false);
-  const [stockAlertsError, setStockAlertsError] = useState<string | null>(null);
   const [stockAlertsPending, setStockAlertsPending] = useState(0);
   // Opciones para armar el menú: las categorías y las páginas publicadas.
   const [menuCategorias, setMenuCategorias] = useState<{ slug: string; name: string }[]>([]);
@@ -351,8 +344,6 @@ export default function EcommerceStorePage() {
     loadOrders();
 
     const loadCartSessions = () => {
-      setAbandonedLoading(true);
-      setAbandonedError(null);
       supabase
         .from("ecommerce_cart_sessions")
         .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, updated_at, created_at")
@@ -360,20 +351,14 @@ export default function EcommerceStorePage() {
         .then(({ data, error }) => {
           if (error) {
             console.error("EcommerceStorePage / carritos:", error);
-            setAbandonedError(error.message);
-            setAbandonedLoading(false);
             return;
           }
           const rows = (data ?? []) as AbandonedCartRow[];
           setFunnelData(storeFunnelFromCarts(rows));
           setAbandonedCarts(storeAbandonedCartCount(rows));
-          setAbandonedCartRows(filterAbandonedCartsForQueue(rows));
-          setAbandonedLoading(false);
         });
     };
     const loadStockAlerts = () => {
-      setStockAlertsLoading(true);
-      setStockAlertsError(null);
       supabase
         .from("store_stock_alerts")
         .select("id, email, product_id, variant_id, notified_at, created_at, products(name, stock)")
@@ -383,11 +368,9 @@ export default function EcommerceStorePage() {
         .then(({ data, error }) => {
           if (error) {
             console.error("EcommerceStorePage / avisos reposición:", error);
-            setStockAlertsError(error.message);
-            setStockAlertsLoading(false);
             return;
           }
-          const rows: StockAlertRow[] = (data ?? []).map((raw) => {
+          const rows = (data ?? []).map((raw) => {
             const r = raw as Record<string, unknown>;
             const prod = r.products as { name?: string; stock?: number } | null;
             return {
@@ -401,9 +384,7 @@ export default function EcommerceStorePage() {
               product_stock: prod?.stock ?? null,
             };
           });
-          setStockAlertRows(rows);
           setStockAlertsPending(countPendingStockAlerts(rows));
-          setStockAlertsLoading(false);
         });
     };
     loadCartSessions();
@@ -628,7 +609,6 @@ export default function EcommerceStorePage() {
 
   const TABS: { id: StoreTab; label: string }[] = [
     { id: "overview",  label: "Publicar" },
-    { id: "carritos",  label: "Recuperación" },
     { id: "reviews",   label: "Opiniones y preguntas" },
     { id: "categorias", label: "Categorías" },
     { id: "pages",     label: "Páginas" },
@@ -636,8 +616,6 @@ export default function EcommerceStorePage() {
     { id: "design",    label: "Diseño y tema" },
     { id: "settings",  label: "Pagos y envíos" },
   ];
-  const recoveryVista = searchParams.get("vista") === "reposicion" ? "reposicion" : "abandonados";
-  const recoveryBadge = abandonedCarts + stockAlertsPending;
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayOrders = useMemo(() => orders.filter(o => o.created_at.slice(0, 10) === todayStr), [orders, todayStr]);
@@ -800,11 +778,6 @@ export default function EcommerceStorePage() {
           <button key={t.id} onClick={() => goToTab(t.id)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {t.label}
-            {t.id === "carritos" && recoveryBadge > 0 ? (
-              <span className="ml-1.5 text-[10px] tabular-nums text-amber-600 dark:text-amber-400">
-                {recoveryBadge}
-              </span>
-            ) : null}
           </button>
         ))}
       </div>
@@ -987,6 +960,13 @@ export default function EcommerceStorePage() {
               <Button type="button" size="sm" variant="outline" className="min-h-11" asChild>
                 <Link to="/pedidos-online">Ver pedidos</Link>
               </Button>
+              {(abandonedCarts + stockAlertsPending) > 0 ? (
+                <Button type="button" size="sm" variant="outline" className="min-h-11" asChild>
+                  <Link to="/pedidos-online?cola=recuperacion">
+                    Recuperación ({abandonedCarts + stockAlertsPending})
+                  </Link>
+                </Button>
+              ) : null}
             </div>
             <div className="space-y-2">
               {orders.length === 0 ? (
@@ -1017,117 +997,6 @@ export default function EcommerceStorePage() {
           </div>
         </div>
         ) : null}
-        </div>
-      )}
-
-      {tab === "carritos" && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant={recoveryVista === "abandonados" ? "default" : "outline"}
-              className="min-h-11"
-              onClick={() => {
-                setSearchParams((prev) => {
-                  const p = new URLSearchParams(prev);
-                  p.set("tab", "carritos");
-                  p.delete("vista");
-                  return p;
-                }, { replace: true });
-              }}
-            >
-              Carritos abandonados
-              {abandonedCarts > 0 ? ` (${abandonedCarts})` : ""}
-            </Button>
-            <Button
-              size="sm"
-              variant={recoveryVista === "reposicion" ? "default" : "outline"}
-              className="min-h-11"
-              onClick={() => {
-                setSearchParams((prev) => {
-                  const p = new URLSearchParams(prev);
-                  p.set("tab", "carritos");
-                  p.set("vista", "reposicion");
-                  return p;
-                }, { replace: true });
-              }}
-            >
-              Avisos de reposición
-              {stockAlertsPending > 0 ? ` (${stockAlertsPending})` : ""}
-            </Button>
-          </div>
-          {recoveryVista === "reposicion" ? (
-            <StockAlertsPanel
-              alerts={stockAlertRows}
-              loading={stockAlertsLoading}
-              error={stockAlertsError}
-              onRetry={() => {
-                if (!orgId) return;
-                setStockAlertsLoading(true);
-                setStockAlertsError(null);
-                supabase
-                  .from("store_stock_alerts")
-                  .select("id, email, product_id, variant_id, notified_at, created_at, products(name, stock)")
-                  .eq("org_id", orgId)
-                  .is("notified_at", null)
-                  .order("created_at", { ascending: false })
-                  .then(({ data, error }) => {
-                    if (error) {
-                      console.error("EcommerceStorePage / avisos reposición:", error);
-                      setStockAlertsError(error.message);
-                      setStockAlertsLoading(false);
-                      return;
-                    }
-                    const rows: StockAlertRow[] = (data ?? []).map((raw) => {
-                      const r = raw as Record<string, unknown>;
-                      const prod = r.products as { name?: string; stock?: number } | null;
-                      return {
-                        id: String(r.id),
-                        email: String(r.email),
-                        product_id: String(r.product_id),
-                        variant_id: (r.variant_id as string | null) ?? null,
-                        notified_at: (r.notified_at as string | null) ?? null,
-                        created_at: String(r.created_at),
-                        product_name: prod?.name ?? null,
-                        product_stock: prod?.stock ?? null,
-                      };
-                    });
-                    setStockAlertRows(rows);
-                    setStockAlertsPending(countPendingStockAlerts(rows));
-                    setStockAlertsLoading(false);
-                  });
-              }}
-            />
-          ) : (
-            <AbandonedCartsPanel
-              carts={abandonedCartRows}
-              loading={abandonedLoading}
-              error={abandonedError}
-              storeSlug={store?.slug ?? null}
-              onRetry={() => {
-                if (!orgId) return;
-                setAbandonedLoading(true);
-                setAbandonedError(null);
-                supabase
-                  .from("ecommerce_cart_sessions")
-                  .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, updated_at, created_at")
-                  .eq("org_id", orgId)
-                  .then(({ data, error }) => {
-                    if (error) {
-                      console.error("EcommerceStorePage / carritos:", error);
-                      setAbandonedError(error.message);
-                      setAbandonedLoading(false);
-                      return;
-                    }
-                    const rows = (data ?? []) as AbandonedCartRow[];
-                    setFunnelData(storeFunnelFromCarts(rows));
-                    setAbandonedCarts(storeAbandonedCartCount(rows));
-                    setAbandonedCartRows(filterAbandonedCartsForQueue(rows));
-                    setAbandonedLoading(false);
-                  });
-              }}
-            />
-          )}
         </div>
       )}
 

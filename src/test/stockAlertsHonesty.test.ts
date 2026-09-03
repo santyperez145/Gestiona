@@ -44,8 +44,8 @@ describe("avisos de reposición (Back in stock)", () => {
     });
   });
 
-  it("Foco y Commerce aterrizan en Recuperación → reposición", () => {
-    expect(stockAlertsQueueHref()).toBe("/tienda-online?tab=carritos&vista=reposicion");
+  it("Foco y Pedidos aterrizan en Recuperación → reposición", () => {
+    expect(stockAlertsQueueHref()).toBe("/pedidos-online?cola=recuperacion&vista=reposicion");
     const p = construirPendientes({
       sinStock: 0, stockBajo: 0,
       deudasPendientes: 0, deudaTotalARS: 0, deudasVencidas30: 0,
@@ -55,12 +55,19 @@ describe("avisos de reposición (Back in stock)", () => {
     });
     expect(p.some((x) => x.id === "avisos-reposicion")).toBe(true);
     expect(p.find((x) => x.id === "avisos-reposicion")?.destino)
-      .toBe("/tienda-online?tab=carritos&vista=reposicion");
+      .toBe("/pedidos-online?cola=recuperacion&vista=reposicion");
 
-    const store = readFileSync(resolve(ROOT, "src/pages/EcommerceStorePage.tsx"), "utf8");
-    expect(store).toContain("StockAlertsPanel");
-    expect(store).toContain('vista", "reposicion"');
-    expect(store).toContain("Recuperación");
+    const recovery = readFileSync(
+      resolve(ROOT, "src/components/ecommerce/StoreRecoveryWorkspace.tsx"),
+      "utf8",
+    );
+    expect(recovery).toContain("StockAlertsPanel");
+    expect(recovery).toContain('"reposicion"');
+    const ordersPage = readFileSync(resolve(ROOT, "src/pages/StoreOrdersPage.tsx"), "utf8");
+    expect(ordersPage).toContain("Recuperación");
+    const commerce = readFileSync(resolve(ROOT, "src/pages/EcommerceStorePage.tsx"), "utf8");
+    expect(commerce).toContain("storeRecoveryCanonicalPath");
+    expect(commerce).not.toContain("StockAlertsPanel");
 
     const cron = readFileSync(
       resolve(ROOT, "supabase/functions/notify-back-in-stock/index.ts"),
