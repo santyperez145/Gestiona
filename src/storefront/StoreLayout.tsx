@@ -474,6 +474,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               {nav.map(n => (
                 <li key={n.label}><LinkDeMenu item={n} className="hover:underline" /></li>
               ))}
+              <li>
+                <Link to={`${base}/seguimiento`} className="hover:underline">Consultar mi pedido</Link>
+              </li>
             </ul>
           </div>
           {/* Información: es lo que mira el comprador antes de decidir, y lo
@@ -537,6 +540,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             botón de arrepentimiento, que sí tiene que estar arriba. */}
         <div className="border-t py-4 text-center text-xs space-y-2" style={{ borderColor: "hsl(var(--st-border))", color: "hsl(var(--st-muted))" }}>
           <p className="flex flex-wrap justify-center gap-x-3 gap-y-1">
+            <Link to={`${base}/seguimiento`} className="hover:underline">
+              Consultar mi pedido
+            </Link>
+            <span aria-hidden>·</span>
             <Link to={`${base}/arrepentimiento`} className="hover:underline">
               Botón de arrepentimiento
             </Link>

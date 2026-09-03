@@ -39,6 +39,7 @@ export const ROBOTS_DISALLOW_TIENDA = [
   "/tienda/*/cuenta",
   "/tienda/*/orden",
   "/tienda/*/carrito",
+  "/tienda/*/seguimiento",
 ] as const;
 
 export interface PrecioDeCatalogo {
@@ -103,7 +104,7 @@ export function parseRutaTienda(path: string, search: URLSearchParams | { get(na
   if (seccion === "arrepentimiento" && resto.length === 1) {
     return { kind: "legal", slug };
   }
-  if (["checkout", "cuenta", "orden", "carrito"].includes(seccion)) {
+  if (["checkout", "cuenta", "orden", "carrito", "seguimiento"].includes(seccion)) {
     return { kind: "private", slug };
   }
   return { kind: "private", slug };

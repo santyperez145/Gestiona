@@ -309,7 +309,10 @@ export default function StoreOrder() {
             </button>
           </form>
           {accesoError && <p className="text-xs text-red-600 mt-3" role="alert">{accesoError}</p>}
-          <Link to={base} className="inline-block mt-5 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
+          <Link to={`${base}/seguimiento`} className="inline-block mt-4 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
+            ¿No tenés el link? Consultá con número y email
+          </Link>
+          <Link to={base} className="inline-block mt-3 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
             Volver a la tienda
           </Link>
         </div>
