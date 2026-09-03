@@ -3288,6 +3288,17 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no
      tiene `VITE_*`: no se afirma el Foco contra una sesión real.
 
+128. Contacto de vitrina: WhatsApp e Instagram — 2026-09-02.
+     Medido: `ecommerce_stores.social_links = {}` en Exentry. El pie
+     leía Instagram y Commerce nunca lo escribía. Tiendanube muestra
+     WhatsApp en la tienda. El href se construye (`wa.me` / instagram.com);
+     no se pega URL cruda ni se usa `settings.whatsapp_number` (digest
+     del dueño). El comercio carga el número; no se inventa.
+
+     Verificado en este recorte: **2.411 tests** (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no
+     tiene `VITE_*`: no se afirma la vitrina contra una sesión real.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

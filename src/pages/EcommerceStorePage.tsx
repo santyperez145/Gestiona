@@ -57,6 +57,7 @@ import {
   sugerirDireccionDeRetiro,
   sugerirEmailDeAvisos,
 } from "@/lib/storeDraft";
+import { socialLinksParaGuardar } from "@/lib/storeSocial";
 import {
   HOME_SECTION_LABELS,
   layoutParaGuardar,
@@ -529,6 +530,10 @@ export default function EcommerceStorePage() {
       pickup_instructions: storeForm.pickup_instructions || null,
       default_item_weight_kg: Number(storeForm.default_item_weight_kg) || 0.5,
       storefront_layout: layoutParaGuardar(storeForm.storefront_layout),
+      social_links: socialLinksParaGuardar({
+        whatsapp: storeForm.whatsapp,
+        instagram: storeForm.instagram,
+      }),
       fulfillment_location_id: storeForm.fulfillment_location_id === GLOBAL_FULFILLMENT_LOCATION
         ? null
         : storeForm.fulfillment_location_id,
@@ -1233,6 +1238,30 @@ export default function EcommerceStorePage() {
                   onChange={e => setStoreForm(p => ({ ...p, description: e.target.value }))}
                   placeholder="Aparece en el encabezado de la tienda y en el pie"
                   className="h-9"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">WhatsApp</label>
+                <Input
+                  value={storeForm.whatsapp}
+                  onChange={e => setStoreForm(p => ({ ...p, whatsapp: e.target.value }))}
+                  placeholder="54911… con código de país"
+                  className="h-9 min-h-11"
+                  inputMode="tel"
+                  autoComplete="tel"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  El comprador lo ve en la tienda. No es el número del digest interno.
+                </p>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Instagram</label>
+                <Input
+                  value={storeForm.instagram}
+                  onChange={e => setStoreForm(p => ({ ...p, instagram: e.target.value }))}
+                  placeholder="@tunegocio"
+                  className="h-9 min-h-11"
+                  autoComplete="off"
                 />
               </div>
               <div className="space-y-2">

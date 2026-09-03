@@ -19,6 +19,7 @@ import {
   parseStorefrontLayout,
   type StorefrontLayout,
 } from "@/lib/storeHomeLayout";
+import { displayInstagram, displayWhatsApp, parseStoreSocial } from "@/lib/storeSocial";
 
 /** Violeta del workspace (`252 83% 62%`). El onboarding arranca igual. */
 export const STORE_WORKSPACE_COLOR = "#6E4DEE";
@@ -62,6 +63,8 @@ export type StoreFormDraft = {
   default_item_weight_kg: string;
   fulfillment_location_id: string;
   storefront_layout: StorefrontLayout;
+  whatsapp: string;
+  instagram: string;
 };
 
 export type StoreOrgSeed = {
@@ -195,6 +198,8 @@ export function storeDraftInicial(
       ...DEFAULT_STOREFRONT_LAYOUT,
       sections: [...DEFAULT_STOREFRONT_LAYOUT.sections],
     },
+    whatsapp: "",
+    instagram: "",
   };
 }
 
@@ -228,6 +233,7 @@ type FilaTienda = {
   default_item_weight_kg?: number | null;
   fulfillment_location_id?: string | null;
   storefront_layout?: unknown;
+  social_links?: unknown;
 };
 
 /** Una fila guardada no se mezcla con los defaults del formulario vacío. */
@@ -273,5 +279,7 @@ export function storeFormDesdeFila(
       : base.default_item_weight_kg,
     fulfillment_location_id: data.fulfillment_location_id ?? fulfillmentGlobal,
     storefront_layout: parseStorefrontLayout(data.storefront_layout),
+    whatsapp: displayWhatsApp(parseStoreSocial(data.social_links).whatsapp),
+    instagram: displayInstagram(parseStoreSocial(data.social_links).instagram),
   };
 }

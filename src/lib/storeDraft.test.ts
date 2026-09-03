@@ -132,6 +132,20 @@ describe("la tienda no nace con la identidad de Exentry", () => {
     expect(form.shipping_cost).toBe("0");
     expect(form.payment_methods).toEqual(["gestiona_pay", "transferencia"]);
     expect(form.primary_color).toBe("#f59e0b");
+    expect(form.whatsapp).toBe("");
+    expect(form.instagram).toBe("");
+  });
+
+  it("el contacto de vitrina sale de social_links, no de un default", () => {
+    const form = storeFormDesdeFila({
+      social_links: {
+        whatsapp: "https://wa.me/5491112345678",
+        instagram: "https://www.instagram.com/exentry.ok/",
+      },
+    });
+    expect(form.whatsapp).toBe("5491112345678");
+    expect(form.instagram).toBe("@exentry.ok");
+    expect(storeDraftInicial().whatsapp).toBe("");
   });
 
   it("un slug ocupado se distingue de un error genérico", () => {

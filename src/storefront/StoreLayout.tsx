@@ -15,11 +15,12 @@ import { menuEfectivo, menuConSubmenus } from "@/lib/storeMenu";
 import { sugerenciasParaElCarrito, TEXTO_MOTIVO } from "@/lib/crossSell";
 import SearchBox from "./SearchBox";
 import { resolveTheme, resolveFont, googleFontHref } from "./theme";
-import { ShoppingBag, X, Plus, Minus, Trash2, Instagram, Menu, User, ChevronDown } from "lucide-react";
+import { ShoppingBag, X, Plus, Minus, Trash2, Instagram, Menu, User, ChevronDown, MessageCircle } from "lucide-react";
 import { useStoreAuth } from "./storeAuth";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 import { parseStorefrontLayout, textoDeAnuncio } from "@/lib/storeHomeLayout";
 import { textoCoberturaDomicilio } from "@/lib/storeShippingCoverage";
+import { hrefWhatsAppConsultar, parseStoreSocial } from "@/lib/storeSocial";
 
 /**
  * Un link del menú. Los externos salen del router: con `<Link>` un
@@ -86,7 +87,8 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   useEffect(() => { setCartOpen(false); setMenuOpen(false); }, [pathname]);
 
   const base = `/tienda/${store?.slug ?? ""}`;
-  const social = store?.social_links ?? {};
+  const social = parseStoreSocial(store?.social_links);
+  const waConsultar = hrefWhatsAppConsultar(social.whatsapp, store?.name);
   const anuncio = textoDeAnuncio(parseStorefrontLayout(store?.storefront_layout), {
     freeShippingAbove: store?.free_shipping_above,
     fmt,
@@ -303,6 +305,20 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <User className="w-5 h-5" />
           </Link>
 
+          {waConsultar && (
+            <a
+              href={waConsultar}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Consultar por WhatsApp"
+              title="Consultar por WhatsApp"
+              className="min-h-11 min-w-11 grid place-items-center"
+              style={{ color: "hsl(var(--st-accent-fg))" }}
+            >
+              <MessageCircle className="w-5 h-5" />
+            </a>
+          )}
+
           <button
             onClick={() => setCartOpen(true)}
             className="relative p-2 min-h-11 min-w-11 grid place-items-center"
@@ -390,15 +406,37 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               </ul>
             </div>
           )}
+          {(waConsultar || social.instagram || coberturaEnvio) && (
           <div>
+            {(waConsultar || social.instagram) && (
+              <>
             <p className="text-sm font-semibold mb-2">Contacto</p>
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-2 text-sm" style={{ color: "hsl(var(--st-muted))" }}>
+              {waConsultar && (
+                <a
+                  href={waConsultar}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-11 items-center gap-2 hover:underline"
+                >
+                  <MessageCircle className="w-5 h-5 shrink-0" />
+                  WhatsApp
+                </a>
+              )}
               {social.instagram && (
-                <a href={social.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-                  <Instagram className="w-5 h-5" style={{ color: "hsl(var(--st-muted))" }} />
+                <a
+                  href={social.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-11 items-center gap-2 hover:underline"
+                >
+                  <Instagram className="w-5 h-5 shrink-0" />
+                  Instagram
                 </a>
               )}
             </div>
+              </>
+            )}
             {coberturaEnvio && (store?.free_shipping_above ?? 0) > 0 ? (
               <p className="text-xs mt-3" style={{ color: "hsl(var(--st-muted))" }}>
                 Envío gratis desde {fmt(Number(store?.free_shipping_above))} · {coberturaEnvio}
@@ -407,6 +445,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               <p className="text-xs mt-3" style={{ color: "hsl(var(--st-muted))" }}>{coberturaEnvio}</p>
             ) : null}
           </div>
+          )}
         </div>
         {/* Defensa del Consumidor exige que el comprador sepa dónde reclamar
             si el comercio no le responde. Va acá abajo, junto al copyright,
