@@ -30,6 +30,7 @@ import {
   storeAfterCreateCopy,
   storeWizardFinishCopy,
   urlPublicaDeTienda,
+  enlaceCanonicoDeVitrina,
   storeFirstSaleSharePath,
   storeOrdersEmptyShareCopy,
   storeShareIntentActive,
@@ -347,6 +348,25 @@ describe('el enlace de la tienda se puede copiar', () => {
       .toBe('https://exentryimports.vercel.app/tienda/exentryimports');
     expect(urlPublicaDeTienda('https://exentryimports.vercel.app/', '  ')).toBeNull();
     expect(urlPublicaDeTienda('', 'exentryimports')).toBeNull();
+  });
+
+  it('si la tienda está activa se comparte /tienda/:slug, no el catálogo WhatsApp', () => {
+    expect(enlaceCanonicoDeVitrina({
+      origin: 'https://app.example',
+      userId: 'user-1',
+      storeSlug: 'mi-tienda',
+      storeActive: true,
+    })).toEqual({ href: 'https://app.example/tienda/mi-tienda', kind: 'tienda' });
+    expect(enlaceCanonicoDeVitrina({
+      origin: 'https://app.example',
+      userId: 'user-1',
+      storeSlug: 'mi-tienda',
+      storeActive: false,
+    })).toEqual({ href: 'https://app.example/catalogo/user-1', kind: 'catalogo' });
+    expect(enlaceCanonicoDeVitrina({
+      origin: 'https://app.example',
+      userId: 'user-1',
+    })).toEqual({ href: 'https://app.example/catalogo/user-1', kind: 'catalogo' });
   });
 
   it('Commerce copia el mismo link que abre Ver tienda', () => {

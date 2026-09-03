@@ -357,6 +357,27 @@ export function urlPublicaDeTienda(
   return `${host}/tienda/${s}`;
 }
 
+/**
+ * Qué URL se comparte. Si hay tienda activa, es `/tienda/:slug` (checkout).
+ * El catálogo `/catalogo/:userId` queda como vidriera WhatsApp, no como cobro.
+ */
+export function enlaceCanonicoDeVitrina(input: {
+  origin: string;
+  userId?: string | null;
+  storeSlug?: string | null;
+  storeActive?: boolean | null;
+}): { href: string; kind: 'tienda' | 'catalogo' } | null {
+  const host = input.origin.trim().replace(/\/$/, '');
+  const slug = (input.storeSlug ?? '').trim();
+  if (host && slug && input.storeActive) {
+    const href = urlPublicaDeTienda(host, slug);
+    if (href) return { href, kind: 'tienda' };
+  }
+  const userId = (input.userId ?? '').trim();
+  if (!host || !userId) return null;
+  return { href: `${host}/catalogo/${userId}`, kind: 'catalogo' };
+}
+
 /** Foco «Compartí el enlace»: deep-link a overview con intención de share. */
 export function storeFirstSaleSharePath(publicada: boolean): string {
   return publicada

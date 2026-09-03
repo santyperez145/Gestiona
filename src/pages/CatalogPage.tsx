@@ -21,6 +21,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 import { plural } from "@/lib/plural";
+import { enlaceCanonicoDeVitrina } from "@/lib/storeFirstPublish";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 
 function fmtARS(n: number) {
@@ -71,17 +72,23 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
   const [showFacets, setShowFacets] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [storeShare, setStoreShare] = useState<{ slug: string | null; active: boolean }>({ slug: null, active: false });
 
   const fetchData = useCallback(async () => {
     if (!userId) return;
     const orgId = getActiveOrgId();
     if (!orgId) return;
-    const [pRes, sRes] = await Promise.all([
+    const [pRes, sRes, storeRes] = await Promise.all([
       supabase.from('products').select('*').eq('org_id', orgId).gt('stock', 0).order('category').order('name'),
       supabase.from('settings').select('*').eq('org_id', orgId).maybeSingle(),
+      supabase.from('ecommerce_stores').select('slug, is_active').eq('org_id', orgId).maybeSingle(),
     ]);
     setProducts(pRes.data || []);
     setSettings(sRes.data);
+    setStoreShare({
+      slug: storeRes.data?.slug ?? null,
+      active: Boolean(storeRes.data?.is_active),
+    });
     setLoading(false);
     // El catálogo público lee las promos por RPC security-definer: la RLS de
     // `promotions` exige auth, pero el precio que ve el cliente tiene que ser
@@ -125,6 +132,19 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     }),
     [settings?.industry_code, products],
   );
+
+  const vitrina = useMemo(
+    () => enlaceCanonicoDeVitrina({
+      origin: typeof window === "undefined" ? "" : window.location.origin,
+      userId,
+      storeSlug: storeShare.slug,
+      storeActive: storeShare.active,
+    }),
+    [userId, storeShare.slug, storeShare.active],
+  );
+  const publicUrl = vitrina?.href ?? (userId && typeof window !== "undefined"
+    ? `${window.location.origin}/catalogo/${userId}`
+    : "");
 
   const filtered = products.filter(p => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.brand.toLowerCase().includes(search.toLowerCase())) return false;
@@ -178,7 +198,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       // Legacy alias so existing PDF code keeps working
       const hex = hexPrimary;
       const today = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
-      const publicUrl = `${window.location.origin}/catalogo/${userId}`;
+      const publicUrl = vitrina?.href ?? `${window.location.origin}/catalogo/${userId}`;
       // Título de portada: refleja la categoría y las facetas activas, así el
       // PDF exportado dice exactamente qué selección contiene.
       const facetLabels = [
@@ -895,10 +915,10 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     } finally {
       setGenerating(false);
     }
-  }, [filtered, settings, isPublic, filterCat, userId, facetGenero, facetFamilia, facetOcasion, facetNotas]);
+  }, [filtered, settings, isPublic, filterCat, userId, facetGenero, facetFamilia, facetOcasion, facetNotas, vitrina]);
 
   const printQR = useCallback(() => {
-    const url = `${window.location.origin}/catalogo/${userId}`;
+    const url = publicUrl;
     const name = settings?.business_name || "Catálogo";
     const svgEl = document.getElementById("catalog-qr-svg");
     if (!svgEl) return;
@@ -908,10 +928,10 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
 <body><h2>${name}</h2><p>Escaneá para ver el catálogo</p>${svgData}<p>${url}</p></body></html>`;
     const w = window.open("", "_blank", "width=400,height=500");
     if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); w.close(); }
-  }, [userId, settings]);
+  }, [userId, settings, publicUrl]);
 
   const shareCatalog = useCallback(async () => {
-    const url = `${window.location.origin}/catalogo/${userId}`;
+    const url = publicUrl;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -922,19 +942,21 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       } catch { /* cancelled */ }
     } else {
       await navigator.clipboard.writeText(url);
-      toast.success('Link del catálogo copiado al portapapeles');
+      toast.success(vitrina?.kind === "tienda"
+        ? 'Link de la tienda copiado al portapapeles'
+        : 'Link del catálogo copiado al portapapeles');
     }
-  }, [filtered, settings, userId]);
+  }, [filtered, settings, userId, publicUrl, vitrina?.kind]);
 
   const sendCatalogWhatsApp = useCallback(() => {
-    const url = `${window.location.origin}/catalogo/${userId}`;
+    const url = publicUrl;
     const name = settings?.business_name || '';
     const msg = `Hola! 👋 Mirá el catálogo${name ? ` de ${name}` : ''} con ${plural(filtered.length, "producto")} disponibles:\n${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-  }, [filtered, settings, userId]);
+  }, [filtered, settings, userId, publicUrl]);
 
   const sendPriceListWhatsApp = useCallback(() => {
-    const url = `${window.location.origin}/catalogo/${userId}`;
+    const url = publicUrl;
     const name = settings?.business_name || '';
     const inStock = filtered.filter(p => p.stock > 0);
     const CAP = 40; // límite práctico para no exceder el largo de wa.me
@@ -947,7 +969,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     if (inStock.length > CAP) msg += `\n\n…y ${plural(inStock.length - CAP, "producto")} más en el catálogo:\n${url}`;
     else msg += `\n\nCatálogo completo: ${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-  }, [filtered, settings, userId]);
+  }, [filtered, settings, userId, publicUrl]);
 
   if (loading) return <TableSkeleton rows={6} cols={4} />;
 
@@ -959,7 +981,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       <div className="hidden">
         <QRCodeSVG
           id="catalog-qr-svg"
-          value={`${window.location.origin}/catalogo/${userId}`}
+          value={publicUrl}
           size={300}
           level="H"
         />
@@ -967,7 +989,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       <PageHeader
         icon={Package}
         title={isPublic ? businessName : 'Catálogo'}
-        description={`${plural(filtered.length, "producto")} disponibles`}
+        description={`${plural(filtered.length, "producto")} disponibles${vitrina?.kind === "tienda" ? ". El enlace que compartís abre la tienda, donde se cobra." : ""}`}
         actions={
           <div className="flex flex-wrap gap-2">
             {!isPublic && (

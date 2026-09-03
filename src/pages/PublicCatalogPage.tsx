@@ -7,6 +7,7 @@ import { loadPublicPromotions, bestPromoPrice } from "@/lib/promotions";
 import { nombreDeCategoria } from "@/lib/storeCategories";
 import {
   fetchCatalogProducts, fetchCatalogSettings, fetchCatalogVariants,
+  fetchPublishedStoreSlugForOrg,
 } from "@/lib/publicDataSource";
 import {
   Package,
@@ -190,6 +191,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
   // Cart
   const [cart, setCart] = useState<{ id: string; name: string; price: number; qty: number; size?: string }[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [storeSlug, setStoreSlug] = useState<string | null>(null);
 
   const addToCart = (product: any, size?: string) => {
     const price = Number(product.discount_price_ars || product.sale_price_ars);
@@ -228,6 +230,11 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
     const orgId = (rows[0] as any)?.org_id as string | undefined;
     // Las cuotas que se muestran salen de lo que el comercio configuró.
     setOrgIdCuotas(orgId ?? null);
+    if (orgId) {
+      fetchPublishedStoreSlugForOrg(orgId).then(setStoreSlug, () => setStoreSlug(null));
+    } else {
+      setStoreSlug(null);
+    }
     let priced = rows;
     if (orgId) {
       const promos = await loadPublicPromotions(orgId);
@@ -857,7 +864,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
       )}
 
       {/* Cart: bottom-left */}
-      {whatsappNumber && cartCount > 0 && (
+      {(whatsappNumber || storeSlug) && cartCount > 0 && (
         <button
           onClick={() => setCartOpen(true)}
           className="fixed bottom-5 left-4 z-40 flex items-center gap-2 px-4 py-3 rounded-full font-bold text-sm shadow-2xl transition-all active:scale-95 hover:scale-105"
@@ -928,6 +935,15 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
                 <span className="text-sm text-white/50 font-semibold">Total</span>
                 <span className="text-lg font-black" style={{ color: primaryColor }}>{fmtARS(cartTotal)}</span>
               </div>
+              {storeSlug ? (
+                <a
+                  href={`/tienda/${storeSlug}`}
+                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-[11px] text-sm font-bold transition-all active:scale-[0.98]"
+                  style={{ background: primaryColor, color: "#000" }}
+                >
+                  Comprar en la tienda
+                </a>
+              ) : null}
               <a
                 href={buildCartWhatsAppUrl()}
                 target="_blank"

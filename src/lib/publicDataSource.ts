@@ -411,6 +411,25 @@ export async function quoteStoreShipping(args: {
   throw new Error(error.message);
 }
 
+/** Slug de tienda activa. Si el RPC no está desplegado, no inventa cobro. */
+export async function fetchPublishedStoreSlugForOrg(orgId: string): Promise<string | null> {
+  const id = orgId.trim();
+  if (!id) return null;
+  const rpc = await retryPublicRead(() =>
+    supabase.rpc('get_published_store_slug' as never, { p_org_id: id } as never));
+  if (!rpc.error) {
+    const value = rpc.data as unknown;
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    return null;
+  }
+  if (isMissingFunction(rpc.error)) {
+    warnFallback('get_published_store_slug()');
+    return null;
+  }
+  console.error('[catálogo] no se pudo leer el slug de la tienda', rpc.error.message);
+  return null;
+}
+
 /**
  * Crea la orden. Si la firma con opción de envío todavía no está en la base, se
  * reintenta sin ese parámetro: mejor cobrar el envío plano que no poder vender.

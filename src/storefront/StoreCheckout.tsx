@@ -16,6 +16,7 @@ import { mediosDePagoOfrecibles, esMedioGestionaPay } from "@/lib/gestionaPay";
 import { avisoCheckoutMedioPago, etiquetaMedioCheckout } from "@/lib/storeOrderBuyerCopy";
 import { leerProvinciaCarrito, guardarProvinciaCarrito } from "@/lib/storeCartProvince";
 import { cartShippingCellText, checkoutShippingDisplay } from "@/lib/storeCartShipping";
+import { checkoutDebeIntentarCuenta } from "@/lib/storeCheckoutAccount";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -37,7 +38,7 @@ export default function StoreCheckout() {
   const navigate = useNavigate();
   const base = `/tienda/${store?.slug ?? ""}`;
 
-  const { customer } = useStoreAuth();
+  const { customer, signUp } = useStoreAuth();
   const metodos = mediosDePagoOfrecibles(store?.payment_methods);
   const [form, setForm] = useState({
     nombre: "", email: "", telefono: "",
@@ -107,6 +108,8 @@ export default function StoreCheckout() {
   const claveIdem = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [aceptaMarketing, setAceptaMarketing] = useState(false);
+  const [crearCuenta, setCrearCuenta] = useState(false);
+  const [passwordCuenta, setPasswordCuenta] = useState("");
 
   // ── Cupón ───────────────────────────────────────────────────────────────
   const [cupon, setCupon] = useState("");
@@ -351,6 +354,15 @@ export default function StoreCheckout() {
       setError("Esta tienda todavía no puede cobrar. Probá más tarde.");
       return;
     }
+    const cuentaPlan = checkoutDebeIntentarCuenta({
+      yaTieneCuenta: Boolean(customer),
+      quiereCuenta: crearCuenta,
+      password: passwordCuenta,
+    });
+    if ("error" in cuentaPlan && cuentaPlan.error) {
+      setError(cuentaPlan.error);
+      return;
+    }
     setEnviando(true);
 
     // H1 — la clave de idempotencia se genera UNA VEZ por intento de compra y
@@ -404,6 +416,13 @@ export default function StoreCheckout() {
     const accessToken = orderNumber
       ? saveOrderAccessToken(store!.slug, orderNumber, access.data?.access_token)
       : null;
+
+    if (cuentaPlan.intentar) {
+      const alta = await signUp(form.email, passwordCuenta, form.nombre);
+      if (alta.error) {
+        console.error("No se pudo crear la cuenta del comprador", alta.error);
+      }
+    }
 
     // El consentimiento es opcional y se registra después de crear la orden
     // para poder dejar como evidencia el número de pedido. Si este RPC todavía
@@ -735,6 +754,34 @@ export default function StoreCheckout() {
               </Link>
             </span>
           </label>
+
+          {!customer && (
+            <div className="space-y-2">
+              <label className="flex items-start gap-3 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={crearCuenta}
+                  onChange={e => setCrearCuenta(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>Crear cuenta para ver mis pedidos. Podés seguir comprando como invitado.</span>
+              </label>
+              {crearCuenta && (
+                <label className="block">
+                  <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Contraseña (mínimo 6 caracteres)</span>
+                  <input
+                    type="password"
+                    minLength={6}
+                    autoComplete="new-password"
+                    value={passwordCuenta}
+                    onChange={e => setPasswordCuenta(e.target.value)}
+                    className={input}
+                    style={inputStyle}
+                  />
+                </label>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Resumen ─────────────────────────────────────────────── */}
