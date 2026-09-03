@@ -3611,7 +3611,7 @@ Finance Connect.
      cola alineada a `pending_abandoned_carts`; sin PUBLIC_BASE_URL no
      se marca enviado. No inventa email ni tarifario.
 
-     Verificado en este recorte: **2.490 tests** / 264 archivos (`npm test --
+     Verificado en este recorte: **2.489 tests** / 264 archivos (`npm test --
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
