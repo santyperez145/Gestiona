@@ -65,6 +65,10 @@ describe('autoridad de la superficie Gestiona Finance', () => {
     expect(migration).toContain('FROM public.purchase_orders');
     expect(migration).toContain('FROM public.supplier_debts');
     expect(migration).toContain('FROM public.ledger_entries');
+    const snapshotF3 = read('supabase/migrations/20260903000050_finance_snapshot_documentos_f3.sql');
+    expect(snapshotF3).toContain('FROM public.finance_documents fd');
+    expect(snapshotF3).toMatch(/count\(\*\) FROM public\.finance_documents fd/);
+    expect(snapshotF3).not.toMatch(/count\(\*\) FROM public\.ocr_documents/);
     expect(overview).not.toMatch(/\.from\(['"](?:suppliers|purchase_orders|supplier_debts|ledger_entries)/);
     expect(overview).toContain('Operación conectada');
   });

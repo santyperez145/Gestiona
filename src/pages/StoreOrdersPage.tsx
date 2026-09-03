@@ -22,7 +22,7 @@ import { RotateCcw, Settings, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function StoreOrdersPage() {
-  usePageTitle("Pedidos online");
+  usePageTitle("Pedidos");
   const { orgId } = useOrganization();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -101,7 +101,7 @@ export default function StoreOrdersPage() {
     <div className="space-y-6">
       <PageHeader
         icon={ShoppingBag}
-        title="Pedidos online"
+        title="Pedidos"
         description="Cola de pedidos y recuperación de carritos: cobrar, despachar y recuperar GMV. Misma autoridad que el checkout público."
         actions={(
           <Button variant="outline" size="sm" className="min-h-11 gap-1.5" asChild>

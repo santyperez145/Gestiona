@@ -51,6 +51,15 @@ describe("estructura de la navegación", () => {
     expect(ITEMS_DIARIOS.map(i => i.to).slice(0, 3)).toEqual(["/", "/tienda-online", "/pedidos-online"]);
     expect(ITEMS_DIARIOS.map(i => i.to)).toContain("/caja");
     expect(ITEMS_DIARIOS.map(i => i.to)).toContain("/pedidos-online");
+    const pedidos = ITEMS_DIARIOS.find(i => i.to === "/pedidos-online");
+    expect(pedidos?.label).toBe("Pedidos");
+  });
+
+  it("buscar «pedidos» aterriza en la cola online, no en Ventas", () => {
+    const manifest = readFileSync(resolve(process.cwd(), "src/app/routeManifest.ts"), "utf8");
+    expect(manifest).toMatch(/path: "\/pedidos-online"[\s\S]*?keywords: \[[^\]]*"pedidos"/);
+    expect(manifest).toMatch(/path: "\/ventas"[\s\S]*?keywords: \[[^\]]*"historial de ventas"/);
+    expect(manifest).not.toMatch(/path: "\/ventas"[\s\S]*?keywords: \[[^\]]*"pedidos"/);
   });
 
   it("los grupos plegables no incluyen el diario", () => {

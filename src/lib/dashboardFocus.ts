@@ -97,7 +97,7 @@ export interface DatosFoco {
   /** Recomendaciones de oferta IA en `pending` (aplicar → AI Action Rate). */
   ofertasIaPendientes?: number;
   /**
-   * Carritos abandonados con ítems — cola Commerce `tab=carritos`
+   * Carritos abandonados con ítems — cola `/pedidos-online?cola=recuperacion`
    * (paridad Shopify Abandoned checkouts).
    */
   carritosAbandonados?: number;

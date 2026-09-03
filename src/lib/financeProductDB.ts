@@ -68,6 +68,10 @@ export async function getFinanceCoreSnapshot(orgId: string): Promise<FinanceCore
   };
 }
 
+/**
+ * precursor_ocr_documents (nombre histórico del RPC) = documentos Finance F3
+ * abiertos (status ≠ approved). No es la tabla legacy ocr_documents.
+ */
 export type FinanceFocoItem = { to: string; label: string; detail: string };
 
 export type FinanceFocoOptions = {
