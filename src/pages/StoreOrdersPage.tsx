@@ -109,7 +109,6 @@ export default function StoreOrdersPage() {
           ordersLoading={ordersLoading}
           ordersError={ordersError}
           onReload={loadOrders}
-          standalone
         />
       )}
     </div>

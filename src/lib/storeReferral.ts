@@ -1,6 +1,7 @@
 /**
  * Persistencia del código de influencer en la tienda (?ref=).
- * No inventa comisión: sólo conserva el código hasta que el Core lo asiente.
+ * El tag en notas alimenta `ecommerce_orders.referral_code` (trigger) y
+ * al pagar se copia a `sales.referral_code` para la comisión automática.
  */
 const keyOf = (slug: string) => `gestiona.store.ref.${slug.trim().toLowerCase()}`;
 
@@ -9,6 +10,12 @@ export function normalizeReferralCode(raw: string | null | undefined): string | 
   if (!code || code.length > 32) return null;
   if (!/^[A-Z0-9_-]+$/.test(code)) return null;
   return code;
+}
+
+/** Extrae el tag `[ref:CODE]` que el checkout deja en notas. */
+export function extractReferralFromNotes(notes: string | null | undefined): string | null {
+  const m = String(notes ?? "").match(/\[ref:([A-Z0-9_-]+)\]/i);
+  return normalizeReferralCode(m?.[1] ?? null);
 }
 
 export function captureStoreReferral(slug: string, search: string | URLSearchParams): string | null {
@@ -36,8 +43,8 @@ export function readStoreReferral(slug: string): string | null {
 }
 
 /**
- * Deja el código visible en las notas del pedido hasta que el Core
- * acepte `referral_code` en la orden → venta (comisión automática).
+ * Deja el código en las notas del pedido. El trigger del Core lo asienta
+ * en `ecommerce_orders.referral_code` y luego en la venta al pagar.
  */
 export function notesWithStoreReferral(
   notes: string | null | undefined,

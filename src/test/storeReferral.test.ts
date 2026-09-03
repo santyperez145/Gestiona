@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import {
   captureStoreReferral,
+  extractReferralFromNotes,
   normalizeReferralCode,
   notesWithStoreReferral,
   readStoreReferral,
@@ -28,5 +29,10 @@ describe("storeReferral", () => {
     expect(notesWithStoreReferral("Llamar al llegar", "ANA10")).toBe("Llamar al llegar\n[ref:ANA10]");
     expect(notesWithStoreReferral("[ref:ANA10]", "ANA10")).toBe("[ref:ANA10]");
     expect(notesWithStoreReferral("hola", null)).toBe("hola");
+  });
+
+  it("extrae el tag de notas para el Core", () => {
+    expect(extractReferralFromNotes("Llamar\n[ref:ANA10]")).toBe("ANA10");
+    expect(extractReferralFromNotes("sin tag")).toBeNull();
   });
 });

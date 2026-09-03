@@ -12,7 +12,7 @@ const focus = readFileSync(resolve(ROOT, "src/lib/dashboardFocus.ts"), "utf8");
 
 describe("cola de pedidos en Commerce", () => {
   it("persiste búsqueda y vista en la URL, no en un chip en inglés", () => {
-    expect(panel).toContain('params.set("tab", "orders")');
+    expect(panel).not.toContain('params.set("tab", "orders")');
     expect(panel).toContain('params.set("vista", next.view)');
     expect(panel).toContain('params.set("q", next.query)');
     expect(panel).toContain('params.set("orden", next.sort)');
@@ -36,10 +36,13 @@ describe("cola de pedidos en Commerce", () => {
     expect(panel).toContain("md:hidden");
   });
 
-  it("el tab Pedidos deja de ser una tabla suelta y el Foco aterriza en la cola", () => {
-    expect(page).toContain("StoreOrdersWorkspace");
-    expect(page).toContain("STORE_ORDER_QUEUE_LIMIT");
-    expect(panel).toContain("standalone");
+  it("Pedidos vive en /pedidos-online; Commerce redirige bookmarks tab=orders", () => {
+    expect(page).not.toContain("StoreOrdersWorkspace");
+    expect(page).toContain("storeOrdersCanonicalPath");
+    expect(page).toContain('requestedTab !== "orders"');
+    expect(page).toContain('to="/pedidos-online"');
+    expect(page).not.toContain('id: "orders"');
+    expect(panel).not.toContain("standalone");
     expect(focus).toContain("/pedidos-online?vista=despachar");
     expect(focus).toContain("/pedidos-online?vista=retirar");
     expect(focus).toContain("storeFirstSaleSharePath");

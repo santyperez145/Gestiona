@@ -56,7 +56,7 @@ function InfluencersTab() {
     if (!orgId) return;
     supabase
       .from('ecommerce_stores')
-      .select('slug, active')
+      .select('slug, is_active')
       .eq('org_id', orgId)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -66,7 +66,7 @@ function InfluencersTab() {
         }
         setStoreMeta({
           slug: data?.slug ?? null,
-          active: Boolean(data?.active),
+          active: Boolean(data?.is_active),
         });
       });
   }, [orgId]);

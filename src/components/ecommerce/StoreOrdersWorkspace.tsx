@@ -1,8 +1,8 @@
 /**
  * Cola + inspector + despacho de pedidos online.
  *
- * Vive en `/pedidos-online` (first-level, vendedor incluido) y también en el tab
- * Pedidos de `/tienda-online` mientras el setup sigue ahí.
+ * Vive sólo en `/pedidos-online` (first-level). El tab Pedidos de Commerce
+ * redirige acá para no duplicar la cola.
  */
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -27,8 +27,6 @@ interface Props {
   ordersLoading: boolean;
   ordersError: string | null;
   onReload: () => void | Promise<void>;
-  /** Sin tab=orders en la URL (ruta /pedidos-online). */
-  standalone?: boolean;
 }
 
 export default function StoreOrdersWorkspace({
@@ -39,7 +37,6 @@ export default function StoreOrdersWorkspace({
   ordersLoading,
   ordersError,
   onReload,
-  standalone = false,
 }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { ask, dialog } = useConfirmDialog();
@@ -54,11 +51,10 @@ export default function StoreOrdersWorkspace({
   const openPedido = useCallback((orderId: string) => {
     setSearchParams(prev => {
       const params = new URLSearchParams(prev);
-      if (!standalone) params.set("tab", "orders");
       params.set("pedido", orderId);
       return params;
     });
-  }, [setSearchParams, standalone]);
+  }, [setSearchParams]);
 
   const closePedido = useCallback(() => {
     setSearchParams(prev => {
@@ -152,7 +148,6 @@ export default function StoreOrdersWorkspace({
         error={ordersError}
         selectedId={pedidoId}
         publicStoreUrl={publicStoreUrl}
-        standalone={standalone}
         onRetry={() => { void onReload(); }}
         onInspect={order => openPedido(order.id)}
         onPrepare={order => {

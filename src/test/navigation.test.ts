@@ -44,12 +44,13 @@ describe("estructura de la navegación", () => {
     for (const i of NAV_ITEMS) expect(i.to.startsWith("/"), i.to).toBe(true);
   });
 
-  // El sidebar deja estos seis siempre visibles. Si crecen, vuelve el problema
+  // El sidebar deja estos visibles. Si crecen, vuelve el problema
   // que esta reorganización viene a resolver.
-  it("el bloque diario se mantiene chico y Commerce va primero después de Inicio", () => {
+  it("el bloque diario se mantiene chico y Pedidos va junto a la Tienda", () => {
     expect(ITEMS_DIARIOS.length).toBeLessThanOrEqual(7);
-    expect(ITEMS_DIARIOS.map(i => i.to).slice(0, 3)).toEqual(["/", "/tienda-online", "/caja"]);
+    expect(ITEMS_DIARIOS.map(i => i.to).slice(0, 3)).toEqual(["/", "/tienda-online", "/pedidos-online"]);
     expect(ITEMS_DIARIOS.map(i => i.to)).toContain("/caja");
+    expect(ITEMS_DIARIOS.map(i => i.to)).toContain("/pedidos-online");
   });
 
   it("los grupos plegables no incluyen el diario", () => {
@@ -58,6 +59,7 @@ describe("estructura de la navegación", () => {
 
   it("cada ruta resuelve a su grupo", () => {
     expect(grupoDeRuta("/caja")).toBe("diario");
+    expect(grupoDeRuta("/pedidos-online")).toBe("diario");
     expect(grupoDeRuta("/envios")).toBe("commerce");
     expect(grupoDeRuta("/cupones")).toBe("commerce");
     expect(grupoDeRuta("/kardex")).toBe("compras");
@@ -67,13 +69,13 @@ describe("estructura de la navegación", () => {
   it("Tienda y canales va primero entre los plegables", () => {
     expect(GRUPOS_PLEGABLES[0]?.id).toBe("commerce");
     expect(itemsDe("commerce").map(i => i.to)).toEqual(
-      expect.arrayContaining(["/pedidos-online", "/envios", "/cupones", "/promociones"]),
+      expect.arrayContaining(["/envios", "/cupones", "/promociones"]),
     );
+    expect(itemsDe("commerce").map(i => i.to)).not.toContain("/pedidos-online");
   });
 
   it("ordena Commerce por flujo operativo", () => {
     expect(itemsDe("commerce").map(i => i.to)).toEqual([
-      "/pedidos-online",
       "/envios",
       "/links-de-pago",
       "/cupones",

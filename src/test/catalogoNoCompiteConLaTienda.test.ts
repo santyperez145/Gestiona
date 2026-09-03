@@ -55,9 +55,13 @@ describe("influencer no manda al catálogo WhatsApp si hay tienda", () => {
     const page = leer("src/pages/InfluencersPage.tsx");
     const layout = leer("src/storefront/StoreLayout.tsx");
     const checkout = leer("src/storefront/StoreCheckout.tsx");
+    const mig = leer("supabase/migrations/20260903000040_referral_orden_tienda.sql");
     expect(page).toContain("enlaceInfluencerConRef");
     expect(page).not.toMatch(/\/catalogo\/\$\{user/);
     expect(layout).toContain("captureStoreReferral");
     expect(checkout).toContain("notesWithStoreReferral");
+    expect(mig).toContain("ecommerce_orders");
+    expect(mig).toContain("referral_code");
+    expect(mig).toContain("trg_sales_referral_from_store_order");
   });
 });

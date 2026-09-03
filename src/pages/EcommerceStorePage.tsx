@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
-import StoreOrdersWorkspace from "@/components/ecommerce/StoreOrdersWorkspace";
 import AbandonedCartsPanel from "@/components/ecommerce/AbandonedCartsPanel";
 import StockAlertsPanel from "@/components/ecommerce/StockAlertsPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
@@ -93,6 +92,7 @@ import {
   normalizarMediosTienda,
 } from "@/lib/gestionaPay";
 import { STORE_ORDER_QUEUE_LIMIT, storeOrderFulfillmentLabel, storeOrderFulfillmentTone } from "@/lib/storeOrderQueue";
+import { storeOrdersCanonicalPath } from "@/lib/storeOrdersCanonical";
 import ImageUpload from "@/components/shared/ImageUpload";
 import KPICard from "@/components/shared/KPICard";
 import WorkspaceState from "@/components/shared/WorkspaceState";
@@ -155,7 +155,7 @@ interface FunnelRow {
   color: string;
 }
 
-const STORE_TAB_IDS = ["overview", "orders", "carritos", "reviews", "categorias", "pages", "banners", "design", "settings"] as const;
+const STORE_TAB_IDS = ["overview", "carritos", "reviews", "categorias", "pages", "banners", "design", "settings"] as const;
 type StoreTab = typeof STORE_TAB_IDS[number];
 
 function isStoreTab(value: string | null): value is StoreTab {
@@ -170,19 +170,24 @@ export default function EcommerceStorePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { fromWizard } = parseActivationHandoff(searchParams);
   const requestedTab = searchParams.get("tab");
+
+  // Shopify/Tiendanube: Pedidos es superficie propia. Bookmarks viejos aterrizan ahí.
+  useEffect(() => {
+    if (requestedTab !== "orders") return;
+    navigate(storeOrdersCanonicalPath(searchParams), { replace: true });
+  }, [requestedTab, searchParams, navigate]);
+
   const tab: StoreTab = isStoreTab(requestedTab) ? requestedTab : "overview";
   const goToTab = (next: StoreTab) => {
     setSearchParams(prev => {
       const params = new URLSearchParams(prev);
       if (next === "overview") params.delete("tab");
       else params.set("tab", next);
-      if (next !== "orders") {
-        params.delete("q");
-        params.delete("pedido");
-        params.delete("orden");
-        params.delete("medio");
-        if (next !== "carritos") params.delete("vista");
-      }
+      params.delete("q");
+      params.delete("pedido");
+      params.delete("orden");
+      params.delete("medio");
+      if (next !== "carritos") params.delete("vista");
       return params;
     }, { replace: true });
   };
@@ -623,7 +628,6 @@ export default function EcommerceStorePage() {
 
   const TABS: { id: StoreTab; label: string }[] = [
     { id: "overview",  label: "Publicar" },
-    { id: "orders",    label: "Pedidos" },
     { id: "carritos",  label: "Recuperación" },
     { id: "reviews",   label: "Opiniones y preguntas" },
     { id: "categorias", label: "Categorías" },
@@ -974,9 +978,16 @@ export default function EcommerceStorePage() {
             </div>
           </div>
 
-          {/* Recent orders */}
+          {/* Recent orders → cola canónica */}
           <div className="bg-card border border-border/40 rounded-xl p-5">
-            <h3 className="font-semibold flex items-center gap-2 mb-4"><ShoppingCart className="w-4 h-4 text-primary" />Órdenes Recientes</h3>
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h3 className="font-semibold flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4 text-primary" />Órdenes recientes
+              </h3>
+              <Button type="button" size="sm" variant="outline" className="min-h-11" asChild>
+                <Link to="/pedidos-online">Ver pedidos</Link>
+              </Button>
+            </div>
             <div className="space-y-2">
               {orders.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Todavía no hay pedidos.</p>
@@ -1007,19 +1018,6 @@ export default function EcommerceStorePage() {
         </div>
         ) : null}
         </div>
-      )}
-
-      {/* ─── Orders tab ─── */}
-      {tab === "orders" && (
-        <StoreOrdersWorkspace
-          orgId={orgId}
-          storeName={store?.name ?? storeForm.name}
-          publicStoreUrl={urlPublica}
-          orders={orders}
-          ordersLoading={ordersLoading}
-          ordersError={ordersError}
-          onReload={loadOrders}
-        />
       )}
 
       {tab === "carritos" && (

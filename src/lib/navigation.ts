@@ -17,10 +17,9 @@
  * ── Las tres decisiones que siguen valiendo ───────────────────────────────
  *
  * **1. Jerarquía por uso, no por catálogo.** Los destinos `diario` quedan
- * siempre a la vista, sin encabezado — Inicio y Tienda online primero.
- * `commerce` agrupa envíos, cupones y promociones junto a la puerta de venta
- * online. El resto vive en grupos que arrancan cerrados salvo el que contiene
- * la página actual.
+ * siempre a la vista, sin encabezado — Inicio, Tienda y Pedidos online primero.
+ * `commerce` agrupa envíos, cupones y promociones. El resto vive en grupos que
+ * arrancan cerrados salvo el que contiene la página actual.
  *
  * **2. Lenguaje de tarea, no de jerga.** "Kardex" es "Movimientos de stock";
  * "RFM" es "Segmentación de clientes". El comercio piensa "¿cuánto stock
@@ -53,8 +52,8 @@ export interface NavGroup {
 }
 
 export const NAV_GROUPS: NavGroup[] = [
-  { id: "diario",    label: "",            hint: "Lo de todos los días — Inicio y Tienda online primero" },
-  { id: "commerce",  label: "Tienda y canales", hint: "Pedidos online, envíos, cupones y promociones" },
+  { id: "diario",    label: "",            hint: "Lo de todos los días — Inicio, Tienda y Pedidos online primero" },
+  { id: "commerce",  label: "Tienda y canales", hint: "Envíos, cupones y promociones" },
   { id: "trabajo",   label: "Mi trabajo",  hint: "Tareas, seguimientos y calendario" },
   { id: "compras",   label: "Compras y stock", hint: "Reponer, mover y controlar la mercadería" },
   { id: "cobranzas", label: "Cobranzas",   hint: "Lo que falta cobrar y los documentos de venta" },
@@ -65,8 +64,8 @@ export const NAV_GROUPS: NavGroup[] = [
 ];
 
 const NAV_ORDER_BY_GROUP: Record<NavGroupId, string[]> = {
-  diario: ["/", "/tienda-online", "/caja", "/ventas", "/productos", "/clientes"],
-  commerce: ["/pedidos-online", "/envios", "/links-de-pago", "/cupones", "/promociones"],
+  diario: ["/", "/tienda-online", "/pedidos-online", "/caja", "/ventas", "/productos", "/clientes"],
+  commerce: ["/envios", "/links-de-pago", "/cupones", "/promociones"],
   trabajo: ["/tareas", "/calendario"],
   compras: [
     "/compras", "/ordenes-compra", "/proveedores", "/planificacion",
