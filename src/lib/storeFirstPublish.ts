@@ -75,6 +75,30 @@ export function storeAfterCreateCopy() {
   };
 }
 
+/**
+ * Con tienda ya creada y transferencia habilitada sin CBU/alias, el panel no
+ * puede abrir con OAuth de Pay: es el mismo error que identity-first, un paso
+ * después. Tiendanube/Shopify: el medio offline usable antes del gateway.
+ */
+export function storeShouldLeadSettingsWithBank(input: {
+  storeId: string | null | undefined;
+  offersTransfer: boolean;
+  bankReady: boolean;
+}): boolean {
+  if (!input.storeId) return false;
+  if (!input.offersTransfer) return false;
+  if (input.bankReady) return false;
+  return true;
+}
+
+export function storeBankLeadCopy() {
+  return {
+    title: 'Cargá CBU o alias para cobrar',
+    description:
+      'Transferencia ya está marcada. Sin CBU ni alias el pedido dice «te vamos a escribir» y no hay primera venta sola. Gestiona Pay puede esperar.',
+  };
+}
+
 /** Sin fila en ecommerce_stores el 2º comercio no puede publicar ni legales. */
 export function storeShouldShowStoreMissingHandoff(
   storeId: string | null | undefined,

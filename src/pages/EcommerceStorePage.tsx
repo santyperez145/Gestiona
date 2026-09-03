@@ -32,7 +32,7 @@ import StoreBannersEditor from "@/components/ecommerce/StoreBannersEditor";
 import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
 import ImageUpload from "@/components/shared/ImageUpload";
 import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
-import { storeBankTransferReady } from "@/lib/storeTransfer";
+import { storeBankTransferReady, storeOffersBankTransfer } from "@/lib/storeTransfer";
 import { parseActivationHandoff, storeHandoffCopy } from "@/lib/activationHandoff";
 import {
   storeAbandonedCartCount,
@@ -48,6 +48,8 @@ import {
   storeMissingCopy,
   storeStatusLabel,
   storeShouldLeadSettingsWithIdentity,
+  storeShouldLeadSettingsWithBank,
+  storeBankLeadCopy,
   storeAfterCreateCopy,
   urlPublicaDeTienda,
 } from "@/lib/storeFirstPublish";
@@ -208,6 +210,8 @@ export default function EcommerceStorePage() {
     bank_name: "",
     bank_holder: "",
   });
+  /** Lead de CBU usa lo persistido: el form en vivo no puede esconder el Guardar. */
+  const [bankPersistedReady, setBankPersistedReady] = useState(false);
   const [orders, setOrders] = useState<EcomOrder[]>([]);
   const [envioDe, setEnvioDe] = useState<EcomOrder | null>(null);
   const [confirmingPaid, setConfirmingPaid] = useState(false);
@@ -402,12 +406,14 @@ export default function EcommerceStorePage() {
           return;
         }
         if (!data) return;
-        setBankForm({
+        const next = {
           bank_cbu: data.bank_cbu || "",
           bank_alias: data.bank_alias || "",
           bank_name: data.bank_name || "",
           bank_holder: data.bank_holder || "",
-        });
+        };
+        setBankForm(next);
+        setBankPersistedReady(storeBankTransferReady(next));
       });
 
     loadOrders();
@@ -588,6 +594,7 @@ export default function EcommerceStorePage() {
     // «Creá la tienda» con toast de guardado (medido sesión 145).
     setStore(saved);
     setStoreForm(storeFormDesdeFila(saved, GLOBAL_FULFILLMENT_LOCATION));
+    setBankPersistedReady(storeBankTransferReady(bankForm));
     if (creatingStore) setJustCreatedStore(true);
   };
 
@@ -690,6 +697,12 @@ export default function EcommerceStorePage() {
   );
 
   const leadSettingsWithIdentity = storeShouldLeadSettingsWithIdentity(store?.id);
+  const leadSettingsWithBank = storeShouldLeadSettingsWithBank({
+    storeId: store?.id,
+    offersTransfer: storeOffersBankTransfer(storeForm.payment_methods),
+    bankReady: bankPersistedReady,
+  });
+  const bankLead = leadSettingsWithBank ? storeBankLeadCopy() : null;
   const afterCreate = justCreatedStore && store?.id && signals.publishedProducts === 0
     ? storeAfterCreateCopy()
     : null;
@@ -1273,7 +1286,60 @@ export default function EcommerceStorePage() {
               </div>
             </div>
           )}
-          {!leadSettingsWithIdentity && (
+          {bankLead && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5 space-y-3">
+              <p className="text-sm font-semibold">{bankLead.title}</p>
+              <p className="text-[13px] text-muted-foreground leading-snug">{bankLead.description}</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Titular</Label>
+                  <Input
+                    value={bankForm.bank_holder}
+                    onChange={e => setBankForm(p => ({ ...p, bank_holder: e.target.value }))}
+                    placeholder="Nombre del titular"
+                    className="h-9 min-h-11 mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Banco</Label>
+                  <Input
+                    value={bankForm.bank_name}
+                    onChange={e => setBankForm(p => ({ ...p, bank_name: e.target.value }))}
+                    placeholder="Banco"
+                    className="h-9 min-h-11 mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">CBU</Label>
+                  <Input
+                    value={bankForm.bank_cbu}
+                    onChange={e => setBankForm(p => ({ ...p, bank_cbu: e.target.value }))}
+                    placeholder="0000003100010000000001"
+                    className="h-9 min-h-11 mt-1 font-mono text-xs"
+                    inputMode="numeric"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Alias</Label>
+                  <Input
+                    value={bankForm.bank_alias}
+                    onChange={e => setBankForm(p => ({ ...p, bank_alias: e.target.value }))}
+                    placeholder="mi.comercio"
+                    className="h-9 min-h-11 mt-1"
+                  />
+                </div>
+              </div>
+              <Button
+                className="min-h-11 w-full sm:w-auto"
+                disabled={loading}
+                onClick={() => { void saveStore(); }}
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Guardar datos para transferir
+              </Button>
+            </div>
+          )}
+          {!leadSettingsWithIdentity && !leadSettingsWithBank && (
             <PaymentConnectionsPanel onConnectionChange={reloadReadinessSignals} />
           )}
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">

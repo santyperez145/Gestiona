@@ -16,6 +16,8 @@ import {
   storeMissingCopy,
   storeStatusLabel,
   storeShouldLeadSettingsWithIdentity,
+  storeShouldLeadSettingsWithBank,
+  storeBankLeadCopy,
   storeAfterCreateCopy,
   storeWizardFinishCopy,
   urlPublicaDeTienda,
@@ -107,6 +109,34 @@ describe('la primera publicación empieza por el catálogo', () => {
     const payIdx = STORE.indexOf('<PaymentConnectionsPanel', settingsIdx);
     expect(identityIdx).toBeGreaterThan(settingsIdx);
     expect(payIdx).toBeGreaterThan(identityIdx);
+  });
+
+  it('con tienda y transferencia sin CBU el panel pide banco antes de OAuth', () => {
+    expect(storeShouldLeadSettingsWithBank({
+      storeId: null,
+      offersTransfer: true,
+      bankReady: false,
+    })).toBe(false);
+    expect(storeShouldLeadSettingsWithBank({
+      storeId: 'id',
+      offersTransfer: true,
+      bankReady: false,
+    })).toBe(true);
+    expect(storeShouldLeadSettingsWithBank({
+      storeId: 'id',
+      offersTransfer: true,
+      bankReady: true,
+    })).toBe(false);
+    expect(storeShouldLeadSettingsWithBank({
+      storeId: 'id',
+      offersTransfer: false,
+      bankReady: false,
+    })).toBe(false);
+    expect(storeBankLeadCopy().title).toMatch(/CBU|alias/i);
+    expect(STORE).toContain('storeShouldLeadSettingsWithBank');
+    expect(STORE).toContain('Guardar datos para transferir');
+    expect(STORE).toContain('bankPersistedReady');
+    expect(STORE).toContain('!leadSettingsWithIdentity && !leadSettingsWithBank');
   });
 
   it('sin catálogo el overview pide el primer producto sin exigir el wizard', () => {
