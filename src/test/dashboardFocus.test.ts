@@ -220,6 +220,19 @@ describe("construirPendientes", () => {
     expect(pesos.destino).toBe("/productos?completar=pesos");
     expect(pesos.accion).toBe("Completar pesos");
   });
+
+  it("tienda publicada sin zonas: Completar tarifario no alcanza", () => {
+    expect(construirPendientes({
+      ...VACIO, tiendaPublicada: true, zonasActivas: 0, zonasSinTarifa: 0,
+    })[0]).toMatchObject({
+      id: "zonas-envio",
+      accion: "Crear zonas",
+      destino: "/envios?tab=zonas",
+    });
+    expect(construirPendientes({
+      ...VACIO, tiendaPublicada: false, zonasActivas: 0,
+    }).map((x) => x.id)).not.toContain("zonas-envio");
+  });
 });
 
 describe("leerVariacion", () => {

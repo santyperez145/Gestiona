@@ -276,6 +276,14 @@ describe('evaluateStoreReadiness — avisos', () => {
       .toBe('Completar tarifario');
   });
 
+  it('sin zonas el CTA no promete Completar tarifario', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      shippingZones: 0, zonesWithRates: 0, coveredProvinces: 0,
+    }));
+    expect(r.blockers.find(c => c.id === 'shipping-rates')?.actionLabel)
+      .toBe('Crear zonas');
+  });
+
   it('con retiro, la cobertura no promete envío nacional', () => {
     const r = evaluateStoreReadiness(tiendaLista({
       store: { ...tiendaLista().store!, pickup_enabled: true, pickup_address: 'Alsina 123' },

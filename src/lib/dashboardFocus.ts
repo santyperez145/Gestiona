@@ -104,6 +104,12 @@ export interface DatosFoco {
   /** Zonas activas sin tarifa — Completar tarifario. */
   zonasSinTarifa?: number;
   /**
+   * Zonas activas, con o sin tarifa.
+   * `0` con tienda publicada: el seed no corrió o las borraron — Completar
+   * tarifario no aparece (no hay filas que contar).
+   */
+  zonasActivas?: number;
+  /**
    * Canal que eligió el comercio en el onboarding.
    * Sin esto el Foco mandaba siempre a `/caja`, incluso a quien eligió
    * vender online. `explore` / ausente = la tienda es la puerta (ADR 002).
@@ -356,6 +362,19 @@ export function construirPendientes(d: DatosFoco): Pendiente[] {
       texto: `${n} ${n === 1 ? "carrito abandonado" : "carritos abandonados"}`,
       accion: "Ver",
       destino: "/tienda-online?tab=carritos",
+      urgencia: "atencion",
+    });
+  }
+
+  // ATM Commerce: sin zonas el checkout sólo ofrece retiro; Completar
+  // tarifario ni siquiera aparece (no hay filas). Tiendanube siembra regiones
+  // al crear la tienda — acá el trigger lo hace; este renglón es la red.
+  if (d.tiendaPublicada === true && (d.zonasActivas ?? -1) === 0) {
+    lista.push({
+      id: "zonas-envio",
+      texto: "La tienda no tiene zonas de envío",
+      accion: "Crear zonas",
+      destino: "/envios?tab=zonas",
       urgencia: "atencion",
     });
   }

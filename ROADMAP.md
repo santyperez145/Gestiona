@@ -3299,6 +3299,22 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Esta PC no
      tiene `VITE_*`: no se afirma la vitrina contra una sesión real.
 
+129. Al nacer la tienda nacen las zonas de envío — 2026-09-02.
+     Medido: pruebas Workspace 0 tiendas / 0 zonas; Exentry 1 / 6 / 1
+     tarifa. Completar tarifario y el Foco de «zonas sin tarifa» no
+     existen sin filas: el segundo comercio publicaba y el checkout
+     sólo ofrecía retiro. Tiendanube/Shopify siembran regiones al
+     crear la tienda. Trigger `AFTER INSERT` en `ecommerce_stores` →
+     6 zonas AR, idempotente. La RPC del panel ahora exige membresía
+     (`42501`). Foco: tienda publicada con 0 zonas → «Crear zonas».
+     Readiness: el CTA no promete Completar tarifario si no hay zonas.
+     Tarifario y pesos siguen siendo del dueño; no se inventan precios.
+
+     Verificado en este recorte: **2.417 tests** / 256 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-02). Migración
+     `20260902000110` aplicada y anotada (DO: INSERT tienda → 6 zonas,
+     seed idempotente, 0 restos). Esta PC no tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

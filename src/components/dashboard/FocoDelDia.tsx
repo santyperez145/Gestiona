@@ -72,6 +72,7 @@ export default function FocoDelDia(p: Props) {
   const [carritosAbandonados, setCarritosAbandonados] = useState(0);
   const [productosSinPeso, setProductosSinPeso] = useState(0);
   const [zonasSinTarifa, setZonasSinTarifa] = useState(0);
+  const [zonasActivas, setZonasActivas] = useState(0);
 
   useEffect(() => {
     if (!p.orgId) return;
@@ -218,9 +219,10 @@ export default function FocoDelDia(p: Props) {
         if (tarifas.error) console.error("FocoDelDia / tarifas:", tarifas.error);
         return;
       }
+      const filas = zonas.data ?? [];
       const conTarifa = new Set((tarifas.data ?? []).map(r => r.zone_id));
-      const sinTarifa = (zonas.data ?? []).filter(z => !conTarifa.has(z.id)).length;
-      setZonasSinTarifa(sinTarifa);
+      setZonasActivas(filas.length);
+      setZonasSinTarifa(filas.filter(z => !conTarifa.has(z.id)).length);
     });
     return () => { cancelado = true; };
   }, [p.orgId]);
@@ -243,6 +245,7 @@ export default function FocoDelDia(p: Props) {
     carritosAbandonados,
     productosSinPeso,
     zonasSinTarifa,
+    zonasActivas,
     onboardingGoal: p.onboardingGoal,
     tiendaPublicada: p.tiendaPublicada,
     ordenesOnlinePagas: p.ordenesOnlinePagas,

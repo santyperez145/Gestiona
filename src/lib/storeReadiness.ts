@@ -195,7 +195,7 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
       // así que no impide vender: molesta, no bloquea.
       severity: pickup ? 'warning' : 'blocker',
       done: canQuote,
-      actionLabel: 'Completar tarifario',
+      actionLabel: input.shippingZones === 0 ? 'Crear zonas' : 'Completar tarifario',
       actionHref: '/envios?tab=zonas',
     });
 
