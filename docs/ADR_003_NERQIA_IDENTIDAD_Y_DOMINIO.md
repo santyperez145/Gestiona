@@ -35,10 +35,11 @@ el prefijo `/tienda/:slug` durante la transición.
 
 Los slugs `www`, `app`, `api`, `admin`, `platform`, `finance`, `auth`, `docs`,
 `help`, `status`, `soporte`, `mail`, `cdn`, `assets` y `developer` quedan
-reservados. Un hostname propio se normaliza y pasa por estados `pending_dns`,
-`verifying`, `active`, `misconfigured` o `disabled`; sólo `active` puede ser
-canónico. La asociación es única, tenant-scoped y resuelta en servidor con la
-menor superficie pública posible.
+reservados. Un hostname propio se normaliza y pasa por estados
+`pending_verification`, `pending_dns`, `active`, `misconfigured` o
+`provider_error`; `none` significa que no hay asociación y sólo `active` puede
+ser canónico. La asociación es única, tenant-scoped y resuelta en servidor con
+la menor superficie pública posible.
 
 ## Evidencia competitiva y tecnológica
 
@@ -60,7 +61,8 @@ El DNS observado el 2026-09-03 usa nameservers de Vercel y resuelve el wildcard,
 pero eso no prueba por sí solo asociación de proyecto, certificado ni routing.
 La cuota de dominios del plan de hosting, el token de Vercel, la verificación
 DNS y el remitente de correo son gates operativos externos; jamás se marcan
-activos por existir una fila en la base.
+activos por existir una fila en la base. El contrato implementado consulta las
+recomendaciones DNS dinámicas de Vercel, porque el CNAME/IP no se hardcodea.
 
 ## Compatibilidad
 
@@ -80,6 +82,13 @@ sin versión, telemetría de adopción y ventana de migración.
 - Vercel sirve el dominio y emite TLS automáticamente.
 - Supabase Auth usa `https://nerqia.app` como Site URL y permite los callbacks
   exactos de producción, `www`, previews y localhost.
+- Los callbacks enviados por email desde un dominio propio vuelven al
+  `<slug>.nerqia.app` incluido, que sí está declarado en Auth. Login con clave o
+  código funciona sobre el dominio propio; no se agrega un wildcard de terceros
+  que Supabase no puede acotar por tenant.
+- `store-domain` es la única pieza que llama a Vercel. Exige usuario real y rol
+  owner/admin; guarda sólo estados y registros sanitizados. `VERCEL_TOKEN` vive
+  en secretos de Supabase, nunca en Vite ni en `ecommerce_stores`.
 - Las Edge Functions reciben `PUBLIC_BASE_URL`, `PUBLIC_APP_URL` y
   `PLATFORM_ALLOWED_ORIGINS` con el origen nuevo.
 - El remitente de correo pasa a `nerqia.app`, pero queda **no verificado** hasta

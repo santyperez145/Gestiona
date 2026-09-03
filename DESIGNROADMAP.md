@@ -471,6 +471,16 @@ regresión, no sólo en una captura. El deploy `aaa4b01` quedó `READY` y la
 revalidación sobre `exentryimports.nerqia.app` confirmó H1 en home/PDP,
 `Inicio → /`, robots acotado a rutas privadas y cero errores de consola.
 
+D5.16 integra dominios propios sin sumar otra pantalla ni otro storefront. La
+sección dentro de **Publicar** separa dirección incluida, dominio propio, estado
+de titularidad/DNS/TLS, registros copiables, último chequeo y baja confirmada.
+Loading, error del proveedor, pendiente, mal configurado y activo son estados
+distintos; el subdominio incluido nunca desaparece durante una propagación. El
+CTA principal usa el dominio externo sólo después de `active`. A diferencia de
+un formulario cosmético, la UI consume una Edge Function owner/admin y el
+resolver público mínimo; queda pendiente la matriz publicada con un dominio
+externo real cuando exista la credencial dedicada.
+
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto: CTA móvil hecho; faltan variantes densas y confianza extra;
 - carrito y checkout: objetivos táctiles y sticky en 360 px hechos;

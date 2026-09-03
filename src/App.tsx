@@ -27,6 +27,7 @@ import {
 } from "@/lib/staleBuildRecovery";
 import { ShieldAlert, BookOpen } from "lucide-react";
 import { storeSlugFromHostname } from "@/lib/storefrontHost";
+import { isPotentialCustomStoreHostname } from "@/lib/storeCustomDomain";
 
 // ── Eager (needed for first paint / public routes) ──────────────────────────
 import AuthPage from "@/pages/AuthPage";
@@ -35,6 +36,7 @@ import LandingPage from "@/pages/LandingPage";
 // ── Lazy-loaded pages (split per route) ────────────────────────────────────
 const PublicCatalogPage      = lazy(() => import("@/pages/PublicCatalogPage"));
 const StorefrontPage         = lazy(() => import("@/pages/StorefrontPage"));
+const CustomDomainStorefrontPage = lazy(() => import("@/pages/CustomDomainStorefrontPage"));
 const PublicPaymentPage      = lazy(() => import("@/pages/PublicPaymentPage"));
 const InfluencerPortalPage   = lazy(() => import("@/pages/InfluencerPortalPage"));
 const InvitationAcceptPage   = lazy(() => import("@/pages/InvitationAcceptPage"));
@@ -280,12 +282,21 @@ function ProtectedRoutes() {
 }
 
 function ApplicationRoutes() {
-  const hostedSlug = storeSlugFromHostname(window.location.hostname);
+  const hostname = window.location.hostname;
+  const hostedSlug = storeSlugFromHostname(hostname);
 
   if (hostedSlug) {
     return (
       <Routes>
         <Route path="/*" element={<StorefrontPage hostedSlug={hostedSlug} basePath="" />} />
+      </Routes>
+    );
+  }
+
+  if (isPotentialCustomStoreHostname(hostname)) {
+    return (
+      <Routes>
+        <Route path="/*" element={<CustomDomainStorefrontPage hostname={hostname} />} />
       </Routes>
     );
   }

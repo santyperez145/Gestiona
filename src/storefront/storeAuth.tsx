@@ -13,6 +13,8 @@ import {
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
+import { BRAND_DOMAIN } from '@/lib/brand';
+import { isPotentialCustomStoreHostname } from '@/lib/storeCustomDomain';
 
 export interface StoreCustomer {
   id: string;
@@ -40,7 +42,13 @@ const StoreAuthContext = createContext<Ctx | null>(null);
 
 function storeAccountRedirect(slug: string, basePath?: string): string {
   const base = basePath ?? `/tienda/${encodeURIComponent(slug)}`;
-  return `${window.location.origin}${base}/cuenta`;
+  // Supabase exige callbacks declarados. Un dominio del comercio es dinámico,
+  // así que email de alta/reset vuelve al subdominio canónico ya allowlisteado;
+  // login por contraseña y código siguen funcionando en el dominio propio.
+  const origin = isPotentialCustomStoreHostname(window.location.hostname)
+    ? `https://${encodeURIComponent(slug)}.${BRAND_DOMAIN}`
+    : window.location.origin;
+  return `${origin}${base}/cuenta`;
 }
 
 export function StoreAuthProvider({ slug, basePath, children }: { slug: string; basePath?: string; children: ReactNode }) {

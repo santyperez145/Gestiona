@@ -165,13 +165,15 @@ Leyenda: ✅ está y se usó · 🟡 está pero nunca corrió en real · 🔴 no
 | Preguntas sobre el producto | ✅ | ❓ | ❓ | ❓ |
 | Lista de deseos, aviso de reposición | ✅ | ❓ | ❓ | ✅ |
 | Temas / plantillas | 🟡 7 temas propios | ✅ ❓+60 plantillas | ✅ | ✅ miles |
-| Dominio propio | 🔴 congelado a propósito | ✅ | ✅ | ✅ |
+| Dominio propio | 🟡 modelo tenant-scoped, panel, DNS dinámico, ownership/TLS y resolución por host implementados; falta cargar el token dedicado y certificar un dominio externo real | ✅ | ✅ | ✅ |
 | App móvil del comprador | 🔴 | ✅ | ❓ | ✅ |
 | Tienda de aplicaciones / API pública | 🟡 API v1 y webhooks con contratos públicos, versión, scopes, cuota, idempotencia y firma; **0 keys/apps reales**, sin ecosistema | ✅ | ❓ | ✅ |
 
-📌 **Los 🔴 de tienda están congelados deliberadamente**, no olvidados. Dominios
-propios, theme engine y marketplace de apps son infraestructura para el comercio
-número cincuenta, no para el segundo. Ver `docs/ARQUITECTURA.md`.
+📌 El dominio propio dejó de estar congelado porque forma parte de una migración
+real desde Tiendanube/Empretienda/Shopify. No se considera entregado por tener
+campos o una UI: falta un token dedicado de Vercel y un dominio externo que
+complete challenge → DNS → TLS → storefront. Theme engine avanzado y
+marketplace de apps siguen condicionados por demanda. Ver `docs/ARQUITECTURA.md`.
 
 ✅ Empretienda documenta importación/carga de productos, productos digitales y
 mayoristas, y promociones; además, “Agregar venta” registra ventas de local,

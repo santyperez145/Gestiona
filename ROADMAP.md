@@ -1405,9 +1405,9 @@ contratos técnicos; **externo** = requiere dueño/proveedor/operación real;
 | P1-07 | F4 · slice 21 | **Pendiente** | Dos stores de una organización sobre el mismo Core. |
 | P1-08 | F4 · slice 20 | **Parcial técnico 2026-09-03** | Sesión server-side, capacidad anónima, identidad por tienda, merge sin suma, rehidratación y orden enlazada están implementados; falta prueba real con dos dispositivos/cuenta. |
 | P1-09 | F4 · slice 20 | **Parcial técnico 2026-09-03** | Cart convierte atómicamente con la orden y el checkout conserva idempotencia; faltan state machines separadas y concurrencia/partial flows de payment/fulfillment. |
-| P1-10 | F4 · slice 22 | **Pendiente** | Dominio, SSL, canonical, redirects, health y takeover prevention. |
+| P1-10 | F4 · slice 22 | **Parcial técnico 2026-09-03** | Reclamo tenant-scoped, unicidad, challenge DNS, TLS/canonical y prevención de takeover están modelados y cableados al proveedor; falta configurar la credencial server-side y certificar un dominio externo real. |
 | P1-11 | F4 · slice 22 + Design | **Parcial** | Themes existen; faltan draft/preview/publish/version/rollback y page contract. |
-| P1-12 | F4 · slice 22 | **Parcial** | Robots, índice, JSON-LD y OG por ruta salen del borde (D5.9). Faltan dominio propio, redirects, hreflang y reporte de migración. |
+| P1-12 | F4 · slice 22 | **Parcial técnico 2026-09-03** | Robots, índice, JSON-LD, OG, sitemap y feed salen del borde tanto para el subdominio incluido como para el dominio propio (D5.9/D5.16). Faltan redirects, hreflang y reporte de migración. |
 | P1-13 | F8 · bitácora 52 | **Cerrado técnicamente 2026-08-29** | API v1 con OpenAPI público, path obligatorio, scopes sin filtraciones, cupo durable por key, mutación atómica, precisión monetaria, política de compatibilidad/deprecation y CORS browser deshabilitado. Medir la primera key e integración reales. |
 | P1-14 | F8 · bitácoras 48/50/51 | **Cerrado técnicamente 2026-08-29** | Contrato OpenAPI público, receptor HTTPS externo certificado, outbox transaccional, DLQ/replay, filtro, firma e ids estables. Mantener compatibilidad y medir primera integración real. |
 | P2-01 | F2 · slices 11–12 | **Técnico** | Operación real con los cuatro costos y decisión del merchant. |
@@ -1476,7 +1476,7 @@ por eso puede crecer por encima de 25.
 | 19 | Split Storefront | F4 | Pendiente | Despliegue, SLO y fallas aislados del panel. |
 | 20 | Cart y order canónicos | F4 | **Base técnica parcial 2026-09-03** | Carrito server-side por dispositivo/cuenta, merge, catálogo vigente y vínculo idempotente a orden hechos; faltan prueba real multidispositivo y estados independientes completos. |
 | 21 | Store first-class | F4 | Pendiente | Una organización opera dos stores sin duplicar Core. |
-| 22 | Domains + migración inicial | F4 | Pendiente | Tienda externa migra, conecta SSL y vende. |
+| 22 | Domains + migración inicial | F4 | **Parcial técnico 2026-09-03** | Modelo, UI, Edge Function, DNS dinámico y SEO del dominio propio listos; faltan credencial server-side, certificación con un dominio externo real y migrador/redirects. |
 | 23 | Finance Mendel-class piloto | F5 | Congelado hasta adopción F3 | Un piloto completa solicitud → presupuesto/política → aprobación → gasto/evidencia → conciliación/exportación; tarjetas externas primero y emisión sólo con gate regulado. |
 | 24 | Commerce diferencial | F6 | Congelado hasta F4 y demanda | Una capacidad diferencial adoptada por merchants. |
 | 25 | Pay/Ship + Developer gates | F7–F8 | Congelado por volumen/regulación | Margen transaccional y app externa reales. |
@@ -3828,6 +3828,38 @@ Finance Connect.
      subdominio respondió 200 como `text/plain`, permite el catálogo y bloquea
      sólo checkout, cuenta, orden, carrito y seguimiento; ya no contiene el
      `Disallow /productos` heredado del panel.
+
+165. F4 / Domains Service sin segundo storefront — 2026-09-03.
+     `ecommerce_stores.custom_domain` deja de ser un string muerto y gana un
+     ciclo de vida tenant-scoped: titularidad pendiente, DNS pendiente, activo,
+     mal configurado o error del proveedor. Un índice case-insensitive impide
+     que dos organizaciones reclamen el mismo host, y
+     `get_store_slug_by_host` devuelve únicamente el slug de una tienda
+     publicada y activa. La migración `20260903000080` quedó aplicada en la
+     base vinculada y `db push --dry-run` confirmó brecha cero.
+
+     La nueva sección **Dominios de la tienda** vive dentro de Publicar. Siempre
+     conserva `<slug>.nerqia.app`, muestra estado y registros TXT/A/CNAME,
+     permite reintentar o desconectar con confirmación y advierte propagación y
+     preservación de MX/TXT. `store-domain` exige usuario real más owner/admin,
+     llama a las APIs oficiales de Project Domains y Domain Configuration de
+     Vercel, guarda sólo un resumen sanitizado y nunca entrega el token al
+     navegador. El resolver, los crawlers, robots, sitemap y feed montan el
+     mismo `StorefrontPage`/`StoreContext`; no existe otro catálogo, stock,
+     carrito ni checkout. Los emails de Auth vuelven al subdominio canónico
+     allowlisteado en vez de abrir Supabase a dominios arbitrarios.
+
+     Puerta técnica previa al commit: `npm run typecheck` verde; lint con 0
+     errores y 143 warnings heredados; 2.587 tests verdes en 274 archivos;
+     build/PWA verde; los cinco handlers SEO pasaron TypeScript NodeNext y
+     bundling independiente; las 75 Edge Functions completaron el typecheck.
+     `store-domain` quedó desplegada en el proyecto vinculado,
+     pero la prueba HTTP publicada respondió `402
+     exceed_cached_egress_quota` antes de ejecutar la función. La capacidad
+     sigue **parcial** por dos gates externos: restaurar la cuota de Supabase y
+     cargar `VERCEL_TOKEN`; crear una credencial persistente requiere
+     confirmación explícita. Sin ella la UI informa
+     `provider_not_configured`; no simula que conectó.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

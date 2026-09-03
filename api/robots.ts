@@ -10,7 +10,11 @@
  */
 import { cuerpoRobots } from "../src/lib/storefrontSeo.js";
 import { BRAND_DOMAIN } from "../src/lib/brand.js";
-import { hostedStoreOrigin, hostedStoreSlugFromUrl } from "../src/lib/storefrontHost.js";
+import {
+  lookupStoreSlugByHost,
+  resolveHostedStoreRequest,
+  resolvedStoreOrigin,
+} from "../src/lib/storefrontHost.js";
 
 export const config = { runtime: "edge" };
 
@@ -24,9 +28,21 @@ const SUPABASE_KEY =
 
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const hostedSlug = hostedStoreSlugFromUrl(url);
-  const origin = hostedStoreOrigin(url, hostedSlug);
+  const resolution = await resolveHostedStoreRequest(url, hostname => lookupStoreSlugByHost({
+    hostname,
+    supabaseUrl: SUPABASE_URL,
+    supabaseKey: SUPABASE_KEY,
+  }));
+  const hostedSlug = resolution.slug;
+  const origin = resolvedStoreOrigin(url, resolution);
   const sitemaps = ["/sitemap.xml"];
+
+  if (resolution.customDomain && !hostedSlug) {
+    return new Response("User-agent: *\nDisallow: /\n", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=60" },
+    });
+  }
 
   if (!hostedSlug && SUPABASE_URL && SUPABASE_KEY) {
     try {

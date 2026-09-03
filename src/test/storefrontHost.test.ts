@@ -7,7 +7,10 @@ import {
   hostedStoreOrigin,
   hostedStoreUrl,
   isValidStoreSubdomain,
+  lookupStoreSlugByHost,
   publicStoreBaseUrl,
+  resolveHostedStoreRequest,
+  resolvedStoreOrigin,
   storeSlugFromHostname,
   storefrontBasePath,
   storefrontHomePath,
@@ -79,6 +82,59 @@ describe('host canónico de una tienda Nerqia', () => {
       new URL('https://nerqia.app/api/og?hostSlug=mi-tienda'),
       'mi-tienda',
     )).toBe('https://mi-tienda.nerqia.app');
+  });
+
+  it('resuelve un dominio propio por RPC mínima y conserva su origen canónico', async () => {
+    const url = new URL('https://tienda.marca.com/producto/1?customHost=tienda.marca.com');
+    const resolution = await resolveHostedStoreRequest(url, async host => {
+      expect(host).toBe('tienda.marca.com');
+      return 'mi-tienda';
+    });
+    expect(resolution).toEqual({
+      slug: 'mi-tienda',
+      customDomain: true,
+      hostname: 'tienda.marca.com',
+    });
+    expect(resolvedStoreOrigin(url, resolution)).toBe('https://tienda.marca.com');
+  });
+
+  it('distingue un host inexistente de una caída del resolver público', async () => {
+    const input = {
+      hostname: 'tienda.marca.com',
+      supabaseUrl: 'https://example.supabase.co',
+      supabaseKey: 'anon-test',
+    };
+    await expect(lookupStoreSlugByHost({
+      ...input,
+      fetcher: async () => Response.json(null),
+    })).resolves.toBeNull();
+    await expect(lookupStoreSlugByHost({
+      ...input,
+      fetcher: async () => Response.json({ message: 'down' }, { status: 503 }),
+    })).rejects.toThrow('HTTP 503');
+    await expect(lookupStoreSlugByHost({
+      ...input,
+      fetcher: async () => Response.json('Mi-Tienda'),
+    })).resolves.toBe('mi-tienda');
+  });
+
+  it('el dominio propio monta el mismo StorefrontPage y tiene SEO por host', () => {
+    const app = source('src/App.tsx');
+    const resolver = source('src/pages/CustomDomainStorefrontPage.tsx');
+    expect(app).toContain('isPotentialCustomStoreHostname(hostname)');
+    expect(resolver).toContain('<StorefrontPage hostedSlug={slug} basePath="" />');
+
+    const vercel = JSON.parse(source('vercel.json')) as {
+      rewrites: Array<{ source: string; destination: string }>;
+    };
+    const custom = vercel.rewrites.filter(rule => rule.destination.includes('customHost=:customHost'));
+    expect(custom.some(rule => rule.source === '/robots.txt')).toBe(true);
+    expect(custom.some(rule => rule.source === '/sitemap.xml')).toBe(true);
+    expect(custom.some(rule => rule.source === '/feed.xml')).toBe(true);
+    expect(custom.some(rule => rule.destination.includes('/api/og'))).toBe(true);
+    expect(source('api/robots.ts')).toContain('resolution.customDomain && !hostedSlug');
+    expect(source('api/sitemap.ts')).toContain('xml("", 404, false)');
+    expect(source('api/feed.ts')).toContain('404, false');
   });
 
   it('Vercel prioriza SEO por host y excluye todos los subdominios reservados', () => {

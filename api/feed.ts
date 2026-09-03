@@ -22,7 +22,12 @@
  * códigos de barras de verdad, se agrega.
  */
 import { precioDeCatalogo } from "../src/lib/storefrontSeo.js";
-import { hostedStoreOrigin, hostedStoreSlugFromUrl, publicStoreBaseUrl } from "../src/lib/storefrontHost.js";
+import {
+  lookupStoreSlugByHost,
+  publicStoreBaseUrl,
+  resolveHostedStoreRequest,
+  resolvedStoreOrigin,
+} from "../src/lib/storefrontHost.js";
 
 export const config = { runtime: "edge" };
 
@@ -64,13 +69,18 @@ interface FilaCatalogo {
 
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const hostedSlug = hostedStoreSlugFromUrl(url);
-  const origin = hostedStoreOrigin(url, hostedSlug);
+  const resolution = await resolveHostedStoreRequest(url, hostname => lookupStoreSlugByHost({
+    hostname,
+    supabaseUrl: SUPABASE_URL,
+    supabaseKey: SUPABASE_KEY,
+  }));
+  const hostedSlug = resolution.slug;
+  const origin = resolvedStoreOrigin(url, resolution);
   const path = url.searchParams.get("path") ?? url.pathname;
   const slug = hostedSlug ?? decodeURIComponent(/^\/tienda\/([^/]+)/.exec(path)?.[1] ?? "");
   const storeBase = publicStoreBaseUrl(origin, slug, Boolean(hostedSlug));
 
-  const xml = (titulo: string, items: string) =>
+  const xml = (titulo: string, items: string, status = 200, indexable = true) =>
     new Response(
       `<?xml version="1.0" encoding="UTF-8"?>\n` +
       `<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n` +
@@ -81,13 +91,17 @@ export default async function handler(req: Request): Promise<Response> {
       `${items}\n` +
       `</channel>\n</rss>`,
       {
+        status,
         headers: {
           "Content-Type": "application/xml; charset=utf-8",
           // Una hora: el catálogo no cambia tanto, y Google lo baja seguido.
-          "Cache-Control": "public, max-age=3600",
+          "Cache-Control": indexable ? "public, max-age=3600" : "public, max-age=60",
+          ...(!indexable ? { "X-Robots-Tag": "noindex, nofollow" } : {}),
         },
       },
     );
+
+  if (resolution.customDomain && !hostedSlug) return xml("Tienda no encontrada", "", 404, false);
 
   if (!slug || !SUPABASE_URL || !SUPABASE_KEY) return xml("Tienda", "");
 

@@ -35,6 +35,7 @@ function publicSources(): string[] {
     'src/pages/PublicCatalogPage.tsx',
     'src/pages/PublicPaymentPage.tsx',
     'src/pages/StorefrontPage.tsx',
+    'src/pages/CustomDomainStorefrontPage.tsx',
     'src/pages/InfluencerPortalPage.tsx',
     'src/pages/ServiceStatusPage.tsx',
   ];

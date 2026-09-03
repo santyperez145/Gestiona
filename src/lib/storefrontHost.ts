@@ -1,4 +1,5 @@
 import { BRAND_DOMAIN } from './brand.js';
+import { isPotentialCustomStoreHostname, normalizeCustomStoreDomain } from './storeCustomDomain.js';
 
 /** Hosts propios de Nerqia que nunca pueden convertirse en una tienda. */
 export const RESERVED_NERQIA_SUBDOMAINS = [
@@ -63,6 +64,68 @@ export function hostedStoreOrigin(url: URL, hostedSlug: string | null): string {
   return storeSlugFromHostname(url.hostname) === hostedSlug
     ? requestOrigin
     : `${url.protocol}//${hostedSlug}.${BRAND_DOMAIN}`;
+}
+
+export interface HostedStoreResolution {
+  slug: string | null;
+  customDomain: boolean;
+  hostname: string | null;
+}
+
+/**
+ * Complementa el wildcard con una consulta pública mínima para dominios
+ * propios. El callback decide cómo hablar con Supabase; este módulo nunca
+ * conoce credenciales ni tablas internas.
+ */
+export async function resolveHostedStoreRequest(
+  url: URL,
+  lookupCustomHost: (hostname: string) => Promise<string | null>,
+): Promise<HostedStoreResolution> {
+  const hostedSlug = hostedStoreSlugFromUrl(url);
+  if (hostedSlug) return { slug: hostedSlug, customDomain: false, hostname: null };
+
+  const candidate = normalizeCustomStoreDomain(
+    url.searchParams.get('customHost') ?? url.hostname,
+  );
+  if (!isPotentialCustomStoreHostname(candidate)) {
+    return { slug: null, customDomain: false, hostname: null };
+  }
+
+  const slug = await lookupCustomHost(candidate);
+  return { slug, customDomain: true, hostname: candidate };
+}
+
+export function resolvedStoreOrigin(url: URL, resolution: HostedStoreResolution): string {
+  if (resolution.customDomain && resolution.hostname) {
+    return `${url.protocol}//${resolution.hostname}`;
+  }
+  return hostedStoreOrigin(url, resolution.slug);
+}
+
+export async function lookupStoreSlugByHost(input: {
+  hostname: string;
+  supabaseUrl: string;
+  supabaseKey: string;
+  fetcher?: typeof fetch;
+}): Promise<string | null> {
+  if (!input.supabaseUrl || !input.supabaseKey) {
+    throw new Error('Falta configurar la fuente pública del storefront');
+  }
+  const fetcher = input.fetcher ?? fetch;
+  const response = await fetcher(`${input.supabaseUrl}/rest/v1/rpc/get_store_slug_by_host`, {
+    method: 'POST',
+    headers: {
+      apikey: input.supabaseKey,
+      Authorization: `Bearer ${input.supabaseKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ p_host: input.hostname }),
+  });
+  if (!response.ok) {
+    throw new Error(`No se pudo resolver el host público (HTTP ${response.status})`);
+  }
+  const data = await response.json();
+  return typeof data === 'string' && data.trim() ? data.trim().toLowerCase() : null;
 }
 
 export function publicStoreBaseUrl(origin: string, slug: string, hosted: boolean): string {

@@ -48,6 +48,10 @@ verify_jwt = false
 [functions.store-order-status-email]
 verify_jwt = true
 
+# Operación del comercio y proveedor pago: exige JWT de usuario y owner/admin.
+[functions.store-domain]
+verify_jwt = true
+
 # Cron schedules — run via pg_cron or Supabase Dashboard > Edge Functions > Schedules
 # auto-recurring-expenses: "0 3 1 * *"   (1st of each month at 3 AM UTC)
 # weekly-backup: "30 3 * * 0" (domingos 03:30 UTC), sólo si existe

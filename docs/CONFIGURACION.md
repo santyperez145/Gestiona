@@ -109,10 +109,33 @@ verificado en el proyecto Vercel `nerqia`; la tienda publicada
 `exentryimports.nerqia.app` respondió por HTTPS con TLS válido, catálogo,
 robots, sitemap y feed el 2026-09-03.
 
+Los dominios propios del comercio se administran dentro de **Commerce →
+Publicar**, no en una segunda página. `store-domain` agrega, verifica y retira
+el host por API; `get_store_slug_by_host` monta el mismo storefront y sólo
+resuelve tiendas publicadas con estado `active`. La pantalla muestra los TXT,
+A o CNAME que Vercel recomiende en ese momento, distingue titularidad, DNS y
+TLS, y advierte no borrar MX/TXT del correo. La propagación externa puede tardar
+hasta 48 horas.
+
+Secreto operativo requerido para habilitar el autoservicio:
+
+| Secreto de Edge Functions | Alcance |
+|---|---|
+| `VERCEL_TOKEN` | Token dedicado con acceso al team/proyecto `nerqia`; crear, verificar y retirar Project Domains. Nunca va en Vite, la base ni el repo. |
+
+`VERCEL_PROJECT_ID` y `VERCEL_TEAM_ID` son overrides opcionales; el proyecto y
+team actuales están fijados como defaults no secretos en la función. Sin
+`VERCEL_TOKEN`, la UI conserva el subdominio incluido y devuelve explícitamente
+`provider_not_configured`: no simula una conexión.
+
 Supabase Auth declara `https://nerqia.app` como Site URL. Los callbacks de
 producción, `www`, `*.nerqia.app`, previews de Vercel y localhost se versionan en
 `supabase/config.toml`; después de editarlos hay que ejecutar
 `npx supabase config push`.
+
+Los dominios de terceros no se agregan a esa allowlist global. Los enlaces de
+confirmación/reset del comprador usan el subdominio canónico de la tienda; así
+no se abre Auth a un wildcard que podría apuntar a otra organización.
 
 Las Edge Functions usan `PUBLIC_BASE_URL=https://nerqia.app`,
 `PUBLIC_APP_URL=https://nerqia.app` y una lista exacta en

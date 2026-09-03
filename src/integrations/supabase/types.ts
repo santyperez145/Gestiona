@@ -10896,9 +10896,11 @@ export type Database = {
           items: Json
           org_id: string
           recovery_token: string | null
+          revision: number
           session_token: string
           shipping_cost: number
           status: string
+          store_customer_id: string | null
           store_id: string
           subtotal: number
           total: number
@@ -10922,9 +10924,11 @@ export type Database = {
           items?: Json
           org_id: string
           recovery_token?: string | null
+          revision?: number
           session_token?: string
           shipping_cost?: number
           status?: string
+          store_customer_id?: string | null
           store_id: string
           subtotal?: number
           total?: number
@@ -10948,9 +10952,11 @@ export type Database = {
           items?: Json
           org_id?: string
           recovery_token?: string | null
+          revision?: number
           session_token?: string
           shipping_cost?: number
           status?: string
+          store_customer_id?: string | null
           store_id?: string
           subtotal?: number
           total?: number
@@ -11051,6 +11057,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_cart_sessions_store_customer_id_fkey"
+            columns: ["store_customer_id"]
+            isOneToOne: false
+            referencedRelation: "store_customers"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ecommerce_cart_sessions_store_id_fkey"
@@ -11260,6 +11273,7 @@ export type Database = {
           payment_reversed_at: string | null
           payment_status: string
           public_access_token: string
+          referral_code: string | null
           shipped_at: string | null
           shipping_address: Json
           shipping_cost: number
@@ -11314,6 +11328,7 @@ export type Database = {
           payment_reversed_at?: string | null
           payment_status?: string
           public_access_token?: string
+          referral_code?: string | null
           shipped_at?: string | null
           shipping_address?: Json
           shipping_cost?: number
@@ -11368,6 +11383,7 @@ export type Database = {
           payment_reversed_at?: string | null
           payment_status?: string
           public_access_token?: string
+          referral_code?: string | null
           shipped_at?: string | null
           shipping_address?: Json
           shipping_cost?: number
@@ -11556,6 +11572,12 @@ export type Database = {
           created_at: string
           currency: string
           custom_domain: string | null
+          custom_domain_checked_at: string | null
+          custom_domain_claimed_at: string | null
+          custom_domain_error_code: string | null
+          custom_domain_status: string
+          custom_domain_verification: Json
+          custom_domain_verified_at: string | null
           default_item_weight_kg: number
           description: string | null
           domain: string | null
@@ -11596,6 +11618,12 @@ export type Database = {
           created_at?: string
           currency?: string
           custom_domain?: string | null
+          custom_domain_checked_at?: string | null
+          custom_domain_claimed_at?: string | null
+          custom_domain_error_code?: string | null
+          custom_domain_status?: string
+          custom_domain_verification?: Json
+          custom_domain_verified_at?: string | null
           default_item_weight_kg?: number
           description?: string | null
           domain?: string | null
@@ -11636,6 +11664,12 @@ export type Database = {
           created_at?: string
           currency?: string
           custom_domain?: string | null
+          custom_domain_checked_at?: string | null
+          custom_domain_claimed_at?: string | null
+          custom_domain_error_code?: string | null
+          custom_domain_status?: string
+          custom_domain_verification?: Json
+          custom_domain_verified_at?: string | null
           default_item_weight_kg?: number
           description?: string | null
           domain?: string | null
@@ -18037,6 +18071,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ventas_con_cobro_sin_clasificar"
             referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "invoices_sale_transaction_id_fkey"
+            columns: ["sale_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "sale_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_sale_transaction_id_fkey"
+            columns: ["sale_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "ventas_sin_asentar"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -38690,8 +38738,8 @@ export type Database = {
       }
       store_order_status_email_log: {
         Row: {
-          audience: string
           attempt_count: number
+          audience: string
           claim_token: string | null
           claimed_at: string | null
           created_at: string
@@ -38707,8 +38755,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          audience?: string
           attempt_count?: number
+          audience?: string
           claim_token?: string | null
           claimed_at?: string | null
           created_at?: string
@@ -38724,8 +38772,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          audience?: string
           attempt_count?: number
+          audience?: string
           claim_token?: string | null
           claimed_at?: string | null
           created_at?: string
@@ -46825,6 +46873,42 @@ export type Database = {
           },
         ]
       }
+      merchant_integration_catalog: {
+        Row: {
+          capabilities: string[] | null
+          category: string | null
+          connection_mode: string | null
+          description: string | null
+          display_name: string | null
+          integration_key: string | null
+          lifecycle: string | null
+          requires_contract: boolean | null
+          sort_order: number | null
+        }
+        Insert: {
+          capabilities?: string[] | null
+          category?: string | null
+          connection_mode?: string | null
+          description?: string | null
+          display_name?: string | null
+          integration_key?: string | null
+          lifecycle?: string | null
+          requires_contract?: boolean | null
+          sort_order?: number | null
+        }
+        Update: {
+          capabilities?: string[] | null
+          category?: string | null
+          connection_mode?: string | null
+          description?: string | null
+          display_name?: string | null
+          integration_key?: string | null
+          lifecycle?: string | null
+          requires_contract?: boolean | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       merchant_smtp_connection_status: {
         Row: {
           configured: boolean | null
@@ -52169,6 +52253,10 @@ export type Database = {
         }
         Returns: Json
       }
+      confirmar_pago_manual_tienda: {
+        Args: { p_nota?: string; p_order_id: string }
+        Returns: Json
+      }
       convert_store_cart: {
         Args: { p_slug: string; p_token: string }
         Returns: undefined
@@ -52227,6 +52315,24 @@ export type Database = {
           p_notes?: string
           p_payment_method: string
           p_shipping: Json
+          p_shipping_option?: string
+          p_slug: string
+        }
+        Returns: Json
+      }
+      create_store_order_from_cart_idem: {
+        Args: {
+          p_cart_token?: string
+          p_coupon?: string
+          p_customer_email: string
+          p_customer_name: string
+          p_customer_phone?: string
+          p_fiscal?: Json
+          p_idempotency_key?: string
+          p_items: Json
+          p_notes?: string
+          p_payment_method?: string
+          p_shipping?: Json
           p_shipping_option?: string
           p_slug: string
         }
@@ -52350,17 +52456,6 @@ export type Database = {
       }
       feature_flag_habilitada: {
         Args: { p_default?: boolean; p_flag_key: string; p_org_id?: string }
-        Returns: boolean
-      }
-      finish_store_order_email: {
-        Args: {
-          p_claim_token: string
-          p_delivery_id: string
-          p_error?: string | null
-          p_provider?: string | null
-          p_provider_message_id?: string | null
-          p_success: boolean
-        }
         Returns: boolean
       }
       finance_core_snapshot: {
@@ -52540,6 +52635,17 @@ export type Database = {
           validation_errors: string[]
         }[]
       }
+      finish_store_order_email: {
+        Args: {
+          p_claim_token: string
+          p_delivery_id: string
+          p_error?: string
+          p_provider?: string
+          p_provider_message_id?: string
+          p_success: boolean
+        }
+        Returns: boolean
+      }
       generate_gift_card_code: { Args: never; Returns: string }
       generate_org_slug: { Args: { _name: string }; Returns: string }
       generate_po_number: { Args: { p_org_id: string }; Returns: string }
@@ -52550,6 +52656,7 @@ export type Database = {
       }
       generate_ticket_number: { Args: { p_org_id: string }; Returns: string }
       generate_tracking_code: { Args: { p_org_id: string }; Returns: string }
+      gestiona_pay_listo: { Args: { p_org_id: string }; Returns: boolean }
       get_afip_stats: {
         Args: { p_days?: number; p_org_id: string }
         Returns: {
@@ -52718,13 +52825,6 @@ export type Database = {
           score: number
         }[]
       }
-      get_store_product_recommendations: {
-        Args: { p_limit?: number; p_product_id: string; p_slug: string }
-        Returns: {
-          recommended_product_id: string
-          score: number
-        }[]
-      }
       get_public_payment_link: {
         Args: { p_id: string }
         Returns: {
@@ -52778,6 +52878,7 @@ export type Database = {
           status: string
         }[]
       }
+      get_published_store_slug: { Args: { p_org_id: string }; Returns: string }
       get_revenue_waterfall: {
         Args: { p_months?: number; p_org_id: string }
         Returns: {
@@ -52833,17 +52934,21 @@ export type Database = {
           payment_methods: string[]
           pickup_address: string
           pickup_enabled: boolean
+          pickup_instructions: string
           primary_color: string
           shipping_cost: number
           shipping_mode: string
+          shipping_provinces: string[]
           slug: string
           social_links: Json
+          storefront_layout: Json
           theme: string
           tiktok_pixel_id: string
-          storefront_layout: Json
-          shipping_provinces: string[]
-          pickup_instructions: string
         }[]
+      }
+      get_store_cart: {
+        Args: { p_slug: string; p_token: string }
+        Returns: Json
       }
       get_store_categories: {
         Args: { p_slug: string }
@@ -52871,6 +52976,7 @@ export type Database = {
           bank_cbu: string
           bank_holder: string
           bank_name: string
+          carrier: string
           created_at: string
           customer_email: string
           customer_name: string
@@ -52881,10 +52987,9 @@ export type Database = {
           payment_status: string
           shipping_address: Json
           shipping_cost: number
+          shipping_service: string
           subtotal: number
           total: number
-          carrier: string
-          shipping_service: string
         }[]
       }
       get_store_pages: {
@@ -52915,6 +53020,13 @@ export type Database = {
           ocasion: string[]
           product_id: string
           proyeccion: string
+        }[]
+      }
+      get_store_product_recommendations: {
+        Args: { p_limit?: number; p_product_id: string; p_slug: string }
+        Returns: {
+          recommended_product_id: string
+          score: number
         }[]
       }
       get_store_quantity_discounts: {
@@ -52954,6 +53066,7 @@ export type Database = {
           verified: boolean
         }[]
       }
+      get_store_slug_by_host: { Args: { p_host: string }; Returns: string }
       get_store_variants: {
         Args: { p_slug: string }
         Returns: {
@@ -53191,13 +53304,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      list_published_store_slugs: {
+        Args: never
+        Returns: {
+          slug: string
+        }[]
+      }
       mark_cart_email_sent: { Args: { p_id: string }; Returns: undefined }
       mark_store_order_paid: {
         Args: { p_method?: string; p_order_id: string; p_payment_id?: string }
-        Returns: Json
-      }
-      confirmar_pago_manual_tienda: {
-        Args: { p_order_id: string; p_nota?: string }
         Returns: Json
       }
       marketing_template_sumar_like: {
@@ -53235,6 +53350,10 @@ export type Database = {
           soporta_cuotas: boolean
         }[]
       }
+      medios_de_pago_vivos: {
+        Args: { p_methods: string[]; p_org_id: string }
+        Returns: string[]
+      }
       mensajeria_de_plataforma: { Args: never; Returns: Json }
       mensajeria_guardar: { Args: { p_cambios: Json }; Returns: Json }
       mensajeria_marcar_verificado: {
@@ -53249,6 +53368,14 @@ export type Database = {
       normalize_person_name: { Args: { p_name: string }; Returns: string }
       normalize_product_barcode: { Args: { p_value: string }; Returns: string }
       normalize_product_sku: { Args: { p_value: string }; Returns: string }
+      normalize_store_cart_items: {
+        Args: { p_items: Json; p_org_id: string }
+        Returns: Json
+      }
+      normalize_store_referral_code: {
+        Args: { p_raw: string }
+        Returns: string
+      }
       org_entitlements: { Args: { p_org: string }; Returns: Json }
       organization_capability_access: {
         Args: { p_action?: string; p_capability_key: string; p_org_id: string }
@@ -54007,9 +54134,22 @@ export type Database = {
         }
         Returns: Json
       }
+      save_store_cart_v2: {
+        Args: {
+          p_email?: string
+          p_items: Json
+          p_slug: string
+          p_token: string
+        }
+        Returns: Json
+      }
       seed_budget_categories: { Args: { p_org_id: string }; Returns: undefined }
       seed_crm_pipeline: { Args: { p_org_id: string }; Returns: string }
       seed_default_alert_rules: {
+        Args: { p_org_id: string }
+        Returns: undefined
+      }
+      seed_default_automation_flows: {
         Args: { p_org_id: string }
         Returns: undefined
       }
@@ -54137,6 +54277,10 @@ export type Database = {
         }
         Returns: Json
       }
+      transferencia_tienda_lista: {
+        Args: { p_org_id: string }
+        Returns: boolean
+      }
       unaccent: { Args: { "": string }; Returns: string }
       update_store_order_fulfillment: {
         Args: { p_order_id: string; p_status: string }
@@ -54242,12 +54386,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -54271,11 +54415,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -54296,11 +54440,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -54321,11 +54465,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -54338,11 +54482,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

@@ -8,7 +8,12 @@
  *
  * Uso: /tienda/:slug/sitemap.xml o https://slug.nerqia.app/sitemap.xml
  */
-import { hostedStoreOrigin, hostedStoreSlugFromUrl, publicStoreBaseUrl } from "../src/lib/storefrontHost.js";
+import {
+  lookupStoreSlugByHost,
+  publicStoreBaseUrl,
+  resolveHostedStoreRequest,
+  resolvedStoreOrigin,
+} from "../src/lib/storefrontHost.js";
 
 export const config = { runtime: "edge" };
 
@@ -26,16 +31,30 @@ const esc = (s: unknown) =>
 
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const hostedSlug = hostedStoreSlugFromUrl(url);
-  const origin = hostedStoreOrigin(url, hostedSlug);
+  const resolution = await resolveHostedStoreRequest(url, hostname => lookupStoreSlugByHost({
+    hostname,
+    supabaseUrl: SUPABASE_URL,
+    supabaseKey: SUPABASE_KEY,
+  }));
+  const hostedSlug = resolution.slug;
+  const origin = resolvedStoreOrigin(url, resolution);
   const path = url.searchParams.get("path") ?? url.pathname;
   const slug = hostedSlug ?? decodeURIComponent(/^\/tienda\/([^/]+)/.exec(path)?.[1] ?? "");
 
-  const xml = (body: string) =>
+  const xml = (body: string, status = 200, indexable = true) =>
     new Response(
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>`,
-      { headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=3600" } },
+      {
+        status,
+        headers: {
+          "Content-Type": "application/xml; charset=utf-8",
+          "Cache-Control": indexable ? "public, max-age=3600" : "public, max-age=60",
+          ...(!indexable ? { "X-Robots-Tag": "noindex, nofollow" } : {}),
+        },
+      },
     );
+
+  if (resolution.customDomain && !hostedSlug) return xml("", 404, false);
 
   if (!slug || !SUPABASE_URL || !SUPABASE_KEY) {
     return xml(`  <url><loc>${esc(origin)}</loc></url>`);

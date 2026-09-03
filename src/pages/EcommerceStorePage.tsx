@@ -92,6 +92,7 @@ import KPICard from "@/components/shared/KPICard";
 import WorkspaceState from "@/components/shared/WorkspaceState";
 import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import StoreDomainsPanel from "@/components/ecommerce/StoreDomainsPanel";
 
 function hsl(vars: Record<string, string>, key: string, alpha?: number) {
   const value = vars[key];
@@ -651,10 +652,13 @@ export default function EcommerceStorePage() {
     { label: "Carritos c/items", value: activeCartsCount,             sub: `${abandonedCarts} abandonados`, icon: Users, color: "blue" as const },
   ], [todayRevenue, todayOrders.length, orders.length, conversionPct, funnelData, activeCartsCount, abandonedCarts]);
 
-  const urlPublica = urlPublicaDeTienda(
+  const urlIncluida = urlPublicaDeTienda(
     typeof window === "undefined" ? "" : window.location.origin,
     store?.slug,
   );
+  const urlPublica = store?.custom_domain && store?.custom_domain_status === "active"
+    ? `https://${store.custom_domain}`
+    : urlIncluida;
 
   const leadSettingsWithIdentity = storeShouldLeadSettingsWithIdentity(store?.id);
   const leadSettingsWithBank = storeShouldLeadSettingsWithBank({
@@ -823,6 +827,12 @@ export default function EcommerceStorePage() {
       {/* ─── Overview ─── */}
       {tab === "overview" && (
         <div className="space-y-6">
+          <StoreDomainsPanel
+            orgId={orgId ?? ""}
+            store={store}
+            includedUrl={urlIncluida}
+            onStateChange={(patch) => setStore((current: any) => current ? { ...current, ...patch } : current)}
+          />
           {shareIntent && urlPublica ? (
             <div className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/[0.06] p-4 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">

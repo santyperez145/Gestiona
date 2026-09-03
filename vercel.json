@@ -26,6 +26,21 @@
     },
     {
       "source": "/robots.txt",
+      "has": [{ "type": "host", "value": "^(?<customHost>(?!\\d{1,3}(?:\\.\\d{1,3}){3}$)(?!(?:.+\\.)?nerqia\\.app$)(?!(?:.+\\.)?vercel\\.app$)[a-z0-9](?:[a-z0-9.-]{1,251}[a-z0-9])?)$" }],
+      "destination": "/api/robots?customHost=:customHost"
+    },
+    {
+      "source": "/sitemap.xml",
+      "has": [{ "type": "host", "value": "^(?<customHost>(?!\\d{1,3}(?:\\.\\d{1,3}){3}$)(?!(?:.+\\.)?nerqia\\.app$)(?!(?:.+\\.)?vercel\\.app$)[a-z0-9](?:[a-z0-9.-]{1,251}[a-z0-9])?)$" }],
+      "destination": "/api/sitemap?customHost=:customHost&path=/"
+    },
+    {
+      "source": "/feed.xml",
+      "has": [{ "type": "host", "value": "^(?<customHost>(?!\\d{1,3}(?:\\.\\d{1,3}){3}$)(?!(?:.+\\.)?nerqia\\.app$)(?!(?:.+\\.)?vercel\\.app$)[a-z0-9](?:[a-z0-9.-]{1,251}[a-z0-9])?)$" }],
+      "destination": "/api/feed?customHost=:customHost&path=/"
+    },
+    {
+      "source": "/robots.txt",
       "destination": "/api/robots"
     },
     {
@@ -54,6 +69,21 @@
         }
       ],
       "destination": "/api/og?hostSlug=:storeSlug&path=/:path*"
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "^(?<customHost>(?!\\d{1,3}(?:\\.\\d{1,3}){3}$)(?!(?:.+\\.)?nerqia\\.app$)(?!(?:.+\\.)?vercel\\.app$)[a-z0-9](?:[a-z0-9.-]{1,251}[a-z0-9])?)$"
+        },
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Facebot|facebookcatalog|WhatsApp|Twitterbot|Slackbot|LinkedInBot|TelegramBot|Discordbot|Googlebot|Google-InspectionTool|AdsBot-Google|Storebot-Google|GoogleOther|bingbot|BingPreview|DuckDuckBot|YandexBot|Applebot|Pinterest|redditbot|SkypeUriPreview|vkShare|W3C_Validator|embedly).*"
+        }
+      ],
+      "destination": "/api/og?customHost=:customHost&path=/:path*"
     },
     {
       "source": "/tienda/:path*",
