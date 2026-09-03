@@ -4,7 +4,7 @@
  * Shopify/Tiendanube separan Pedidos de Diseño/Pagos. Recuperación
  * (abandonados + reposición) vive acá como hermano, no en Ajustes.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -14,10 +14,18 @@ import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
 import StoreOrdersWorkspace from "@/components/ecommerce/StoreOrdersWorkspace";
 import StoreRecoveryWorkspace from "@/components/ecommerce/StoreRecoveryWorkspace";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { STORE_ORDER_QUEUE_LIMIT } from "@/lib/storeOrderQueue";
+import {
+  STORE_ORDER_QUEUE_LIMIT,
+  countStoreOrdersNeedingAttention,
+} from "@/lib/storeOrderQueue";
 import { STORE_ORDER_LIST_SELECT, type StoreOrderInspectRow } from "@/lib/storeOrderDetail";
 import { parseStoreOrdersCola } from "@/lib/storeOrdersCanonical";
 import { urlPublicaDeTienda } from "@/lib/storeFirstPublish";
+import {
+  filterAbandonedCartsForQueue,
+  type AbandonedCartRow,
+} from "@/lib/abandonedCarts";
+import { countPendingStockAlerts } from "@/lib/stockAlerts";
 import { RotateCcw, Settings, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -32,6 +40,7 @@ export default function StoreOrdersPage() {
   const [orders, setOrders] = useState<StoreOrderInspectRow[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [recoveryPending, setRecoveryPending] = useState(0);
 
   useEffect(() => {
     if (!orgId) {
@@ -73,7 +82,53 @@ export default function StoreOrdersPage() {
     setOrdersLoading(false);
   }, [orgId]);
 
+  const loadRecoveryCounts = useCallback(async () => {
+    if (!orgId) {
+      setRecoveryPending(0);
+      return;
+    }
+    const [carts, alerts] = await Promise.all([
+      supabase
+        .from("ecommerce_cart_sessions")
+        .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, updated_at, created_at")
+        .eq("org_id", orgId),
+      supabase
+        .from("store_stock_alerts")
+        .select("id, email, product_id, variant_id, notified_at, created_at, products(name, stock)")
+        .eq("org_id", orgId)
+        .is("notified_at", null),
+    ]);
+    if (carts.error) {
+      console.error("StoreOrdersPage / recovery carritos:", carts.error);
+    }
+    if (alerts.error) {
+      console.error("StoreOrdersPage / recovery reposición:", alerts.error);
+    }
+    const abandoned = filterAbandonedCartsForQueue((carts.data ?? []) as AbandonedCartRow[]).length;
+    const stockRows = (alerts.data ?? []).map((raw) => {
+      const r = raw as Record<string, unknown>;
+      const prod = r.products as { name?: string; stock?: number } | null;
+      return {
+        id: String(r.id),
+        email: String(r.email),
+        product_id: String(r.product_id),
+        variant_id: (r.variant_id as string | null) ?? null,
+        notified_at: (r.notified_at as string | null) ?? null,
+        created_at: String(r.created_at),
+        product_name: prod?.name ?? null,
+        product_stock: prod?.stock ?? null,
+      };
+    });
+    setRecoveryPending(abandoned + countPendingStockAlerts(stockRows));
+  }, [orgId]);
+
   useEffect(() => { void loadOrders(); }, [loadOrders]);
+  useEffect(() => { void loadRecoveryCounts(); }, [loadRecoveryCounts]);
+
+  const ordersAttention = useMemo(
+    () => countStoreOrdersNeedingAttention(orders),
+    [orders],
+  );
 
   const urlPublica = urlPublicaDeTienda(
     typeof window === "undefined" ? "" : window.location.origin,
@@ -118,8 +173,18 @@ export default function StoreOrdersPage() {
         activeTab={cola}
         onChange={setCola}
         tabs={[
-          { id: "pedidos", label: "Pedidos", icon: ShoppingBag },
-          { id: "recuperacion", label: "Recuperación", icon: RotateCcw },
+          {
+            id: "pedidos",
+            label: "Pedidos",
+            icon: ShoppingBag,
+            count: ordersAttention > 0 ? ordersAttention : undefined,
+          },
+          {
+            id: "recuperacion",
+            label: "Recuperación",
+            icon: RotateCcw,
+            count: recoveryPending > 0 ? recoveryPending : undefined,
+          },
         ]}
       />
 

@@ -3,6 +3,7 @@ import {
   buildStoreOrdersCsv,
   countFulfillmentPulse,
   countStoreOrderViews,
+  countStoreOrdersNeedingAttention,
   filterStoreOrders,
   isStoreOrderStale,
   isStoreOrderAwaitingFulfillment,
@@ -115,6 +116,7 @@ describe("cola de pedidos de la tienda", () => {
       entregadas: 1,
       canceladas: 0,
     });
+    expect(countStoreOrdersNeedingAttention(rows)).toBe(2);
   });
 
   it("retiro pagado no entra a despachar — Square/Shopify tienen cola de pickup", () => {

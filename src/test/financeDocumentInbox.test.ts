@@ -8,6 +8,7 @@ import {
   financeDocumentNextAction,
   isFinanceDocumentInspectId,
   parseFinanceInboxView,
+  sortFinanceInboxDocuments,
 } from "@/lib/financeDocumentInbox";
 import type { FinanceDocument } from "@/lib/financeDocumentUpload";
 
@@ -168,6 +169,14 @@ describe("financeDocumentInbox", () => {
     const now = Date.parse("2026-09-03T12:00:00Z");
     expect(financeDocumentAgeLabel("2026-09-03T11:10:00Z", now)).toBe("hace 50 min");
     expect(financeDocumentAgeLabel("2026-09-01T12:00:00Z", now)).toBe("hace 2 días");
+  });
+
+  it("las colas operativas ordenan por aging (más viejo primero)", () => {
+    const older = { ...doc({ status: "awaiting_inspection", title: "Vieja" }), updatedAt: "2026-09-01T08:00:00Z", id: "old" };
+    const newer = { ...doc({ status: "awaiting_inspection", title: "Nueva" }), updatedAt: "2026-09-03T08:00:00Z", id: "new" };
+    expect(sortFinanceInboxDocuments([newer, older], "revisar").map(d => d.id)).toEqual(["old", "new"]);
+    expect(sortFinanceInboxDocuments([older, newer], "todos").map(d => d.id)).toEqual(["new", "old"]);
+    expect(sortFinanceInboxDocuments([older, newer], "aprobados").map(d => d.id)).toEqual(["new", "old"]);
   });
 
   it("el inspector usa documento= sobre la cola completa", () => {

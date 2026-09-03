@@ -331,6 +331,12 @@ export function countStoreOrderViews(orders: StoreOrderQueueRow[]): Record<Store
   return counts;
 }
 
+/** Badge de la tab Pedidos: trabajo operativo, no el historial entero. */
+export function countStoreOrdersNeedingAttention(orders: StoreOrderQueueRow[]): number {
+  const c = countStoreOrderViews(orders);
+  return c.retirar + c.despachar + c.atrasados + c.pago;
+}
+
 export function buildStoreOrdersCsv(orders: StoreOrderQueueRow[]) {
   const header = [
     "numero",

@@ -113,6 +113,25 @@ export function filterFinanceInbox(
   });
 }
 
+/**
+ * Mendel: colas operativas por antigüedad (más viejo primero).
+ * «Todos» / «Aprobados» se leen como historial (más nuevo primero).
+ */
+export function sortFinanceInboxDocuments(
+  documents: FinanceDocument[],
+  view: FinanceInboxView,
+): FinanceDocument[] {
+  const copy = [...documents];
+  const ts = (d: FinanceDocument) => {
+    const n = Date.parse(d.updatedAt);
+    return Number.isFinite(n) ? n : 0;
+  };
+  if (view === "todos" || view === "aprobados") {
+    return copy.sort((a, b) => ts(b) - ts(a));
+  }
+  return copy.sort((a, b) => ts(a) - ts(b));
+}
+
 export function countFinanceInboxViews(documents: FinanceDocument[]): Record<FinanceInboxView, number> {
   const counts: Record<FinanceInboxView, number> = {
     todos: documents.length,

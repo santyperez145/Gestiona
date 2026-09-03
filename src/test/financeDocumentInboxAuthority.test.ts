@@ -35,6 +35,7 @@ describe('autoridad de Finance Document Inbox', () => {
     expect(migration).toContain('finance_document_events');
     expect(page).toContain('esperando inspección');
     expect(page).toContain('no crea deuda ni mueve stock');
+    expect(page).toContain('sortFinanceInboxDocuments');
   });
 
   it('mantiene el hash como declaración hasta la verificación server-side', () => {

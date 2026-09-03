@@ -51,6 +51,8 @@ describe("cola de pedidos en Commerce", () => {
   it("Recuperación es hermano de Pedidos, no tab de Commerce", () => {
     expect(ordersPage).toContain("StoreRecoveryWorkspace");
     expect(ordersPage).toContain('id: "recuperacion"');
+    expect(ordersPage).toContain("countStoreOrdersNeedingAttention");
+    expect(ordersPage).toContain("recoveryPending");
     expect(page).toContain("storeRecoveryCanonicalPath");
     expect(page).toContain('requestedTab === "carritos"');
     expect(page).not.toContain("AbandonedCartsPanel");

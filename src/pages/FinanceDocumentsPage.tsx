@@ -42,6 +42,7 @@ import {
   financeDocumentAgeLabel,
   financeDocumentNextAction,
   parseFinanceInboxView,
+  sortFinanceInboxDocuments,
 } from '@/lib/financeDocumentInbox';
 import FinanceDocumentInspector from '@/components/finance-product/FinanceDocumentInspector';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -415,7 +416,10 @@ export default function FinanceDocumentsPage() {
   const visibleDocuments = loadedOrgId === activeOrg?.id ? documents : [];
   const inboxCounts = useMemo(() => countFinanceInboxViews(visibleDocuments), [visibleDocuments]);
   const filteredDocuments = useMemo(
-    () => filterFinanceInbox(visibleDocuments, inboxView, inboxQuery),
+    () => sortFinanceInboxDocuments(
+      filterFinanceInbox(visibleDocuments, inboxView, inboxQuery),
+      inboxView,
+    ),
     [visibleDocuments, inboxView, inboxQuery],
   );
   const documentoId = searchParams.get('documento');
