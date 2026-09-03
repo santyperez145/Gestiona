@@ -575,8 +575,7 @@ export default function PlatformCommissionsPage() {
               <TrendingUp className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
               <p className="text-sm font-medium">Todavía no hay cobros registrados</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Cada pago aprobado que pase por el webhook de MercadoPago va a aparecer acá
-                con su desglose de comisiones.
+                Cada pago aprobado con confirmación de MercadoPago va a aparecer acá con su desglose de comisiones.
               </p>
             </div>
           ) : (
@@ -706,8 +705,7 @@ export default function PlatformCommissionsPage() {
         <TabsContent value="simulador" className="mt-4">
           <div className="bg-card border border-border/60 rounded-[10px] p-4 space-y-4 max-w-2xl">
             <p className="text-xs text-muted-foreground">
-              Corre exactamente el mismo cálculo que el webhook y el checkout. Sirve para
-              ver el impacto de un cambio de comisión antes de aplicarlo.
+              Corre exactamente el mismo cálculo que la confirmación de MercadoPago y el checkout. Sirve para ver el impacto de un cambio de comisión antes de aplicarlo.
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">

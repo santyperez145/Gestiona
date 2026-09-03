@@ -1692,7 +1692,7 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                       {createdOrganization.emailSent ? 'Acceso enviado por email' : createdOrganization.emailRequested ? 'El acceso todavía no se pudo enviar' : 'Acceso no enviado'}
                     </p>
                     <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
-                      {createdOrganization.ownerEmail}. El token nunca se muestra en Platform, por lo que el staff no puede abrir la sesión del owner.
+                      {createdOrganization.ownerEmail}. Los datos sensibles nunca se muestran en Platform, por lo que el staff no puede abrir la sesión del owner.
                     </p>
                   </div>
                 </div>
