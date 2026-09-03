@@ -8,6 +8,7 @@ const delivery = read("supabase/functions/_shared/storeOrderEmailDelivery.ts");
 const sender = read("supabase/functions/_shared/smtpSender.ts");
 const initialEmail = read("supabase/functions/store-order-email/index.ts");
 const statusEmail = read("supabase/functions/store-order-status-email/index.ts");
+const config = read("supabase/config.toml");
 
 describe("idempotencia durable de emails de órdenes", () => {
   it("identifica cada entrega por orden, audiencia y evento", () => {
@@ -59,5 +60,7 @@ describe("idempotencia durable de emails de órdenes", () => {
     expect(migration).toContain("REVOKE ALL ON FUNCTION public.claim_store_order_email");
     expect(migration).toContain("REVOKE ALL ON FUNCTION public.finish_store_order_email");
     expect(migration).toContain("TO service_role");
+    expect(config).toContain("[functions.store-order-email]\nverify_jwt = false");
+    expect(config).toContain("[functions.store-order-status-email]\nverify_jwt = true");
   });
 });

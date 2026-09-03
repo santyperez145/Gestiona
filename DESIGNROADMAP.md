@@ -384,7 +384,10 @@ identidad; un claim atómico devuelve `duplicate`/`inProgress`, el proveedor se
 llama fuera de la transacción y un token de worker cierra el resultado. Resend
 recibe una segunda clave idempotente; SMTP queda cubierto por el ledger durable
 sin prometer exactly-once fuera del control de Gestiona. No agrega chrome ni
-otra pantalla: vuelve confiable el feedback transaccional del recorrido D5.
+otra pantalla: vuelve confiable el feedback transaccional del recorrido D5. La
+configuración de despliegue conserva explícitamente la frontera: creación de
+pedido pública con capacidad revalidada dentro de la función y cambio de estado
+autenticado con JWT; una guarda evita que otro entorno los despliegue al revés.
 
 D5.4 cierra el medio muerto que el recorte de Pay dejó a la vista: Mercado Pago
 marcado sin cuenta conectada. La vitrina pública deja de listarlo; una orden

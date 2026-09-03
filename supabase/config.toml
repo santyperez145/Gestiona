@@ -9,6 +9,15 @@ verify_jwt = true
 [functions.extract-receipt]
 verify_jwt = true
 
+# Storefront público: la capacidad opaca del pedido se valida dentro de la
+# función. Activar verify_jwt acá bloquearía a compradores anónimos legítimos.
+[functions.store-order-email]
+verify_jwt = false
+
+# Operación del comercio: además del permiso ecommerce.edit, exige usuario real.
+[functions.store-order-status-email]
+verify_jwt = true
+
 # Cron schedules — run via pg_cron or Supabase Dashboard > Edge Functions > Schedules
 # auto-recurring-expenses: "0 3 1 * *"   (1st of each month at 3 AM UTC)
 # weekly-backup: "30 3 * * 0" (domingos 03:30 UTC), sólo si existe

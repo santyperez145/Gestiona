@@ -3649,6 +3649,11 @@ Finance Connect.
      `store-order-email`; `confirmarPagoManual` sólo acreditaba. Shopify/
      Tiendanube: offline paid → confirmación. Extiende
      `store-order-status-email` con `payment_confirmed` + invoke post-RPC.
+     La frontera de autenticación quedó declarada también en
+     `supabase/config.toml`: el alta pública admite comprador anónimo porque
+     revalida la capacidad opaca dentro de la función, mientras el cambio de
+     estado exige JWT, permiso `ecommerce.edit` y organización. Una guarda
+     impide invertir esos valores al desplegar desde otra PC.
      Vercel free sigue en tope 100/día. No inventa tarifario/CUIT.
 
      Verificado en este recorte: **2.493 tests** / 265 archivos (`npm test --
