@@ -57,6 +57,35 @@ export function storeShouldLeadWithPay(input: {
   return true;
 }
 
+/** Sin fila en ecommerce_stores el 2º comercio no puede publicar ni legales. */
+export function storeShouldShowStoreMissingHandoff(
+  storeId: string | null | undefined,
+): boolean {
+  return !storeId;
+}
+
+export function storeMissingCopy() {
+  return {
+    title: 'Creá la tienda online',
+    description:
+      'Todavía no hay vitrina. Guardá nombre y dirección (slug) para poder cargar legales, banners y compartir el link. El catálogo es el del Business Core.',
+    actionLabel: 'Configurar y guardar',
+  };
+}
+
+/** Badge del header: no confundir «sin crear» con «inactiva». */
+export function storeStatusLabel(input: {
+  storeExists: boolean;
+  isActive: boolean;
+  canPublish: boolean;
+  readinessSummary: string;
+}): string {
+  if (!input.storeExists) return '○ Sin crear';
+  if (!input.isActive) return '○ Inactiva';
+  if (input.canPublish) return '● Activa';
+  return `▲ ${input.readinessSummary}`;
+}
+
 /** Sin catálogo no hay vitrina: el CTA manda a productos aunque no venga del wizard. */
 export function storeShouldShowCatalogHandoff(publishedProducts: number): boolean {
   return Number(publishedProducts) <= 0;

@@ -43,7 +43,10 @@ import {
   storeShouldLeadWithPay,
   storeShouldShowAfterCatalog,
   storeShouldShowCatalogHandoff,
+  storeShouldShowStoreMissingHandoff,
   storeShouldShowPerformanceChrome,
+  storeMissingCopy,
+  storeStatusLabel,
   urlPublicaDeTienda,
 } from "@/lib/storeFirstPublish";
 import type { AbandonedCartRow } from "@/lib/abandonedCarts";
@@ -542,7 +545,11 @@ export default function EcommerceStorePage() {
         ? null
         : storeForm.fulfillment_location_id,
     };
-    const { error } = await supabase.from("ecommerce_stores").upsert(row, { onConflict: "org_id" });
+    const { data: saved, error } = await supabase
+      .from("ecommerce_stores")
+      .upsert(row, { onConflict: "org_id" })
+      .select("*")
+      .single();
     if (error) {
       setLoading(false);
       console.error("No se pudo guardar la tienda", error);
@@ -564,11 +571,18 @@ export default function EcommerceStorePage() {
     if (bankError) {
       console.error("No se pudieron guardar los datos bancarios", bankError);
       toast.error("La tienda se guardó, pero no los datos para transferir. Reintentá.");
+      // Igual conservamos el id: sin él Páginas/Banners siguen muertos.
+      if (saved) {
+        setStore(saved);
+        setStoreForm(storeFormDesdeFila(saved, GLOBAL_FULFILLMENT_LOCATION));
+      }
       return;
     }
     toast.success(opts?.activate ? "La tienda está publicada" : "Tienda guardada correctamente");
-    setStore(row);
-    setStoreForm(p => ({ ...p, is_active: isActive, slug, name }));
+    // El upsert sin select dejaba store sin id: legales y banners pedían
+    // «Creá la tienda» con toast de guardado (medido sesión 145).
+    setStore(saved);
+    setStoreForm(storeFormDesdeFila(saved, GLOBAL_FULFILLMENT_LOCATION));
   };
 
   // Se evalúa sobre el FORMULARIO y no sobre lo guardado: así el estado
@@ -595,10 +609,13 @@ export default function EcommerceStorePage() {
     ...signals,
   }), [storeForm, store?.logo_url, store?.slug, signals, bankForm]);
 
-  const catalogHandoff = storeShouldShowCatalogHandoff(signals.publishedProducts)
+  const storeMissing = storeShouldShowStoreMissingHandoff(store?.id)
+    ? storeMissingCopy()
+    : null;
+  const catalogHandoff = !storeMissing && storeShouldShowCatalogHandoff(signals.publishedProducts)
     ? storeHandoffCopy()
     : null;
-  const afterCatalog = storeShouldShowAfterCatalog({
+  const afterCatalog = !storeMissing && storeShouldShowAfterCatalog({
     fromWizard,
     publishedProducts: signals.publishedProducts,
     storeActive: !!storeForm.is_active,
@@ -678,17 +695,20 @@ export default function EcommerceStorePage() {
                 no está "Activa" en ningún sentido útil: se avisa acá, que es
                 donde se mira el estado. */}
             <Badge className={
-              !store?.is_active
+              !store?.id
+                ? "bg-zinc-500/15 text-zinc-400 border-zinc-500/20"
+                : !store?.is_active
                 ? "bg-zinc-500/15 text-zinc-400 border-zinc-500/20"
                 : readiness.canPublish
                   ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
                   : "bg-yellow-500/15 text-yellow-500 border-yellow-500/20"
             }>
-              {!store?.is_active
-                ? "○ Inactiva"
-                : readiness.canPublish
-                  ? "● Activa"
-                  : `▲ ${readinessSummary(readiness)}`}
+              {storeStatusLabel({
+                storeExists: Boolean(store?.id),
+                isActive: Boolean(store?.is_active),
+                canPublish: readiness.canPublish,
+                readinessSummary: readinessSummary(readiness),
+              })}
             </Badge>
             {urlPublica && (
               <>
@@ -799,6 +819,16 @@ export default function EcommerceStorePage() {
       {/* ─── Overview ─── */}
       {tab === "overview" && (
         <div className="space-y-6">
+          {storeMissing && (
+            <WorkspaceState
+              kind="empty-first-use"
+              icon={ShoppingBag}
+              title={storeMissing.title}
+              description={storeMissing.description}
+              actionLabel={storeMissing.actionLabel}
+              onAction={() => goToTab("settings")}
+            />
+          )}
           {catalogHandoff && (
             <WorkspaceState
               kind="empty-first-use"
@@ -838,8 +868,8 @@ export default function EcommerceStorePage() {
               </div>
             </div>
           )}
-          {!catalogHandoff ? <StoreReadinessPanel readiness={readiness} /> : null}
-          {!catalogHandoff && publishNudges.length > 0 && (
+          {!storeMissing && !catalogHandoff ? <StoreReadinessPanel readiness={readiness} /> : null}
+          {!storeMissing && !catalogHandoff && publishNudges.length > 0 && (
             <div className="space-y-2">
               {publishNudges.map((n) => (
                 <div

@@ -3491,6 +3491,17 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
      tiene `VITE_*`.
 
+145. Commerce vacío sin tienda + id tras guardar — 2026-09-03.
+     Medido: 2º comercio sin fila veía «○ Inactiva»; tras Guardar
+     `setStore(row)` sin id → Páginas/Banners pedían «Creá la tienda».
+     Empty-first-use `storeMissingCopy`, badge «Sin crear», upsert
+     `.select().single()`. Shopify/Tiendanube: identidad usable al
+     instante. No inventa tarifario ni Mendel F5.
+
+     Verificado en este recorte: **2.471 tests** / 262 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

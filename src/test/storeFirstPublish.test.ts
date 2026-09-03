@@ -11,7 +11,10 @@ import {
   storeShouldLeadWithPay,
   storeShouldShowAfterCatalog,
   storeShouldShowCatalogHandoff,
+  storeShouldShowStoreMissingHandoff,
   storeShouldShowPerformanceChrome,
+  storeMissingCopy,
+  storeStatusLabel,
   storeWizardFinishCopy,
   urlPublicaDeTienda,
 } from '@/lib/storeFirstPublish';
@@ -68,6 +71,23 @@ describe('la primera publicación empieza por el catálogo', () => {
       wantsMercadoPago: true,
       hasOfflinePayment: false,
     })).toBe(false);
+  });
+
+  it('sin fila de tienda el overview pide crear antes del catálogo', () => {
+    expect(storeShouldShowStoreMissingHandoff(null)).toBe(true);
+    expect(storeShouldShowStoreMissingHandoff(undefined)).toBe(true);
+    expect(storeShouldShowStoreMissingHandoff('uuid')).toBe(false);
+    expect(storeMissingCopy().title).toMatch(/Creá la tienda/i);
+    expect(storeStatusLabel({
+      storeExists: false, isActive: false, canPublish: false, readinessSummary: 'x',
+    })).toBe('○ Sin crear');
+    expect(storeStatusLabel({
+      storeExists: true, isActive: false, canPublish: false, readinessSummary: 'x',
+    })).toBe('○ Inactiva');
+    expect(STORE).toContain('storeShouldShowStoreMissingHandoff');
+    expect(STORE).toContain('storeStatusLabel');
+    expect(STORE).toContain('.select("*")');
+    expect(STORE).toContain('.single()');
   });
 
   it('sin catálogo el overview pide el primer producto sin exigir el wizard', () => {
