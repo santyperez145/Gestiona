@@ -3427,6 +3427,18 @@ Finance Connect.
      --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Migración
      `20260903000010` aplicada y anotada. Esta PC no tiene `VITE_*`.
 
+139. Carrito no miente envío en modo zones — 2026-09-03.
+     Medido: con `shipping_mode=zones` (default ATM) el drawer decía
+     «Gratis» si `shipping_cost` era 0, mientras el checkout cotiza por
+     provincia vía `quote_store_shipping`. Shopify/Tiendanube no cierran
+     flete sin ubicación. `cartShippingDisplay` → «Se calcula con tu
+     provincia»; el total del carrito no inventa flat. Guardas en
+     `storeCartShipping` + `storefrontConversion`.
+
+     Verificado en este recorte: **2.454 tests** / 260 archivos (`npm test --
+     --maxWorkers=1 --fileParallelism=false`, 2026-09-03). Esta PC no
+     tiene `VITE_*`.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

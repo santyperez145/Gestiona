@@ -31,6 +31,18 @@ describe("recorrido de compra a 360 px", () => {
     expect(layout).toContain("flex min-h-11 items-center justify-center");
   });
 
+  it("el carrito no dice Gratis cuando el envío se cotiza por provincia", () => {
+    // Shopify/Tiendanube: sin ubicación no cierran flete en modo zonas.
+    // shippingCost===0 ⇒ «Gratis» mentía con shipping_mode=zones (default ATM).
+    const layout = leer("src/storefront/StoreLayout.tsx");
+    const ctx = leer("src/storefront/storeContext.tsx");
+    const helper = leer("src/lib/storeCartShipping.ts");
+    expect(layout).toContain("shippingLabel");
+    expect(layout).not.toMatch(/shippingCost === 0 \? ["']Gratis["']/);
+    expect(ctx).toContain("cartShippingDisplay");
+    expect(helper).toContain("Se calcula con tu provincia");
+  });
+
   it("filtros y checkout no esconden la acción primaria en el teléfono", () => {
     const productos = leer("src/storefront/StoreProducts.tsx");
     const checkout = leer("src/storefront/StoreCheckout.tsx");

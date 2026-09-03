@@ -19,6 +19,7 @@ import {
   type StoreVariant,
 } from "@/lib/publicDataSource";
 import { mediosDePagoOfrecibles } from "@/lib/gestionaPay";
+import { cartShippingCellText, cartShippingDisplay } from "@/lib/storeCartShipping";
 
 export interface StoreInfo {
   org_id: string;
@@ -165,7 +166,15 @@ interface Ctx {
   clearCart: () => void;
   cartCount: number;
   subtotal: number;
+  /**
+   * Monto de envío sumado al total del drawer.
+   * En modo zones es 0 hasta cotizar en checkout (no inventa flat ni «Gratis»).
+   */
   shippingCost: number;
+  /** Celda Envío del carrito: plata formateada o «Se calcula con tu provincia». */
+  shippingLabel: string;
+  /** true cuando el flete todavía depende de la provincia (modo zones). */
+  shippingPending: boolean;
   total: number;
   /** Cuánto falta para el envío gratis, o null si no aplica. */
   freeShippingGap: number | null;
@@ -421,7 +430,16 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     const threshold = Number(store?.free_shipping_above) || 0;
     const neto = Math.max(0, subtotal - promo2x);
     const freeShipping = threshold > 0 && neto >= threshold;
-    const shippingCost = cart.length === 0 ? 0 : (freeShipping ? 0 : base);
+    // zones: no usar shipping_cost ni decir Gratis — el checkout cotiza por provincia.
+    const ship = cartShippingDisplay({
+      shippingMode: store?.shipping_mode,
+      cartEmpty: cart.length === 0,
+      flatShippingCost: base,
+      freeShippingUnlocked: freeShipping,
+    });
+    const shippingCost = ship.amount ?? 0;
+    const shippingPending = ship.amount === null;
+    const shippingLabel = cartShippingCellText(ship, fmt);
 
     return {
       loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias,
@@ -430,6 +448,8 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       subtotal,
       promo2x,
       shippingCost,
+      shippingLabel,
+      shippingPending,
       total: neto + shippingCost,
       freeShippingGap: threshold > 0 && !freeShipping && cart.length > 0
         ? threshold - neto

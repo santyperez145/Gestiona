@@ -44,7 +44,7 @@ function LinkDeMenu({
 }
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
-  const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingCost, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf } = useStore();
+  const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingLabel, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
@@ -659,7 +659,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                   )}
                   <div className="flex justify-between text-sm">
                     <span style={{ color: "hsl(var(--st-muted))" }}>Envío</span>
-                    <span>{shippingCost === 0 ? "Gratis" : fmt(shippingCost)}</span>
+                    <span>{shippingLabel}</span>
                   </div>
                   <div className="flex justify-between font-semibold pt-1 border-t" style={{ borderColor: "hsl(var(--st-border))" }}>
                     <span>Total</span>
