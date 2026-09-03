@@ -378,6 +378,8 @@ export default function StoreProduct() {
             <button
               onClick={agregar}
               disabled={faltaElegir}
+                aria-hidden={!atcVisible}
+                tabIndex={atcVisible ? 0 : -1}
               className="flex-1 min-h-11 py-3 font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
             >
