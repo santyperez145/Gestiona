@@ -330,7 +330,11 @@ export function storeOrderFulfillmentActionLabel(order: StoreOrderQueueRow) {
   return order.tracking_number ? "Ver envío" : "Preparar";
 }
 
-export function orderMatchesStoreView(order: StoreOrderQueueRow, view: StoreOrderView) {
+export function orderMatchesStoreView(
+  order: StoreOrderQueueRow,
+  view: StoreOrderView,
+  now: Date = new Date(),
+) {
   switch (view) {
     case "todas":
       return true;
@@ -339,7 +343,7 @@ export function orderMatchesStoreView(order: StoreOrderQueueRow, view: StoreOrde
     case "despachar":
       return isStoreOrderAwaitingShipment(order);
     case "atrasados":
-      return isStoreOrderStale(order);
+      return isStoreOrderStale(order, now);
     case "pago":
       return canRetryStorePayment(order.payment_status);
     case "enviadas":
@@ -377,7 +381,7 @@ export function filterStoreOrders(
   const query = input.query ?? "";
   const now = input.now ?? new Date();
   const filtered = orders.filter(order =>
-    orderMatchesStoreView(order, view) && orderMatchesStoreMedio(order, medio) && matchesStoreOrderSearch(order, query),
+    orderMatchesStoreView(order, view, now) && orderMatchesStoreMedio(order, medio) && matchesStoreOrderSearch(order, query),
   );
   if (view === "atrasados") {
     return sortStoreOrders(filtered, "antiguos");
