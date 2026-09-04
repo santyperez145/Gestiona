@@ -505,6 +505,18 @@ humana siguió intacta y la tienda activa no retrocedió. La propiedad de domini
 fue verificada, el sitemap quedó **Correcto** en Search Console y Nerqia/Exentry
 entraron a la cola prioritaria. Falta indexación observada.
 
+D5.19 unifica los documentos legales de plataforma en un shell propio. Términos
+y Privacidad repetían header, footer, secciones y navegación; Privacidad además
+forzaba `prose-invert`, por lo que el modo claro no tenía un contrato visual
+confiable. Ahora comparten identidad oficial, versión visible, ancho/ritmo de
+lectura, foco, targets de 44 px, tabla responsive de proveedores y un aviso
+amarillo explícito para la identidad legal que falta. El contenido deja de
+prometer Stripe, USD, borrado, SLA y jurisdicción sin evidencia, y cada estado
+externo se presenta como condición o gate. La matriz local pasó en
+claro/oscuro y 360/768/1024/1440 sin overflow de página ni errores, con tabla
+contenida y footer de 44 px. Falta inspección publicada y validación profesional
+del texto.
+
 - home de tienda, listado, búsqueda y filtros;
 - ficha de producto: CTA móvil hecho; faltan variantes densas y confianza extra;
 - carrito y checkout: objetivos táctiles y sticky en 360 px hechos;
@@ -549,7 +561,7 @@ prioritarios estables en los cuatro viewports.
 **Salida:** el rediseño demuestra menor tiempo/error y mayor confianza; no se
 declara validado porque “se ve mejor”.
 
-## 6. Próximos 29 slices de diseño
+## 6. Próximos 30 slices de diseño
 
 | # | Slice | Estado | Evidencia de cierre |
 |---:|---|---|---|
@@ -582,6 +594,7 @@ declara validado porque “se ve mejor”.
 | 27 | Contrato visible de webhooks | Hecho 2026-08-29 | Diálogo legible, código de firma, semántica de id/retry/orden, guía y OpenAPI 3.1; transporte sintético certificado contra HTTPS externo y receptor eliminado. |
 | 28 | Contrato visible de API pública | Hecho 2026-08-29 | Panel, estado vacío y modal auditados con sesión de administrador real en producción: claro/oscuro, 360/768/1024/1440, cero overflow y consola sin warnings/errors. Guía, OpenAPI 3.1 y changelog accesibles; secretos one-time sin bloque negro en claro. La prueba descubrió que `stock:write` ocultaba parte de su consecuencia en mobile; el bundle nuevo `index-CBuC_8gZ.js` ya muestra la explicación completa en claro/oscuro a 360 px, conserva 512 px de diálogo desktop y deja consola limpia. Evidencia: `docs/evidencias/2026-08-29_api_keys_visual.md`. |
 | 29 | Descubrimiento público de Nerqia | Parcial D5.18 2026-09-03 | Landing y precios comparten título, descripción, H1, canonical y texto visible con el documento semántico del borde; `WebSite` fija el nombre Nerqia y el índice raíz incorpora la plataforma sin duplicar el sitemap de tiendas. Puerta local: 2.600 tests, build/PWA y 75 Edge Functions. Publicado: matriz Googlebot/Inspection, privados noindex, redirect y Storefront sin regresión. Propiedad DNS verificada, sitemap Correcto y home de Nerqia/Exentry en cola prioritaria. Falta indexación externa observada y métricas de Search Console. |
+| 30 | Documentos legales de plataforma | Parcial D5.19 2026-09-03 | Términos/Privacidad usan un shell único, claro/oscuro, versión visible, aviso de identidad faltante y tabla responsive de proveedores; el contrato visible coincide con ARS/Mercado Pago, retención real y telemetría minimizada. Matriz local 360/768/1024/1440 sin overflow ni errores, 44 px y tokens claro/oscuro. Falta matriz publicada, identidad real y validación profesional. |
 
 Máximo dos slices visuales activos. Un problema de seguridad, datos, stock,
 pagos o legal interrumpe esta secuencia y vuelve a `ROADMAP.md`.

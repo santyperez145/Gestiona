@@ -5,8 +5,9 @@ normativa argentina aplicable, para que un abogado o un contador lo valide. Cada
 punto dice **qué exige la norma**, **qué hay hoy en el código** y **qué falta**,
 con el estado medido contra la base cuando se pudo.
 
-Última revisión técnica: 2026-08-30 (ARCA emite en homologación; devolución
-POS distingue comprobante interno de nota de crédito fiscal).
+Última revisión técnica: 2026-09-03 (documentos de plataforma alineados con
+ARS/Mercado Pago, transferencias internacionales declaradas y Session Replay
+retirado; la identidad legal y la revisión profesional siguen pendientes).
 
 ---
 
@@ -87,9 +88,9 @@ el art. 37 de la 25.065 más abajo.
 | **Registro de la base de datos ante la AAIP** (art. 21) | 🔴 Trámite del comercio, no del código. **Pero la plataforma debería avisarlo en el onboarding**, porque casi ningún comercio chico sabe que existe. |
 | **Consentimiento registrado para marketing** (art. 27) | ✅ El checkout guarda fecha + origen y las campañas excluyen a quien no tenga evidencia. |
 | **Registro No Llame** (Ley 26.951) | 🟠 Las campañas de WhatsApp y los avisos por teléfono no consultan el registro. Aplica a llamadas y mensajes con fin publicitario. |
-| **Derecho de acceso en 10 días** (art. 14) | 🟠 El export existe pero no hay un canal donde la persona lo pida ni un plazo medido. |
+| **Derecho de acceso en 10 días** (art. 14) | 🟡 La política de plataforma publica `privacidad@nerqia.app`, 10 días corridos para acceso y 5 hábiles para rectificación/actualización/supresión. El export existe; falta una cola operativa con recepción, verificación de identidad, vencimiento y evidencia de respuesta. |
 | **Aviso en cada comunicación de que puede pedir la baja** (art. 27) | ✅ Email y WhatsApp de marketing incluyen una baja efectiva. En WhatsApp el enlace es opaco, personal y de un solo uso. |
-| **Transferencia internacional de datos** (art. 12) | 🟡 Los datos viven en Supabase (AWS `us-east-1`). Estados Unidos **no** tiene nivel adecuado de protección según la AAIP. La política generada lo declara explícitamente y lo apoya en el consentimiento informado al comprar. |
+| **Transferencia internacional de datos** (art. 12) | 🟠 Los datos viven en Supabase (AWS `us-east-1`). Estados Unidos **no** integra la lista de países adecuados de la AAIP. La política de plataforma lo declara sin presentar la información como garantía suficiente; faltan mecanismo aprobado —por ejemplo cláusulas modelo—, inventario de subencargados y evidencia contractual archivada. |
 | **Medidas de seguridad** (Res. AAIP 47/2018) | ✅ En buena forma: RLS, MFA obligatorio para staff de plataforma y credenciales fuera del navegador. Desde 2026-08-21 Evolution API vive en `evolution_connections` (RLS, cero policies); la UI sólo consulta estado sanitizado y el asistente abre el flujo de campaña que controla consentimiento y baja. |
 | **Notificación de incidentes** | 🔴 No hay procedimiento escrito. La AAIP recomienda notificar; no hay plazo legal duro, pero sin procedimiento no se cumple ninguno. |
 
@@ -99,14 +100,16 @@ el art. 37 de la 25.065 más abajo.
 
 | Requisito | Estado |
 |---|---|
-| **Contrato de tratamiento de datos con el comercio** (art. 25) | 🔴 No existe. La plataforma trata datos personales *por cuenta* del comercio: hace falta el contrato que diga qué puede y qué no. |
+| **Contrato de tratamiento de datos con el comercio** (art. 25) | 🔴 No existe. Los documentos públicos ya distinguen al comercio como responsable y a la plataforma como encargada, pero eso **no reemplaza** el anexo que debe fijar objeto, alcance, duración, categorías, instrucciones, seguridad, subencargados, asistencia y eliminación. |
 | **Extracción asistida de comprobantes de Gastos** | 🟡 La función exige usuario, tenant, plan y revisión humana; la imagen queda local hasta confirmar el gasto y la política ya declara proveedor, transferencia opcional y ausencia de anonimización automática. `ANTHROPIC_API_KEY` y `EXPENSE_RECEIPT_EXTRACTION_ENABLED` están ausentes, por lo que hoy ningún comprobante se envía a Anthropic. No habilitar ambos hasta aprobar DPA, región/subencargados, exclusión de entrenamiento, retención/borrado y benchmark con documentos autorizados. Este flujo no reemplaza al Document Inbox de Finance. |
 | **Scanner de documentos Finance** | 🟡 La inspección técnica está desplegada, pero el scanner privado no está configurado y por eso ningún archivo se envía afuera ni se habilita para extracción. Antes de configurar `FINANCE_DOCUMENT_SCANNER_URL/TOKEN` se necesita proveedor privado, retención cero, subencargados/región declarados y contrato/DPA; no se permite VirusTotal ni un corpus público para facturas. |
 | **Extracción de comprobantes Finance** | 🟡 La extracción estructurada, confianza por campo y revisión append-only están desplegadas, pero `FINANCE_DOCUMENT_EXTRACTION_ENABLED` y `FINANCE_DOCUMENT_MODEL` permanecen ausentes: ningún comprobante se transfiere a un modelo externo. Antes de habilitarlos se debe aprobar proveedor/modelo fijo, DPA, región y subencargados, exclusión de entrenamiento, retención/borrado y benchmark con documentos autorizados. Aprobar el scanner no aprueba automáticamente al extractor. |
 | **Auditoría de accesos del staff** | ✅ Desde 2026-08-22 no existe impersonación por magic link. Support solicita un diagnóstico agregado; sólo owner autoriza por 15/30/60 minutos y ve solicitante, motivo, vencimiento, revocación y contador de lecturas. Cada lectura revalida el permiso y no incluye clientes, órdenes, montos, credenciales ni errores crudos. En altas nuevas, el acceso llega al email del owner y Platform nunca recibe el token. El historial anterior de enlaces permanece visible como mecanismo retirado. |
 | **MFA para el staff** | ✅ `MfaGate` sin excepción. |
 | **Separación de superficies** | ✅ Ser staff de plataforma no da permisos dentro de una organización. |
-| **Facturación de la suscripción** | 🟠 Stripe cobra y **no se emite comprobante fiscal argentino** al comercio. Si la plataforma factura desde Argentina, es una obligación de ARCA, no una opción. |
+| **Términos y privacidad de plataforma** | 🟠 Desde 2026-09-03 describen el producto real: ARS/Mercado Pago, baja desde Mi plan, ausencia de SLA contractual, retención no automática, roles responsable/encargado, proveedores condicionales, alojamiento en Estados Unidos y plazos AAIP. El shell legal es único y no hereda `prose-invert` en modo claro. **No están aprobados jurídicamente** y muestran como bloqueante la falta de razón social, CUIT y domicilio del prestador. Falta registrar versión/fecha de aceptación en servidor. |
+| **Telemetría y contenido operativo** | 🟡 Sentry queda sin Session Replay ni breadcrumbs de UI/consola; el navegador elimina identidad, cookies, headers, cuerpos y parámetros de URL antes de enviar errores o trazas. Falta confirmar en la cuenta Sentry el data scrubbing server-side, IP scrubbing, región/retención y DPA; el filtro del SDK no sustituye esa configuración. |
+| **Facturación de la suscripción** | 🟠 Mercado Pago procesa la suscripción en ARS y la baja ya cancela el `preapproval`, pero **no se emite comprobante fiscal argentino** al comercio. Si la plataforma factura desde Argentina, es una obligación de ARCA, no una opción. |
 | **Comisión por venta informada** | 🟡 El split técnico funciona, pero desde `20260821000058` ninguna regla cobra sin aprobación, versión de términos, tratamiento fiscal y vigencia. La propuesta encontrada de 0,5% quedó en borrador y cobra $0; los dos pagos de ARS 1 históricos registraron 5% (ARS 0,10 total) sólo como prueba. Falta contrato, facturación argentina de la comisión y decisión de pricing. |
 | **Baja del servicio y portabilidad** | 🟡 El dueño puede descargar un ZIP de datos operativos con CSV por tabla y un manifiesto que declara cobertura, errores y truncamientos. Las credenciales de acceso quedan fuera; ocho relaciones hijas operativas se incluyen desde su padre, pero todavía no hay importador/restauración ni garantía para el resto de relaciones sin `org_id` propio (D5 del ROADMAP). Retenerlo por falta de herramienta sigue siendo un problema legal y comercial. |
 
@@ -147,7 +150,7 @@ tener responsable, fecha y evidencia archivada:
 | ARCA productivo | 🔴 Externo | Certificado y punto de venta Web Services productivos; factura y nota de crédito autorizadas, consultadas y conciliadas. |
 | Mercado Pago productivo | 🟠 Técnico sin certificación live completa | OAuth/app/webhooks productivos; aprobación, rechazo, timeout, QR escaneado y refund total/parcial con idempotencia y consulta posterior. Orders/Payments, retry y reconciliación están implementados, pero la línea base tiene 0 cuentas conectadas y no certifica dinero real. |
 | Defensa del consumidor | 🟡 Parcial | Identidad legal real, términos/política publicados, botón de arrepentimiento, canal de reclamo y devolución ensayada por el comercio. |
-| Datos personales | 🔴 Externo + operativo | DPA plataforma–comercio, registro/criterio AAIP validado, proveedores/subencargados documentados, procedimiento de acceso/borrado e incident response probado. |
+| Datos personales | 🔴 Externo + operativo | Identidad del responsable publicada; DPA plataforma–comercio y transferencias internacionales aprobadas; proveedores/subencargados documentados; aceptación versionada; calendario de retención; procedimiento de acceso/borrado e incident response probado. La minimización de Sentry y los textos honestos son preparación técnica, no cierre legal. |
 | Marca y activos | 🔴 Externo | Búsqueda y estrategia marcaria con profesional, solicitud/registro que corresponda y licencias/cesiones archivadas para logo, fuentes, Figma y contenido. |
 | Continuidad y seguridad | 🟡 Parcial | Restore completo con RTO/RPO, plan de incidentes, responsable de guardia, rotación de secretos, pruebas de abuso y evidencia de vulnerabilidades críticas en cero. |
 | Rubros regulados | 🔴 Fuera del software | Revisión por catálogo/jurisdicción —por ejemplo ANMAT, aduana o habilitación municipal— antes de permitir que el merchant publique productos alcanzados. |

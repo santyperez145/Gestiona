@@ -3932,6 +3932,49 @@ Finance Connect.
      quedó procesando datos. Que Google las indexe o ubique primero sólo se
      cierra cuando aparezca medido, no por el push ni por la solicitud.
 
+168. Contrato público honesto y telemetría minimizada — 2026-09-03.
+     La auditoría posterior al SEO encontró una contradicción de lanzamiento:
+     Términos prometía precios en USD y cobro con Stripe aunque la suscripción
+     real usa ARS/Mercado Pago; Privacidad repetía Stripe, prometía borrado
+     automático a 30 días que no existe y decía que Sentry no recibe datos
+     sensibles mientras el SDK grababa 10% de las sesiones y 100% de las que
+     tenían error con texto y multimedia **sin enmascarar**. También se publicaba
+     un SLA de 99,5%, reintegro tras 48 horas, límite de responsabilidad y fuero
+     exclusivo sin evidencia contractual ni validación profesional.
+
+     `platformLegal.ts` pasa a ser la fuente versionada de marca, contactos,
+     fecha y proveedores condicionales. Términos y Privacidad comparten un único
+     `LegalDocumentLayout`, corrigen el modo claro, tienen targets táctiles,
+     declaran ARS/Mercado Pago, roles responsable/encargado, alojamiento en
+     `us-east-1`, transferencia a un país no adecuado, retención honesta,
+     canales/plazos AAIP y ausencia de SLA salvo anexo firmado. No se inventó la
+     identidad faltante: ambas páginas muestran que razón social, CUIT, domicilio
+     y revisión profesional bloquean el lanzamiento comercial.
+
+     Sentry conserva errores y una muestra de rendimiento, pero Session Replay
+     queda en cero y sin integración. Antes de enviar se eliminan usuario,
+     cookies, headers, cuerpos y parámetros de URL; se redactan emails/bearers y
+     se descartan breadcrumbs de UI/consola. Las guardas impiden que reaparezcan
+     Stripe/USD, el borrado falso, el SLA inventado o el replay desprotegido.
+     Referencia oficial verificada: la AAIP exige informar finalidad,
+     destinatarios, identidad/domicilio y derechos; fija 10 días corridos para
+     acceso y 5 hábiles para rectificación/supresión, y ofrece cláusulas modelo
+     para destinos no adecuados. Mercado Pago documenta cancelar el
+     `preapproval` con estado `canceled`, que coincide con el camino real.
+
+     Puerta local: typecheck verde; lint 0 errores/143 warnings heredados;
+     **2.605 tests verdes en 277 archivos**; build/PWA, 75 Edge Functions y
+     `npm audit --audit-level=high` en cero vulnerabilidades. La matriz de
+     `/terminos` y `/privacidad` pasó en 360/768/1024/1440 sin overflow de
+     página ni errores de consola, con tabla contenida en mobile, targets de
+     44 px, títulos propios y tokens claro/oscuro distintos.
+
+     Estado: **contradicciones técnicas cerradas; aprobación legal pendiente**.
+     Siguiente slice legal: aceptación versionada server-side y cola operativa
+     de derechos. Gates externos: identidad legal real, DPA, mecanismo de
+     transferencia, retención, incident response, configuración Sentry del lado
+     proveedor y revisión abogado/contador.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

@@ -1,153 +1,187 @@
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield } from 'lucide-react';
-import BrandLogo from '@/components/shared/BrandLogo';
+import { Shield } from "lucide-react";
+import {
+  LegalDocumentLayout,
+  LegalIdentityNotice,
+  LegalSection,
+} from "@/components/legal/LegalDocumentLayout";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import {
+  ARGENTINA_PRIVACY_SOURCES,
+  PLATFORM_LEGAL,
+  PLATFORM_PROCESSORS,
+} from "@/lib/platformLegal";
 
-const LAST_UPDATED = '30 de agosto de 2026';
-const COMPANY = 'Nerqia';
-const EMAIL = 'privacidad@nerqia.app';
+const { brand, privacyEmail, privacyVersion, updatedLabel } = PLATFORM_LEGAL;
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border/50 sticky top-0 backdrop-blur-md bg-background/70 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="w-4 h-4" /> <BrandLogo markClassName="h-5 w-5" nameClassName="text-sm" />
-          </Link>
+    <LegalDocumentLayout
+      title="Política de Privacidad"
+      updatedLabel={updatedLabel}
+      version={privacyVersion}
+      icon={Shield}
+    >
+      <LegalIdentityNotice />
+
+      <LegalSection title="1. Alcance y roles">
+        <p>
+          Esta política explica cómo se tratan datos personales en la cuenta y la plataforma {brand}. Para los datos de
+          registro, seguridad, soporte y suscripción de la plataforma, el prestador de {brand} determina el tratamiento.
+          Para los datos de compradores, clientes y contactos que carga un comercio, ese comercio determina la finalidad y
+          {brand} presta el procesamiento técnico por su cuenta.
+        </p>
+        <p>
+          La organización debe contar con una base legal propia para cargar y usar datos de terceros. El contrato de
+          tratamiento entre plataforma y comercio, con alcance, duración, categorías y medidas, debe aprobarse antes del
+          lanzamiento comercial general.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="2. Datos que podemos tratar">
+        <ul>
+          <li><strong>Cuenta:</strong> nombre, email, identificador de usuario, credenciales protegidas y factores de autenticación.</li>
+          <li><strong>Organización:</strong> integrantes, roles, configuración, sucursales e información fiscal o comercial que se cargue.</li>
+          <li><strong>Operación:</strong> productos, inventario, ventas, compras, caja, gastos, documentos y métricas.</li>
+          <li><strong>Compradores y clientes:</strong> contacto, pedidos, entrega, historial y consentimientos registrados por el comercio.</li>
+          <li><strong>Facturación:</strong> plan, importe, estado y referencias del proveedor; no guardamos el número completo de la tarjeta.</li>
+          <li><strong>Seguridad y diagnóstico:</strong> dirección IP, dispositivo, navegador, ruta sin parámetros, eventos de auditoría y errores minimizados.</li>
+          <li><strong>Soporte o IA opcional:</strong> el contenido que decidís enviar para resolver una solicitud concreta.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="3. Finalidades y base del tratamiento">
+        <ul>
+          <li>Crear y proteger la cuenta, autenticar accesos y aplicar permisos por organización.</li>
+          <li>Prestar las funciones contratadas y procesar instrucciones del comercio.</li>
+          <li>Gestionar suscripción, cobros, soporte, avisos e incidentes.</li>
+          <li>Prevenir fraude, abuso y accesos no autorizados; mantener auditoría y continuidad.</li>
+          <li>Cumplir obligaciones legales, fiscales y requerimientos válidos.</li>
+          <li>Mejorar rendimiento y confiabilidad con información técnica minimizada.</li>
+        </ul>
+        <p>
+          Según el caso, el tratamiento se apoya en la relación contractual, el cumplimiento de una obligación legal, la
+          seguridad del servicio o un consentimiento específico. El consentimiento no se usa como explicación genérica
+          cuando los datos son necesarios para ejecutar el servicio solicitado.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="4. Origen y consecuencias">
+        <p>
+          Los datos llegan de la persona que crea la cuenta, otros integrantes autorizados, compradores que usan una tienda,
+          archivos o integraciones que el comercio conecta y proveedores que informan el estado de una operación. Los campos
+          obligatorios se señalan en cada flujo: sin datos mínimos de cuenta no puede crearse el acceso; sin datos de entrega
+          o pago requeridos puede no completarse un pedido.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="5. Infraestructura y transferencias internacionales">
+        <p>
+          La base de datos, autenticación y almacenamiento principal se alojan en Supabase sobre AWS en la región
+          <strong> us-east-1, Estados Unidos</strong>. La aplicación web y sus funciones de borde se entregan mediante Vercel.
+          Eso puede implicar transferencias internacionales de datos.
+        </p>
+        <p>
+          Estados Unidos no integra la lista argentina de países con nivel adecuado. Antes del lanzamiento comercial debe
+          quedar aprobado y archivado el mecanismo aplicable —por ejemplo, cláusulas contractuales modelo—, junto con los
+          destinos, subencargados y medidas. Informar la transferencia en esta página no sustituye esa garantía.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="6. Proveedores que pueden recibir datos">
+        <div className="overflow-x-auto rounded-2xl border border-border">
+          <table className="w-full min-w-[720px] border-collapse text-left text-xs">
+            <thead className="bg-muted/60 text-foreground">
+              <tr>
+                <th className="px-4 py-3 font-semibold">Proveedor</th>
+                <th className="px-4 py-3 font-semibold">Finalidad</th>
+                <th className="px-4 py-3 font-semibold">Datos</th>
+                <th className="px-4 py-3 font-semibold">Cuándo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {PLATFORM_PROCESSORS.map((processor) => (
+                <tr key={processor.name} className="align-top">
+                  <td className="px-4 py-3 font-medium text-foreground">{processor.name}</td>
+                  <td className="px-4 py-3">{processor.purpose}</td>
+                  <td className="px-4 py-3">{processor.data}</td>
+                  <td className="px-4 py-3">{processor.condition}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </header>
+        <p>
+          No vendemos datos personales ni los compartimos para publicidad de terceros. Una integración elegida por el
+          comercio puede tener proveedores adicionales y debe informar sus propios destinatarios a sus compradores.
+        </p>
+      </LegalSection>
 
-      <main className="max-w-3xl mx-auto px-6 py-14 prose prose-invert prose-sm max-w-none">
-        <div className="flex items-center gap-3 mb-2">
-          <Shield className="w-6 h-6 text-primary" />
-          <h1 className="text-3xl font-display font-bold m-0">Política de Privacidad</h1>
-        </div>
-        <p className="text-muted-foreground text-sm mt-1 mb-10">Última actualización: {LAST_UPDATED}</p>
+      <LegalSection title="7. Inteligencia artificial opcional">
+        <p>
+          Las funciones que envían documentos o el contenido que elegís procesar a un modelo externo permanecen desactivadas hasta aprobar el
+          proveedor, contrato, región, subencargados, retención, exclusión de entrenamiento y habilitación técnica. Cuando
+          una función se habilita, la interfaz debe indicar qué se enviará y exigir revisión humana del resultado. Siempre
+          podés completar la tarea manualmente.
+        </p>
+      </LegalSection>
 
-        <Section title="1. Quiénes somos">
-          <p>
-            {COMPANY} es un sistema de gestión comercial para pequeñas y medianas empresas. Al usar nuestra plataforma,
-            aceptás el tratamiento de tus datos según esta política.
-          </p>
-        </Section>
+      <LegalSection title="8. Retención y eliminación">
+        <p>
+          Conservamos los datos mientras sean necesarios para prestar y proteger el servicio, cumplir instrucciones válidas
+          y atender obligaciones legales. Cancelar una suscripción no borra automáticamente la organización. Podés exportar
+          la cobertura disponible y solicitar supresión; verificaremos identidad, autoridad, alcance y excepciones aplicables.
+        </p>
+        <p>
+          Registros fiscales, pagos, auditoría, seguridad y respaldos pueden tener ciclos distintos. No prometemos un plazo
+          de borrado automático que el sistema todavía no ejecuta. El calendario formal por categoría, incluido el vencimiento
+          de copias de respaldo, es una puerta de lanzamiento pendiente de aprobación y prueba operativa.
+        </p>
+      </LegalSection>
 
-        <Section title="2. Qué datos recopilamos">
-          <ul>
-            <li><strong>Datos de cuenta:</strong> nombre, email y contraseña (hasheada) que ingresás al registrarte.</li>
-            <li><strong>Datos de negocio:</strong> productos, ventas, clientes, gastos y cualquier información que cargues en la plataforma.</li>
-            <li><strong>Datos técnicos:</strong> dirección IP, tipo de dispositivo, navegador y registros de actividad (logs) para diagnóstico y seguridad.</li>
-            <li><strong>Datos de pago:</strong> gestionados íntegramente por Stripe. {COMPANY} nunca almacena números de tarjeta.</li>
-          </ul>
-        </Section>
+      <LegalSection title="9. Tus derechos">
+        <p>Podés solicitar acceso, rectificación, actualización, confidencialidad o supresión, según corresponda.</p>
+        <ul>
+          <li>El acceso debe responderse dentro de 10 días corridos desde una solicitud verificable.</li>
+          <li>La rectificación, actualización o supresión debe resolverse dentro de 5 días hábiles, salvo excepción legal.</li>
+          <li>La portabilidad operativa disponible puede descargarse desde Ajustes; su manifiesto declara cobertura y límites.</li>
+        </ul>
+        <p>
+          Escribí a <a href={`mailto:${privacyEmail}`}>{privacyEmail}</a>. Podemos pedir información razonable para verificar
+          identidad y representación. Si la respuesta no resulta satisfactoria, podés recurrir a la{" "}
+          <a href={ARGENTINA_PRIVACY_SOURCES.rights} target="_blank" rel="noreferrer">Agencia de Acceso a la Información Pública</a>.
+        </p>
+      </LegalSection>
 
-        <Section title="3. Para qué usamos tus datos">
-          <ul>
-            <li>Brindarte el servicio de gestión comercial.</li>
-            <li>Enviarte notificaciones y alertas del sistema (stock bajo, deudas vencidas, etc.).</li>
-            <li>Mejorar la plataforma y detectar errores.</li>
-            <li>Cumplir con obligaciones legales.</li>
-          </ul>
-          <p>No vendemos ni compartimos tus datos con terceros para fines publicitarios.</p>
-        </Section>
+      <LegalSection title="10. Cookies, almacenamiento local y telemetría">
+        <p>
+          Usamos cookies o almacenamiento local necesarios para sesión, seguridad, preferencias y continuidad del carrito.
+          No instalamos analítica publicitaria. Si Sentry está configurado, recibe diagnóstico técnico minimizado: no se
+          graban sesiones, se descartan interacciones y consola, y se quitan identidad, cookies, encabezados y parámetros de URL
+          antes del envío. Borrar el almacenamiento del navegador puede cerrar la sesión o vaciar preferencias locales.
+        </p>
+      </LegalSection>
 
-        <Section title="4. Base legal del tratamiento">
-          <p>
-            El tratamiento se realiza bajo tu consentimiento (al aceptar estos términos al registrarte) y en cumplimiento
-            de la <strong>Ley 25.326 de Protección de Datos Personales</strong> de la República Argentina.
-          </p>
-        </Section>
+      <LegalSection title="11. Seguridad e incidentes">
+        <p>
+          Aplicamos cifrado en tránsito, controles de acceso por organización, roles, MFA para staff, auditoría y separación
+          de credenciales. Ninguna medida elimina todo riesgo. El procedimiento de respuesta, responsables, comunicación y
+          simulacro documentado sigue siendo una puerta de lanzamiento; un test técnico no equivale a su aprobación operativa.
+        </p>
+      </LegalSection>
 
-        <Section title="5. Almacenamiento y seguridad">
-          <p>
-            Tus datos se almacenan en servidores de <strong>Supabase</strong> con cifrado en tránsito (HTTPS/TLS) y en
-            reposo. Aplicamos políticas de acceso mínimo (RLS) para que cada organización sólo vea sus propios datos y
-            ofrecemos exportación portable de la información accesible por la organización.
-          </p>
-        </Section>
-
-        <Section title="6. Con quiénes compartimos datos">
-          <p>Sólo compartimos datos con proveedores necesarios para operar el servicio:</p>
-          <ul>
-            <li><strong>Supabase</strong> — base de datos e infraestructura.</li>
-            <li><strong>Stripe</strong> — procesamiento de pagos.</li>
-            <li><strong>Resend</strong> — envío de emails transaccionales.</li>
-            <li>
-              <strong>Anthropic</strong> — funciones opcionales de inteligencia artificial. Sólo recibe el contenido que
-              elegís procesar al ejecutar una de esas funciones; puede incluir datos del negocio o un documento y no se
-              anonimiza automáticamente.
-            </li>
-            <li><strong>Sentry</strong> — monitoreo de errores (sin datos personales sensibles).</li>
-          </ul>
-          <p>
-            Podés no usar las funciones de inteligencia artificial y completar esas tareas manualmente. Cuando las usás,
-            el contenido se envía para responder esa solicitud concreta bajo los términos y medidas del proveedor.
-          </p>
-        </Section>
-
-        <Section title="7. Cookies">
-          <p>
-            Usamos cookies estrictamente necesarias para mantener tu sesión. No usamos cookies de seguimiento
-            ni publicidad de terceros. Podés borrar las cookies desde tu navegador en cualquier momento,
-            lo que cerrará tu sesión.
-          </p>
-        </Section>
-
-        <Section title="8. Tus derechos">
-          <p>Tenés derecho a:</p>
-          <ul>
-            <li><strong>Acceder</strong> a los datos que tenemos sobre vos.</li>
-            <li><strong>Rectificar</strong> datos incorrectos.</li>
-            <li><strong>Exportar</strong> tus datos en formato CSV desde la sección Reportes.</li>
-            <li><strong>Eliminar</strong> tu cuenta y todos tus datos. Escribinos a {EMAIL}.</li>
-            <li><strong>Oponerte</strong> al tratamiento en casos específicos.</li>
-          </ul>
-        </Section>
-
-        <Section title="9. Retención de datos">
-          <p>
-            Conservamos tus datos mientras tu cuenta esté activa. Si cancelás tu suscripción, los datos se mantienen
-            por 30 días para permitir la recuperación. Después de ese período, se eliminan de forma permanente,
-            salvo obligación legal de conservarlos.
-          </p>
-        </Section>
-
-        <Section title="10. Menores de edad">
-          <p>
-            {COMPANY} no está dirigido a menores de 18 años. No recopilamos datos de menores de forma deliberada.
-          </p>
-        </Section>
-
-        <Section title="11. Cambios a esta política">
-          <p>
-            Podemos actualizar esta política. Te notificaremos por email con al menos 15 días de anticipación ante
-            cambios sustanciales. El uso continuo del servicio después de esa fecha implica la aceptación de los cambios.
-          </p>
-        </Section>
-
-        <Section title="12. Contacto">
-          <p>
-            Para ejercer tus derechos o consultas sobre privacidad, escribinos a{' '}
-            <a href={`mailto:${EMAIL}`} className="text-primary underline">{EMAIL}</a>.
-          </p>
-        </Section>
-      </main>
-
-      <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-        <div className="flex justify-center gap-4">
-          <Link to="/privacidad" className="hover:text-foreground">Privacidad</Link>
-          <Link to="/terminos" className="hover:text-foreground">Términos</Link>
-          <Link to="/" className="hover:text-foreground">Volver al panel</Link>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="mb-8">
-      <h2 className="text-base font-semibold mb-3 text-foreground">{title}</h2>
-      <div className="text-muted-foreground space-y-2 text-sm leading-relaxed">{children}</div>
-    </section>
+      <LegalSection title="12. Cambios y contacto">
+        <p>
+          Los cambios materiales se publican con nueva fecha y versión, y se solicita una nueva aceptación cuando corresponda.
+          Para ejercer derechos o consultar sobre privacidad, escribinos a{" "}
+          <a href={`mailto:${privacyEmail}`}>{privacyEmail}</a>.
+        </p>
+        <p>
+          Fuentes oficiales de referencia: {" "}
+          <a href={ARGENTINA_PRIVACY_SOURCES.obligations} target="_blank" rel="noreferrer">obligaciones del responsable</a>
+          {" · "}
+          <a href={ARGENTINA_PRIVACY_SOURCES.internationalTransfers} target="_blank" rel="noreferrer">transferencias internacionales</a>.
+        </p>
+      </LegalSection>
+    </LegalDocumentLayout>
   );
 }

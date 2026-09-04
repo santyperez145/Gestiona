@@ -66,7 +66,14 @@ describe('identidad canónica de Nerqia', () => {
     ];
 
     for (const path of brandedSurfaces) {
-      expect(source(path), `${path} quedó sin la identidad oficial`).toContain('<BrandLogo');
+      const file = source(path);
+      if (path === 'src/pages/TermsPage.tsx' || path === 'src/pages/PrivacyPage.tsx') {
+        expect(file, `${path} dejó de usar el shell legal canónico`).toContain('<LegalDocumentLayout');
+        expect(source('src/components/legal/LegalDocumentLayout.tsx'), 'el shell legal quedó sin la identidad oficial')
+          .toContain('<BrandLogo');
+      } else {
+        expect(file, `${path} quedó sin la identidad oficial`).toContain('<BrandLogo');
+      }
     }
     expect(source('src/components/AppLayout.tsx')).not.toContain('config.logoUrl ?');
     expect(source('src/pages/AuthPage.tsx')).not.toContain('auth-brand__mark');
