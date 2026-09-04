@@ -4549,8 +4549,22 @@ Finance Connect.
      logs, pero la captura encontró una fila de **612 px**: aun resumido, el
      selector duplicaba la PDP y dejaba un gran vacío bajo los productos
      simples. Esa evidencia cambió la decisión anterior por el CTA único de
-     opciones. Estado: **D5.29 corregido; falta nueva puerta integral, deploy y
-     matriz publicada desktop/mobile antes de cerrarlo**.
+     opciones.
+
+     La puerta posterior quedó verde con TypeScript, lint sin errores y 143
+     warnings heredados, **2.665/2.665 tests en 286 archivos** y build/PWA.
+     `bfb1b0a7` quedó Ready y aliasado a `nerqia.app` + wildcard. La grilla real
+     montó 20 cards: la de 9 sabores bajó a 459,8 px frente a 434,2 px de una
+     simple —25,6 px, no 178—, mostró 7 disponibles + 2 agotadas, 0 radios, 0
+     botones de agregado ambiguo y el link “Elegir un sabor”. Documento y
+     viewport dieron 1.284/1.284 px y 0 logs. El E2E publicado verificó card +
+     secuencia PDP agotada → disponible en Chromium y Pixel 5: **4/4**, sin
+     agregar al carrito ni escribir datos. La lectura `anon` encontró tres
+     productos con variantes (10/10/0, 9/7/2 y 7/3/4
+     total/disponible/agotada) y 0 overrides de precio reales; por eso “Desde”
+     queda cubierto por cálculo puro, no se inventó un precio productivo para
+     fotografiarlo. Estado: **D5.29 cerrado en implementación, desktop, mobile
+     y accesibilidad; el cobro sigue bajo autoridad server-side**.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

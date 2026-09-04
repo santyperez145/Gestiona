@@ -240,8 +240,12 @@ producto con variantes a “Elegir sabor/talle/variante” en una única ficha. 
 card conserva conteo disponible/agotado y “Desde” con el menor SKU comprable;
 si ninguno queda, deriva a opciones y avisos, no a un CTA imposible. PDP y
 carrito comparten `precioDeVariante`; el servidor vuelve a decidir mediante
-`resolve_store_line`. Falta verificar la corrección publicada en grilla
-desktop/mobile antes de cerrar D5.29.
+`resolve_store_line`. `bfb1b0a7` quedó Ready: la card real de 9 variantes pasó
+de 612 a 459,8 px frente a 434,2 px de una simple, con 0 radios/quick-add
+ambiguo, 1.284/1.284 px y 0 logs. El E2E publicado cubrió card y PDP en Chromium
+y Pixel 5: **4/4**, sin escrituras. Los tres productos productivos con variantes
+tienen 0 overrides distintos de precio; “Desde” queda probado en cálculo puro
+sin fabricar un dato comercial. D5.29 cerrado.
 
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)
