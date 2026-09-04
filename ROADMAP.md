@@ -1,6 +1,6 @@
 # Nerqia Cloud — Visión y roadmap ejecutivo
 
-**Corte editorial:** 2026-09-03. Categoría Commerce OS:
+**Corte editorial:** 2026-09-04. Categoría Commerce OS:
 [`docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md`](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md).
 **Datos operativos:** 2026-08-22 salvo cuando una fila indique una fecha más
 reciente. La separación evita presentar una medición técnica nueva como si
@@ -4428,6 +4428,39 @@ Finance Connect.
      referencias históricas intactas; `store_catalog_products` pasó 60→59 y
      devuelve 0 fixtures. El storefront publicado confirmó “59 productos”,
      ausencia del nombre interno y 0 logs. Estado: **D5.26 cerrado**.
+
+179. La cola opera lotes sin inventar otra autoridad — D5.27, 2026-09-04.
+     La referencia oficial de [acciones masivas de Shopify](https://help.shopify.com/en/manual/shopify-admin/productivity-tools/bulk-actions)
+     permite seleccionar recursos y actuar sobre el conjunto; su
+     [fulfillment masivo](https://help.shopify.com/en/manual/fulfillment/fulfilling-orders/bulk-fulfillment)
+     omite órdenes incompatibles y reporta progreso/errores. Tiendanube permite
+     [actualizar el estado de ventas de forma masiva](https://ayuda.tiendanube.com/es_CO/123288-mis-ventas/como-actualizar-el-estado-de-mis-ventas-de-forma-masiva)
+     desde la selección filtrada, pero advierte que marcar pagado tiene otro
+     riesgo. Nerqia traduce ese patrón al Core propio: no incluye cobro ni
+     cancelación en el mismo botón y no duplica la máquina de estados.
+
+     `bulk_update_store_order_fulfillment` acepta hasta 50 UUID del tenant,
+     deduplica, exige `ecommerce.edit`, oculta la existencia de IDs externos y
+     llama para cada fila a `update_store_order_fulfillment`. Por eso conserva
+     pago obligatorio, retiro distinto de despacho, entrega domiciliaria
+     preparada y avance sólo hacia adelante. El lote puede completar filas
+     válidas y devolver `changed`/`unchanged`/`skipped`/`duplicate` por orden;
+     errores inesperados no filtran detalles del esquema. Un evento de
+     auditoría guarda el resumen, nunca una sucesión opaca de escrituras del
+     navegador.
+
+     Desktop y mobile seleccionan únicamente pedidos con alguna transición
+     operable, limitan el alcance visible a 50 y muestran cuántos pueden pasar
+     a **En camino** o **Entregado/retirado** antes de confirmar. El resultado
+     persiste en la pantalla con omisiones concretas; el email se invoca sólo
+     para cambios reales, en tandas de cuatro y sobre la idempotencia ya
+     existente. La verificación productiva reversible mezcló domicilio
+     preparado, retiro, impago, finalizado, ausente, repetido, outsider y 51
+     IDs: **6/6 checks**, dos auditorías y **0 residuos**. Migración aplicada y
+     libro en brecha 0. Puerta integral local: TypeScript; lint con 0 errores y
+     143 warnings heredados; **2.657/2.657 tests en 285 archivos**; build/PWA
+     productivo. Estado: implementación, base y puerta local cerradas; falta
+     certificar la UI publicada antes de cerrar D5.27.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

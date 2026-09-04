@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   buildStoreOrdersCsv,
+  canBulkFulfillStoreOrder,
+  countBulkFulfillmentCandidates,
   countFulfillmentPulse,
   countStoreOrderViews,
   countStoreOrdersNeedingAttention,
@@ -9,6 +11,7 @@ import {
   isStoreOrderAwaitingFulfillment,
   matchesStoreOrderSearch,
   parseStoreOrderMedio,
+  parseStoreOrderBulkResponse,
   parseStoreOrderSort,
   parseStoreOrderView,
   sortStoreOrders,
@@ -155,6 +158,40 @@ describe("cola de pedidos de la tienda", () => {
     const transfer = filterStoreOrders(rows, { medio: "transferencia", sort: "mayor" });
     expect(transfer.map(r => r.id)).toEqual(["a"]);
     expect(sortStoreOrders(rows, "menor").map(r => r.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("separa despacho de entrega/retiro antes del bulk", () => {
+    const domicilioPendiente = order({ id: "d1", fulfillment_status: "processing" });
+    const domicilioEnCamino = order({ id: "d2", fulfillment_status: "shipped" });
+    const retiro = order({ id: "r", carrier: "retiro", fulfillment_status: "processing" });
+    const impago = order({ id: "u", payment_status: "pending", fulfillment_status: "processing" });
+    expect(canBulkFulfillStoreOrder(domicilioPendiente, "shipped")).toBe(true);
+    expect(canBulkFulfillStoreOrder(domicilioPendiente, "delivered")).toBe(false);
+    expect(canBulkFulfillStoreOrder(domicilioEnCamino, "delivered")).toBe(true);
+    expect(canBulkFulfillStoreOrder(retiro, "shipped")).toBe(false);
+    expect(canBulkFulfillStoreOrder(retiro, "delivered")).toBe(true);
+    expect(canBulkFulfillStoreOrder(impago, "shipped")).toBe(false);
+    expect(countBulkFulfillmentCandidates([domicilioPendiente, domicilioEnCamino, retiro, impago], "delivered")).toBe(2);
+  });
+
+  it("rechaza una respuesta masiva incompleta en vez de fingir éxito", () => {
+    expect(parseStoreOrderBulkResponse(null)).toBeNull();
+    expect(parseStoreOrderBulkResponse({ ok: true, status: "inventado", results: [] })).toBeNull();
+    const parsed = parseStoreOrderBulkResponse({
+      ok: true,
+      requested: 2,
+      unique: 2,
+      status: "shipped",
+      changed: 1,
+      unchanged: 0,
+      skipped: 1,
+      duplicates: 0,
+      results: [
+        { order_id: "a", order_number: "A-1", outcome: "changed" },
+        { order_id: "b", order_number: "B-2", outcome: "skipped", reason: "Primero prepará el envío" },
+      ],
+    });
+    expect(parsed?.changed).toBe(1);
   });
 
   it("exporta el conjunto filtrado con celdas escapadas y sin fórmulas", () => {

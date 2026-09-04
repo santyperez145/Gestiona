@@ -197,6 +197,16 @@ conserva la página en la URL y reinicia ante filtros. Sigue usando la lectura
 canónica compartida; cursor server-side es el próximo escalón si un catálogo
 real demuestra el volumen, no una excusa para crear otro stock o catálogo.
 
+✅ **Operación masiva de pedidos, verificada el 2026-09-04.** Shopify ofrece
+[acciones masivas](https://help.shopify.com/en/manual/shopify-admin/productivity-tools/bulk-actions)
+y en su [fulfillment masivo](https://help.shopify.com/en/manual/fulfillment/fulfilling-orders/bulk-fulfillment)
+omite órdenes incompatibles mientras informa resultados. Tiendanube permite
+[cambiar estados sobre ventas seleccionadas](https://ayuda.tiendanube.com/es_CO/123288-mis-ventas/como-actualizar-el-estado-de-mis-ventas-de-forma-masiva)
+y separa explícitamente los efectos irreversibles de pago. La traducción de
+Nerqia limita el lote a 50, reutiliza la transición individual en servidor y
+devuelve resultado por fila. Pago, cancelación, stock y precio no entran en ese
+bulk: son efectos diferentes y conservan sus autoridades canónicas.
+
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)
 como sesiones que terminan en una orden y su embudo separa sesión, agregado al

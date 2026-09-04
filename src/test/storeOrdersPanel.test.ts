@@ -23,11 +23,18 @@ describe("cola de pedidos en Commerce", () => {
     expect(panel).not.toMatch(/\["pending", "processing"/);
   });
 
-  it("exporta el recorte visible y no ofrece un despacho masivo sin autoridad", () => {
+  it("exporta y opera el recorte visible con autoridad masiva", () => {
     expect(panel).toContain("buildStoreOrdersCsv");
     expect(panel).toContain("filterStoreOrders");
     expect(panel).toContain("Exportar CSV");
-    expect(panel).not.toMatch(/seleccionad|bulk|Marcar como enviado/i);
+    expect(panel).toContain("STORE_ORDER_BULK_LIMIT");
+    expect(panel).toContain("isStoreOrderBulkSelectable");
+    expect(panel).toContain("Acciones para pedidos seleccionados");
+    expect(panel).toContain("Entregados/retiros");
+    expect(panel).toContain("Lote procesado");
+    expect(workspace).toContain('supabase.rpc("bulk_update_store_order_fulfillment"');
+    expect(workspace).toContain("avisarEstadoMasivo");
+    expect(workspace).toContain("parseStoreOrderBulkResponse");
     expect(panel).toContain("WorkspaceState");
     expect(panel).toContain("STORE_ORDER_SORTS");
     expect(panel).toContain("STORE_ORDER_MEDIOS");

@@ -54470,6 +54470,10 @@ export type Database = {
         Args: { p_product_id: string; p_slug: string }
         Returns: Json
       }
+      bulk_update_store_order_fulfillment: {
+        Args: { p_order_ids: string[]; p_org_id: string; p_status: string }
+        Returns: Json
+      }
       transfer_stock_between_locations: {
         Args: {
           p_from_location_id: string

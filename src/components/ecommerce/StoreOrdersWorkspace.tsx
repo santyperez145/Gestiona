@@ -12,12 +12,20 @@ import StoreOrdersPanel from "@/components/ecommerce/StoreOrdersPanel";
 import StoreOrderInspector from "@/components/ecommerce/StoreOrderInspector";
 import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { useHasPermission } from "@/lib/usePermissions";
 import {
   findStoreOrderForInspect,
   isStoreOrderInspectId,
   STORE_ORDER_LIST_SELECT,
   type StoreOrderInspectRow,
 } from "@/lib/storeOrderDetail";
+import {
+  countBulkFulfillmentCandidates,
+  parseStoreOrderBulkResponse,
+  type StoreOrderBulkResponse,
+  type StoreOrderBulkStatus,
+  type StoreOrderQueueRow,
+} from "@/lib/storeOrderQueue";
 
 interface Props {
   orgId: string | null;
@@ -40,8 +48,11 @@ export default function StoreOrdersWorkspace({
 }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { ask, dialog } = useConfirmDialog();
+  const canEditEcommerce = useHasPermission("ecommerce", "edit");
   const [envioDe, setEnvioDe] = useState<StoreOrderInspectRow | null>(null);
   const [confirmingPaid, setConfirmingPaid] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkResult, setBulkResult] = useState<StoreOrderBulkResponse | null>(null);
   const [pedidoExtra, setPedidoExtra] = useState<StoreOrderInspectRow | null>(null);
   const [pedidoExtraLoading, setPedidoExtraLoading] = useState(false);
 
@@ -102,6 +113,86 @@ export default function StoreOrdersWorkspace({
     await onReload();
   };
 
+  const avisarEstadoMasivo = async (orderIds: string[], event: StoreOrderBulkStatus) => {
+    let failed = 0;
+    for (let start = 0; start < orderIds.length; start += 4) {
+      const batch = orderIds.slice(start, start + 4);
+      const outcomes = await Promise.all(batch.map(async orderId => {
+        try {
+          const { data, error } = await supabase.functions.invoke("store-order-status-email", {
+            body: { orderId, event },
+          });
+          const message = (data as { error?: string } | null)?.error;
+          if (error || message) {
+            console.error("store-order-status-email / bulk:", error ?? message);
+            return false;
+          }
+          return true;
+        } catch (error) {
+          console.error("store-order-status-email / bulk:", error);
+          return false;
+        }
+      }));
+      failed += outcomes.filter(ok => !ok).length;
+    }
+    return failed;
+  };
+
+  const actualizarEntregaMasiva = async (
+    selectedOrders: StoreOrderQueueRow[],
+    status: StoreOrderBulkStatus,
+  ) => {
+    if (!orgId || !canEditEcommerce || selectedOrders.length === 0) return false;
+    const candidates = countBulkFulfillmentCandidates(selectedOrders, status);
+    const skippedByShape = selectedOrders.length - candidates;
+    const action = status === "shipped" ? "marcar en camino" : "marcar entregados o retirados";
+    if (!(await ask({
+      title: `¿${action[0].toUpperCase()}${action.slice(1)}?`,
+      description: `${candidates} de ${selectedOrders.length} pedidos tienen una transición compatible. ${
+        skippedByShape > 0 ? `${skippedByShape} no aplican y quedarán sin cambios. ` : ""
+      }La base vuelve a validar pago, preparación, tenant y estado antes de cambiar cada fila.`,
+      confirmText: status === "shipped" ? "Marcar en camino" : "Confirmar entrega",
+    }))) return false;
+
+    setBulkBusy(true);
+    const { data, error } = await supabase.rpc("bulk_update_store_order_fulfillment", {
+      p_org_id: orgId,
+      p_order_ids: selectedOrders.map(order => order.id),
+      p_status: status,
+    });
+    if (error) {
+      setBulkBusy(false);
+      console.error("bulk_update_store_order_fulfillment:", error);
+      toast.error(error.message || "No se pudo actualizar el lote.");
+      return false;
+    }
+    const parsed = parseStoreOrderBulkResponse(data);
+    if (!parsed) {
+      setBulkBusy(false);
+      console.error("bulk_update_store_order_fulfillment: respuesta inválida", data);
+      toast.error("La base devolvió un resultado inválido. No repetimos la acción automáticamente.");
+      return false;
+    }
+    setBulkResult(parsed);
+    await onReload();
+
+    const changedIds = parsed.results
+      .filter(item => item.outcome === "changed" && item.order_id)
+      .map(item => item.order_id as string);
+    const notificationFailures = await avisarEstadoMasivo(changedIds, status);
+    setBulkBusy(false);
+
+    if (parsed.changed > 0) {
+      toast.success(`${parsed.changed} ${parsed.changed === 1 ? "pedido actualizado" : "pedidos actualizados"}`);
+    } else {
+      toast.info("Ningún pedido necesitó el cambio.");
+    }
+    if (notificationFailures > 0) {
+      toast.warning(`${notificationFailures} ${notificationFailures === 1 ? "aviso no pudo" : "avisos no pudieron"} enviarse. Los estados sí quedaron guardados.`);
+    }
+    return true;
+  };
+
   useEffect(() => {
     const raw = searchParams.get("pedido");
     if (!raw) {
@@ -154,6 +245,11 @@ export default function StoreOrdersWorkspace({
           const full = orders.find(o => o.id === order.id) ?? inspectedOrder;
           if (full) setEnvioDe(full);
         }}
+        canBulkEdit={canEditEcommerce}
+        bulkBusy={bulkBusy}
+        bulkResult={bulkResult}
+        onDismissBulkResult={() => setBulkResult(null)}
+        onBulkFulfill={actualizarEntregaMasiva}
       />
       <OrderShipmentDialog
         order={envioDe as OrderForShipment | null}

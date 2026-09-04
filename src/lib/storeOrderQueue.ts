@@ -3,9 +3,9 @@
  *
  * La paridad regional (Tiendanube, 2026-08-11) es búsqueda por número / cliente
  * / email / monto, filtros de entrega y pago, y exportar lo filtrado. Las
- * acciones masivas de despacho no viven acá: mutar envío sin autoridad
- * server-side sería un botón que miente. Este módulo es puro para que la
- * pantalla no decida sola qué es "para despachar" y qué es "para retirar".
+ * Las acciones masivas llaman a una única RPC server-side que reutiliza la
+ * transición individual. Este módulo sólo decide qué acción ofrecer: la base
+ * vuelve a validar pago, tenant, permiso, preparación y estado.
  */
 import { csvCell } from "@/lib/csv";
 import { esMedioGestionaPay } from "@/lib/gestionaPay";
@@ -16,6 +16,56 @@ import {
 } from "@/lib/storeOrderPayment";
 
 export const STORE_ORDER_QUEUE_LIMIT = 200;
+export const STORE_ORDER_BULK_LIMIT = 50;
+export const STORE_ORDER_BULK_STATUSES = ["shipped", "delivered"] as const;
+export type StoreOrderBulkStatus = typeof STORE_ORDER_BULK_STATUSES[number];
+
+export interface StoreOrderBulkResultItem {
+  order_id: string | null;
+  order_number: string | null;
+  outcome: "changed" | "unchanged" | "skipped" | "duplicate";
+  reason?: string;
+}
+
+export interface StoreOrderBulkResponse {
+  ok: boolean;
+  requested: number;
+  unique: number;
+  status: StoreOrderBulkStatus;
+  changed: number;
+  unchanged: number;
+  skipped: number;
+  duplicates: number;
+  results: StoreOrderBulkResultItem[];
+}
+
+export function parseStoreOrderBulkResponse(raw: unknown): StoreOrderBulkResponse | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const data = raw as Record<string, unknown>;
+  if (data.ok !== true || !STORE_ORDER_BULK_STATUSES.includes(data.status as StoreOrderBulkStatus)) {
+    return null;
+  }
+  const numericKeys = ["requested", "unique", "changed", "unchanged", "skipped", "duplicates"] as const;
+  if (numericKeys.some(key => !Number.isInteger(data[key]) || Number(data[key]) < 0)) return null;
+  if (!Array.isArray(data.results)) return null;
+  const results = data.results.filter((item): item is StoreOrderBulkResultItem => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return false;
+    const candidate = item as Record<string, unknown>;
+    return ["changed", "unchanged", "skipped", "duplicate"].includes(String(candidate.outcome));
+  });
+  if (results.length !== data.results.length) return null;
+  return {
+    ok: true,
+    requested: Number(data.requested),
+    unique: Number(data.unique),
+    status: data.status as StoreOrderBulkStatus,
+    changed: Number(data.changed),
+    unchanged: Number(data.unchanged),
+    skipped: Number(data.skipped),
+    duplicates: Number(data.duplicates),
+    results,
+  };
+}
 
 export const STORE_ORDER_VIEW_IDS = [
   "todas",
@@ -200,6 +250,33 @@ export function isStoreOrderAwaitingPickup(order: StoreOrderQueueRow) {
 
 export function isStoreOrderAwaitingShipment(order: StoreOrderQueueRow) {
   return isStoreOrderAwaitingFulfillment(order) && !esPedidoRetiro(order);
+}
+
+/** Seleccionable significa que al menos una de las dos transiciones masivas
+ * puede aplicar. La RPC sigue siendo la autoridad final. */
+export function isStoreOrderBulkSelectable(order: StoreOrderQueueRow) {
+  return canFulfillStoreOrder(order.payment_status)
+    && (isStoreOrderAwaitingFulfillment(order) || order.fulfillment_status === "shipped");
+}
+
+export function canBulkFulfillStoreOrder(
+  order: StoreOrderQueueRow,
+  status: StoreOrderBulkStatus,
+) {
+  if (!isStoreOrderBulkSelectable(order)) return false;
+  if (status === "shipped") {
+    return !esPedidoRetiro(order) && isStoreOrderAwaitingFulfillment(order);
+  }
+  return esPedidoRetiro(order)
+    ? isStoreOrderAwaitingFulfillment(order)
+    : order.fulfillment_status === "shipped";
+}
+
+export function countBulkFulfillmentCandidates(
+  orders: StoreOrderQueueRow[],
+  status: StoreOrderBulkStatus,
+) {
+  return orders.filter(order => canBulkFulfillStoreOrder(order, status)).length;
 }
 
 function createdAtMs(iso: string | null | undefined) {

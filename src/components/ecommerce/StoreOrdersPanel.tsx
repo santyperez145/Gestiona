@@ -1,25 +1,29 @@
 /**
  * Cola operativa de pedidos de la tienda.
  *
- * Búsqueda, vistas en español y CSV del recorte visible. El despacho sigue
- * siendo uno por uno: no hay selección masiva porque no hay RPC que la
- * autorice.
+ * Búsqueda, vistas en español, CSV y fulfillment masivo del recorte visible.
+ * La selección sólo ofrece transiciones compatibles; la autoridad final vive
+ * en `bulk_update_store_order_fulfillment`.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import WorkspaceState from "@/components/shared/WorkspaceState";
 import {
   STORE_ORDER_MEDIOS,
+  STORE_ORDER_BULK_LIMIT,
   STORE_ORDER_QUEUE_LIMIT,
   STORE_ORDER_SORTS,
   STORE_ORDER_VIEWS,
   buildStoreOrdersCsv,
+  countBulkFulfillmentCandidates,
   countStoreOrderViews,
   filterStoreOrders,
+  isStoreOrderBulkSelectable,
   parseStoreOrderMedio,
   parseStoreOrderSort,
   parseStoreOrderView,
@@ -29,6 +33,8 @@ import {
   esPedidoRetiro,
   storeOrdersCsvFilename,
   type StoreOrderMedio,
+  type StoreOrderBulkResponse,
+  type StoreOrderBulkStatus,
   type StoreOrderQueueRow,
   type StoreOrderSort,
   type StoreOrderView,
@@ -36,7 +42,7 @@ import {
 import { canFulfillStoreOrder, storeOrderPaymentLabel, storeOrderPaymentTone } from "@/lib/storeOrderPayment";
 import { storeOrdersEmptyShareCopy } from "@/lib/storeFirstPublish";
 import { toast } from "sonner";
-import { Download, Eye, Search, Store, Truck } from "lucide-react";
+import { Download, Eye, Loader2, PackageCheck, Search, Store, Truck, X } from "lucide-react";
 
 interface Props {
   orders: StoreOrderQueueRow[];
@@ -48,6 +54,11 @@ interface Props {
   onRetry: () => void;
   onInspect: (order: StoreOrderQueueRow) => void;
   onPrepare: (order: StoreOrderQueueRow) => void;
+  canBulkEdit: boolean;
+  bulkBusy: boolean;
+  bulkResult: StoreOrderBulkResponse | null;
+  onDismissBulkResult: () => void;
+  onBulkFulfill: (orders: StoreOrderQueueRow[], status: StoreOrderBulkStatus) => Promise<boolean>;
 }
 
 function writeQueueParams(
@@ -92,7 +103,9 @@ function downloadCsv(rows: StoreOrderQueueRow[]) {
 
 export default function StoreOrdersPanel({
   orders, loading, error, selectedId, publicStoreUrl, onRetry, onInspect, onPrepare,
+  canBulkEdit, bulkBusy, bulkResult, onDismissBulkResult, onBulkFulfill,
 }: Props) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") ?? "";
   const view = parseStoreOrderView(searchParams.get("vista"));
@@ -106,6 +119,53 @@ export default function StoreOrdersPanel({
   );
   const capped = orders.length >= STORE_ORDER_QUEUE_LIMIT;
   const hasFilters = query.trim().length > 0 || view !== "todas" || sort !== "recientes" || medio !== "todos";
+  const selectionScope = useMemo(
+    () => visible.filter(isStoreOrderBulkSelectable).slice(0, STORE_ORDER_BULK_LIMIT),
+    [visible],
+  );
+  const selectedOrders = useMemo(
+    () => visible.filter(order => selectedIds.has(order.id)),
+    [visible, selectedIds],
+  );
+  const shippedCandidates = countBulkFulfillmentCandidates(selectedOrders, "shipped");
+  const deliveredCandidates = countBulkFulfillmentCandidates(selectedOrders, "delivered");
+  const allScopeSelected = selectionScope.length > 0 && selectionScope.every(order => selectedIds.has(order.id));
+  const someScopeSelected = selectionScope.some(order => selectedIds.has(order.id));
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [query, view, sort, medio]);
+
+  useEffect(() => {
+    const valid = new Set(orders.filter(isStoreOrderBulkSelectable).map(order => order.id));
+    setSelectedIds(current => new Set([...current].filter(id => valid.has(id))));
+  }, [orders]);
+
+  const toggleOrder = (orderId: string) => {
+    setSelectedIds(current => {
+      const next = new Set(current);
+      if (next.has(orderId)) next.delete(orderId);
+      else if (next.size < STORE_ORDER_BULK_LIMIT) next.add(orderId);
+      else toast.info(`Podés operar hasta ${STORE_ORDER_BULK_LIMIT} pedidos por lote.`);
+      return next;
+    });
+  };
+
+  const toggleScope = () => {
+    if (allScopeSelected) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectedIds(new Set(selectionScope.map(order => order.id)));
+    if (visible.filter(isStoreOrderBulkSelectable).length > STORE_ORDER_BULK_LIMIT) {
+      toast.info(`Seleccionamos los primeros ${STORE_ORDER_BULK_LIMIT} pedidos operables del recorte.`);
+    }
+  };
+
+  const runBulk = async (status: StoreOrderBulkStatus) => {
+    const completed = await onBulkFulfill(selectedOrders, status);
+    if (completed) setSelectedIds(new Set());
+  };
 
   const setQuery = (q: string) => {
     setSearchParams(prev => writeQueueParams(prev, { query: q }), { replace: true });
@@ -199,6 +259,33 @@ export default function StoreOrdersPanel({
         </p>
       )}
 
+      {bulkResult && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4" role="status">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">Lote procesado</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {bulkResult.changed} actualizados · {bulkResult.unchanged} ya estaban así · {bulkResult.skipped} omitidos
+                {bulkResult.duplicates ? ` · ${bulkResult.duplicates} repetidos` : ""}
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={onDismissBulkResult} aria-label="Cerrar resultado del lote">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          {bulkResult.results.some(item => item.outcome === "skipped") && (
+            <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+              {bulkResult.results.filter(item => item.outcome === "skipped").slice(0, 5).map((item, index) => (
+                <li key={`${item.order_id ?? "invalid"}-${index}`}>
+                  <span className="font-mono text-foreground">{item.order_number ?? "Pedido no visible"}</span>: {item.reason}
+                </li>
+              ))}
+              {bulkResult.skipped > 5 && <li>Y {bulkResult.skipped - 5} omisiones más.</li>}
+            </ul>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <WorkspaceState kind="initial-loading" title="Leyendo pedidos" loadingRows={5} />
       ) : error ? (
@@ -239,11 +326,51 @@ export default function StoreOrdersPanel({
             {hasFilters ? " en este recorte" : ""}
           </p>
 
+          {canBulkEdit && selectedOrders.length > 0 && (
+            <div className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-xl border border-primary/25 bg-background/95 p-3 shadow-xl backdrop-blur sm:flex-row sm:items-center sm:justify-between" role="region" aria-label="Acciones para pedidos seleccionados">
+              <div>
+                <p className="text-sm font-semibold">{selectedOrders.length} seleccionados</p>
+                <p className="text-xs text-muted-foreground">Sólo cambia lo compatible; el resultado identifica cada omisión.</p>
+              </div>
+              <div className="grid gap-2 sm:flex">
+                <Button
+                  variant="outline"
+                  className="min-h-11 gap-1.5"
+                  disabled={bulkBusy || shippedCandidates === 0}
+                  onClick={() => { void runBulk("shipped"); }}
+                >
+                  {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
+                  En camino ({shippedCandidates})
+                </Button>
+                <Button
+                  className="min-h-11 gap-1.5"
+                  disabled={bulkBusy || deliveredCandidates === 0}
+                  onClick={() => { void runBulk("delivered"); }}
+                >
+                  {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackageCheck className="h-4 w-4" />}
+                  Entregados/retiros ({deliveredCandidates})
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div className="hidden overflow-hidden rounded-xl border border-border/40 bg-card md:block">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border/40 bg-muted/20">
+                    {canBulkEdit && (
+                      <th className="w-12 px-1 py-1 text-center">
+                        <div className="grid h-11 w-11 place-items-center">
+                          <Checkbox
+                            checked={allScopeSelected ? true : someScopeSelected ? "indeterminate" : false}
+                            disabled={selectionScope.length === 0 || bulkBusy}
+                            onCheckedChange={toggleScope}
+                            aria-label={`Seleccionar hasta ${STORE_ORDER_BULK_LIMIT} pedidos operables visibles`}
+                          />
+                        </div>
+                      </th>
+                    )}
                     {["Orden", "Cliente", "Email", "Total", "Pago", "Estado", "Fecha"].map(h => (
                       <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">{h}</th>
                     ))}
@@ -258,6 +385,10 @@ export default function StoreOrdersPanel({
                       key={o.id}
                       order={o}
                       selected={o.id === selectedId}
+                      bulkSelected={selectedIds.has(o.id)}
+                      canBulkEdit={canBulkEdit}
+                      bulkBusy={bulkBusy}
+                      onToggle={toggleOrder}
                       onInspect={onInspect}
                       onPrepare={onPrepare}
                     />
@@ -273,6 +404,10 @@ export default function StoreOrdersPanel({
                 key={o.id}
                 order={o}
                 selected={o.id === selectedId}
+                bulkSelected={selectedIds.has(o.id)}
+                canBulkEdit={canBulkEdit}
+                bulkBusy={bulkBusy}
+                onToggle={toggleOrder}
                 onInspect={onInspect}
                 onPrepare={onPrepare}
               />
@@ -287,20 +422,42 @@ export default function StoreOrdersPanel({
 function OrderRow({
   order: o,
   selected,
+  bulkSelected,
+  canBulkEdit,
+  bulkBusy,
+  onToggle,
   onInspect,
   onPrepare,
 }: {
   order: StoreOrderQueueRow;
   selected: boolean;
+  bulkSelected: boolean;
+  canBulkEdit: boolean;
+  bulkBusy: boolean;
+  onToggle: (orderId: string) => void;
   onInspect: (order: StoreOrderQueueRow) => void;
   onPrepare: (order: StoreOrderQueueRow) => void;
 }) {
   const canShip = canFulfillStoreOrder(o.payment_status);
+  const bulkSelectable = isStoreOrderBulkSelectable(o);
   return (
     <tr
-      className={`cursor-pointer border-b border-border/20 hover:bg-muted/20 ${selected ? "bg-primary/5" : ""}`}
+      className={`cursor-pointer border-b border-border/20 hover:bg-muted/20 ${selected || bulkSelected ? "bg-primary/5" : ""}`}
       onClick={() => onInspect(o)}
     >
+      {canBulkEdit && (
+        <td className="w-12 px-1 py-1 text-center">
+          <div className="grid h-11 w-11 place-items-center">
+            <Checkbox
+              checked={bulkSelected}
+              disabled={!bulkSelectable || bulkBusy}
+              onCheckedChange={() => onToggle(o.id)}
+              onClick={event => event.stopPropagation()}
+              aria-label={`Seleccionar ${o.order_number}`}
+            />
+          </div>
+        </td>
+      )}
       <td className="px-4 py-3 font-mono text-xs">{o.order_number}</td>
       <td className="px-4 py-3 text-sm font-medium">{o.customer_name}</td>
       <td className="px-4 py-3 text-xs text-muted-foreground">{o.customer_email}</td>
@@ -351,18 +508,37 @@ function OrderRow({
 function OrderCard({
   order: o,
   selected,
+  bulkSelected,
+  canBulkEdit,
+  bulkBusy,
+  onToggle,
   onInspect,
   onPrepare,
 }: {
   order: StoreOrderQueueRow;
   selected: boolean;
+  bulkSelected: boolean;
+  canBulkEdit: boolean;
+  bulkBusy: boolean;
+  onToggle: (orderId: string) => void;
   onInspect: (order: StoreOrderQueueRow) => void;
   onPrepare: (order: StoreOrderQueueRow) => void;
 }) {
   const canShip = canFulfillStoreOrder(o.payment_status);
+  const bulkSelectable = isStoreOrderBulkSelectable(o);
   return (
-    <div className={`rounded-xl border bg-card p-4 ${selected ? "border-primary/40" : "border-border/60"}`}>
+    <div className={`rounded-xl border bg-card p-4 ${selected || bulkSelected ? "border-primary/40" : "border-border/60"}`}>
       <div className="flex items-start justify-between gap-3">
+        {canBulkEdit && (
+          <div className="grid h-11 w-11 shrink-0 place-items-center">
+            <Checkbox
+              checked={bulkSelected}
+              disabled={!bulkSelectable || bulkBusy}
+              onCheckedChange={() => onToggle(o.id)}
+              aria-label={`Seleccionar ${o.order_number}`}
+            />
+          </div>
+        )}
         <div className="min-w-0">
           <p className="font-mono text-xs text-muted-foreground">{o.order_number}</p>
           <p className="truncate text-sm font-medium">{o.customer_name}</p>
