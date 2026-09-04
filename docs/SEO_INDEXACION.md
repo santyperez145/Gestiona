@@ -15,6 +15,30 @@ La medición del 2026-09-03 dio cero resultados útiles para `site:nerqia.app` y
 `"Nerqia" software comercio`. Eso es línea de base externa, no un test fallido.
 Se vuelve a medir luego de publicar, enviar el sitemap y dejar tiempo de rastreo.
 
+### Evidencia productiva del 2026-09-03
+
+- el deploy del commit `15124ccd` quedó `READY` en Vercel y conserva los alias
+  `nerqia.app`, `www.nerqia.app` y `*.nerqia.app`;
+- Googlebot recibió la home con 200, título descriptivo, canonical raíz,
+  `index,follow`, H1 y 4.234 bytes de HTML; Google Inspection recibió
+  `/precios` con canonical exacta y H1 propio;
+- `/productos` respondió a Googlebot con canonical propia, meta y header
+  `noindex,nofollow`; una persona siguió recibiendo la SPA;
+- `/pricing` respondió 308 hacia `/precios`;
+- el índice raíz enumeró `sitemap-platform.xml` y el sitemap de Exentry; el
+  primero publicó home, precios y estado;
+- la tienda Exentry conservó 200, título y canonical propios después del cambio.
+
+En Google Search Console se creó y verificó la propiedad de dominio
+`nerqia.app` con un TXT DNS aislado. El registro apareció en el nameserver
+autoritativo de Vercel y en `8.8.8.8`; **no debe retirarse**, porque sostiene la
+propiedad. El índice `https://nerqia.app/sitemap.xml` fue enviado y, después de
+la primera lectura, quedó como **Índice de sitemaps · Correcto**. Las inspecciones
+confirmaron la línea de base —Nerqia y Exentry todavía no estaban en Google y el
+buscador no reconocía sus URLs— y aceptaron ambas homes en la cola prioritaria
+de indexación. Search Console quedó procesando datos; aparición, cobertura e
+impresiones siguen pendientes de evidencia posterior.
+
 Fuentes oficiales:
 
 - [Site names en Google](https://developers.google.com/search/docs/appearance/site-names): `WebSite` en la home, nombre coherente y home rastreable.
@@ -81,19 +105,20 @@ capturar otra keyword.
 1. Publicar y comprobar desde afuera `robots.txt`, índice, sitemap de plataforma
    y HTML de Googlebot.
 2. Validar JSON-LD con Schema Markup Validator y la URL viva con URL Inspection.
-3. Agregar/verificar la propiedad de dominio `nerqia.app` en Search Console.
-4. Enviar `https://nerqia.app/sitemap.xml`.
-5. Solicitar indexación de la home; no gastar el cupo pidiendo todas las fichas.
+3. ~~Agregar/verificar la propiedad de dominio `nerqia.app` en Search Console.~~
+   Hecho el 2026-09-03 mediante DNS.
+4. ~~Enviar `https://nerqia.app/sitemap.xml`.~~ Correcto en la primera lectura.
+5. ~~Solicitar indexación de la home.~~ Nerqia y la tienda activa quedaron en
+   cola prioritaria; no gastar el cupo pidiendo todas las fichas.
 6. Revisar lectura del sitemap, páginas indexadas/no indexadas, datos
    estructurados y acciones manuales.
 7. Medir por semana: URLs conocidas/indexadas, impresiones, consultas, CTR,
    posición por consulta y conversiones orgánicas. La posición de marca se
    informa observada, nunca garantizada.
 
-Para verificar propiedad puede hacer falta un TXT DNS entregado por Google. Se
-agrega exactamente ese valor y se conserva junto a SPF/DKIM/DMARC; nunca se
-reemplaza toda la zona. Si la sesión de Google no está iniciada o no pertenece
-al dueño, queda como gate externo y no se buscan credenciales en el navegador.
+La propiedad usa el TXT DNS entregado por Google. Se conserva junto a
+SPF/DKIM/DMARC; nunca se reemplaza toda la zona. La sesión pertenece al dueño y
+no se copiaron ni buscaron credenciales del navegador.
 
 ## Definition of Done
 

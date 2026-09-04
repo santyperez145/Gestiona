@@ -3918,10 +3918,19 @@ Finance Connect.
      warnings heredados; **2.600 tests verdes en 276 archivos**; build/PWA y 75
      Edge Functions verdes; auditoría estándar con 0 vulnerabilidades.
 
-     Estado: **implementado localmente, pendiente de evidencia publicada y de
-     Search Console**. Publicar/inspeccionar puede demostrar rastreabilidad; que
-     Google lo indexe o lo ubique primero sigue siendo un resultado externo que
-     sólo se cierra cuando aparezca medido, no al hacer push.
+     El commit `15124ccd` quedó `READY` en producción. La matriz publicada
+     confirmó home/precios 200 + H1 + canonical + `index,follow`, panel privado
+     con meta/header `noindex,nofollow`, `/pricing` 308 a `/precios`, SPA humana
+     intacta, índice raíz con plataforma + Exentry y cero regresión del HTML de
+     esa tienda. La propiedad de dominio `nerqia.app` quedó verificada en Google
+     Search Console mediante un TXT visto en Vercel DNS y `8.8.8.8`; el índice
+     fue enviado y figura **Índice de sitemaps · Correcto**. La home de Nerqia y
+     la tienda activa fueron aceptadas en la cola prioritaria de indexación.
+
+     Estado: **rastreabilidad, propiedad y envío cerrados; indexación externa en
+     curso**. Search Console confirmó que ambas URLs todavía eran desconocidas y
+     quedó procesando datos. Que Google las indexe o ubique primero sólo se
+     cierra cuando aparezca medido, no por el push ni por la solicitud.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
