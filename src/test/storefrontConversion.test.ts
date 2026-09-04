@@ -109,6 +109,16 @@ describe("recorrido de compra a 360 px", () => {
     expect(plp).toContain("setParams(new URLSearchParams()");
   });
 
+  it("el catálogo pagina sin crear otra fuente de productos", () => {
+    const plp = leer("src/storefront/StoreProducts.tsx");
+    expect(plp).toContain("storeCatalogPage");
+    expect(plp).toContain("productosVisibles.map");
+    expect(plp).not.toContain("filtrados.map(p => <ProductCard");
+    expect(plp).toContain('aria-label="Páginas del catálogo"');
+    expect(plp).toContain("Página {pagina.page} de {pagina.pageCount}");
+    expect(plp).toContain('next.delete("page")');
+  });
+
   it("filtros y checkout no esconden la acción primaria en el teléfono", () => {
     const productos = leer("src/storefront/StoreProducts.tsx");
     const checkout = leer("src/storefront/StoreCheckout.tsx");

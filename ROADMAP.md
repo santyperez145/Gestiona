@@ -4142,6 +4142,40 @@ Finance Connect.
      habilitar producción, emitir una venta y una nota de crédito reales en la
      cuenta del comercio, contrastarlas en ARCA y medir tiempo/error operativo.
 
+172. El catálogo deja de montar toda la tienda en una sola página — D5.20,
+     2026-09-03. La recorrida publicada de
+     `exentryimports.nerqia.app/productos` midió **60 cards, 12.179 px de alto
+     en 360 px** y ningún límite: era correcto con el catálogo actual, pero no
+     escalaba a cientos de productos y variantes.
+
+     El PLP ahora conserva una sola lectura pública del Business Core y monta
+     ventanas de 20 productos. `page` queda en la URL para compartir el recorte
+     y volver desde una ficha sin caer siempre al comienzo; cualquier cambio de
+     búsqueda, categoría, precio, oferta, género, familia u orden vuelve a la
+     primera página. Anterior/Siguiente tienen 44 px, límites deshabilitados,
+     rango “1–20 de 60”, región de navegación y anuncio accesible. No aparece
+     otro catálogo, endpoint ni stock: es una ventana sobre `filtrados`, y el
+     checkout sigue recalculando precio y disponibilidad en servidor.
+
+     Comparativa verificada el 2026-09-03: Tiendanube ofrece 12 —default—, 16
+     o 20 productos por página y permite elegir carga progresiva o páginas en
+     diseños compatibles; Shopify expone productos como conexión paginada con
+     `first`/`after` y `pageInfo`. Nerqia adopta 20 por ahora para reducir DOM
+     sin partir todavía la lectura que comparten home, ficha, variantes,
+     recomendaciones y carrito. El siguiente escalón, cuando el catálogo real
+     lo justifique, es cursor server-side sobre ese mismo contrato, no otra
+     fuente de producto.
+
+     Puerta local: typecheck verde; lint 0 errores/143 warnings heredados;
+     **2.633 tests verdes en 282 archivos**, build/PWA y `npm audit` con 0
+     vulnerabilidades. La prueba pura cubre página completa, remanente,
+     catálogo vacío y parámetros inválidos; la guarda de conversión impide
+     volver a `filtrados.map` sin límite.
+
+     Estado: **implementado y listo para publicar**. Falta medir el DOM
+     publicado, navegar página 1→2→PDP→volver en 360/1440 y confirmar consola
+     limpia antes de cerrar D5.20 como evidencia productiva.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

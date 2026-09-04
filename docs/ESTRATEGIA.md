@@ -187,6 +187,16 @@ composición e identidad, mientras `resolve_store_line` y
 `create_store_order_idem` siguen siendo las únicas autoridades de precio,
 stock y orden. Ese límite evita que Storefront clone el Business Core.
 
+✅ **Listado paginado, reverificado el 2026-09-03.** Tiendanube documenta 12
+productos por página por defecto y opciones de 16/20, además de la elección
+entre [“Mostrar más” y páginas](https://ayuda.tiendanube.com/es_MX/123134-listado-de-productos/como-cambiar-el-boton-mostrar-mas-productos-por-paginas-en-la-lista-de-productos-de-mi-tiendanube).
+Shopify expone la [lista de productos](https://shopify.dev/docs/api/storefront/latest/queries/products)
+como conexión paginada mediante `first`/`after` y `pageInfo`. La tienda real de
+Nerqia montaba 60 cards y 12.179 px en 360 px; D5.20 limita el render a 20,
+conserva la página en la URL y reinicia ante filtros. Sigue usando la lectura
+canónica compartida; cursor server-side es el próximo escalón si un catálogo
+real demuestra el volumen, no una excusa para crear otro stock o catálogo.
+
 ✅ **Margin facts medidos el 2026-08-22:** “tener margen” tampoco alcanza como
 argumento. Shopify ya documenta profit por orden/mercado y Odoo margen por
 línea/pedido. Nerqia ahora conserva por venta la fuente de costo, comisión,

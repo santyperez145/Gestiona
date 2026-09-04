@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "./storeContext";
 import ProductCard from "./ProductCard";
@@ -9,6 +9,7 @@ import { normalizeText, queryTokens, matchesAllTokens } from "@/lib/searchText";
 import { FAMILIAS_OLFATIVAS, taxLabel } from "@/lib/scentTaxonomy";
 import { SlidersHorizontal, X } from "lucide-react";
 import { storeCatalogEmptyKind } from "@/lib/storeCatalogEmpty";
+import { storeCatalogPage } from "@/lib/storeCatalogPagination";
 
 const ORDENES = [
   { v: "relevancia", l: "Relevancia" },
@@ -22,6 +23,7 @@ export default function StoreProducts() {
   const { products, perfumes, categorias: cats2, priceOf, fmt } = useStore();
   const [params, setParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
   const q = params.get("q") ?? "";
   const cat = params.get("cat") ?? "";
@@ -38,6 +40,9 @@ export default function StoreProducts() {
   const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value); else next.delete(key);
+    // Un filtro nuevo puede tener menos páginas. Mantener `page=3` haría que
+    // el comprador aterrice al final de una lista que acaba de cambiar.
+    next.delete("page");
     setParams(next, { replace: true });
   };
 
@@ -132,12 +137,26 @@ export default function StoreProducts() {
     filteredCount: filtrados.length,
     hasActiveFilters: activos > 0,
   });
+  const pagina = storeCatalogPage(filtrados.length, params.get("page"));
+  const productosVisibles = filtrados.slice(pagina.start, pagina.end);
+
+  const irAPagina = (nextPage: number) => {
+    const next = new URLSearchParams(params);
+    if (nextPage <= 1) next.delete("page"); else next.set("page", String(nextPage));
+    // La página queda en la URL: volver desde una ficha conserva la posición
+    // lógica del catálogo en vez de reconstruir siempre la primera tanda.
+    setParams(next);
+    requestAnimationFrame(() => {
+      headingRef.current?.focus({ preventScroll: true });
+      headingRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+  };
 
   return (
     <div className="storefront-products max-w-6xl mx-auto px-4 py-8">
       <div className="storefront-products__toolbar flex items-baseline justify-between gap-3 flex-wrap mb-5">
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-bold outline-none">
             {q ? `Resultados para "${q}"` : cat ? nombreDeCategoria(cat, cats2) : soloOferta ? "Ofertas" : "Todos los productos"}
           </h1>
           <p className="text-sm mt-0.5" style={{ color: "hsl(var(--st-muted))" }}>
@@ -293,9 +312,43 @@ export default function StoreProducts() {
               )}
             </div>
           ) : (
-            <div className="storefront-products__grid grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {filtrados.map(p => <ProductCard key={p.id} p={p} />)}
-            </div>
+            <>
+              <div className="storefront-products__grid grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {productosVisibles.map(p => <ProductCard key={p.id} p={p} />)}
+              </div>
+
+              {pagina.pageCount > 1 && (
+                <nav
+                  aria-label="Páginas del catálogo"
+                  className="mt-8 flex flex-wrap items-center justify-center gap-3"
+                >
+                  <button
+                    type="button"
+                    onClick={() => irAPagina(pagina.page - 1)}
+                    disabled={!pagina.hasPrevious}
+                    className="min-h-11 min-w-11 px-4 py-2 text-sm font-medium border disabled:opacity-40"
+                    style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+                  >
+                    Anterior
+                  </button>
+                  <span className="min-w-28 text-center text-sm" aria-live="polite">
+                    Página {pagina.page} de {pagina.pageCount}
+                    <span className="block text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+                      {pagina.start + 1}–{pagina.end} de {filtrados.length}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => irAPagina(pagina.page + 1)}
+                    disabled={!pagina.hasNext}
+                    className="min-h-11 min-w-11 px-4 py-2 text-sm font-medium border disabled:opacity-40"
+                    style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+                  >
+                    Siguiente
+                  </button>
+                </nav>
+              )}
+            </>
           )}
         </div>
       </div>
