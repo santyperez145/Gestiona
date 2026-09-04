@@ -5302,3 +5302,17 @@
     }
   }
 }
+
+/* Una superficie operativa inmersiva recibe el remanente exacto del shell.
+   Va al final porque el sistema visual histórico aplica padding y min-height
+   a `.workspace-content` en varias capas posteriores. */
+@layer utilities {
+  .workspace-content.workspace-content--immersive {
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+    padding: 0 !important;
+    background: hsl(var(--background));
+  }
+}

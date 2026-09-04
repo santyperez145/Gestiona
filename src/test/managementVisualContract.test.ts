@@ -152,6 +152,9 @@ describe('contrato visual transversal de Gestión', () => {
     expect(source('src/pages/POSPage.tsx')).toContain('pos-workspace relative flex h-full min-h-0');
     expect(source('src/app/routeManifest.ts')).toContain('surface: "immersive"');
     expect(source('src/components/AppLayout.tsx')).toContain("'flex h-dvh min-h-0 flex-col overflow-hidden'");
+    expect(source('src/components/AppLayout.tsx')).toContain('workspace-content workspace-content--immersive');
+    expect(source('src/index.css')).toContain('.workspace-content.workspace-content--immersive');
+    expect(source('src/index.css')).toContain('padding: 0 !important');
     expect(source('src/pages/POSPage.tsx')).not.toContain('<PageHeader');
   });
 

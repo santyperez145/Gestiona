@@ -4011,6 +4011,14 @@ Finance Connect.
      (34,43 kB gzip); este slice no agregó una dependencia ni otro motor de
      checkout.
 
+     La primera inspección del deploy `d7716a49` confirmó `100dvh`, documento
+     sin scroll exterior y cambio correcto a carrito mobile a 1.092 px, pero
+     descubrió 32 px residuales por lado: una regla histórica tardía aplicaba
+     `padding: 2rem !important` a todo `.workspace-content`. La excepción
+     `workspace-content--immersive` queda en el shell y al final de la cascada;
+     elimina padding, ancho máximo, margen y min-height heredados sin acoplar
+     `AppLayout` a clases internas del POS.
+
      Estado: **causa reproducida y corrección implementada; publicación y
      matriz autenticada pendientes**. El cierre operativo, descuentos, QR,
      turno y autoridad server-side no cambian. Siguiente slice: comprobante

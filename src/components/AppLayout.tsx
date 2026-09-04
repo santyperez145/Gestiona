@@ -605,7 +605,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         )}
 
         <div className={immersiveRoute
-          ? "workspace-content min-h-0 flex-1 overflow-hidden animate-fade-in"
+          ? "workspace-content workspace-content--immersive min-h-0 flex-1 overflow-hidden animate-fade-in"
           : "workspace-content p-4 md:p-6 lg:p-8 max-w-[1380px] mx-auto animate-fade-in"
         }>
           <div className={`workspace-page workspace-route-surface ${immersiveRoute ? 'h-full min-h-0' : ''}`}>
