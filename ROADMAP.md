@@ -4742,6 +4742,30 @@ Finance Connect.
      después. El reloj ahora se propaga hasta `isStoreOrderStale`; el caso focal
      pasó 16/16 y la puerta completa **2.685/2.685**. Publicado en `5e022619`.
 
+188. El color del merchant deja de romper el contraste de toda la compra —
+     D6.1, 2026-09-04. La primera ejecución de axe sobre `nerqia.app` auditó
+     Inicio, catálogo, ficha, carrito y checkout y encontró las cinco
+     superficies con violaciones serias. La causa principal no estaba en cada
+     botón: `resolveTheme` decidía el foreground por claridad HSL. El naranja
+     real `#f59f0a` tiene 50% de lightness, pero mucha luminancia percibida;
+     recibió texto blanco y quedó en **2,13:1** en anuncio, promos, cards y CTA.
+     El checkout oscuro además heredaba el placeholder claro del backoffice y
+     produjo **1,19:1** en notas.
+
+     D6.1 cambia el contrato central a luminancia relativa sRGB/WCAG y elige el
+     foreground negro o blanco de mayor contraste para cualquier color
+     hexadecimal válido. Los controles del Storefront quedan explícitamente
+     aislados en `--st-bg`, `--st-text` y `--st-muted`, sin volver a depender de
+     los tokens del SaaS. Una suite E2E read-only con
+     `@axe-core/playwright` bloquea impactos `critical`/`serious` WCAG A/AA en
+     las cinco superficies y conserva interceptadas las escrituras de visita,
+     carrito e inicio de checkout. La regresión pura incluye el naranja que
+     falló. Estado: **implementación local y diagnóstico productivo inicial;
+     falta publicar y repetir Chromium/Pixel 5 antes de cerrar la evidencia**.
+     La auditoría de teclado, zoom 200%, los otros temas y lector de pantalla
+     continúa en D6. `npm audit --omit=dev` no entregó evidencia por timeout de
+     red; no se declara aprobado.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

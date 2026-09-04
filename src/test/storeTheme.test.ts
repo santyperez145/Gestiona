@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { resolveTheme, hexToHsl, THEME_IDS, resolveFont, googleFontHref, STORE_FONTS, STORE_THEMES, themePaintsHeader } from "@/storefront/theme";
+import { accessibleForeground, resolveTheme, hexToHsl, THEME_IDS, resolveFont, googleFontHref, STORE_FONTS, STORE_THEMES, themePaintsHeader } from "@/storefront/theme";
 
 describe("hexToHsl", () => {
   it("convierte un hex a la forma que usan las variables CSS", () => {
@@ -48,7 +48,13 @@ describe("resolveTheme", () => {
     // Un acento oscuro necesita texto blanco encima.
     expect(resolveTheme("minimal", "#1a1a2e").vars["--st-accent-fg"]).toBe("0 0% 100%");
     // Uno claro necesita texto oscuro, o el botón queda ilegible.
-    expect(resolveTheme("minimal", "#ffe066").vars["--st-accent-fg"]).toBe("0 0% 10%");
+    expect(resolveTheme("minimal", "#ffe066").vars["--st-accent-fg"]).toBe("0 0% 0%");
+  });
+
+  it("trata el naranja saturado por luminancia WCAG y no por claridad HSL", () => {
+    // Fue el color real de una tienda publicada: blanco daba sólo 2,13:1.
+    expect(accessibleForeground("#f59f0a")).toBe("0 0% 0%");
+    expect(resolveTheme("luxury", "#f59f0a").vars["--st-accent-fg"]).toBe("0 0% 0%");
   });
 
   it("Luxury conserva el header: la marca pinta el botón, no el cromo", () => {

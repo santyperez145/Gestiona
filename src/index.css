@@ -4002,6 +4002,22 @@
     isolation: isolate;
   }
 
+  /* Los controles nativos no heredan color de forma consistente. Sin este
+     límite, una tienda oscura recibe el foreground/placeholder del SaaS y el
+     texto queda prácticamente negro sobre negro. */
+  .storefront-shell input:not([type="checkbox"]):not([type="radio"]),
+  .storefront-shell select,
+  .storefront-shell textarea {
+    background: hsl(var(--st-bg));
+    color: hsl(var(--st-text));
+  }
+
+  .storefront-shell input::placeholder,
+  .storefront-shell textarea::placeholder {
+    color: hsl(var(--st-muted));
+    opacity: 1;
+  }
+
   .storefront-legal-bar {
     letter-spacing: 0.01em;
   }

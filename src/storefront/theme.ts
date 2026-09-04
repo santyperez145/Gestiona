@@ -182,19 +182,39 @@ export function hexToHsl(hex?: string | null): string | null {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
+/** Luminancia relativa WCAG de un color hexadecimal sRGB. */
+function relativeLuminance(hex: string): number | null {
+  const match = /^#?([\da-f]{6})$/i.exec(hex.trim());
+  if (!match) return null;
+  const numeric = Number.parseInt(match[1], 16);
+  const channels = [numeric >> 16, numeric >> 8, numeric]
+    .map(channel => (channel & 255) / 255)
+    .map(channel => (
+      channel <= 0.04045
+        ? channel / 12.92
+        : ((channel + 0.055) / 1.055) ** 2.4
+    ));
+  return (0.2126 * channels[0]) + (0.7152 * channels[1]) + (0.0722 * channels[2]);
+}
+
 /**
- * Devuelve la luminancia relativa aproximada de un color HSL "H S% L%",
- * para decidir si el texto encima va claro u oscuro.
+ * Elige negro o blanco usando luminancia relativa WCAG, no claridad HSL.
+ * HSL clasifica mal amarillos y naranjas saturados: `#f59f0a` tiene L=50%
+ * pero necesita texto negro para superar 4.5:1.
  */
-function lightnessOf(hsl: string): number {
-  const m = /(\d+)%\s*$/.exec(hsl);
-  return m ? Number(m[1]) : 50;
+export function accessibleForeground(hex: string): "0 0% 0%" | "0 0% 100%" {
+  const luminance = relativeLuminance(hex);
+  if (luminance === null) return "0 0% 100%";
+  const contrastWithBlack = (luminance + 0.05) / 0.05;
+  const contrastWithWhite = 1.05 / (luminance + 0.05);
+  return contrastWithBlack >= contrastWithWhite ? "0 0% 0%" : "0 0% 100%";
 }
 
 export function resolveTheme(themeId?: string | null, primaryColor?: string | null): StoreTheme {
   const base = THEMES[themeId ?? "minimal"] ?? THEMES.minimal;
   const custom = hexToHsl(primaryColor);
   if (!custom) return base;
+  const foreground = accessibleForeground(primaryColor!);
 
   // El color de marca pisa el acento; el texto encima se ajusta solo para que
   // siga siendo legible (un acento claro con texto blanco no se lee).
@@ -203,14 +223,14 @@ export function resolveTheme(themeId?: string | null, primaryColor?: string | nu
     vars: {
       ...base.vars,
       "--st-accent": custom,
-      "--st-accent-fg": lightnessOf(custom) > 62 ? "0 0% 10%" : "0 0% 100%",
+      "--st-accent-fg": foreground,
       // Bold y Natural ya tienen header de color: ahí la marca pinta el cromo.
       // Luxury / Minimal / Noche conservan su header — pintar todo el topbar
       // con el acento se ve de plantilla, no de boutique (Shopify: acento ≠ chrome).
       ...(themePaintsHeader(base.id)
         ? {
             "--st-header": custom,
-            "--st-header-fg": lightnessOf(custom) > 62 ? "0 0% 10%" : "0 0% 100%",
+            "--st-header-fg": foreground,
           }
         : {}),
     },
