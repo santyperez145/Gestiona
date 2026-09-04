@@ -151,6 +151,59 @@ test.describe("ficha de producto", () => {
     await expect(page.getByPlaceholder("tu@email.com")).toBeVisible();
   });
 
+  test("una variante agotada conserva su aviso y no promete envío", async ({ page }) => {
+    const errores: string[] = [];
+    page.on("console", mensaje => {
+      if (mensaje.type() === "error") errores.push(mensaje.text());
+    });
+    page.on("pageerror", error => errores.push(error.message));
+
+    await page.goto(tienda("/productos"));
+    await fichasVisibles(page);
+
+    // En la grilla las variantes agotadas no se compran; se usa una de ellas
+    // sólo para descubrir una ficha real que tenga los dos estados. El test no
+    // agrega al carrito, no envía el formulario y no escribe en producción.
+    const agotadaEnCard = page.locator(".storefront-product-card button:disabled").first();
+    if (!(await agotadaEnCard.count())) {
+      test.skip(true, "no hay una variante agotada visible en el catálogo actual");
+    }
+    const card = agotadaEnCard.locator("xpath=ancestor::*[contains(@class,'storefront-product-card')][1]");
+    const href = await card.locator('a[href*="/producto/"]').first().getAttribute("href");
+    expect(href, "la card con variante agotada no enlaza a su ficha").toBeTruthy();
+    await page.goto(href!);
+
+    await expect(page.getByText(/Elegí (un|una) .+ para ver disponibilidad/)).toBeVisible();
+    await expect(page.getByText("Envío a tu provincia")).toHaveCount(0);
+
+    const agotada = page.getByRole("radio", { name: /agotado/i }).first();
+    await expect(agotada).toBeVisible();
+    await agotada.click();
+    await expect(agotada).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByText("Esta variante está agotada.")).toBeVisible();
+    await expect(page.getByText("Sin stock por ahora")).toBeVisible();
+    await expect(page.getByPlaceholder("tu@email.com")).toBeVisible();
+    await expect(page.getByText("Envío a tu provincia")).toHaveCount(0);
+
+    const disponible = page.getByRole("radio", { name: /disponibles|última unidad/i }).first();
+    await expect(disponible).toBeVisible();
+    await disponible.click();
+    await expect(disponible).toHaveAttribute("aria-checked", "true");
+    // En desktop bajo puede quedar debajo del pliegue y el sticky existe sólo
+    // en mobile. Se lleva a viewport antes de exigir su nombre accesible.
+    await page.locator("button").filter({ hasText: "Agregar al carrito" }).first().scrollIntoViewIfNeeded();
+    await expect(page.getByRole("button", { name: "Agregar al carrito" }).first()).toBeVisible();
+    await expect(page.getByText("Envío a tu provincia")).toBeVisible();
+
+    const geometry = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(geometry.scrollWidth, "la ficha con variantes desborda a lo ancho")
+      .toBeLessThanOrEqual(geometry.clientWidth);
+    expect(errores, `errores en consola:\n${errores.join("\n")}`).toEqual([]);
+  });
+
   test("preguntas: se listan las respondidas y sin cuenta se invita a entrar", async ({ page }) => {
     await page.goto(tienda("/productos"));
     const fichas = await fichasVisibles(page);

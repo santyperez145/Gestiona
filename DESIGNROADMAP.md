@@ -675,7 +675,11 @@ base cerró 26/26 activas, 6/6 agotadas y 0 diferencias como `anon`, con libro e
 brecha 0. Puerta final: 2.663 tests/286 archivos, TypeScript, lint sin errores y
 build/PWA. Publicado, la PDP real expuso 7 sabores disponibles + 2 agotados;
 agotado llevó al aviso exacto sin envío y disponible a stock + envío + compra,
-sin escrituras, overflow ni logs. Desktop queda cerrado; falta matriz mobile.
+sin escrituras, overflow ni logs. El E2E Pixel 5 pasó; Chromium a 720 px halló
+un CTA visualmente presente pero `aria-hidden` después de volver desde agotado,
+porque el observer retenía el nodo desmontado. `variantId` rehace ahora la
+observación y tiene guarda; falta certificar ese fix publicado en ambos
+proyectos antes de cerrar la matriz.
 
 - home de tienda, listado paginado, búsqueda y filtros;
 - ficha de producto: CTA móvil y decisión exacta de variantes hechas; falta

@@ -49,6 +49,7 @@ describe("decisión de variantes en la ficha pública", () => {
     expect(productPage).toContain("setVariantId(v.id)");
     expect(productPage).toContain('<StockAlertForm productId={p.id} variantId={variantId} />');
     expect(productPage).not.toContain("disabled={v.stock <= 0}");
+    expect(productPage).toContain("}, [productId, products, variantId]);");
   });
 
   it("el catálogo público entrega también las variantes activas agotadas", () => {

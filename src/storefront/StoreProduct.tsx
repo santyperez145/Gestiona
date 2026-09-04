@@ -134,7 +134,10 @@ export default function StoreProduct() {
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [productId, products]);
+  // Una variante agotada desmonta el bloque de compra y una disponible lo
+  // vuelve a montar. Reobservar al cambiar la selección evita que el botón
+  // nuevo herede `aria-hidden` del nodo anterior ya desconectado.
+  }, [productId, products, variantId]);
 
   if (!p) {
     return (

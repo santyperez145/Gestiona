@@ -4505,8 +4505,16 @@ Finance Connect.
      variante está agotada”, montó el formulario de aviso exacto y no montó
      envío; `CHERRY STRAZZ` mostró 2 unidades, cotización y CTA. Ancho de
      documento 1.284 px sobre viewport 1.288 y 0 logs. No se agregó al carrito,
-     no se envió un email y no se alteró dato real. Estado: **D5.28 cerrado y
-     publicado en desktop**; queda la matriz mobile del mismo flujo.
+     no se envió un email y no se alteró dato real.
+
+     El nuevo E2E read-only reprodujo la secuencia agotada → disponible en
+     Chromium y Pixel 5. Mobile pasó completo; desktop a 720 px de alto encontró
+     que `IntersectionObserver` seguía observando el bloque de compra desmontado:
+     el CTA reaparecía visualmente pero conservaba `aria-hidden`. La dependencia
+     de `variantId` fuerza ahora cleanup + observación del nodo nuevo, con guarda
+     unitaria. Estado: **autoridad, UI publicada alta y mobile certificadas**;
+     falta desplegar la corrección del observer y repetir el E2E desktop/mobile
+     antes de cerrar la matriz D5.28.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

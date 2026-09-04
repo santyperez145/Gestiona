@@ -222,7 +222,10 @@ públicas. Producción comparó como `anon` 26/26 variantes activas y 6/6
 agotadas, con 0 diferencias y libro de migraciones sano. La PDP publicada
 comprobó una opción agotada con aviso exacto/sin envío y otra disponible con
 saldo, envío y CTA; no se compró ni se alteró información real. Falta repetir
-la tarea en viewport mobile.
+la tarea sobre el fix publicado: el primer E2E pasó en Pixel 5 y descubrió en
+Chromium bajo que el CTA recuperado mantenía `aria-hidden` por observar un nodo
+desmontado. La corrección reobserva al cambiar de variante; no cambia autoridad
+ni datos.
 
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)
