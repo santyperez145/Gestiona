@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useStore, type StoreProduct } from "./storeContext";
 import { Stars } from "./ProductReviews";
@@ -6,7 +5,6 @@ import { useWishlist } from "./wishlist";
 import { ShoppingBag, Heart } from "lucide-react";
 import { atributosDeImagenVitrina, mostrarImagenValida, ocultarImagenRota } from "./mediaFallback";
 import {
-  etiquetaTipoVariante,
   resumenVariantesParaCard,
   textoCtaVariante,
 } from "@/lib/storeProductVariant";
@@ -14,14 +12,11 @@ import {
 export default function ProductCard({ p }: { p: StoreProduct }) {
   const { priceOf, fmt, addToCart, reviewsByProduct, variantsByProduct, basePath: base } = useStore();
   const variantes = variantsByProduct[p.id] ?? [];
-  const [varianteId, setVarianteId] = useState<string | null>(null);
-  const [avisoOpcion, setAvisoOpcion] = useState(false);
   const opiniones = reviewsByProduct[p.id];
   const { has, toggle } = useWishlist();
   const deseado = has(p.id);
   const precioProducto = priceOf(p);
-  const resumenVariantes = resumenVariantesParaCard(variantes, precioProducto, varianteId);
-  const variante = resumenVariantes.elegida;
+  const resumenVariantes = resumenVariantesParaCard(variantes, precioProducto);
   const price = resumenVariantes.precio;
   const list = Number(p.sale_price_ars);
   const off = price < list ? Math.round((1 - price / list) * 100) : 0;
@@ -29,9 +24,8 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
   const stockVisible = tieneVariantes ? resumenVariantes.stockDisponible : Number(p.stock);
   const sinStock = stockVisible <= 0;
   const tipoVariante = variantes[0]?.variant_type;
-  const etiquetaVariante = etiquetaTipoVariante(tipoVariante);
   const productUrl = `${base}/producto/${p.id}`;
-  const imagen = variante?.image_url ?? p.image_url;
+  const imagen = p.image_url;
 
   return (
     <div
@@ -47,7 +41,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         {imagen && (
             <img
               src={imagen}
-              alt={variante ? `${p.name} — ${variante.variant_name}` : p.name}
+              alt={p.name}
               {...atributosDeImagenVitrina("tarjeta")}
               onLoad={mostrarImagenValida}
               onError={ocultarImagenRota}
@@ -125,64 +119,29 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
 
         {!sinStock ? (
           <div className="mt-3 space-y-2">
-            {tieneVariantes && (
-              <fieldset>
-                <legend className="mb-1.5 text-[11px] font-medium" style={{ color: "hsl(var(--st-muted))" }}>
-                  {textoCtaVariante(tipoVariante)}
-                </legend>
-                <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={etiquetaVariante}>
-                {resumenVariantes.rapidas.map(v => {
-                  const sel = v.id === varianteId;
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={sel}
-                      onClick={() => { setVarianteId(v.id); setAvisoOpcion(false); }}
-                      className="min-h-11 max-w-full px-2.5 text-xs border truncate"
-                      style={{
-                        borderColor: sel ? "hsl(var(--st-accent))" : "hsl(var(--st-border))",
-                        background: sel ? "hsl(var(--st-accent) / 0.12)" : "transparent",
-                        borderRadius: "var(--st-radius)",
-                      }}
-                    >
-                      {v.variant_name}
-                    </button>
-                  );
-                })}
-                </div>
-              </fieldset>
-            )}
-            {resumenVariantes.requiereDetalle && (
+            {tieneVariantes ? (
+              <>
+                <p className="text-[11px]" style={{ color: "hsl(var(--st-muted))" }}>
+                  {resumenVariantes.disponibles.length} disponible{resumenVariantes.disponibles.length === 1 ? "" : "s"}
+                  {resumenVariantes.agotadas > 0 ? ` · ${resumenVariantes.agotadas} agotada${resumenVariantes.agotadas === 1 ? "" : "s"}` : ""}
+                </p>
               <Link
                 to={productUrl}
-                className="inline-flex min-h-11 items-center text-xs font-semibold underline underline-offset-4"
-                style={{ color: "hsl(var(--st-accent))" }}
+                  className="storefront-product-card__add grid min-h-11 w-full place-items-center py-2 text-center text-sm font-medium transition-opacity hover:opacity-90"
+                  style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
               >
-                Ver {variantes.length === 1 ? "la opción" : `las ${variantes.length} opciones`}
-                {resumenVariantes.agotadas > 0 ? ` · ${resumenVariantes.agotadas} agotada${resumenVariantes.agotadas === 1 ? "" : "s"}` : ""}
+                  {textoCtaVariante(tipoVariante).replace(/^Elegí/, "Elegir")}
               </Link>
+              </>
+            ) : (
+              <button
+                onClick={() => addToCart(p)}
+                className="storefront-product-card__add w-full min-h-11 py-2 text-sm font-medium transition-opacity hover:opacity-90"
+                style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+              >
+                Agregar
+              </button>
             )}
-            {avisoOpcion && (
-              <p className="text-[11px]" style={{ color: "hsl(var(--st-muted))" }}>
-                elegí una opción
-              </p>
-            )}
-            <button
-              onClick={() => {
-                if (tieneVariantes) {
-                  if (!variante) { setAvisoOpcion(true); return; }
-                  addToCart(p, 1, variante);
-                  return;
-                }
-                addToCart(p);
-              }}
-              className="storefront-product-card__add w-full min-h-11 py-2 text-sm font-medium transition-opacity hover:opacity-90"
-              style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
-            >
-              {tieneVariantes && !variante ? textoCtaVariante(tipoVariante) : "Agregar"}
-            </button>
           </div>
         ) : (
           <Link

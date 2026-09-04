@@ -4528,25 +4528,29 @@ Finance Connect.
      ya tenía 9 sabores, por lo que una grilla de 20 cards podía convertirse en
      otra PDP repetida y perder el CTA debajo del pliegue.
 
-     D5.29 fija una frontera: la card ofrece como máximo tres variantes
-     **disponibles** para quick-add y enlaza el total restante a la ficha, donde
-     siguen visibles las agotadas y su aviso exacto. El enlace explicita número
-     de opciones y agotadas; un producto sin ningún SKU disponible deriva a
-     “Ver opciones y avisos”. La selección usa `radiogroup`, 44 px y estado
-     `aria-checked`, cambia imagen cuando ese SKU la tiene y cambia el monto al
-     `price_override` real. Antes de elegir, si los SKU tienen valores distintos,
-     muestra “Desde” sobre el menor precio comprable; nunca usa el precio menor
-     de una variante agotada para atraer un clic.
+     D5.29 fija una frontera todavía más simple: la card compra directamente un
+     producto simple, pero cualquier producto con variantes lleva a **Elegir
+     sabor/talle/variante** en una sola PDP. El conteo visible separa disponibles
+     y agotadas; si ningún SKU queda, deriva a “Ver opciones y avisos”. Si los
+     SKU disponibles tienen valores distintos, la card muestra “Desde” sobre el
+     menor precio comprable; nunca usa el precio menor de una variante agotada
+     para atraer un clic.
 
      La regla de override dejó de estar copiada en Card, PDP y carrito:
      `precioDeVariante` es el espejo cliente único, mientras
      `resolve_store_line` conserva la autoridad server-side. El stock de la card
      también sale de la suma de variantes disponibles cuando existen, no del
-     agregado ambiguo del producto. La guarda pura cubre límite, overflow,
-     agotadas, stock, “Desde”, selección y fallback de precio; el E2E read-only
-     descubre la PDP agotada mediante metadata de la card sin volver a exponer
-     un botón imposible. Estado: **D5.29 implementado; falta puerta integral,
-     deploy y matriz publicada desktop/mobile antes de cerrarlo**.
+     agregado ambiguo del producto. La guarda pura cubre agotadas, stock,
+     “Desde” y fallback de precio; otra guarda y un E2E read-only fijan que la
+     card no vuelva a montar radios ni quick-add de un SKU ambiguo.
+
+     La primera versión publicada del slice (`ce81f427`) confirmó 20 cards,
+     tres opciones de nueve, enlace a dos agotadas, ancho 1.284/1.284 px y 0
+     logs, pero la captura encontró una fila de **612 px**: aun resumido, el
+     selector duplicaba la PDP y dejaba un gran vacío bajo los productos
+     simples. Esa evidencia cambió la decisión anterior por el CTA único de
+     opciones. Estado: **D5.29 corregido; falta nueva puerta integral, deploy y
+     matriz publicada desktop/mobile antes de cerrarlo**.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

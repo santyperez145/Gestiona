@@ -233,13 +233,14 @@ Chromium y Pixel 5 sin escrituras.
 view](https://shopify.dev/docs/storefronts/themes/product-merchandising/variants)
 cuando aporta a la comparación, y Tiendanube concentra el
 [selector completo con agotadas tachadas](https://ayuda.tiendanube.com/es_ES/123159-detalle-del-producto/como-mostrar-las-variantes-de-producto-como-botones)
-en el detalle. Nerqia traduce ambas señales al catálogo real: máximo tres
-opciones comprables en la card, y un enlace que cuenta todas las variantes y
-las agotadas para decidirlas en la PDP. La selección rápida es accesible,
-cambia imagen y precio exacto; antes de seleccionar, “Desde” sólo considera
-SKU disponibles. Si ninguno queda, se deriva a opciones y avisos, no a un CTA
-imposible. Card, PDP y carrito comparten `precioDeVariante`; el servidor vuelve
-a decidir mediante `resolve_store_line`. Falta verificar el deploy en grilla
+en el detalle. Nerqia probó primero tres quick choices, pero la captura real
+produjo una fila de 612 px y grandes vacíos en cards simples: seguía duplicando
+la PDP. La traducción final compra directo sólo un producto simple y lleva todo
+producto con variantes a “Elegir sabor/talle/variante” en una única ficha. La
+card conserva conteo disponible/agotado y “Desde” con el menor SKU comprable;
+si ninguno queda, deriva a opciones y avisos, no a un CTA imposible. PDP y
+carrito comparten `precioDeVariante`; el servidor vuelve a decidir mediante
+`resolve_store_line`. Falta verificar la corrección publicada en grilla
 desktop/mobile antes de cerrar D5.29.
 
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify

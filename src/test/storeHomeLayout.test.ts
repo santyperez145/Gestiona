@@ -76,6 +76,8 @@ describe("portada modular de la tienda", () => {
     expect(home).toContain("heroVisible");
     expect(layout).toContain("textoDeAnuncio");
     expect(page).toContain("layoutParaGuardar");
-    expect(card).toContain("elegí una opción");
+    expect(card).toContain("data-variant-count");
+    expect(card).toContain('replace(/^Elegí/, "Elegir")');
+    expect(card).not.toContain("addToCart(p, 1");
   });
 });

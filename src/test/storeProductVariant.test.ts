@@ -10,6 +10,7 @@ import {
 } from "@/lib/storeProductVariant";
 
 const productPage = readFileSync(resolve(process.cwd(), "src/storefront/StoreProduct.tsx"), "utf8");
+const productCard = readFileSync(resolve(process.cwd(), "src/storefront/ProductCard.tsx"), "utf8");
 const visibilityMigration = readFileSync(resolve(
   process.cwd(),
   "supabase/migrations/20260904000090_storefront_includes_sold_out_variants.sql",
@@ -63,7 +64,7 @@ describe("decisión de variantes en la ficha pública", () => {
     expect(visibilityMigration).toContain("GRANT EXECUTE ON FUNCTION public.get_store_variants(text) TO anon, authenticated");
   });
 
-  it("la card muestra como máximo tres decisiones comprables y deriva el resto", () => {
+  it("la card resume disponibilidad sin duplicar el selector de la ficha", () => {
     const variants = [
       { id: "a", stock: 2, price_override: 900 },
       { id: "b", stock: 1, price_override: 1100 },
@@ -71,13 +72,15 @@ describe("decisión de variantes en la ficha pública", () => {
       { id: "d", stock: 3, price_override: 950 },
       { id: "e", stock: 0, price_override: 800 },
     ];
-    const resumen = resumenVariantesParaCard(variants, 1000, null);
+    const resumen = resumenVariantesParaCard(variants, 1000);
 
-    expect(resumen.rapidas.map(v => v.id)).toEqual(["a", "b", "c"]);
     expect(resumen.disponibles).toHaveLength(4);
     expect(resumen.agotadas).toBe(1);
-    expect(resumen.requiereDetalle).toBe(true);
     expect(resumen.stockDisponible).toBe(10);
+    expect(productCard).toContain('data-variant-count={tieneVariantes ? variantes.length : undefined}');
+    expect(productCard).toContain('textoCtaVariante(tipoVariante).replace(/^Elegí/, "Elegir")');
+    expect(productCard).not.toContain('role="radio"');
+    expect(productCard).not.toContain("addToCart(p, 1, variante)");
   });
 
   it("la card anuncia desde el menor precio y cambia al monto exacto al elegir", () => {
@@ -86,13 +89,10 @@ describe("decisión de variantes en la ficha pública", () => {
       { id: "b", stock: 1, price_override: 1200 },
       { id: "c", stock: 0, price_override: 700 },
     ];
-    const inicial = resumenVariantesParaCard(variants, 1000, null);
-    const elegida = resumenVariantesParaCard(variants, 1000, "b");
+    const inicial = resumenVariantesParaCard(variants, 1000);
 
     expect(inicial.precio).toBe(900);
     expect(inicial.desde).toBe(true);
-    expect(elegida.precio).toBe(1200);
-    expect(elegida.desde).toBe(false);
     expect(precioDeVariante(1000, variants[2])).toBe(700);
     expect(precioDeVariante(1000, { price_override: 0 })).toBe(1000);
   });

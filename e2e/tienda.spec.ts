@@ -55,6 +55,30 @@ test.describe("vitrina", () => {
 });
 
 test.describe("catálogo", () => {
+  test("una card con variantes deriva la decisión completa a una sola ficha", async ({ page }) => {
+    await page.goto(tienda("/productos"));
+    await fichasVisibles(page);
+
+    const card = page.locator(".storefront-product-card[data-variant-count]").first();
+    if (!(await card.count())) {
+      test.skip(true, "el catálogo actual no tiene productos con variantes");
+    }
+
+    const total = Number(await card.getAttribute("data-variant-count"));
+    expect(total).toBeGreaterThan(0);
+    await expect(card.getByRole("radio")).toHaveCount(0);
+    await expect(card.getByRole("button", { name: "Agregar" })).toHaveCount(0);
+    const elegir = card.getByRole("link", { name: /^Elegir / });
+    await expect(elegir).toBeVisible();
+    await expect(elegir).toHaveAttribute("href", /\/producto\//);
+
+    const geometry = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+  });
+
   test("la paginación usa enlaces reales, veinte cards y no desborda", async ({ page }) => {
     const errores: string[] = [];
     page.on("console", message => {
