@@ -4468,6 +4468,31 @@ Finance Connect.
      interactiva queda para el primer pedido operable real. Estado: **D5.27
      cerrado y publicado**; la medición de tarea real sigue siendo gate externo.
 
+180. La ficha decide sobre la variante real antes de prometer stock o envío —
+     D5.28, 2026-09-04. Shopify asigna
+     [inventario e imagen por variante](https://help.shopify.com/en/manual/products/variants)
+     y actualiza la imagen al elegirla; Tiendanube recomienda
+     [mostrar como botones y tachar las opciones sin stock](https://ayuda.tiendanube.com/es_ES/mostrar-las-variantes-sin-stock-tachadas-en-el-detalle-de-mis-productos)
+     para no ocultar combinaciones que existen. La auditoría de Nerqia encontró
+     el caso opuesto: antes de elegir sabor/talle la PDP mostraba el stock
+     agregado y montaba el cotizador sin `variant_id`, aunque el SKU elegido
+     después pudiera estar agotado.
+
+     D5.28 ordena la decisión en la misma página, sin otro catálogo ni otra
+     autoridad: selector semántico → disponibilidad exacta → cotización →
+     cantidad/CTA. Ninguna opción queda preseleccionada. Las agotadas se ven
+     tachadas y rotuladas, pero siguen siendo seleccionables para que
+     `StockAlertForm` suscriba el `variant_id` correcto; una disponible informa
+     su saldo real. El CTA inicial dice qué falta elegir y lleva foco al grupo,
+     también en la barra móvil. El cotizador no se monta ante una variante
+     ambigua o agotada, y el servidor conserva autoridad sobre precio, stock y
+     orden. Las reglas de copy distinguen sabor, color, talle, medida,
+     presentación y fallback genérico sin devolver todo a “sabores”. Puerta
+     integral local: TypeScript; lint con 0 errores y 143 warnings heredados;
+     **2.662/2.662 tests en 286 archivos**; build/PWA productivo. Estado:
+     **implementado localmente**; falta certificar el bundle publicado con una
+     variante disponible y otra agotada sin alterar datos reales.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

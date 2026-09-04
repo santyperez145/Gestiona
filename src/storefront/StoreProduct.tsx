@@ -26,6 +26,11 @@ import ProductQuestions from "./ProductQuestions";
 import StockAlertForm from "./StockAlertForm";
 import { useWishlist } from "./wishlist";
 import StoreShippingQuote from "./StoreShippingQuote";
+import {
+  etiquetaTipoVariante,
+  textoCtaVariante,
+  textoDisponibilidadProducto,
+} from "@/lib/storeProductVariant";
 
 export default function StoreProduct() {
   const { productId } = useParams<{ productId: string }>();
@@ -41,6 +46,7 @@ export default function StoreProduct() {
   const [coocScores, setCoocScores] = useState<Record<string, number>>({});
   const [atcVisible, setAtcVisible] = useState(true);
   const atcRef = useRef<HTMLDivElement | null>(null);
+  const variantRef = useRef<HTMLFieldSetElement | null>(null);
 
   const p = products.find(x => x.id === productId);
   const d = productId ? perfumes[productId] : undefined;
@@ -153,11 +159,21 @@ export default function StoreProduct() {
   const variantes = variantsByProduct[p.id] ?? [];
   const variante = variantes.find(v => v.id === variantId) ?? null;
   const faltaElegir = variantes.length > 0 && !variante;
+  const tipoVariante = variantes[0]?.variant_type;
+  const etiquetaVariante = etiquetaTipoVariante(tipoVariante);
 
   const price = variante && Number(variante.price_override) > 0
     ? Number(variante.price_override)
     : priceOf(p);
   const stockEfectivo = variante ? variante.stock : p.stock;
+  const agotadoParaCompra = variante
+    ? variante.stock <= 0
+    : variantes.length === 0 && p.stock <= 0;
+  const textoDisponibilidad = textoDisponibilidadProducto({
+    variants: variantes,
+    selected: variante,
+    productStock: p.stock,
+  });
   const list = Number(p.sale_price_ars);
   // Sobre qué precio se descuenta el medio de pago. Cuando la oferta acumula
   // la vista devuelve el precio de oferta, y entonces el descuento se suma
@@ -181,6 +197,19 @@ export default function StoreProduct() {
     );
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
+  };
+
+  const enfocarVariantes = () => {
+    variantRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    variantRef.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
+  };
+
+  const agregarOEnfocar = () => {
+    if (faltaElegir) {
+      enfocarVariantes();
+      return;
+    }
+    agregar();
   };
 
   const notas = [
@@ -292,17 +321,58 @@ export default function StoreProduct() {
             </p>
           )}
 
-          <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
-            {stockEfectivo <= 0 ? "Sin stock"
-              : stockEfectivo > 3 ? "En stock"
-              // ⚠️ Con una sola unidad decía «¡Últimas 1 unidades!». Es el
-              // cartel de escasez, o sea el que más empuja a comprar: mal
-              // escrito hace dudar de todo lo demás.
-              : stockEfectivo === 1 ? "¡Última unidad!"
-              : `¡Últimas ${stockEfectivo} unidades!`}
+          {variantes.length > 0 && (
+            <fieldset ref={variantRef} className="mt-5">
+              <legend className="text-xs uppercase tracking-wide mb-2" style={{ color: "hsl(var(--st-muted))" }}>
+                {etiquetaVariante}
+              </legend>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={`Elegir ${etiquetaVariante.toLocaleLowerCase("es-AR")}`}>
+                {variantes.map(v => {
+                  const sel = v.id === variantId;
+                  const agotada = v.stock <= 0;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={sel}
+                      aria-label={`${v.variant_name}: ${agotada ? "agotado" : v.stock === 1 ? "última unidad" : `${v.stock} disponibles`}`}
+                      onClick={() => { setVariantId(v.id); setQty(1); }}
+                      className="min-h-11 px-3 py-1.5 text-sm border transition-colors"
+                      style={{
+                        borderColor: sel ? "hsl(var(--st-accent))" : "hsl(var(--st-border))",
+                        background: sel ? "hsl(var(--st-accent) / 0.1)" : "transparent",
+                        borderRadius: "var(--st-radius)",
+                        opacity: agotada && !sel ? 0.62 : 1,
+                      }}
+                    >
+                      <span className={agotada ? "line-through" : undefined}>{v.variant_name}</span>
+                      {agotada ? (
+                        <span className="ml-1.5 text-[10px]" style={{ color: "hsl(var(--st-muted))" }}>
+                          Agotado
+                        </span>
+                      ) : v.stock <= 3 ? (
+                        <span className="ml-1.5 text-[10px]" style={{ color: "hsl(var(--st-muted))" }}>
+                          {v.stock === 1 ? "Última" : `${v.stock} disp.`}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+              {faltaElegir && (
+                <p className="text-xs mt-2" style={{ color: "hsl(var(--st-muted))" }}>
+                  {textoCtaVariante(tipoVariante)} para ver precio, stock y envío exactos.
+                </p>
+              )}
+            </fieldset>
+          )}
+
+          <p className="text-sm mt-3" style={{ color: "hsl(var(--st-muted))" }} aria-live="polite">
+            {textoDisponibilidad}
           </p>
 
-          {store && (
+          {store && !faltaElegir && !agotadoParaCompra && (
             <StoreShippingQuote
               slug={store.slug}
               productId={p.id}
@@ -315,52 +385,11 @@ export default function StoreProduct() {
             />
           )}
 
-          {variantes.length > 0 && (
-            <div className="mt-5">
-              <p className="text-xs uppercase tracking-wide mb-2" style={{ color: "hsl(var(--st-muted))" }}>
-                {variantes[0].variant_type === "sabor" ? "Sabor"
-                  : variantes[0].variant_type === "color" ? "Color"
-                  : variantes[0].variant_type === "talle" ? "Talle"
-                  : "Opciones"}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {variantes.map(v => {
-                  const sel = v.id === variantId;
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => { setVariantId(sel ? null : v.id); setQty(1); }}
-                      className="min-h-11 px-3 py-1.5 text-sm border transition-colors"
-                      style={{
-                        borderColor: sel ? "hsl(var(--st-accent))" : "hsl(var(--st-border))",
-                        background: sel ? "hsl(var(--st-accent) / 0.1)" : "transparent",
-                        borderRadius: "var(--st-radius)",
-                      }}
-                    >
-                      {v.variant_name}
-                      {v.stock <= 3 && (
-                        <span className="ml-1.5 text-[10px]" style={{ color: "hsl(var(--st-muted))" }}>
-                          ({v.stock})
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-              {faltaElegir && (
-                <p className="text-xs mt-2" style={{ color: "hsl(var(--st-muted))" }}>
-                  Elegí una opción para continuar.
-                </p>
-              )}
-            </div>
-          )}
-
-          {stockEfectivo <= 0 ? (
+          {agotadoParaCompra ? (
             <StockAlertForm productId={p.id} variantId={variantId} />
           ) : (
           <div ref={atcRef} className="flex items-center gap-3 mt-6">
-            <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
+            {!faltaElegir && <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
               <button className="px-3 py-2.5 min-h-11 min-w-11 grid place-items-center" onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="Restar">
                 <Minus className="w-4 h-4" />
               </button>
@@ -373,16 +402,17 @@ export default function StoreProduct() {
               >
                 <Plus className="w-4 h-4" />
               </button>
-            </div>
+            </div>}
             <button
-              onClick={agregar}
-              disabled={faltaElegir}
-                aria-hidden={!atcVisible}
-                tabIndex={atcVisible ? 0 : -1}
-              className="flex-1 min-h-11 py-3 font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50"
+              onClick={agregarOEnfocar}
+              aria-hidden={!atcVisible}
+              tabIndex={atcVisible ? 0 : -1}
+              className="flex-1 min-h-11 py-3 font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
               style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
             >
-              {added ? <><Check className="w-4 h-4" /> Agregado</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
+              {faltaElegir
+                ? textoCtaVariante(tipoVariante)
+                : added ? <><Check className="w-4 h-4" /> Agregado</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
             </button>
             <button
               onClick={() => deseos.toggle(p.id)}
@@ -493,7 +523,7 @@ export default function StoreProduct() {
         </section>
       )}
 
-      {stockEfectivo > 0 && !atcVisible && (
+      {(faltaElegir || stockEfectivo > 0) && !atcVisible && (
         <>
           <div className="h-20 md:hidden" aria-hidden="true" />
           <div
@@ -507,12 +537,13 @@ export default function StoreProduct() {
             <div className="mx-auto flex max-w-6xl items-center gap-3">
               <p className="shrink-0 font-bold tabular-nums">{fmt(price)}</p>
               <button
-                onClick={agregar}
-                disabled={faltaElegir}
-                className="min-h-11 flex-1 py-3 font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50"
+                onClick={agregarOEnfocar}
+                className="min-h-11 flex-1 py-3 font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
                 style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
               >
-                {added ? <><Check className="w-4 h-4" /> Agregado</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
+                {faltaElegir
+                  ? textoCtaVariante(tipoVariante)
+                  : added ? <><Check className="w-4 h-4" /> Agregado</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
               </button>
             </div>
           </div>

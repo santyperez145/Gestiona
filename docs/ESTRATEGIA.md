@@ -207,6 +207,17 @@ Nerqia limita el lote a 50, reutiliza la transición individual en servidor y
 devuelve resultado por fila. Pago, cancelación, stock y precio no entran en ese
 bulk: son efectos diferentes y conservan sus autoridades canónicas.
 
+✅ **La variante se decide antes de prometer, verificada en código el
+2026-09-04.** Shopify modela [precio, inventario e imagen por variante](https://help.shopify.com/en/manual/products/variants/add-variants)
+y permite [asignar la imagen que cambia con la selección](https://help.shopify.com/en/manual/products/product-media/add-images-variants).
+Tiendanube recomienda [botones con variantes agotadas tachadas](https://ayuda.tiendanube.com/es_ES/mostrar-las-variantes-sin-stock-tachadas-en-el-detalle-de-mis-productos)
+para que la combinación siga siendo comprensible. Nerqia no copia su interfaz:
+aplica el patrón al Business Core único. Hasta elegir el SKU no afirma stock ni
+monta el cotizador; después muestra el saldo y precio de esa variante. Una
+agotada sigue siendo elegible únicamente para asociar el aviso de reposición al
+`variant_id` real. Precio, stock, tarifa y creación de orden continúan bajo
+autoridad server-side. La evidencia publicada permanece pendiente.
+
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)
 como sesiones que terminan en una orden y su embudo separa sesión, agregado al
