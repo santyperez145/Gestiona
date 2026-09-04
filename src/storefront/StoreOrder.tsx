@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import OrderTracking from "./OrderTracking";
 import StorePaymentBrick, { type StorePaymentBrickConfig } from "./StorePaymentBrick";
@@ -6,7 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import { getStoreOrderSecure, type StoreOrderAccessRow } from "@/lib/publicDataSource";
 import { useStore } from "./storeContext";
-import { trackPurchase } from "./tracking";
+import {
+  markStoreConversionSent,
+  storeConversionEventId,
+  trackOrderPlaced,
+  trackPaymentCompleted,
+  wasStoreConversionSent,
+} from "./tracking";
 import { canRetryStorePayment, isStorePaymentReversed } from "@/lib/storeOrderPayment";
 import { esPedidoRetiro } from "@/lib/storeOrderQueue";
 import {
@@ -110,22 +116,43 @@ export default function StoreOrder() {
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  // Compra concretada. Se dispara una sola vez por pedido: el comprador puede
-  // recargar esta pagina y no queremos contar la venta dos veces.
-  const purchaseEnviado = useRef<string | null>(null);
+  const trackedItems = useMemo(() => (order?.items ?? []).map(i => ({
+    id: (i as { product_id?: string }).product_id ?? i.name,
+    name: i.name,
+    price: Number(i.unit_price),
+    quantity: Number(i.quantity),
+  })), [order?.items]);
+  const trackingConfigurado = Boolean(
+    store?.meta_pixel_id || store?.ga_measurement_id || store?.tiktok_pixel_id,
+  );
+
+  // Pedido colocado y pago acreditado son hechos distintos. El receipt local
+  // evita reemitir al recargar; transaction_id/event_id cubren el proveedor.
   useEffect(() => {
-    if (!order || purchaseEnviado.current === order.order_number) return;
-    purchaseEnviado.current = order.order_number;
-    trackPurchase(
+    if (!order || !trackingConfigurado) return;
+    const eventId = storeConversionEventId("placed", order.order_number);
+    if (wasStoreConversionSent(localStorage, eventId)) return;
+    const attempted = trackOrderPlaced(
       order.order_number,
-      (order.items ?? []).map(i => ({
-        id: (i as { product_id?: string }).product_id ?? i.name,
-        name: i.name, price: Number(i.unit_price), quantity: Number(i.quantity),
-      })),
+      trackedItems,
       Number(order.total),
       store?.currency ?? "ARS",
     );
-  }, [order, store?.currency]);
+    if (attempted) markStoreConversionSent(localStorage, eventId);
+  }, [order, store?.currency, trackedItems, trackingConfigurado]);
+
+  useEffect(() => {
+    if (!order || order.payment_status !== "paid" || !store?.tiktok_pixel_id) return;
+    const eventId = storeConversionEventId("paid", order.order_number);
+    if (wasStoreConversionSent(localStorage, eventId)) return;
+    const attempted = trackPaymentCompleted(
+      order.order_number,
+      trackedItems,
+      Number(order.total),
+      store?.currency ?? "ARS",
+    );
+    if (attempted) markStoreConversionSent(localStorage, eventId);
+  }, [order, store?.currency, store?.tiktok_pixel_id, trackedItems]);
 
   // Al volver de MercadoPago el webhook puede tardar unos segundos en
   // confirmar. Se reintenta un rato para no mostrarle "pendiente" a alguien

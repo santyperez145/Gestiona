@@ -58,7 +58,7 @@ function StoreShell() {
   }, [store]);
 
   // En una SPA el cambio de ruta no dispara PageView solo.
-  useEffect(() => { if (store) trackPageView(); }, [pathname, store]);
+  useEffect(() => { if (store) trackPageView(); }, [pathname, search, store]);
 
   // Título de la pestaña por ruta. WhatsApp/Google no ejecutan JS — eso es
   // `api/og`. Acá es lo que ve el comprador al cambiar de ficha.

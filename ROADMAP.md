@@ -4634,6 +4634,35 @@ Finance Connect.
      implementación, desktop, mobile y evidencia read-only; la compra
      sandbox/real permanece como gate externo**.
 
+184. Los píxeles distinguen pedido de pago y dejan de duplicar navegación —
+     D5.32, 2026-09-04. Shopify dispara
+     [`checkout_completed` una vez](https://shopify.dev/docs/api/web-pixels-api/standard-events/checkout_completed)
+     e incluye medios diferidos/manuales; Google exige un
+     [`transaction_id` único](https://support.google.com/analytics/answer/12313109)
+     para deduplicar compras web; TikTok define
+     [`PlaceAnOrder` y `CompletePayment` como hechos diferentes](https://ads.tiktok.com/resources/help/article/tiktok-adobe-eapi-implementation-guide?lang=en)
+     y usa `event_id` para deduplicar. La auditoría encontró tres desvíos: el
+     código de TikTok descargaba `events.js` sin la cola base ni `ttq.load(id)`,
+     por lo que no inicializaba el píxel; una transferencia pendiente se emitía
+     como `CompletePayment`; y el primer PageView se duplicaba mientras GA no
+     recibía las navegaciones posteriores de la SPA.
+
+     D5.32 instala una cola TikTok tipada, carga el SDK con su Pixel ID y permite
+     inicializar un ID por proveedor sin el flag global que podía congelar otra
+     tienda. Meta, GA4 y TikTok reciben un solo PageView por navegación. El
+     pedido creado emite `Purchase`/`purchase`/`PlaceAnOrder` con ID estable; sólo
+     `payment_status = paid` emite `CompletePayment`. Un receipt local evita la
+     reemisión por recarga y los IDs de transacción/evento sostienen la
+     deduplicación del proveedor, sin nombre, email, dirección ni otro PII.
+
+     Cinco pruebas nuevas verifican bootstrap, PageView SPA, semántica
+     pedido/pago, IDs y receipt. La puerta local pasó TypeScript, lint con 0
+     errores/142 warnings conocidos, 2.670 tests en 287 archivos y build/PWA.
+     Estado: **implementado y protegido localmente; falta bundle publicado y
+     observar un evento real en los diagnósticos de cada proveedor. Events
+     API/CAPI continúa fuera de este slice hasta contar con consentimiento,
+     credenciales y contrato de retención**.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

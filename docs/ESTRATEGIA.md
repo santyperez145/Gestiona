@@ -279,6 +279,21 @@ local pasó TypeScript, lint con 0 errores/143 warnings conocidos, 2.665 tests e
 bundle publicado pasó **2/2** en Chromium/Pixel 5, sin overflow ni errores de
 consola. La compra sandbox/real sigue siendo un gate externo.
 
+🟡 **Conversión publicitaria sin pedidos/pagos mezclados, implementada
+localmente el 2026-09-04.** Shopify emite
+[`checkout_completed` una sola vez](https://shopify.dev/docs/api/web-pixels-api/standard-events/checkout_completed),
+Google deduplica `purchase` web con
+[`transaction_id`](https://support.google.com/analytics/answer/12313109) y TikTok
+separa [`PlaceAnOrder` de `CompletePayment`](https://ads.tiktok.com/resources/help/article/tiktok-adobe-eapi-implementation-guide?lang=en).
+Nerqia tenía TikTok incompleto —sin cola base ni `ttq.load(id)`—, duplicaba el
+primer PageView y llamaba pago completo aun para transferencias pendientes.
+D5.32 carga el Pixel ID real, mide una vez cada navegación SPA y usa IDs
+estables + receipt local para separar pedido colocado de pago acreditado sin
+enviar PII. La puerta local pasó TypeScript, lint con 0 errores/142 warnings
+conocidos, 2.670 tests en 287 archivos y build/PWA. Falta bundle publicado y
+evento observado en el diagnóstico real de cada proveedor. Events API/CAPI no
+se declara implementada.
+
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)
 como sesiones que terminan en una orden y su embudo separa sesión, agregado al
