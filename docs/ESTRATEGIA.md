@@ -247,7 +247,7 @@ y Pixel 5: **4/4**, sin escrituras. Los tres productos productivos con variantes
 tienen 0 overrides distintos de precio; “Desde” queda probado en cálculo puro
 sin fabricar un dato comercial. D5.29 cerrado.
 
-🟡 **Checkout móvil orientado al cierre, implementado localmente el
+✅ **Checkout móvil orientado al cierre, verificado el
 2026-09-04.** Tiendanube documenta que el comprador recorre
 [datos, entrega y pago](https://ayuda.tiendanube.com/123288-mis-ventas/como-es-el-proceso-de-compra-para-mi-cliente),
 y Shopify organiza el [checkout alrededor de contacto, entrega y pago](https://help.shopify.com/en/manual/checkout-settings)
@@ -259,8 +259,10 @@ acción, con safe area y una causa explícita cuando entrega o cobro bloquean el
 cierre. Stock, precio, cupón, envío y orden siguen resueltos por servidor. El
 E2E intercepta las escrituras auxiliares de visita/carrito/checkout para no
 contaminar conversión. La puerta local cerró 2.665 tests, TypeScript, lint sin
-errores y build/PWA; sigue parcial hasta validar Chromium/Pixel 5 publicados y
-no se declara una compra real ni sandbox.
+errores y build/PWA. `7e5c3a22` quedó Ready y la matriz publicada pasó **2/2**
+en Chromium/Pixel 5 con safe bottom, barra ≤120 px, cero overflow y cero
+errores de consola. La captura mantuvo Entrega/Tus datos visibles sobre Total +
+Confirmar. No se declara una compra real ni sandbox: ese gate sigue externo.
 
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)

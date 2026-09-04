@@ -4592,10 +4592,16 @@ Finance Connect.
      prueba. La nueva prueba mide posición, alto, safe bottom, overflow y
      separación desktop/mobile sin confirmar una orden.
 
-     Puerta local previa al deploy: TypeScript OK, lint **0 errores / 143
-     warnings heredados**, **2.665/2.665 tests en 286 archivos** y build/PWA.
-     Estado: **implementado y protegido localmente; falta la matriz publicada
-     Chromium/Pixel 5 antes de cerrar D5.30**.
+     Puerta local: TypeScript OK, lint **0 errores / 143 warnings heredados**,
+     **2.665/2.665 tests en 286 archivos** y build/PWA. `7e5c3a22` quedó Ready
+     y aliasado a `nerqia.app` + wildcard. La repetición publicada pasó **2/2**
+     en Chromium y Pixel 5: resumen estático en mobile, lateral sticky en
+     desktop, barra fija ≤120 px y por debajo del 70% superior del viewport,
+     safe bottom, cero overflow y cero errores de consola. La captura real
+     dejó visibles Entrega y Tus datos sobre Total + Confirmar; no ejecutó una
+     orden y las escrituras auxiliares quedaron interceptadas. Estado:
+     **D5.30 cerrado en implementación, desktop, mobile y evidencia read-only;
+     la compra sandbox/real permanece como gate externo**.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

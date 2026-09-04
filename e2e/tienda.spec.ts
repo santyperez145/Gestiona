@@ -306,6 +306,10 @@ test.describe("carrito", () => {
   });
 
   test("el checkout conserva la acción sin tapar el formulario", async ({ page }) => {
+    const errores: string[] = [];
+    page.on("console", message => { if (message.type() === "error") errores.push(message.text()); });
+    page.on("pageerror", error => errores.push(error.message));
+
     await page.goto(tienda("/productos"));
     const fichas = await fichasVisibles(page);
     await fichas.first().click();
@@ -349,6 +353,7 @@ test.describe("carrito", () => {
       const position = await resumen.evaluate(element => getComputedStyle(element).position);
       expect(position).toBe("sticky");
     }
+    expect(errores, `errores en consola:\n${errores.join("\n")}`).toEqual([]);
   });
 });
 
