@@ -20,7 +20,7 @@ describe('SEO público de Nerqia', () => {
     expect(html).toContain('"@type":"WebSite"');
     expect(html).toContain('"@type":"SoftwareApplication"');
     expect(html).toContain('"alternateName":"Nerqia Commerce OS"');
-    expect(html).toContain('<h1>Una sola verdad para todo lo que vendés.</h1>');
+    expect(html).toContain('<h1>Nerqia, el sistema operativo de tu comercio.</h1>');
     expect(html).toContain('Stock único para el mostrador y la tienda online');
     expect(html).not.toContain('name="keywords"');
 

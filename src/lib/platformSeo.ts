@@ -30,7 +30,7 @@ export const PLATFORM_SEO_PAGES = [
     title: 'Nerqia | Sistema de gestión omnicanal, POS y tienda online',
     description: 'Software de gestión para comercios argentinos: unificá stock, punto de venta, tienda online, clientes, costos, caja y margen real por canal.',
     eyebrow: 'Sistema operativo para comercios omnicanal',
-    heading: 'Una sola verdad para todo lo que vendés.',
+    heading: 'Nerqia, el sistema operativo de tu comercio.',
     sections: [
       {
         heading: 'Stock único para el mostrador y la tienda online',
