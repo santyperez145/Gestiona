@@ -24,7 +24,7 @@
 -- necesitan entidades que hoy no existen (una agenda, un contrato, un plazo),
 -- así que un preset suyo sería una promesa vacía.
 --
--- CLAUDE.md: el modo de falla de este proyecto no es quedarse corto, es
+-- CONTRIBUTING.md: el modo de falla de este proyecto no es quedarse corto, es
 -- agregar. Un rubro que no se puede operar es peor que no tenerlo.
 
 ALTER TABLE public.product_types

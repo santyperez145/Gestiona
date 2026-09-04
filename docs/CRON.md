@@ -1,5 +1,7 @@
 # Cron jobs
 
+**Estado:** contrato operativo vigente. **Corte:** 2026-09-04.
+
 Los trabajos programados viven en `pg_cron` dentro de la base. La mayoría llama
 Edge Functions por HTTP; `snapshot-platform-org-health` es la excepción
 deliberada: ejecuta una función `SECURITY DEFINER` local para capturar una

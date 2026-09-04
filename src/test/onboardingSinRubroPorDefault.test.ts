@@ -43,7 +43,7 @@ describe("el onboarding no elige el rubro por el comercio", () => {
   });
 
   it("el color inicial no es el dorado de la perfumería", () => {
-    // El dorado es branding de un comercio puntual; CLAUDE.md lo excluye como
+    // El dorado es branding de un comercio puntual; CONTRIBUTING.md lo excluye como
     // color del workspace.
     expect(onboarding).not.toContain("useState('#D4A843')");
   });

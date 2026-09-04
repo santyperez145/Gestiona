@@ -16,7 +16,7 @@
 -- navegador. Con el id de la organización y los de los productos, que la tienda
 -- pública ya expone, se enumera el costo y el margen del catálogo entero.
 --
--- Es exactamente el dato que `CLAUDE.md` define como el diferencial del
+-- Es exactamente el dato que `CONTRIBUTING.md` define como el diferencial del
 -- producto: "un ecommerce no sabe el costo". Se sabía, y lo sabía cualquiera.
 --
 -- ── Por qué las guardas no lo vieron ───────────────────────────────────────

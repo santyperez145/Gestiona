@@ -1,5 +1,7 @@
 # E2E críticos
 
+**Estado:** gate vigente. **Corte:** 2026-09-04.
+
 La puerta E2E prueba la tienda pública en Chromium de escritorio y teléfono, y
 las superficies críticas del panel con una identidad técnica. Los specs leen la
 base vinculada; no crean ventas, órdenes, envíos ni comprobantes.

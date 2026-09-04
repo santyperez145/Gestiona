@@ -1,5 +1,7 @@
 # Configuración de Google OAuth para Nerqia
 
+**Estado:** runbook vigente. **Revisado:** 2026-09-04.
+
 Si al apretar "Ingresar con Google" recibís un error tipo *"provider is not enabled"*, *"unsupported provider"* o un redirect que falla — es porque falta esta configuración. Es de una sola vez, ~5 minutos.
 
 ## Paso 1 — Crear credenciales OAuth en Google Cloud Console

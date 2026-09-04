@@ -140,7 +140,7 @@ describe("los secretos no entran por una pantalla", () => {
      * `platform_messaging_config` la lee el staff desde el navegador. Una
      * contraseña ahí sería un secreto en una tabla que la UI consulta — la
      * misma clase de error que puso la clave privada de AFIP en `settings`,
-     * donde CLAUDE.md ya dejó escrito que la RLS es por fila y no por columna.
+     * donde CONTRIBUTING.md ya dejó escrito que la RLS es por fila y no por columna.
      *
      * El servidor además rechaza el guardado si llega algo que parece una
      * contraseña; esto guarda el otro lado, que es que la pantalla no la pida.

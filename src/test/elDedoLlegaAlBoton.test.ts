@@ -9,7 +9,7 @@ import { join } from "node:path";
  *
  * ⚠️ Medido el 2026-08-28 en la tienda real a 375px de ancho: **47 elementos
  * interactivos por debajo de 40px de alto**, que es el mínimo que el propio
- * contrato de este repo fija («acciones llegan a 40px», CLAUDE.md). Entre
+ * contrato de este repo fija («acciones llegan a 40px», CONTRIBUTING.md). Entre
  * ellos, los del camino de compra:
  *
  *     Carrito              36 x 36

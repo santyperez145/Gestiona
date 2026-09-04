@@ -1,5 +1,7 @@
 # Medios de cobro
 
+**Estado:** contrato vigente. **Corte:** 2026-09-04.
+
 Cómo cobra cada comercio en su tienda online.
 
 ## Nerqia Pay (2026-09-02)

@@ -13,7 +13,7 @@
 -- navegador. Los llaman todos los caminos de venta: POS, Ventas, Presupuestos y
 -- el chat de IA.
 --
--- Es exactamente el error que CLAUDE.md advierte ("antes de descontar stock,
+-- Es exactamente el error que CONTRIBUTING.md advierte ("antes de descontar stock,
 -- revisar si ya hay un trigger que lo haga") y que ya había dejado un stock de
 -- 2 en −2. Se arregló en un lugar y quedó en los otros tres.
 --

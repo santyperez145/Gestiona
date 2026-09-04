@@ -84,7 +84,7 @@ describe('estándar integral de experiencia competitiva', () => {
       'ROADMAP.md',
       'DESIGNROADMAP.md',
       'docs/INTERFAZ.md',
-      'AGENTS.md',
+      'CONTRIBUTING.md',
     ];
 
     for (const path of requiredLinks) {

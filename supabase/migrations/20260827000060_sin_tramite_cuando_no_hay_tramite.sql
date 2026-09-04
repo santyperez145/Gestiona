@@ -19,7 +19,7 @@
 --
 -- 📌 **Se sigue preguntando a ARCA.** El motivo nuevo dice «no hay trámite que
 -- hacer», no «ya está conectado»: `delegacion_verificada` se marca únicamente
--- cuando `FECompUltimoAutorizado` responde. CLAUDE.md: «La verificación le
+-- cuando `FECompUltimoAutorizado` responde. CONTRIBUTING.md: «La verificación le
 -- pregunta al organismo, no al usuario. Un checkbox de "ya lo hice" hace que
 -- el panel diga listo y la primera factura falle.»
 

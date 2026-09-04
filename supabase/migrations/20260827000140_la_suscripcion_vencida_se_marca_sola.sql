@@ -13,7 +13,7 @@
 -- el período vencido hace meses. Y como los beneficios se cortan por estado, un
 -- comercio que dejó de pagar conserva todo.
 --
--- CLAUDE.md, principio de sistemas externos: **no son confiables**. Un estado
+-- CONTRIBUTING.md, principio de sistemas externos: **no son confiables**. Un estado
 -- que sólo cambia cuando un tercero avisa no es un estado, es una esperanza.
 --
 -- ── Qué ya existía ────────────────────────────────────────────────────────

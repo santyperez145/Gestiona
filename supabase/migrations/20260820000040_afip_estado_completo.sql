@@ -16,7 +16,7 @@
 -- esto. La forma siempre es la misma — una generación nueva de columnas al lado
 -- de la vieja, y la mitad del código leyendo cada una.
 --
--- `CLAUDE.md` ya decía cuál es la fuente correcta: *"la UI lee
+-- `CONTRIBUTING.md` ya decía cuál es la fuente correcta: *"la UI lee
 -- `afip_connection_status`"*. La vista existía y estaba bien; la pantalla no la
 -- usaba.
 --

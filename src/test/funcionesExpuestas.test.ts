@@ -53,7 +53,6 @@ const PERMITIDAS = new Set([
   // escrito a mano, sin mirar lo que el comercio ofrece.
   "cuotas_publicas",
   "platform_commission_amount",
-  "is_email_suppressed",
   // Se ejecutan desde triggers de alta de organización, nunca desde el cliente.
   "seed_return_reasons",
   "seed_store_categories",
@@ -119,7 +118,7 @@ function funcionesSinGuarda(): FuncionSospechosa[] {
       if (!/SECURITY\s+DEFINER/i.test(bloque.slice(0, 400))) continue;
 
       const verifica =
-        /is_org_member|is_platform_admin|has_permission|public\.memberships/i.test(bloque);
+        /is_org_member|is_platform_admin|has_permission|has_org_role|exigir_permiso|public\.memberships/i.test(bloque);
 
       ultima.set(nombre, { nombre, archivo, verifica });
     }
@@ -174,6 +173,21 @@ describe("funciones SECURITY DEFINER expuestas", () => {
       "suscripcion_registrar_pago", "outbox_tomar", "idempotencia_reservar",
     ]) {
       expect(estaRevocada(fn), `${fn} tiene que estar revocada de PUBLIC`).toBe(true);
+    }
+  });
+
+  it("las operaciones internas no heredan grants de navegador", () => {
+    for (const fn of [
+      "avisar_trial_por_vencer",
+      "costo_unitario_ars",
+      "is_email_suppressed",
+      "seed_default_alert_rules",
+      "seed_default_automation_flows",
+      "seed_default_price_list",
+      "seed_demo_data",
+      "usos_de_cupon_por_persona",
+    ]) {
+      expect(estaRevocada(fn), `${fn} tiene que estar revocada de roles web`).toBe(true);
     }
   });
 

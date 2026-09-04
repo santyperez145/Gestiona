@@ -37,7 +37,7 @@
 -- ese día ya estaba cobrada", y la metadata lo marca como fecha estimada.
 --
 -- 📌 Esto no es backfillear para que un reporte dé limpio — la regla de
--- CLAUDE.md sigue en pie. La cobranza **ocurrió** (status pagada, importe
+-- CONTRIBUTING.md sigue en pie. La cobranza **ocurrió** (status pagada, importe
 -- exacto, cliente y venta identificados); lo único aproximado es el día, y
 -- queda declarado en el asiento en vez de escondido. La alternativa era un
 -- balance con $149.500 de deudores falsos para siempre.

@@ -7,7 +7,7 @@
 -- en Inventario. Lo que falta es que alguien cuente, y eso no es código.
 --
 -- Pero contar 60 productos a ciegas y contar los que se sabe que están mal son
--- dos trabajos distintos. `CLAUDE.md` documenta la consulta que encuentra los
+-- dos trabajos distintos. `CONTRIBUTING.md` documenta la consulta que encuentra los
 -- desalineados —medido: **15 productos**— y esa consulta vive en un documento,
 -- así que hay que copiarla y pegarla en un cliente SQL para verla.
 --

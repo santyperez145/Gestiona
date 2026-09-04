@@ -1,5 +1,7 @@
 # Importación de productos
 
+**Estado:** contrato vigente. **Corte:** 2026-09-04.
+
 La importación Excel/CSV es una entrada al Business Core, no un atajo para
 escribir la tabla `products`. Desde `20260821000060_product_import_staging.sql`
 el contrato es:

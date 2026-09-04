@@ -1,344 +1,140 @@
-# Nerqia — sistema de interfaz
+# Interfaz de Nerqia
 
-**Corte:** 2026-08-22
+**Estado:** vigente. **Corte:** 2026-09-04.
 
-Este documento fija la dirección visual de Nerqia. El producto se inspira en
-los patrones de CRM, marketplace y admin panel de las referencias compartidas,
-pero no copia componentes, textos ni assets de terceros.
+Este documento traduce el sistema visual a implementación. La dirección está
+en [DESIGNROADMAP.md](../DESIGNROADMAP.md) y la evaluación completa en
+[ESTANDAR_EXPERIENCIA_COMPETITIVA.md](ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
 
-La secuencia completa, cobertura por superficie, métricas y slices ejecutables
-viven en [`DESIGNROADMAP.md`](../DESIGNROADMAP.md). `INTERFAZ.md` conserva el
-contrato del sistema; el roadmap visual registra la ejecución y la evidencia.
-Los patrones competitivos obligatorios —anatomía de pantalla, overlays, vistas,
-segmentos, estados, responsive, accesibilidad y puerta tecnológica— viven en el
-[`estándar integral de experiencia`](ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
+## Identidad
 
-## Dirección
+- UI de trabajo clara, sobria y densa.
+- Violeta Nerqia para acción/foco; colores semánticos para estados.
+- Inter en interfaz; Sora sólo en titulares de marca.
+- Radios contenidos, bordes suaves y sombras mínimas.
+- Sin cards anidadas, orbes, gradientes decorativos o tracking negativo.
+- Storefront adapta la marca del comercio; no hereda el chrome administrativo.
 
-Nerqia es una herramienta operativa que se usa muchas horas seguidas. La
-interfaz debe ayudar a escanear, comparar y ejecutar, no competir con los datos.
+Los tokens viven en src/index.css y Tailwind. No introducir colores o
+espaciados locales cuando existe un token semántico.
 
-- Rail lateral estable para identidad y navegación; claro en Business y
-  violeta en Platform para distinguir las dos superficies.
-- Superficie de trabajo clara, con fondo neutro y contenido agrupado.
-- Una acción primaria por contexto; las secundarias viven en menú o toolbar.
-- Tablas densas, números alineados y estados expresados con color + texto.
-- Tarjetas de profundidad baja; el borde y el espaciado hacen la jerarquía.
-- Radio estándar de 8 a 12 px; no usar tarjetas anidadas como layout.
-- Tabs o subnavegación cuando una pantalla supera una lectura razonable.
-- Mobile conserva las acciones críticas, filtros y estado; no reduce todo a
-  una versión ilegible de la tabla desktop.
+## Primitives
 
-### Sistema visual obligatorio v3
+Usar primero los componentes de src/components/ui y patrones compartidos:
 
-La implementación actual toma como dirección obligatoria los patrones de
-CRM, eMarketplace, Gestão de Marketplace, SaaS marketplace y Neomart
-compartidos por el dueño: canvas claro, superficies blancas, rail persistente,
-jerarquía compacta, active states muy visibles y acentos de color para separar
-operación, salud e inteligencia.
+| Necesidad | Componente/patrón |
+|---|---|
+| Encabezado | PageHeader |
+| Vistas internas | WorkspaceViewTabs |
+| Resultado sin datos | EmptyState |
+| Carga/error/parcial | WorkspaceState |
+| Paginación | DataPagination |
+| Fecha | DateRangeFilter |
+| Archivo | FilePicker |
+| Imagen | ImageUpload |
+| Acción | Button + Lucide |
+| Detalle contextual | Sheet |
+| Confirmación peligrosa | AlertDialog |
 
-- Primary del workspace claro: violeta `252 83% 62%`.
-- Superficie: fondo casi blanco `228 28% 97%`, tarjetas blancas y bordes fríos
-  de bajo contraste.
-- Secundarios: turquesa para salud/finanzas y coral para acciones de atención;
-  el color siempre acompaña texto y estado.
-- Profundidad: sombras cortas y suaves, radios de 8–12 px, sin tarjetas
-  anidadas para construir el layout.
-- Navegación: rail de organización y rail violeta de plataforma; topbar con
-  identidad del workspace, breadcrumb, búsqueda global, estado de conexión y
-  acción primaria. Los encabezados llevan una guía de acento, las métricas
-  declaran su tono con icono/estado y los tabs usan una superficie segmentada
-  con una activa inequívoca.
+Una primitive nueva necesita al menos dos consumidores o una complejidad real
+que no deba repetirse.
 
-El modo oscuro sigue disponible mediante el toggle, pero el modo claro es la
-experiencia por defecto y la referencia que debe validarse visualmente en cada
-slice nuevo.
+## Layouts
 
-### Límite de personalización
+### Organización
 
-El workspace de Gestión tiene una identidad única y predecible. Los colores
-elegidos por cada comercio no pueden reescribir `--background`, `--primary`, el
-rail ni ningún otro token global de Business, Finance o Platform: además de
-romper el modo claro, eso vuelve irreconocible el producto y hace imposible
-garantizar contraste entre tenants.
+AppLayout contiene sidebar, topbar y contexto de organización. El rail agrupa
+trabajos diarios, Commerce, compras, cobranzas, finanzas, marketing, reportes y
+sistema. Las rutas salen de routeManifest.ts.
 
-- Nombre y logo identifican a la organización dentro del chrome compartido.
-- Fondo, cards y acento configurables pertenecen únicamente a la tienda pública
-  y al catálogo PDF.
-- Business usa el violeta oficial, Finance conserva su acento teal y Platform
-  su chrome diferenciado; el toggle claro/oscuro es la única variante cromática
-  del backoffice.
-- Las paletas históricas con `primary`/`secondary` se pueden leer por
-  compatibilidad, pero Gestión no las aplica ni vuelve a escribirlas.
+### Commerce
 
-## Superficies
+/tienda-online es el workspace de configuración/rendimiento de la tienda;
+/pedidos-online es la cola operativa. Ambas comparten selector de tienda y
+preservan ?store=<id>. No crear una segunda administración por cada vitrina.
 
-| Superficie | Navegación | Acento | Objetivo |
-|---|---|---|---|
-| Business | Rail + vistas internas | Violeta | Operar productos, stock, ventas y clientes. |
-| Finance | Rail propio claro/oscuro + documentos | Teal | Revisar evidencia y aprobar decisiones. |
-| Platform | Topbar de identidad + rail de control plane | Violeta | Operar merchants, salud, riesgo y soporte sin confundirse con un tenant. |
-| Storefront | Navegación de tienda | Configurable | Comprar sin ver el backoffice. |
+### Finance
 
-La landing y Auth son superficies públicas de adquisición y acceso: tienen una
-dirección editorial propia, pero comparten tipografía, escala de radios,
-contraste y acento con el producto. La landing debe mostrar el producto real en
-la primera pantalla; Auth debe hacer evidente si la persona va a iniciar sesión
-o crear un workspace.
+FinanceLayout usa navegación propia orientada a gastos, documentos,
+solicitudes, políticas, medios de pago y conciliación. Reutiliza identidad y
+datos del Core sin mostrar las páginas de Business dentro de otro menú.
 
-El color de acento no reemplaza al estado. Error, advertencia, éxito y dato
-pendiente deben conservar una etiqueta legible y no depender sólo del color.
+### Platform
 
-## Estructura de una vista
+PlatformLayout es un control plane. Sus pantallas priorizan colas, health,
+merchant 360, riesgo y acciones auditables. El violeta diferencia el contexto,
+no sustituye jerarquía.
 
-1. Contexto: superficie, organización y estado de conectividad.
-2. Título: una frase corta que nombre el trabajo de la vista.
-3. Toolbar: búsqueda, filtros persistentes y una acción primaria.
-4. Navegación interna: tabs o sidebar si hay más de un trabajo relacionado. En
-   Settings, las seis secciones permanecen en la misma vista y recuerdan la
-   última sección por organización; en Platform, el rail separa el control plane
-   del workspace de cada comercio.
-5. Contenido: primero la decisión o el dato operativo; después el detalle.
-6. Estado: carga, vacío, permiso, error y datos desactualizados explícitos.
+### Tienda
 
-## CRM command center implementado
+StoreLayout es mobile-first. Producto, variantes, imágenes, precio,
+disponibilidad, entrega y compra deben ser visibles y verificables. Cada tema
+usa tokens/versionado, no CSS arbitrario inyectado.
 
-La referencia anterior de CRM quedó descartada como dirección principal el
-2026-08-22: resolvía navegación y detalle, pero era demasiado minimalista para
-la densidad operativa de Nerqia y el resultado se confundía con la interfaz
-anterior. La nueva composición combina dos referencias verificadas en su
-preview público:
+## Densidad y medidas
 
-- [Aerten Web App](https://www.figma.com/community/file/1252610051102275471/aerten-web-app)
-  aporta el patrón de gestión completo: rail, encabezado, tabs, búsqueda,
-  filtros, tabla densa, estados y acción primaria.
-- [eMarketplace Admin Dashboard](https://www.figma.com/design/ojLD3JQrTWpUzCRFnS4WXC/eMarketplace-%F0%9F%9B%8D%EF%B8%8F-%7C-Admin-Dashboard--Community-)
-  aporta el violeta protagonista, las superficies claras y las tarjetas
-  tintadas que hacen distinguibles salud, recurrencia y atención.
+- Contenido de gestión: ancho útil amplio y columnas estables.
+- Header de página: compacto; una acción primaria.
+- Controles touch: mínimo 40 px, 44 px en checkout/POS.
+- Cards: radio máximo 8 px salvo primitive existente.
+- Tablas: header fijo cuando ayuda, números alineados y unidad visible.
+- Panel de detalle: ancho estable y scroll interno.
+- No escalar tipografía con viewport.
+- Reservar tamaño de imágenes, charts, skeletons y counters para evitar CLS.
 
-Nerqia traduce esos patrones al trabajo real del comercio: la lista sigue
-siendo el centro, los segmentos funcionan como navegación rápida y la ficha
-seleccionada conserva el contexto mientras se ejecutan acciones, se revisan
-compras o se programa seguimiento.
+## Navegación y persistencia
 
-- `Clientes` y `Insights` son tabs internos persistidos por organización.
-- El command center muestra cartera total, actividad a 30 días, recurrencia y
-  clientes que requieren atención antes de entrar al detalle.
-- `Clientes` usa un rail de segmentos, toolbar de búsqueda/filtros y selección
-  contextual de la ficha 360; en desktop la cartera es una tabla operativa con
-  relación, compras, facturación, ticket y salud visibles en la misma lectura.
-- `Insights` concentra KPI, top de clientes, segmentación, riesgo y RFM para
-  que la lista no se convierta en una página interminable.
-- En mobile el rail se convierte en una fila horizontal navegable y la ficha
-  mantiene una acción explícita para cerrarse; las columnas pasan a campos
-  rotulados y no a una tabla comprimida.
+- Ruta, tab, búsqueda, filtros compartibles y entidad seleccionada van en URL.
+- Preferencias como columnas o rail colapsado pueden usar storage versionado.
+- Cambiar de pestaña del navegador no reinicia el estado server-side.
+- Volver/avanzar restaura contexto.
+- Cambiar organización/tienda invalida sólo queries de ese contexto.
+- Una nueva versión de la PWA se activa por acción explícita.
 
-Este slice usa datos, permisos, exportaciones, notas, comunicaciones, cuotas y
-acciones existentes; el rediseño no crea un segundo modelo de clientes. El
-criterio competitivo es conservar la ficha 360 y el margen por cliente que ya
-existen en Nerqia, pero llevarlos a la velocidad de lectura de un CRM maduro.
+## Estados
 
-| Referencia | Patrón observado | Traducción en Nerqia |
-|---|---|---|
-| Aerten | Gestión de registros con tabla, filtros, tabs, roles/estado y CTA. | Cartera densa con estado comercial, métricas y ficha 360. |
-| eMarketplace Admin | Violeta fuerte, canvas claro y tarjetas de señal diferenciadas. | Command center de cuatro señales con tonos violeta, mint, sky y coral. |
-| CRM anterior | Lista, segmentos y detalle contextual con baja densidad. | Se conservan navegación y contexto; deja de definir la composición visual. |
+Toda vista cubre loading, refresh, empty inicial, empty filtrado, error, offline
+o stale, permiso, parcial y éxito. Formularios agregan dirty state; datos
+concurrentes agregan conflicto.
 
-## Contrato transversal admin / marketplace
+El error no desaparece en un toast: permanece cerca del contenido y ofrece
+retry. Una respuesta parcial se rotula como parcial, nunca como cero.
 
-El patrón de navegación interna se extiende a las superficies operativas que
-comparten el lenguaje de los kits de admin y marketplace: una barra compacta de
-vistas, una sola tarea por vista, contadores de contexto y estado persistido por
-organización. `WorkspaceViewTabs` es el primitive común para este contrato.
+## Formularios
 
-- **Productos** separa `Catálogo` de `Operación`: la lista, filtros y acciones
-  quedan enfocadas en publicar y editar; KPIs, vencimientos y antigüedad quedan
-  en la vista operativa.
-- **Ventas** separa `Ventas` de `Rendimiento`: la tabla y cobranza no compiten
-  con KPIs, métodos de pago ni tendencia diaria.
-- **Dashboard** separa `Resumen`, `Rendimiento`, `Clientes`, `Stock`, `Caja y
-  finanzas` e `Inteligencia` en vistas activas persistidas por organización; no
-  se presenta como una columna de widgets sin fin. Usa `WorkspaceViewTabs`
-  con acento violeta, iconos, conteos reales y estado del Business Core; evita
-  sumar un segundo rail al rail global del Figma CRM. Los hashes históricos
-  (`#dashboard-*`) siguen abriendo la vista correspondiente y un estado viejo
-  de `localStorage` nunca puede ocultar todas las vistas. El contrato traduce
-  explícitamente el hash (`dashboard-sales`) a la clave visual (`sales`) y una
-  guarda recorre las seis parejas: el estado y el selector CSS no pueden volver
-  a divergir dejando todo el contenido con `display:none`.
-- **Settings, Admin, Integraciones, Reportes y Tienda** conservan
-  sus primitives de tabs/sidebar porque necesitan contenido Radix o navegación
-  profunda; deben adoptar los mismos tokens de borde, densidad, foco, scroll
-  horizontal móvil y persistencia por organización.
-- **Platform** usa un rail de control separado, con grupos de `Workspace`,
-  `Operaciones`, `Ingresos` y `Gobierno`; cada grupo se filtra por permisos de
-  plataforma y mantiene el acento violeta propio del control plane.
-- La navegación no duplica datos ni permisos: sólo cambia la composición de la
-  vista y mantiene montadas las acciones/modales que el flujo ya utiliza.
+- Labels visibles y validación inline.
+- Campos agrupados por decisión, no por tabla.
+- Defaults sólo cuando son universalmente seguros.
+- Guardado único e idempotente.
+- Botón primario muestra progreso sin cambiar tamaño.
+- Acciones destructivas separadas y confirmadas.
+- Imágenes sólo con ImageUpload.
 
-Esta es la traducción del patrón de CRM, eMarketplace y marketplace kits a la
-operación omnicanal de Nerqia: lista primero, contexto visible, detalle bajo
-demanda y una ruta clara a la acción.
+## Índices y colas
 
-### Primitives y cobertura transversal
+- Búsqueda con debounce razonable.
+- Filtros en URL y contador activo.
+- Vistas guardadas separadas de segmentos.
+- Selección masiva con alcance explícito.
+- Columnas configurables si la densidad lo justifica.
+- Paginación server-side en poblaciones grandes.
+- Fila clickeable sólo si no compite con sus controles.
+- Cola muestra prioridad/SLA, responsable y próxima acción.
 
-`AppLayout`, `FinanceLayout` y `PlatformLayout` envuelven cada ruta autenticada
-en `workspace-route-surface`. Ese contrato evita que la renovación dependa de
-que cada una de las más de cien páginas recuerde agregar una clase: una vista
-heredada recibe automáticamente canvas, cards, tablas, hover y contraste del
-sistema v3 mientras se migra su composición particular.
+## Accesibilidad
 
-Los primitives compartidos son la unidad mínima del rediseño:
+Objetivo WCAG 2.2 AA: teclado completo, foco visible, nombres accesibles,
+contraste, zoom 200%, lector y reducción de movimiento. Validar al menos 360,
+390, 768, 1024, 1280×720 y 1440 px.
 
-- `Button` concentra alturas, radios, foco, profundidad y acción primaria;
-- `Input`, `Select` y `Textarea` usan superficie clara, borde visible y foco
-  violeta común;
-- `Card`, `Dialog`, `Popover` y `Tooltip` comparten borde, radio y elevación;
-- `Tabs` adopta navegación segmentada, con activa inequívoca y scroll móvil;
-- `Table` fija densidad, números tabulares, encabezado tintado y hover de fila;
-- `Badge`, `EmptyState` y los skeletons preservan contraste y estados sin que
-  cada módulo invente otro lenguaje.
+## Revisión
 
-Los slices D2.2–D2.3 eliminaron 30 `<select>` nativos: 20 de 12 páginas y 10 de
-6 componentes internos. Business, POS, Reportes, Finance, Platform, alertas,
-webhooks, envíos, importación y el Copilot usan ahora el mismo primitive con
-trigger, portal, foco, teclado y contraste compartidos. La guarda recorre de
-forma recursiva páginas y componentes: ambos inventarios quedan en cero.
+Antes de cerrar una pantalla:
 
-Storefront conserva exactamente tres controles nativos bajo contrato: provincia
-y cuotas en checkout, donde importan autofill y teclado del navegador móvil, y
-orden del listado mobile, donde evita un popover portaleado sobre el catálogo.
-El test fija archivos y cantidad; una cuarta excepción rompe CI. La decisión se
-contrastó reabriendo los previews públicos de CRM Customers/Deals y eMarketplace
-Admin el 2026-08-22: se adopta su densidad y jerarquía compacta en el SaaS, sin
-forzar controles administrativos sobre formularios públicos del comprador.
-
-`PageHeader` es también transversal: Ajustes, Perfil, Document Inbox, resumen
-de Finance y comunicaciones de Platform ya comparten ubicación, contexto,
-título, descripción y acciones. Finance traduce el acento del primitive a teal
-sin bifurcar el componente. POS es la excepción deliberada: ocupa el viewport
-como superficie de caja y conserva búsqueda, categorías, carrito y estado del
-turno siempre visibles; agregarle un hero administrativo reduciría velocidad de
-cobro, pero sus controles y tokens sí pertenecen al mismo sistema.
-
-Document Inbox expresa la cadena de confianza en la misma fila del original:
-`Sin inspeccionar`, `Inspeccionando`, `Scanner pendiente`, `Listo para extraer`,
-`Duplicado` o `Cuarentena`. La acción de inspeccionar aparece sólo cuando puede
-progresar; un scanner ausente se muestra como bloqueo recuperable y nunca como
-éxito verde. Esto traduce un estado de seguridad real, no una decoración.
-
-Cuando la inspección permite avanzar, la misma superficie muestra extracción,
-confianza y errores sin convertirlos en una caja negra. El resumen separa dato
-del modelo, advertencia y siguiente acción; una confianza alta no oculta una
-cuenta inválida. La revisión abre un editor ordenado por cabecera, importes y
-líneas, permite agregar o quitar ítems y confirma de forma visible que guardar
-una revisión no crea compras, deudas, stock ni asientos. El original y las
-revisiones previas permanecen inmutables.
-
-Una personalización puntual puede cambiar composición o tono semántico, pero no
-volver a definir estos fundamentos. El test `managementVisualContract` protege
-la cobertura de las tres superficies y los tokens esenciales.
-
-### Estados del workspace
-
-`WorkspaceState` es el primitive común para initial loading, refreshing,
-empty-first-use, empty-filtered, error recoverable, permission, offline, stale,
-partial, conflict, rate limited y success. Initial loading conserva una
-estructura con skeleton; refresh no tapa datos ya visibles. Error, offline y
-conflict usan `role=alert`; el resto usa `status`, siempre con texto e icono
-además de color.
-
-Finance y Compras son la primera adopción D2.5. Un fallo al cargar órdenes no
-se convierte en lista vacía; un refresh fallido conserva datos como stale; si
-sólo faltan proveedores o productos, la vista declara cobertura parcial. Sin
-red se puede leer lo ya cargado, pero las escrituras documentales y físicas se
-deshabilitan. Las rutas restantes se migran por riesgo, no con un reemplazo
-masivo sin revisar recuperación y permisos.
-
-### Overlays canónicos D2.6
-
-Dialog, Sheet y Popover son autoridad de foco, Escape, click exterior, retorno
-al disparador, overlay, animación y z-index. D2.6 retiró 16 implementaciones
-manuales de 11 archivos de Gestión: formularios largos conservan contexto en
-Sheet, decisiones/resultados breves usan Dialog y notificaciones contextuales
-usan Popover. `DialogContent` ofrece tamaños `sm/md/lg/xl/full` y `hideClose`
-para un gate como el bloqueo por inactividad, que además cancela Escape/click
-exterior explícitamente.
-
-La allowlist automática conserva sólo cuatro fullscreen que no son modales de
-formulario: backdrop del rail mobile y cámara activa en POS, Compras y conteo.
-Sumar otro `fixed inset-0` en Gestión rompe CI; primero debe clasificarse con el
-árbol de decisión del estándar competitivo. Storefront se audita en D5 porque
-su carrito y navegación mobile pertenecen a la superficie pública.
-
-### Paginación canónica D2.4
-
-`DataPagination` es la autoridad visual para listas paginadas. Recibe página
-base cero, total de páginas y callback; si conoce total y tamaño, explica el
-rango real (`41–53 de 53`) sin inventar registros en páginas vacías. Normaliza
-límites, no aparece cuando hay una sola página y expone anterior/siguiente con
-texto, icono, estado disabled, `nav` y actualización `aria-live`.
-
-Admin, Productos, Compras, Reportes y Ventas retiraron cinco paginadores
-locales. La página conserva autoridad sobre query, filtros y `setPage(0)`; el
-componente sólo normaliza navegación y presentación. La guarda visual exige el
-primitive en los cinco listados.
-
-### Fechas y archivos canónicos D2.4
-
-Los 82 campos `date`, `datetime-local` o `month` medidos en 46 archivos
-(2026-08-22) conservan el control temporal del navegador por decisión: ofrece
-teclado y selector mobile del sistema sin sumar una dependencia ni traducir
-fechas en el cliente. Todos pasan por `Input`, que fija superficie, foco,
-contraste, indicador y `color-scheme` claro/oscuro. Analytics, Deudas,
-Reportes, Clientes y el asistente retiraron las 11 variantes `<input>` que aún
-duplicaban esos estilos; una guarda recursiva mantiene el total manual en cero.
-Los filtros generales pueden componer `DateRangePicker`/`DateRangeFilter`; una
-fecha de negocio o comparación compacta conserva `Input` con label o
-`aria-label` contextual.
-
-Los 16 inputs de archivo no forman un único patrón funcional y quedan
-clasificados en tres familias antes de converger su presentación:
-
-- 5 importaciones estructuradas: catálogo Excel/CSV, precios, Tiendanube,
-  clientes y extracto bancario. **Convergidas 2026-08-22:** todas usan
-  `FilePicker` en modo dropzone o botón compacto;
-- 6 documentos/capturas: factura de producto, OCR de compras, Finance Inbox,
-  scanner de comprobante y los dos accesos archivo/cámara de Gastos;
-- 5 imágenes de producto o marca: asistente, `ImageUpload`, galería de
-  Productos, avatar y logo.
-
-`FilePicker` centraliza teclado/click, drag-and-drop, reset para volver a elegir
-el mismo archivo, busy/disabled, validación de extensión o MIME y error con
-`role="alert"`. No parsea ni aplica datos: cada importador conserva autoridad
-sobre límites, preview, aprobación, transacción y reconciliación.
-
-El `<input type="file">` oculto es transporte, no la interfaz visible. Las dos
-familias restantes no se reemplazan en masa: documentos/cámara necesitan
-captura, preview, progreso, error y retry; imagen/branding además compresión y
-recorte. D2.4 sigue parcial por esas convergencias y por la auditoría pendiente
-de combobox/menús.
-
-## Referencias de dirección
-
-- [CRM app con clientes, deals y tareas](https://www.figma.com/design/y3iW4vARslK39hLDzTj37D/CRM-app-with-customers--deals--nested-data--tasks-and-menu-filtering--Community-)
-- [Profile UI Kit marketplace](https://www.figma.com/design/Khvuwp0ptolMD8aHM4CHzh/Profile-UI-Kits--Free----Tbean-Marketplace-App--Community-)
-- [Brand Marketplace App](https://www.figma.com/design/57ORGgL3BkPkMTNgyVNx1p/Brand-Marketplace-App---Pickolab--Community-)
-- [eMarketplace Admin Dashboard](https://www.figma.com/design/ojLD3JQrTWpUzCRFnS4WXC/eMarketplace-%F0%9F%9B%8D%EF%B8%8F-%7C-Admin-Dashboard--Community-)
-- [Gestão de Marketplace](https://www.figma.com/design/jDuICk6QkPLZWMNdZlooUO/Gest%C3%A3o-de-Marketplace--Community-)
-- [SaaS marketplace admin dashboard](https://www.figma.com/community/file/1592463185051545674/saas-marketplace-admin-dashboard)
-- [Online marketplace with admin panel](https://www.figma.com/community/file/1603844072075947715/online-marketplace-with-admin-panel)
-- [Aerten web app](https://www.figma.com/community/file/1252610051102275471/aerten-web-app)
-- [Neomart multi-vendor marketplace](https://www.figma.com/community/file/1517000338815971780/neomart-multi-vendor-marketplace-ui-kit)
-
-## Definition of done visual
-
-- La vista se entiende sin leer instrucciones dentro de la app.
-- El usuario identifica ubicación, estado y siguiente acción en menos de unos
-  segundos.
-- Los filtros y tabs se conservan al cambiar de ruta cuando el contexto lo
-  requiere.
-- No hay overflow horizontal accidental en 360, 768, 1024 ni desktop.
-- Los estados de loading, vacío, error y permiso tienen tratamiento propio.
-- El contraste y el foco visible funcionan en tema claro y oscuro.
-- La captura desktop y mobile se revisa antes de cerrar un slice.
+1. comprobar arquetipo, ruta y autoridad;
+2. probar datos vacíos, largos, parciales y error;
+3. recorrer teclado y foco;
+4. capturar desktop y móvil;
+5. revisar overflow, solapamientos, consola y requests;
+6. ejecutar Playwright/Axe cuando corresponda;
+7. probar el resultado real, no sólo el render.

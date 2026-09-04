@@ -1,6 +1,6 @@
 # Hechos canónicos de margen
 
-**Corte:** 2026-08-22
+**Estado:** vigente. **Corte técnico:** 2026-08-22.
 
 **Autoridad:** `sale_margin_facts`
 
@@ -166,10 +166,27 @@ margen; una parte pendiente reduce cobertura en vez de transformarse en cero.
 2. Completar costo de transportista en tienda y fiscalidad de MercadoLibre.
 3. Persistir la base de cupón/precio promocional hacia adelante para medir su
    impacto sin backfill.
-4. Aplicar con un merchant una propuesta real y completar su ventana. El
-   contrato técnico ya congela baseline, revalida costo/margen, mide sin afirmar
-   causalidad y revierte con guard de concurrencia; ver
-   [PRICE_IMPACT_LOOP.md](PRICE_IMPACT_LOOP.md).
+4. Aplicar con un merchant una propuesta real y completar su ventana.
 
 No se hace backfill heurístico. Si el dato histórico no existe, queda pendiente;
 la cobertura mejora con operaciones nuevas y fuentes reales.
+
+## Action loop de precio
+
+`ai_offer_recommendations` conserva la propuesta;
+`apply_ai_offer_recommendation` aprueba y aplica de forma atómica; y
+`price_change_impact_events` congela baseline, medición y reversión. La vista
+`price_change_proposal_outcomes` es la superficie tenant-safe.
+
+- La base recalcula costo y margen; el porcentaje sugerido no es autoridad.
+- Aplicar exige `marketing.edit` y una ventana entre 1 hora y 30 días.
+- Revertir usa comparación optimista y no pisa una edición posterior.
+- Baseline y observación leen `sale_margin_facts`.
+- La contribución queda `NULL` si alguna ventana no tiene cobertura completa.
+- Todo antes/después se rotula `observed_not_causal`: no es un A/B test.
+- Aplicación, medición y reversión quedan auditadas.
+
+Verificación reversible 2026-08-22: aplicación, edición concurrente bloqueada,
+reversión segura, permisos tenant y cero restos. Producción conservaba 25
+recomendaciones descartadas, 0 aplicadas y 0 outcomes; el contrato técnico no
+demuestra impacto comercial.

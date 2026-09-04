@@ -8,7 +8,7 @@
 -- separado. Ésta es esa migración aparte: **no toca esquema**.
 --
 -- Lo que empuja a hacerlo es una métrica, no la prolijidad.
--- `docs/CAPACIDADES.md` reporta «34 clientes» como señal de adopción, y nueve
+-- Una medición histórica reportaba «34 clientes» como señal de adopción, y nueve
 -- de esos 34 son de prueba: **los reales son 25**, así que cualquier número
 -- construido sobre `customers` está inflado un 26%. Y el dueño está por
 -- lanzar con esa lista a la vista.
@@ -26,7 +26,7 @@
 -- quedan.** El prefijo engaña: no son basura de verificación, son **la
 -- evidencia de que el cobro real funcionó** —las dos compras de $1 del
 -- 2026-07-31, con su `application_fee` informado por MercadoPago— y
--- CLAUDE.md las cita como prueba. Borrarlas sacaría de la base lo único que
+-- CONTRIBUTING.md las cita como prueba. Borrarlas sacaría de la base lo único que
 -- demuestra que la plata entró.
 --
 -- Tampoco se tocan tres movimientos de Kardex «ZZ producto» del 2026-07-31:

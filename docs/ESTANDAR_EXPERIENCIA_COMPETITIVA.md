@@ -1,914 +1,266 @@
-# Nerqia — estándar integral de producto y experiencia competitiva
+# Estándar de experiencia competitiva
 
-**Corte de investigación:** 2026-08-29
-**Estado:** lineamiento obligatorio para producto, diseño e ingeniería.  
-**Ámbito:** Business, Commerce, Finance, Platform, Intelligence, Storefront y
-superficies públicas.
+**Estado:** obligatorio. **Corte:** 2026-09-04.
 
-Este documento define **cómo investigar, decidir, diseñar, construir y validar**
-una experiencia de primer nivel. No reemplaza a [`ROADMAP.md`](../ROADMAP.md),
-que ordena el producto, ni a [`DESIGNROADMAP.md`](../DESIGNROADMAP.md), que
-ordena el rediseño. Es la vara permanente contra la cual ambos se ejecutan.
+Se aplica antes de cambiar una pantalla, tabla, modal, filtro, navegación,
+dependencia o stack. Su objetivo es entregar trabajos completos y coherentes,
+no acumular componentes.
 
-La intención no es copiar una pantalla famosa ni sumar todas las funciones que
-existen en el mercado. Nerqia adopta patrones que reducen tiempo, error y
-riesgo, y conserva su diferencial: una sola verdad de stock, cliente, costo,
-cobro, impuestos, envío y margen a través de todos los canales.
+## 1. Evidencia y traducción
 
-📌 **Lineamiento 2026-09-02:** este estándar no es lectura opcional. Cada slice
-compara con la competencia citada acá y en [`COMPARACION.md`](COMPARACION.md),
-elige la tecnología equivalente a la de empresas serias (Meta Cloud, OAuth,
-webhooks firmados, autoridad en servidor) y se prioriza por ATM. El agente
-opera como CEO/CTO/CFO/PM/PO/inversor: libertad de actuar para bien, sin feature
-factory ni canales que mienten. Ver `.cursor/rules/lineamiento-competitivo.mdc`.
+- ✅ Verificado: fuente oficial, medición o prueba reproducible con fecha.
+- 👁 Observado: inspección visual/flujo que puede cambiar.
+- 📌 Decisión Nerqia: elección propia y su trade-off.
+- ❓ Hipótesis: necesita validación; no se presenta como hecho.
 
-## 1. Autoridad y lenguaje de evidencia
+### Traducción, no copia
 
-Cada afirmación de este documento usa una de estas marcas:
+Una referencia aporta anatomía, jerarquía, estados o expectativa. Nerqia la
+traduce a su dominio, marca, datos y usuarios. No copia assets, textos,
+componentes, navegación ni trade dress.
 
-- **✅ Verificado:** comportamiento documentado por una fuente oficial y
-  revisado en la fecha de corte.
-- **👁 Observado:** composición vista directamente en un preview público de
-  Figma; prueba el patrón visual, no que una empresa real lo use ni que funcione.
-- **📌 Decisión Nerqia:** traducción elegida para nuestro producto.
-- **❓ Hipótesis:** idea todavía sin evidencia de uso, performance o negocio.
+Antes de afirmar que un competidor tiene o no tiene algo:
 
-Reglas:
+1. consultar fuente oficial vigente;
+2. registrar URL y fecha;
+3. separar capacidad publicada de comportamiento observado;
+4. describir el trabajo del usuario, no el nombre comercial;
+5. decidir qué paridad, ventaja o exclusión corresponde.
 
-1. una captura no demuestra una capacidad;
-2. marketing no demuestra un flujo end-to-end;
-3. una función de un competidor no entra al roadmap sin conectar con un trabajo,
-   una métrica y una fase vigente;
-4. “similar a” nunca autoriza copiar assets, textos, datos o composiciones
-   completas;
-5. toda comparación se vuelve a verificar antes de publicarla: el mercado
-   cambia;
-6. si una fuente no se pudo verificar, se escribe `❓`, no se completa de
-   memoria.
+## 2. Resultado de producto
 
-## 2. Qué se estudió y qué aporta cada referencia
+Una pantalla existe para completar un trabajo. Debe declarar:
 
-### Referencias globales de operación
+- actor, contexto y permiso;
+- entrada y resultado observable;
+- autoridad de datos;
+- camino principal, reversa y recuperación;
+- métrica de éxito;
+- comportamiento mobile, teclado y lector;
+- impacto de seguridad, privacidad y fraude.
 
-| Referencia | Evidencia | Patrón útil | Traducción, no copia |
-|---|---|---|---|
-| Shopify Admin | ✅ [vistas y filtros](https://help.shopify.com/en/manual/shopify-admin/productivity-tools/searching-filtering-views), [vistas de pedidos](https://help.shopify.com/en/manual/fulfillment/managing-orders/viewing-orders/searching-orders), [acciones masivas](https://help.shopify.com/en/manual/shopify-admin/productivity-tools/bulk-actions) | Vistas reutilizables por recurso, filtros explícitos, selección de página o de todos los resultados y preview de pedido sin perder la población. | Índices de productos, ventas y clientes con estado en URL, vistas guardadas, inspector contextual y bulk seguro. |
-| Shopify POS | ✅ [sesiones de caja](https://help.shopify.com/en/manual/sell-in-person/shopify-pos/cash-register-management/register-sessions-in-shopify-pos) | La sesión pertenece a una ubicación y registra fondo inicial, responsable, pagos, movimientos, efectivo esperado, contado y diferencia; los “otros métodos” siguen visibles sin fingir que son efectivo. | El turno de Nerqia es server-side por organización/ubicación, cuenta tickets canónicos —no renglones—, separa efectivo/transferencia/tarjeta, atribuye vendedor y hace que el cierre declarado se compare con un esperado calculado en servidor. |
-| HubSpot CRM | ✅ [vistas guardadas](https://knowledge.hubspot.com/records/manage-saved-views-in-the-updated-index-page), [columnas](https://knowledge.hubspot.com/records/customize-index-page-columns), [filtros rápidos](https://knowledge.hubspot.com/records/customize-quick-filters), [segmentos](https://knowledge.hubspot.com/segments/view-and-filter-lists) | La vista guarda filtros, columnas, orden y alcance; preview sin perder la lista; lógica de segmentos agrupada. | `ResourceView` canónica y diferencia estricta entre filtro, vista, segmento, cohorte y cola. |
-| Salesforce | ✅ [vistas de lista](https://help.salesforce.com/s/articleView?id=xcloud.basics_understanding_list_views_lex.htm&language=en_US&type=5), [vistas personalizadas](https://help.salesforce.com/s/articleView?id=xcloud.customviews_lex.htm&language=en_US&type=5), [Kanban](https://help.salesforce.com/s/articleView?id=kanban.htm&language=en_US&type=5) | Tabla/Kanban/split según tarea, vista fijada, búsqueda amplia y tablero con agrupación y resumen. | Tablero sólo para entidades con etapas reales; la tabla sigue siendo la autoridad para comparar. |
-| Stripe Dashboard | ✅ [búsqueda](https://docs.stripe.com/dashboard/search), [Workbench](https://docs.stripe.com/workbench/overview), [filtros](https://docs.stripe.com/connect/dashboard/filters) | Búsqueda global con operadores y URL compartible; inspector persistente de errores, eventos, webhooks y salud. | Command palette y Operation Inspector transversal con correlación, retry y auditoría, sin exponer secretos. |
-| Odoo | ✅ [tipos de vista](https://www.odoo.com/documentation/19.0/applications/studio/views.html), [dashboards](https://www.odoo.com/documentation/19.0/applications/productivity/dashboards.html), [filtros globales](https://www.odoo.com/documentation/19.0/applications/productivity/spreadsheet/work_with_data/global_filters.html) | Lista, Kanban, búsqueda, pivots y dashboards con filtros globales y drill-down al registro fuente. | Un mismo Business Core con representaciones por tarea; todo KPI puede explicar y abrir su población. |
-| Shopify Flow | ✅ [triggers, condiciones y acciones](https://help.shopify.com/en/manual/shopify-flow/reference), [editor](https://help.shopify.com/en/manual/shopify-flow/create/workflow-editor) | Automatizaciones visuales con ramas, datos dinámicos, schedules, loops y conectores. | Orbit/Playbooks: señales multi-dominio, preview de impacto, autoridad del Core, approval gates, retry y outcome; no un automatizador genérico. |
-| Shopify Sidekick | ✅ [producto](https://help.shopify.com/en/manual/ai-powered-tools/sidekick), [setup y límites](https://help.shopify.com/en/manual/ai-powered-tools/sidekick/set-up), [Pulse](https://help.shopify.com/en/manual/ai-powered-tools/sidekick/pulse) | Contexto de la tienda, sugerencias proactivas convertidas en tareas y cambios sujetos a revisión/aprobación. Pulse prioriza hasta cinco oportunidades, no un feed infinito. | Business Copilot recibe tenant/intención; el servidor arma contexto mínimo bajo RLS. Cada insight declara evidencia, abre una acción revisable y luego mide outcome. Una vista oculta o un plan sin IA no consume. |
-| HubSpot Workflows | ✅ [historial y versiones](https://knowledge.hubspot.com/workflows/understand-your-workflow-details-page), [trazado por registro](https://knowledge.hubspot.com/workflows/review-a-records-workflow-paths-and-actions) | Performance, action logs, historial de enrollment, revisión de versiones y camino exacto de cada registro. | Cada run de Orbit muestra snapshot, evidencia, policy, entidad enlazada, error, retry y resultado, con retención/PII explícitas. |
-| QuickBooks Online | ✅ [receipts/bills](https://quickbooks.intuit.com/learn-support/en-us/help-article/import-transactions/upload-receipts-bills-quickbooks-online/L862MmZHn_US_en_US), [aprobaciones](https://quickbooks.intuit.com/learn-support/en-us/help-article/manage-workflows/set-use-bill-approval-payment-release-workflows/L1IOLL9hv_US_en_US), [gestión de bills](https://quickbooks.intuit.com/learn-support/en-us/help-article/pay-bills/review-manage-bills-quickbooks-online/L8VbbnAd2_US_en_US) | Cola `For review`, documento y datos lado a lado, match o creación, estado de aprobación y tarea asignada. | Finance Document Inbox, revisión humana versionada y borradores sin efecto hasta aprobación. |
-| QuickBooks Intuit Intelligence | ✅ [producto](https://quickbooks.intuit.com/learn-support/en-us/help-article/intuit-assist/introducing-intuit-intelligence/L189976Da_US_en_US) | IA + BI sobre datos de la compañía, respuestas contextualizadas, insights y tareas de varios pasos dentro del producto. | El briefing comparte la misma fuente server-side con sus cifras visibles; no recibe un prompt ni el grafo del negocio desde el browser. El siguiente gate es recomendación → acción → resultado, no más texto generado. |
-| Square | ✅ [reportes](https://squareup.com/help/us/en/article/5072-summaries-and-reports-from-the-online-dashboard), [gestión de órdenes](https://squareup.com/help/us/en/article/6923-pickup-orders-on-square-point-of-sale), [colas de disputa](https://squareup.com/help/us/en/article/8361-view-dispute-reports), [pagos offline](https://squareup.com/help/us/en/article/7777-process-card-payments-with-offline-mode) y [sesión de cajón](https://squareup.com/help/us/en/article/8344-start-and-end-a-cash-drawer-session) | Fecha/local/dispositivo como contexto; órdenes omnicanal buscables por estado/origen/pago con detalle y actividad; tarjetas de performance y lista accionable; “requiere respuesta”. Offline declara pendiente/riesgo/resultado. La caja parte del efectivo inicial, suma ventas/reembolsos e ingresos/retiros y compara efectivo esperado contra contado. | POS/reportes por ubicación, índice de ventas con inspector de ticket y colas con severidad, dueño, vencimiento y próxima acción. Nerqia agrupa offline por ticket y su turno usa esa misma unidad server-side; no promete procesamiento de tarjeta/hardware que no controla. |
+No se crea una ruta si el trabajo ya vive en otra. Tabs separan vistas del
+mismo trabajo; filtros reducen una población; un detalle amplía una entidad.
 
-### Finance y spend management regional
+## 3. Gramática compartida
 
-| Referencia | Evidencia | Patrón útil | Traducción, no copia |
-|---|---|---|---|
-| Mendel | ✅ [producto](https://mendel.com/ar/producto/), [tarjetas](https://mendel.com/ar/producto/tarjetas-mendel/), [integraciones](https://mendel.com/ar/producto/integraciones/) y [MCP](https://mendel.com/ar/mendel-mcp/) | Control preventivo: presupuesto y política antes del gasto; tarjetas físicas/virtuales, reglas por monto/categoría/ubicación/frecuencia, aprobaciones multinivel, centros de costo y exportación a ERP. Su MCP permite consultar y aprobar en lote con herramientas autorizadas. | F5 debe unir solicitud, política, presupuesto, evidencia, aprobador, excepción y exportación sobre el mismo Business Graph. Las acciones de IA reutilizan permisos y auditoría; nunca evitan la aprobación humana. |
-| Clara Global | ✅ [plataforma Argentina](https://global.clara.com/es-AR) | Comprobante por WhatsApp/formulario, gasto con tarjeta y reembolso en un mismo flujo, roles diferenciados, entidades legales aisladas y reporte de pago estructurado. | Ingreso mobile/WhatsApp, reembolso y tarjeta externa convergen en una cola común sin mezclar organizaciones ni monedas. Solicitante, manager, contador y administrador ven alcances distintos. |
-| Rindegastos | ✅ [gestión de gastos](https://rindegastos.com/), [controles y flujos](https://rindegastos.com/es-mx/gestion-de-gastos) y [API](https://rindegastos.com/es-co/documentacion-api) | Rendiciones, anticipos/fondos, viáticos, kilometraje, captura offline, duplicados, políticas por centro de costo y aprobaciones por monto/tipo; API para usuarios, gastos, informes, fondos y políticas. | Expense Management necesita captura resiliente, fondos/reembolsos, política versionada, cola de infracciones y contrato de integración estable; el rol final sigue siendo responsable de la decisión. |
-| SAP Concur Argentina | ✅ [servicios financieros](https://www.concur.com.ar/servicios-financieros) | Viajes, gastos y facturas en una suite, captura automática y visibilidad fiscal/regulatoria. | Es referencia enterprise de cobertura y compliance, no alcance inmediato. Nerqia preserva evidencia fiscal argentina y escala por fases sin presentar una suite de viajes inexistente. |
-
-📌 **Límite Finance:** tarjetas corporativas, custodia de fondos y viajes no
-entran en F3 ni se prometen por paridad. Primero se valida documento → matching
-→ borrador → aprobación sobre el Core. F5 agrega política, presupuesto, centro
-de costo, reembolso, captura móvil y operación por excepción. Emitir tarjetas o
-mover dinero exige demanda, socio regulado, economics y análisis legal propios.
-
-### Ecosistema argentino de comercio y gestión
-
-| Referencia | Evidencia | Patrón útil | Traducción, no copia |
-|---|---|---|---|
-| Tiendanube | ✅ [funcionalidades](https://www.tiendanube.com/funcionalidades), [Punto de Venta](https://ayuda.tiendanube.com/pdv/que-es-punto-de-venta-de-tiendanube) y [búsqueda/filtros de ventas](https://ayuda.tiendanube.com/es_AR/123288-mis-ventas/como-buscar-y-filtrar-mis-ventas) | Tienda, redes, marketplaces, PDV, stock sincronizado, pagos, envíos, marketing y ecosistema de apps. El PDV busca catálogo/clientes, ve stock, descuenta y lleva la orden al administrador; Ventas ofrece filtros ricos, vistas rápidas, exportación y acciones masivas. | La paridad Commerce incluye el recorrido completo y una operación de órdenes veloz; POS o stock compartido ya no son diferenciales. Nerqia debe explicar costo y margen por canal desde la misma orden y distinguir un ticket local pendiente del stock ya reconciliado. |
-| Empretienda | ✅ [plataforma](https://www.empretienda.com/), [productos](https://empretienda.helpjuice.com/es_AR/productos) y [carga de venta](https://empretienda.helpjuice.com/es_AR/conociendo-agregar-) | Administración desde cualquier dispositivo, carga/importación de productos, productos digitales/mayoristas, promociones y una venta presencial/WhatsApp que descuenta el mismo stock. | El segundo comercio debe poder empezar y vender desde el celular con menos configuración. La venta fuera del checkout sigue entrando al Core, no crea otro inventario. |
-| Contabilium | ✅ [ERP Argentina](https://contabilium.com/ar) y [ERP ecommerce](https://contabilium.com/ar/industrias/erp-ecommerce/) | Facturación, compras, stock, tesorería, contabilidad y POS con integraciones a Mercado Libre, Tiendanube, WooCommerce y Shopify; depósitos, precios, órdenes y clientes sincronizados. | El benchmark local no termina en ecommerce: onboarding, ARCA, depósitos, compras y conciliación deben funcionar juntos. La amplitud sin adopción no cuenta como ventaja. |
-| Xubio | ✅ [producto](https://xubio.com/ar/) y [matriz de empresas](https://xubio.com/ar/precios-empresas) | Facturación, cobranzas, pagos, compras, stock/depósitos, importaciones, impuestos, contabilidad, permisos e integraciones locales en una matriz de planes explícita. | El lenguaje fiscal y las tareas argentinas deben ser nativos. Nerqia compite con menor tiempo a valor y evidencia de margen, no con una lista más larga de módulos. |
-| Colppy | ✅ [plataforma](https://colppy.com/) y [gestión para PyMEs](https://colppy.com/sistema-de-gestion-para-pymes) | Gestión y contabilidad cloud, facturación, bancos, pagos/cobros, stock, cash flow e integraciones con Mercado Pago, Tiendanube y Mercado Libre. | Finance y Business muestran continuidad entre operación, banco, impuesto y asiento, con estados conciliados y responsables visibles. |
-| Mercado Libre + Mercado Pago | ✅ [publicación](https://www.mercadolibre.com.ar/ayuda/como-publicar-en-mercado-libre_25316), [Orders API de Point](https://www.mercadopago.com.ar/developers/es/docs/mp-point/overview) y [marketplace fee](https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/how-tos/integrate-marketplace) | Catálogo/variantes/stock, fulfillment, cobro presencial y online, conciliación por notificaciones y comisión de marketplace mediante OAuth. | MercadoLibre es un canal del Core y Mercado Pago una infraestructura de cobro: cada evento se reconcilia, es idempotente y termina en orden, stock, pago y margen explicables. |
-
-📌 **Paridad local obligatoria:** catálogo/importación, venta de mostrador y
-online, stock único, promociones, pagos, envíos, dominio, facturación argentina,
-filtros/acciones de órdenes, uso mobile e integraciones. Ninguna de esas piezas
-aislada es el posicionamiento. El claim defendible a validar es que Nerqia
-reúne operación, Commerce y Finance con costo histórico, comisión, envío e IVA
-en la misma decisión de margen.
-
-❓ **Radar regional no usado como hecho:** Tango, Dragonfish, Fudo/Maxirest,
-VentaWeb, Axon y Max24 siguen siendo referencias por verificar contra fuentes
-oficiales vigentes antes de incorporarlas a una comparación o presentación.
-
-### Dirección visual compartida
-
-Inspección directa realizada en preview público el 2026-08-22:
-
-| Referencia | Observación | Qué se adopta | Qué no se adopta |
-|---|---|---|---|
-| [Aerten](https://www.figma.com/community/file/1252610051102275471/aerten-web-app) | 👁 Rail, título compacto, tabs, búsqueda, filtros, tabla de alta lectura, estados y CTA. | Densidad y jerarquía de índices administrativos. | Paleta bordó, contenido HR y assets. |
-| [eMarketplace Admin](https://www.figma.com/design/ojLD3JQrTWpUzCRFnS4WXC/eMarketplace-%F0%9F%9B%8D%EF%B8%8F-%7C-Admin-Dashboard--Community-) | 👁 Canvas claro, violeta fuerte, navegación en dos niveles, filtros laterales y cards comerciales tintadas. | Separación cromática de contexto, salud y atención. | Layout de catálogo como solución universal. |
-| [CRM Customers/Deals](https://www.figma.com/design/y3iW4vARslK39hLDzTj37D/CRM-app-with-customers--deals--nested-data--tasks-and-menu-filtering--Community-) | 👁 Rail de iconos, listas densas, detalle de deal/cliente, formularios breves, `load more` y vacío explícito. | Lista → preview/ficha → acción sin perder orientación. | Minimalismo que oculte margen, permisos o relaciones. |
-| [SaaS Marketplace Admin](https://www.figma.com/community/file/1592463185051545674/saas-marketplace-admin-dashboard) | 👁 Dashboard de control, entidades, cuentas, planes, slots y `Review Queue`; la revisión abre una ficha completa con evidencia y acciones sensibles separadas. | Control plane por trabajos, cola con SLA y detalle completo para decisiones de riesgo. | Métricas decorativas sin drill-down ni periodo. |
-
-📌 Los Figma aportan dirección y cobertura. Los competidores oficiales aportan
-comportamiento. Ninguna de las dos fuentes reemplaza pruebas con comerciantes.
-
-## 3. Modelo mental obligatorio
-
-Toda superficie responde en este orden:
-
-1. **Dónde estoy:** producto, organización, tienda/ubicación y entorno.
-2. **Qué trabajo hago:** título y verbo inequívocos.
-3. **Qué requiere atención:** excepción, riesgo, vencimiento o dato parcial.
-4. **Qué puedo decidir:** comparación y evidencia suficiente.
-5. **Qué acción sigue:** una primaria, secundarias jerarquizadas.
-6. **Qué pasó:** confirmación, resultado persistido y trazabilidad.
-
-Si una pantalla empieza con gráficos pero no responde esas preguntas, no es un
-dashboard: es decoración. Si un modal exige estudiar contexto que está detrás,
-no es un modal: es una página o un inspector.
+- Canvas claro, superficies blancas y separación sobria.
+- Color de acción Nerqia; colores semánticos para estado, riesgo o canal.
+- Tipografía compacta en workspaces y escala hero sólo en landing.
+- Íconos Lucide; tooltips para acciones no obvias.
+- Tabs para vistas, segmented control para modos, switch para binarios,
+  input/stepper para números y menú/select para opciones.
+- Radio de cards de 8 px o el token compartido; sin cards anidadas.
+- Tablas y colas densas, escaneables y con dimensiones estables.
+- Contexto persistente en URL o storage versionado.
+- Nada se recarga automáticamente para “actualizar”.
 
 ## 4. Anatomía universal de una pantalla
 
-No todas las vistas muestran las doce zonas, pero ninguna inventa otro orden:
+1. Shell y orientación de superficie.
+2. Breadcrumb sólo cuando aporta jerarquía real.
+3. `PageHeader`: título, descripción breve, estado y acción primaria.
+4. Selector persistente de organización, tienda, ubicación o período.
+5. Tabs de vistas reales.
+6. Búsqueda, filtros, columnas y bulk cuando hay una población.
+7. Contenido según arquetipo.
+8. Detalle sin perder el contexto.
+9. Estado y recuperación explícitos.
 
-1. **Chrome:** producto, organización, rol y navegación global.
-2. **Context strip:** tienda, sucursal, periodo, canal, entorno y conectividad.
-3. **Breadcrumb:** sólo cuando existe profundidad real; no repite el título.
-4. **Page header:** título corto, descripción operativa, estado y CTA primaria.
-5. **View bar:** vistas guardadas o trabajos hermanos, con activa inequívoca.
-6. **Query bar:** búsqueda, filtros rápidos, filtro avanzado y limpiar.
-7. **Selection bar:** aparece con selección y declara alcance exacto.
-8. **Decision summary:** conteo/KPI que explica qué población representa.
-9. **Workspace:** lista, tablero, editor, reporte, cola o composición 360.
-10. **Context panel:** preview/inspector no destructivo cuando evita perder lugar.
-11. **Feedback:** progreso, error recuperable, resultado y auditoría.
-12. **Help in context:** definición o política cerca de la decisión; no tutoriales
-    permanentes que compitan con los datos.
-
-📌 La URL debe representar recurso, vista, filtros compartibles, orden,
-paginación y registro seleccionado cuando tenga valor. El estado efímero —modal
-de confirmación, hover, input incompleto— no se serializa.
+Una pantalla larga se divide por trabajo, no por decoración. La información
+secundaria se mueve a tabs, accordion o panel contextual sólo si conserva
+descubribilidad y URL.
 
 ## 5. Arquetipos de pantalla
 
-### 5.1 Índice de recursos
+| Arquetipo | Obligatorio |
+|---|---|
+| Índice | Búsqueda, filtros, vistas, columnas, paginación/virtualización, bulk y detalle. |
+| Cola | Estado, prioridad/SLA, responsable, próxima acción, error y retry. |
+| Ficha 360 | Identidad, estado, hechos, relaciones, actividad y acciones auditables. |
+| Dashboard | Período, fuente, comparación, drill-down, parcialidad y acción. |
+| Formulario | Secciones, validación inline, dirty state, permisos y confirmación. |
+| Wizard/importador | Origen, preview, mapeo, validación, progreso, resultado y rollback. |
+| POS | Viewport estable, teclado/touch, stock, pago, offline y ticket. |
+| Storefront | Producto real, variantes, confianza, entrega, pago y recuperación. |
+| Revisión documental | Original, extracción, confianza, match, decisión y auditoría. |
 
-Para productos, órdenes, clientes, proveedores, documentos, merchants y
-conexiones.
-
-Debe incluir:
-
-- título, conteo y acción de alta/importación;
-- vistas del sistema y vistas guardadas;
-- búsqueda con alcance claro;
-- filtros rápidos visibles y filtros avanzados;
-- chips/tokens removibles de filtros activos;
-- columnas configurables, orden y densidad;
-- tabla desktop y cards/filas rotuladas mobile;
-- selección explícita, selección de página y, si aplica, de todos los
-  resultados filtrados;
-- acciones masivas compatibles sólo con la selección actual;
-- preview lateral para inspección breve;
-- paginación o carga progresiva con posición recuperable;
-- estados de carga, cero resultados, recurso inexistente, permiso, error,
-  offline, stale y parcial.
-
-No debe incluir:
-
-- cuatro filas de KPI entre el título y la lista;
-- filtros ocultos que siguen afectando resultados;
-- checkboxes sin acción masiva disponible;
-- acciones destructivas sin alcance, impacto y resultado;
-- tabla comprimida horizontalmente en mobile.
-
-### 5.2 Ficha 360
-
-Para cliente, producto, orden, proveedor, merchant y documento.
-
-Debe responder:
-
-- identidad y estado;
-- propietario, organización, tienda/sucursal y permisos;
-- hechos canónicos con fuente y fecha;
-- relaciones importantes;
-- timeline/auditoría;
-- riesgos y pendientes;
-- actividad y métricas con periodo;
-- acciones autorizadas y por qué una acción puede estar bloqueada.
-
-Usar preview lateral si la lectura es corta y reversible. Usar ruta completa si
-hay edición extensa, documentos, conciliación, permisos, aprobación, riesgo o
-una decisión que necesita URL y auditoría.
-
-### 5.3 Cola operativa
-
-Para Document Inbox, webhooks, pagos, disputes, activación, soporte y salud.
-
-Cada item muestra:
-
-- severidad y estado textual;
-- tipo de entidad e identidad;
-- dueño/assignee;
-- antigüedad, SLA o vencimiento;
-- causa conocida o última evidencia;
-- reintentos y último resultado;
-- siguiente acción concreta;
-- estado bloqueado y dependencia externa cuando corresponda.
-
-La cola tiene filtros por estado, severidad, dueño, organización, origen y
-fecha; ordena por impacto/vencimiento, no sólo por creación. Una tarjeta de KPI
-abre exactamente su población filtrada.
-
-### 5.4 Dashboard de decisión
-
-No es una home de widgets. Tiene:
-
-- periodo, zona horaria, organización/sucursal/canal visibles;
-- 3–6 señales de decisión, cada una con definición, delta y fuente;
-- alertas/colas accionables antes de gráficos secundarios;
-- comparación contra periodo/baseline coherente;
-- filtros globales aplicados a todo o excepciones declaradas;
-- drill-down reproducible al conjunto de registros;
-- dato incompleto o cobertura visible;
-- cero totales mezclados entre moneda, impuestos o canales incompatibles.
-
-### 5.5 Board / Kanban
-
-Sólo cuando la entidad tiene etapas ordenadas y mover una card expresa una
-transición válida. Requiere:
-
-- definición de etapa y WIP si aplica;
-- suma/conteo por columna;
-- filtro, búsqueda y alternativa en tabla;
-- cards con identidad, importe, edad, dueño y riesgo;
-- transición server-side autorizada y auditada;
-- explicación si el movimiento está bloqueado;
-- teclado y alternativa accesible para drag-and-drop.
-
-No usar Kanban para productos o reportes sólo porque “se ve moderno”.
-
-### 5.6 Formulario y editor
-
-- campos agrupados por decisión, no por tabla SQL;
-- label persistente, ayuda breve y ejemplo sólo cuando agrega valor;
-- validación inline al salir del campo o enviar, nunca error sólo por color;
-- resumen de errores con foco cuando el formulario es largo;
-- defaults explícitos y seguros;
-- autosave sólo si existe indicador `guardando/guardado/error` y recuperación;
-- cambios sin guardar protegidos;
-- permisos, efectos secundarios y alcance visibles antes de confirmar;
-- mobile con teclado/tipo de input correcto y CTA alcanzable.
-
-### 5.7 Wizard / importador
-
-Secuencia canónica:
-
-~~~text
-origen → mapping → validación → preview → confirmación → procesamiento
-      → resultado reconciliado → errores descargables/reintentables
-~~~
-
-No escribe dominio en `mapping` ni `preview`. Declara filas válidas, inválidas,
-duplicadas, omitidas y modificadas; un retry conserva idempotencia.
-
-### 5.8 Reporte y análisis
-
-- pregunta de negocio en el título;
-- definiciones, periodo, moneda y cobertura;
-- tabla fuente además del gráfico;
-- filtros globales consistentes;
-- comparación válida;
-- exportación con los mismos filtros;
-- drill-down a registros;
-- acción posible cuando el hallazgo lo permite.
-
-### 5.9 POS
-
-Workspace a viewport completo, optimizado para repetición:
-
-- estado de caja, ubicación, operador y conectividad siempre visibles;
-- apertura con fondo inicial y cierre contra efectivo esperado calculado en
-  servidor; ventas, devoluciones, ingresos y egresos conservan trazabilidad;
-- una sesión por organización/ubicación, ticket canónico y atribución de
-  vendedor; una pestaña o un renglón de producto nunca son el turno;
-- búsqueda/categorías, resultados y carrito simultáneos en desktop;
-- precio, promoción, stock y variante desde autoridad server-side;
-- cliente opcional sin frenar venta rápida;
-- cobro, split, vuelto, comprobante y recuperación;
-- touch targets y navegación de teclado;
-- offline con límites explícitos, cola y reconciliación;
-- prevención de doble submit y estado de resultado inequívoco.
-
-### 5.10 Storefront y checkout
-
-Usa marca del comercio, no chrome de Gestión. Debe cubrir home, PLP, búsqueda,
-PDP, variantes, disponibilidad, carrito, checkout, pago, resultado, tracking,
-devolución, arrepentimiento, legales y contacto.
-
-Prioridades:
-
-1. producto, precio y disponibilidad comprensibles;
-2. costo/plazo de envío antes de pedir datos innecesarios;
-3. checkout como invitado y cuenta opcional;
-4. resumen persistente y totales server-side;
-5. errores por campo y recuperación de pago;
-6. mobile, autofill, teclado adecuado e imágenes optimizadas;
-7. no exponer costo, margen, tokens ni datos de otra organización.
-
-Contrato de acceso al resultado y seguimiento, revalidado el 2026-08-30 contra
-la [página de estado de pedidos de Shopify](https://shopify.dev/docs/apps/build/customer-accounts/order-status-page),
-el [seguimiento de Tiendanube](https://ayuda.tiendanube.com/es_AR/123288-mis-ventas/como-puede-mi-cliente-conocer-el-estado-de-su-compra)
-y la [prevención de IDOR de OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html):
-
-- el número correlativo identifica el pedido, pero nunca autoriza a leerlo ni a
-  iniciar un pago o un email;
-- una cuenta compradora autenticada sólo accede a sus órdenes;
-- un enlace transaccional usa una capacidad opaca limitada al pedido, ubicada
-  en el fragmento para no viajar en el request HTTP ni en el `Referer`;
-- un enlace histórico sin capacidad exige número + email, limita intentos y no
-  revela cuál de ambos datos fue incorrecto;
-- sin autenticación sólo se podría mostrar información pública redactada; en
-  Nerqia se deniega todo el detalle hasta verificar;
-- pago, reintento y comunicaciones vuelven a validar la capacidad en servidor:
-  ocultar el detalle en React no es control de acceso.
-
-Contrato de entrega transaccional, revalidado el 2026-08-30 contra la
-[idempotencia oficial de Resend](https://resend.com/docs/dashboard/emails/idempotency-keys)
-y su contrato de [webhooks al menos una vez](https://resend.com/docs/webhooks/introduction):
-
-- cada comunicación se identifica por orden, audiencia y evento semántico
-  (`order_created`, `payment_confirmed`, `shipped`, `delivered`), no por request;
-- un claim SQL atómico reserva el evento y entrega un token al worker; otro
-  worker recibe duplicado/en curso sin llamar al proveedor;
-- el proveedor se invoca fuera de la transacción y el resultado sólo lo puede
-  cerrar el token vigente; un lease acotado recupera workers caídos;
-- Resend recibe además una `Idempotency-Key` estable y conserva su segunda
-  barrera durante 24 horas. El ledger privado de Nerqia es la barrera durable
-  y también cubre SMTP, donde no se promete exactly-once del proveedor;
-- un aviso enviado se responde como éxito deduplicado; uno fallido puede
-  reintentarse y conserva intento, proveedor, id saneado y error privado;
-- destinatario, error e identificador de proveedor nunca salen al navegador.
-  Si se consumen webhooks de entrega, `svix-id` se deduplica antes de mutar el
-  ledger porque el transporte es al menos una vez.
-
-Contrato de medios públicos, revalidado el 2026-08-30 contra la documentación
-oficial de [imágenes de temas de Shopify](https://help.shopify.com/en/manual/online-store/images/theme-images),
-su [editor con preview](https://help.shopify.com/en/manual/online-store/themes/customizing-themes/theme-editor),
-los [sliders responsive de Tiendanube](https://ayuda.tiendanube.com/es_ES/122998-carrusel-de-imagenes/cual-es-el-tamano-recomendado-del-slider-para-mi-tiendanube)
-y sus [banners editables](https://ayuda.tiendanube.com/es_CO/123046-banners/cual-es-el-tamano-recomendado-del-banner):
-
-- imagen desktop y mobile pueden diferir, pero ambas se previsualizan antes de
-  publicar;
-- texto y CTA viven como contenido accesible, no horneados dentro del bitmap;
-- tamaño, proporción, compresión y foco se validan en la herramienta de carga;
-- una URL expirada, retirada o que responde HTML nunca muestra el ícono roto:
-  la tienda conserva jerarquía y acción sobre un fallback de la marca;
-- Gestión identifica el activo inválido y bloquea reactivarlo hasta reemplazo;
-- ocultar el fallo en la superficie pública no lo convierte en un recurso
-  válido ni autoriza modificar contenido del comercio.
-
-### 5.11 Control plane de Platform
-
-Platform no imita el panel del comercio. Organiza trabajo de staff:
-
-- overview de salud y negocio;
-- merchants y Merchant 360;
-- activación y soporte consentido;
-- colas de integraciones, webhooks, pagos, cron y documentos;
-- Finance entitlements y gobierno;
-- planes, billing, economics y revenue;
-- auditoría, MFA, permisos y acciones sensibles;
-- métricas de tracción separadas de métricas operativas.
-
-Entrar a un tenant no reemplaza herramientas de plataforma ni otorga
-membership. Toda mutación sensible identifica actor, motivo, organización,
-antes/después, correlation id y resultado.
-
-### 5.12 Playbook / workflow operativo
-
-Para Orbit y cualquier automatización que coordine más de un dominio:
-
-- builder visual y representación tabular/legible equivalentes;
-- trigger, contexto, condición, guard, acción, espera y outcome distinguibles;
-- campos con fuente, tipo, frescura, cobertura y scope de organización;
-- preview de población, impacto, datos faltantes, permisos, riesgo y costo;
-- versión inmutable, owner, estado, aprobación de publicación y kill switch;
-- acciones clasificadas como `observe`, `notify`, `prepare`, `request_approval`,
-  `reversible`, `external` o `irreversible`;
-- ejecución con ruta exacta, snapshot de policy, duración, retry, error y
-  siguiente acción;
-- acciones masivas con alcance, límites, deduplicación y progreso explícitos;
-- no ejecutar efectos sobre dinero, stock, precio, documento o cliente desde el
-  canvas: el dominio dueño conserva la autoridad;
-- mobile con lista de pasos y detalle accesible, no canvas reducido hasta ser
-  ilegible.
+No usar un dashboard como depósito de links ni una grilla de cards para
+reemplazar una tabla operativa.
 
 ## 6. Overlays: modal, sheet, drawer, popover y feedback
 
-### Árbol de decisión
+| Patrón | Uso |
+|---|---|
+| Dialog | Decisión focal, corta y bloqueante. |
+| Alert dialog | Acción destructiva o irreversible. |
+| Sheet/drawer | Detalle o edición que conserva la población detrás. |
+| Popover | Ayuda o selección breve, anclada a un control. |
+| Toast | Confirmación no bloqueante; nunca único lugar del error. |
+| Inline alert | Estado persistente que requiere comprensión o acción. |
 
-1. ¿Es navegación o tiene URL útil? **Página.**
-2. ¿Necesita comparar con la lista? **Sheet/inspector no modal.**
-3. ¿Edita más de 6–8 campos, archivos o líneas? **Página o fullscreen editor.**
-4. ¿Es una decisión breve que bloquea el contexto? **Dialog.**
-5. ¿Es destructiva, irreversible o de alto riesgo? **AlertDialog.**
-6. ¿Es ayuda, filtro corto o selector contextual? **Popover/Dropdown.**
-7. ¿Sólo confirma resultado y no exige acción? **Toast + estado persistido.**
-
-### Contrato de Dialog
-
-- un propósito y un verbo;
-- título, descripción del impacto y cuerpo breve;
-- ancho por contenido (`sm`, `md`, `lg`), sin tamaño arbitrario por página;
-- CTA primaria a la derecha en desktop y ancho completo en mobile;
-- cancelar visible; cerrar con `Esc` salvo proceso crítico en curso;
-- foco inicial seguro, focus trap y retorno al disparador;
-- error inline que no cierra ni borra datos;
-- submit bloqueado y feedback mientras procesa;
-- no anidar dialogs ni abrir dropdowns detrás del overlay.
-
-### Contrato de AlertDialog
-
-- nombra objeto y consecuencia;
-- para alto impacto puede pedir confirmación explícita, motivo o reautenticación;
-- nunca usa el mismo tono/color que una acción primaria normal;
-- explica recuperación o irreversibilidad;
-- registra auditoría cuando cambia dinero, acceso, stock, publicación o datos.
-
-### Contrato de Sheet / Drawer
-
-- mantiene contexto y selección de la lista;
-- ancho suficiente para leer, no para esconder un formulario completo;
-- encabezado y acciones sticky sólo si el contenido scrollea;
-- URL/selección recuperable cuando el detalle lo justifica;
-- en mobile se convierte en fullscreen o ruta, no en una franja angosta.
-
-### Toast y notificaciones
-
-- toast no es la única evidencia de una operación importante;
-- éxito describe resultado, no “Todo listo”;
-- error conserva una acción de reintento o acceso al detalle;
-- notificaciones durables viven en inbox/activity, con leído, objeto y fecha;
-- no acumular toasts por cada fila de un bulk.
+Un overlay debe tener título accesible, foco inicial correcto, escape/cierre,
+retorno de foco, submit único, loading estable y error recuperable. En móvil,
+preferir sheet cuando un dialog no conserva espacio suficiente.
 
 ## 7. Vistas, filtros, segmentos, cohortes y colas
 
-Estos conceptos no son sinónimos:
+| Concepto | Significado |
+|---|---|
+| Filtro | Condición temporal sobre la población actual. |
+| Vista guardada | Filtros, orden y columnas reutilizables. |
+| Segmento | Membresía calculada por reglas de negocio. |
+| Cohorte | Grupo fijado por evento/período para comparar comportamiento. |
+| Cola | Trabajo pendiente ordenado por prioridad, SLA o riesgo. |
 
-| Concepto | Propósito | Persistencia | Ejemplo |
-|---|---|---|---|
-| Filtro | Acotar la lectura actual. | URL/sesión según valor. | `stock < mínimo`. |
-| Vista guardada | Repetir un trabajo con filtros, columnas, orden y layout. | Usuario/equipo/sistema. | `Pedidos para despachar`. |
-| Segmento | Población de negocio reutilizable. | Dominio, con definición y miembros dinámicos/estáticos. | `Clientes en riesgo`. |
-| Cohorte | Población anclada a un evento/periodo para medir evolución. | Analítica versionada. | `Alta de agosto → primera venta`. |
-| Cola | Items que requieren resolución y tienen estado/SLA/dueño. | Operacional y auditable. | `Pagos para conciliar`. |
-| Audiencia | Destinatarios consentidos para una comunicación. | Snapshot/versionada al ejecutar. | `VIP con opt-in`. |
+- Los filtros visibles sobreviven refresh y navegación.
+- “Limpiar” restablece el contrato, no sólo borra inputs.
+- Una vista guardada tiene dueño, nombre y definición.
+- Un segmento no copia clientes; guarda reglas.
+- Una cola muestra por qué algo está ahí y cuál es la próxima acción.
+- Tabs no sustituyen filtros ni crean rutas duplicadas.
 
-### Contrato de filtros
+## 8. Tablas, formularios y acciones
 
-- quick filters para los 3–5 criterios frecuentes;
-- advanced filters para combinaciones;
-- grupo `AND` dentro de un bloque y `OR` entre bloques sólo si la UI lo explica;
-- operadores legibles: es, no es, contiene, vacío, entre, antes/después;
-- filtros activos visibles y removibles;
-- `Limpiar` restaura una vista conocida;
-- count se actualiza o declara que es estimado;
-- valores posibles vienen de autoridad tenant-safe;
-- URL compartible no contiene PII o secretos.
+Tablas:
 
-### Contrato de vistas guardadas
+- encabezado estable, orden explícito y unidad visible;
+- skeleton con mismas columnas;
+- selección y bulk con alcance claro;
+- menú por fila para acciones secundarias;
+- paginación server-side o virtualización cuando corresponde;
+- responsive que conserva la decisión, no todas las columnas.
 
-Una vista guarda:
+Formularios:
 
-- recurso y layout (`table`, `board`, `split`);
-- filtros y búsqueda estructurada;
-- columnas, orden, ancho/densidad cuando valga;
-- agrupación y orden;
-- alcance: privada, equipo/rol u organización;
-- dueño, versión, favorita/pinned y default;
-- definición de permisos para editar/compartir.
+- label persistente y ayuda sólo donde reduce error;
+- defaults seguros, nunca inventar rubro, categoría, impuesto o costo;
+- validación por campo y resumen al enviar;
+- guardar deshabilitado mientras no haya cambio o envío en curso;
+- cambio de contexto con dirty state;
+- acción destructiva separada.
 
-Las vistas de sistema no se pueden romper; se duplican para personalizar. Una
-vista compartida no concede acceso a datos que el usuario no podía leer.
+Acciones:
 
-### Contrato de segmentos y audiencias
-
-- nombre, descripción, propósito y owner;
-- reglas visibles y población estimada;
-- inclusión/exclusión manual auditada;
-- preview de miembros y explicación “por qué está incluido”;
-- consentimiento/canal antes de convertir en audiencia;
-- snapshot al ejecutar una campaña para poder auditarla;
-- exclusión de unsubscribed/bounced/deleted en servidor.
-
-## 8. Tablas, selección y acciones masivas
-
-### Tabla canónica
-
-- primera columna fija para identidad/selección;
-- encabezados breves, orden accesible y unidad en label/valor;
-- números tabulares, moneda y fecha coherentes;
-- estado como badge textual;
-- acciones de fila en menú, con primaria directa sólo si es muy frecuente;
-- hover no es la única forma de descubrir acciones;
-- columnas opcionales configurables, esenciales protegidas;
-- sticky header sólo con scroll interno deliberado;
-- virtualización sólo después de perfilar; no elimina semántica o accesibilidad;
-- exportación conserva permisos, filtros, moneda y zona horaria.
-
-### Selección
-
-Debe diferenciar:
-
-1. filas visibles seleccionadas;
-2. página completa;
-3. todos los resultados del filtro;
-4. exclusiones manuales sobre selección global.
-
-La barra masiva declara `N seleccionados` y, si corresponde, `todos los N
-resultados`, impacto y acciones posibles. Operaciones largas son jobs
-idempotentes con progreso, resultado parcial, retry y archivo de errores.
-
-### Mobile
-
-- tabla simple de 2–3 columnas puede conservarse;
-- tabla operativa pasa a filas/cards rotuladas;
-- filtro abre sheet fullscreen;
-- acciones frecuentes quedan accesibles sin hover;
-- selección masiva sólo si el caso de uso móvil es real;
-- scroll horizontal se acepta sólo para comparaciones donde cambiar el layout
-  destruye el significado, con pista visual y primera columna fija.
+- servidor vuelve a validar rol, tenant, estado e importe;
+- doble clic no duplica;
+- éxito actualiza caché sin recarga;
+- error conserva entrada y ofrece retry seguro;
+- efectos financieros muestran actor, motivo y resultado.
 
 ## 9. Estados completos y recuperación
 
-Cada arquetipo documenta y prueba los estados que apliquen:
+Toda vista cubre los que apliquen:
 
-| Estado | Debe mostrar | Acción |
-|---|---|---|
-| Initial loading | Estructura estable, no spinner suelto. | Esperar/cancelar si es largo. |
-| Refreshing | Datos actuales + señal no bloqueante. | Seguir operando cuando sea seguro. |
-| Empty-first-use | Valor y primer paso. | Crear/importar/conectar. |
-| Empty-filtered | Filtros responsables. | Limpiar/editar filtros. |
-| Error recoverable | Qué falló sin inventar causa. | Reintentar o cambiar dato. |
-| Permission | Capacidad faltante y owner posible. | Solicitar acceso si existe flujo. |
-| Offline | Última sincronización y límites. | Reintentar/usar cola permitida. |
-| Stale | Fecha de frescura y posible impacto. | Actualizar. |
-| Partial | Cobertura y parte no confiable. | Completar/revisar. |
-| Conflict | Cambio concurrente y diferencias. | Recargar/combinar/reintentar. |
-| Rate limited | Ventana/retry seguro. | Esperar sin duplicar. |
-| Success | Objeto, resultado y próximo paso. | Ver detalle/deshacer si es seguro. |
+1. Loading inicial con dimensiones estables.
+2. Refresh sin vaciar datos previos.
+3. Empty inicial con acción relevante.
+4. Empty-filtered con resumen y “limpiar”.
+5. Error con causa útil, correlación y retry.
+6. Offline/Stale con última actualización.
+7. Permission con explicación y salida segura.
+8. Partial cuando una fuente falló; nunca mostrarlo como cero.
+9. Success accesible y no sólo por color.
+10. Dirty state antes de perder cambios.
+11. Rate limited/degraded con espera y alternativa.
+12. Conflict cuando cambió la entidad en paralelo.
 
-Nunca convertir error de red, RLS o tabla inexistente en `[]`. Vacío y falla
-son estados opuestos.
+## 10. Accesibilidad y responsive
 
-## 10. Navegación, búsqueda y command layer
+- Objetivo WCAG 2.2 AA.
+- Recorrido completo por teclado y foco visible.
+- Nombre accesible para icon buttons.
+- Contraste, zoom 200%, lector y `prefers-reduced-motion`.
+- Acciones táctiles de 40–44 px.
+- Sin solapamientos ni scroll horizontal accidental.
+- Validar 360, 390, 768, 1024, 1280×720 y 1440 px.
+- Textos largos, montos grandes, listas vacías y errores reales.
 
-- navegación principal por productos/trabajos, no por tablas internas;
-- grupos estables y activos inequívocos;
-- organización/tienda/sucursal siempre distinguibles;
-- deep links para registros y vistas;
-- historial Back/Forward conserva query y selección;
-- búsqueda global por nombre, email, SKU, orden, documento e ID según permiso;
-- resultados agrupados por tipo, con contexto y acción;
-- operadores avanzados se descubren de forma progresiva;
-- command palette prioriza navegar, crear y ejecutar comandos seguros;
-- comandos sensibles abren confirmación y nunca evitan autorización server-side;
-- recientes y favoritos son personales, no una fuente de verdad.
+Playwright + Axe cubren automatizable; la revisión manual cubre orden de foco,
+comprensión, feedback y gesto.
 
-📌 El patrón Stripe Workbench inspira un futuro `Operation Inspector` para
-correlation IDs, webhooks, pagos, cron e integraciones. No se implementa como
-consola de datos crudos ni permite secretos desde el navegador.
+## 11. Rendimiento y persistencia
 
-## 11. Responsive, accesibilidad e internacionalización
+- Rutas privadas y vendors pesados son lazy.
+- Landing/storefront no descargan Finance o el admin.
+- Evitar refetch periódico sin señal; usar invalidación por evento/acción.
+- Cancelar o ignorar respuestas viejas al cambiar contexto.
+- Imágenes comprimidas, responsivas y con tamaño reservado.
+- Presupuestos de campo: LCP ≤ 2,5 s, INP ≤ 200 ms y CLS ≤ 0,1 en percentil 75.
+- Una actualización PWA se ofrece, no se fuerza.
+- Medir peso inicial, requests, caché, errores y Core Web Vitals.
 
-### Viewports de aceptación
+## 12. Seguridad de experiencia
 
-- 360 px: teléfono mínimo;
-- 768 px: tablet/ventana compacta;
-- 1024 px: laptop pequeña;
-- 1440 px: escritorio de referencia;
-- zoom 200% y texto aumentado sin pérdida de tarea.
+- No exponer existencia de tenants, emails, costos, tokens o estados internos en
+  mensajes públicos.
+- Confirmar identidad y reautenticar operaciones sensibles.
+- Enlaces externos seguros y URLs generadas/validadas por servidor.
+- Uploads con tipo/tamaño real, cuarentena y nombre no confiable.
+- Formularios públicos con rate limit, anti-replay y protección de abuso.
+- Estados de pago salen del servidor; nunca del query string.
+- Acciones de Platform y Finance muestran alcance y dejan auditoría.
+- Diseñar contra phishing: dominio/merchant visibles y confirmación de cambios
+  de cobro o beneficiario.
 
-Mobile decide qué queda simultáneo y qué pasa a ruta/sheet. No oculta estado,
-totales, CTA ni recuperación.
-
-### Accesibilidad
-
-Objetivo: WCAG 2.2 AA. La [recomendación oficial de W3C](https://www.w3.org/TR/WCAG22/)
-es la autoridad; no un score aislado.
-
-- HTML semántico antes que roles;
-- label/nombre/description en cada control;
-- orden de foco y lectura coherente;
-- teclado completo y foco visible;
-- focus trap y retorno en overlays;
-- mensajes de error asociados a campos y resumen en formularios largos;
-- live regions para progreso/resultado pertinente;
-- contraste de texto, controles, foco y estados;
-- targets táctiles suficientes;
-- color nunca como única señal;
-- `prefers-reduced-motion`;
-- alternativa a drag, canvas y gráficos;
-- tablas con encabezados y captions/contexto;
-- idioma, moneda, fecha, zona horaria y pluralización explícitos.
-
-[Radix Primitives](https://www.radix-ui.com/primitives/docs/overview/accessibility)
-resuelve semántica, teclado y foco de muchos patrones, pero la app sigue siendo
-responsable de labels, copy, composición y pruebas. Playwright recomienda
-combinar [`@axe-core/playwright`](https://playwright.dev/docs/accessibility-testing)
-con evaluación manual y pruebas inclusivas: axe no certifica por sí solo.
-
-## 12. Rendimiento y resiliencia perceptual
-
-Presupuestos de experiencia, no promesas sin medición:
-
-- respuesta visual inmediata en click/tap/tecla;
-- medir INP en campo; [INP](https://web.dev/articles/inp) observa la latencia de
-  las interacciones a lo largo de la visita;
-- skeleton con dimensiones estables para evitar layout shift;
-- route chunks recuperables entre deploys;
-- imágenes responsivas, comprimidas y con tamaño declarado;
-- no bloquear interacción por cálculos que pueden ir a worker/servidor;
-- paginación server-side para datasets grandes;
-- prefetch sólo de rutas/datos probables y tenant-safe;
-- optimistic update sólo si rollback y conflicto están resueltos;
-- offline únicamente con contrato de autoridad, idempotencia y reconciliación;
-- observabilidad de error, latencia y correlation id sin PII sensible.
-
-Antes de virtualizar, cachear o agregar un worker se obtiene un perfil. Una
-optimización sin baseline es una hipótesis.
-
-## 13. Lineamiento tecnológico
+## 13. Tecnología
 
 ### Base aprobada al 2026-08-22
 
-📌 Se conserva el stack actual: React 18, TypeScript, Vite, Tailwind y
-primitives locales sobre Radix; TanStack Query para estado de servidor;
-React Hook Form + Zod para formularios; Vitest para lógica; Playwright para
-flujos; Sentry para observabilidad; Recharts para visualizaciones y
-React Virtuoso sólo donde el volumen lo justifica.
-
-Razones:
-
-- [Radix](https://www.radix-ui.com/primitives/docs/overview/introduction) permite
-  adopción incremental, control visual y patrones accesibles;
-- [TanStack Query](https://tanstack.com/query/latest/docs/framework/react/overview)
-  separa cache/sincronización de server state del estado local;
-- el stack ya tiene inversión, cobertura y reglas de seguridad; una reescritura
-  no prueba activación, margen ni Finance.
-
-### Radar
-
-| Estado | Tecnología/capacidad | Regla |
-|---|---|---|
-| Mantener | Radix + components locales | Extender primitive común; actualizar paquetes Radix coordinadamente. |
-| Mantener | TanStack Query | Query keys tenant-aware, errores explícitos e invalidación tras autoridad server-side. |
-| Mantener | RHF + Zod | Esquema UX no reemplaza validación/RPC de servidor. |
-| Mantener | Vitest + Playwright | Cálculos puros en Vitest; tareas e integración en Playwright. |
-| Mantener | Recharts | Sólo gráficos con pregunta, tabla alternativa y drill-down. |
-| Medir | React Virtuoso | Activar tras perfil; preservar teclado/semántica/selección. |
-| Pilotear | [TanStack Table](https://tanstack.com/table/latest/docs/overview) | Prototipo en un índice complejo; adoptar si reduce estado duplicado sin romper diseño, URL o server-side query. |
-| Pilotear | `@axe-core/playwright` | Slice D6 con baseline, allowlist temporal explicada y auditoría manual. |
-| Pilotear | Screenshot assertions de Playwright | Primero 6–10 vistas críticas deterministas; no 100 snapshots frágiles. |
-| Evaluar por flujo | State machine explícita | Sólo checkout, aprobación u offline con transiciones/guards complejos; no globalizar. |
-| Evitar ahora | Rewrite a otro framework/meta-framework | Sin evidencia de que resuelva el gate comercial actual. |
-| Evitar ahora | Microfrontends | Tres superficies no justifican duplicar runtime, auth y design system. |
-| Evitar ahora | GraphQL sobre Supabase por moda | Agrega capa sin eliminar la autoridad/RLS existente. |
-| Evitar ahora | Data grid visual cerrado | Sólo si un benchmark demuestra que headless + primitives no cubre necesidad real. |
-| Evitar ahora | Animación o state library transversal | No instalar antes de un problema medido y un owner. |
-| Evitar ahora | Storybook como fin | Usar fixtures/galería de estados; instalarlo sólo si mejora revisión y mantenimiento medidos. |
+React 18, TypeScript, React Router, Vite, TanStack Query, Tailwind, Radix,
+Lucide, Supabase/PostgreSQL, Vitest y Playwright. Recharts, jsPDF y SheetJS se
+cargan sólo en rutas que los necesitan.
 
 ### Puerta para una dependencia nueva
 
-No basta con “la usan grandes empresas”. La propuesta incluye:
-
-1. problema y usuarios;
-2. capacidad del stack actual y gap demostrado;
-3. alternativas: propia, paquete existente y no hacer;
-4. seguridad, tenancy, privacidad, licencia y supply chain;
-5. accesibilidad y comportamiento mobile;
-6. peso, runtime, tree-shaking y browser support;
-7. mantenimiento, releases, comunidad y bus factor;
-8. compatibilidad con React/Vite/TypeScript y estrategia de migración;
-9. spike pequeño con benchmark real;
-10. costo de salida y rollback;
-11. test, observabilidad y owner;
-12. actualización de roadmap/ADR.
-
-Puntaje de decisión sobre 100:
+Puntuar de 0 a 10 y multiplicar:
 
 | Criterio | Peso |
 |---|---:|
-| Valor/tarea del usuario | 25 |
-| Seguridad, autoridad y confiabilidad | 20 |
-| Accesibilidad | 15 |
-| Performance y bundle | 15 |
-| Mantenibilidad y salida | 10 |
-| Encaje con arquitectura | 10 |
-| Licencia/costo/proveedor | 5 |
+| Gap funcional real | 3 |
+| Accesibilidad y UX | 2 |
+| Seguridad/supply chain | 2 |
+| Rendimiento | 1 |
+| Mantenimiento/comunidad | 1 |
+| Costo de salida | 1 |
 
-Umbral: 80/100, cero bloqueo de seguridad/accesibilidad y prototype verde. Una
-decisión reversible puede pilotearse; una irreversible exige ADR y migración.
+**Umbral: 80/100.** Además debe existir benchmark, prueba mínima, owner,
+rollback y criterio de éxito. “La usa una empresa grande” no es evaluación.
 
-## 14. Cobertura mínima por producto
+**Rewrite a otro framework/meta-framework:** sólo con medición que pruebe que
+el stack actual impide un SLO, SEO, aislamiento o velocidad de equipo
+necesarios. Reescribir por moda queda rechazado.
 
-Esta matriz evita declarar “rediseño completo” porque el happy path se ve bien.
+## 14. Referentes por dominio
 
-| Producto/superficie | Pantallas y flujos mínimos |
-|---|---|
-| Adquisición/Auth | Landing, pricing/plan cuando exista, login, registro, recovery, verificación, invitación, MFA, sesión expirada, legales. |
-| Business Home | Resumen, vista por tarea, periodo/sucursal/canal, alertas, drill-down, configuración vacía y dato parcial. |
-| Productos | Índice, vistas/filtros, alta/edición, variantes, imágenes, precios/costos/impuestos, publicación/canales, importación, bulk, historial. |
-| Inventario | Stock por ubicación, Kardex, conteo, ajuste con motivo, transferencia, recepción, mínimos, negativos y conflictos. |
-| Compras | Proveedores, orden, recepción parcial, costo aterrizado, deuda, documento vinculado, devolución/cancelación. |
-| Ventas/órdenes | Índice, detalle, cobro/split, envío, factura, margen explicado, devolución, cancelación, comunicación y auditoría. |
-| POS/caja | Apertura, venta, cliente, cobro, comprobante, devolución, cierre, offline, retry y reconciliación. |
-| CRM | Índice, vista guardada, segmentos, ficha 360, timeline, notas/tareas, campañas consentidas, import/export y duplicados. |
-| Finance | Overview, Document Inbox, original, inspección, extracción, revisión, match, drafts, payables, approvals, pagos, conciliación y audit trail. |
-| Commerce admin | Tiendas, catálogo/publicación, navegación/contenido, descuentos, envío, pagos, dominio, analítica, pedidos y readiness. |
-| Storefront | Home, PLP, búsqueda/filtro, PDP, carrito, checkout, pago, resultado, tracking, devolución, legales y contacto. |
-| Integraciones | Catálogo, connect/OAuth, estado, permisos, scopes, sync, logs sanitizados, retry, disconnect y consecuencias. |
-| Intelligence / Orbit | Hallazgo, explicación, evidencia, simulación, policy, aprobación, ejecución, resultado, reversión, playbook versionado, runs, excepciones y AI Action Rate. |
-| Platform | Dashboard, merchants, Merchant 360, activation, support, health, queues, Finance access, billing/economics, flags, announcements y audit. |
-| Perfil/Settings | Organización, miembros/roles, sucursales, fiscal/legal, seguridad/MFA, notificaciones, import/export y eliminación/retención. |
-| Estados públicos | Invitación, pago, tracking, consentimiento, arrepentimiento, privacidad, términos, 404/403/500 y mantenimiento. |
+- Commerce: Shopify, Tiendanube y Empretienda.
+- Canal/pago local: Mercado Libre + Mercado Pago.
+- Gestión argentina: Contabilium, Xubio y Colppy.
+- Finance regional: Mendel, Clara Global, Rindegastos y SAP Concur Argentina.
 
-Para cada fila se prueban happy, loading, empty, filtered-empty, error,
-permission, offline/stale/partial cuando aplique, claro/oscuro y cuatro
-viewports. El inventario se actualiza si nace una superficie; no se elimina una
-fila para hacer que el porcentaje mejore.
+Fuentes y fecha: [ESTRATEGIA.md](ESTRATEGIA.md).
 
-## 15. Copy, confianza y lenguaje financiero
+📌 **Límite Finance:** Mendel define paridad de trabajo, no un permiso para
+copiar su interfaz ni crear otro Core.
 
-- nombrar tareas con verbos y objetos reales;
-- decir qué pasó, sobre qué objeto y qué sigue;
-- fechas absolutas junto a relativas cuando hay riesgo;
-- moneda y zona horaria explícitas;
-- `0`, `sin datos`, `no calculado` y `sin permiso` nunca son intercambiables;
-- un porcentaje muestra denominador y periodo;
-- margen muestra componentes, fuente, cobertura y tratamiento impositivo;
-- IA declara evidencia, confianza, límites y si la acción fue simulada;
-- confirmaciones no usan “Sí/No” cuando pueden usar `Aprobar factura` /
-  `Cancelar`;
-- un bloqueo externo dice quién puede resolverlo y cómo;
-- no prometer ahorro, exactitud o cumplimiento sin evidencia.
+📌 **Paridad local obligatoria:** impuestos, moneda, medios de pago, privacidad,
+arrepentimiento y lenguaje argentino se validan antes de declarar una capacidad.
 
-## 16. Seguridad, permisos y acciones sensibles
+Emitir tarjetas o mover dinero exige demanda, partner, legal, riesgo, soporte y
+economics. Mientras tanto se integran tarjetas externas y controles de gasto
+sobre el mismo Business Graph.
 
-La UI explica autoridad pero no la reemplaza.
+## 15. Definition of Done
 
-- permisos server-side para lectura y mutación;
-- tenant/org/store/location en toda query relevante;
-- MFA en Platform;
-- secretos sólo por Edge y nunca de vuelta al navegador;
-- botones ocultos/deshabilitados coherentes con capacidad, sin filtrar datos;
-- acciones sensibles con motivo, before/after, actor, timestamp y correlation id;
-- soporte consentido y temporal, sin impersonación silenciosa;
-- exports, búsqueda y vistas respetan RLS;
-- datos de demo sintéticos o sanitizados;
-- no analytics con PII innecesaria;
-- no clipboard/log/error con tokens o documentos privados.
+Una experiencia se cierra cuando:
 
-## 17. Protocolo competitivo por slice
-
-Antes de diseñar:
-
-1. ubicar fase y pilar;
-2. nombrar usuario, trabajo, riesgo y métrica;
-3. auditar implementación actual y Business Core;
-4. estudiar 2–3 referentes: al menos una fuente funcional oficial y una visual
-   cuando cambie composición;
-5. registrar `✅/👁/📌/❓`;
-6. extraer principios, no pixels;
-7. inventariar ruta, estados, overlays, responsive, permisos y datos;
-8. decidir tecnología con la puerta de §13;
-9. prototipar el flujo más riesgoso con datos límite;
-10. definir pruebas y condición de salida.
-
-Durante:
-
-1. primitive primero, página después;
-2. autoridad server-side y errores honestos;
-3. fixtures de datos largos, cero, parcial, conflicto y permiso;
-4. desktop y mobile en paralelo;
-5. telemetría del trabajo, no clicks de vanidad;
-6. slice pequeño, gate completo, roadmap, commit y push.
-
-Después:
-
-1. tarea end-to-end en localhost/base real según contrato;
-2. teclado, axe/manual, zoom y viewports;
-3. error/red lenta/offline/stale build cuando aplique;
-4. evidencia visual reproducible;
-5. métrica real o `pendiente`, nunca inferida;
-6. actualizar ROADMAP, DESIGNROADMAP, este estándar si cambió el patrón y ADR
-   si cambió arquitectura;
-7. fecha y fuente al actualizar una comparación.
-
-## 18. Definition of Ready y Definition of Done
-
-### Ready
-
-- fase autorizada;
-- no duplica un item existente;
-- usuario/trabajo/resultado/métrica;
-- autoridad de datos y trigger revisados;
-- comparativa vigente;
-- mapa de pantallas/estados/overlays;
-- riesgo legal, privacidad, accesibilidad y soporte;
-- decisión build/buy/keep con salida;
-- criterio de aceptación verificable.
-
-### Done técnico
-
-- happy y estados aplicables;
-- responsive 360/768/1024/1440;
-- claro/oscuro y sin branding de tenant en SaaS;
-- teclado, foco, labels y contraste;
-- permisos y errores reales;
-- idempotencia/auditoría para mutaciones críticas;
-- tests de cálculo/contrato/E2E proporcionales;
-- typecheck, Edge check, lint, tests y build verdes;
-- documentación/roadmaps actualizados;
-- commit y push independiente.
-
-### Done de producto
-
-Además de lo técnico:
-
-- una persona objetivo completa la tarea con datos reales;
-- tiempo, error, recuperación y abandono medidos;
-- no aumenta soporte ni correcciones manuales;
-- la métrica de negocio se mueve o la hipótesis se rechaza;
-- evidencia apta para demo/inversión sin esconder limitaciones.
-
-`Implementado`, `validado` y `adoptado` son estados distintos.
-
-## 19. Evidencia para usuarios e inversores
-
-Una app atractiva abre la conversación; una operación demostrable sostiene la
-inversión. Cada narrativa debe unir:
-
-~~~text
-problema real
-→ flujo visible
-→ autoridad y resiliencia
-→ adopción medida
-→ resultado económico
-→ capacidad de repetición
-~~~
-
-La investor room puede mostrar:
-
-- video/captura reproducible de primera venta y margen explicado;
-- Finance desde documento hasta borrador/aprobación sin efectos ocultos;
-- Merchant 360 y resolución de una excepción;
-- cohortes de activación, ATM, retención y AI Action Rate con fecha;
-- SLO, restore drill, incidentes y recuperación;
-- arquitectura multi-tenant y permisos;
-- comparativa con fuentes y límites.
-
-No muestra conteos de features como tracción, datos reales sensibles, métricas
-sin denominador ni mocks presentados como producción.
-
-## 20. Antipatrones bloqueados
-
-- copiar Figma frame por frame;
-- instalar una librería porque “es la mejor” sin benchmark;
-- reescribir stack estable antes de cerrar gates comerciales;
-- dashboards infinitos;
-- cards anidadas como layout;
-- modales para workflows largos;
-- drawer como depósito de complejidad;
-- filtros invisibles o sin URL cuando deben compartirse;
-- llamar segmento a cualquier filtro;
-- Kanban sin transición de dominio;
-- acciones masivas cuyo alcance no se entiende;
-- tablas desktop encogidas en mobile;
-- estados dependientes sólo del color;
-- skeleton que no coincide con la estructura;
-- `?? []` ante errores;
-- optimistic UI en dinero/stock sin rollback y autoridad;
-- IA sin evidencia, acción ni medición;
-- demo que necesita SQL manual o datos inventados;
-- declarar “rediseño completo” sin states, mobile y prueba de tarea.
-
-## 21. Cadencia de mantenimiento
-
-- Revisar referencias críticas antes de cada fase y como mínimo trimestralmente.
-- Registrar fecha, URL oficial, cambio observado e impacto.
-- Mantener `docs/COMPARACION.md` para capacidades y este documento para
-  patrones de producto/experiencia.
-- `docs/INTERFAZ.md` conserva tokens y composición vigente.
-- `DESIGNROADMAP.md` convierte brechas visuales en slices.
-- `ROADMAP.md` decide si una brecha merece prioridad de producto.
-- Si evidencia nueva contradice una decisión, se corrige la decisión y se deja
-  razón; no se conserva por orgullo o costo hundido.
-
-La vara final es simple: Nerqia debe permitir que un comercio opere mejor y
-que la plataforma escale con menos intervención, mientras cada número, permiso
-y efecto conserva una autoridad comprobable.
+1. completa el trabajo y su reversa;
+2. usa autoridad y permiso correctos;
+3. cubre estados de la sección 9;
+4. no duplica ruta, componente ni cálculo;
+5. pasa teclado, responsive y contraste;
+6. no agrega errores de consola, recargas ni requests innecesarios;
+7. tiene tests proporcionales al riesgo;
+8. fue inspeccionada con datos reales o fixture reversible;
+9. mide el resultado;
+10. queda documentada y publicada.

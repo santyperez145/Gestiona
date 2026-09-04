@@ -5,7 +5,7 @@
 -- Decisión de producto del dueño, 2026-08-27: «todas las org deben funcionar
 -- por igual, con delegación, no con el certificado propio».
 --
--- Es lo que CLAUDE.md viene diciendo desde hace meses —«AFIP se conecta por
+-- Es lo que CONTRIBUTING.md viene diciendo desde hace meses —«AFIP se conecta por
 -- delegación, no subiendo certificados»— y lo que el 2026-08-27 se sacó del
 -- formulario del comercio. Faltaba la base: el modo `propio` seguía existiendo
 -- y una organización lo tenía puesto.

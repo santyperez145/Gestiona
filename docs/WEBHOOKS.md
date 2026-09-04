@@ -1,5 +1,7 @@
 # Webhooks salientes de Nerqia
 
+**Estado:** contrato vigente. **Corte:** 2026-09-04.
+
 Contrato vigente: **`2026-08-29`**. El documento machine-readable se publica
 como [OpenAPI 3.1](../public/developer/webhooks/openapi.json) y queda disponible
 en cada deploy en `/developer/webhooks/openapi.json`.

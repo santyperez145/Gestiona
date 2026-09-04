@@ -1,11 +1,6 @@
 /**
  * Configuración de los tests de punta a punta.
  *
- * Antes esto importaba `lovable-agent-playwright-config`, un paquete que **no
- * está instalado**: Playwright fallaba al arrancar, y por eso el repo tenía la
- * dependencia, la config y **cero specs**. El E2E estaba andamiado y nunca
- * había corrido.
- *
  * Los tests corren contra el bundle de producción servido en local, no contra
  * Vercel: hasta que no se pushea, el sitio publicado tiene el código viejo. Y leen la base de
  * producción, que es la única que hay — por eso los specs son **de sólo

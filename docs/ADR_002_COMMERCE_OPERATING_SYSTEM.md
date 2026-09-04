@@ -170,8 +170,7 @@ existentes. Finance no se mezcla.
 
 - Onboarding y navegación diaria privilegian publicar y vender online; el POS
   permanece en el bloque diario como canal.
-- La documentación de agentes (CLAUDE.md / AGENTS.md) deja de orientar como
-  ERP-first.
+- La guía de contribución se alinea con Commerce-first y el Business Graph.
 - El North Star sigue siendo Active Transacting Merchants, no cantidad de
   módulos.
 

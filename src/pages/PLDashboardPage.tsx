@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useOrg } from "@/lib/orgContext";
@@ -145,7 +145,7 @@ export default function PLDashboardPage() {
         if (!vigente) return;
         if (error) {
           // No se traga: un resultado que no se pudo leer no es un resultado
-          // en cero. Ver la regla de `?? []` en CLAUDE.md.
+          // en cero. Ver la regla de `?? []` en CONTRIBUTING.md.
           console.error("no se pudo leer el resultado del ledger", error.message);
           toast.error("No se pudo leer el resultado contable");
           setMonthlyPL([]);

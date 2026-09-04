@@ -2,7 +2,7 @@
 --
 -- ── Qué se encontró ───────────────────────────────────────────────────────
 --
--- CLAUDE.md tiene una regla desde el 2026-08-25: «El rubro del comercio no se
+-- CONTRIBUTING.md tiene una regla desde el 2026-08-25: «El rubro del comercio no se
 -- adivina. `settings.industry_code` tenía `DEFAULT 'perfumes'` desde que esto
 -- era la app de un solo negocio. NULL significa *todavía no eligió*».
 --

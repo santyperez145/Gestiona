@@ -7,7 +7,7 @@
 // el README es peor que una sección faltante: manda a alguien a una página que
 // no existe y le hace pensar que el proyecto está abandonado.
 //
-// Y adentro pasa lo mismo. CLAUDE.md le dice a cada sesión que lea
+// Y adentro pasa lo mismo. CONTRIBUTING.md le dice a cada sesión que lea
 // `docs/ARQUITECTURA.md` antes de escribir código; si ese archivo se renombra,
 // la instrucción sigue ahí y apunta a la nada.
 //

@@ -30,7 +30,6 @@ dist-ssr
 
 # Supabase CLI temp files
 supabase/.temp/
-.claude/
 test-results/
 playwright-report/
 e2e/.auth/

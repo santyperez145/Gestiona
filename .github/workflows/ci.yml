@@ -43,13 +43,13 @@ jobs:
       # P0-01: la documentación no puede declarar números sin fecha ni comando.
       # Medido el 2026-08-25, había SEIS cantidades distintas de tests (418,
       # 1.201, 1.446, 1.469, 1.498, 1.534) y cuatro de tablas repartidas entre
-      # CLAUDE.md, ROADMAP.md y docs/. Este repo es público y sus números se
+      # CONTRIBUTING.md, ROADMAP.md y docs/. Este repo es público y sus números se
       # citan afuera: uno externo tomó "418 tests" de una línea vieja.
       - name: Conteos de la documentación
         run: npm run check:conteos
 
       # P0-01: un enlace roto en un repo público manda a alguien a una página
-      # que no existe. Y adentro es peor: CLAUDE.md le dice a cada sesión que
+      # que no existe. Y adentro es peor: CONTRIBUTING.md le dice a cada sesión que
       # lea docs/ARQUITECTURA.md antes de escribir código — si ese archivo se
       # renombra, la instrucción sigue ahí apuntando a la nada.
       #

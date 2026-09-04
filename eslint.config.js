@@ -9,7 +9,7 @@ export default tseslint.config(
     ignores: [
       "dist",
       "node_modules",
-      ".claude",
+      "**/worktrees/**",
       "supabase/.temp",
       "*.timestamp-*.mjs",
       "vite.config.ts.timestamp-*",

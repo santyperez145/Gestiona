@@ -3,7 +3,7 @@
 // ⚠️ Hasta el 2026-08-27 esta pantalla pedía pegar el certificado (.crt) y la
 // clave privada (.key) en PEM, con un instructivo de cuatro pasos que empezaba
 // en "solicitá el certificado en Clave Fiscal". Eso es exactamente lo que
-// CLAUDE.md tiene prohibido desde hace meses: «AFIP se conecta por delegación,
+// CONTRIBUTING.md tiene prohibido desde hace meses: «AFIP se conecta por delegación,
 // no subiendo certificados. Un comercio que tiene que generar una clave con
 // openssl, armar un CSR y subirlo a WSASS abandona ahí».
 //

@@ -21,7 +21,7 @@
 -- o sea que se tragaba el fallo y devolvía `ok: true`. Toda la cadena
 -- funcionaba y el último paso —dejar constancia— fallaba en silencio.
 --
--- 📌 Es exactamente la regla de CLAUDE.md: «No tragarse errores». Un `rpc` sin
+-- 📌 Es exactamente la regla de CONTRIBUTING.md: «No tragarse errores». Un `rpc` sin
 -- mirar `.error` convierte «no se guardó» en «listo».
 --
 -- ── Por qué se agrega la columna en vez de sacarla de la función ──────────

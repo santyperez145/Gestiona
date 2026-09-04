@@ -2,7 +2,7 @@
 -- CRM-001 — `deals` era la sexta tabla, y cruzaba por nombre
 -- ============================================================================
 --
--- CLAUDE.md afirma: «**Ya no queda nada del CRM cruzando por nombre.** `quotes`
+-- CONTRIBUTING.md afirma: «**Ya no queda nada del CRM cruzando por nombre.** `quotes`
 -- y `customer_communications` recibieron la columna en `20260802000001` y usan
 -- el mismo trigger genérico que las otras tres, así que
 -- `trg_sales_link_customer` sirve hoy a cinco tablas».

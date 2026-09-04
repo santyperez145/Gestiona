@@ -7,7 +7,7 @@ import { resolve, join, sep } from "node:path";
  *
  * ── Por qué ───────────────────────────────────────────────────────────────
  *
- * CLAUDE.md lo tiene escrito desde hace meses: «AFIP se conecta por delegación,
+ * CONTRIBUTING.md lo tiene escrito desde hace meses: «AFIP se conecta por delegación,
  * no subiendo certificados. Un comercio que tiene que generar una clave con
  * openssl, armar un CSR y subirlo a WSASS abandona ahí».
  *

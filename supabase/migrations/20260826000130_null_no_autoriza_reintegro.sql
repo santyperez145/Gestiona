@@ -44,7 +44,7 @@
 -- de los dos campos está mal — el anterior obligaba a adivinar. El resto de la
 -- función se regeneró con `pg_get_functiondef` y no se tocó una línea: es una
 -- función de 130 líneas, y reescribirla de memoria sería exactamente el error
--- que CLAUDE.md tiene documentado.
+-- que CONTRIBUTING.md tiene documentado.
 --
 -- **No se agrega un CHECK a la tabla.** Una solicitud en `pending` legítimamente
 -- tiene `resolution` en NULL: el comercio todavía no decidió. La regla no es

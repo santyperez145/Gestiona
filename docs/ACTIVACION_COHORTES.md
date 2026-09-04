@@ -1,5 +1,7 @@
 # Cohortes de activación
 
+**Estado:** vigente. **Corte:** 2026-09-04.
+
 ## Qué se mide
 
 Una organización se activa cuando logra la primera venta real en el canal que

@@ -114,7 +114,7 @@ async function ticketCompartido(
  * Deja constancia de la verificación, y **avisa si no pudo**.
  *
  * Un `supabase.rpc()` que no mira `.error` convierte «no se guardó» en «listo».
- * Es la regla de CLAUDE.md —no tragarse errores— y acá costó una tarde:
+ * Es la regla de CONTRIBUTING.md —no tragarse errores— y acá costó una tarde:
  * `afip_marcar_delegacion` escribía `last_error`, la columna no existía, y
  * `verificar_delegacion` respondía `ok: true` sobre un UPDATE que había
  * fallado.

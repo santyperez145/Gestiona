@@ -12,7 +12,7 @@
  *
  * ── La regla, que ya estaba escrita y nadie podía hacer cumplir ───────────
  *
- * `CLAUDE.md`: *"Los números medidos van con la fecha o con el comando al
+ * `CONTRIBUTING.md`: *"Los números medidos van con la fecha o con el comando al
  * lado."* Eso es exactamente lo que verifica este script.
  *
  *   - Un número **con fecha** (`2026-08-25`) es una medición de un momento.
@@ -41,7 +41,7 @@ const RAIZ = process.cwd();
 
 /** Documentos que se revisan. */
 const DOCS = [
-  "CLAUDE.md",
+  "CONTRIBUTING.md",
   "ROADMAP.md",
   "README.md",
   ...fs.existsSync(path.join(RAIZ, "docs"))
@@ -165,6 +165,6 @@ for (const p of problemas) {
   console.error(`  ${p.doc}:${p.linea}  "${p.cita.trim()}"`);
   console.error(`      ${p.motivo}\n`);
 }
-console.error("Regla (CLAUDE.md): todo número medido lleva la fecha o el comando al lado.");
+console.error("Regla (CONTRIBUTING.md): todo número medido lleva la fecha o el comando al lado.");
 console.error("Una medición vieja CON fecha es válida — es así como se lee el historial.\n");
 process.exit(1);

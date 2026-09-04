@@ -81,7 +81,11 @@ function declaraciones(): Declaracion[] {
   const salida: Declaracion[] = [];
 
   for (const archivo of readdirSync(MIGRACIONES).filter(f => f.endsWith(".sql")).sort()) {
-    const sql = readFileSync(join(MIGRACIONES, archivo), "utf8");
+    // Los comentarios de una firma pueden contener listas o ejemplos. Sus
+    // comas y paréntesis no forman parte de la aridad de PostgreSQL.
+    const sql = readFileSync(join(MIGRACIONES, archivo), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/--.*$/gm, "");
 
     const re = /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+(?:public\.)?(\w+)\s*\(/gi;
     let m: RegExpExecArray | null;

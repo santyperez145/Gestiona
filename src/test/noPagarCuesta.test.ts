@@ -167,7 +167,7 @@ describe("el estado no depende de que llegue el webhook", () => {
      * sin cobro se quedaba en `active` **para siempre** si el webhook no
      * llegaba — y con ella, todos los beneficios.
      *
-     * CLAUDE.md, sistemas externos: no son confiables. Un estado que sólo
+     * CONTRIBUTING.md, sistemas externos: no son confiables. Un estado que sólo
      * cambia cuando un tercero avisa no es un estado, es una esperanza.
      */
     const dir = resolve(ROOT, "supabase/migrations");

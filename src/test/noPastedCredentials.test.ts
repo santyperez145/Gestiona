@@ -16,7 +16,7 @@
  * Si algún día hace falta de verdad, se documenta acá el motivo.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 
 /** Columnas de credencial que nunca pueden volver a una pantalla. */
@@ -46,10 +46,10 @@ function archivos(dir: string): string[] {
   const abs = resolve(process.cwd(), dir);
   const out: string[] = [];
   const recorrer = (d: string) => {
-    for (const e of readdirSync(d)) {
-      const full = join(d, e);
-      if (statSync(full).isDirectory()) recorrer(full);
-      else if (/\.tsx?$/.test(e)) out.push(full);
+    for (const entry of readdirSync(d, { withFileTypes: true })) {
+      const full = join(d, entry.name);
+      if (entry.isDirectory()) recorrer(full);
+      else if (/\.tsx?$/.test(entry.name)) out.push(full);
     }
   };
   recorrer(abs);

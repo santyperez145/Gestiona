@@ -11,7 +11,7 @@ import { resolve } from "node:path";
  * ninguna noción de «esto no se stockea». Una peluquería que carga «Corte de
  * pelo» y lo vende diez veces lo veía en **−10**: el trigger de ventas dispara
  * y `record_stock_movement` descuenta. La vista `stock_negativo` —que según
- * CLAUDE.md tiene que estar vacía— se llenaría de servicios.
+ * CONTRIBUTING.md tiene que estar vacía— se llenaría de servicios.
  *
  * ⚠️ La guarda vive dentro de `record_stock_movement` porque es la ÚNICA
  * autoridad sobre el stock: cubre venta, compra, ajuste manual, cierre de
@@ -108,7 +108,7 @@ describe("lo que no lleva stock no se descuenta", () => {
 
   it("la ficha de producto deja elegirlo y lo persiste", () => {
     // ⚠️ Una capacidad que sólo se puede activar desde la base es una
-    // capacidad que nadie va a usar. `docs/CAPACIDADES.md` existe justamente
+    // capacidad que nadie va a usar. La medición de adopción existe justamente
     // porque «está construido» y «se puede usar» se leen igual en un README.
     const page = readFileSync(resolve(ROOT, "src/pages/ProductsPage.tsx"), "utf8");
     expect(page, "el formulario no ofrece elegir si el producto lleva stock")

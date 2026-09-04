@@ -14,7 +14,7 @@
 -- y ninguna noción de «esto no se stockea». Una peluquería que carga «Corte de
 -- pelo» y lo vende diez veces lo ve en **−10**: `trg_sale_stock_movement`
 -- dispara en cada venta y `record_stock_movement` descuenta. La vista
--- `stock_negativo` —que según CLAUDE.md tiene que estar vacía— se llenaría de
+-- `stock_negativo` —que según CONTRIBUTING.md tiene que estar vacía— se llenaría de
 -- servicios, y el panel diría «agotado» sobre algo que no se agota.
 --
 -- 📌 Por eso el arreglo no es agregar rubros: es que el Business Core acepte
@@ -70,7 +70,7 @@ BEGIN
   -- en la factura y suma al margen. Lo que no tiene es algo que descontar.
   --
   -- Sin esta guarda, cada venta lo empuja a −1, −2, −3, y `stock_negativo`
-  -- —que según CLAUDE.md tiene que estar vacía— se llena de servicios. El
+  -- —que según CONTRIBUTING.md tiene que estar vacía— se llena de servicios. El
   -- panel diría «agotado» sobre algo que nunca se agota.
   --
   -- ⚠️ La decisión vive ACÁ y no en los triggers porque ésta es la única

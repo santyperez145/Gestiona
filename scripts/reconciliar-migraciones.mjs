@@ -12,7 +12,7 @@
  * correr. Con 168 sin registrar, `supabase db push` las correría **todas** —y
  * entre ellas está `20260723000003_drop_orphaned_feature_tables.sql`, que
  * dropea unas 75 tablas—. Por eso `db push` hoy es un comando que destruye la
- * base, y por eso está prohibido en CLAUDE.md.
+ * base, y por eso está prohibido en CONTRIBUTING.md.
  *
  * Reconciliar = averiguar cuáles de esas 168 ya están aplicadas y anotarlas,
  * para que `db push` deje de verlas como pendientes.
@@ -185,7 +185,7 @@ async function main() {
 
   const url = process.env[ENV_VAR];
   if (!url) {
-    console.error(`Falta ${ENV_VAR}. Ver "Acceso directo a la base" en CLAUDE.md.`);
+    console.error(`Falta ${ENV_VAR}. Ver "Acceso directo a la base" en CONTRIBUTING.md.`);
     process.exit(2);
   }
 

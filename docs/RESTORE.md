@@ -1,5 +1,7 @@
 # Restore drill de snapshots por organización
 
+**Estado:** runbook vigente. **Corte:** 2026-09-04.
+
 Un snapshot no se considera recuperable sólo porque exista o porque su hash sea
 correcto. Este runbook ensaya que el archivo privado todavía puede convertirse
 en filas válidas contra el esquema PostgreSQL actual.

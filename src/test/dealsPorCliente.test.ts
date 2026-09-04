@@ -11,7 +11,7 @@ const clientes = leer("src/pages/CustomersPage.tsx");
 /**
  * `deals` era la sexta tabla del CRM, y cruzaba por nombre.
  *
- * CLAUDE.md afirmaba «ya no queda nada del CRM cruzando por nombre… el trigger
+ * CONTRIBUTING.md afirmaba «ya no queda nada del CRM cruzando por nombre… el trigger
  * sirve hoy a cinco tablas». Medido el 2026-08-26: el trigger servía a
  * `sales`, `quotes`, `debts`, `loyalty_points` y `customer_communications`, y
  * `deals` no estaba — tenía `customer_name text` y ni la columna ni el

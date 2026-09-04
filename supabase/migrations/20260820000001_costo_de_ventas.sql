@@ -250,5 +250,5 @@ $fn$;
 -- DELETE, que es exactamente lo que tiene que hacer.
 --
 -- Va en `supabase/verificaciones/20260820_costo_de_ventas.sql`, envuelta en
--- BEGIN/ROLLBACK, que es el patrón que CLAUDE.md ya fija para probar contra
+-- BEGIN/ROLLBACK, que es el patrón que CONTRIBUTING.md ya fija para probar contra
 -- datos reales sin dejar rastro.

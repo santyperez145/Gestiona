@@ -1,5 +1,7 @@
 # API pública de Nerqia
 
+**Estado:** contrato vigente. **Corte:** 2026-09-04.
+
 Contrato vigente: **v1**, release **2026-08-29**. La descripción ejecutable se
 publica como [OpenAPI 3.1](../public/developer/api/openapi.json) y el estado de
 versiones como [changelog machine-readable](../public/developer/api/changelog.json).

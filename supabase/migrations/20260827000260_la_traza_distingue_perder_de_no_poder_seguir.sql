@@ -7,7 +7,7 @@
 -- Consultada desde `npm run db` —sin sesión— devolvía **cero filas**, y cero
 -- filas en una vista de auditoría se lee como «no hay problemas».
 --
--- Es textual la regla de CLAUDE.md: un `?? []` convierte «no tengo permiso» en
+-- Es textual la regla de CONTRIBUTING.md: un `?? []` convierte «no tengo permiso» en
 -- «no hay nada», y son problemas opuestos. Una vista que existe para avisar no
 -- puede quedarse muda cuando el que pregunta no tiene sesión.
 --
@@ -19,7 +19,7 @@
 -- versión sí lo guarda, se verificó en el cuerpo de la función—.
 --
 -- 📌 **No se backfillean.** Emparejarlas por monto y fecha es adivinar, y
--- CLAUDE.md ya dejó escrito que no se tocan datos reales para que un reporte dé
+-- CONTRIBUTING.md ya dejó escrito que no se tocan datos reales para que un reporte dé
 -- limpio. Se las nombra por lo que son: operaciones que no se pueden seguir,
 -- no plata perdida. Confundir las dos cosas hace que la próxima vez que
 -- aparezca plata perdida de verdad, nadie le crea a la vista.

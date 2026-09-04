@@ -48,7 +48,7 @@
 -- 4. `audit_rpc_sin_permiso` es la vista guardia y tiene que estar VACÍA.
 --
 -- Los cuerpos de las nueve se regeneraron desde `pg_get_functiondef` con un
--- script, insertando la guarda — no se reescribieron de memoria. CLAUDE.md:
+-- script, insertando la guarda — no se reescribieron de memoria. CONTRIBUTING.md:
 -- reescribir una función grande a mano es como casi se rompe
 -- `mark_store_order_paid`.
 

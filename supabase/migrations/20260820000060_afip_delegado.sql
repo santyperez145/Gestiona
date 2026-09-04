@@ -7,7 +7,7 @@
 -- armar un CSR, subirlo a WSASS, crear un alias y asociar el servicio. Nadie que
 -- quiera vender perfumes va a hacer eso. El onboarding se muere ahí.
 --
--- `CLAUDE.md` ya decía cuál era el modelo correcto —"lo más parecido al modelo
+-- `CONTRIBUTING.md` ya decía cuál era el modelo correcto —"lo más parecido al modelo
 -- marketplace es que cada comercio delegue el servicio WSFE al CUIT de la
 -- plataforma desde Administrador de Relaciones"— y el código hacía lo contrario.
 --

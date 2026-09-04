@@ -1,5 +1,7 @@
 # Integración con MercadoLibre
 
+**Estado:** integración vigente. **Corte técnico:** 2026-09-04.
+
 Publica productos, sincroniza stock y precio, y baja las órdenes.
 
 ## Antes de empezar: los vapers no se pueden vender

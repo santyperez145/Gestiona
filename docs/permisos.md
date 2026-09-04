@@ -1,9 +1,11 @@
 # Roles y Permisos
 
+**Estado:** autoridad vigente. **Corte:** 2026-09-04.
+
 > **AFIP:** ninguna organización guarda su certificado. Desde
 > `20260827000050` todas facturan por delegación con el de la plataforma, y una
 > constraint impide guardar uno en `afip_credentials`. Detalle en
-> [CLAUDE.md](../CLAUDE.md) y en el ADR de la superficie fiscal.
+> [CONTRIBUTING.md](../CONTRIBUTING.md) y en el ADR de la superficie fiscal.
 >
 > ⚠️ **El Ticket de Acceso es uno solo para todos los comercios delegados.**
 > WSAA lo entrega por (certificado, servicio) y rechaza el pedido siguiente

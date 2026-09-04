@@ -1,6 +1,8 @@
 # Qué falta configurar
 
-Estado al 2026-08-30. Lo que **no** esté acá, ya funciona sin tocar nada.
+**Estado:** checklist operativo vigente. **Corte:** 2026-09-04.
+
+Lo que **no** esté acá, ya funciona sin tocar nada.
 
 ## Resumen
 
