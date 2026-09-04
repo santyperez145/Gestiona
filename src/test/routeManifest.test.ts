@@ -153,6 +153,10 @@ describe("/precios es la URL canónica de precios", () => {
 });
 
 describe("el sidebar sigue siendo el sidebar", () => {
+  it("sólo Caja reserva un workspace inmersivo y sigue en el manifest", () => {
+    expect(ROUTES.filter(route => route.surface === "immersive").map(route => route.path)).toEqual(["/caja"]);
+  });
+
   it("cada grupo tiene al menos un destino", () => {
     const grupos = new Set(navRoutes().map(r => r.nav!.group));
     for (const g of ["diario", "trabajo", "compras", "cobranzas", "finanzas",

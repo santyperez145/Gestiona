@@ -238,6 +238,56 @@ test.describe("POS", () => {
     expect(errors, `errores en consola:\n${errors.join("\n")}`).toEqual([]);
   });
 
+  test("mantiene catálogo y cierre de venta alcanzables según el ancho real", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    page.on("pageerror", error => errors.push(error.message));
+
+    for (const width of [360, 768, 1024, 1092, 1280, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await abrirPos(page);
+
+      const root = page.getByTestId("pos-root");
+      const desktopCart = page.locator(".pos-cart-sidebar");
+      const mobileToggle = page.getByRole("button", { name: "Abrir carrito" });
+      await expect(root).toBeVisible();
+
+      const geometry = await root.evaluate(element => {
+        const bounds = element.getBoundingClientRect();
+        return {
+          bottom: Math.round(bounds.bottom),
+          right: Math.round(bounds.right),
+          viewportHeight: window.innerHeight,
+          viewportWidth: window.innerWidth,
+          documentWidth: document.documentElement.scrollWidth,
+        };
+      });
+      expect(geometry.documentWidth, `overflow horizontal a ${width}px`).toBeLessThanOrEqual(geometry.viewportWidth);
+      expect(geometry.right, `POS fuera del viewport a ${width}px`).toBeLessThanOrEqual(geometry.viewportWidth + 1);
+      expect(geometry.bottom, `POS más alto que el espacio disponible a ${width}px`).toBeLessThanOrEqual(geometry.viewportHeight + 1);
+
+      if (width < 1280) {
+        await expect(desktopCart).toBeHidden();
+        await expect(mobileToggle).toBeVisible();
+        await mobileToggle.click();
+        const confirm = page.getByRole("button", { name: /Confirmar venta/ });
+        await confirm.scrollIntoViewIfNeeded();
+        await expect(confirm).toBeVisible();
+        await expect(confirm).toBeDisabled();
+        await page.getByRole("button", { name: "Cerrar carrito" }).first().click();
+      } else {
+        await expect(desktopCart).toBeVisible();
+        await expect(mobileToggle).toBeHidden();
+        const confirm = desktopCart.getByRole("button", { name: /Confirmar venta/ });
+        await confirm.scrollIntoViewIfNeeded();
+        await expect(confirm).toBeVisible();
+        await expect(confirm).toBeDisabled();
+      }
+    }
+
+    expect(errors, `errores en consola:\n${errors.join("\n")}`).toEqual([]);
+  });
+
   test("expone el turno autoritativo o su activación sin mutar la base", async ({ page }) => {
     const errors: string[] = [];
     page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });

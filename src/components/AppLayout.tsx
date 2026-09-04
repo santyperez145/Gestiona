@@ -29,6 +29,7 @@ import BrandLogo from "@/components/shared/BrandLogo";
 import { usePermissionsResolver } from "@/lib/permissionsContext";
 import { moduleForRoute } from "@/lib/moduleMap";
 import { NAV_ITEMS, NAV_GROUPS, grupoDeRuta } from "@/lib/navigation";
+import { ROUTES } from "@/app/routeManifest";
 
 import { plural } from "@/lib/plural";
 
@@ -198,6 +199,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   const currentNavItem = allNavItems.find(item => item.to === pathname);
+  const currentRoute = ROUTES.find(route => route.path === pathname);
+  const immersiveRoute = currentRoute?.surface === "immersive";
   const currentPageLabel = currentNavItem?.label ?? (pathname === '/' ? 'Resumen' : 'Nerqia');
   const currentSectionLabel = currentNavItem ? SECTION_LABELS[currentNavItem.section] : 'Operacion';
 
@@ -395,9 +398,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className={`workspace-main flex-1 overflow-auto w-full min-h-screen bg-background transition-all duration-300 ${effectiveCollapsed ? 'md:ml-[78px]' : 'md:ml-[248px]'} ${collapsed ? 'lg:ml-[78px]' : 'lg:ml-[248px]'}`}>
+      <main className={`workspace-main flex-1 w-full bg-background transition-all duration-300 ${immersiveRoute ? 'flex h-dvh min-h-0 flex-col overflow-hidden' : 'min-h-screen overflow-auto'} ${effectiveCollapsed ? 'md:ml-[78px]' : 'md:ml-[248px]'} ${collapsed ? 'lg:ml-[78px]' : 'lg:ml-[248px]'}`}>
         {/* Desktop command bar: a stable orientation point across every module. */}
-        <header className="workspace-topbar hidden md:flex sticky top-0 z-30 h-14 items-center gap-4 border-b border-border/70 px-6 topbar-surface">
+        {!immersiveRoute && <header className="workspace-topbar hidden md:flex sticky top-0 z-30 h-14 items-center gap-4 border-b border-border/70 px-6 topbar-surface">
           <div className="workspace-topbar__context min-w-0 flex-1">
             <div className="workspace-topbar__workspace flex items-center gap-2">
               <span className="workspace-topbar__workspace-dot" aria-hidden="true" />
@@ -434,7 +437,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             Nueva venta
           </Link>
           <PresenceAvatars maxVisible={3} size={24} className="hidden lg:flex" />
-        </header>
+        </header>}
         {/* Mobile-only header — hidden from md upward, where the icon rail is always visible */}
         <div className="workspace-mobile-bar workspace-mobile-bar__inner md:hidden sticky top-0 z-30 border-b border-border/30 px-4 h-12 flex items-center gap-3"
           style={{ background: 'hsl(var(--sidebar-background) / 0.92)', backdropFilter: 'blur(16px) saturate(160%)' }}>
@@ -601,8 +604,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <div className="workspace-content p-4 md:p-6 lg:p-8 max-w-[1380px] mx-auto animate-fade-in">
-          <div className="workspace-page workspace-route-surface">
+        <div className={immersiveRoute
+          ? "workspace-content min-h-0 flex-1 overflow-hidden animate-fade-in"
+          : "workspace-content p-4 md:p-6 lg:p-8 max-w-[1380px] mx-auto animate-fade-in"
+        }>
+          <div className={`workspace-page workspace-route-surface ${immersiveRoute ? 'h-full min-h-0' : ''}`}>
             {children}
           </div>
         </div>

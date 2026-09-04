@@ -149,8 +149,26 @@ describe('contrato visual transversal de Gestión', () => {
       expect(source(path), `${path} conserva un encabezado aislado`).toContain('<PageHeader');
     }
 
-    expect(source('src/pages/POSPage.tsx')).toContain('h-[calc(100vh-4rem)]');
+    expect(source('src/pages/POSPage.tsx')).toContain('pos-workspace relative flex h-full min-h-0');
+    expect(source('src/app/routeManifest.ts')).toContain('surface: "immersive"');
+    expect(source('src/components/AppLayout.tsx')).toContain("'flex h-dvh min-h-0 flex-col overflow-hidden'");
     expect(source('src/pages/POSPage.tsx')).not.toContain('<PageHeader');
+  });
+
+  it('el POS responde al espacio real y mantiene el cobro alcanzable', () => {
+    const pos = source('src/pages/POSPage.tsx');
+    const css = source('src/index.css');
+
+    expect(pos).toContain('pos-product-area min-w-0 flex-1');
+    expect(pos).toContain('pos-product-grid grid gap-2');
+    expect(pos).toContain('pos-cart-panel flex h-full min-h-0 flex-col overflow-y-auto');
+    expect(pos).toContain('pos-confirm-sale');
+    expect(pos).toContain('xl:hidden h-9 relative shrink-0');
+    expect(pos).toContain('pos-cart-sidebar hidden w-80');
+    expect(pos).not.toContain('hidden lg:flex w-80');
+    expect(css).toContain('@container pos-catalog (min-width: 34rem)');
+    expect(css).toContain('@container pos-catalog (min-width: 50rem)');
+    expect(css).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
   });
 
   it('ninguna página vuelve a crear un select nativo fuera del primitive compartido', () => {

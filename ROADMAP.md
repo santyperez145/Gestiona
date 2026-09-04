@@ -3969,11 +3969,53 @@ Finance Connect.
      página ni errores de consola, con tabla contenida en mobile, targets de
      44 px, títulos propios y tokens claro/oscuro distintos.
 
+     El commit `2923f74b` quedó `READY` y fue inspeccionado en `nerqia.app`:
+     Términos publica el contrato ARS/Mercado Pago y el aviso de identidad;
+     Privacidad muestra seis proveedores con condición y alcance, conserva el
+     canvas claro `rgb(245, 246, 249)` y no desborda el viewport. La inspección
+     publicada no reemplaza la revisión profesional pendiente.
+
      Estado: **contradicciones técnicas cerradas; aprobación legal pendiente**.
      Siguiente slice legal: aceptación versionada server-side y cola operativa
      de derechos. Gates externos: identidad legal real, DPA, mecanismo de
      transferencia, retención, incident response, configuración Sentry del lado
      proveedor y revisión abogado/contador.
+
+169. Caja usa el espacio operativo real y deja el cierre siempre alcanzable —
+     2026-09-03. La auditoría autenticada de producción reprodujo una rotura
+     estructural que no aparecía en los tests: a 1.092 px, `AppLayout` dejaba
+     776 px útiles después de rail y padding, pero el POS activaba su corte
+     desktop por ancho de ventana. El catálogo terminaba en 428 px, cada card
+     en 137 px y el carrito tenía 804 px de alto con 923 px de contenido; el
+     botón de confirmar podía quedar fuera del área recortada.
+
+     Caja pasa a declarar `surface: immersive` en el Route Manifest: conserva
+     permisos, rail, header mobile y avisos críticos, pero no duplica topbar ni
+     padding editorial. El layout principal es una columna de `100dvh` y
+     entrega al POS el remanente real mediante `flex-1/min-h-0`. Catálogo y
+     bundles usan container queries sobre el ancho de su propio panel; ya no
+     deciden columnas por el viewport completo. El modo dividido comienza en
+     1.280 px, con carrito de 320 px (384 px en 2XL); debajo usa un sheet
+     absoluto dentro de Caja y nunca cubre el rail.
+
+     El carrito adopta un único scroll contenido, header sticky y CTA
+     alcanzable. Se cableó el vocabulario visual `pos-*` que ya existía pero no
+     tenía consumidores, sin crear otro componente ni otra ruta. Guardas
+     unitarias fijan manifest, geometría y breakpoints; el E2E autenticado suma
+     360/768/1024/1092/1280/1440, overflow, límites del viewport, alternancia de
+     carrito y confirmación deshabilitada sin escribir una venta.
+
+     Puerta local: typecheck verde; lint 0 errores/143 warnings heredados;
+     **2.607 tests verdes en 277 archivos**; build/PWA, 75 Edge Functions y
+     auditoría high en cero vulnerabilidades. El chunk POS queda en 122,17 kB
+     (34,43 kB gzip); este slice no agregó una dependencia ni otro motor de
+     checkout.
+
+     Estado: **causa reproducida y corrección implementada; publicación y
+     matriz autenticada pendientes**. El cierre operativo, descuentos, QR,
+     turno y autoridad server-side no cambian. Siguiente slice: comprobante
+     fiscal profesional e inmutable con identidad/CAE/QR derivados de la base y
+     evidencia oficial ARCA.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
