@@ -823,7 +823,9 @@ y [W3C G1](https://www.w3.org/WAI/WCAG22/Techniques/general/G1.html), y queda
 cubierto por Playwright read-only y una guarda estructural. `200131e5` quedó
 `Ready`: el caso focal pasó 2/2 y la matriz completa repitió **12/12 en
 Chromium/Pixel 5**, sin escrituras. D6.2 queda cerrado para entrada, salto y
-foco visible; todavía falta recorrer todos los controles, zoom y lector de
+foco visible. El propio skip link también expone posición y outline ante foco
+programático, porque no todos los navegadores lo clasifican como
+`:focus-visible`; todavía falta recorrer todos los controles, zoom y lector de
 pantalla.
 
 D6.3 extiende el contraste a los siete temas configurables. La matriz detectó

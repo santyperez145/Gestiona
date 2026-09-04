@@ -4790,8 +4790,11 @@ Finance Connect.
      `200131e5` llegó a Vercel `Ready`; la prueba focal pasó 2/2 y la matriz
      completa de Inicio, PLP, PDP, carrito y checkout pasó **12/12 en Chromium
      y Pixel 5**, sin escrituras. Estado: **D6.2 cerrado para entrada, salto y
-     foco visible**. Siguen pendientes el recorrido completo de todos los
-     controles, zoom y lector de pantalla.
+     foco visible**. El barrido posterior de temas reveló que un navegador
+     podía enfocar programáticamente el skip link sin clasificarlo como
+     `:focus-visible`; el propio enlace ahora muestra posición y outline ante
+     cualquier foco, sin depender de esa heurística. Siguen pendientes el
+     recorrido completo de todos los controles, zoom y lector de pantalla.
 
 190. La marca y el texto dejan de competir por el mismo token — D6.3,
      2026-09-04. La matriz de los siete temas encontró dos fallas que el tema

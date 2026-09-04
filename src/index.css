@@ -4018,8 +4018,12 @@
     transition: transform 120ms ease;
   }
 
+  .storefront-skip-link:focus,
   .storefront-skip-link:focus-visible {
     transform: translateY(0);
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px #111111;
   }
 
   /* Dos colores mantienen el indicador visible tanto sobre el fondo de una
