@@ -140,7 +140,7 @@ export default function ConectarAfip({
       <Card className="p-4 flex items-start gap-3">
         <Check className="w-4 h-4 mt-0.5 text-green-600 shrink-0" />
         <div className="text-sm">
-          <p className="font-medium">AFIP conectado</p>
+          <p className="font-medium">ARCA conectado</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             Facturás con tu CUIT {formatearCuit(cuitDelComercio)}
             {ambiente === "homologacion" && " en ambiente de prueba (homologación)"}.
@@ -230,7 +230,7 @@ export default function ConectarAfip({
       <div className="flex items-start gap-3">
         <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div>
-          <p className="font-medium text-sm">Conectá AFIP en 3 pasos</p>
+          <p className="font-medium text-sm">Conectá ARCA en 3 pasos</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             No vas a subir ningún certificado ni clave privada. Le das permiso a
             nuestro CUIT para emitir facturas <strong>a tu nombre</strong>, y lo

@@ -17786,6 +17786,8 @@ export type Database = {
       invoices: {
         Row: {
           arca_qr_payload: Json | null
+          afip_candidate_number: number | null
+          afip_candidate_set_at: string | null
           afip_authorization_requested_by: string | null
           afip_authorization_started_at: string | null
           afip_environment: string | null
@@ -17836,6 +17838,8 @@ export type Database = {
         }
         Insert: {
           arca_qr_payload?: Json | null
+          afip_candidate_number?: number | null
+          afip_candidate_set_at?: string | null
           afip_authorization_requested_by?: string | null
           afip_authorization_started_at?: string | null
           afip_environment?: string | null
@@ -17886,6 +17890,8 @@ export type Database = {
         }
         Update: {
           arca_qr_payload?: Json | null
+          afip_candidate_number?: number | null
+          afip_candidate_set_at?: string | null
           afip_authorization_requested_by?: string | null
           afip_authorization_started_at?: string | null
           afip_environment?: string | null

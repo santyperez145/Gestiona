@@ -191,9 +191,9 @@ export default function AFIPPage() {
       return {
         title: delegado
           ? "La plataforma todavía no puede emitir por vos"
-          : "Falta cargar el certificado AFIP",
+          : "Falta cargar el certificado de ARCA",
         detail: delegado
-          ? "Tus datos fiscales están guardados. Falta que la plataforma cargue su certificado de AFIP; no hay nada que puedas hacer de tu lado."
+          ? "Tus datos fiscales están guardados. Falta que la plataforma cargue su certificado de ARCA; no hay nada que puedas hacer de tu lado."
           : "Los datos fiscales están guardados, pero todavía no hay certificado y clave privada en el almacén seguro.",
         className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
         icon: AlertTriangle,

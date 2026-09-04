@@ -4083,6 +4083,59 @@ Finance Connect.
      facturas con QR, 2 de homologación, 0 productivas y 0 configuraciones con
      identidad productiva completa.
 
+171. Facturas y notas de crédito piden CAE desde la outbox sin duplicar el
+     motor fiscal — 2026-09-03. El Business Core ya emitía `factura.creada` y
+     `nota_credito.creada` dentro de la transacción que crea el comprobante,
+     pero nadie consumía esos eventos: vender podía generar la factura y el
+     dueño igual tenía que entrar a Facturas para autorizarla. Dos
+     suscripciones globales exactas llaman a la misma `afip-authorize`; no hay
+     otro endpoint, página, secuencia ni modelo fiscal.
+
+     El secreto de cron no transforma un JSON cualquiera en una orden de
+     emisión. La función exige que body y headers coincidan y vuelve a leer
+     evento, suscripción y entrega en `domain_events`, `event_subscriptions` y
+     `outbox_events`; recién entonces toma el `invoice_id`. El camino humano
+     conserva owner/admin y los RPC de reserva, candidato y error previo siguen
+     siendo sólo `service_role`. Un error de identidad o comprobante queda
+     visible en la factura en vez de parecer una automatización que nunca
+     corrió.
+
+     La recuperación evita el riesgo fiscal principal: si
+     `FECAESolicitar` corta la conexión, ARCA puede haber emitido aunque Nerqia
+     no reciba la respuesta. El número candidato se persiste antes de la llamada
+     externa, sin mantener una transacción SQL abierta. En el retry se consulta
+     `FECompUltimoAutorizado` y, si el número fue consumido,
+     `FECompConsultar`; se recupera el CAE y se valida el importe antes de
+     finalizar. Una secuencia incompatible falla cerrada y queda en
+     verificación, nunca repite a ciegas. Es el procedimiento documentado por
+     ARCA para una respuesta ambigua.
+
+     La lista de Facturas expresa ahora los dos ejes sin agregar otro enum: un
+     comprobante comercial `draft` con CAE se ve y filtra como **Emitida**;
+     después puede pasar a enviada o pagada. Navegación, guía y conexión usan
+     ARCA en la terminología visible, manteniendo `/afip`, nombres de funciones
+     y columnas por compatibilidad.
+
+     Evidencia productiva: `20260903000100` aplicada y reaplicada
+     idempotentemente; dos columnas, dos suscripciones activas y cero permisos
+     `authenticated` sobre los RPC internos. La Edge Function quedó activa con
+     JWT. Una fixture transaccional verificó reserva del sistema, bloqueo de un
+     actor ajeno, candidato persistido, error previo visible, una única entrega
+     fiscal y rollback con **0 restos**. El dry-run confirmó el libro remoto al
+     día. No se envió una factura ficticia a ARCA.
+
+     Puerta local: typecheck verde; lint 0 errores/143 warnings heredados;
+     **2.629 tests verdes en 281 archivos**; build/PWA y 75 Edge Functions.
+     `npm audit` no devolvió un resultado nuevo porque el endpoint oficial del
+     registro agotó tres veces el timeout; la última evidencia cerrada del slice
+     anterior sigue en cero high y se reintenta antes de declarar la entrega
+     totalmente cerrada.
+
+     Estado: **automatización y reconciliación implementadas, desplegadas y
+     probadas sin emisión falsa**. Gates externos: completar identidad fiscal,
+     habilitar producción, emitir una venta y una nota de crédito reales en la
+     cuenta del comercio, contrastarlas en ARCA y medir tiempo/error operativo.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

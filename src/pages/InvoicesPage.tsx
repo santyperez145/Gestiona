@@ -92,11 +92,21 @@ const TIPO_CBTE: Record<number, string> = { 1: "A", 6: "B", 11: "C" };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
   draft:    { label: "Borrador",  color: "bg-muted text-muted-foreground border-border",              icon: FileText },
-  sent:     { label: "Enviada",   color: "bg-blue-500/15 text-blue-400 border-blue-500/20",           icon: Send },
-  paid:     { label: "Pagada",    color: "bg-green-500/15 text-green-400 border-green-500/20",        icon: CheckCircle2 },
-  overdue:  { label: "Vencida",   color: "bg-red-500/15 text-red-400 border-red-500/20",              icon: XCircle },
+  issued:   { label: "Emitida",   color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/25", icon: ShieldCheck },
+  sent:     { label: "Enviada",   color: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/25",            icon: Send },
+  paid:     { label: "Pagada",    color: "bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/25",        icon: CheckCircle2 },
+  overdue:  { label: "Vencida",   color: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/25",                icon: XCircle },
   canceled: { label: "Cancelada", color: "bg-muted text-muted-foreground/50 border-border/50",        icon: XCircle },
 };
+
+/**
+ * El estado comercial y el fiscal son ejes distintos. Una factura POS nace
+ * como `draft`, pero cuando ARCA entrega CAE ya está emitida fiscalmente. La
+ * vista lo expresa sin inventar otro enum ni duplicar el flujo del Core.
+ */
+function visibleInvoiceStatus(inv: Pick<Invoice, "status" | "cae">): string {
+  return inv.cae && inv.status === "draft" ? "issued" : inv.status;
+}
 
 const EMPTY_FORM = {
   customer_name: "", customer_email: "", customer_address: "", customer_tax_id: "",
@@ -771,7 +781,7 @@ export default function InvoicesPage() {
   };
 
   const filteredInvoices = invoices.filter((inv) => {
-    if (filterStatus !== "all" && inv.status !== filterStatus) return false;
+    if (filterStatus !== "all" && visibleInvoiceStatus(inv) !== filterStatus) return false;
     if (filterType !== "all") {
       if (filterType === "NC" && !inv.number.startsWith("NC-")) return false;
       if (filterType === "A" && (inv.tipo_comprobante !== 1 || inv.number.startsWith("NC-"))) return false;
@@ -1006,7 +1016,7 @@ export default function InvoicesPage() {
         <div className="px-5 py-3 border-b border-border flex flex-wrap items-center gap-2">
           <h2 className="font-semibold text-sm shrink-0">Facturas ({filteredInvoices.length})</h2>
           <div className="flex gap-1 flex-wrap">
-            {["all", "draft", "sent", "paid", "overdue", "canceled"].map(s => (
+            {["all", "draft", "issued", "sent", "paid", "overdue", "canceled"].map(s => (
               <button
                 key={s}
                 onClick={() => setFilterStatus(s)}
@@ -1050,7 +1060,7 @@ export default function InvoicesPage() {
               inv.number,
               inv.customer_name,
               inv.customer_email || '',
-              STATUS_CONFIG[inv.status]?.label || inv.status,
+              STATUS_CONFIG[visibleInvoiceStatus(inv)]?.label || inv.status,
               Number(inv.total).toFixed(2),
               inv.tax_pct,
               new Date(inv.issue_date).toLocaleDateString('es-AR'),
@@ -1122,7 +1132,7 @@ export default function InvoicesPage() {
         ) : (
           <div className="divide-y divide-border">
             {filteredInvoices.map((inv) => {
-              const sc = STATUS_CONFIG[inv.status] || STATUS_CONFIG.draft;
+              const sc = STATUS_CONFIG[visibleInvoiceStatus(inv)] || STATUS_CONFIG.draft;
               const Icon = sc.icon;
               const isOpen = expanded === inv.id;
               const tipoCbte = inv.tipo_comprobante ? TIPO_CBTE[inv.tipo_comprobante] : null;

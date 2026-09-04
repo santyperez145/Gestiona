@@ -29,6 +29,11 @@ import { resolverCredencialesAfip, guardarTicketAcceso } from "../_shared/afipCr
 import {
   extraerXml as extractXml, motivoDeWsaa, leerTicketWsaa,
 } from "../_shared/wsaaRespuesta.ts";
+import { esLlamadaDeCron } from "../_shared/cronAuth.ts";
+import {
+  validarEventoFiscalOutbox,
+  type FiscalOutboxEvent,
+} from "../_shared/fiscalOutboxEvent.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -149,6 +154,62 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/**
+ * El secreto de infraestructura no convierte cualquier JSON en un comando.
+ * El evento debe existir, su suscripción debe ser exactamente la fiscal y la
+ * entrega debe haber nacido en la outbox. Recién entonces se toma invoiceId.
+ */
+async function confirmarEventoFiscal(evento: FiscalOutboxEvent): Promise<string | null> {
+  const [{ data: domainEvent, error: eventError }, { data: subscription, error: subError }] =
+    await Promise.all([
+      supabase
+        .from("domain_events")
+        .select("id,org_id,aggregate_type,aggregate_id,event_type,payload")
+        .eq("id", evento.eventId)
+        .maybeSingle(),
+      supabase
+        .from("event_subscriptions")
+        .select("id,org_id,patron,destino,objetivo,is_active")
+        .eq("id", evento.subscriptionId)
+        .maybeSingle(),
+    ]);
+
+  if (eventError || subError || !domainEvent || !subscription) {
+    return "El evento fiscal no existe";
+  }
+  const payload = domainEvent.payload && typeof domainEvent.payload === "object"
+    ? domainEvent.payload as Record<string, unknown>
+    : {};
+  if (
+    domainEvent.org_id !== evento.orgId ||
+    domainEvent.aggregate_type !== "factura" ||
+    domainEvent.aggregate_id !== evento.invoiceId ||
+    domainEvent.event_type !== evento.eventType ||
+    payload.invoice_id !== evento.invoiceId
+  ) return "El evento fiscal no corresponde a la factura";
+
+  if (
+    subscription.is_active !== true ||
+    subscription.patron !== evento.eventType ||
+    subscription.destino !== "edge_function" ||
+    subscription.objetivo !== "afip-authorize" ||
+    (subscription.org_id !== null && subscription.org_id !== evento.orgId)
+  ) return "La suscripción fiscal no está autorizada";
+
+  const { data: delivery, error: deliveryError } = await supabase
+    .from("outbox_events")
+    .select("id")
+    .eq("event_id", evento.eventId)
+    .eq("subscription_id", evento.subscriptionId)
+    .eq("org_id", evento.orgId)
+    .eq("event_type", evento.eventType)
+    .eq("destino", "edge_function")
+    .eq("objetivo", "afip-authorize")
+    .limit(1)
+    .maybeSingle();
+  return deliveryError || !delivery ? "La entrega fiscal no nació en la outbox" : null;
+}
+
 // ─────────────────────────────────────────────────────────────
 // Entry point
 // ─────────────────────────────────────────────────────────────
@@ -156,21 +217,40 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   let invoiceId: string | null = null;
+  let actorId: string | null = null;
+  let llamadaOutbox = false;
+  let eventoFiscal: FiscalOutboxEvent | null = null;
   let authorizationReserved = false;
   let providerResult: { cae: string; caeVencimiento: string } | null = null;
   let providerNumber: number | null = null;
   let providerEnvironment: string | null = null;
   try {
-    const authHeader = req.headers.get("Authorization") || "";
-    const token = authHeader.replace(/^Bearer\s+/, "").trim();
-    const { data: userData } = await supabase.auth.getUser(token);
-    if (!userData?.user) return err("Unauthorized", 401);
-
     const body = await req.json().catch(() => ({})) as {
       action?: string;
       invoice_id?: string;
       org_id?: string;
     };
+
+    llamadaOutbox = esLlamadaDeCron(req);
+    if (llamadaOutbox) {
+      if (body.action) return err("Una tarea automática no puede ejecutar acciones de configuración", 401);
+      const validacion = validarEventoFiscalOutbox(
+        body,
+        req.headers.get("X-Gestiona-Event"),
+        req.headers.get("X-Gestiona-Event-Id"),
+      );
+      if (!validacion.value) return err(validacion.error || "Evento fiscal inválido", 401);
+      const errorEvento = await confirmarEventoFiscal(validacion.value);
+      if (errorEvento) return err(errorEvento, 401);
+      eventoFiscal = validacion.value;
+      invoiceId = eventoFiscal.invoiceId;
+    } else {
+      const authHeader = req.headers.get("Authorization") || "";
+      const token = authHeader.replace(/^Bearer\s+/, "").trim();
+      const { data: userData } = await supabase.auth.getUser(token);
+      actorId = userData?.user?.id ?? null;
+      if (!actorId) return err("Unauthorized", 401);
+    }
 
     // Una prueba de conexión real sólo pide un Ticket de Acceso a WSAA. No
     // crea una factura, no inventa un CAE y confirma que el certificado está
@@ -191,7 +271,7 @@ Deno.serve(async (req) => {
 
       const { data: membership } = await supabase
         .from("memberships").select("role")
-        .eq("org_id", body.org_id).eq("user_id", userData.user.id)
+        .eq("org_id", body.org_id).eq("user_id", actorId)
         .in("role", ["owner", "admin"]).maybeSingle();
       if (!membership) return err("Sólo el dueño o un administrador pueden verificar", 403);
 
@@ -252,7 +332,7 @@ Deno.serve(async (req) => {
         .from("memberships")
         .select("role")
         .eq("org_id", body.org_id)
-        .eq("user_id", userData.user.id)
+        .eq("user_id", actorId)
         .in("role", ["owner", "admin"])
         .maybeSingle();
       if (!membership) return err("Sólo el dueño o un administrador pueden probar AFIP", 403);
@@ -308,7 +388,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    invoiceId = typeof body.invoice_id === "string" ? body.invoice_id : null;
+    if (!llamadaOutbox) {
+      invoiceId = typeof body.invoice_id === "string" ? body.invoice_id : null;
+    }
     if (!invoiceId) return err("invoice_id required");
 
     // Load invoice
@@ -318,6 +400,9 @@ Deno.serve(async (req) => {
       .eq("id", invoiceId)
       .single();
     if (invErr || !invoice) return err("Factura no encontrada");
+    if (llamadaOutbox && invoice.org_id !== eventoFiscal?.orgId) {
+      return err("La organización del evento no corresponde a la factura", 401);
+    }
     if (invoice.cae) {
       return ok({
         ok: true,
@@ -331,17 +416,19 @@ Deno.serve(async (req) => {
     }
 
     // Verify the same write role that the server-side reservation enforces.
-    const { data: membership } = await supabase
-      .from("memberships")
-      .select("role")
-      .eq("org_id", invoice.org_id)
-      .eq("user_id", userData.user.id)
-      .in("role", ["owner", "admin"])
-      .maybeSingle();
-    if (!membership) return err("Sólo el dueño o un administrador pueden autorizar facturas", 403);
+    if (!llamadaOutbox) {
+      const { data: membership } = await supabase
+        .from("memberships")
+        .select("role")
+        .eq("org_id", invoice.org_id)
+        .eq("user_id", actorId)
+        .in("role", ["owner", "admin"])
+        .maybeSingle();
+      if (!membership) return err("Sólo el dueño o un administrador pueden autorizar facturas", 403);
+    }
 
     const resuelto = await resolverCredencialesAfip(supabase, invoice.org_id);
-    if (resuelto.error) return err(resuelto.error);
+    if (resuelto.error) throw new Error(resuelto.error);
     const cred = resuelto.cred;
     if (!cred) return err("No se pudo resolver la credencial de ARCA");
 
@@ -364,13 +451,15 @@ Deno.serve(async (req) => {
       "afip_autorizacion_reservar",
       {
         p_invoice_id: invoiceId,
-        p_requested_by: userData.user.id,
+        p_requested_by: actorId,
         p_punto_venta: puntoVenta,
         p_tipo_cbte: tipoCbte,
         p_environment: providerEnvironment,
       },
     );
-    if (reservationError) throw new Error("No se pudo reservar la autorización AFIP");
+    if (reservationError) {
+      throw new Error(reservationError.message.replace(/^.*?:\s*/, ""));
+    }
 
     const reserva = reservation as {
       status?: string;
@@ -379,6 +468,9 @@ Deno.serve(async (req) => {
     } | null;
     if (reserva?.status === "authorized") return ok(reserva);
     if (!reserva?.acquired) {
+      if (llamadaOutbox) {
+        return err("La autorización fiscal sigue en curso y será reconciliada", 503);
+      }
       return ok({
         ok: true,
         status: "processing",
@@ -416,7 +508,60 @@ Deno.serve(async (req) => {
     const lastNumber = await getUltimoAutorizado(
       wsfeUrl, token_ta, sign_ta, cuit, puntoVenta, tipoCbte,
     );
-    const nextNumber = lastNumber + 1;
+    const candidate = Number(invoice.afip_candidate_number) || null;
+    let nextNumber: number;
+
+    if (candidate) {
+      providerNumber = candidate;
+      if (lastNumber >= candidate) {
+        let recuperado: { cae: string; caeVencimiento: string } | null = null;
+        try {
+          recuperado = await consultarComprobante({
+            wsfeUrl, token: token_ta, sign: sign_ta, cuit,
+            puntoVenta, tipoCbte, numero: candidate, total: Number(invoice.total),
+          });
+        } catch (consultaError) {
+          throw new Error(
+            "No se pudo reconciliar con ARCA el comprobante reservado: " +
+            (consultaError instanceof Error ? consultaError.message : String(consultaError)),
+          );
+        }
+        if (!recuperado) {
+          throw new Error(
+            "No se pudo reconciliar la secuencia fiscal: ARCA informa el número " +
+            `${candidate} como consumido pero no devolvió su autorización`,
+          );
+        }
+        providerResult = recuperado;
+        const { data: reconciled, error: reconcileError } = await supabase.rpc(
+          "afip_autorizacion_resultado",
+          {
+            p_invoice_id: invoiceId,
+            p_status: "authorized",
+            p_cae: recuperado.cae,
+            p_cae_vencimiento: recuperado.caeVencimiento || null,
+            p_numero_afip: candidate,
+            p_environment: providerEnvironment,
+            p_error: null,
+          },
+        );
+        if (reconcileError) throw new Error("ARCA confirmó el CAE, pero no se pudo reconciliar la factura");
+        return ok(reconciled);
+      }
+      if (lastNumber + 1 !== candidate) {
+        throw new Error(
+          `No se pudo reconciliar la secuencia fiscal: ARCA está en ${lastNumber} y Nerqia reservó ${candidate}`,
+        );
+      }
+      nextNumber = candidate;
+    } else {
+      nextNumber = lastNumber + 1;
+      const { error: candidateError } = await supabase.rpc(
+        "afip_autorizacion_candidato",
+        { p_invoice_id: invoiceId, p_numero_afip: nextNumber },
+      );
+      if (candidateError) throw new Error("No se pudo persistir el número fiscal antes de llamar a ARCA");
+    }
     providerNumber = nextNumber;
 
     // ── Step 3: Request CAE ───────────────────────────────────
@@ -466,7 +611,14 @@ Deno.serve(async (req) => {
     if (msg.includes("AFIP rechazó") || msg.includes("Resultado") || msg.includes("ErrMsg")) {
       afipStatus = "rejected";
       userMsg = `AFIP rechazó la factura: ${msg}`;
-    } else if (msg.includes("ARCA") || msg.includes("certificado") || msg.includes("Ticket de Acceso")) {
+    } else if (msg.includes("reconciliar") || msg.includes("secuencia fiscal")) {
+      afipStatus = "network_error";
+      userMsg = msg;
+    } else if (
+      msg.includes("ARCA") || msg.includes("certificado") ||
+      msg.includes("Ticket de Acceso") || msg.includes("identidad fiscal") ||
+      msg.includes("Ingresos Brutos") || msg.includes("inicio de actividades")
+    ) {
       // `motivoDeWsaa` ya devuelve una frase accionable y en castellano: se
       // pasa tal cual.
       //
@@ -490,7 +642,24 @@ Deno.serve(async (req) => {
     // Persist through the same guarded transition as the success path. A
     // timeout stays `processing`: the provider may have accepted the request
     // even though this invocation never received its response.
-    if (invoiceId && authorizationReserved) {
+    if (
+      invoiceId && !authorizationReserved &&
+      ["config_error", "validation_error"].includes(afipStatus)
+    ) {
+      try {
+        const { error: preflightError } = await supabase.rpc(
+          "afip_autorizacion_preflight_error",
+          {
+            p_invoice_id: invoiceId,
+            p_status: afipStatus,
+            p_error: userMsg,
+          },
+        );
+        if (preflightError) console.error("afip preflight state persistence error:", preflightError);
+      } catch (preflightException) {
+        console.error("afip preflight state persistence exception:", preflightException);
+      }
+    } else if (invoiceId && (authorizationReserved || llamadaOutbox)) {
       try {
         const persistStatus = providerResult
           ? "authorized"
@@ -514,7 +683,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    return err(userMsg, afipStatus === "network_error" ? 503 : 422);
+    if (llamadaOutbox && ["rejected", "config_error", "validation_error"].includes(afipStatus)) {
+      return ok({ ok: false, status: afipStatus, error: userMsg, terminal: true });
+    }
+    return err(userMsg, afipStatus === "network_error" || (llamadaOutbox && afipStatus === "error") ? 503 : 422);
   }
 });
 
@@ -633,6 +805,49 @@ async function getUltimoAutorizado(
   const xml = await wsfeCall(wsfeUrl, soap, "FECompUltimoAutorizado");
   const nro = extractXml(xml, "CbteNro");
   return nro ? parseInt(nro) : 0;
+}
+
+/**
+ * Recupera un CAE después de una respuesta ambigua.
+ *
+ * ARCA indica oficialmente que, si FECAESolicitar no responde, primero se
+ * consulte el último número y luego FECompConsultar. Repetir a ciegas puede
+ * emitir dos comprobantes para una misma venta.
+ */
+async function consultarComprobante(args: {
+  wsfeUrl: string;
+  token: string;
+  sign: string;
+  cuit: string;
+  puntoVenta: number;
+  tipoCbte: number;
+  numero: number;
+  total: number;
+}): Promise<{ cae: string; caeVencimiento: string } | null> {
+  const { wsfeUrl, token, sign, cuit, puntoVenta, tipoCbte, numero, total } = args;
+  const soap = wsfeSoap(
+    "FECompConsultar",
+    `<ar:FeCompConsReq>
+      <ar:CbteTipo>${tipoCbte}</ar:CbteTipo>
+      <ar:CbteNro>${numero}</ar:CbteNro>
+      <ar:PtoVta>${puntoVenta}</ar:PtoVta>
+    </ar:FeCompConsReq>`,
+    { token, sign, cuit },
+  );
+  const xml = await wsfeCall(wsfeUrl, soap, "FECompConsultar");
+  const resultado = extractXml(xml, "Resultado");
+  const cae = extractXml(xml, "CodAutorizacion");
+  if (resultado !== "A" || !cae) return null;
+
+  const importe = extractXml(xml, "ImpTotal");
+  if (importe && Math.abs(Number(importe) - round2(total)) > 0.01) {
+    throw new Error("el importe autorizado no coincide con la factura");
+  }
+  const vto = extractXml(xml, "FchVto");
+  const caeVencimiento = vto && /^\d{8}$/.test(vto)
+    ? `${vto.slice(0, 4)}-${vto.slice(4, 6)}-${vto.slice(6, 8)}`
+    : "";
+  return { cae, caeVencimiento };
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -227,7 +227,7 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
   // ── Facturas ─────────────────────────────────────────────────
   "/facturas": {
     title: "Facturas",
-    subtitle: "Facturación electrónica AFIP",
+    subtitle: "Facturación electrónica ARCA",
     color: "text-blue-400",
     tips: [
       { icon: CheckSquare, title: "Envío masivo de facturas", desc: "Seleccioná múltiples facturas y usá la barra flotante 'Enviar emails' para enviarlas todas en lote a sus clientes." },
