@@ -5056,6 +5056,19 @@ Finance Connect.
      validación responsive autenticada y una prueba operativa con dos vitrinas
      reales antes de cerrar F4.
 
+199. Una navegación durante un deploy pendiente deja de parecer un fallo de la
+     aplicación — D5.40, 2026-09-04. La verificación autenticada de `c079b098`
+     abrió Commerce desde una pestaña controlada por el service worker anterior:
+     el aviso de versión estaba visible, pero la importación lazy cayó después
+     en el fallback genérico. El estado de actualización ahora es compartido con
+     el error boundary; si una ruta falla mientras hay un deploy pendiente, la
+     pantalla conserva la recarga manual y explica “Nueva versión disponible”.
+     No se agregó ninguna recarga automática. Tras activar el build nuevo,
+     `/tienda-online` y `/pedidos-online` cargaron la tienda principal, KPI,
+     pedidos reales y el selector compartido en producción. Puerta completa:
+     typecheck, lint con **0 errores/142 warnings conocidos**, **2.727 tests en
+     297 archivos** (`npm test`, 2026-09-04) y build/PWA.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

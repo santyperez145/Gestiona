@@ -11,13 +11,21 @@ import { hardReload } from "@/lib/hardReload";
  */
 export const UPDATE_AVAILABLE_EVENT = "nerqia:update-available";
 const UPDATE_TOAST_ID = "nerqia-update-available";
+let appUpdateAvailable = false;
+
+/** Permite que el error boundary distinga un deploy pendiente de un bug real. */
+export function hasPendingAppUpdate() {
+  return appUpdateAvailable;
+}
 
 export function announceUpdateAvailable() {
   if (typeof window === "undefined") return;
+  appUpdateAvailable = true;
   window.dispatchEvent(new Event(UPDATE_AVAILABLE_EVENT));
 }
 
 function showUpdateNotice() {
+  appUpdateAvailable = true;
   toast.info("Hay una versión nueva de Nerqia", {
     id: UPDATE_TOAST_ID,
     description: "Seguí trabajando y actualizá cuando te convenga.",

@@ -2,7 +2,9 @@ import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
+  announceUpdateAvailable,
   createControllerChangeHandler,
+  hasPendingAppUpdate,
   UPDATE_AVAILABLE_EVENT,
 } from "@/lib/swUpdate";
 
@@ -47,5 +49,14 @@ describe("actualizaciones sin interrupciones", () => {
   it("sólo el botón explícito limpia caches y actualiza", () => {
     expect(source).toContain("void hardReload()");
     expect(source).toContain('label: "Actualizar"');
+  });
+
+  it("el error boundary conoce una versión pendiente sin forzar la recarga", () => {
+    expect(hasPendingAppUpdate()).toBe(false);
+    announceUpdateAvailable();
+    expect(hasPendingAppUpdate()).toBe(true);
+
+    const app = readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8");
+    expect(app).toContain("hasPendingAppUpdate() || isStaleBuildError(error)");
   });
 });

@@ -17,6 +17,7 @@ import {
   forceStaleBuildRecovery,
   isStaleBuildError,
 } from "@/lib/staleBuildRecovery";
+import { hasPendingAppUpdate } from "@/lib/swUpdate";
 import { ShieldAlert, BookOpen } from "lucide-react";
 import { storeSlugFromHostname } from "@/lib/storefrontHost";
 import { isPotentialCustomStoreHostname } from "@/lib/storeCustomDomain";
@@ -360,7 +361,7 @@ function OrganizationScope() {
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="gestiona-theme">
   <Sentry.ErrorBoundary fallback={({ error }) => {
-    if (isStaleBuildError(error)) {
+    if (hasPendingAppUpdate() || isStaleBuildError(error)) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-8 text-center">
           <div>
