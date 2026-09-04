@@ -4019,11 +4019,19 @@ Finance Connect.
      elimina padding, ancho máximo, margen y min-height heredados sin acoplar
      `AppLayout` a clases internas del POS.
 
-     Estado: **causa reproducida y corrección implementada; publicación y
-     matriz autenticada pendientes**. El cierre operativo, descuentos, QR,
-     turno y autoridad server-side no cambian. Siguiente slice: comprobante
-     fiscal profesional e inmutable con identidad/CAE/QR derivados de la base y
-     evidencia oficial ARCA.
+     `dd29eba8` quedó `READY` y la misma sesión autenticada repitió la medición
+     en 1.092×912: wrapper/root ocupan los 844 px completos, padding 0, borde
+     inferior exacto en 912, documento 1.092×912 y cards de 198 px frente a las
+     137 px anteriores. El sheet mide 844×768 dentro del workspace; su panel
+     tiene 731 px visibles, 1.033 px de contenido, `overflow-y:auto` y contiene
+     el CTA de 46 px deshabilitado sin aumentar el documento.
+
+     Estado: **rotura reproducida y geometría publicada cerrada en 1.092 px**.
+     Falta ejecutar la matriz automatizada completa con credenciales E2E; el
+     spec ya cubre seis anchos sin escribir una venta. El cierre operativo,
+     descuentos, QR, turno y autoridad server-side no cambian. Siguiente slice:
+     comprobante fiscal profesional e inmutable con identidad/CAE/QR derivados
+     de la base y evidencia oficial ARCA.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
