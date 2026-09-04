@@ -4126,10 +4126,16 @@ Finance Connect.
 
      Puerta local: typecheck verde; lint 0 errores/143 warnings heredados;
      **2.629 tests verdes en 281 archivos**; build/PWA y 75 Edge Functions.
-     `npm audit` no devolvió un resultado nuevo porque el endpoint oficial del
-     registro agotó tres veces el timeout; la última evidencia cerrada del slice
-     anterior sigue en cero high y se reintenta antes de declarar la entrega
-     totalmente cerrada.
+     El endpoint del registro agotó tres veces el timeout en la PC, pero la
+     instalación limpia del deploy auditó **911 paquetes y encontró 0
+     vulnerabilidades**; Vercel terminó `READY` sobre `db6fa0b8`.
+
+     Evidencia publicada autenticada: `/facturas` cargó 2/2 comprobantes como
+     **Emitida + CAE**, con filtro Emitida y sin warnings ni errores de consola;
+     `/afip` se presenta como **ARCA / Facturación electrónica**, carga 2 CAE
+     autorizados, 0 pendientes y 0 con error, y el sidebar usa “ARCA y factura
+     electrónica”. Ambas rutas leyeron datos reales del Business Core sin
+     duplicar el documento fiscal.
 
      Estado: **automatización y reconciliación implementadas, desplegadas y
      probadas sin emisión falsa**. Gates externos: completar identidad fiscal,
