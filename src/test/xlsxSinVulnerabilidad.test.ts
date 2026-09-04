@@ -14,7 +14,7 @@ const instalado = JSON.parse(readFileSync(resolve(ROOT, "node_modules/xlsx/packa
  * SheetJS movió la distribución a su propio CDN y ahí siguieron los arreglos.
  * Esa 0.18.5 arrastra dos avisos altos —contaminación de prototipo y ReDoS— y
  * los dos están en el **parser**, que es justo lo que corre sobre un archivo
- * que sube el comercio (`ProductsExcelImport`, `TiendanubeExcelImport`).
+ * que sube el comercio (`ProductsExcelImport`).
  *
  * Un `npm install xlsx` distraído reinstala la 0.18.5 y reabre el agujero sin
  * que nada falle. Por eso este test mira las tres puntas: lo declarado, lo

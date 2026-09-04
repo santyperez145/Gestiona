@@ -159,13 +159,13 @@ test.describe("productos", () => {
 
     await page.getByRole("button", { name: "Más acciones de productos" }).click();
     await page.getByRole("menuitem", { name: "Importar Excel/CSV" }).click();
-    const importer = page.getByRole("dialog", { name: "Importar catálogo" });
+    const importer = page.getByRole("dialog", { name: "Migrar catálogo" });
     await expect(importer).toBeVisible();
 
     const fixture = path.resolve("e2e/fixtures/productos-importacion-e2e.csv");
     await importer.locator('input[type="file"]').setInputFiles(fixture);
     await expect(importer.getByText("productos-importacion-e2e.csv", { exact: true })).toBeVisible();
-    await expect(importer.getByText("2 filas", { exact: true })).toBeVisible();
+    await expect(importer.getByText("2 filas de origen agrupadas", { exact: true })).toBeVisible();
     await expect(importer.locator('[aria-label="Vista previa de productos importados"]')).toBeVisible();
     await expect(importer.getByText("ZZ Vista previa importador A", { exact: true })).toBeVisible();
     await expect(importer.getByText("ZZ Vista previa importador B", { exact: true })).toBeVisible();

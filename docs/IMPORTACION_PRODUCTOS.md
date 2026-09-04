@@ -3,19 +3,25 @@
 **Estado:** contrato vigente. **Corte:** 2026-09-04.
 
 La importación Excel/CSV es una entrada al Business Core, no un atajo para
-escribir la tabla `products`. Desde `20260821000060_product_import_staging.sql`
-el contrato es:
+escribir `products`. `20260821000060_product_import_staging.sql` creó el staging
+y `20260904000140_catalog_migration.sql` lo extendió a migraciones de plataforma:
 
 ~~~text
-archivo → normalización local → staging server-side → validación
-        → aprobación explícita → aplicación atómica → reconciliación
+export → detección y agrupación local → staging server-side → preview
+       → aprobación explícita → aplicación atómica → reconciliación
 ~~~
 
 ## Qué garantiza
 
-- acepta `.xlsx`, `.xls` y `.csv`, hasta 5.000 filas por lote;
+- acepta `.xlsx`, `.xls` y `.csv`, hasta 20.000 filas de origen y 5.000
+  productos agrupados por lote;
+- detecta Shopify, Tiendanube, Nerqia y planillas genéricas; Empretienda se
+  reconoce por nombre de archivo hasta certificar una exportación real;
+- agrupa variantes por `URL handle` o `Identificador de URL`, conserva hasta 50
+  imágenes HTTPS, tags, peso, dimensiones y visibilidad;
 - una celda vacía no borra un campo existente;
-- resuelve por SKU y, como fallback, por nombre dentro de la organización;
+- resuelve primero por identidad de origen, luego por SKU y finalmente por
+  nombre dentro de la organización;
 - marca como conflicto un SKU ambiguo, un nombre ambiguo, claves repetidas en
   el archivo o SKU y nombre que apuntan a productos distintos;
 - sólo `owner` o `admin` pueden preparar y aprobar;
@@ -23,6 +29,10 @@ archivo → normalización local → staging server-side → validación
   stock;
 - los productos nuevos nacen con stock cero y toda diferencia pasa por
   `record_stock_movement`, con `reference_type = 'product_import'`;
+- una tienda de destino recibe visibilidad y redirects 301; las nuevas altas
+  quedan ocultas en las otras vitrinas de la organización;
+- las rutas antiguas se resuelven con un RPC público mínimo, sólo para tiendas
+  activas y publicadas y siempre dentro del mismo storefront;
 - una falla al aplicar revierte todas las filas válidas del lote;
 - reintentar el mismo `batch_id` completado devuelve el resultado anterior sin
   duplicar productos ni movimientos;
@@ -45,9 +55,11 @@ archivo → normalización local → staging server-side → validación
 Ejecutar como miembro de la organización; RLS limita las filas visibles:
 
 ~~~sql
-SELECT id, filename, status, total_rows, valid_rows, invalid_rows,
-       created_count, updated_count, stock_movements_count,
-       skipped_count, error_message, created_at, applied_at
+SELECT id, filename, source_system, destination_store_id, status,
+       source_row_count, total_rows, valid_rows, invalid_rows,
+       created_count, updated_count, variant_created_count,
+       variant_updated_count, stock_movements_count, redirect_count,
+       skipped_count, error_message, created_at, catalog_applied_at
 FROM public.product_import_batches
 ORDER BY created_at DESC
 LIMIT 20;
@@ -75,6 +87,13 @@ GROUP BY b.id;
 La autoridad de cierre son los contadores que el RPC reconcilia dentro de la
 misma transacción.
 
+El smoke de integración ejecuta el flujo completo como un miembro real y no
+deja datos:
+
+~~~bash
+npx supabase db query --linked --file supabase/tests/catalog_migration_smoke.sql
+~~~
+
 ## Métricas para la primera cohorte
 
 - lotes preparados → completados;
@@ -87,14 +106,18 @@ misma transacción.
 - minutos de intervención de soporte.
 
 La importación de catálogo es paridad competitiva. Lo que Nerqia debe probar
-como ventaja es que incorporar datos no rompe la verdad de stock, costo y margen
-ni exige que soporte repare media importación con SQL.
+como ventaja es que incorporar datos no rompe stock, costo ni margen y no exige
+que soporte repare media importación con SQL. Las URLs de imágenes se conservan,
+pero C22.2 debe copiarlas a storage propio para no depender del proveedor de
+origen.
 
 ## Reversión
 
 Antes de aprobar, cancelar no requiere rollback porque el staging no toca
 productos. Después de completar no se ofrece un «deshacer» ciego: otro usuario
-podría haber vendido, comprado o corregido esos productos desde entonces.
+podría haber vendido, comprado o corregido esos productos desde entonces. C22.2
+debe habilitar rollback compensatorio únicamente si una verificación server-side
+demuestra que no hubo operaciones posteriores.
 
 Si el archivo aprobado era incorrecto:
 

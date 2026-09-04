@@ -11,8 +11,8 @@ const productsPage = leer("src/pages/ProductsPage.tsx");
 const brandKnowledge = leer("src/components/marketing/BrandKnowledgeTab.tsx");
 const stockCount = leer("src/components/inventory/StockCountTab.tsx");
 const aiSuggest = leer("src/hooks/useAIProductSuggest.ts");
-const tiendanube = leer("src/components/integrations/TiendanubeExcelImport.tsx");
 const invoiceImport = leer("src/components/products/InvoiceImportDialog.tsx");
+const catalogMigration = leer("src/lib/catalogMigration.ts");
 const storeCategories = leer("src/lib/storeCategories.ts");
 const banners = leer("src/components/ecommerce/StoreBannersEditor.tsx");
 const types = leer("src/lib/types.ts");
@@ -160,7 +160,8 @@ describe("la categoría no viene puesta en perfumería", () => {
 
   it("los importadores conservan la heurística pero no caen en un rubro", () => {
     // Quien exporta de Tiendanube ya tiene su taxonomía: gana la del archivo.
-    expect(tiendanube).toContain('raw.trim().toLowerCase() || "otro"');
+    expect(catalogMigration).toContain("categoryValue(name, category.split(\",\")[0])");
+    expect(catalogMigration).toContain('String(generic.category || "otro")');
     // La factura sólo trae el nombre; si ninguna pista pega, no se adivina.
     expect(invoiceImport).not.toContain('return "perfume_diseñador";');
   });
@@ -248,7 +249,6 @@ const CONOCIDOS: Record<string, string> = {
   "src/lib/catalogIndustry.ts": "P0.1: decide si el workspace muestra chrome de perfumería o vapers; no es una lista de categorías a elegir",
   "src/lib/catalogIndustry.test.ts": "P0.1: prueba el helper; cita las categorías de perfume a propósito",
   "src/lib/productImport.ts": "heurística de import; su fallback ya es la categoría del archivo",
-  "src/components/integrations/TiendanubeExcelImport.tsx": "heurística de import",
   "src/components/products/InvoiceImportDialog.tsx": "heurística de import",
 
   // Lo que queda al 2026-08-26 **no son listas de categorías**: son features

@@ -5693,6 +5693,211 @@ export type Database = {
         }
         Relationships: []
       }
+      catalog_import_identities: {
+        Row: {
+          created_at: string
+          entity_type: string
+          external_key: string
+          last_batch_id: string | null
+          org_id: string
+          product_id: string
+          source_system: string
+          updated_at: string
+          variant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          external_key: string
+          last_batch_id?: string | null
+          org_id: string
+          product_id: string
+          source_system: string
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          external_key?: string
+          last_batch_id?: string | null
+          org_id?: string
+          product_id?: string
+          source_system?: string
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_import_identities_last_batch_id_fkey"
+            columns: ["last_batch_id"]
+            isOneToOne: false
+            referencedRelation: "product_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_identity_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "productos_sin_costo_utilizable"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_import_identities_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cheques: {
         Row: {
           amount_ars: number
@@ -28652,19 +28857,25 @@ export type Database = {
           applied_at: string | null
           calculation_params: Json
           cancelled_at: string | null
+          catalog_applied_at: string | null
           create_rows: number
           created_at: string
           created_by: string
           created_count: number
+          destination_store_id: string | null
           error_message: string | null
           filename: string
           id: string
+          image_rows: number
           invalid_rows: number
           location_id: string | null
           org_id: string
           payload_hash: string
+          redirect_count: number
           skipped_count: number
           source_format: string
+          source_row_count: number
+          source_system: string
           status: string
           stock_mode: string
           stock_movements_count: number
@@ -28672,24 +28883,33 @@ export type Database = {
           update_rows: number
           updated_count: number
           valid_rows: number
+          variant_created_count: number
+          variant_rows: number
+          variant_updated_count: number
         }
         Insert: {
           applied_at?: string | null
           calculation_params?: Json
           cancelled_at?: string | null
+          catalog_applied_at?: string | null
           create_rows?: number
           created_at?: string
           created_by: string
           created_count?: number
+          destination_store_id?: string | null
           error_message?: string | null
           filename: string
           id?: string
+          image_rows?: number
           invalid_rows?: number
           location_id?: string | null
           org_id: string
           payload_hash: string
+          redirect_count?: number
           skipped_count?: number
           source_format: string
+          source_row_count?: number
+          source_system?: string
           status?: string
           stock_mode?: string
           stock_movements_count?: number
@@ -28697,24 +28917,33 @@ export type Database = {
           update_rows?: number
           updated_count?: number
           valid_rows?: number
+          variant_created_count?: number
+          variant_rows?: number
+          variant_updated_count?: number
         }
         Update: {
           applied_at?: string | null
           calculation_params?: Json
           cancelled_at?: string | null
+          catalog_applied_at?: string | null
           create_rows?: number
           created_at?: string
           created_by?: string
           created_count?: number
+          destination_store_id?: string | null
           error_message?: string | null
           filename?: string
           id?: string
+          image_rows?: number
           invalid_rows?: number
           location_id?: string | null
           org_id?: string
           payload_hash?: string
+          redirect_count?: number
           skipped_count?: number
           source_format?: string
+          source_row_count?: number
+          source_system?: string
           status?: string
           stock_mode?: string
           stock_movements_count?: number
@@ -28722,8 +28951,32 @@ export type Database = {
           update_rows?: number
           updated_count?: number
           valid_rows?: number
+          variant_created_count?: number
+          variant_rows?: number
+          variant_updated_count?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "product_import_batches_destination_store_id_fkey"
+            columns: ["destination_store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_funnel"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "product_import_batches_destination_store_id_fkey"
+            columns: ["destination_store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_import_batches_destination_store_id_fkey"
+            columns: ["destination_store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
+          },
           {
             foreignKeyName: "product_import_batches_location_id_fkey"
             columns: ["location_id"]
@@ -28821,12 +29074,16 @@ export type Database = {
           org_id: string
           result_product_id: string | null
           row_number: number
+          source_external_key: string | null
+          source_path: string | null
           status: string
           stock_after: number | null
           stock_before: number | null
           target_product_id: string | null
           validation_errors: string[]
           validation_warnings: string[]
+          variant_created_count: number
+          variant_updated_count: number
         }
         Insert: {
           action: string
@@ -28838,12 +29095,16 @@ export type Database = {
           org_id: string
           result_product_id?: string | null
           row_number: number
+          source_external_key?: string | null
+          source_path?: string | null
           status?: string
           stock_after?: number | null
           stock_before?: number | null
           target_product_id?: string | null
           validation_errors?: string[]
           validation_warnings?: string[]
+          variant_created_count?: number
+          variant_updated_count?: number
         }
         Update: {
           action?: string
@@ -28855,12 +29116,16 @@ export type Database = {
           org_id?: string
           result_product_id?: string | null
           row_number?: number
+          source_external_key?: string | null
+          source_path?: string | null
           status?: string
           stock_after?: number | null
           stock_before?: number | null
           target_product_id?: string | null
           validation_errors?: string[]
           validation_warnings?: string[]
+          variant_created_count?: number
+          variant_updated_count?: number
         }
         Relationships: [
           {
@@ -35490,6 +35755,33 @@ export type Database = {
           },
         ]
       }
+      security_function_contracts: {
+        Row: {
+          audience: string
+          definition_hash: string
+          function_name: string
+          identity_arguments: string
+          rationale: string
+          reviewed_on: string
+        }
+        Insert: {
+          audience: string
+          definition_hash: string
+          function_name: string
+          identity_arguments?: string
+          rationale: string
+          reviewed_on: string
+        }
+        Update: {
+          audience?: string
+          definition_hash?: string
+          function_name?: string
+          identity_arguments?: string
+          rationale?: string
+          reviewed_on?: string
+        }
+        Relationships: []
+      }
       segment_campaigns: {
         Row: {
           body_preview: string | null
@@ -39193,6 +39485,220 @@ export type Database = {
           },
         ]
       }
+      store_product_publications: {
+        Row: {
+          category_slug: string | null
+          compare_at_price_ars: number | null
+          created_at: string
+          featured: boolean | null
+          org_id: string
+          price_ars: number | null
+          product_id: string
+          sort_order: number | null
+          store_id: string
+          updated_at: string
+          updated_by: string | null
+          visibility: string
+        }
+        Insert: {
+          category_slug?: string | null
+          compare_at_price_ars?: number | null
+          created_at?: string
+          featured?: boolean | null
+          org_id: string
+          price_ars?: number | null
+          product_id: string
+          sort_order?: number | null
+          store_id: string
+          updated_at?: string
+          updated_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          category_slug?: string | null
+          compare_at_price_ars?: number | null
+          created_at?: string
+          featured?: boolean | null
+          org_id?: string
+          price_ars?: number | null
+          product_id?: string
+          sort_order?: number | null
+          store_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_product_publications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "kardex_contra_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_identity_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "productos_sin_costo_utilizable"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_funnel"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_product_publications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
+          },
+        ]
+      }
       store_stock_alerts: {
         Row: {
           created_at: string
@@ -39542,6 +40048,148 @@ export type Database = {
           },
           {
             foreignKeyName: "store_theme_versions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
+          },
+        ]
+      }
+      store_url_redirects: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          destination_path: string
+          import_batch_id: string | null
+          org_id: string
+          source_path: string
+          status_code: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          destination_path: string
+          import_batch_id?: string | null
+          org_id: string
+          source_path: string
+          status_code?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          destination_path?: string
+          import_batch_id?: string | null
+          org_id?: string
+          source_path?: string
+          status_code?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_url_redirects_import_batch_id_fkey"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "product_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_funnel"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_url_redirects_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "platform_org_activation"
@@ -52363,6 +53011,10 @@ export type Database = {
         Args: { p_recommendation_id: string }
         Returns: Json
       }
+      apply_catalog_migration: {
+        Args: { p_batch_id: string; p_skip_invalid?: boolean }
+        Returns: Json
+      }
       apply_meli_shipping_cost: {
         Args: {
           p_meli_order_id: string
@@ -52697,6 +53349,22 @@ export type Database = {
         Returns: string
       }
       create_store_order: {
+        Args: {
+          p_coupon?: string
+          p_customer_email: string
+          p_customer_name: string
+          p_customer_phone: string
+          p_fiscal?: Json
+          p_items: Json
+          p_notes?: string
+          p_payment_method: string
+          p_shipping: Json
+          p_shipping_option?: string
+          p_slug: string
+        }
+        Returns: Json
+      }
+      create_store_order_core: {
         Args: {
           p_coupon?: string
           p_customer_email: string
@@ -53291,6 +53959,44 @@ export type Database = {
           sales_used: number
         }[]
       }
+      get_store_assortment: {
+        Args: {
+          p_filter?: string
+          p_limit?: number
+          p_offset?: number
+          p_query?: string
+          p_store_id: string
+        }
+        Returns: {
+          active: boolean
+          brand: string
+          core_category: string
+          core_discount_price_ars: number
+          core_price_ars: number
+          customized: boolean
+          effective_category: string
+          effective_compare_at_price_ars: number
+          effective_price_ars: number
+          featured: boolean
+          featured_override: boolean
+          has_variants: boolean
+          image_url: string
+          name: string
+          override_category_slug: string
+          override_compare_at_price_ars: number
+          override_price_ars: number
+          product_id: string
+          sellable: boolean
+          sort_order: number
+          stock: number
+          total_count: number
+          visibility: string
+        }[]
+      }
+      get_store_assortment_summary: {
+        Args: { p_store_id: string }
+        Returns: Json
+      }
       get_store_banners: {
         Args: { p_slug: string }
         Returns: {
@@ -53340,44 +54046,6 @@ export type Database = {
       }
       get_store_cart: {
         Args: { p_slug: string; p_token: string }
-        Returns: Json
-      }
-      get_store_assortment: {
-        Args: {
-          p_filter?: string
-          p_limit?: number
-          p_offset?: number
-          p_query?: string
-          p_store_id: string
-        }
-        Returns: {
-          active: boolean
-          brand: string
-          core_category: string
-          core_discount_price_ars: number
-          core_price_ars: number
-          customized: boolean
-          effective_category: string
-          effective_compare_at_price_ars: number
-          effective_price_ars: number
-          featured: boolean
-          featured_override: boolean
-          has_variants: boolean
-          image_url: string
-          name: string
-          override_category_slug: string
-          override_compare_at_price_ars: number
-          override_price_ars: number
-          product_id: string
-          sellable: boolean
-          sort_order: number
-          stock: number
-          total_count: number
-          visibility: string
-        }[]
-      }
-      get_store_assortment_summary: {
-        Args: { p_store_id: string }
         Returns: Json
       }
       get_store_catalog_products: {
@@ -54537,6 +55205,10 @@ export type Database = {
         }
         Returns: Json
       }
+      resolve_store_url_redirect: {
+        Args: { p_path: string; p_slug: string }
+        Returns: string
+      }
       restore_store_theme_version: {
         Args: { p_store_id: string; p_version_id: string }
         Returns: Json
@@ -54674,6 +55346,15 @@ export type Database = {
         }
         Returns: Json
       }
+      save_store_cart_v2_core: {
+        Args: {
+          p_email?: string
+          p_items: Json
+          p_slug: string
+          p_token: string
+        }
+        Returns: Json
+      }
       save_store_cart_v3: {
         Args: {
           p_email?: string
@@ -54749,6 +55430,24 @@ export type Database = {
         Returns: Json
       }
       siguiente_numero_factura: { Args: { p_org: string }; Returns: string }
+      stage_catalog_migration: {
+        Args: {
+          p_auto_fill_sale_price?: boolean
+          p_customs_percent?: number
+          p_default_margin_percent?: number
+          p_destination_store_id?: string
+          p_exchange_rate?: number
+          p_filename: string
+          p_location_id?: string
+          p_org_id: string
+          p_rows: Json
+          p_source_format: string
+          p_source_row_count?: number
+          p_source_system: string
+          p_stock_mode?: string
+        }
+        Returns: Json
+      }
       stage_product_import: {
         Args: {
           p_auto_fill_sale_price?: boolean

@@ -25,6 +25,7 @@ import StoreCartRecovery from "@/storefront/StoreCartRecovery";
 import StoreCart from "@/storefront/StoreCart";
 import StoreArrepentimiento from "@/storefront/StoreArrepentimiento";
 import StoreOrderLookup from "@/storefront/StoreOrderLookup";
+import StoreLegacyRedirect from "@/storefront/StoreLegacyRedirect";
 import { StoreAuthProvider } from "@/storefront/storeAuth";
 import { WishlistProvider } from "@/storefront/wishlist";
 import StorefrontSkeleton from "@/storefront/StorefrontSkeleton";
@@ -234,7 +235,7 @@ function StoreShell({ expectedSlug, previewMode }: { expectedSlug: string; previ
         {/* Res. 424/2020: el botón de arrepentimiento va accesible desde la
             primera pantalla. El link vive en la barra de arriba del header. */}
         <Route path="arrepentimiento" element={<StoreArrepentimiento />} />
-        <Route path="*" element={<StoreHome />} />
+        <Route path="*" element={<StoreLegacyRedirect disabled={previewMode} />} />
         </Routes>
       </StoreLayout>
     </StoreTrackingRuntimeProvider>

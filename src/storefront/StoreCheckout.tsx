@@ -514,6 +514,12 @@ export default function StoreCheckout() {
     ? `${fmt(Math.max(0, baseMercaderia - descuentoPago))} + envío`
     : fmt(totalFinal);
   const accionDeshabilitada = enviando || cotizando || !!entrega.bloqueo || metodos.length === 0;
+  const actionStyle = {
+    background: accionDeshabilitada ? "hsl(var(--st-surface))" : "hsl(var(--st-accent))",
+    color: accionDeshabilitada ? "hsl(var(--st-text))" : "hsl(var(--st-accent-fg))",
+    borderColor: accionDeshabilitada ? "hsl(var(--st-border))" : "transparent",
+    borderRadius: "var(--st-radius)",
+  } as React.CSSProperties;
   const textoAccion = enviando
     ? "Confirmando..."
     : cotizando
@@ -936,8 +942,8 @@ export default function StoreCheckout() {
           <button
             type="submit"
             disabled={accionDeshabilitada}
-            className="hidden md:inline-flex w-full min-h-11 py-3 font-medium items-center justify-center gap-2 disabled:opacity-60"
-            style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+            className="hidden md:inline-flex w-full min-h-11 py-3 items-center justify-center gap-2 border font-medium disabled:cursor-not-allowed"
+            style={actionStyle}
           >
             {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
             {textoAccion}
@@ -979,8 +985,8 @@ export default function StoreCheckout() {
               <button
                 type="submit"
                 disabled={accionDeshabilitada}
-                className="min-h-12 shrink-0 px-4 text-sm font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
-                style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+                className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 border px-4 text-sm font-medium disabled:cursor-not-allowed"
+                style={actionStyle}
               >
                 {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
                 {textoAccion}

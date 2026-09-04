@@ -597,6 +597,14 @@ export default function ProductsPage() {
   }, [identityParams, loading, setIdentityParams]);
 
   useEffect(() => {
+    if (identityParams.get("importar") !== "1") return;
+    if (activeRole === "owner" || activeRole === "admin") setImportOpen(true);
+    const next = new URLSearchParams(identityParams);
+    next.delete("importar");
+    setIdentityParams(next, { replace: true });
+  }, [activeRole, identityParams, setIdentityParams]);
+
+  useEffect(() => {
     handoffOpenedRef.current = false;
   }, [activeOrg?.id]);
 

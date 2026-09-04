@@ -193,6 +193,7 @@ export default function StoreProducts() {
             Filtros{activos > 0 && ` (${activos})`}
           </button>
           <select
+            aria-label="Ordenar productos"
             value={orden}
             onChange={e => setParam("orden", e.target.value === "relevancia" ? "" : e.target.value)}
             className="min-h-11 px-3 py-2 text-sm border bg-transparent"

@@ -4,11 +4,15 @@ import type { Json } from "@/integrations/supabase/types";
 import { useOrg } from "@/lib/orgContext";
 import {
   PRODUCT_IMPORT_MAX_ROWS,
-  buildProductImportRow,
   previewProductImportRow,
   productImportFormat,
-  type ProductImportPayloadRow,
 } from "@/lib/productImport";
+import {
+  catalogMigrationSourceLabel,
+  parseCatalogMigrationRows,
+  type CatalogMigrationParseResult,
+  type CatalogMigrationProduct,
+} from "@/lib/catalogMigration";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,13 +30,16 @@ import {
 
 type Step = "upload" | "preview" | "staged" | "done";
 type Location = { id: string; name: string };
+type DestinationStore = { id: string; name: string; slug: string; is_primary: boolean; is_active: boolean };
 type StageSummary = {
   ok: boolean; reused?: boolean; batch_id: string; status: string;
   total: number; valid: number; invalid: number; creates: number; updates: number;
+  variants?: number; images?: number; source?: string;
 };
 type ApplySummary = {
   ok: boolean; reused?: boolean; status?: string; created?: number; updated?: number;
   stock_movements?: number; skipped?: number; reconciled?: boolean; motivo?: string; error?: string;
+  variants_created?: number; variants_updated?: number; redirects?: number;
 };
 type StagedRow = {
   id: string; row_number: number; action: "create" | "update" | "invalid";
@@ -68,7 +75,8 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   const { activeOrg, activeRole } = useOrg();
   const [step, setStep] = useState<Step>("upload");
   const [fileName, setFileName] = useState("");
-  const [rows, setRows] = useState<ProductImportPayloadRow[]>([]);
+  const [rows, setRows] = useState<CatalogMigrationProduct[]>([]);
+  const [migration, setMigration] = useState<CatalogMigrationParseResult | null>(null);
   const [stage, setStage] = useState<StageSummary | null>(null);
   const [stagedRows, setStagedRows] = useState<StagedRow[]>([]);
   const [result, setResult] = useState<ApplySummary | null>(null);
@@ -78,6 +86,8 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   const [stockMode, setStockMode] = useState<"replace" | "ignore">("replace");
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationId, setLocationId] = useState("");
+  const [stores, setStores] = useState<DestinationStore[]>([]);
+  const [destinationStoreId, setDestinationStoreId] = useState("");
   // ⚠️ Arranca en 0 = "sin cargar", no en un dólar inventado. El importador
   // convierte costos en dólares a pesos: si arranca con un número puesto, el
   // comercio importa cientos de productos con el costo de otro dólar sin haber
@@ -94,7 +104,9 @@ export default function ProductsExcelImport({ onClose, onImported }: {
     Promise.all([
       supabase.from("settings").select("exchange_rate, customs_percent").eq("org_id", activeOrg.id).maybeSingle(),
       supabase.from("locations").select("id, name").eq("org_id", activeOrg.id).eq("active", true).order("name"),
-    ]).then(([settings, locationResult]) => {
+      supabase.from("ecommerce_stores").select("id, name, slug, is_primary, is_active")
+        .eq("org_id", activeOrg.id).order("is_primary", { ascending: false }).order("name"),
+    ]).then(([settings, locationResult, storeResult]) => {
       if (!mounted) return;
       if (settings.error) toast.error("No pudimos cargar la cotización del negocio");
       else {
@@ -109,6 +121,15 @@ export default function ProductsExcelImport({ onClose, onImported }: {
         setLocations(next);
         if (next.length === 1) setLocationId(next[0].id);
       }
+      if (storeResult.error) {
+        console.error(storeResult.error);
+        toast.error("No pudimos cargar las tiendas de destino");
+      } else {
+        const nextStores = (storeResult.data || []) as DestinationStore[];
+        setStores(nextStores);
+        const preferred = nextStores.find(store => store.is_primary) ?? nextStores.find(store => store.is_active) ?? nextStores[0];
+        if (preferred) setDestinationStoreId(preferred.id);
+      }
     });
     return () => { mounted = false; };
   }, [activeOrg?.id]);
@@ -119,9 +140,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   const previews = useMemo(() => rows.map(row => previewProductImportRow(row, params)), [rows, params]);
   const localStats = useMemo(() => ({
     issues: previews.filter(row => row.localIssues.length).length,
-    withStock: rows.filter(row => row.provided.includes("stock")).length,
-    revenue: previews.reduce((sum, row) => sum + row.salePriceARS * (row.stock || 0), 0),
-  }), [rows, previews]);
+  }), [previews]);
   const needsLocation = stockMode === "replace" && locations.length > 1
     && rows.some(row => row.provided.includes("stock"));
 
@@ -135,12 +154,17 @@ export default function ProductsExcelImport({ onClose, onImported }: {
         workbook.Sheets[workbook.SheetNames[0]], { defval: "" },
       );
       if (!raw.length) throw new Error("El archivo está vacío");
-      if (raw.length > PRODUCT_IMPORT_MAX_ROWS) throw new Error(`El máximo por lote es ${PRODUCT_IMPORT_MAX_ROWS.toLocaleString("es-AR")} filas`);
-      setRows(raw.map(buildProductImportRow));
+      if (raw.length > 20_000) throw new Error("El máximo por archivo es 20.000 filas de origen");
+      const parsed = parseCatalogMigrationRows(raw, file.name);
+      if (parsed.products.length > PRODUCT_IMPORT_MAX_ROWS) {
+        throw new Error(`El máximo por lote es ${PRODUCT_IMPORT_MAX_ROWS.toLocaleString("es-AR")} productos`);
+      }
+      setRows(parsed.products);
+      setMigration(parsed);
       setFileName(file.name);
       setStage(null); setStagedRows([]); setResult(null); setSkipInvalid(false);
       setStep("preview");
-      toast.success(`${raw.length.toLocaleString("es-AR")} filas listas para revisar`);
+      toast.success(`${parsed.products.length.toLocaleString("es-AR")} productos detectados desde ${catalogMigrationSourceLabel(parsed.source)}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No pudimos leer el archivo");
     } finally {
@@ -164,10 +188,13 @@ export default function ProductsExcelImport({ onClose, onImported }: {
     if (needsLocation && !locationId) return void toast.error("Elegí la sucursal del stock");
     setBusy(true);
     try {
-      const { data, error } = await supabase.rpc("stage_product_import", {
+      const { data, error } = await supabase.rpc("stage_catalog_migration", {
         p_org_id: activeOrg.id,
         p_filename: fileName,
         p_source_format: format,
+        p_source_system: migration?.source || "generic",
+        p_source_row_count: migration?.sourceRows || rows.length,
+        p_destination_store_id: destinationStoreId || undefined,
         p_rows: rows as unknown as Json,
         p_stock_mode: stockMode,
         p_location_id: locationId || undefined,
@@ -193,7 +220,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
     if (stage.invalid && !skipInvalid) return void toast.error("Confirmá si querés omitir las filas inválidas");
     setBusy(true);
     try {
-      const { data, error } = await supabase.rpc("apply_product_import", {
+      const { data, error } = await supabase.rpc("apply_catalog_migration", {
         p_batch_id: stage.batch_id, p_skip_invalid: skipInvalid,
       });
       if (error) throw error;
@@ -209,7 +236,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
   }
 
   function reset() {
-    setRows([]); setFileName(""); setStage(null); setStagedRows([]); setResult(null);
+    setRows([]); setMigration(null); setFileName(""); setStage(null); setStagedRows([]); setResult(null);
     setSkipInvalid(false); setStep("upload");
   }
 
@@ -241,7 +268,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
       <div className="sticky top-0 z-20 flex items-start justify-between gap-3 border-b border-border/70 bg-card/95 px-4 py-4 pr-3 backdrop-blur sm:px-7">
         <div className="flex items-start gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
           <FileSpreadsheet className="h-5 w-5 text-primary" />
-        </div><div><h3 className="font-semibold">Importar catálogo</h3><p className="text-xs text-muted-foreground">Excel o CSV · validación · aprobación · Kardex y reconciliación</p></div></div>
+        </div><div><h3 className="font-semibold">Migrar catálogo</h3><p className="text-xs text-muted-foreground">Shopify, Tiendanube, Empretienda o planilla propia</p></div></div>
         <Button variant="ghost" size="sm" onClick={onClose} aria-label="Cerrar"><X className="h-4 w-4" /></Button>
       </div>
 
@@ -257,14 +284,14 @@ export default function ProductsExcelImport({ onClose, onImported }: {
       {step === "upload" && <div className="space-y-3">
         <FilePicker
           accept=".xlsx,.xls,.csv"
-          title="Seleccioná o arrastrá tu Excel/CSV"
-          description="Hasta 5.000 productos por lote"
+          title="Subí la exportación de tu catálogo"
+          description="Detectamos el formato y agrupamos hasta 20.000 filas"
           icon={FileSpreadsheet}
           busy={busy}
           busyLabel="Leyendo catálogo…"
           onFile={parseFile}
         />
-        <div className="flex items-center justify-between gap-3"><p className="text-xs text-muted-foreground">Las columnas desconocidas se ignoran.</p>
+        <div className="flex items-center justify-between gap-3"><p className="text-xs text-muted-foreground">También podés usar la plantilla nativa de Nerqia.</p>
           <Button variant="outline" size="sm" onClick={() => void downloadTemplate()}><Download className="mr-2 h-4 w-4" />Plantilla</Button></div>
         <Alert variant="info"><ShieldCheck className="h-4 w-4 shrink-0" /><div><AlertTitle>Nada cambia al subir</AlertTitle>
           <AlertDescription>Primero el servidor detecta altas, actualizaciones, duplicados y errores. El catálogo cambia recién con tu aprobación.</AlertDescription></div></Alert>
@@ -272,11 +299,14 @@ export default function ProductsExcelImport({ onClose, onImported }: {
 
       {step === "preview" && <div className="space-y-4">
         <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2"><div className="min-w-0">
-          <p className="truncate text-sm font-medium">{fileName}</p><p className="text-xs text-muted-foreground">{rows.length.toLocaleString("es-AR")} filas</p></div>
+          <div className="flex flex-wrap items-center gap-2"><p className="truncate text-sm font-medium">{fileName}</p>{migration && <Badge variant="secondary">{catalogMigrationSourceLabel(migration.source)}</Badge>}</div>
+          <p className="text-xs text-muted-foreground">{migration?.sourceRows.toLocaleString("es-AR") || rows.length.toLocaleString("es-AR")} filas de origen agrupadas</p></div>
           <Button variant="ghost" size="sm" onClick={reset}><ArrowLeft className="mr-2 h-4 w-4" />Cambiar</Button></div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4"><SummaryCard label="Filas" value={rows.length} />
-          <SummaryCard label="A revisar" value={localStats.issues} tone={localStats.issues ? "text-amber-500" : "text-emerald-500"} />
-          <SummaryCard label="Con stock" value={localStats.withStock} /><SummaryCard label="Venta potencial (mil ARS)" value={Math.round(localStats.revenue / 1000)} /></div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4"><SummaryCard label="Productos" value={rows.length} />
+          <SummaryCard label="Variantes" value={migration?.variantCount || 0} />
+          <SummaryCard label="Imágenes" value={migration?.imageCount || 0} />
+          <SummaryCard label="A revisar" value={localStats.issues} tone={localStats.issues ? "text-amber-500" : "text-emerald-500"} /></div>
+        {migration?.warnings.map(warning => <Alert key={warning} variant="warning"><AlertCircle className="h-4 w-4 shrink-0" /><div><AlertTitle>Revisión de origen</AlertTitle><AlertDescription>{warning}</AlertDescription></div></Alert>)}
         <div className="overflow-hidden rounded-lg border border-border">
           <button type="button" className="flex w-full items-center gap-2 bg-muted/30 px-4 py-2.5 text-left" onClick={() => setExpanded(value => !value)}>
             <Info className="h-4 w-4 text-primary" /><span className="flex-1 text-sm font-medium">Reglas de costo y margen</span>
@@ -293,6 +323,15 @@ export default function ProductsExcelImport({ onClose, onImported }: {
           <label className={`cursor-pointer rounded-lg border p-3 ${stockMode === "replace" ? "border-primary bg-primary/5" : "border-border"}`}><input type="radio" name="stock-mode" className="mr-2" checked={stockMode === "replace"} onChange={() => setStockMode("replace")} /><b className="text-sm">Usar stock del archivo</b><p className="ml-5 mt-1 text-xs text-muted-foreground">Ajusta la diferencia y deja asiento en Kardex.</p></label>
           <label className={`cursor-pointer rounded-lg border p-3 ${stockMode === "ignore" ? "border-primary bg-primary/5" : "border-border"}`}><input type="radio" name="stock-mode" className="mr-2" checked={stockMode === "ignore"} onChange={() => setStockMode("ignore")} /><b className="text-sm">Conservar stock actual</b><p className="ml-5 mt-1 text-xs text-muted-foreground">Importa catálogo y precios sin mover unidades.</p></label>
         </div>
+        {stores.length > 0 && <div className="rounded-lg border border-border p-4">
+          <Label className="text-xs">Tienda de destino</Label>
+          <Select value={destinationStoreId || "__catalog_only"} onValueChange={value => setDestinationStoreId(value === "__catalog_only" ? "" : value)}>
+            <SelectTrigger className="mt-1.5 h-10 w-full text-sm" aria-label="Tienda de destino de la migración"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="__catalog_only">Sólo Business Core, sin vitrina</SelectItem>{stores.map(store => <SelectItem key={store.id} value={store.id}>{store.name}{store.is_primary ? " · Principal" : ""}{!store.is_active ? " · Inactiva" : ""}</SelectItem>)}</SelectContent>
+          </Select>
+          <p className="mt-2 text-xs text-muted-foreground">La tienda elegida conserva visibilidad y recibe los redirects de las URLs antiguas. Las altas no se publican en otras vitrinas.</p>
+        </div>}
+        {migration && migration.redirectCount > 0 && !destinationStoreId && <Alert variant="warning"><AlertCircle className="h-4 w-4 shrink-0" /><div><AlertTitle>Sin redirects</AlertTitle><AlertDescription>Elegí una tienda de destino para conservar las {migration.redirectCount} URLs de producto detectadas.</AlertDescription></div></Alert>}
         {stockMode === "replace" && locations.length > 0 && <div><Label className="text-xs">Sucursal del stock {needsLocation && "(obligatoria)"}</Label>
           <Select value={locationId || "__general"} onValueChange={value => setLocationId(value === "__general" ? "" : value)} disabled={locations.length === 1}>
             <SelectTrigger className="mt-1 h-9 w-full text-sm" aria-label="Sucursal que recibirá el stock importado"><SelectValue /></SelectTrigger>
@@ -300,10 +339,10 @@ export default function ProductsExcelImport({ onClose, onImported }: {
           </Select></div>}
         <p className="text-[11px] text-muted-foreground sm:hidden">Deslizá la vista previa horizontalmente para comparar todas las columnas.</p>
         <div className="overflow-x-auto rounded-lg border border-border" tabIndex={0} aria-label="Vista previa de productos importados"><table className="w-full min-w-[760px] text-xs">
-          <thead className="bg-muted/40 text-muted-foreground"><tr><th className="p-2 text-left">Fila</th><th className="p-2 text-left">Producto</th><th className="p-2 text-left">SKU</th><th className="p-2 text-right">Costo total</th><th className="p-2 text-right">Venta</th><th className="p-2 text-right">Stock</th><th className="p-2 text-left">Vista local</th></tr></thead>
+          <thead className="bg-muted/40 text-muted-foreground"><tr><th className="p-2 text-left">Fila</th><th className="p-2 text-left">Producto</th><th className="p-2 text-left">SKU</th><th className="p-2 text-right">Variantes</th><th className="p-2 text-right">Venta</th><th className="p-2 text-right">Stock</th><th className="p-2 text-left">Vista local</th></tr></thead>
           <tbody>{rows.slice(0, 100).map((row, index) => { const preview = previews[index]; return <tr key={`${index}-${row.name}`} className="border-t border-border/60">
             <td className="p-2 text-muted-foreground">{index + 1}</td><td className="max-w-[220px] truncate p-2 font-medium">{row.name || "Sin nombre"}</td><td className="p-2 font-mono">{String(row.sku || "—")}</td>
-            <td className="p-2 text-right">USD {preview.totalCostUSD.toFixed(2)}</td><td className="p-2 text-right">{ars(preview.salePriceARS)}</td><td className="p-2 text-right">{preview.stock ?? "—"}</td>
+            <td className="p-2 text-right">{Array.isArray(row.variants) ? row.variants.length : 0}</td><td className="p-2 text-right">{ars(preview.salePriceARS)}</td><td className="p-2 text-right">{preview.stock ?? "—"}</td>
             <td className="p-2">{preview.localIssues.length ? <span className="text-amber-500">{preview.localIssues.join(" · ")}</span> : <span className="text-emerald-500">Lista</span>}</td>
           </tr>; })}</tbody></table>{rows.length > 100 && <p className="border-t border-border p-2 text-center text-xs text-muted-foreground">Mostrando 100; el servidor validará las {rows.length}.</p>}</div>
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button variant="outline" className="w-full sm:w-auto" onClick={onClose}>Cancelar</Button><Button className="w-full sm:w-auto" onClick={() => void prepare()} disabled={busy || (needsLocation && !locationId)}>
@@ -313,7 +352,7 @@ export default function ProductsExcelImport({ onClose, onImported }: {
       {step === "staged" && stage && <div className="space-y-4">
         <Alert variant={stage.invalid ? "warning" : "success"}>{stage.invalid ? <AlertCircle className="h-4 w-4 shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />}<div>
           <AlertTitle>{stage.invalid ? "Hay filas que no se aplicarán" : "Validación completa"}</AlertTitle><AlertDescription>El servidor revisó {stage.total} filas. Todavía no cambió ningún producto ni unidad.</AlertDescription></div></Alert>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5"><SummaryCard label="Total" value={stage.total} /><SummaryCard label="Válidas" value={stage.valid} tone="text-emerald-500" /><SummaryCard label="Nuevas" value={stage.creates} /><SummaryCard label="Actualizan" value={stage.updates} /><SummaryCard label="Inválidas" value={stage.invalid} tone={stage.invalid ? "text-destructive" : "text-emerald-500"} /></div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7"><SummaryCard label="Productos" value={stage.total} /><SummaryCard label="Válidos" value={stage.valid} tone="text-emerald-500" /><SummaryCard label="Nuevos" value={stage.creates} /><SummaryCard label="Actualizan" value={stage.updates} /><SummaryCard label="Variantes" value={stage.variants || 0} /><SummaryCard label="Imágenes" value={stage.images || 0} /><SummaryCard label="Inválidos" value={stage.invalid} tone={stage.invalid ? "text-destructive" : "text-emerald-500"} /></div>
         <p className="text-[11px] text-muted-foreground sm:hidden">Deslizá el resultado horizontalmente para revisar cada validación.</p>
         <div className="max-h-[360px] overflow-auto rounded-lg border border-border" tabIndex={0} aria-label="Resultado de validación del servidor"><table className="w-full min-w-[720px] text-xs"><thead className="sticky top-0 bg-muted text-muted-foreground"><tr><th className="p-2 text-left">Fila</th><th className="p-2 text-left">Acción</th><th className="p-2 text-left">Producto</th><th className="p-2 text-left">SKU</th><th className="p-2 text-left">Resultado del servidor</th></tr></thead>
           <tbody>{stagedRows.slice(0, 200).map(row => { const normalized = jsonObject(row.normalized); return <tr key={row.id} className="border-t border-border/60 align-top"><td className="p-2">{row.row_number}</td>
@@ -328,8 +367,8 @@ export default function ProductsExcelImport({ onClose, onImported }: {
       </div>}
 
       {step === "done" && result && <div className="space-y-5 py-4 text-center"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10"><PackageCheck className="h-9 w-9 text-emerald-500" /></div>
-        <div><h4 className="text-xl font-semibold">Catálogo reconciliado</h4><p className="mt-1 text-sm text-muted-foreground">Cada fila válida terminó exactamente una vez.</p></div>
-        <div className="mx-auto grid max-w-xl grid-cols-2 gap-2 sm:grid-cols-4"><SummaryCard label="Creados" value={result.created || 0} tone="text-emerald-500" /><SummaryCard label="Actualizados" value={result.updated || 0} /><SummaryCard label="Movimientos Kardex" value={result.stock_movements || 0} /><SummaryCard label="Omitidos" value={result.skipped || 0} tone={result.skipped ? "text-amber-500" : "text-foreground"} /></div>
+        <div><h4 className="text-xl font-semibold">Catálogo reconciliado</h4><p className="mt-1 text-sm text-muted-foreground">Productos, variantes, stock y URLs terminaron en una única transacción.</p></div>
+        <div className="mx-auto grid max-w-4xl grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7"><SummaryCard label="Creados" value={result.created || 0} tone="text-emerald-500" /><SummaryCard label="Actualizados" value={result.updated || 0} /><SummaryCard label="Variantes nuevas" value={result.variants_created || 0} /><SummaryCard label="Variantes act." value={result.variants_updated || 0} /><SummaryCard label="Kardex" value={result.stock_movements || 0} /><SummaryCard label="Redirects" value={result.redirects || 0} /><SummaryCard label="Omitidos" value={result.skipped || 0} tone={result.skipped ? "text-amber-500" : "text-foreground"} /></div>
         <Alert variant="success" className="text-left"><ShieldCheck className="h-4 w-4 shrink-0" /><div><AlertTitle>Aplicación atómica e idempotente</AlertTitle><AlertDescription>Reintentar el mismo lote no duplica productos ni movimientos de stock.</AlertDescription></div></Alert>
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center"><Button variant="outline" className="w-full sm:w-auto" onClick={reset}><Upload className="mr-2 h-4 w-4" />Importar otro</Button><Button className="w-full sm:w-auto" onClick={onClose}>Volver a Productos</Button></div>
       </div>}

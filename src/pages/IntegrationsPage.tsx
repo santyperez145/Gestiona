@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import MercadoLibrePanel from "@/components/integrations/MercadoLibrePanel";
 import PaymentConnectionsPanel from "@/components/integrations/PaymentConnectionsPanel";
-import TiendanubeExcelImport from "@/components/integrations/TiendanubeExcelImport";
 import PlatformServicesPanel from "@/components/integrations/PlatformServicesPanel";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,6 +63,7 @@ function fmtDate(d: string | null) {
 export default function IntegrationsPage() {
   usePageTitle("Integraciones & API");
   const { activeOrg } = useOrg();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") || "mercado";
 
@@ -323,27 +323,29 @@ export default function IntegrationsPage() {
         </div>
       </div>
 
-      {/* Importar desde una planilla de Tiendanube.
-          De la integración por API de Tiendanube no queda nada: ninguna
-          organización la había conectado, y sostener el OAuth, el webhook y
-          dos sincronizadores de una plataforma con la que se compite es
-          trabajo que no paga. Esto es otra cosa: lee el Excel que Tiendanube
-          le da al comercio, sin API ni credenciales, para que quien se cambia
-          traiga su catálogo. */}
+      {/* Productos es la única autoridad de migración. Integraciones explica
+          el camino y deriva allí; no mantiene un segundo escritor de stock. */}
       <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden shadow-card">
         <div className="px-5 py-4 border-b border-border flex items-center gap-3">
           <div className="w-10 h-10 rounded-[6px] bg-[#2f6ee4]/10 flex items-center justify-center shrink-0">
             <FileSpreadsheet className="w-5 h-5 text-[#2f6ee4]" />
           </div>
           <div>
-            <h2 className="font-semibold">Importar catálogo desde una planilla</h2>
+            <h2 className="font-semibold">Migrar catálogo a Nerqia</h2>
             <p className="text-xs text-muted-foreground">
-              Subí el Excel que exportaste de Tiendanube y traé tus productos.
+              Shopify, Tiendanube, Empretienda o una planilla propia, con validación previa.
             </p>
           </div>
         </div>
         <div className="px-5 py-4">
-          <TiendanubeExcelImport />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              Productos centraliza variantes, imágenes, stock, visibilidad y URLs antiguas para que una reimportación no duplique el catálogo.
+            </p>
+            <Button className="shrink-0" onClick={() => navigate("/productos?importar=1")}>
+              <FileSpreadsheet className="mr-2 h-4 w-4" />Abrir migrador
+            </Button>
+          </div>
         </div>
       </div>
 

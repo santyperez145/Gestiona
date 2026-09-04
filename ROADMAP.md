@@ -86,11 +86,15 @@ Decisiones canónicas: [Commerce OS](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md),
 - surtido por vitrina con publicación/ocultamiento, precio comparativo, categoría,
   destacado y orden propios. El checkout y los endpoints SEO vuelven a resolver
   la vitrina en la base; producto y stock continúan en el Core.
+- migrador único en Productos para Shopify, Tiendanube y planillas propias:
+  detecta origen, agrupa variantes e imágenes, conserva identidad externa,
+  mueve stock por Kardex y crea redirects por vitrina dentro de una transacción.
 
 **Falta para llamarlo Commerce first-level**
 
-- migrador completo desde Tiendanube/Shopify/Empretienda con productos,
-  variantes, imágenes, clientes, redirects y reconciliación;
+- certificar el migrador con archivos reales de comercios, cerrar el mapeo exacto
+  de Empretienda, copiar imágenes a storage propio, incorporar clientes y ofrecer
+  reversión compensatoria sólo cuando no hubo operaciones posteriores;
 - validación real con dos vitrinas de una organización y un segundo comercio;
 - certificación live de aprobación/rechazo/timeout/refund en pagos y de etiqueta
   con un transportista contratado;
@@ -162,7 +166,7 @@ reducir intervención/MTTR con evidencia antes de sumar paneles.
 - los deploys no recargan automáticamente: anuncian la versión y actualizan por
   acción explícita;
 - corte técnico 2026-09-04: typecheck, lint con **0 errores/142 warnings
-  conocidos**, **2.742 tests en 299 archivos** (`npm test`) y build/PWA verde;
+  conocidos**, **2.755 tests en 301 archivos** (`npm test`) y build/PWA verde;
 - el deploy productivo se verifica después de cada push tanto en la tienda
   pública como en Commerce con una sesión autenticada.
 
@@ -199,7 +203,8 @@ Estos puntos no se cierran con más código:
 
 1. **Cerrado — surtido multi-tienda:** publicación, precio visible, categoría,
    destacado y orden por vitrina sin duplicar producto ni stock.
-2. **Migración:** importador reconciliable con preview, redirects y rollback.
+2. **Migración:** C22.1 cerró catálogo, variantes, identidad y redirects; C22.2
+   debe cerrar archivos reales, clientes, copia de imágenes y rollback seguro.
 3. **Checkout:** estados separados de cart/order/payment/fulfillment, concurrencia
    y recuperación clara.
 4. **Operación:** fulfillment por ubicación, etiquetas, devoluciones y SLA.
@@ -234,7 +239,7 @@ partner.
 
 | Orden | Slice | Resultado verificable |
 |---|---|---|
-| 1 | C22 Migración de catálogo | Preview + import + reconciliación + redirects, probado con export real. |
+| 1 | C22.2 Certificar migración | Shopify/Tiendanube/Empretienda reales, clientes, imágenes propias y rollback condicionado. |
 | 2 | C20 Estados de checkout | Cart/order/payment/fulfillment recuperan fallos y concurrencia. |
 | 3 | C23 Operación de pedidos | Cola por SLA, fulfillment y devolución completos. |
 | 4 | C24 Storefront de conversión | Mobile/A11y/performance y búsqueda medidos. |
@@ -246,10 +251,11 @@ partner.
 
 No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
 
-**Último cierre Commerce (2026-09-04):** C21.2 aplica un overlay de surtido por
-tienda sin copiar stock ni producto; catálogo, carrito, checkout, feed, sitemap
-y SEO respetan la misma publicación y el mismo precio server-side. La prueba
-vinculada creó una segunda vitrina, aisló catálogo/precio y terminó en rollback.
+**Último cierre Commerce (2026-09-04):** C22.1 reemplaza los importadores
+paralelos por una sola autoridad en Productos. La prueba vinculada migró un
+producto Shopify con variante, imagen, stock, publicación, identidad y redirect;
+reconcilió todo y terminó en rollback. Falta certificación con exports de
+comercios; Empretienda todavía sólo se detecta por el nombre del archivo.
 
 ## 7. Definition of Done
 

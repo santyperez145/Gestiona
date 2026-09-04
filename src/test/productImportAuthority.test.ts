@@ -4,13 +4,17 @@ import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
 const migration = readFileSync(resolve(root, "supabase/migrations/20260821000060_product_import_staging.sql"), "utf8");
+const catalogMigration = readFileSync(resolve(root, "supabase/migrations/20260904000140_catalog_migration.sql"), "utf8");
 const importer = readFileSync(resolve(root, "src/components/products/ProductsExcelImport.tsx"), "utf8");
+const catalogParser = readFileSync(resolve(root, "src/lib/catalogMigration.ts"), "utf8");
 const productsPage = readFileSync(resolve(root, "src/pages/ProductsPage.tsx"), "utf8");
 
 describe("autoridad de la importación de productos", () => {
   it("prepara y aplica el lote mediante RPC, nunca escribiendo products desde el navegador", () => {
-    expect(importer).toContain('rpc("stage_product_import"');
-    expect(importer).toContain('rpc("apply_product_import"');
+    expect(importer).toContain('rpc("stage_catalog_migration"');
+    expect(importer).toContain('rpc("apply_catalog_migration"');
+    expect(catalogMigration).toContain("public.stage_product_import(");
+    expect(catalogMigration).toContain("public.apply_product_import(");
     expect(importer).not.toMatch(/\.from\(["']products["']\)\s*\.(insert|update|upsert)/);
   });
 
@@ -55,6 +59,6 @@ describe("autoridad de la importación de productos", () => {
   it("una fila vacía no pisa campos existentes", () => {
     expect(migration).toContain("v_provided ? 'brand'");
     expect(migration).toContain("v_provided ? 'sale_price_ars'");
-    expect(importer).toContain("buildProductImportRow");
+    expect(catalogParser).toContain("buildProductImportRow");
   });
 });

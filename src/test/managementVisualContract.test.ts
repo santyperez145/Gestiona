@@ -201,7 +201,6 @@ describe('contrato visual transversal de Gestión', () => {
     expect(source('src/components/ui/input.tsx')).toContain('dark:[&[type=date]]:[color-scheme:dark]');
 
     for (const path of [
-      'src/components/integrations/TiendanubeExcelImport.tsx',
       'src/components/products/ProductsExcelImport.tsx',
       'src/components/products/ProductsPriceImport.tsx',
       'src/pages/BankReconciliationPage.tsx',
