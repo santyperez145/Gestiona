@@ -329,7 +329,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               <LinkDeMenu
                 key={n.label}
                 item={n}
-                className="opacity-80 hover:opacity-100 transition-opacity whitespace-nowrap"
+                className="whitespace-nowrap"
                 style={{ color: "hsl(var(--st-header-fg))" }}
               />
             ) : (
@@ -340,7 +340,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               <div key={n.label} className="relative group">
                 <LinkDeMenu
                   item={n}
-                  className="inline-flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity whitespace-nowrap"
+                  className="inline-flex items-center gap-1 whitespace-nowrap"
                   style={{ color: "hsl(var(--st-header-fg))" }}
                 />
                 <ChevronDown

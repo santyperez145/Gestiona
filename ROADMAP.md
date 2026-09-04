@@ -4816,8 +4816,12 @@ Finance Connect.
      Natural se componía al 95% sobre el canvas y bajaba de 4,54:1 teórico a
      **4,16:1 real**. El buscador ahora fija fondo/foreground coherentes con su
      superficie y el header usa el token opaco que fue validado. Estado:
-     **segundo ajuste implementado localmente; falta certificar el nuevo bundle
-     antes de cerrar D6.3**.
+     `ef6fab0e` llegó `Ready`: móvil recorrió los siete temas, mientras desktop
+     encontró que `opacity-80` degradaba los links de navegación Natural desde
+     el color AA a **3,5:1**. Se retiró esa opacidad; el menú ya comunica hover
+     y foco mediante el indicador de navegación. Estado: **tercer ajuste
+     implementado localmente; falta certificar el nuevo bundle antes de cerrar
+     D6.3**.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
