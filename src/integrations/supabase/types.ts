@@ -53066,7 +53066,11 @@ export type Database = {
         }[]
       }
       get_store_performance_snapshot: {
-        Args: { p_org_id: string }
+        Args: {
+          p_from?: string | null
+          p_org_id: string
+          p_to?: string | null
+        }
         Returns: Json
       }
       start_store_checkout: {

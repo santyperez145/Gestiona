@@ -8,6 +8,9 @@ import {
   storeAttributionCoverageCopy,
   storeFunnelCoverageCopy,
   storeFunnelFromPerformance,
+  storePerformanceComparisonCopy,
+  storePerformancePeriodLabel,
+  storePerformanceTrend,
   storePublishCta,
   storePublishNudges,
   storeShouldLeadWithPay,
@@ -49,8 +52,13 @@ const PERFORMANCE_SQL = readFileSync(
   resolve(ROOT, 'supabase/migrations/20260904000020_store_checkout_stage.sql'),
   'utf8',
 );
+const PERFORMANCE_PERIOD_SQL = readFileSync(
+  resolve(ROOT, 'supabase/migrations/20260904000030_store_performance_period.sql'),
+  'utf8',
+);
 const CHECKOUT = readFileSync(resolve(ROOT, 'src/storefront/StoreCheckout.tsx'), 'utf8');
 const PUBLIC_DATA = readFileSync(resolve(ROOT, 'src/lib/publicDataSource.ts'), 'utf8');
+const DATE_RANGE = readFileSync(resolve(ROOT, 'src/components/shared/DateRangeFilter.tsx'), 'utf8');
 
 describe('la primera publicación empieza por el catálogo', () => {
   it('el wizard online manda a Productos, no a un panel vacío', () => {
@@ -383,6 +391,37 @@ describe('el embudo no inventa un checkout', () => {
     })).toBeNull();
   });
 
+  it('valida período y comparación sin inventar crecimiento sobre cero', () => {
+    const snapshot = parseStorePerformanceSnapshot({
+      orders_total: 3,
+      orders_paid: 2,
+      paid_revenue_ars: 150,
+      attributed_orders: 1,
+      sessions_total: 4,
+      sessions_with_items: 3,
+      checkout_started_sessions: 2,
+      converted_sessions: 1,
+      recoverable_carts: 1,
+      period_from: '2026-09-01',
+      period_to: '2026-09-04',
+      comparison: {
+        period_from: '2026-08-28',
+        period_to: '2026-08-31',
+        orders_total: 2,
+        orders_paid: 1,
+        paid_revenue_ars: 100,
+      },
+      attribution_started_at: '2026-09-03T00:00:00Z',
+      checkout_tracking_started_at: '2026-09-04T03:41:11Z',
+      snapshot_at: '2026-09-04T12:00:00Z',
+    });
+    expect(snapshot).not.toBeNull();
+    expect(storePerformancePeriodLabel(snapshot!)).toContain('1 de sept de 2026');
+    expect(storePerformanceComparisonCopy(snapshot!.comparison)).toContain('28 de ago de 2026');
+    expect(storePerformanceTrend(150, 100)).toEqual({ value: 50, label: 'vs período anterior' });
+    expect(storePerformanceTrend(150, 0)).toBeNull();
+  });
+
   it('Commerce usa el embudo medido y no un 37%', () => {
     expect(STORE).toContain('get_store_performance_snapshot');
     expect(STORE).toContain('storeFunnelFromPerformance');
@@ -409,6 +448,21 @@ describe('el embudo no inventa un checkout', () => {
     expect(PERFORMANCE_SQL).toContain('COALESCE(checkout_started_at, now())');
     expect(PERFORMANCE_SQL).toContain('GRANT EXECUTE ON FUNCTION public.start_store_checkout');
     expect(STORE).not.toContain('value: String(orders.length');
+  });
+
+  it('el período usa límites argentinos, comparación equivalente y URL compartible', () => {
+    expect(PERFORMANCE_PERIOD_SQL).toContain("'America/Argentina/Buenos_Aires'");
+    expect(PERFORMANCE_PERIOD_SQL).toContain('v_previous_from_date := v_from_date - v_days');
+    expect(PERFORMANCE_PERIOD_SQL).toContain("'comparison', CASE WHEN v_filtered");
+    expect(PERFORMANCE_PERIOD_SQL).toContain('created_at >= v_period_start AND created_at < v_period_end');
+    expect(PERFORMANCE_PERIOD_SQL).toContain('REVOKE ALL ON FUNCTION public.get_store_performance_snapshot(uuid, date, date) FROM anon');
+    expect(STORE).toContain('useDateRangeFilter');
+    expect(STORE).toContain('p_from: performanceFromParam');
+    expect(STORE).toContain('performanceRequestRef');
+    expect(STORE).toContain('storePerformanceTrend');
+    expect(DATE_RANGE).toContain('min-h-11');
+    expect(DATE_RANGE).toContain('aria-label="Limpiar filtro de fechas"');
+    expect(DATE_RANGE).toContain('subDays(new Date(), 29)');
   });
 });
 

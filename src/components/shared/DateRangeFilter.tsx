@@ -25,8 +25,8 @@ export const DATE_RANGE_PARAM_TO = "dt";
 
 const PRESETS: { label: string; from: () => Date; to: () => Date }[] = [
   { label: "Este mes", from: () => startOfMonth(new Date()), to: () => new Date() },
-  { label: "Últimos 30 días", from: () => subDays(new Date(), 30), to: () => new Date() },
-  { label: "Últimos 90 días", from: () => subDays(new Date(), 90), to: () => new Date() },
+  { label: "Últimos 30 días", from: () => subDays(new Date(), 29), to: () => new Date() },
+  { label: "Últimos 90 días", from: () => subDays(new Date(), 89), to: () => new Date() },
   { label: "Este año", from: () => startOfYear(new Date()), to: () => new Date() },
 ];
 
@@ -77,13 +77,15 @@ export function useDateRangeFilter() {
     return true;
   };
 
-  return { from, to, setRange, inRange, active: !!from };
+  return { from, to, setRange, inRange, active: !!from || !!to };
 }
 
 export default function DateRangeFilter({ label = "Filtrar fechas" }: { label?: string }) {
   const { from, to, setRange } = useDateRangeFilter();
   const [open, setOpen] = useState(false);
-  const hasFilter = !!from;
+  const hasFilter = !!from || !!to;
+  const displayFrom = from ?? to;
+  const displayTo = to ?? from;
 
   const handleSelect = (range: DateRange | undefined) => {
     setRange(range?.from, range?.to);
@@ -96,11 +98,11 @@ export default function DateRangeFilter({ label = "Filtrar fechas" }: { label?: 
           <Button
             variant="outline"
             size="sm"
-            className={cn("text-xs gap-1.5 h-9 bg-card", hasFilter && "border-primary text-primary")}
+            className={cn("text-xs gap-1.5 min-h-11 bg-card", hasFilter && "border-primary text-primary")}
           >
             <CalendarIcon className="w-3.5 h-3.5" />
             {hasFilter
-              ? `${format(from!, "dd/MM/yy", { locale: es })} – ${to ? format(to, "dd/MM/yy", { locale: es }) : "..."}`
+              ? `${format(displayFrom!, "dd/MM/yy", { locale: es })} – ${format(displayTo!, "dd/MM/yy", { locale: es })}`
               : label}
           </Button>
         </PopoverTrigger>
@@ -111,7 +113,7 @@ export default function DateRangeFilter({ label = "Filtrar fechas" }: { label?: 
                 key={p.label}
                 variant="ghost"
                 size="sm"
-                className="text-xs h-7"
+                className="text-xs min-h-11"
                 onClick={() => {
                   setRange(p.from(), p.to());
                   setOpen(false);
@@ -132,7 +134,7 @@ export default function DateRangeFilter({ label = "Filtrar fechas" }: { label?: 
         </PopoverContent>
       </Popover>
       {hasFilter && (
-        <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setRange(undefined, undefined)} title="Limpiar filtro de fechas">
+        <Button variant="ghost" size="sm" className="min-h-11 min-w-11 p-0" onClick={() => setRange(undefined, undefined)} title="Limpiar filtro de fechas" aria-label="Limpiar filtro de fechas">
           <X className="w-3.5 h-3.5" />
         </Button>
       )}

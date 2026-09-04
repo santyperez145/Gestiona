@@ -20,6 +20,14 @@ export type StoreFunnelStep = {
   color: string;
 };
 
+export type StorePerformanceComparison = {
+  periodFrom: string;
+  periodTo: string;
+  ordersTotal: number;
+  ordersPaid: number;
+  paidRevenueArs: number;
+};
+
 export type StorePerformanceSnapshot = {
   ordersTotal: number;
   ordersPaid: number;
@@ -30,6 +38,9 @@ export type StorePerformanceSnapshot = {
   checkoutStartedSessions: number;
   convertedSessions: number;
   recoverableCarts: number;
+  periodFrom: string | null;
+  periodTo: string | null;
+  comparison: StorePerformanceComparison | null;
   attributionStartedAt: string;
   checkoutTrackingStartedAt: string;
   snapshotAt: string;
@@ -384,6 +395,49 @@ export function parseStorePerformanceSnapshot(value: unknown): StorePerformanceS
     || convertedSessions > checkoutStartedSessions
     || recoverableCarts > sessionsWithItems
   ) return null;
+  const periodFrom = row.period_from == null ? null : String(row.period_from);
+  const periodTo = row.period_to == null ? null : String(row.period_to);
+  if ((periodFrom === null) !== (periodTo === null)) return null;
+  if (
+    periodFrom !== null
+    && (
+      !Number.isFinite(Date.parse(periodFrom))
+      || !Number.isFinite(Date.parse(periodTo!))
+      || Date.parse(periodTo!) < Date.parse(periodFrom)
+    )
+  ) return null;
+
+  let comparison: StorePerformanceComparison | null = null;
+  if (periodFrom !== null) {
+    if (!row.comparison || typeof row.comparison !== 'object' || Array.isArray(row.comparison)) {
+      return null;
+    }
+    const rawComparison = row.comparison as Record<string, unknown>;
+    const previousOrdersTotal = finiteNonNegative(rawComparison.orders_total);
+    const previousOrdersPaid = finiteNonNegative(rawComparison.orders_paid);
+    const previousPaidRevenueArs = finiteNonNegative(rawComparison.paid_revenue_ars);
+    const previousFrom = String(rawComparison.period_from ?? '');
+    const previousTo = String(rawComparison.period_to ?? '');
+    if (
+      previousOrdersTotal === null
+      || previousOrdersPaid === null
+      || previousPaidRevenueArs === null
+      || previousOrdersPaid > previousOrdersTotal
+      || !Number.isFinite(Date.parse(previousFrom))
+      || !Number.isFinite(Date.parse(previousTo))
+      || Date.parse(previousTo) < Date.parse(previousFrom)
+      || Date.parse(previousTo) >= Date.parse(periodFrom)
+    ) return null;
+    comparison = {
+      periodFrom: previousFrom,
+      periodTo: previousTo,
+      ordersTotal: previousOrdersTotal,
+      ordersPaid: previousOrdersPaid,
+      paidRevenueArs: previousPaidRevenueArs,
+    };
+  } else if (row.comparison != null) {
+    return null;
+  }
   const attributionStartedAt = String(row.attribution_started_at ?? '');
   const checkoutTrackingStartedAt = String(row.checkout_tracking_started_at ?? '');
   const snapshotAt = String(row.snapshot_at ?? '');
@@ -404,6 +458,9 @@ export function parseStorePerformanceSnapshot(value: unknown): StorePerformanceS
     checkoutStartedSessions,
     convertedSessions,
     recoverableCarts,
+    periodFrom,
+    periodTo,
+    comparison,
     attributionStartedAt,
     checkoutTrackingStartedAt,
     snapshotAt,
@@ -432,6 +489,32 @@ function shortUtcDate(value: string): string {
     year: 'numeric',
     timeZone: 'UTC',
   }).format(new Date(value)).replace('.', '');
+}
+
+export function storePerformancePeriodLabel(
+  snapshot: Pick<StorePerformanceSnapshot, 'periodFrom' | 'periodTo'>,
+): string {
+  if (!snapshot.periodFrom || !snapshot.periodTo) return 'Todo el historial';
+  return `${shortUtcDate(snapshot.periodFrom)} — ${shortUtcDate(snapshot.periodTo)}`;
+}
+
+export function storePerformanceComparisonCopy(
+  comparison: StorePerformanceComparison | null,
+): string | null {
+  if (!comparison) return null;
+  return `Comparado con ${shortUtcDate(comparison.periodFrom)} — ${shortUtcDate(comparison.periodTo)}. `
+    + 'Si la base anterior es cero, no se inventa +100%.';
+}
+
+/** KPI trend sólo cuando existe una base distinta de cero y una variación real. */
+export function storePerformanceTrend(
+  current: number,
+  previous: number,
+): { value: number; label: string } | null {
+  if (!Number.isFinite(current) || !Number.isFinite(previous) || previous <= 0) return null;
+  const value = Math.round((((current - previous) / previous) * 100) * 10) / 10;
+  if (Math.abs(value) < 0.1) return null;
+  return { value, label: 'vs período anterior' };
 }
 
 /** Explicita que una etapa nueva no reconstruye comportamiento histórico. */

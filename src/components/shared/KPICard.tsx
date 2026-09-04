@@ -87,12 +87,12 @@ export default function KPICard({
           )}
           {trend && (
             <span className={cn(
-              "shrink-0 flex items-center gap-0.5 text-[11px] font-bold leading-none font-mono",
+              "shrink-0 flex max-w-full items-center gap-0.5 text-[11px] font-bold leading-none font-mono",
               trend.value >= 0 ? "text-emerald-400" : "text-destructive",
-            )}>
+            )} aria-label={`${trend.value >= 0 ? "Subió" : "Bajó"} ${Math.abs(trend.value).toFixed(1)}% ${trend.label}`}>
               <span className="text-[10px]">{trend.value >= 0 ? "↑" : "↓"}</span>
               {Math.abs(trend.value).toFixed(1)}%
-              <span className="font-normal text-muted-foreground/50 ml-0.5 text-[10px]">{trend.label}</span>
+              <span aria-hidden="true" className="hidden font-normal text-muted-foreground/50 ml-0.5 text-[10px] sm:inline">{trend.label}</span>
             </span>
           )}
         </div>

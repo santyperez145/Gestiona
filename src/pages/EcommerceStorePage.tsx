@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAuth } from "@/lib/auth";
@@ -17,6 +17,7 @@ import {
   Image as ImageIcon, Type, ChevronUp, ChevronDown, Copy,
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { format } from "date-fns";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
 import QuestionsModeration from "@/components/ecommerce/QuestionsModeration";
@@ -33,6 +34,9 @@ import {
   storeAfterCatalogCopy,
   parseStorePerformanceSnapshot,
   storeAttributionCoverageCopy,
+  storePerformanceComparisonCopy,
+  storePerformancePeriodLabel,
+  storePerformanceTrend,
   storeFunnelCoverageCopy,
   storeFunnelFromPerformance,
   storePublishCta,
@@ -91,6 +95,7 @@ import { STORE_ORDER_QUEUE_LIMIT, storeOrderFulfillmentLabel, storeOrderFulfillm
 import { storeOrdersCanonicalPath, storeRecoveryCanonicalPath } from "@/lib/storeOrdersCanonical";
 import ImageUpload from "@/components/shared/ImageUpload";
 import KPICard from "@/components/shared/KPICard";
+import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import WorkspaceState from "@/components/shared/WorkspaceState";
 import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -165,6 +170,9 @@ export default function EcommerceStorePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { from: performanceFrom, to: performanceTo } = useDateRangeFilter();
+  const performanceFromParam = performanceFrom ? format(performanceFrom, "yyyy-MM-dd") : null;
+  const performanceToParam = performanceTo ? format(performanceTo, "yyyy-MM-dd") : null;
   const { fromWizard } = parseActivationHandoff(searchParams);
   const requestedTab = searchParams.get("tab");
 
@@ -230,6 +238,7 @@ export default function EcommerceStorePage() {
   const [orders, setOrders] = useState<EcomOrder[]>([]);
   const [performance, setPerformance] = useState<StorePerformanceSnapshot | null>(null);
   const [performanceError, setPerformanceError] = useState<string | null>(null);
+  const performanceRequestRef = useRef(0);
   const [stockAlertsPending, setStockAlertsPending] = useState(0);
   // Opciones para armar el menú: las categorías y las páginas publicadas.
   const [menuCategorias, setMenuCategorias] = useState<{ slug: string; name: string }[]>([]);
@@ -283,6 +292,7 @@ export default function EcommerceStorePage() {
    * lista parcial no puede convertirse en "total" por conveniencia.
    */
   const loadStorePerformance = useCallback(async () => {
+    const requestId = ++performanceRequestRef.current;
     if (!orgId) {
       setPerformance(null);
       setPerformanceError(null);
@@ -291,7 +301,10 @@ export default function EcommerceStorePage() {
     setPerformanceError(null);
     const { data, error } = await supabase.rpc("get_store_performance_snapshot", {
       p_org_id: orgId,
+      p_from: performanceFromParam,
+      p_to: performanceToParam,
     });
+    if (requestId !== performanceRequestRef.current) return;
     if (error) {
       console.error("No se pudo leer el snapshot de rendimiento de Commerce", error);
       setPerformance(null);
@@ -306,7 +319,11 @@ export default function EcommerceStorePage() {
       return;
     }
     setPerformance(parsed);
-  }, [orgId]);
+  }, [orgId, performanceFromParam, performanceToParam]);
+
+  useEffect(() => {
+    void loadStorePerformance();
+  }, [loadStorePerformance]);
 
   useEffect(() => {
     if (!orgId) {
@@ -376,7 +393,6 @@ export default function EcommerceStorePage() {
       });
 
     void loadOrders();
-    void loadStorePerformance();
 
     const loadStockAlerts = () => {
       supabase
@@ -408,7 +424,7 @@ export default function EcommerceStorePage() {
         });
     };
     loadStockAlerts();
-  }, [orgId, org, loadOrders, loadStorePerformance]);
+  }, [orgId, org, loadOrders]);
 
   // Las señales viven en otras pestañas (Páginas, Pay, Productos). Si sólo se
   // leyeran al montar, publicar legales o conectar MP dejaba el checklist
@@ -645,6 +661,10 @@ export default function EcommerceStorePage() {
     : 0;
   const attributionCoverage = performance ? storeAttributionCoverageCopy(performance) : null;
   const funnelCoverage = performance ? storeFunnelCoverageCopy(performance) : null;
+  const performancePeriod = performance ? storePerformancePeriodLabel(performance) : null;
+  const comparisonCopy = performance
+    ? storePerformanceComparisonCopy(performance.comparison)
+    : null;
   const activeCartsCount = performance?.sessionsWithItems ?? 0;
   const abandonedCarts = performance?.recoverableCarts ?? 0;
   const showPerformance = storeShouldShowPerformanceChrome({
@@ -670,10 +690,10 @@ export default function EcommerceStorePage() {
   });
 
   const kpis = useMemo(() => performance ? [
-    { label: "Facturación paga", value: `$${performance.paidRevenueArs.toLocaleString("es-AR")}`, sub: `${performance.ordersPaid} pedidos acreditados`, icon: DollarSign, color: "success" as const },
-    { label: "Pedidos registrados", value: String(performance.ordersTotal), sub: `${performance.ordersPaid} acreditados`, icon: ShoppingCart, color: "primary" as const },
-    { label: "Conversión medible", value: `${conversionPct}%`, sub: `${performance.convertedSessions} de ${performance.sessionsTotal} sesiones`, icon: TrendingUp, color: "warning" as const },
-    { label: "Carritos c/items", value: activeCartsCount, sub: `${abandonedCarts} por recuperar`, icon: Users, color: "blue" as const },
+    { label: "Facturación paga", value: `$${performance.paidRevenueArs.toLocaleString("es-AR")}`, sub: `${performance.ordersPaid} pedidos acreditados`, icon: DollarSign, color: "success" as const, trend: performance.comparison ? storePerformanceTrend(performance.paidRevenueArs, performance.comparison.paidRevenueArs) : null },
+    { label: "Pedidos registrados", value: String(performance.ordersTotal), sub: `${performance.ordersPaid} acreditados`, icon: ShoppingCart, color: "primary" as const, trend: performance.comparison ? storePerformanceTrend(performance.ordersTotal, performance.comparison.ordersTotal) : null },
+    { label: "Conversión medible", value: `${conversionPct}%`, sub: `${performance.convertedSessions} de ${performance.sessionsTotal} sesiones`, icon: TrendingUp, color: "warning" as const, trend: null },
+    { label: "Carritos c/items", value: activeCartsCount, sub: `${abandonedCarts} por recuperar`, icon: Users, color: "blue" as const, trend: null },
   ] : [], [performance, conversionPct, activeCartsCount, abandonedCarts]);
 
   const urlIncluida = urlPublicaDeTienda(
@@ -791,11 +811,22 @@ export default function EcommerceStorePage() {
         }
       />
 
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold">Rendimiento de la tienda</p>
+          <p className="text-xs text-muted-foreground">
+            {performancePeriod ?? "Calculando el período…"}
+            {comparisonCopy ? ` · ${comparisonCopy}` : ""}
+          </p>
+        </div>
+        <DateRangeFilter label="Todo el historial" />
+      </div>
+
       {/* KPIs: un $0 y un 0% no son analítica. Aparecen cuando hubo tráfico. */}
       {performance ? (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map(k => (
-          <KPICard key={k.label} label={k.label} value={k.value} sub={k.sub} icon={k.icon} color={k.color} />
+          <KPICard key={k.label} label={k.label} value={k.value} sub={k.sub} icon={k.icon} color={k.color} trend={k.trend ?? undefined} />
         ))}
       </div>
       ) : performanceError && !showPerformance ? (

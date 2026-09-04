@@ -4282,6 +4282,36 @@ Finance Connect.
      Siguen período/comparación y canal; se construyen sobre estas etapas
      reales, no sobre porcentajes estimados.
 
+175. Commerce compara períodos sin duplicar Analytics — D5.23, 2026-09-04.
+     El mismo `get_store_performance_snapshot` acepta ahora desde/hasta; no se
+     creó otra vista ni otra página. Los días cierran en
+     `America/Argentina/Buenos_Aires`, pedidos y sesiones usan intervalos
+     semiabiertos indexables y el período anterior tiene exactamente la misma
+     cantidad de días. Sin filtro, se conserva el historial completo y no se
+     presenta una comparación artificial.
+
+     La selección reutiliza el filtro compartido, queda en `df`/`dt` de la URL
+     y refresca sólo el snapshot: cambiar fechas ya no vuelve a pedir tienda,
+     pedidos, sucursales, banco y configuración. Facturación paga y pedidos
+     muestran tendencia cuando el período anterior ofrece base; si era cero,
+     el panel lo explica y no fabrica “+100%”. La conversión mantiene su
+     población de sesiones creadas dentro del período y sigue declarando los
+     cortes de atribución. El control, presets y su acción de limpiar pasan a
+     44 px; una URL con un solo límite se normaliza a ese día y las respuestas
+     viejas ya no pueden pisar una selección más nueva.
+
+     Producción, como owner real y en sólo lectura: sin filtro devolvió
+     6 pedidos, 2 acreditados, ARS 2 y 5 sesiones, sin período/comparación. Para
+     30–31/7 devolvió 4 pedidos, 2 acreditados y ARS 2; comparó contra 28–29/7,
+     donde hubo 2 pedidos y ARS 0. La firma anterior quedó retirada, la nueva
+     quedó disponible sólo para miembros y el libro volvió a brecha 0. La
+     puerta local terminó con TypeScript, lint 0 errores/143 advertencias
+     heredadas, 2.637 tests, build/PWA y auditoría de dependencias en 0.
+
+     Estado: **autoridad aplicada y verificada en producción; UI y pruebas
+     listas para deploy**. Falta certificar selector, URL, comparación y estados
+     en el navegador publicado. La atribución por canal sigue como próxima capa.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

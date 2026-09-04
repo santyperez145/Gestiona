@@ -208,8 +208,10 @@ snapshot exacto en servidor, cuenta facturación sólo acreditada y muestra la
 brecha de atribución en texto. D5.22 conserva ahora `checkout_started_at` en la
 misma sesión canónica, después de volver a validar las líneas en servidor, y
 completa el embudo sesión → carrito → checkout → compra. La cobertura empieza
-el 4/9 y se muestra: no se reconstruye hacia atrás. Período, comparación y canal
-siguen pendientes; no se estiman desde el carrito.
+el 4/9 y se muestra: no se reconstruye hacia atrás. D5.23 agrega fechas en URL
+y compara el mismo número de días anterior con cierre horario argentino; sin
+base previa no muestra una suba infinita. La atribución por canal sigue
+pendiente y no se estima desde el carrito.
 
 ✅ **Margin facts medidos el 2026-08-22:** “tener margen” tampoco alcanza como
 argumento. Shopify ya documenta profit por orden/mercado y Odoo margen por
