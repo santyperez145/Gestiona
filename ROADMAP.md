@@ -4760,8 +4760,12 @@ Finance Connect.
      `@axe-core/playwright` bloquea impactos `critical`/`serious` WCAG A/AA en
      las cinco superficies y conserva interceptadas las escrituras de visita,
      carrito e inicio de checkout. La regresión pura incluye el naranja que
-     falló. Estado: **implementación local y diagnóstico productivo inicial;
-     falta publicar y repetir Chromium/Pixel 5 antes de cerrar la evidencia**.
+     falló. `7c659e52` llegó a Vercel `Ready`: Inicio, catálogo, carrito y
+     checkout pasaron **8/8** en Chromium/Pixel 5. La ficha encontró una segunda
+     causa real: los links “Iniciá sesión” de Opiniones y Preguntas sólo se
+     subrayaban en hover y su color quedaba a 1,2:1 del texto circundante. Ya
+     son distinguibles sin depender del color. Estado: **segundo ajuste local;
+     falta publicar y repetir la ficha antes de cerrar la evidencia**.
      La auditoría de teclado, zoom 200%, los otros temas y lector de pantalla
      continúa en D6. `npm audit --omit=dev` no entregó evidencia por timeout de
      red; no se declara aprobado.

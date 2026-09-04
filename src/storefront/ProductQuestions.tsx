@@ -144,7 +144,7 @@ export default function ProductQuestions({ productId }: { productId: string }) {
         </form>
       ) : (
         <p className="text-sm mb-6" style={{ color: "hsl(var(--st-muted))" }}>
-          <Link to={`${base}/cuenta`} className="hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
+          <Link to={`${base}/cuenta`} className="underline underline-offset-2" style={{ color: "hsl(var(--st-accent))" }}>
             Iniciá sesión
           </Link>{" "}
           para preguntar sobre este producto.

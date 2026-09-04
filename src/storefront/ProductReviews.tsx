@@ -151,7 +151,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
       )}
       {!abierto && !customer && (
         <p className="text-xs mb-5" style={{ color: "hsl(var(--st-muted))" }}>
-          <Link to={`${base}/cuenta`} className="hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
+          <Link to={`${base}/cuenta`} className="underline underline-offset-2" style={{ color: "hsl(var(--st-accent))" }}>
             Iniciá sesión
           </Link>{" "}
           para dejar tu opinión si ya compraste este producto.
