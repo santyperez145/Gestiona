@@ -4265,9 +4265,22 @@ Finance Connect.
      0 compras —la línea de base honesta antes del tráfico nuevo—. El dry-run
      del libro quedó en brecha 0.
 
-     Estado: **autoridad aplicada y validada en producción; cliente, contrato
-     visual y pruebas listos para deploy**. Siguen período/comparación y canal;
-     se construyen sobre estas etapas reales, no sobre porcentajes estimados.
+     El commit `8ff64b65` quedó `READY`. En la tienda publicada a 360 px se
+     recorrió **catálogo → agregar → carrito → checkout** sin confirmar el
+     pedido: el documento no tuvo overflow ni logs. El panel autenticado pasó
+     exactamente de 0/5 a **1 checkout de 6 sesiones (16,7%)**, mostró la
+     cuarta etapa y las dos fechas de cobertura, también sin logs. Después se
+     vació el carrito y se eliminó sólo la sesión técnica creada durante la
+     prueba; quedaron 0 residuos y la línea base volvió a 0/5. No hubo pedido,
+     cobro ni movimiento de stock.
+
+     Puerta completa: typecheck; lint con 0 errores/143 warnings heredados;
+     **2.635 tests en 282 archivos**; build/PWA y `npm audit` con 0
+     vulnerabilidades.
+
+     Estado: **D5.22 cerrado en autoridad productiva y navegador publicado**.
+     Siguen período/comparación y canal; se construyen sobre estas etapas
+     reales, no sobre porcentajes estimados.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
