@@ -282,6 +282,57 @@ test.describe("ficha de producto", () => {
 });
 
 test.describe("carrito", () => {
+  test("el resumen completo no se convierte en un overlay", async ({ page }) => {
+    const errores: string[] = [];
+    page.on("console", message => { if (message.type() === "error") errores.push(message.text()); });
+    page.on("pageerror", error => errores.push(error.message));
+
+    await page.goto(tienda("/productos"));
+    const fichas = await fichasVisibles(page);
+    await fichas.first().click();
+    await page.getByRole("button", { name: /Agregar al carrito/i }).click();
+    await page.goto(tienda("/carrito"));
+
+    await expect(page.getByRole("heading", { name: /Tu carrito/ })).toBeVisible();
+    const resumen = page.locator(".storefront-cart-summary");
+    const barra = page.locator(".storefront-cart-mobile-bar");
+    await expect(resumen).toBeVisible();
+
+    const ancho = page.viewportSize()?.width ?? 1280;
+    if (ancho < 768) {
+      await expect(barra).toBeVisible();
+      await expect(barra.getByText("Total", { exact: true })).toBeVisible();
+      await expect(barra.getByRole("link", { name: "Finalizar compra" })).toBeVisible();
+      await expect(barra).toContainText("+ envío");
+
+      const geometria = await page.evaluate(() => {
+        const summary = document.querySelector<HTMLElement>(".storefront-cart-summary")!;
+        const mobileBar = document.querySelector<HTMLElement>(".storefront-cart-mobile-bar")!;
+        const rect = mobileBar.getBoundingClientRect();
+        return {
+          summaryPosition: getComputedStyle(summary).position,
+          barPosition: getComputedStyle(mobileBar).position,
+          barHeight: rect.height,
+          barBottom: window.innerHeight - rect.bottom,
+          barTopRatio: rect.top / window.innerHeight,
+          scrollWidth: document.documentElement.scrollWidth,
+          clientWidth: document.documentElement.clientWidth,
+        };
+      });
+      expect(geometria.summaryPosition).toBe("static");
+      expect(geometria.barPosition).toBe("fixed");
+      expect(geometria.barHeight, "la barra del carrito ocupa demasiado alto").toBeLessThanOrEqual(100);
+      expect(Math.abs(geometria.barBottom)).toBeLessThanOrEqual(1);
+      expect(geometria.barTopRatio, "la barra tapa demasiado carrito").toBeGreaterThan(0.75);
+      expect(geometria.scrollWidth).toBeLessThanOrEqual(geometria.clientWidth);
+    } else {
+      await expect(barra).toBeHidden();
+      const position = await resumen.evaluate(element => getComputedStyle(element).position);
+      expect(position).toBe("sticky");
+    }
+    expect(errores, `errores en consola:\n${errores.join("\n")}`).toEqual([]);
+  });
+
   test("el producto viaja de la ficha al checkout", async ({ page }) => {
     await page.goto(tienda("/productos"));
     const fichas = await fichasVisibles(page);

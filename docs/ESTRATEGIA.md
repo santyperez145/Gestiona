@@ -264,6 +264,20 @@ en Chromium/Pixel 5 con safe bottom, barra ≤120 px, cero overflow y cero
 errores de consola. La captura mantuvo Entrega/Tus datos visibles sobre Total +
 Confirmar. No se declara una compra real ni sandbox: ese gate sigue externo.
 
+🟡 **Carrito sin overlay ni total incompleto, implementado localmente el
+2026-09-04.** Tiendanube confirma que el
+[cotizador aparece antes del checkout](https://ayuda.tiendanube.com/es_ES/122809-informacion/orden-de-las-opciones-de-envio-cuando-el-cliente-pone-su-codigo-postal)
+y que el [contador de envío gratis vive en el carrito](https://ayuda.tiendanube.com/es_AR/123178-carrito-de-compras/como-mostrar-el-contador-de-envio-gratis-en-mi-tiendanube).
+Shopify exige en su [template de carrito](https://shopify.dev/docs/storefronts/themes/architecture/templates/cart)
+líneas, cantidades, descuentos y salida a checkout. D5.31 mantiene todo eso en
+un solo resumen, pero deja de fijar el bloque entero a la pantalla: el lateral
+es sticky en desktop, el resumen vuelve al documento mobile y sólo Total +
+Finalizar permanece al pie. Si falta cotizar, el importe dice `+ envío`; si la
+red falla, el error no se esconde. La autoridad sigue en servidor. La puerta
+local pasó TypeScript, lint con 0 errores/143 warnings conocidos, 2.665 tests en
+286 archivos y build/PWA; falta la matriz publicada antes de marcarlo
+verificado.
+
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)
 como sesiones que terminan en una orden y su embudo separa sesión, agregado al

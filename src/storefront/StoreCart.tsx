@@ -29,6 +29,7 @@ export default function StoreCart() {
   const [provinciaCarrito, setProvinciaCarrito] = useState("");
   const [cotizandoCarrito, setCotizandoCarrito] = useState(false);
   const [resumenCotizacion, setResumenCotizacion] = useState<{ amount: number; subtitle: string } | null>(null);
+  const [cotizacionError, setCotizacionError] = useState<string | null>(null);
 
   const coberturaEnvio = textoCoberturaDomicilio(store?.shipping_provinces);
 
@@ -41,10 +42,12 @@ export default function StoreCart() {
     if (!shippingPending || !store?.slug || cart.length === 0 || !provinciaCarrito) {
       setResumenCotizacion(null);
       setCotizandoCarrito(false);
+      setCotizacionError(null);
       return;
     }
     let cancelado = false;
     setCotizandoCarrito(true);
+    setCotizacionError(null);
     quoteStoreShipping({
       slug: store.slug,
       province: provinciaCarrito,
@@ -71,10 +74,12 @@ export default function StoreCart() {
           })),
         ),
       );
-    }, () => {
+    }, (error: unknown) => {
       if (cancelado) return;
+      console.error("[carrito] no se pudo cotizar el envío:", error);
       setCotizandoCarrito(false);
       setResumenCotizacion(null);
+      setCotizacionError("No pudimos cotizar ahora. Podés volver a intentar o elegir la entrega en el checkout.");
     });
     return () => { cancelado = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,6 +91,9 @@ export default function StoreCart() {
   const totalPagina = resumenCotizacion
     ? Math.max(0, subtotal - promo2x) + resumenCotizacion.amount
     : total;
+  const totalTexto = shippingPending && !resumenCotizacion
+    ? `${fmt(totalPagina)} + envío`
+    : fmt(totalPagina);
 
   const sugerencias = useMemo(
     () => sugerenciasParaElCarrito({
@@ -98,7 +106,7 @@ export default function StoreCart() {
   );
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-6 pb-28">
+    <div className="mx-auto max-w-5xl px-4 pt-6 pb-32 md:pb-8">
       <Link
         to={`${base}/productos`}
         className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium"
@@ -151,8 +159,9 @@ export default function StoreCart() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="space-y-3">
+        <div className="grid items-start gap-8 md:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="min-w-0 space-y-6">
+            <div className="space-y-3">
             {cart.map(l => (
               <div key={lineKeyOf(l)} className="flex gap-3 border-b pb-3" style={{ borderColor: "hsl(var(--st-border))" }}>
                 <div
@@ -197,43 +206,44 @@ export default function StoreCart() {
                 </div>
               </div>
             ))}
+            </div>
+
+            {sugerencias.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs font-medium">Completá tu compra</p>
+                <div className="space-y-2">
+                  {sugerencias.map(sg => (
+                    <div key={sg.producto.id} className="flex items-center gap-2">
+                      <Link to={`${base}/producto/${sg.producto.id}`} className="min-w-0 flex-1 text-xs font-medium line-clamp-1 hover:underline">
+                        {sg.producto.name} · {fmt(sg.precio)} · {TEXTO_MOTIVO[sg.motivo]}
+                      </Link>
+                      {(variantsByProduct[sg.producto.id]?.length ?? 0) > 0 ? (
+                        <Link to={`${base}/producto/${sg.producto.id}`} className="shrink-0 px-2 py-1 text-[11px] font-medium border min-h-11 inline-flex items-center" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
+                          Elegir
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => addToCart(sg.producto, 1, null)}
+                          className="shrink-0 px-2 py-1 min-h-11 text-[11px] font-medium"
+                          style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+                        >
+                          Agregar
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {sugerencias.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-medium">Completá tu compra</p>
-              <div className="space-y-2">
-                {sugerencias.map(sg => (
-                  <div key={sg.producto.id} className="flex items-center gap-2">
-                    <Link to={`${base}/producto/${sg.producto.id}`} className="min-w-0 flex-1 text-xs font-medium line-clamp-1 hover:underline">
-                      {sg.producto.name} · {fmt(sg.precio)} · {TEXTO_MOTIVO[sg.motivo]}
-                    </Link>
-                    {(variantsByProduct[sg.producto.id]?.length ?? 0) > 0 ? (
-                      <Link to={`${base}/producto/${sg.producto.id}`} className="shrink-0 px-2 py-1 text-[11px] font-medium border min-h-11 inline-flex items-center" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
-                        Elegir
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => addToCart(sg.producto, 1, null)}
-                        className="shrink-0 px-2 py-1 min-h-11 text-[11px] font-medium"
-                        style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
-                      >
-                        Agregar
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div
-            className="fixed inset-x-0 bottom-0 border-t p-4 space-y-2"
+          <aside
+            className="storefront-cart-summary space-y-2 border p-4 md:sticky md:top-20"
             style={{
               borderColor: "hsl(var(--st-border))",
-              background: "hsl(var(--st-bg))",
-              paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+              background: "hsl(var(--st-surface))",
+              borderRadius: "var(--st-radius)",
             }}
           >
             {freeShippingGap !== null && freeShippingGap > 0 && coberturaEnvio && (
@@ -272,6 +282,15 @@ export default function StoreCart() {
                 )}
               </label>
             )}
+            {cotizacionError && (
+              <p
+                className="text-xs px-3 py-2 bg-red-500/10 text-red-600"
+                role="alert"
+                style={{ borderRadius: "var(--st-radius)" }}
+              >
+                {cotizacionError}
+              </p>
+            )}
             <div className="flex justify-between text-sm">
               <span style={{ color: "hsl(var(--st-muted))" }}>Subtotal</span>
               <span>{fmt(subtotal)}</span>
@@ -288,15 +307,40 @@ export default function StoreCart() {
             </div>
             <div className="flex justify-between border-t pt-1 font-semibold" style={{ borderColor: "hsl(var(--st-border))" }}>
               <span>Total</span>
-              <span>{fmt(totalPagina)}</span>
+              <span>{totalTexto}</span>
             </div>
             <Link
               to={`${base}/checkout`}
-              className="mt-2 flex min-h-11 items-center justify-center py-2.5 text-center font-medium"
+              className="mt-2 hidden min-h-12 items-center justify-center py-2.5 text-center font-medium md:flex"
               style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
             >
               Finalizar compra
             </Link>
+          </aside>
+
+          <div
+            className="storefront-cart-mobile-bar fixed inset-x-0 bottom-0 z-40 border-t shadow-[0_-10px_30px_rgba(0,0,0,0.12)] md:hidden"
+            style={{
+              borderColor: "hsl(var(--st-border))",
+              background: "hsl(var(--st-surface))",
+            }}
+          >
+            <div
+              className="mx-auto flex max-w-5xl items-center gap-3 px-4 pt-3"
+              style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+            >
+              <p className="min-w-0 flex-1" aria-live="polite">
+                <span className="block text-[11px]" style={{ color: "hsl(var(--st-muted))" }}>Total</span>
+                <strong className="block truncate text-sm tabular-nums">{totalTexto}</strong>
+              </p>
+              <Link
+                to={`${base}/checkout`}
+                className="inline-flex min-h-12 shrink-0 items-center justify-center px-4 py-2.5 text-sm font-medium"
+                style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+              >
+                Finalizar compra
+              </Link>
+            </div>
           </div>
         </div>
       )}

@@ -4603,6 +4603,33 @@ Finance Connect.
      **D5.30 cerrado en implementación, desktop, mobile y evidencia read-only;
      la compra sandbox/real permanece como gate externo**.
 
+183. El carrito deja de ser un overlay gigante y no cierra un total sin flete —
+     D5.31, 2026-09-04. Tiendanube ofrece el
+     [calculador de envío en producto, carrito y checkout](https://ayuda.tiendanube.com/es_ES/122809-informacion/orden-de-las-opciones-de-envio-cuando-el-cliente-pone-su-codigo-postal)
+     y su [contador de envío gratis](https://ayuda.tiendanube.com/es_AR/123178-carrito-de-compras/como-mostrar-el-contador-de-envio-gratis-en-mi-tiendanube)
+     como información previa a comprar. Shopify exige que la
+     [página de carrito](https://shopify.dev/docs/storefronts/themes/architecture/templates/cart)
+     permita revisar líneas, cantidades, descuentos y avanzar al checkout. La
+     traducción de Nerqia conserva esas capacidades, pero elimina el panel fijo
+     que contenía provincia, promoción, envío, subtotal, total y CTA a todo
+     ancho incluso en desktop.
+
+     D5.31 compone líneas y sugerencias junto a un único resumen: dentro del
+     flujo en mobile y lateral sticky en desktop. Sólo **Total + Finalizar
+     compra** queda fijo en el teléfono, con safe area y 48 px táctiles. Cuando
+     la tienda cotiza por zona y todavía no hay tarifa, el valor dice `+ envío`;
+     no presenta como total final una cifra que excluye el flete. Una caída de
+     red deja error recuperable y `console.error`, en vez de volver en silencio
+     a un cero ambiguo. Cotización, stock, descuento y orden continúan en sus
+     autoridades server-side; no nació otro carrito ni checkout.
+
+     Una guarda estructural evita que vuelva el panel completo `fixed`, y el
+     E2E read-only mide resumen/barra, posición, alto, safe bottom, overflow,
+     total pendiente y consola en desktop/Pixel 5. La puerta local pasó
+     TypeScript, lint con 0 errores/143 warnings conocidos, 2.665 tests en 286
+     archivos y build/PWA. Estado: **implementado y protegido localmente; falta
+     la matriz publicada para cerrar D5.31**.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
