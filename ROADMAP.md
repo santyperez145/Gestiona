@@ -4627,8 +4627,12 @@ Finance Connect.
      E2E read-only mide resumen/barra, posición, alto, safe bottom, overflow,
      total pendiente y consola en desktop/Pixel 5. La puerta local pasó
      TypeScript, lint con 0 errores/143 warnings conocidos, 2.665 tests en 286
-     archivos y build/PWA. Estado: **implementado y protegido localmente; falta
-     la matriz publicada para cerrar D5.31**.
+     archivos y build/PWA. El commit `6f8e9f66` quedó `Ready` con alias raíz y
+     wildcard; el bundle publicado pasó **2/2** en Chromium/Pixel 5, sin
+     overflow ni errores de consola. La inspección visual desktop confirmó el
+     resumen lateral sin contenido tapado. Estado: **D5.31 cerrado en
+     implementación, desktop, mobile y evidencia read-only; la compra
+     sandbox/real permanece como gate externo**.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
