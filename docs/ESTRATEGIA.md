@@ -216,7 +216,13 @@ aplica el patrón al Business Core único. Hasta elegir el SKU no afirma stock n
 monta el cotizador; después muestra el saldo y precio de esa variante. Una
 agotada sigue siendo elegible únicamente para asociar el aviso de reposición al
 `variant_id` real. Precio, stock, tarifa y creación de orden continúan bajo
-autoridad server-side. La evidencia publicada permanece pendiente.
+autoridad server-side. La primera recorrida reveló que el RPC histórico
+filtraba `stock > 0`; `20260904000090` lo corrigió sin ampliar las columnas
+públicas. Producción comparó como `anon` 26/26 variantes activas y 6/6
+agotadas, con 0 diferencias y libro de migraciones sano. La PDP publicada
+comprobó una opción agotada con aviso exacto/sin envío y otra disponible con
+saldo, envío y CTA; no se compró ni se alteró información real. Falta repetir
+la tarea en viewport mobile.
 
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)

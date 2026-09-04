@@ -8,6 +8,10 @@ import {
 } from "@/lib/storeProductVariant";
 
 const productPage = readFileSync(resolve(process.cwd(), "src/storefront/StoreProduct.tsx"), "utf8");
+const visibilityMigration = readFileSync(resolve(
+  process.cwd(),
+  "supabase/migrations/20260904000090_storefront_includes_sold_out_variants.sql",
+), "utf8");
 
 describe("decisión de variantes en la ficha pública", () => {
   it("no usa el stock agregado antes de elegir el SKU", () => {
@@ -45,5 +49,14 @@ describe("decisión de variantes en la ficha pública", () => {
     expect(productPage).toContain("setVariantId(v.id)");
     expect(productPage).toContain('<StockAlertForm productId={p.id} variantId={variantId} />');
     expect(productPage).not.toContain("disabled={v.stock <= 0}");
+  });
+
+  it("el catálogo público entrega también las variantes activas agotadas", () => {
+    expect(visibilityMigration).toContain("CREATE OR REPLACE FUNCTION public.get_store_variants");
+    expect(visibilityMigration).toContain("AND v.active");
+    expect(visibilityMigration).not.toContain("AND v.stock > 0");
+    expect(visibilityMigration).toContain("(v.stock > 0) DESC");
+    expect(visibilityMigration).toContain("REVOKE ALL ON FUNCTION public.get_store_variants(text) FROM PUBLIC");
+    expect(visibilityMigration).toContain("GRANT EXECUTE ON FUNCTION public.get_store_variants(text) TO anon, authenticated");
   });
 });

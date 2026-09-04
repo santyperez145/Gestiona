@@ -4487,11 +4487,26 @@ Finance Connect.
      también en la barra móvil. El cotizador no se monta ante una variante
      ambigua o agotada, y el servidor conserva autoridad sobre precio, stock y
      orden. Las reglas de copy distinguen sabor, color, talle, medida,
-     presentación y fallback genérico sin devolver todo a “sabores”. Puerta
-     integral local: TypeScript; lint con 0 errores y 143 warnings heredados;
-     **2.662/2.662 tests en 286 archivos**; build/PWA productivo. Estado:
-     **implementado localmente**; falta certificar el bundle publicado con una
-     variante disponible y otra agotada sin alterar datos reales.
+     presentación y fallback genérico sin devolver todo a “sabores”.
+
+     La primera recorrida publicada encontró una dependencia oculta: el RPC
+     histórico todavía filtraba `v.stock > 0`, por lo que la interfaz no podía
+     presentar el agotado. `20260904000090` entrega todas las variantes activas
+     del comercio sin exponer costo, margen, proveedor u organización; comprar
+     sigue revalidando el saldo en `resolve_store_line`. Aplicada y registrada
+     en producción: la comparación read-only con `SET LOCAL ROLE anon` devolvió
+     **26/26 activas, 6/6 agotadas, 0 diferencias** y el dry-run dejó el libro en
+     brecha 0. Puerta integral posterior: TypeScript; lint con 0 errores y 143
+     warnings heredados; **2.663/2.663 tests en 286 archivos**; build/PWA
+     productivo.
+
+     `8e632f80` quedó Ready. En `exentryimports.nerqia.app`, la PDP real mostró
+     9 sabores —7 disponibles y 2 agotados—: `BAJA SPLASH` pasó a “Esta
+     variante está agotada”, montó el formulario de aviso exacto y no montó
+     envío; `CHERRY STRAZZ` mostró 2 unidades, cotización y CTA. Ancho de
+     documento 1.284 px sobre viewport 1.288 y 0 logs. No se agregó al carrito,
+     no se envió un email y no se alteró dato real. Estado: **D5.28 cerrado y
+     publicado en desktop**; queda la matriz mobile del mismo flujo.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
