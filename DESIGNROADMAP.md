@@ -124,6 +124,11 @@ Medición del código al 2026-08-29:
   Service Worker en una visita limpia se distingue de un deploy real y no
   muestra un aviso falso. OAuth, cobros y enlaces externos conservan navegación
   completa porque abandonan Nerqia deliberadamente;
+- D5.37 saca los shells privados del arranque público: App, Platform y Finance
+  conservan un solo sistema visual, pero sus layouts, permisos y gates se bajan
+  recién al abrir la superficie. La landing pasó de 26 a 11 assets iniciales y
+  de 342.897 a 295.641 bytes gzip; el presupuesto queda fijado en CI y no se
+  confunde homogeneidad visual con cargar tres productos a la vez;
 - D2.4 unificó los cinco paginadores manuales de Admin, Productos, Compras,
   Reportes y Ventas en `DataPagination`, con rango real, límites, responsive y
   `aria-live` bajo guarda. También puso los 82 campos temporales de 46 archivos
@@ -147,7 +152,7 @@ usa en material de producto o inversión.
 
 | Superficie | Dirección | Estado | Próxima evidencia |
 |---|---|---|---|
-| Landing | Producto full-bleed frambuesa, centro de control claro y narrativa Business Core/Commerce/Finance. | D5.36 validado local y publicado 2026-09-04 (`987fbb9c`) | Conversión CTA y retiro del CSS v3 muerto. |
+| Landing | Producto full-bleed frambuesa, centro de control claro y narrativa Business Core/Commerce/Finance; los shells privados comparten diseño pero quedan fuera de su payload inicial. | D5.36 publicado (`987fbb9c`); D5.37 local 2026-09-04 | Hacer Tienda online la puerta principal, sostener Gestión/Finance al mismo nivel, medir conversión CTA y retirar CSS v3 muerto. |
 | Auth | Split editorial + formulario inequívoco. | Implementada | Error, recovery y registro en mobile. |
 | Business shell | Rail claro, topbar contextual, canvas v3, cambio de organización sin cache cruzado y navegación interna sin reinicios; el mismo contrato alcanza Gestión, Finance y Platform. | Implementado D2.7-D2.8 y publicado en `325a4a02` (2026-09-04) | Captura autenticada 4 viewports y prueba manual de dos tenants cuando exista usuario E2E. |
 | Dashboard | Seis vistas ejecutivas persistidas. El Business Copilot sólo monta Pulso en Resumen y Proyección en Inteligencia cuando el entitlement está resuelto; sin IA ofrece una única salida a Mi plan en vez de errores ocultos. Briefing usa modal canónico, carga/error/retry/copy, cuatro cifras de respaldo provenientes de la misma lectura server-side y cache tenant/fecha. El pulso separa expandir/regenerar sin controles anidados y conserva sugerencias stale con error visible. `d9a583e` certificó el canvas sin overflow en 360/768/1024/1440 y la tab activa completamente visible después de corregir el recorte causado por el metadato lateral. | Parcial D3 2026-08-30 | Respuesta del proveedor sólo después de DPA/clave y organización activa. Medir tiempo a acción y `AI Action Rate`. |

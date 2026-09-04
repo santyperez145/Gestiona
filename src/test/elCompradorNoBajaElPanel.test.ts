@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { gzipSync } from "node:zlib";
 
 /**
  * El comprador no baja el panel.
@@ -34,6 +35,7 @@ import { join } from "node:path";
  */
 
 const CONFIG = readFileSync(join(process.cwd(), "vite.config.ts"), "utf8");
+const APP = readFileSync(join(process.cwd(), "src", "App.tsx"), "utf8");
 
 function sinComentarios(src: string): string {
   return src
@@ -44,6 +46,43 @@ function sinComentarios(src: string): string {
 const cuerpo = sinComentarios(CONFIG);
 
 describe("el comprador no baja el panel", () => {
+  it("los shells privados no forman parte del import estático de la landing", () => {
+    const app = sinComentarios(APP);
+    const privateShells = [
+      "AppLayout",
+      "MfaGate",
+      "ModuleGuard",
+      "PlatformLayout",
+      "FinanceLayout",
+      "FinanceProductGate",
+      "PermissionsProvider",
+    ];
+
+    for (const component of privateShells) {
+      expect(app, `${component} volvió al árbol estático del arranque`)
+        .not.toMatch(new RegExp(`import\\s+${component}\\s+from`));
+      expect(app, `${component} dejó de tener un límite lazy`)
+        .toMatch(new RegExp(`const\\s+${component}\\s*=\\s*lazy`));
+    }
+  });
+
+  it("si hay un build, el HTML inicial respeta el presupuesto público", () => {
+    const htmlPath = join(process.cwd(), "dist", "index.html");
+    if (!existsSync(htmlPath)) return;
+
+    const html = readFileSync(htmlPath, "utf8");
+    const assetUrls = [...new Set(
+      [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+\.(?:js|css))"/g)]
+        .map(match => match[1]),
+    )];
+    const gzipBytes = assetUrls.reduce((total, url) =>
+      total + gzipSync(readFileSync(join(process.cwd(), "dist", url))).length, 0);
+
+    expect(assetUrls.some(url => /(?:App|Platform|Finance)Layout/.test(url))).toBe(false);
+    expect(assetUrls.length, "la landing volvió a precargar demasiados chunks").toBeLessThanOrEqual(12);
+    expect(gzipBytes, "el payload inicial público superó 310 kB gzip").toBeLessThanOrEqual(310_000);
+  });
+
   it("Vite 8 usa grupos de Rolldown sin captura recursiva", () => {
     expect(cuerpo).toMatch(/rolldownOptions\s*:/);
     expect(cuerpo).toMatch(/codeSplitting\s*:/);

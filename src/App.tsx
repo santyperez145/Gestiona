@@ -9,13 +9,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { OrgProvider, useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
-import AppLayout from "@/components/AppLayout";
-import MfaGate from "@/components/auth/MfaGate";
-import ModuleGuard from "@/components/auth/ModuleGuard";
-import PlatformLayout from "@/components/PlatformLayout";
-import FinanceLayout from "@/components/finance-product/FinanceLayout";
-import FinanceProductGate from "@/components/finance-product/FinanceProductGate";
-import { PermissionsProvider } from "@/lib/permissionsContext";
 import {
   businessRoutes, businessAliases, publicPages, publicAliases,
 } from "@/app/routeManifest";
@@ -32,6 +25,19 @@ import PlatformSeoHead from "@/components/seo/PlatformSeoHead";
 // ── Eager (needed for first paint / public routes) ──────────────────────────
 import AuthPage from "@/pages/AuthPage";
 import LandingPage from "@/pages/LandingPage";
+
+// ── Lazy shells ────────────────────────────────────────────────────────────
+// Landing/Auth no pagan el chrome, permisos ni gates de superficies que aún
+// no abrieron. El Suspense raíz mantiene una sola transición de carga.
+const AppLayout = lazy(() => import("@/components/AppLayout"));
+const MfaGate = lazy(() => import("@/components/auth/MfaGate"));
+const ModuleGuard = lazy(() => import("@/components/auth/ModuleGuard"));
+const PlatformLayout = lazy(() => import("@/components/PlatformLayout"));
+const FinanceLayout = lazy(() => import("@/components/finance-product/FinanceLayout"));
+const FinanceProductGate = lazy(() => import("@/components/finance-product/FinanceProductGate"));
+const PermissionsProvider = lazy(() =>
+  import("@/lib/permissionsContext").then(module => ({ default: module.PermissionsProvider })),
+);
 
 // ── Lazy-loaded pages (split per route) ────────────────────────────────────
 const PublicCatalogPage      = lazy(() => import("@/pages/PublicCatalogPage"));
