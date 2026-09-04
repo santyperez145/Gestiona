@@ -55,14 +55,23 @@ export default function ProvinceRatesPanel({ orgId, zonas, rates, onDone }: Prop
     });
   }, [filas, draft]);
 
-  async function activarModoZonas() {
+  async function activarModoZonasSiEsLaUnicaTienda() {
+    const { data, error: storesError } = await supabase
+      .from("ecommerce_stores")
+      .select("id")
+      .eq("org_id", orgId)
+      .limit(2);
+    if (storesError) {
+      console.error("No se pudo verificar qué tienda usa el tarifario", storesError);
+      return;
+    }
+    const onlyStore = data?.length === 1 ? data[0] : null;
+    if (!onlyStore) return;
     const { error } = await supabase
       .from("ecommerce_stores")
       .update({ shipping_mode: "zones" } as never)
-      .eq("org_id", orgId);
-    if (error) {
-      console.error("No se pudo pasar la tienda a modo zonas", error);
-    }
+      .eq("id", onlyStore.id);
+    if (error) console.error("No se pudo pasar la tienda única a modo zonas", error);
   }
 
   async function guardar() {
@@ -161,12 +170,12 @@ export default function ProvinceRatesPanel({ orgId, zonas, rates, onDone }: Prop
         guardados += 1;
       }
 
-      await activarModoZonas();
+      await activarModoZonasSiEsLaUnicaTienda();
       toast.success(
         guardados === 1
           ? "Precio de envío guardado para 1 provincia"
           : `Precios de envío guardados para ${guardados} provincias`,
-        { description: "La tienda cotiza por zonas; el checkout usa estos precios." },
+        { description: "Las tiendas configuradas por zonas usan estos precios en checkout." },
       );
       onDone();
     } catch (e) {

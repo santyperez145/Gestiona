@@ -58,6 +58,10 @@ function InfluencersTab() {
       .from('ecommerce_stores')
       .select('slug, is_active')
       .eq('org_id', orgId)
+      .order('is_active', { ascending: false })
+      .order('is_primary', { ascending: false })
+      .order('created_at')
+      .limit(1)
       .maybeSingle()
       .then(({ data, error }) => {
         if (error) {

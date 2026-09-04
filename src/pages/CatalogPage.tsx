@@ -81,7 +81,9 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     const [pRes, sRes, storeRes] = await Promise.all([
       supabase.from('products').select('*').eq('org_id', orgId).gt('stock', 0).order('category').order('name'),
       supabase.from('settings').select('*').eq('org_id', orgId).maybeSingle(),
-      supabase.from('ecommerce_stores').select('slug, is_active').eq('org_id', orgId).maybeSingle(),
+      supabase.from('ecommerce_stores').select('slug, is_active').eq('org_id', orgId)
+        .order('is_active', { ascending: false }).order('is_primary', { ascending: false })
+        .order('created_at').limit(1).maybeSingle(),
     ]);
     setProducts(pRes.data || []);
     setSettings(sRes.data);

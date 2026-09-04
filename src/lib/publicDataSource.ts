@@ -181,7 +181,30 @@ const PUBLIC_BRANDING_COLUMNS =
  * Esconderlos pierde la visita, el lugar en Google y la señal de demanda. La
  * tienda los muestra al final y con el botón de compra cambiado.
  */
-export async function fetchStoreProducts(orgId: string): Promise<LecturaPublica<CatalogProduct[]>> {
+export async function fetchStoreProducts(
+  orgId: string,
+  storeSlug?: string,
+): Promise<LecturaPublica<CatalogProduct[]>> {
+  // La vitrina se identifica por slug. Con varias tiendas sobre el mismo Core,
+  // consultar sólo por organización perdería la configuración comercial de la
+  // tienda y, en vistas heredadas, podría duplicar cada producto.
+  if (storeSlug) {
+    const canonical = await retryPublicRead(() => supabase.rpc(
+      'get_store_catalog_products',
+      { p_slug: storeSlug },
+    ));
+    if (!canonical.error) {
+      return { ok: true, data: (canonical.data ?? []) as unknown as CatalogProduct[] };
+    }
+    if (!isMissingFunction(canonical.error)) {
+      console.error('[catálogo] error leyendo productos por tienda:', canonical.error.message);
+      return { ok: false, error: canonical.error };
+    }
+    console.warn(
+      '[catálogo] get_store_catalog_products() todavía no existe; usando la vista compatible.',
+    );
+  }
+
   // `store_catalog_products` es igual a `catalog_products` pero sin exigir
   // stock. Si la migración todavía no está aplicada se cae a la vieja: la
   // tienda pierde los agotados, no los productos.

@@ -28,6 +28,8 @@ import {
 import { countPendingStockAlerts } from "@/lib/stockAlerts";
 import { RotateCcw, Settings, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import StoreWorkspacePicker from "@/components/ecommerce/StoreWorkspacePicker";
+import { useCommerceStores } from "@/hooks/useCommerceStores";
 
 export default function StoreOrdersPage() {
   usePageTitle("Pedidos");
@@ -35,31 +37,17 @@ export default function StoreOrdersPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const cola = parseStoreOrdersCola(searchParams.get("cola"));
-  const [storeSlug, setStoreSlug] = useState<string | null>(null);
-  const [storeName, setStoreName] = useState("Tu tienda");
+  const commerceStores = useCommerceStores(orgId, searchParams.get("store"));
+  const selectedStore = commerceStores.selectedStore;
+  const storeSlug = selectedStore?.slug ?? null;
+  const storeName = selectedStore?.name ?? "Tu tienda";
   const [orders, setOrders] = useState<StoreOrderInspectRow[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState<string | null>(null);
   const [recoveryPending, setRecoveryPending] = useState(0);
 
-  useEffect(() => {
-    if (!orgId) {
-      setStoreSlug(null);
-      return;
-    }
-    supabase
-      .from("ecommerce_stores")
-      .select("slug, name")
-      .eq("org_id", orgId)
-      .maybeSingle()
-      .then(({ data }) => {
-        setStoreSlug(data?.slug ?? null);
-        setStoreName(data?.name ?? "Tu tienda");
-      });
-  }, [orgId]);
-
   const loadOrders = useCallback(async () => {
-    if (!orgId) {
+    if (!orgId || !commerceStores.selectedStoreId) {
       setOrders([]);
       setOrdersLoading(false);
       return;
@@ -70,6 +58,7 @@ export default function StoreOrdersPage() {
       .from("ecommerce_orders")
       .select(STORE_ORDER_LIST_SELECT)
       .eq("org_id", orgId)
+      .eq("store_id", commerceStores.selectedStoreId)
       .order("created_at", { ascending: false })
       .limit(STORE_ORDER_QUEUE_LIMIT);
     if (error) {
@@ -80,10 +69,10 @@ export default function StoreOrdersPage() {
       setOrders((data ?? []) as StoreOrderInspectRow[]);
     }
     setOrdersLoading(false);
-  }, [orgId]);
+  }, [commerceStores.selectedStoreId, orgId]);
 
   const loadRecoveryCounts = useCallback(async () => {
-    if (!orgId) {
+    if (!orgId || !commerceStores.selectedStoreId) {
       setRecoveryPending(0);
       return;
     }
@@ -91,11 +80,13 @@ export default function StoreOrdersPage() {
       supabase
         .from("ecommerce_cart_sessions")
         .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, expires_at, updated_at, created_at")
-        .eq("org_id", orgId),
+        .eq("org_id", orgId)
+        .eq("store_id", commerceStores.selectedStoreId),
       supabase
         .from("store_stock_alerts")
         .select("id, email, product_id, variant_id, notified_at, created_at, products(name, stock)")
         .eq("org_id", orgId)
+        .eq("store_id", commerceStores.selectedStoreId)
         .is("notified_at", null),
     ]);
     if (carts.error) {
@@ -120,7 +111,7 @@ export default function StoreOrdersPage() {
       };
     });
     setRecoveryPending(abandoned + countPendingStockAlerts(stockRows));
-  }, [orgId]);
+  }, [commerceStores.selectedStoreId, orgId]);
 
   useEffect(() => { void loadOrders(); }, [loadOrders]);
   useEffect(() => { void loadRecoveryCounts(); }, [loadRecoveryCounts]);
@@ -152,6 +143,22 @@ export default function StoreOrdersPage() {
     }, { replace: true });
   };
 
+  const selectStore = (storeId: string) => {
+    commerceStores.selectStore(storeId);
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.set("store", storeId);
+      p.delete("pedido");
+      p.delete("q");
+      p.delete("orden");
+      return p;
+    }, { replace: true });
+  };
+
+  const storeSettingsUrl = commerceStores.selectedStoreId
+    ? `/tienda-online?store=${encodeURIComponent(commerceStores.selectedStoreId)}`
+    : "/tienda-online";
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -160,12 +167,20 @@ export default function StoreOrdersPage() {
         description="Cola de pedidos y recuperación de carritos: cobrar, despachar y recuperar GMV. Misma autoridad que el checkout público."
         actions={(
           <Button variant="outline" size="sm" className="min-h-11 gap-1.5" asChild>
-            <Link to="/tienda-online">
+            <Link to={storeSettingsUrl}>
               <Settings className="h-4 w-4" />
               Configurar tienda
             </Link>
           </Button>
         )}
+      />
+
+      <StoreWorkspacePicker
+        stores={commerceStores.stores}
+        selectedStoreId={commerceStores.selectedStoreId}
+        loading={commerceStores.loading}
+        error={commerceStores.error}
+        onSelect={selectStore}
       />
 
       <WorkspaceViewTabs
@@ -195,10 +210,14 @@ export default function StoreOrdersPage() {
           title="Todavía no hay tienda online"
           description="Publicá la tienda para recibir pedidos. Mientras tanto podés vender desde el mostrador."
           actionLabel="Ir a Tienda online"
-          onAction={() => navigate("/tienda-online")}
+          onAction={() => navigate(storeSettingsUrl)}
         />
       ) : cola === "recuperacion" ? (
-        <StoreRecoveryWorkspace orgId={orgId} storeSlug={storeSlug} />
+        <StoreRecoveryWorkspace
+          orgId={orgId}
+          storeId={commerceStores.selectedStoreId}
+          storeSlug={storeSlug}
+        />
       ) : (
         <StoreOrdersWorkspace
           orgId={orgId}

@@ -25,10 +25,11 @@ function parseRecoveryVista(raw: string | null): RecoveryVista {
 
 interface Props {
   orgId: string | null;
+  storeId: string | null;
   storeSlug: string | null;
 }
 
-export default function StoreRecoveryWorkspace({ orgId, storeSlug }: Props) {
+export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const vista = parseRecoveryVista(searchParams.get("vista"));
 
@@ -43,7 +44,7 @@ export default function StoreRecoveryWorkspace({ orgId, storeSlug }: Props) {
   const [stockAlertsError, setStockAlertsError] = useState<string | null>(null);
 
   const loadAbandoned = useCallback(async () => {
-    if (!orgId) {
+    if (!orgId || !storeId) {
       setAbandonedCartRows([]);
       setAbandonedCarts(0);
       setAbandonedLoading(false);
@@ -54,7 +55,8 @@ export default function StoreRecoveryWorkspace({ orgId, storeSlug }: Props) {
     const { data, error } = await supabase
       .from("ecommerce_cart_sessions")
       .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, expires_at, updated_at, created_at")
-      .eq("org_id", orgId);
+      .eq("org_id", orgId)
+      .eq("store_id", storeId);
     if (error) {
       console.error("StoreRecoveryWorkspace / carritos:", error);
       setAbandonedError(error.message);
@@ -66,10 +68,10 @@ export default function StoreRecoveryWorkspace({ orgId, storeSlug }: Props) {
     setAbandonedCarts(queue.length);
     setAbandonedCartRows(queue);
     setAbandonedLoading(false);
-  }, [orgId]);
+  }, [orgId, storeId]);
 
   const loadStockAlerts = useCallback(async () => {
-    if (!orgId) {
+    if (!orgId || !storeId) {
       setStockAlertRows([]);
       setStockAlertsPending(0);
       setStockAlertsLoading(false);
@@ -81,6 +83,7 @@ export default function StoreRecoveryWorkspace({ orgId, storeSlug }: Props) {
       .from("store_stock_alerts")
       .select("id, email, product_id, variant_id, notified_at, created_at, products(name, stock)")
       .eq("org_id", orgId)
+      .eq("store_id", storeId)
       .is("notified_at", null)
       .order("created_at", { ascending: false });
     if (error) {
@@ -106,7 +109,7 @@ export default function StoreRecoveryWorkspace({ orgId, storeSlug }: Props) {
     setStockAlertRows(rows);
     setStockAlertsPending(countPendingStockAlerts(rows));
     setStockAlertsLoading(false);
-  }, [orgId]);
+  }, [orgId, storeId]);
 
   useEffect(() => { void loadAbandoned(); }, [loadAbandoned]);
   useEffect(() => { void loadStockAlerts(); }, [loadStockAlerts]);

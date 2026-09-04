@@ -30,7 +30,7 @@ interface QuestionRow {
 
 type Filtro = "sin_responder" | "respondidas" | "hidden" | "todas";
 
-export default function QuestionsModeration() {
+export default function QuestionsModeration({ storeId }: { storeId: string | null }) {
   const { orgId } = useOrganization();
   const [rows, setRows] = useState<QuestionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,12 +40,17 @@ export default function QuestionsModeration() {
   const [guardando, setGuardando] = useState(false);
 
   const cargar = useCallback(async () => {
-    if (!orgId) return;
+    if (!orgId || !storeId) {
+      setRows([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase
       .from("product_questions")
       .select("id, product_id, author_name, question, answer, answered_at, status, created_at, products(name)")
       .eq("org_id", orgId)
+      .eq("store_id", storeId)
       .order("created_at", { ascending: false })
       .limit(300);
     setLoading(false);
@@ -53,7 +58,7 @@ export default function QuestionsModeration() {
     // ven igual y son problemas opuestos.
     if (error) { toast.error("No se pudieron cargar las preguntas"); return; }
     setRows((data ?? []) as unknown as QuestionRow[]);
-  }, [orgId]);
+  }, [orgId, storeId]);
 
   useEffect(() => { cargar(); }, [cargar]);
 

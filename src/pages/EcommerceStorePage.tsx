@@ -105,6 +105,8 @@ import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import StoreDomainsPanel from "@/components/ecommerce/StoreDomainsPanel";
 import StoreThemePublishingPanel from "@/components/ecommerce/StoreThemePublishingPanel";
+import StoreWorkspacePicker from "@/components/ecommerce/StoreWorkspacePicker";
+import { useCommerceStores } from "@/hooks/useCommerceStores";
 import {
   applyStoreThemeConfig,
   storeThemeConfigFromEditor,
@@ -186,6 +188,8 @@ export default function EcommerceStorePage() {
   const performanceToParam = performanceTo ? format(performanceTo, "yyyy-MM-dd") : null;
   const { fromWizard } = parseActivationHandoff(searchParams);
   const requestedTab = searchParams.get("tab");
+  const requestedStoreId = searchParams.get("store");
+  const commerceStores = useCommerceStores(orgId, requestedStoreId);
 
   // Shopify/Tiendanube: Pedidos y Recuperación son superficie propia.
   useEffect(() => {
@@ -217,6 +221,8 @@ export default function EcommerceStorePage() {
   // una fila que ya tiene siete.
   const [vozTab, setVozTab] = useState<"opiniones" | "preguntas">("opiniones");
   const [store, setStore] = useState<any>(null);
+  const [creatingStore, setCreatingStore] = useState(false);
+  const storeFormBaselineRef = useRef("");
   /** Tras el primer Guardar: banner al catálogo mientras siguen en settings. */
   const [justCreatedStore, setJustCreatedStore] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -281,23 +287,102 @@ export default function EcommerceStorePage() {
     id: string; name: string; is_main: boolean;
   }[]>([]);
   const [domicilioFiscal, setDomicilioFiscal] = useState<string | null>(null);
+  const storeFormDirty = storeFormBaselineRef.current !== ""
+    && JSON.stringify(storeForm) !== storeFormBaselineRef.current;
+
+  const writeStoreToUrl = useCallback((storeId: string | null) => {
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      if (storeId) params.set("store", storeId);
+      else params.delete("store");
+      params.delete("pedido");
+      params.delete("orden");
+      return params;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const confirmDiscardStoreForm = useCallback(async () => {
+    if (!storeFormDirty) return true;
+    return askConfirmation({
+      title: "Cambiar de tienda",
+      description: "Hay cambios sin guardar en esta configuración. Si continuás, se descartarán.",
+      confirmText: "Descartar y cambiar",
+      cancelText: "Seguir editando",
+      variant: "destructive",
+    });
+  }, [askConfirmation, storeFormDirty]);
+
+  const selectCommerceStore = useCallback(async (storeId: string) => {
+    if (storeId === commerceStores.selectedStoreId && !creatingStore) return;
+    if (!(await confirmDiscardStoreForm())) return;
+    setCreatingStore(false);
+    commerceStores.selectStore(storeId);
+    writeStoreToUrl(storeId);
+  }, [commerceStores, confirmDiscardStoreForm, creatingStore, writeStoreToUrl]);
+
+  const startNewStore = useCallback(async () => {
+    if (!(await confirmDiscardStoreForm())) return;
+    const base = storeDraftInicial(
+      commerceStores.stores.length === 0 ? org ?? undefined : undefined,
+      GLOBAL_FULFILLMENT_LOCATION,
+    );
+    const next = commerceStores.stores.length > 0 ? { ...base, name: "", slug: "" } : base;
+    setCreatingStore(true);
+    setStore(null);
+    setStoreForm(next);
+    setSelectedTheme(next.theme);
+    storeFormBaselineRef.current = JSON.stringify(next);
+  }, [commerceStores.stores.length, confirmDiscardStoreForm, org]);
+
+  const cancelNewStore = useCallback(async () => {
+    if (!(await confirmDiscardStoreForm())) return;
+    setCreatingStore(false);
+    writeStoreToUrl(commerceStores.selectedStoreId);
+  }, [commerceStores.selectedStoreId, confirmDiscardStoreForm, writeStoreToUrl]);
+
+  const makePrimaryStore = useCallback(async () => {
+    if (!store?.id || store.is_primary) return;
+    if (storeFormDirty) {
+      toast.error("Guardá los cambios antes de hacer principal esta tienda.");
+      return;
+    }
+    const accepted = await askConfirmation({
+      title: `Hacer principal “${store.name}”`,
+      description: "Los enlaces que no eligen una tienda explícita usarán esta vitrina. No cambia productos, stock ni pedidos.",
+      confirmText: "Hacer principal",
+      cancelText: "Cancelar",
+      variant: "default",
+    });
+    if (!accepted) return;
+    const { error } = await supabase.rpc("set_primary_ecommerce_store", {
+      p_store_id: store.id,
+    });
+    if (error) {
+      console.error("No se pudo cambiar la tienda principal", error);
+      toast.error(error.message || "No se pudo cambiar la tienda principal.");
+      return;
+    }
+    await commerceStores.reload(store.id);
+    toast.success("Tienda principal actualizada");
+  }, [askConfirmation, commerceStores, store, storeFormDirty]);
 
   useEffect(() => {
-    if (!orgId || tab !== "categorias") return;
+    if (!orgId || !store?.id || tab !== "categorias") return;
     Promise.all([
       supabase.from("ecommerce_categories").select("slug, name")
         .eq("org_id", orgId).eq("is_active", true).order("sort_order"),
       supabase.from("store_pages").select("slug, title")
-        .eq("org_id", orgId).eq("status", "published").order("title"),
+        .eq("org_id", orgId).eq("store_id", store.id)
+        .eq("status", "published").order("title"),
     ]).then(([c, g]) => {
       setMenuCategorias((c.data ?? []) as { slug: string; name: string }[]);
       setMenuPaginas((g.data ?? []) as { slug: string; title: string }[]);
     });
-  }, [orgId, tab]);
+  }, [orgId, store?.id, tab]);
 
   /** Releer las órdenes. Se usa al montar y después de despachar una. */
   const loadOrders = useCallback(async () => {
-    if (!orgId) {
+    if (!orgId || !store?.id) {
       setOrders([]);
       setOrdersLoading(false);
       return;
@@ -308,6 +393,7 @@ export default function EcommerceStorePage() {
       .from("ecommerce_orders")
       .select("id, order_number, customer_name, customer_email, customer_phone, total, subtotal, shipping_cost, discount_amount, coupon_code, coupon_discount_ars, tax_amount, payment_status, payment_method, fulfillment_status, tracking_number, shipping_address, items, notes, shipped_at, delivered_at, created_at, carrier, shipping_service")
       .eq("org_id", orgId)
+      .eq("store_id", store.id)
       .order("created_at", { ascending: false })
       .limit(STORE_ORDER_QUEUE_LIMIT);
     if (error) {
@@ -318,7 +404,7 @@ export default function EcommerceStorePage() {
       setOrders((data ?? []) as EcomOrder[]);
     }
     setOrdersLoading(false);
-  }, [orgId]);
+  }, [orgId, store?.id]);
 
   /**
    * Los KPI son una agregación server-side, separada de la cola limitada de
@@ -327,7 +413,7 @@ export default function EcommerceStorePage() {
    */
   const loadStorePerformance = useCallback(async () => {
     const requestId = ++performanceRequestRef.current;
-    if (!orgId) {
+    if (!orgId || !store?.id) {
       setPerformance(null);
       setPerformanceError(null);
       return;
@@ -337,6 +423,7 @@ export default function EcommerceStorePage() {
       p_org_id: orgId,
       p_from: performanceFromParam,
       p_to: performanceToParam,
+      p_store_id: store.id,
     });
     if (requestId !== performanceRequestRef.current) return;
     if (error) {
@@ -353,27 +440,34 @@ export default function EcommerceStorePage() {
       return;
     }
     setPerformance(parsed);
-  }, [orgId, performanceFromParam, performanceToParam]);
+  }, [orgId, performanceFromParam, performanceToParam, store?.id]);
 
   useEffect(() => {
     void loadStorePerformance();
   }, [loadStorePerformance]);
 
   useEffect(() => {
+    if (creatingStore) return;
+    const selected = commerceStores.selectedStore;
+    setStore(selected);
+    const nextForm = selected
+      ? storeFormDesdeFila(selected, GLOBAL_FULFILLMENT_LOCATION)
+      : storeDraftInicial(org ?? undefined, GLOBAL_FULFILLMENT_LOCATION);
+    setStoreForm(nextForm);
+    storeFormBaselineRef.current = JSON.stringify(nextForm);
+    setSelectedTheme(selected?.theme ?? nextForm.theme);
+    setJustCreatedStore(false);
+  }, [commerceStores.selectedStore, creatingStore, org]);
+
+  useEffect(() => {
+    setCreatingStore(false);
+  }, [orgId]);
+
+  useEffect(() => {
     if (!orgId) {
       setOrdersLoading(false);
       return;
     }
-    supabase.from("ecommerce_stores").select("*").eq("org_id", orgId).maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setStore(data);
-          setStoreForm(storeFormDesdeFila(data, GLOBAL_FULFILLMENT_LOCATION));
-          setSelectedTheme(data.theme);
-        } else {
-          setStoreForm(storeDraftInicial(org ?? undefined, GLOBAL_FULFILLMENT_LOCATION));
-        }
-      });
 
     // La tienda puede seguir en modo global, pero si el comercio ya trabaja
     // con sucursales se le muestra la elección explícita de dónde prepara los
@@ -429,10 +523,15 @@ export default function EcommerceStorePage() {
     void loadOrders();
 
     const loadStockAlerts = () => {
+      if (!store?.id) {
+        setStockAlertsPending(0);
+        return;
+      }
       supabase
         .from("store_stock_alerts")
-        .select("id, email, product_id, variant_id, notified_at, created_at, products(name, stock)")
-        .eq("org_id", orgId)
+          .select("id, email, product_id, variant_id, notified_at, created_at, products(name, stock)")
+          .eq("org_id", orgId)
+          .eq("store_id", store.id)
         .is("notified_at", null)
         .order("created_at", { ascending: false })
         .then(({ data, error }) => {
@@ -458,13 +557,13 @@ export default function EcommerceStorePage() {
         });
     };
     loadStockAlerts();
-  }, [orgId, org, loadOrders]);
+  }, [orgId, loadOrders, store?.id]);
 
   // Las señales viven en otras pestañas (Páginas, Pay, Productos). Si sólo se
   // leyeran al montar, publicar legales o conectar MP dejaba el checklist
   // mintiendo hasta un F5.
   const reloadReadinessSignals = useCallback(async () => {
-    if (!orgId) return;
+    if (!orgId || !store?.id) return;
     try {
       const [prods, sinPeso, zonas, tarifas, paginas, cobro] = await Promise.all([
         supabase.from("products").select("id", { count: "exact", head: true })
@@ -476,6 +575,7 @@ export default function EcommerceStorePage() {
         supabase.from("shipping_rates").select("zone_id").eq("org_id", orgId).eq("is_active", true),
         supabase.from("store_pages").select("slug, content, status")
           .eq("org_id", orgId)
+          .eq("store_id", store.id)
           .in("slug", ["politica-de-privacidad", "terminos-y-condiciones"]),
         fetchPaymentStatus(orgId),
       ]);
@@ -507,7 +607,7 @@ export default function EcommerceStorePage() {
     } catch (err) {
       console.error("No se pudieron releer las señales de la tienda", err);
     }
-  }, [orgId]);
+  }, [orgId, store?.id]);
 
   useEffect(() => {
     void reloadReadinessSignals();
@@ -536,6 +636,7 @@ export default function EcommerceStorePage() {
       p_org_id: orgId,
       p_enabled: enabled,
       p_acknowledged: enabled,
+      p_store_id: store.id,
     });
     setAnalyticsBusy(false);
     if (error) {
@@ -558,7 +659,7 @@ export default function EcommerceStorePage() {
 
   const saveStore = async (opts?: { activate?: boolean }) => {
     if (!orgId) return;
-    const creatingStore = !store?.id;
+    const isCreatingStore = !store?.id;
     const name = storeForm.name.trim();
     if (!name) {
       toast.error("Poné el nombre de la tienda.");
@@ -633,11 +734,10 @@ export default function EcommerceStorePage() {
         ? null
         : storeForm.fulfillment_location_id,
     };
-    const { data: saved, error } = await supabase
-      .from("ecommerce_stores")
-      .upsert(row, { onConflict: "org_id" })
-      .select("*")
-      .single();
+    const saveQuery = isCreatingStore
+      ? supabase.from("ecommerce_stores").insert(row)
+      : supabase.from("ecommerce_stores").update(row).eq("id", store.id);
+    const { data: saved, error } = await saveQuery.select("*").single();
     if (error) {
       setLoading(false);
       console.error("No se pudo guardar la tienda", error);
@@ -662,7 +762,13 @@ export default function EcommerceStorePage() {
       // Igual conservamos el id: sin él Páginas/Banners siguen muertos.
       if (saved) {
         setStore(saved);
-        setStoreForm(storeFormDesdeFila(saved, GLOBAL_FULFILLMENT_LOCATION));
+        const nextForm = storeFormDesdeFila(saved, GLOBAL_FULFILLMENT_LOCATION);
+        setStoreForm(nextForm);
+        storeFormBaselineRef.current = JSON.stringify(nextForm);
+        setCreatingStore(false);
+        commerceStores.selectStore(saved.id);
+        writeStoreToUrl(saved.id);
+        void commerceStores.reload(saved.id);
       }
       return;
     }
@@ -670,13 +776,19 @@ export default function EcommerceStorePage() {
     // El upsert sin select dejaba store sin id: legales y banners pedían
     // «Creá la tienda» con toast de guardado (medido sesión 145).
     setStore(saved);
-    setStoreForm(storeFormDesdeFila(saved, GLOBAL_FULFILLMENT_LOCATION));
+    const nextForm = storeFormDesdeFila(saved, GLOBAL_FULFILLMENT_LOCATION);
+    setStoreForm(nextForm);
+    storeFormBaselineRef.current = JSON.stringify(nextForm);
     setBankPersistedReady(storeBankTransferReady(bankForm));
-    if (creatingStore) setJustCreatedStore(true);
+    setCreatingStore(false);
+    commerceStores.selectStore(saved.id);
+    writeStoreToUrl(saved.id);
+    await commerceStores.reload(saved.id);
+    if (isCreatingStore) setJustCreatedStore(true);
 
     // Borradores legales al nacer: sin esto el checklist dice «faltan» hasta
     // que alguien abra Páginas y pulse Sembrar. No publica — el dueño firma.
-    if (storeShouldSeedPagesOnCreate(creatingStore) && saved?.id) {
+    if (storeShouldSeedPagesOnCreate(isCreatingStore) && saved?.id) {
       const { error: seedError } = await supabase.rpc("seed_store_pages", {
         p_store_id: saved.id,
       });
@@ -905,7 +1017,19 @@ export default function EcommerceStorePage() {
         }
       />
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <StoreWorkspacePicker
+        stores={commerceStores.stores}
+        selectedStoreId={commerceStores.selectedStoreId}
+        loading={commerceStores.loading}
+        error={commerceStores.error}
+        creating={creatingStore}
+        onSelect={(storeId) => { void selectCommerceStore(storeId); }}
+        onCreate={() => { void startNewStore(); }}
+        onCancelCreate={() => { void cancelNewStore(); }}
+        onMakePrimary={() => { void makePrimaryStore(); }}
+      />
+
+      {store?.id ? <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold">Rendimiento de la tienda</p>
           <p className="text-xs text-muted-foreground">
@@ -914,7 +1038,7 @@ export default function EcommerceStorePage() {
           </p>
         </div>
         <DateRangeFilter label="Todo el historial" />
-      </div>
+      </div> : null}
 
       {store?.id && !store.first_party_analytics_enabled ? (
         <div className="flex flex-col gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4 sm:flex-row sm:items-center">
@@ -982,14 +1106,17 @@ export default function EcommerceStorePage() {
               </button>
             ))}
           </div>
-          {vozTab === "opiniones" ? <ReviewsModeration /> : <QuestionsModeration />}
+          {vozTab === "opiniones"
+            ? <ReviewsModeration storeId={store?.id ?? null} />
+            : <QuestionsModeration storeId={store?.id ?? null} />}
         </div>
       )}
 
       {tab === "categorias" && (
         <div className="space-y-6">
-          <CategoriesEditor storeId={store?.id ?? null} />
+          <CategoriesEditor />
           <MenuEditor
+            storeId={store?.id ?? null}
             storeSlug={store?.slug ?? null}
             categorias={menuCategorias}
             paginas={menuPaginas}

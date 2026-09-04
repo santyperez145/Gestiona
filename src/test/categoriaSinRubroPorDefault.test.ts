@@ -85,7 +85,8 @@ describe("la categoría no viene puesta en perfumería", () => {
     // 3 de 4 organizaciones no tenían tienda, así que sin esto el comercio
     // nuevo se quedaba con una lista vacía y ninguna forma de llenarla.
     expect(migracion).toContain("ALTER COLUMN store_id DROP NOT NULL");
-    expect(categorySelect).toContain("store_id: tienda?.id ?? null");
+    expect(categorySelect).toContain("store_id: null");
+    expect(soloCodigo(categorySelect)).not.toContain('from("ecommerce_stores")');
   });
 
   it("el selector no ofrece los rubros heredados como opciones", () => {

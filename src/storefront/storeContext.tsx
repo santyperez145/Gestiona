@@ -321,7 +321,7 @@ export function StoreProvider({
         // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la
         // migración todavía no esté aplicada — si no, la tienda se muestra
         // vacía aunque haya productos cargados.
-        fetchStoreProducts(row.org_id),
+        fetchStoreProducts(row.org_id, row.slug),
         retryPublicRead(() => supabase.rpc("get_store_perfume_details", { p_slug: slug })),
         fetchStoreVariants(slug),
         retryPublicRead(() => supabase.rpc("get_store_reviews", { p_slug: slug })),

@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       activation_interventions: {
@@ -11739,6 +11764,7 @@ export type Database = {
           google_ads_id: string | null
           id: string
           is_active: boolean
+          is_primary: boolean
           logo_url: string | null
           meta_description: string | null
           meta_pixel_id: string | null
@@ -11788,6 +11814,7 @@ export type Database = {
           google_ads_id?: string | null
           id?: string
           is_active?: boolean
+          is_primary?: boolean
           logo_url?: string | null
           meta_description?: string | null
           meta_pixel_id?: string | null
@@ -11837,6 +11864,7 @@ export type Database = {
           google_ads_id?: string | null
           id?: string
           is_active?: boolean
+          is_primary?: boolean
           logo_url?: string | null
           meta_description?: string | null
           meta_pixel_id?: string | null
@@ -11873,77 +11901,77 @@ export type Database = {
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "audit_limite_peor_que_la_prueba"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "audit_org_sin_settings"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "organization_activation_readiness"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_activation"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_ai_actions"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_health"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_health_source"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_integration_health"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -46410,77 +46438,77 @@ export type Database = {
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "audit_limite_peor_que_la_prueba"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "audit_org_sin_settings"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "organization_activation_readiness"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_activation"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_ai_actions"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_health"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_health_source"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_integration_health"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_margin_coverage"
             referencedColumns: ["org_id"]
           },
           {
             foreignKeyName: "ecommerce_stores_org_id_fkey"
             columns: ["org_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "platform_org_stock_accuracy"
             referencedColumns: ["org_id"]
           },
@@ -53314,6 +53342,41 @@ export type Database = {
         Args: { p_slug: string; p_token: string }
         Returns: Json
       }
+      get_store_catalog_products: {
+        Args: { p_slug: string }
+        Returns: {
+          brand: string | null
+          category: string | null
+          content_ml: number | null
+          created_at: string | null
+          decant_price_10ml: number | null
+          decant_price_2_5ml: number | null
+          decant_price_5ml: number | null
+          description: string | null
+          discount_price_ars: number | null
+          featured: boolean | null
+          gender: string | null
+          id: string | null
+          image_url: string | null
+          image_urls: string[] | null
+          name: string | null
+          offer_expires_at: string | null
+          org_id: string | null
+          payment_base_price: number | null
+          price_2x_ars: number | null
+          promo_price: number | null
+          sale_price_ars: number | null
+          stock: number | null
+          total_sold: number | null
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "store_catalog_products"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_store_categories: {
         Args: { p_slug: string }
         Returns: {
@@ -53370,7 +53433,12 @@ export type Database = {
         }[]
       }
       get_store_performance_snapshot: {
-        Args: { p_from?: string; p_org_id: string; p_to?: string }
+        Args: {
+          p_from?: string
+          p_org_id: string
+          p_store_id: string
+          p_to?: string
+        }
         Returns: Json
       }
       get_store_perfume_details: {
@@ -54625,8 +54693,17 @@ export type Database = {
         Args: { p_carrier: string; p_order_id: string; p_tracking: string }
         Returns: Json
       }
+      set_primary_ecommerce_store: {
+        Args: { p_store_id: string }
+        Returns: Json
+      }
       set_store_first_party_analytics: {
-        Args: { p_acknowledged?: boolean; p_enabled: boolean; p_org_id: string }
+        Args: {
+          p_acknowledged?: boolean
+          p_enabled: boolean
+          p_org_id: string
+          p_store_id: string
+        }
         Returns: Json
       }
       siguiente_numero_factura: { Args: { p_org: string }; Returns: string }
@@ -54971,6 +55048,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "viewer"],

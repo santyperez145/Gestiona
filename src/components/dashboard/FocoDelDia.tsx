@@ -261,17 +261,18 @@ export default function FocoDelDia(p: Props) {
       .from("ecommerce_stores")
       .select("pickup_enabled, pickup_address, pickup_instructions")
       .eq("org_id", p.orgId)
-      .maybeSingle()
+      .eq("pickup_enabled", true)
       .then(({ data, error }) => {
         if (error) {
           console.error("FocoDelDia / retiro:", error);
           return;
         }
         if (cancelado) return;
-        const on = !!data?.pickup_enabled;
-        const dir = String(data?.pickup_address ?? "").trim();
-        const horario = String(data?.pickup_instructions ?? "").trim();
-        setRetiroSinHorario(on && dir.length > 0 && horario.length === 0);
+        setRetiroSinHorario((data ?? []).some(row => {
+          const dir = String(row.pickup_address ?? "").trim();
+          const horario = String(row.pickup_instructions ?? "").trim();
+          return dir.length > 0 && horario.length === 0;
+        }));
       });
     return () => { cancelado = true; };
   }, [p.orgId]);

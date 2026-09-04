@@ -116,21 +116,15 @@ export function useOrgCategories(orgId: string | null | undefined) {
 
     const slug = slugDeNombre(nombre);
 
-    // `store_id` se completa con la tienda de la organización si la tiene, para
-    // dejar registro de qué canal la originó. Si todavía no tiene, va NULL:
-    // desde `20260825000002_categoria_sin_rubro` la columna lo admite, y el
-    // menú público no depende de ella —`get_store_categories` une por `org_id`
-    // desde 20260805000002—.
+    // La categoría pertenece al catálogo del Business Core y puede mostrarse
+    // en más de una tienda. `store_id` queda NULL deliberadamente: ninguna
+    // vitrina debe apropiarse de una taxonomía compartida.
     //
     // ⚠️ Hasta esa migración este insert **fallaba siempre**, con
     // `null value in column "store_id" ... violates not-null constraint`, así
     // que "Crear una categoría…" no funcionaba para ninguna organización.
-    const { data: tienda } = await supabase
-      .from("ecommerce_stores").select("id").eq("org_id", orgId)
-      .order("created_at").limit(1).maybeSingle();
-
     const { error: err } = await supabase.from("ecommerce_categories").insert({
-      org_id: orgId, store_id: tienda?.id ?? null, name: nombre.trim(), slug,
+      org_id: orgId, store_id: null, name: nombre.trim(), slug,
       sort_order: filas.length, is_active: true,
     } as never);
     if (err) { toast.error(err.message); return null; }

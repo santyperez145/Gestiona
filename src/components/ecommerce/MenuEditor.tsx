@@ -10,7 +10,6 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
 import { Menu, Plus, Trash2, ArrowUp, ArrowDown, Loader2, Save, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,7 @@ import {
 import { TIPOS, validarLink, type LinkMenu, type TipoLink } from "@/lib/storeMenu";
 
 interface Props {
+  storeId: string | null;
   storeSlug: string | null;
   /** Para el desplegable de categorías. */
   categorias: { slug: string; name: string }[];
@@ -29,24 +29,27 @@ interface Props {
   paginas: { slug: string; title: string }[];
 }
 
-export default function MenuEditor({ storeSlug, categorias, paginas }: Props) {
-  const { orgId } = useOrganization();
+export default function MenuEditor({ storeId, storeSlug, categorias, paginas }: Props) {
   const [links, setLinks] = useState<LinkMenu[]>([]);
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [sucio, setSucio] = useState(false);
 
   const cargar = useCallback(async () => {
-    if (!orgId) return;
+    if (!storeId) {
+      setLinks([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase
-      .from("ecommerce_stores").select("nav_links").eq("org_id", orgId).maybeSingle();
+      .from("ecommerce_stores").select("nav_links").eq("id", storeId).maybeSingle();
     setLoading(false);
     if (error) { toast.error("No se pudo cargar el menú"); return; }
     const raw = (data as { nav_links?: unknown } | null)?.nav_links;
     setLinks(Array.isArray(raw) ? (raw as LinkMenu[]) : []);
     setSucio(false);
-  }, [orgId]);
+  }, [storeId]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -93,6 +96,7 @@ export default function MenuEditor({ storeSlug, categorias, paginas }: Props) {
   };
 
   async function guardar() {
+    if (!storeId) return;
     // Se valida todo antes de escribir: guardar la mitad dejaría el menú a
     // medio armar y sin forma de saber cuál falló.
     for (const [i, l] of links.entries()) {
@@ -103,7 +107,7 @@ export default function MenuEditor({ storeSlug, categorias, paginas }: Props) {
     const { error } = await supabase
       .from("ecommerce_stores")
       .update({ nav_links: links as never } as never)
-      .eq("org_id", orgId);
+      .eq("id", storeId);
     setGuardando(false);
     if (error) { toast.error("No se pudo guardar: " + error.message); return; }
     setSucio(false);

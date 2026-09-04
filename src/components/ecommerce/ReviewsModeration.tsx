@@ -41,7 +41,7 @@ function Stars({ n }: { n: number }) {
   );
 }
 
-export default function ReviewsModeration() {
+export default function ReviewsModeration({ storeId }: { storeId: string | null }) {
   const { orgId } = useOrganization();
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,12 +51,17 @@ export default function ReviewsModeration() {
   const [guardando, setGuardando] = useState(false);
 
   const cargar = useCallback(async () => {
-    if (!orgId) return;
+    if (!orgId || !storeId) {
+      setReviews([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase
       .from("product_reviews")
       .select("id, product_id, author_name, rating, title, body, status, reply, replied_at, order_id, created_at, products(name)")
       .eq("org_id", orgId)
+      .eq("store_id", storeId)
       .order("created_at", { ascending: false })
       .limit(300);
     setLoading(false);
@@ -64,7 +69,7 @@ export default function ReviewsModeration() {
     // igual que una tienda sin opiniones, y son problemas muy distintos.
     if (error) { toast.error("No se pudieron cargar las opiniones"); return; }
     setReviews((data ?? []) as unknown as ReviewRow[]);
-  }, [orgId]);
+  }, [orgId, storeId]);
 
   useEffect(() => { cargar(); }, [cargar]);
 

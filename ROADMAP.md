@@ -1227,6 +1227,26 @@ transacción; no existe un segundo cálculo de orden ni un segundo stock. Falta
 certificar dos dispositivos con un comprador de prueba y completar las máquinas
 de estados independientes de cart/order/payment/fulfillment antes de cerrar F4.
 
+**Estado slice 21, 2026-09-04 — base multi-tienda técnicamente cerrada.**
+`ecommerce_stores` deja de ser una extensión uno-a-uno de la organización: una
+organización puede tener varias vitrinas y exactamente una principal, elegida
+por un RPC owner/admin serializado, protegido contra escrituras directas y con
+auditoría. Configuración y Pedidos comparten un selector persistente por tenant
+y por URL; cambiar de tienda protege formularios sin guardar. Tema, dominio,
+páginas, menú, pedidos, recuperación, opiniones, preguntas, alertas, analítica,
+devoluciones y despacho operan por `store_id`. Productos, categorías, stock,
+clientes CRM, costos y tarifas continúan en el único Business Core.
+
+La tienda pública pide el catálogo por `slug`; las vistas y links heredados
+eligen una vitrina activa/principal determinística, sin duplicar productos ni
+organizaciones en Platform. Supabase quedó con 0 restricciones `UNIQUE(org_id)`,
+0 organizaciones con cantidad inválida de principales y el fixture reversible
+cerró dos tiendas, cambio de principal, rechazo de bypass, métricas, analítica,
+catálogo anónimo aislado, borrado/reasignación y 0 restos. Falta modelar el
+surtido/publicación opcional por tienda sin clonar `products`, recorrer la UI
+autenticada en la matriz responsive y operar dos vitrinas reales antes de
+declarar el slice completo.
+
 **Estado slice 22 + Design, 2026-09-04 — publicación de tema versionada.**
 El diseño de una tienda ya no se edita sobre producción. Un borrador privado
 guarda tema, colores, tipografías, imágenes y layout; el owner lo abre en el
@@ -1425,7 +1445,7 @@ contratos técnicos; **externo** = requiere dueño/proveedor/operación real;
 | P1-04 | F0–F1 · bitácora 41–42/49 | **Técnico; prueba externa** | Refund ya expresa `payments.edit`; falta prueba cross-branch con dos sucursales aptas. |
 | P1-05 | F1 + F4 · slices 10/22 | **Parcial** | CSV/Excel está cerrado; faltan conectores priorizados, redirects y reconciliación de migración. |
 | P1-06 | F4 · slice 19 | **Pendiente** | Build/deploy/SLO del Storefront físicamente independientes. |
-| P1-07 | F4 · slice 21 | **Pendiente** | Dos stores de una organización sobre el mismo Core. |
+| P1-07 | F4 · slice 21 | **Base técnica cerrada 2026-09-04** | Varias vitrinas comparten productos, inventario, clientes y costos; falta surtido/publicación por tienda y evidencia con dos tiendas reales. |
 | P1-08 | F4 · slice 20 | **Parcial técnico 2026-09-03** | Sesión server-side, capacidad anónima, identidad por tienda, merge sin suma, rehidratación y orden enlazada están implementados; falta prueba real con dos dispositivos/cuenta. |
 | P1-09 | F4 · slice 20 | **Parcial técnico 2026-09-03** | Cart convierte atómicamente con la orden y el checkout conserva idempotencia; faltan state machines separadas y concurrencia/partial flows de payment/fulfillment. |
 | P1-10 | F4 · slice 22 | **Parcial técnico 2026-09-03** | Reclamo tenant-scoped, unicidad, challenge DNS, TLS/canonical y prevención de takeover están modelados y cableados al proveedor; falta configurar la credencial server-side y certificar un dominio externo real. |
@@ -1498,7 +1518,7 @@ por eso puede crecer por encima de 25.
 | 18 | Invoice-to-purchase/payable draft | F3 | **Gate técnico cerrado 2026-08-22; evidencia real pendiente** | Tres borradores separados; preparar deja Core en 0. Owner/admin aprueba una orden y deuda idempotentes; stock 7→7 hasta recepción, outsider/restos 0. El handoff Finance→OC valida UUID, tenant cargado y estado; abre el RPC idempotente existente y degrada a consulta si ya fue recibida/cancelada. |
 | 19 | Split Storefront | F4 | Pendiente | Despliegue, SLO y fallas aislados del panel. |
 | 20 | Cart y order canónicos | F4 | **Base técnica parcial 2026-09-03** | Carrito server-side por dispositivo/cuenta, merge, catálogo vigente y vínculo idempotente a orden hechos; faltan prueba real multidispositivo y estados independientes completos. |
-| 21 | Store first-class | F4 | Pendiente | Una organización opera dos stores sin duplicar Core. |
+| 21 | Store first-class | F4 | **Base técnica cerrada 2026-09-04; evidencia real pendiente** | Varias vitrinas comparten Core, selector y URL; configuración, pedidos, postventa y métricas quedan por `store_id`, con principal auditada. Faltan surtido/publicación por tienda, matriz autenticada y dos vitrinas reales. |
 | 22 | Domains, tema y migración inicial | F4 | **Parcial técnico 2026-09-04** | Dominio propio suma modelo, UI, Edge Function, DNS dinámico y SEO; diseño suma draft, preview privada, publicación, versiones y rollback. Faltan credencial/certificación de dominio real, múltiples borradores, preview compartible, page contract, migrador y redirects. |
 | 23 | Finance Mendel-class piloto | F5 | Congelado hasta adopción F3 | Un piloto completa solicitud → presupuesto/política → aprobación → gasto/evidencia → conciliación/exportación; tarjetas externas primero y emisión sólo con gate regulado. |
 | 24 | Commerce diferencial | F6 | Congelado hasta F4 y demanda | Una capacidad diferencial adoptada por merchants. |
@@ -5011,6 +5031,30 @@ Finance Connect.
      siguiente desde 643 px, ancho 1.276/1.280, la fotografía cargada, los tres
      hitos del pedido, Tienda online activa y cero logs `warn`/`error`. Falta
      medir conversión real del CTA.
+
+198. Varias tiendas pasan a ser entidades de primera clase sin partir el Core —
+     F4 / D5.39, 2026-09-04. `ecommerce_stores` admite más de una vitrina por
+     organización y conserva exactamente una principal mediante índice parcial,
+     triggers y una RPC autorizada y auditada. Productos, variantes, categorías,
+     inventario, clientes y costos siguen perteneciendo a la organización;
+     configuración, dominio, navegación, páginas, pedidos, recuperación,
+     reseñas, preguntas y analítica quedan ligados a la tienda seleccionada. El
+     panel de Commerce y Pedidos comparte un selector persistente y sincronizado
+     por URL, por lo que cambiar de vista o pestaña no pierde el contexto.
+
+     La superficie pública resuelve slug, catálogo, checkout, devoluciones y
+     readiness contra la misma tienda, mientras las vistas heredadas eligen una
+     sola vitrina activa/principal para no duplicar productos ni organizaciones.
+     La migración `20260904000110_store_first_class.sql` se aplicó y quedó
+     registrada; la verificación reversible creó dos tiendas temporales,
+     alternó la principal, validó RLS/RPC como `authenticated` y `anon`, probó
+     la reasignación al borrar la principal y terminó con **0 restos**. La base
+     real conserva **1 tienda / 1 organización con tienda / 0 grupos principales
+     inválidos**. Puerta completa: typecheck, lint con **0 errores/142 warnings
+     conocidos**, **2.726 tests en 297 archivos** (`npm test`, 2026-09-04) y
+     build/PWA. Faltan el surtido/publicación por tienda, la
+     validación responsive autenticada y una prueba operativa con dos vitrinas
+     reales antes de cerrar F4.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

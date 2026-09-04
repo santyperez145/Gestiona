@@ -1,5 +1,5 @@
 /**
- * Categorías de la tienda, del lado del comercio.
+ * Categorías del catálogo compartido, del lado del comercio.
  *
  * Hasta la sesión 94 los nombres estaban hardcodeados en `getCategoryLabel`:
  * cuatro entradas de perfumería. Quien vendiera otra cosa veía el slug crudo y
@@ -37,7 +37,7 @@ interface Fila extends CategoriaTienda {
   productos_reales: number;
 }
 
-export default function CategoriesEditor({ storeId }: { storeId: string | null }) {
+export default function CategoriesEditor() {
   const { orgId } = useOrganization();
   const { ask, dialog } = useConfirmDialog();
   const [filas, setFilas] = useState<Fila[]>([]);
@@ -93,7 +93,7 @@ export default function CategoriesEditor({ storeId }: { storeId: string | null }
     if (error) { toast.error(error); return; }
     setGuardando(true);
     const { error: err } = await supabase.from("ecommerce_categories").insert({
-      org_id: orgId, store_id: storeId, name: nueva.trim(),
+      org_id: orgId, store_id: null, name: nueva.trim(),
       slug: slugDeNombre(nueva), sort_order: filas.length, is_active: true,
     } as never);
     setGuardando(false);
@@ -201,10 +201,10 @@ export default function CategoriesEditor({ storeId }: { storeId: string | null }
       <div className="bg-card border border-border/60 rounded-[10px] px-4 py-3 flex items-center gap-3 flex-wrap">
         <Tags className="w-4 h-4 text-primary shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-sm">Categorías de la tienda</p>
+          <p className="font-medium text-sm">Categorías del catálogo</p>
           <p className="text-[11px] text-muted-foreground">
-            El nombre, el orden y la foto que ve el comprador. Mientras no crees
-            ninguna, la tienda sigue mostrando los nombres por defecto.
+            Se comparten entre tus tiendas para no duplicar productos. Cada
+            vitrina decide después cuáles muestra en su navegación.
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={sembrar} disabled={guardando}>
