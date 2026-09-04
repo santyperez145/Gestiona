@@ -4822,9 +4822,15 @@ Finance Connect.
      `ef6fab0e` llegó `Ready`: móvil recorrió los siete temas, mientras desktop
      encontró que `opacity-80` degradaba los links de navegación Natural desde
      el color AA a **3,5:1**. Se retiró esa opacidad; el menú ya comunica hover
-     y foco mediante el indicador de navegación. Estado: **tercer ajuste
-     implementado localmente; falta certificar el nuevo bundle antes de cerrar
-     D6.3**.
+     y foco mediante el indicador de navegación. `2c6d5d5c` llegó `Ready` y la
+     matriz de temas pasó 2/2; la matriz completa posterior expuso que Chromium
+     podía conservar foco programático sin `:focus-visible`, por lo que
+     `1a00764a` hace visible el skip link ante cualquier foco. Ese bundle quedó
+     `Ready` y la repetición publicada final pasó **14/14 en Chromium/Pixel 5**:
+     siete temas, skip link, Inicio, PLP, PDP, carrito y checkout, sin escrituras.
+     Estado: **D6.3 cerrado para contraste automático de todos los temas
+     actuales**. Siguen pendientes navegación completa con teclado, zoom 200% y
+     lector de pantalla.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
