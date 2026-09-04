@@ -4234,6 +4234,41 @@ Finance Connect.
      navegador publicado**. Todavía no se atribuye impacto sobre conversión:
      eso necesita tráfico real posterior al corte, no una cifra de prueba.
 
+174. “Checkout iniciado” pasa de píxel externo a hecho canónico — D5.22,
+     2026-09-04. Shopify ubica el inicio de checkout entre carrito y compra;
+     Nerqia enviaba `begin_checkout` a Meta/GA, pero no conservaba esa etapa
+     para el comercio. La auditoría encontró además que el efecto se ejecutaba
+     sólo en el primer render: si el carrito todavía se estaba hidratando,
+     salía vacío y el evento no volvía a intentarse.
+
+     `start_store_checkout` persiste primero las referencias mediante
+     `save_store_cart_v2` —misma normalización server-side contra precio, stock
+     y disponibilidad del Business Core— y después fija
+     `checkout_started_at` con `COALESCE`, una sola vez. El token de carrito
+     sigue siendo la capacidad anónima, hay rate limit heredado y no se envía
+     email para medir. El checkout espera slug, token y líneas hidratadas;
+     registra la señal propia con un retry idempotente y recién en paralelo
+     notifica a los proveedores externos. Durante una ventana de deploy guarda
+     el carrito, pero no inventa la etapa.
+
+     El snapshot incorpora `checkout_started_sessions` y el panel presenta la
+     secuencia **sesión → carrito → checkout → compra**. Una orden enlazada
+     también prueba que la etapa existió; el contrato exige que compra no pueda
+     superar checkout. La UI declara por separado el 3/9 como inicio del
+     carrito canónico y el 4/9 como comienzo de esta medición: no reconstruye
+     eventos pasados.
+
+     Verificación productiva reversible como `anon`: dos llamadas con el mismo
+     token ZZ dejaron 1 sesión, 1 checkout marcado y 1 timestamp distinto; el
+     `ROLLBACK` dejó **0 residuos**. Como el owner real, el snapshot final
+     conservó 6 pedidos/2 pagos/ARS 2 y 5 sesiones con items, con 0 checkout y
+     0 compras —la línea de base honesta antes del tráfico nuevo—. El dry-run
+     del libro quedó en brecha 0.
+
+     Estado: **autoridad aplicada y validada en producción; cliente, contrato
+     visual y pruebas listos para deploy**. Siguen período/comparación y canal;
+     se construyen sobre estas etapas reales, no sobre porcentajes estimados.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

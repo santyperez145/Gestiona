@@ -205,8 +205,11 @@ carrito, checkout y compra. Tiendanube también separa
 Nerqia tenía 6 pedidos históricos sin `cart_session_id` y 5 sesiones posteriores
 al contrato canónico: mezclarlos habría inventado 85,7%. D5.21 agrega el
 snapshot exacto en servidor, cuenta facturación sólo acreditada y muestra la
-brecha de atribución en texto. Eventos de checkout, período, comparación y
-canal siguen pendientes; no se estiman desde el carrito.
+brecha de atribución en texto. D5.22 conserva ahora `checkout_started_at` en la
+misma sesión canónica, después de volver a validar las líneas en servidor, y
+completa el embudo sesión → carrito → checkout → compra. La cobertura empieza
+el 4/9 y se muestra: no se reconstruye hacia atrás. Período, comparación y canal
+siguen pendientes; no se estiman desde el carrito.
 
 ✅ **Margin facts medidos el 2026-08-22:** “tener margen” tampoco alcanza como
 argumento. Shopify ya documenta profit por orden/mercado y Odoo margen por

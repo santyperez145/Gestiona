@@ -633,6 +633,57 @@ export async function saveActiveStoreCart(args: {
   return { data: legacy.data, error: legacy.error, supported: false };
 }
 
+/**
+ * Registra la entrada al checkout sobre la misma sesión canónica del carrito.
+ * La operación es idempotente y resuelve nuevamente las líneas en la base; el
+ * timestamp no depende de GA/Meta ni de que un script de terceros haya cargado.
+ */
+export async function startStoreCheckout(args: {
+  slug: string;
+  token: string;
+  lines: StoreCartSaveLine[];
+}): Promise<{ data: unknown; error: PgError | null; supported: boolean }> {
+  const payload = {
+    p_slug: args.slug,
+    p_token: args.token,
+    p_items: args.lines.map((line) => ({
+      product_id: line.productId,
+      variant_id: line.variantId ?? null,
+      quantity: line.qty,
+    })),
+    // El email se persiste por el flujo específico de recovery. Medir una
+    // etapa no necesita sumar PII a la request.
+    p_email: null,
+  };
+  const invoke = () => supabase.rpc(
+    'start_store_checkout' as never,
+    payload as never,
+  ) as unknown as PromiseLike<{ data: unknown; error: PgError | null }>;
+
+  let result = await invoke();
+  if (result.error && isTransientPublicError(result.error)) {
+    // Es seguro reintentar: el servidor usa COALESCE sobre el primer timestamp
+    // y save_store_cart_v2 actualiza una sesión identificada por token.
+    result = await invoke();
+  }
+  if (!result.error) return { ...result, supported: true };
+  if (!isMissingFunction(result.error)) {
+    console.error('[checkout] no se pudo registrar el inicio:', result.error.message);
+    return { ...result, supported: true };
+  }
+
+  // Ventana de despliegue: conservar el carrito es más importante que medir la
+  // etapa. El checkout continúa operativo y el panel no inventa el evento.
+  warnFallback('start_store_checkout()');
+  const fallback = await saveActiveStoreCart({
+    slug: args.slug,
+    token: args.token,
+    lines: args.lines,
+    email: null,
+  });
+  return { ...fallback, supported: false };
+}
+
 export interface CreateStoreOrderResult {
   data: unknown;
   error: PgError | null;

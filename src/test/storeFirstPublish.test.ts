@@ -6,6 +6,7 @@ import {
   storeAfterCatalogCopy,
   parseStorePerformanceSnapshot,
   storeAttributionCoverageCopy,
+  storeFunnelCoverageCopy,
   storeFunnelFromPerformance,
   storePublishCta,
   storePublishNudges,
@@ -45,9 +46,11 @@ const STORE = readFileSync(resolve(ROOT, 'src/pages/EcommerceStorePage.tsx'), 'u
 const ORDERS_PAGE = readFileSync(resolve(ROOT, 'src/pages/StoreOrdersPage.tsx'), 'utf8');
 const PRODUCTS = readFileSync(resolve(ROOT, 'src/pages/ProductsPage.tsx'), 'utf8');
 const PERFORMANCE_SQL = readFileSync(
-  resolve(ROOT, 'supabase/migrations/20260904000010_store_performance_snapshot.sql'),
+  resolve(ROOT, 'supabase/migrations/20260904000020_store_checkout_stage.sql'),
   'utf8',
 );
+const CHECKOUT = readFileSync(resolve(ROOT, 'src/storefront/StoreCheckout.tsx'), 'utf8');
+const PUBLIC_DATA = readFileSync(resolve(ROOT, 'src/lib/publicDataSource.ts'), 'utf8');
 
 describe('la primera publicación empieza por el catálogo', () => {
   it('el wizard online manda a Productos, no a un panel vacío', () => {
@@ -330,18 +333,21 @@ describe('el embudo no inventa un checkout', () => {
       attributed_orders: 1,
       sessions_total: 4,
       sessions_with_items: 3,
+      checkout_started_sessions: 2,
       converted_sessions: 1,
       recoverable_carts: 1,
       attribution_started_at: '2026-09-03T00:00:00Z',
+      checkout_tracking_started_at: '2026-09-04T03:41:11Z',
       snapshot_at: '2026-09-04T12:00:00Z',
     });
     expect(snapshot).not.toBeNull();
     const steps = storeFunnelFromPerformance(snapshot!);
     expect(steps.map((s) => s.label)).toEqual([
-      'Sesiones medidas', 'Con items en carrito', 'Sesiones con compra',
+      'Sesiones medidas', 'Con items en carrito', 'Checkout iniciado', 'Sesiones con compra',
     ]);
-    expect(steps.map((s) => s.value)).toEqual([4, 3, 1]);
-    expect(steps.map((s) => s.pct)).toEqual([100, 75, 25]);
+    expect(steps.map((s) => s.value)).toEqual([4, 3, 2, 1]);
+    expect(steps.map((s) => s.pct)).toEqual([100, 75, 50, 25]);
+    expect(storeFunnelCoverageCopy(snapshot!)).toContain('Checkout iniciado se mide desde');
     expect(storeAttributionCoverageCopy(snapshot!)).toContain('5 pedidos anteriores o sin atribución');
   });
 
@@ -354,9 +360,11 @@ describe('el embudo no inventa un checkout', () => {
       attributed_orders: 0,
       sessions_total: 0,
       sessions_with_items: 0,
+      checkout_started_sessions: 0,
       converted_sessions: 0,
       recoverable_carts: -1,
       attribution_started_at: '2026-09-03T00:00:00Z',
+      checkout_tracking_started_at: '2026-09-04T03:41:11Z',
       snapshot_at: '2026-09-04T12:00:00Z',
     })).toBeNull();
     expect(parseStorePerformanceSnapshot({
@@ -366,9 +374,11 @@ describe('el embudo no inventa un checkout', () => {
       attributed_orders: 0,
       sessions_total: 1,
       sessions_with_items: 1,
+      checkout_started_sessions: 0,
       converted_sessions: 0,
       recoverable_carts: 0,
       attribution_started_at: '2026-09-03T00:00:00Z',
+      checkout_tracking_started_at: '2026-09-04T03:41:11Z',
       snapshot_at: '2026-09-04T12:00:00Z',
     })).toBeNull();
   });
@@ -382,7 +392,9 @@ describe('el embudo no inventa un checkout', () => {
     expect(STORE).toContain('storeShouldLeadWithPay');
     expect(STORE).toContain('StoreReadinessPanel');
     expect(STORE).not.toMatch(/\*\s*0\.37/);
-    expect(STORE).not.toContain('Checkout iniciado');
+    expect(STORE).toContain('storeFunnelCoverageCopy');
+    expect(CHECKOUT).toContain('startStoreCheckout');
+    expect(PUBLIC_DATA).toContain("'start_store_checkout'");
   });
 
   it('el snapshot protege tenant, cobro, atribución y recuperación', () => {
@@ -392,6 +404,10 @@ describe('el embudo no inventa un checkout', () => {
     expect(PERFORMANCE_SQL).toContain('linked.cart_session_id = cs.id');
     expect(PERFORMANCE_SQL).toContain("'2026-09-03 00:00:00+00'");
     expect(PERFORMANCE_SQL).toContain('cs.expires_at > now()');
+    expect(PERFORMANCE_SQL).toContain('checkout_started_sessions');
+    expect(PERFORMANCE_SQL).toContain('public.save_store_cart_v2(p_slug, p_token, p_items, p_email)');
+    expect(PERFORMANCE_SQL).toContain('COALESCE(checkout_started_at, now())');
+    expect(PERFORMANCE_SQL).toContain('GRANT EXECUTE ON FUNCTION public.start_store_checkout');
     expect(STORE).not.toContain('value: String(orders.length');
   });
 });

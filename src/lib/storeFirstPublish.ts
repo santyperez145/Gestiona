@@ -27,9 +27,11 @@ export type StorePerformanceSnapshot = {
   attributedOrders: number;
   sessionsTotal: number;
   sessionsWithItems: number;
+  checkoutStartedSessions: number;
   convertedSessions: number;
   recoverableCarts: number;
   attributionStartedAt: string;
+  checkoutTrackingStartedAt: string;
   snapshotAt: string;
 };
 
@@ -357,6 +359,7 @@ export function parseStorePerformanceSnapshot(value: unknown): StorePerformanceS
     'attributed_orders',
     'sessions_total',
     'sessions_with_items',
+    'checkout_started_sessions',
     'converted_sessions',
     'recoverable_carts',
   ] as const;
@@ -369,6 +372,7 @@ export function parseStorePerformanceSnapshot(value: unknown): StorePerformanceS
     attributedOrders,
     sessionsTotal,
     sessionsWithItems,
+    checkoutStartedSessions,
     convertedSessions,
     recoverableCarts,
   ] = numbers as number[];
@@ -376,12 +380,18 @@ export function parseStorePerformanceSnapshot(value: unknown): StorePerformanceS
     ordersPaid > ordersTotal
     || attributedOrders > ordersTotal
     || sessionsWithItems > sessionsTotal
-    || convertedSessions > sessionsWithItems
+    || checkoutStartedSessions > sessionsWithItems
+    || convertedSessions > checkoutStartedSessions
     || recoverableCarts > sessionsWithItems
   ) return null;
   const attributionStartedAt = String(row.attribution_started_at ?? '');
+  const checkoutTrackingStartedAt = String(row.checkout_tracking_started_at ?? '');
   const snapshotAt = String(row.snapshot_at ?? '');
-  if (!Number.isFinite(Date.parse(attributionStartedAt)) || !Number.isFinite(Date.parse(snapshotAt))) {
+  if (
+    !Number.isFinite(Date.parse(attributionStartedAt))
+    || !Number.isFinite(Date.parse(checkoutTrackingStartedAt))
+    || !Number.isFinite(Date.parse(snapshotAt))
+  ) {
     return null;
   }
   return {
@@ -391,24 +401,45 @@ export function parseStorePerformanceSnapshot(value: unknown): StorePerformanceS
     attributedOrders,
     sessionsTotal,
     sessionsWithItems,
+    checkoutStartedSessions,
     convertedSessions,
     recoverableCarts,
     attributionStartedAt,
+    checkoutTrackingStartedAt,
     snapshotAt,
   };
 }
 
 export function storeFunnelFromPerformance(
-  snapshot: Pick<StorePerformanceSnapshot, 'sessionsTotal' | 'sessionsWithItems' | 'convertedSessions'>,
+  snapshot: Pick<StorePerformanceSnapshot, 'sessionsTotal' | 'sessionsWithItems' | 'checkoutStartedSessions' | 'convertedSessions'>,
 ): StoreFunnelStep[] {
   const total = snapshot.sessionsTotal;
   const withItems = snapshot.sessionsWithItems;
+  const checkoutStarted = snapshot.checkoutStartedSessions;
   const converted = snapshot.convertedSessions;
   return [
     { label: 'Sesiones medidas', value: total, pct: total > 0 ? 100 : 0, color: 'bg-blue-400' },
     { label: 'Con items en carrito', value: withItems, pct: pct(withItems, total), color: 'bg-indigo-400' },
+    { label: 'Checkout iniciado', value: checkoutStarted, pct: pct(checkoutStarted, total), color: 'bg-violet-400' },
     { label: 'Sesiones con compra', value: converted, pct: pct(converted, total), color: 'bg-emerald-400' },
   ];
+}
+
+function shortUtcDate(value: string): string {
+  return new Intl.DateTimeFormat('es-AR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(value)).replace('.', '');
+}
+
+/** Explicita que una etapa nueva no reconstruye comportamiento histórico. */
+export function storeFunnelCoverageCopy(
+  snapshot: Pick<StorePerformanceSnapshot, 'attributionStartedAt' | 'checkoutTrackingStartedAt'>,
+): string {
+  return `Sesiones del carrito canónico desde el ${shortUtcDate(snapshot.attributionStartedAt)}. `
+    + `Checkout iniciado se mide desde el ${shortUtcDate(snapshot.checkoutTrackingStartedAt)}; una compra vinculada también confirma esa etapa.`;
 }
 
 /** Pedidos sin sesión no entran al denominador: se explican, no se esconden. */

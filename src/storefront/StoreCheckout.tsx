@@ -6,7 +6,7 @@ import { useStoreAuth } from "./storeAuth";
 import { Loader2, ShoppingBag, Lock, Tag, Truck } from "lucide-react";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
 import { etiquetaProvinciaCheckout } from "@/lib/storeShippingCoverage";
-import { quoteStoreShipping, createStoreOrder, getStoreOrderSecure, isTransientPublicError } from "@/lib/publicDataSource";
+import { quoteStoreShipping, createStoreOrder, getStoreOrderSecure, isTransientPublicError, startStoreCheckout } from "@/lib/publicDataSource";
 import { orderAccessFragment, saveOrderAccessToken } from "./orderAccess";
 import { trackBeginCheckout } from "./tracking";
 import { precioConMedioDePago, porcentajeDe, nombreMedio } from "@/lib/paymentDiscount";
@@ -313,17 +313,20 @@ export default function StoreCheckout() {
   const descuentoPago = ahorroPorMedio(form.metodo);
   const totalFinal = Math.max(0, baseMercaderia - descuentoPago) + envioACobrar;
 
-  // Inicio de checkout: Meta y GA lo usan para medir abandono.
-  // Solo al montar, no en cada cambio del carrito.
+  // Inicio de checkout: la sesión canónica es la métrica propia; Meta/GA son
+  // salidas complementarias. Esperar el carrito hidratado corrige el caso en
+  // que el primer render todavía estaba vacío y el efecto anterior no volvía.
+  const checkoutStartedRef = useRef(false);
   useEffect(() => {
-    if (cart.length === 0) return;
+    if (checkoutStartedRef.current || cart.length === 0 || !store?.slug || !cartToken) return;
+    checkoutStartedRef.current = true;
     trackBeginCheckout(
       cart.map(l => ({ id: l.variantId ?? l.productId, name: l.name, price: l.price, quantity: l.qty })),
       subtotal,
       store?.currency ?? "ARS",
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void startStoreCheckout({ slug: store.slug, token: cartToken, lines: cart });
+  }, [cart, cartToken, store?.currency, store?.slug, subtotal]);
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
 

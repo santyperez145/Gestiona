@@ -10890,6 +10890,7 @@ export type Database = {
       ecommerce_cart_sessions: {
         Row: {
           abandoned_email_sent: boolean
+          checkout_started_at: string | null
           converted_at: string | null
           coupon_code: string | null
           created_at: string
@@ -10918,6 +10919,7 @@ export type Database = {
         }
         Insert: {
           abandoned_email_sent?: boolean
+          checkout_started_at?: string | null
           converted_at?: string | null
           coupon_code?: string | null
           created_at?: string
@@ -10946,6 +10948,7 @@ export type Database = {
         }
         Update: {
           abandoned_email_sent?: boolean
+          checkout_started_at?: string | null
           converted_at?: string | null
           coupon_code?: string | null
           created_at?: string
@@ -53064,6 +53067,15 @@ export type Database = {
       }
       get_store_performance_snapshot: {
         Args: { p_org_id: string }
+        Returns: Json
+      }
+      start_store_checkout: {
+        Args: {
+          p_email?: string | null
+          p_items: Json
+          p_slug: string
+          p_token: string
+        }
         Returns: Json
       }
       get_store_perfume_details: {

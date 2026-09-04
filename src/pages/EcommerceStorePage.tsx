@@ -33,6 +33,7 @@ import {
   storeAfterCatalogCopy,
   parseStorePerformanceSnapshot,
   storeAttributionCoverageCopy,
+  storeFunnelCoverageCopy,
   storeFunnelFromPerformance,
   storePublishCta,
   storePublishNudges,
@@ -643,6 +644,7 @@ export default function EcommerceStorePage() {
     ? Number(((performance.convertedSessions / performance.sessionsTotal) * 100).toFixed(1))
     : 0;
   const attributionCoverage = performance ? storeAttributionCoverageCopy(performance) : null;
+  const funnelCoverage = performance ? storeFunnelCoverageCopy(performance) : null;
   const activeCartsCount = performance?.sessionsWithItems ?? 0;
   const abandonedCarts = performance?.recoverableCarts ?? 0;
   const showPerformance = storeShouldShowPerformanceChrome({
@@ -966,7 +968,7 @@ export default function EcommerceStorePage() {
           <div className="bg-card border border-border/40 rounded-xl p-5">
             <h3 className="font-semibold flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" />Embudo de conversión medible</h3>
             <p className="mb-4 mt-1 text-xs text-muted-foreground">
-              Sesiones del carrito canónico desde el 3 sep 2026. Un pedido sólo convierte si quedó enlazado a su sesión.
+              {funnelCoverage}
             </p>
             <div className="space-y-3">
               {performanceError ? (
