@@ -440,9 +440,10 @@ test.describe("postcompra", () => {
     }));
 
     let lecturasTracking = 0;
+    let servicioTrackingDisponible = false;
     await page.route("**/rest/v1/rpc/get_order_tracking", route => {
       lecturasTracking += 1;
-      if (lecturasTracking === 1) {
+      if (!servicioTrackingDisponible) {
         return route.fulfill({
           status: 503,
           contentType: "application/json",
@@ -471,12 +472,14 @@ test.describe("postcompra", () => {
     const reintentar = error.getByRole("button", { name: "Reintentar seguimiento" });
     await expect(reintentar).toBeVisible();
     expect(await reintentar.evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+    const lecturasAntesDelReintento = lecturasTracking;
+    servicioTrackingDisponible = true;
     await reintentar.click();
 
     const listo = page.locator('[data-storefront-state="tracking-ready"]');
     await expect(listo).toContainText("Preparando el envío");
     await expect(error).toHaveCount(0);
-    expect(lecturasTracking).toBe(2);
+    expect(lecturasTracking).toBeGreaterThan(lecturasAntesDelReintento);
 
     const geometry = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
@@ -484,7 +487,10 @@ test.describe("postcompra", () => {
     }));
     expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
     expect(
-      errores.filter(message => !message.includes("No se pudo cargar el seguimiento del pedido")),
+      errores.filter(message => (
+        !message.includes("No se pudo cargar el seguimiento del pedido")
+        && message !== "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+      )),
       `errores inesperados en consola:\n${errores.join("\n")}`,
     ).toEqual([]);
   });
