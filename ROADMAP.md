@@ -4787,8 +4787,11 @@ Finance Connect.
      [Shopify Accessibility](https://shopify.dev/docs/storefronts/themes/best-practices/accessibility),
      [W3C G1](https://www.w3.org/WAI/WCAG22/Techniques/general/G1.html) y
      [W3C Focus Visible](https://www.w3.org/WAI/WCAG21/Understanding/focus-visible?lang=en).
-     Estado: **implementado localmente; falta certificar el bundle publicado en
-     Chromium y Pixel 5 antes de cerrar D6.2**.
+     `200131e5` llegó a Vercel `Ready`; la prueba focal pasó 2/2 y la matriz
+     completa de Inicio, PLP, PDP, carrito y checkout pasó **12/12 en Chromium
+     y Pixel 5**, sin escrituras. Estado: **D6.2 cerrado para entrada, salto y
+     foco visible**. Siguen pendientes el recorrido completo de todos los
+     controles, zoom y lector de pantalla.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
