@@ -312,8 +312,8 @@ La puerta local pasó TypeScript, lint con 0 errores/142 warnings conocidos,
 Chromium y Pixel 5 con RPC interceptado y sin escrituras reales. No se declara
 tracking live del transportista.
 
-🟡 **Medición externa consentida y aislada por merchant, implementada
-localmente el 2026-09-04.** El header productivo impedía cargar Meta, GA4 y
+✅ **Medición externa consentida y aislada por merchant, publicada el
+2026-09-04.** El header productivo impedía cargar Meta, GA4 y
 TikTok aunque existiera un ID. Google documenta los hosts requeridos por
 [Analytics bajo CSP](https://developers.google.com/tag-platform/security/guides/csp)
 y TikTok exige revisar CSP al instalar el
@@ -325,9 +325,11 @@ misma SPA no compartan eventos. El footer permite cambiar la decisión y revocar
 corta destinos futuros. Ocho pruebas nuevas y trece del contrato cubren
 preferencia, UI, corte, espera del runtime, rutas con capacidades, tenant
 routing y CSP. La puerta completa pasó TypeScript, lint con 0 errores/142
-warnings conocidos, **2.685 tests en 290 archivos** y build/PWA. Faltan header
-publicado y diagnóstico real con IDs de prueba; no se confunde consentimiento
-técnico con DPA o aprobación legal.
+warnings conocidos, **2.685 tests en 290 archivos** y build/PWA. El deploy quedó
+`Ready`, el header canónico respondió 200 con la allowlist esperada y el E2E
+sintético pasó 2/2 en Chromium/Pixel 5 sin contactar proveedores. Falta el
+diagnóstico real con un ID autorizado; no se confunde consentimiento técnico
+con DPA o aprobación legal.
 
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)

@@ -4724,9 +4724,13 @@ Finance Connect.
      direccionamiento por merchant, espera del runtime, exclusión de rutas con
      capacidades y correspondencia código↔CSP sin `*`. La puerta completa pasó
      TypeScript, lint con 0 errores/142 warnings conocidos, **2.685 tests en
-     290 archivos** y build/PWA. Estado: **implementado y protegido localmente;
-     faltan deploy/header publicado, matriz desktop/mobile y diagnóstico con
-     IDs de prueba**. La aprobación legal de
+     290 archivos** y build/PWA. El commit `a55f293f` llegó a Vercel `Ready` y
+     `nerqia.app` respondió 200 con los hosts exactos y sin `*` en
+     `script-src`/`connect-src`. La matriz sintética —ID agregado sólo a la
+     respuesta interceptada y SDK sustituido localmente— pasó **2/2 en Chromium
+     y Pixel 5**: 0 cargas antes de decidir o al elegir esencial y 1 después de
+     aceptar, sin tocar datos ni proveedores. Estado: **implementado, publicado
+     y protegido; falta el diagnóstico con un ID real autorizado**. La aprobación legal de
      textos, DPA/subencargados y la configuración de cada proveedor siguen
      externas.
 
