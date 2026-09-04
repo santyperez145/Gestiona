@@ -8,6 +8,7 @@
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
 } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ahorroPorVolumen, type ReglaCantidad } from "@/lib/promo2x";
 import { precioDeCatalogo } from "@/lib/storefrontSeo";
@@ -16,6 +17,7 @@ import {
   fetchStoreProducts,
   fetchStoreVariants,
   getActiveStoreCart,
+  recordStoreVisit,
   retryPublicRead,
   saveActiveStoreCart,
   type StoreVariant,
@@ -30,6 +32,7 @@ import {
   storeCartReferencesFromLines,
   type StoreCartReference,
 } from "@/lib/storeCartSync";
+import { storeVisitAttribution, storeVisitToken } from "@/lib/storeVisitAttribution";
 import { useStoreAuth } from "./storeAuth";
 
 export interface StoreInfo {
@@ -175,6 +178,8 @@ interface Ctx {
   cartSyncNotice: string | null;
   /** Capacidad anónima del carrito actual; se enlaza atómicamente al pedido. */
   cartToken: string;
+  /** Capacidad efímera y distinta para una visita medible de 30 minutos. */
+  visitToken: string;
   /** Ahorro de la promo "llevando 2". Espejo de `store_promo_2x_discount`. */
   promo2x: number;
   /** Categorías que cargó el comercio. Vacío = todavía usa los nombres viejos. */
@@ -234,6 +239,7 @@ export function StoreProvider({
   basePath?: string;
   children: ReactNode;
 }) {
+  const location = useLocation();
   const {
     loading: buyerIdentityLoading,
     session: buyerSession,
@@ -255,6 +261,8 @@ export function StoreProvider({
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartRevealTick, setCartRevealTick] = useState(0);
   const [cartToken, setCartToken] = useState("");
+  const [visitToken, setVisitToken] = useState("");
+  const [visitRecordReady, setVisitRecordReady] = useState(false);
   const [cartHydrated, setCartHydrated] = useState(false);
   const [cartSyncStatus, setCartSyncStatus] = useState<CartSyncStatus>("loading");
   const [cartSyncNotice, setCartSyncNotice] = useState<string | null>(null);
@@ -386,13 +394,52 @@ export function StoreProvider({
         localStorage.setItem(cartSessionKey(slug), token);
       }
       setCartToken(token);
+      setVisitToken(storeVisitToken({
+        storage: localStorage,
+        slug,
+        now: Date.now(),
+        createToken: () => crypto.randomUUID(),
+      }));
     } catch {
       cartRef.current = [];
       setCart([]);
       setCartToken(crypto.randomUUID());
+      setVisitToken(crypto.randomUUID());
       cartLocalUpdatedAtRef.current = 0;
     }
   }, [slug]);
+
+  // Una visita y un carrito no comparten duración. En cada navegación se
+  // renueva la actividad; después de 30 minutos la capacidad rota. El RPC
+  // hashea el token y conserva sólo primera fuente/medio/campaña + hostname.
+  useEffect(() => {
+    if (loading || !store) return;
+    let cancelled = false;
+    const nextVisitToken = storeVisitToken({
+      storage: localStorage,
+      slug,
+      now: Date.now(),
+      createToken: () => crypto.randomUUID(),
+    });
+    setVisitToken(nextVisitToken);
+    setVisitRecordReady(false);
+    void recordStoreVisit({
+      slug,
+      visitToken: nextVisitToken,
+      attribution: storeVisitAttribution({
+        search: location.search,
+        referrer: document.referrer,
+        currentHostname: window.location.hostname,
+      }),
+    }).then(() => {
+      if (!cancelled) setVisitRecordReady(true);
+    }).catch((error: unknown) => {
+      console.error('[tienda] falló el transporte al registrar la visita:', error);
+      // La telemetría nunca bloquea la compra. El carrito conserva su fallback.
+      if (!cancelled) setVisitRecordReady(true);
+    });
+    return () => { cancelled = true; };
+  }, [loading, location.pathname, location.search, slug, store]);
 
   const persist = useCallback((next: CartLine[]) => {
     cartRef.current = next;
@@ -554,13 +601,14 @@ export function StoreProvider({
   // clics en + termina en una sola escritura. Los errores quedan visibles en
   // consola y en la UI; no se convierten en un falso “carrito vacío”.
   useEffect(() => {
-    if (!cartHydrated || loading || !store || !cartToken) return;
+    if (!cartHydrated || loading || !store || !cartToken || !visitToken || !visitRecordReady) return;
     let cancelled = false;
     setCartSyncStatus("syncing");
     const timeout = window.setTimeout(() => {
       void saveActiveStoreCart({
         slug,
         token: cartToken,
+        visitToken,
         lines: cart,
         email: cartEmail,
       }).then((result) => {
@@ -573,7 +621,7 @@ export function StoreProvider({
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [cart, cartEmail, cartHydrated, cartToken, loading, slug, store]);
+  }, [cart, cartEmail, cartHydrated, cartToken, loading, slug, store, visitRecordReady, visitToken]);
 
   const fmt = useCallback((n: number) =>
     new Intl.NumberFormat("es-AR", {
@@ -618,7 +666,7 @@ export function StoreProvider({
       basePath,
       loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias,
       addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf,
-      cartSyncStatus, cartSyncNotice, cartToken,
+      cartSyncStatus, cartSyncNotice, cartToken, visitToken,
       cartRevealTick,
       cartCount: cart.reduce((s, l) => s + l.qty, 0),
       subtotal,
@@ -632,7 +680,7 @@ export function StoreProvider({
         : null,
       priceOf, fmt,
     };
-  }, [basePath, loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf, cartRevealTick, cartSyncStatus, cartSyncNotice, cartToken, priceOf, fmt]);
+  }, [basePath, loading, notFound, loadError, reload, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, restoreCart, rememberCartEmail, lineKeyOf, cartRevealTick, cartSyncStatus, cartSyncNotice, cartToken, visitToken, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

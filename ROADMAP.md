@@ -4359,6 +4359,55 @@ Finance Connect.
      errores. Estado: **D5.24 cerrado y publicado**. La indexación/posición
      sigue siendo una decisión externa y no se declara cerrada por este cambio.
 
+177. Una visita real deja de ser un carrito con otro nombre — D5.25,
+     2026-09-04. La auditoría de la base encontró **7 sesiones, 7 con items y
+     0 con UTM**: la población del embudo era “personas que armaron carrito”,
+     no tráfico. Además sólo 1/7 pedidos estaba vinculado. Seguir agregando
+     gráficos sobre esa base habría producido una demo convincente y falsa.
+
+     Se separan las dos vidas: `ecommerce_store_visits` representa una visita
+     first-party de 30 minutos y `ecommerce_cart_sessions` conserva el carrito
+     recuperable de 30 días. El browser rota una capacidad por inactividad; la
+     base guarda sólo SHA-256, primera fuente/medio/campaña y hostname referente.
+     No se envían IP, user-agent, URL completa, email ni formulario. RLS queda
+     sin lectura directa y el único snapshot privado vuelve a comprobar
+     membresía. Carrito, checkout y orden sólo agregan el vínculo; precios,
+     stock y creación de pedido siguen en sus autoridades existentes.
+
+     La revisión de punta a punta encontró que el rate limit público heredado
+     todavía guardaba la IP como sujeto de su contador privado durante una
+     hora. D5.25 conserva la misma protección pero hashea el sujeto con SHA-256;
+     se eliminaron **53 contadores transitorios legacy** y la verificación
+     productiva dejó 0 claves en claro. No eran visitas ni datos del negocio.
+
+     El mismo panel de Commerce suma canales, no otra página Analytics: directo,
+     búsqueda orgánica, redes, email, referencia, pago y otros, con visitas,
+     carrito, checkout, compras, conversión e ingreso acreditado. El filtro usa
+     cohorte de inicio de visita para que el porcentaje no supere su denominador.
+     No muestra costo ni ROAS hasta recibir gasto de una conexión publicitaria.
+     La medición empieza el 4/9, no backfillea historia y poda la señal mínima a
+     13 meses mediante cron. Privacidad de plataforma y el generador de la
+     política del merchant lo informan, pero Nerqia no publica por el dueño.
+     `set_store_first_party_analytics` exige política publicada, contenido
+     mínimo, confirmación owner/admin y deja auditoría. La tienda real conserva
+     su política anterior, por eso quedó correctamente en **medición pausada**:
+     0 visitas persistidas y 0 aceptaciones hasta que el dueño la revise.
+     Páginas detecta esa política anterior y ofrece anexar el bloque como
+     **borrador**: no pisa el contenido, no publica solo y deja claro que la
+     medición seguirá apagada hasta la revisión del responsable.
+
+     Benchmark oficial: Shopify separa adquisición, marketing y ventas, ofrece
+     primera/última interacción y sólo calcula costo/ROAS con una actividad
+     conectada; Tiendanube exige UTM y distingue canal/calidad. Verificación
+     productiva reversible: `paid` se conservó ante un segundo touch social,
+     carrito y checkout enlazaron `true`, el owner vio la fila agregada, outsider
+     quedó bloqueado y la última fila dio **0 residuos**. Migración aplicada y
+     libro en brecha 0. Puerta dirigida: 76/76 tests. Puerta completa local:
+     **2.652/2.652 tests en 284 archivos**, TypeScript, lint sin errores y
+     build/PWA productivo; `npm audit` no respondió en su ventana y no se
+     declara verificado. Pendientes antes de cerrar: deploy, matriz publicada y
+     observar tráfico no sintético.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

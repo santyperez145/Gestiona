@@ -37,7 +37,7 @@ export default function StoreCheckout() {
   // `total` del contexto no se usa acá: el checkout calcula el suyo con el cupón.
   const {
     store, products, cart, subtotal, promo2x, shippingCost, fmt,
-    clearCart, rememberCartEmail, cartToken, basePath: base,
+    clearCart, rememberCartEmail, cartToken, visitToken, basePath: base,
   } = useStore();
   const navigate = useNavigate();
 
@@ -318,15 +318,20 @@ export default function StoreCheckout() {
   // que el primer render todavía estaba vacío y el efecto anterior no volvía.
   const checkoutStartedRef = useRef(false);
   useEffect(() => {
-    if (checkoutStartedRef.current || cart.length === 0 || !store?.slug || !cartToken) return;
+    if (checkoutStartedRef.current || cart.length === 0 || !store?.slug || !cartToken || !visitToken) return;
     checkoutStartedRef.current = true;
     trackBeginCheckout(
       cart.map(l => ({ id: l.variantId ?? l.productId, name: l.name, price: l.price, quantity: l.qty })),
       subtotal,
       store?.currency ?? "ARS",
     );
-    void startStoreCheckout({ slug: store.slug, token: cartToken, lines: cart });
-  }, [cart, cartToken, store?.currency, store?.slug, subtotal]);
+    void startStoreCheckout({
+      slug: store.slug,
+      token: cartToken,
+      visitToken,
+      lines: cart,
+    });
+  }, [cart, cartToken, store?.currency, store?.slug, subtotal, visitToken]);
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
 

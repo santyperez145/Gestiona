@@ -10916,6 +10916,7 @@ export type Database = {
           utm_campaign: string | null
           utm_medium: string | null
           utm_source: string | null
+          visit_session_id: string | null
         }
         Insert: {
           abandoned_email_sent?: boolean
@@ -10945,6 +10946,7 @@ export type Database = {
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
+          visit_session_id?: string | null
         }
         Update: {
           abandoned_email_sent?: boolean
@@ -10974,8 +10976,16 @@ export type Database = {
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
+          visit_session_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ecommerce_cart_sessions_visit_session_id_fkey"
+            columns: ["visit_session_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_store_visits"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ecommerce_cart_sessions_customer_id_fkey"
             columns: ["customer_id"]
@@ -11300,6 +11310,7 @@ export type Database = {
           tracking_number: string | null
           updated_at: string
           utm_source: string | null
+          visit_session_id: string | null
         }
         Insert: {
           billing_address?: Json
@@ -11355,6 +11366,7 @@ export type Database = {
           tracking_number?: string | null
           updated_at?: string
           utm_source?: string | null
+          visit_session_id?: string | null
         }
         Update: {
           billing_address?: Json
@@ -11410,8 +11422,16 @@ export type Database = {
           tracking_number?: string | null
           updated_at?: string
           utm_source?: string | null
+          visit_session_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ecommerce_orders_visit_session_id_fkey"
+            columns: ["visit_session_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_store_visits"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ecommerce_orders_cart_session_id_fkey"
             columns: ["cart_session_id"]
@@ -11575,6 +11595,66 @@ export type Database = {
         }
         Relationships: []
       }
+      ecommerce_store_visits: {
+        Row: {
+          converted_at: string | null
+          id: string
+          last_seen_at: string
+          org_id: string
+          referrer_host: string | null
+          retained_until: string
+          started_at: string
+          store_id: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          visit_token_hash: string
+        }
+        Insert: {
+          converted_at?: string | null
+          id?: string
+          last_seen_at?: string
+          org_id: string
+          referrer_host?: string | null
+          retained_until?: string
+          started_at?: string
+          store_id: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visit_token_hash: string
+        }
+        Update: {
+          converted_at?: string | null
+          id?: string
+          last_seen_at?: string
+          org_id?: string
+          referrer_host?: string | null
+          retained_until?: string
+          started_at?: string
+          store_id?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visit_token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_store_visits_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_store_visits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ecommerce_stores: {
         Row: {
           banner_url: string | null
@@ -11587,10 +11667,13 @@ export type Database = {
           custom_domain_status: string
           custom_domain_verification: Json
           custom_domain_verified_at: string | null
+          analytics_disclosure_accepted_at: string | null
+          analytics_disclosure_accepted_by: string | null
           default_item_weight_kg: number
           description: string | null
           domain: string | null
           font: string | null
+          first_party_analytics_enabled: boolean
           free_shipping_above: number | null
           fulfillment_location_id: string | null
           ga_measurement_id: string | null
@@ -11633,10 +11716,13 @@ export type Database = {
           custom_domain_status?: string
           custom_domain_verification?: Json
           custom_domain_verified_at?: string | null
+          analytics_disclosure_accepted_at?: string | null
+          analytics_disclosure_accepted_by?: string | null
           default_item_weight_kg?: number
           description?: string | null
           domain?: string | null
           font?: string | null
+          first_party_analytics_enabled?: boolean
           free_shipping_above?: number | null
           fulfillment_location_id?: string | null
           ga_measurement_id?: string | null
@@ -11679,10 +11765,13 @@ export type Database = {
           custom_domain_status?: string
           custom_domain_verification?: Json
           custom_domain_verified_at?: string | null
+          analytics_disclosure_accepted_at?: string | null
+          analytics_disclosure_accepted_by?: string | null
           default_item_weight_kg?: number
           description?: string | null
           domain?: string | null
           font?: string | null
+          first_party_analytics_enabled?: boolean
           free_shipping_above?: number | null
           fulfillment_location_id?: string | null
           ga_measurement_id?: string | null
@@ -53082,6 +53171,16 @@ export type Database = {
         }
         Returns: Json
       }
+      start_store_checkout_v2: {
+        Args: {
+          p_email?: string | null
+          p_items: Json
+          p_slug: string
+          p_token: string
+          p_visit_token?: string | null
+        }
+        Returns: Json
+      }
       get_store_perfume_details: {
         Args: { p_slug: string }
         Returns: {
@@ -54203,6 +54302,14 @@ export type Database = {
         }
         Returns: Json
       }
+      record_store_visit: {
+        Args: {
+          p_attribution?: Json
+          p_slug: string
+          p_visit_token: string
+        }
+        Returns: Json
+      }
       save_store_cart: {
         Args: {
           p_email?: string
@@ -54219,6 +54326,24 @@ export type Database = {
           p_items: Json
           p_slug: string
           p_token: string
+        }
+        Returns: Json
+      }
+      save_store_cart_v3: {
+        Args: {
+          p_email?: string | null
+          p_items: Json
+          p_slug: string
+          p_token: string
+          p_visit_token?: string | null
+        }
+        Returns: Json
+      }
+      set_store_first_party_analytics: {
+        Args: {
+          p_acknowledged?: boolean
+          p_enabled: boolean
+          p_org_id: string
         }
         Returns: Json
       }

@@ -3,6 +3,7 @@ import {
   datosFaltantes, esPlantillaSinCompletar, formatearCuit,
   politicaDePrivacidad, terminosYCondiciones, paginasLegalesPendientes, estadoPublicacionLegal,
   semillaLegalDelComercio, puedeSincronizarIdentidadFiscal, accionLegalDelChecklist,
+  storeAnalyticsDisclosureBlock, storeAnalyticsDisclosureContentReady, storeAnalyticsDisclosureReady,
   type DatosDelComercio,
 } from "./legalPages";
 
@@ -13,6 +14,28 @@ const D: DatosDelComercio = {
   domicilio: "Av. Siempreviva 742, CABA",
   emailContacto: "hola@ejemplo.com",
 };
+
+describe("aviso de medición propia", () => {
+  const block = storeAnalyticsDisclosureBlock();
+
+  it("declara propósito, minimización y retención sin inventar tracking invasivo", () => {
+    expect(block).toContain("visitas de 30 minutos");
+    expect(block).toContain("fuente UTM");
+    expect(block).toContain("no guarda tu IP");
+    expect(block).toContain("URL completa");
+    expect(block).toContain("13 meses");
+    expect(storeAnalyticsDisclosureContentReady(block)).toBe(true);
+  });
+
+  it("exige que el comercio publique el texto antes de habilitar medición", () => {
+    expect(storeAnalyticsDisclosureReady([{
+      slug: "politica-de-privacidad", content: block, status: "draft",
+    }])).toBe(false);
+    expect(storeAnalyticsDisclosureReady([{
+      slug: "politica-de-privacidad", content: block, status: "published",
+    }])).toBe(true);
+  });
+});
 
 describe("semillaLegalDelComercio", () => {
   it("toma el emisor de AFIP, no el nombre de fantasía como razón social", () => {

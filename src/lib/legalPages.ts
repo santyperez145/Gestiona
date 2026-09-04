@@ -245,6 +245,8 @@ dirección de envío. Los usamos para procesar tu compra, despachar el pedido,
 emitir el comprobante y responderte si nos escribís. También queda registrado
 qué compraste, porque lo necesitamos para la garantía y para la contabilidad.
 
+${storeAnalyticsDisclosureBlock()}
+
 Si creás una cuenta, guardamos además tu historial de pedidos para que puedas
 consultarlo.
 
@@ -381,6 +383,46 @@ export const SLUGS_LEGALES_OBLIGATORIOS = [
   "politica-de-privacidad",
   "terminos-y-condiciones",
 ] as const;
+
+/**
+ * Bloque mínimo, legible y reutilizable para una política existente.
+ * Se exporta para que el editor pueda proponerlo como borrador sin reemplazar
+ * el texto propio del comercio ni publicarlo en su nombre.
+ */
+export function storeAnalyticsDisclosureBlock(): string {
+  return `## Medición propia de la tienda
+
+Para medir si la tienda funciona, registramos visitas de 30 minutos con un
+identificador aleatorio cuyo valor se guarda hasheado, la primera fuente UTM y
+el dominio que te derivó. Esta medición no guarda tu IP, identidad, URL completa
+ni datos de los formularios, y se elimina automáticamente a los 13 meses.`;
+}
+
+/** Mismos cinco límites que valida la función SQL, sin exigir publicación. */
+export function storeAnalyticsDisclosureContentReady(content: string | null): boolean {
+  const normalized = String(content ?? '').toLocaleLowerCase('es-AR');
+  return [
+    'visitas de 30 minutos',
+    'utm',
+    'ip',
+    'url completa',
+    '13 meses',
+  ].every(fragment => normalized.includes(fragment));
+}
+
+/**
+ * Gate visible equivalente a `store_analytics_disclosure_ready` en SQL.
+ * No firma por el comercio: sólo verifica que la política publicada contiene
+ * los cinco límites que el owner debe reconocer al activar la medición.
+ */
+export function storeAnalyticsDisclosureReady(
+  pages: { slug: string; content: string | null; status: string | null }[],
+): boolean {
+  const privacy = pages.find(page => (
+    page.slug === 'politica-de-privacidad' && page.status === 'published'
+  ));
+  return storeAnalyticsDisclosureContentReady(privacy?.content ?? null);
+}
 
 export interface EstadoPublicacionLegal {
   /** Hay contenido propio (o generado y revisado) publicado para ambas páginas. */

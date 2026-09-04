@@ -43,6 +43,7 @@ export default function PrivacyPage() {
           <li><strong>Organización:</strong> integrantes, roles, configuración, sucursales e información fiscal o comercial que se cargue.</li>
           <li><strong>Operación:</strong> productos, inventario, ventas, compras, caja, gastos, documentos y métricas.</li>
           <li><strong>Compradores y clientes:</strong> contacto, pedidos, entrega, historial y consentimientos registrados por el comercio.</li>
+          <li><strong>Rendimiento de tiendas:</strong> identificador aleatorio hasheado, primera fuente UTM y dominio referente; no guardamos en esa medición la IP, la URL completa ni la identidad del visitante.</li>
           <li><strong>Facturación:</strong> plan, importe, estado y referencias del proveedor; no guardamos el número completo de la tarjeta.</li>
           <li><strong>Seguridad y diagnóstico:</strong> dirección IP, dispositivo, navegador, ruta sin parámetros, eventos de auditoría y errores minimizados.</li>
           <li><strong>Soporte o IA opcional:</strong> el contenido que decidís enviar para resolver una solicitud concreta.</li>
@@ -155,7 +156,10 @@ export default function PrivacyPage() {
       <LegalSection title="10. Cookies, almacenamiento local y telemetría">
         <p>
           Usamos cookies o almacenamiento local necesarios para sesión, seguridad, preferencias y continuidad del carrito.
-          No instalamos analítica publicitaria. Si Sentry está configurado, recibe diagnóstico técnico minimizado: no se
+          La tienda conserva durante 30 minutos una capacidad aleatoria para medir visitas, carrito, checkout y compra por
+          primera fuente observada. En el servidor se guarda sólo su hash, UTM y dominio referente durante 13 meses; no se
+          guarda la URL completa, IP, user-agent ni identidad para esa medición. No instalamos analítica publicitaria. Si
+          Sentry está configurado, recibe diagnóstico técnico minimizado: no se
           graban sesiones, se descartan interacciones y consola, y se quitan identidad, cookies, encabezados y parámetros de URL
           antes del envío. Borrar el almacenamiento del navegador puede cerrar la sesión o vaciar preferencias locales.
         </p>

@@ -12,8 +12,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Plus, Trash2, Loader2, ExternalLink, Save } from "lucide-react";
+import { FileText, Plus, Trash2, Loader2, ExternalLink, Save, ShieldCheck } from "lucide-react";
 import LegalPagesPanel from "./LegalPagesPanel";
+import {
+  storeAnalyticsDisclosureBlock,
+  storeAnalyticsDisclosureContentReady,
+  storeAnalyticsDisclosureReady,
+} from "@/lib/legalPages";
 
 interface PageRow {
   id: string;
@@ -54,6 +59,16 @@ export default function StorePagesEditor({
   const [borrador, setBorrador] = useState<PageRow | null>(null);
   const [guardando, setGuardando] = useState(false);
 
+  const privacyPage = pages.find(page => page.slug === "politica-de-privacidad") ?? null;
+  const analyticsDisclosurePublished = storeAnalyticsDisclosureReady(
+    privacyPage ? [privacyPage] : [],
+  );
+  const analyticsDisclosureDrafted = storeAnalyticsDisclosureContentReady(
+    borrador?.slug === "politica-de-privacidad"
+      ? borrador.content
+      : privacyPage?.content ?? null,
+  );
+
   const cargar = useCallback(async () => {
     if (!orgId || !storeId) { setLoading(false); return; }
     setLoading(true);
@@ -72,6 +87,19 @@ export default function StorePagesEditor({
   // Al elegir otra página se descarta el borrador anterior sin guardar. Es
   // deliberado: guardar en silencio lo a medio escribir es peor.
   const elegir = (p: PageRow) => { setSeleccion(p.id); setBorrador({ ...p }); };
+
+  const prepararAvisoMedicion = () => {
+    if (!privacyPage) return;
+    const alreadyIncluded = storeAnalyticsDisclosureContentReady(privacyPage.content);
+    setSeleccion(privacyPage.id);
+    setBorrador({
+      ...privacyPage,
+      content: alreadyIncluded
+        ? privacyPage.content
+        : `${privacyPage.content.trim()}\n\n${storeAnalyticsDisclosureBlock()}`.trim(),
+      status: "draft",
+    });
+  };
 
   const sembrar = async () => {
     if (!storeId) return;
@@ -170,6 +198,35 @@ export default function StorePagesEditor({
         if (pagina) elegir(pagina);
       }}
     />
+
+    {privacyPage && !analyticsDisclosurePublished && (
+      <div className="rounded-xl border border-violet-500/30 bg-violet-500/[0.06] p-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-violet-600" aria-hidden="true" />
+          <div>
+            <p className="text-sm font-medium">
+              {analyticsDisclosureDrafted
+                ? "El aviso de medición espera publicación"
+                : "Actualizá la privacidad antes de medir visitas"}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {analyticsDisclosureDrafted
+                ? "Revisá el borrador y publicalo. La analítica seguirá apagada hasta entonces."
+                : "Preparamos un bloque transparente sobre UTM, referente, minimización y retención. No se publica ni reemplaza tu texto automáticamente."}
+            </p>
+          </div>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="mt-3 min-h-11 shrink-0 sm:mt-0"
+          onClick={prepararAvisoMedicion}
+        >
+          {analyticsDisclosureDrafted ? "Revisar borrador" : "Agregar al borrador"}
+        </Button>
+      </div>
+    )}
 
     <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
       {/* Listado */}

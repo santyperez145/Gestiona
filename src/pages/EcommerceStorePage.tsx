@@ -37,8 +37,11 @@ import {
   storePerformanceComparisonCopy,
   storePerformancePeriodLabel,
   storePerformanceTrend,
+  storeChannelCoverageCopy,
   storeFunnelCoverageCopy,
   storeFunnelFromPerformance,
+  storeTrafficChannelLabel,
+  storeTrafficChannelTone,
   storePublishCta,
   storePublishNudges,
   storeShouldLeadWithPay,
@@ -83,7 +86,8 @@ import {
   layoutParaGuardar,
   moverSeccion,
 } from "@/lib/storeHomeLayout";
-import { estadoPublicacionLegal } from "@/lib/legalPages";
+import { estadoPublicacionLegal, storeAnalyticsDisclosureReady } from "@/lib/legalPages";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
 import {
   esMedioGestionaPay,
@@ -166,8 +170,9 @@ function isStoreTab(value: string | null): value is StoreTab {
 
 export default function EcommerceStorePage() {
   usePageTitle("Nerqia Commerce");
-  const { orgId, org } = useOrganization();
+  const { orgId, org, role } = useOrganization();
   const { user } = useAuth();
+  const { ask: askConfirmation, dialog: analyticsConfirmationDialog } = useConfirmDialog();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { from: performanceFrom, to: performanceTo } = useDateRangeFilter();
@@ -209,6 +214,7 @@ export default function EcommerceStorePage() {
   /** Tras el primer Guardar: banner al catálogo mientras siguen en settings. */
   const [justCreatedStore, setJustCreatedStore] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [analyticsBusy, setAnalyticsBusy] = useState(false);
   const [storeForm, setStoreForm] = useState(() => storeDraftInicial(undefined, GLOBAL_FULFILLMENT_LOCATION));
   const [selectedTheme, setSelectedTheme] = useState("minimal");
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -225,6 +231,7 @@ export default function EcommerceStorePage() {
     // Hasta poder leer las páginas, es más seguro advertir que faltan que
     // presentar una tienda como apta para recibir datos personales.
     legalPages: { missingOrTemplate: 2, drafts: 0 },
+    analyticsDisclosureReady: false,
   });
   // CBU/alias viven en settings (misma autoridad que el link de pago).
   const [bankForm, setBankForm] = useState({
@@ -453,6 +460,9 @@ export default function EcommerceStorePage() {
       const estadoLegal = estadoPublicacionLegal(
         (paginas.data ?? []) as { slug: string; content: string | null; status: string | null }[],
       );
+      const analyticsDisclosureReady = storeAnalyticsDisclosureReady(
+        (paginas.data ?? []) as { slug: string; content: string | null; status: string | null }[],
+      );
       if (paginas.error) console.error("No se pudieron leer las páginas legales", paginas.error);
       setSignals({
         publishedProducts: prods.count ?? 0,
@@ -465,6 +475,7 @@ export default function EcommerceStorePage() {
           missingOrTemplate: estadoLegal.faltantesOPlantilla,
           drafts: estadoLegal.borradores,
         },
+        analyticsDisclosureReady,
       });
     } catch (err) {
       console.error("No se pudieron releer las señales de la tienda", err);
@@ -474,6 +485,49 @@ export default function EcommerceStorePage() {
   useEffect(() => {
     void reloadReadinessSignals();
   }, [reloadReadinessSignals, tab]);
+
+  const updateFirstPartyAnalytics = async (enabled: boolean) => {
+    if (!orgId || !store?.id || analyticsBusy) return;
+    if (enabled && !signals.analyticsDisclosureReady) {
+      goToTab("pages");
+      toast.info("Actualizá y publicá la Política de privacidad antes de activar la medición.");
+      return;
+    }
+    const accepted = await askConfirmation({
+      title: enabled ? "Activar medición de la tienda" : "Pausar medición de la tienda",
+      description: enabled
+        ? "Confirmás que la Política de privacidad publicada informa visitas de 30 minutos, UTM y dominio referente, ausencia de IP/URL completa y retención de 13 meses. Nerqia guardará sólo esa señal mínima."
+        : "No se registrarán visitas nuevas. Los datos mínimos ya informados se conservarán hasta vencer su plazo de 13 meses.",
+      confirmText: enabled ? "Confirmo y activar" : "Pausar medición",
+      cancelText: "Cancelar",
+      variant: "default",
+    });
+    if (!accepted) return;
+
+    setAnalyticsBusy(true);
+    const { data, error } = await supabase.rpc("set_store_first_party_analytics", {
+      p_org_id: orgId,
+      p_enabled: enabled,
+      p_acknowledged: enabled,
+    });
+    setAnalyticsBusy(false);
+    if (error) {
+      console.error("No se pudo cambiar la medición first-party de la tienda", error);
+      toast.error(error.message || "No pudimos cambiar la medición. Reintentá.");
+      return;
+    }
+    const result = data as { enabled?: boolean } | null;
+    if (result?.enabled !== enabled) {
+      console.error("La activación de analítica devolvió un estado inesperado", data);
+      toast.error("No pudimos confirmar el nuevo estado. Reintentá.");
+      return;
+    }
+    setStore((current: any) => current ? {
+      ...current,
+      first_party_analytics_enabled: enabled,
+    } : current);
+    toast.success(enabled ? "Medición first-party activada" : "Medición first-party pausada");
+  };
 
   const saveStore = async (opts?: { activate?: boolean }) => {
     if (!orgId) return;
@@ -661,6 +715,7 @@ export default function EcommerceStorePage() {
     : 0;
   const attributionCoverage = performance ? storeAttributionCoverageCopy(performance) : null;
   const funnelCoverage = performance ? storeFunnelCoverageCopy(performance) : null;
+  const channelCoverage = performance ? storeChannelCoverageCopy(performance) : null;
   const performancePeriod = performance ? storePerformancePeriodLabel(performance) : null;
   const comparisonCopy = performance
     ? storePerformanceComparisonCopy(performance.comparison)
@@ -821,6 +876,37 @@ export default function EcommerceStorePage() {
         </div>
         <DateRangeFilter label="Todo el historial" />
       </div>
+
+      {store?.id && !store.first_party_analytics_enabled ? (
+        <div className="flex flex-col gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">La medición de visitas está pausada</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              La tienda sigue vendiendo. Para medir canal y conversión, primero publicá una política que informe la señal mínima y después confirmala como owner o admin.
+            </p>
+          </div>
+          {role === "owner" || role === "admin" ? (
+            signals.analyticsDisclosureReady ? (
+              <Button
+                type="button"
+                size="sm"
+                className="min-h-11 shrink-0"
+                disabled={analyticsBusy}
+                onClick={() => void updateFirstPartyAnalytics(true)}
+              >
+                {analyticsBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Activar medición
+              </Button>
+            ) : (
+              <Button type="button" size="sm" variant="outline" className="min-h-11 shrink-0" onClick={() => goToTab("pages")}>
+                Actualizar privacidad
+              </Button>
+            )
+          ) : (
+            <p className="text-xs text-muted-foreground">Pedile a un owner o admin que la active.</p>
+          )}
+        </div>
+      ) : null}
 
       {/* KPIs: un $0 y un 0% no son analítica. Aparecen cuando hubo tráfico. */}
       {performance ? (
@@ -1078,8 +1164,129 @@ export default function EcommerceStorePage() {
           </div>
         </div>
         ) : null}
+        {showPerformance && performance ? (
+          <section className="rounded-xl border border-border/40 bg-card p-5" aria-labelledby="store-channels-title">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h3 id="store-channels-title" className="font-semibold flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />Canales de adquisición
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Visitas iniciadas en este período y las compras que nacieron de ellas.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={store?.first_party_analytics_enabled
+                    ? "border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+                    : "border-amber-500/30 text-amber-700 dark:text-amber-300"}
+                >
+                  {store?.first_party_analytics_enabled ? "Medición activa" : "Medición pausada"}
+                </Badge>
+                {store?.first_party_analytics_enabled && (role === "owner" || role === "admin") ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="min-h-11"
+                    disabled={analyticsBusy}
+                    onClick={() => void updateFirstPartyAnalytics(false)}
+                  >
+                    Pausar
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+
+            {performance.channels.length === 0 ? (
+              <div className="mt-4 rounded-xl border border-dashed border-border/70 px-4 py-7 text-center">
+                <p className="text-sm font-medium">Todavía no hay visitas medibles en este período</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Los pedidos anteriores siguen en la cola, pero no se les inventa una fuente.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="mt-4 hidden overflow-x-auto md:block">
+                  <table className="w-full border-collapse text-left text-sm">
+                    <thead className="border-b border-border/60 text-xs text-muted-foreground">
+                      <tr>
+                        <th className="py-2 pr-3 font-medium">Canal</th>
+                        <th className="px-3 py-2 text-right font-medium">Visitas</th>
+                        <th className="px-3 py-2 text-right font-medium">Con carrito</th>
+                        <th className="px-3 py-2 text-right font-medium">Checkout</th>
+                        <th className="px-3 py-2 text-right font-medium">Compras</th>
+                        <th className="px-3 py-2 text-right font-medium">Conversión</th>
+                        <th className="py-2 pl-3 text-right font-medium">Ingreso pago</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40">
+                      {performance.channels.map(channel => {
+                        const conversion = channel.sessions > 0
+                          ? Number(((channel.convertedSessions / channel.sessions) * 100).toFixed(1))
+                          : 0;
+                        return (
+                          <tr key={channel.channel}>
+                            <td className="py-3 pr-3 font-medium">
+                              <span className="inline-flex items-center gap-2">
+                                <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${storeTrafficChannelTone(channel.channel)}`} />
+                                {storeTrafficChannelLabel(channel.channel)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-3 text-right tabular-nums">{channel.sessions.toLocaleString("es-AR")}</td>
+                            <td className="px-3 py-3 text-right tabular-nums">{channel.sessionsWithItems.toLocaleString("es-AR")}</td>
+                            <td className="px-3 py-3 text-right tabular-nums">{channel.checkoutStartedSessions.toLocaleString("es-AR")}</td>
+                            <td className="px-3 py-3 text-right tabular-nums">
+                              {channel.convertedSessions.toLocaleString("es-AR")}
+                              {channel.orders > channel.convertedSessions ? ` · ${channel.orders} pedidos` : ""}
+                            </td>
+                            <td className="px-3 py-3 text-right font-semibold tabular-nums">{conversion}%</td>
+                            <td className="py-3 pl-3 text-right font-semibold tabular-nums">
+                              ${channel.paidRevenueArs.toLocaleString("es-AR")}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:hidden">
+                  {performance.channels.map(channel => {
+                    const conversion = channel.sessions > 0
+                      ? Number(((channel.convertedSessions / channel.sessions) * 100).toFixed(1))
+                      : 0;
+                    return (
+                      <article key={channel.channel} className="rounded-xl border border-border/60 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="flex min-w-0 items-center gap-2 font-medium">
+                            <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-full ${storeTrafficChannelTone(channel.channel)}`} />
+                            <span className="truncate">{storeTrafficChannelLabel(channel.channel)}</span>
+                          </p>
+                          <p className="shrink-0 text-sm font-semibold tabular-nums">{conversion}%</p>
+                        </div>
+                        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                          <div><dt className="text-muted-foreground">Visitas</dt><dd className="mt-0.5 font-medium tabular-nums">{channel.sessions}</dd></div>
+                          <div><dt className="text-muted-foreground">Con carrito</dt><dd className="mt-0.5 font-medium tabular-nums">{channel.sessionsWithItems}</dd></div>
+                          <div><dt className="text-muted-foreground">Compras</dt><dd className="mt-0.5 font-medium tabular-nums">{channel.convertedSessions}</dd></div>
+                          <div><dt className="text-muted-foreground">Ingreso pago</dt><dd className="mt-0.5 font-medium tabular-nums">${channel.paidRevenueArs.toLocaleString("es-AR")}</dd></div>
+                        </dl>
+                      </article>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            <p className="mt-4 rounded-lg border border-border/60 bg-muted/20 p-3 text-xs leading-relaxed text-muted-foreground">
+              {channelCoverage}
+            </p>
+          </section>
+        ) : null}
         </div>
       )}
+      {analyticsConfirmationDialog}
 
       {/* ─── Design tab ─── */}
       {tab === "design" && (

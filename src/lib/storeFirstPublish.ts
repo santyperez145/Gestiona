@@ -28,6 +28,29 @@ export type StorePerformanceComparison = {
   paidRevenueArs: number;
 };
 
+export const STORE_TRAFFIC_CHANNEL_IDS = [
+  'paid',
+  'email',
+  'social',
+  'organic_search',
+  'referral',
+  'direct',
+  'other',
+] as const;
+
+export type StoreTrafficChannelId = typeof STORE_TRAFFIC_CHANNEL_IDS[number];
+
+export type StoreTrafficChannel = {
+  channel: StoreTrafficChannelId;
+  sessions: number;
+  sessionsWithItems: number;
+  checkoutStartedSessions: number;
+  convertedSessions: number;
+  orders: number;
+  ordersPaid: number;
+  paidRevenueArs: number;
+};
+
 export type StorePerformanceSnapshot = {
   ordersTotal: number;
   ordersPaid: number;
@@ -38,11 +61,13 @@ export type StorePerformanceSnapshot = {
   checkoutStartedSessions: number;
   convertedSessions: number;
   recoverableCarts: number;
+  channels: StoreTrafficChannel[];
   periodFrom: string | null;
   periodTo: string | null;
   comparison: StorePerformanceComparison | null;
   attributionStartedAt: string;
   checkoutTrackingStartedAt: string;
+  visitRetentionMonths: number;
   snapshotAt: string;
 };
 
@@ -393,7 +418,59 @@ export function parseStorePerformanceSnapshot(value: unknown): StorePerformanceS
     || sessionsWithItems > sessionsTotal
     || checkoutStartedSessions > sessionsWithItems
     || convertedSessions > checkoutStartedSessions
-    || recoverableCarts > sessionsWithItems
+  ) return null;
+
+  if (!Array.isArray(row.channels)) return null;
+  const seenChannels = new Set<string>();
+  const channels: StoreTrafficChannel[] = [];
+  for (const raw of row.channels) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const candidate = raw as Record<string, unknown>;
+    const channel = String(candidate.channel ?? '');
+    if (!(STORE_TRAFFIC_CHANNEL_IDS as readonly string[]).includes(channel)
+      || seenChannels.has(channel)) return null;
+    const values = [
+      'sessions',
+      'sessions_with_items',
+      'checkout_started_sessions',
+      'converted_sessions',
+      'orders',
+      'orders_paid',
+      'paid_revenue_ars',
+    ].map(key => finiteNonNegative(candidate[key]));
+    if (values.some(item => item === null)) return null;
+    const [
+      sessions,
+      channelSessionsWithItems,
+      channelCheckoutStarted,
+      channelConverted,
+      orders,
+      channelOrdersPaid,
+      channelPaidRevenue,
+    ] = values as number[];
+    if (
+      channelSessionsWithItems > sessions
+      || channelCheckoutStarted > channelSessionsWithItems
+      || channelConverted > channelCheckoutStarted
+      || channelOrdersPaid > orders
+    ) return null;
+    seenChannels.add(channel);
+    channels.push({
+      channel: channel as StoreTrafficChannelId,
+      sessions,
+      sessionsWithItems: channelSessionsWithItems,
+      checkoutStartedSessions: channelCheckoutStarted,
+      convertedSessions: channelConverted,
+      orders,
+      ordersPaid: channelOrdersPaid,
+      paidRevenueArs: channelPaidRevenue,
+    });
+  }
+  if (
+    channels.reduce((sum, item) => sum + item.sessions, 0) !== sessionsTotal
+    || channels.reduce((sum, item) => sum + item.sessionsWithItems, 0) !== sessionsWithItems
+    || channels.reduce((sum, item) => sum + item.checkoutStartedSessions, 0) !== checkoutStartedSessions
+    || channels.reduce((sum, item) => sum + item.convertedSessions, 0) !== convertedSessions
   ) return null;
   const periodFrom = row.period_from == null ? null : String(row.period_from);
   const periodTo = row.period_to == null ? null : String(row.period_to);
@@ -440,11 +517,14 @@ export function parseStorePerformanceSnapshot(value: unknown): StorePerformanceS
   }
   const attributionStartedAt = String(row.attribution_started_at ?? '');
   const checkoutTrackingStartedAt = String(row.checkout_tracking_started_at ?? '');
+  const visitRetentionMonths = finiteNonNegative(row.visit_retention_months);
   const snapshotAt = String(row.snapshot_at ?? '');
   if (
     !Number.isFinite(Date.parse(attributionStartedAt))
     || !Number.isFinite(Date.parse(checkoutTrackingStartedAt))
     || !Number.isFinite(Date.parse(snapshotAt))
+    || visitRetentionMonths === null
+    || visitRetentionMonths < 1
   ) {
     return null;
   }
@@ -458,11 +538,13 @@ export function parseStorePerformanceSnapshot(value: unknown): StorePerformanceS
     checkoutStartedSessions,
     convertedSessions,
     recoverableCarts,
+    channels,
     periodFrom,
     periodTo,
     comparison,
     attributionStartedAt,
     checkoutTrackingStartedAt,
+    visitRetentionMonths,
     snapshotAt,
   };
 }
@@ -519,10 +601,42 @@ export function storePerformanceTrend(
 
 /** Explicita que una etapa nueva no reconstruye comportamiento histórico. */
 export function storeFunnelCoverageCopy(
-  snapshot: Pick<StorePerformanceSnapshot, 'attributionStartedAt' | 'checkoutTrackingStartedAt'>,
+  snapshot: Pick<StorePerformanceSnapshot, 'attributionStartedAt' | 'checkoutTrackingStartedAt' | 'visitRetentionMonths'>,
 ): string {
-  return `Sesiones del carrito canónico desde el ${shortUtcDate(snapshot.attributionStartedAt)}. `
+  return `Visitas first-party de 30 minutos desde el ${shortUtcDate(snapshot.attributionStartedAt)}; se conservan ${snapshot.visitRetentionMonths} meses. `
     + `Checkout iniciado se mide desde el ${shortUtcDate(snapshot.checkoutTrackingStartedAt)}; una compra vinculada también confirma esa etapa.`;
+}
+
+export function storeTrafficChannelLabel(channel: StoreTrafficChannelId): string {
+  return {
+    paid: 'Publicidad paga',
+    email: 'Email',
+    social: 'Redes sociales',
+    organic_search: 'Búsqueda orgánica',
+    referral: 'Sitios referidos',
+    direct: 'Directo',
+    other: 'Otros',
+  }[channel];
+}
+
+export function storeTrafficChannelTone(channel: StoreTrafficChannelId): string {
+  return {
+    paid: 'bg-violet-500',
+    email: 'bg-sky-500',
+    social: 'bg-pink-500',
+    organic_search: 'bg-emerald-500',
+    referral: 'bg-amber-500',
+    direct: 'bg-slate-500',
+    other: 'bg-zinc-500',
+  }[channel];
+}
+
+/** Fuente propia y limitada: no confunde atribución con costo publicitario. */
+export function storeChannelCoverageCopy(
+  snapshot: Pick<StorePerformanceSnapshot, 'attributionStartedAt' | 'visitRetentionMonths'>,
+): string {
+  return `Cohorte por inicio de visita y primera fuente observada desde el ${shortUtcDate(snapshot.attributionStartedAt)}; sólo UTM y dominio referente, sin IP ni URL completa. `
+    + `Retención: ${snapshot.visitRetentionMonths} meses. Costo y ROAS aparecerán únicamente cuando exista una conexión publicitaria verificable.`;
 }
 
 /** Pedidos sin sesión no entran al denominador: se explican, no se esconden. */

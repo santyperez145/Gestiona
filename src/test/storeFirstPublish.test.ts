@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { firstProductPath } from '@/lib/activationHandoff';
+import { politicaDePrivacidad, storeAnalyticsDisclosureReady } from '@/lib/legalPages';
 import {
   storeAfterCatalogCopy,
   parseStorePerformanceSnapshot,
@@ -11,6 +12,7 @@ import {
   storePerformanceComparisonCopy,
   storePerformancePeriodLabel,
   storePerformanceTrend,
+  storeChannelCoverageCopy,
   storePublishCta,
   storePublishNudges,
   storeShouldLeadWithPay,
@@ -40,6 +42,7 @@ import {
   storeOrdersEmptyShareCopy,
   storeShareIntentActive,
   storeShareIntentCopy,
+  storeTrafficChannelLabel,
   enlaceInfluencerConRef,
 } from '@/lib/storeFirstPublish';
 
@@ -54,6 +57,14 @@ const PERFORMANCE_SQL = readFileSync(
 );
 const PERFORMANCE_PERIOD_SQL = readFileSync(
   resolve(ROOT, 'supabase/migrations/20260904000030_store_performance_period.sql'),
+  'utf8',
+);
+const CHANNEL_ATTRIBUTION_SQL = readFileSync(
+  resolve(ROOT, 'supabase/migrations/20260904000040_store_channel_attribution.sql'),
+  'utf8',
+);
+const ANALYTICS_DISCLOSURE_SQL = readFileSync(
+  resolve(ROOT, 'supabase/migrations/20260904000050_store_analytics_disclosure.sql'),
   'utf8',
 );
 const CHECKOUT = readFileSync(resolve(ROOT, 'src/storefront/StoreCheckout.tsx'), 'utf8');
@@ -344,8 +355,13 @@ describe('el embudo no inventa un checkout', () => {
       checkout_started_sessions: 2,
       converted_sessions: 1,
       recoverable_carts: 1,
-      attribution_started_at: '2026-09-03T00:00:00Z',
+      channels: [
+        { channel: 'paid', sessions: 2, sessions_with_items: 2, checkout_started_sessions: 2, converted_sessions: 1, orders: 1, orders_paid: 1, paid_revenue_ars: 2 },
+        { channel: 'direct', sessions: 2, sessions_with_items: 1, checkout_started_sessions: 0, converted_sessions: 0, orders: 0, orders_paid: 0, paid_revenue_ars: 0 },
+      ],
+      attribution_started_at: '2026-09-04T00:00:00Z',
       checkout_tracking_started_at: '2026-09-04T03:41:11Z',
+      visit_retention_months: 13,
       snapshot_at: '2026-09-04T12:00:00Z',
     });
     expect(snapshot).not.toBeNull();
@@ -357,6 +373,8 @@ describe('el embudo no inventa un checkout', () => {
     expect(steps.map((s) => s.pct)).toEqual([100, 75, 50, 25]);
     expect(storeFunnelCoverageCopy(snapshot!)).toContain('Checkout iniciado se mide desde');
     expect(storeAttributionCoverageCopy(snapshot!)).toContain('5 pedidos anteriores o sin atribución');
+    expect(storeChannelCoverageCopy(snapshot!)).toContain('sin IP ni URL completa');
+    expect(storeTrafficChannelLabel(snapshot!.channels[0].channel)).toBe('Publicidad paga');
   });
 
   it('rechaza un contrato parcial en vez de convertirlo en ceros', () => {
@@ -371,8 +389,10 @@ describe('el embudo no inventa un checkout', () => {
       checkout_started_sessions: 0,
       converted_sessions: 0,
       recoverable_carts: -1,
-      attribution_started_at: '2026-09-03T00:00:00Z',
+      channels: [],
+      attribution_started_at: '2026-09-04T00:00:00Z',
       checkout_tracking_started_at: '2026-09-04T03:41:11Z',
+      visit_retention_months: 13,
       snapshot_at: '2026-09-04T12:00:00Z',
     })).toBeNull();
     expect(parseStorePerformanceSnapshot({
@@ -385,8 +405,10 @@ describe('el embudo no inventa un checkout', () => {
       checkout_started_sessions: 0,
       converted_sessions: 0,
       recoverable_carts: 0,
-      attribution_started_at: '2026-09-03T00:00:00Z',
+      channels: [{ channel: 'direct', sessions: 1, sessions_with_items: 1, checkout_started_sessions: 0, converted_sessions: 0, orders: 0, orders_paid: 0, paid_revenue_ars: 0 }],
+      attribution_started_at: '2026-09-04T00:00:00Z',
       checkout_tracking_started_at: '2026-09-04T03:41:11Z',
+      visit_retention_months: 13,
       snapshot_at: '2026-09-04T12:00:00Z',
     })).toBeNull();
   });
@@ -402,6 +424,7 @@ describe('el embudo no inventa un checkout', () => {
       checkout_started_sessions: 2,
       converted_sessions: 1,
       recoverable_carts: 1,
+      channels: [{ channel: 'social', sessions: 4, sessions_with_items: 3, checkout_started_sessions: 2, converted_sessions: 1, orders: 1, orders_paid: 1, paid_revenue_ars: 150 }],
       period_from: '2026-09-01',
       period_to: '2026-09-04',
       comparison: {
@@ -411,8 +434,9 @@ describe('el embudo no inventa un checkout', () => {
         orders_paid: 1,
         paid_revenue_ars: 100,
       },
-      attribution_started_at: '2026-09-03T00:00:00Z',
+      attribution_started_at: '2026-09-04T00:00:00Z',
       checkout_tracking_started_at: '2026-09-04T03:41:11Z',
+      visit_retention_months: 13,
       snapshot_at: '2026-09-04T12:00:00Z',
     });
     expect(snapshot).not.toBeNull();
@@ -434,6 +458,8 @@ describe('el embudo no inventa un checkout', () => {
     expect(STORE).toContain('storeFunnelCoverageCopy');
     expect(CHECKOUT).toContain('startStoreCheckout');
     expect(PUBLIC_DATA).toContain("'start_store_checkout'");
+    expect(PUBLIC_DATA).toContain("'record_store_visit'");
+    expect(STORE).toContain('Canales de adquisición');
   });
 
   it('el snapshot protege tenant, cobro, atribución y recuperación', () => {
@@ -463,6 +489,45 @@ describe('el embudo no inventa un checkout', () => {
     expect(DATE_RANGE).toContain('min-h-11');
     expect(DATE_RANGE).toContain('aria-label="Limpiar filtro de fechas"');
     expect(DATE_RANGE).toContain('subDays(new Date(), 29)');
+  });
+
+  it('la atribución separa visita de carrito, minimiza datos y protege tenant', () => {
+    expect(CHANNEL_ATTRIBUTION_SQL).toContain('CREATE TABLE IF NOT EXISTS public.ecommerce_store_visits');
+    expect(CHANNEL_ATTRIBUTION_SQL).toContain('visit_token_hash');
+    expect(CHANNEL_ATTRIBUTION_SQL).toContain("extensions.digest(convert_to(p_visit_token, 'UTF8'), 'sha256'::text)");
+    expect(CHANNEL_ATTRIBUTION_SQL).toContain("'visit_retention_months', 13");
+    expect(CHANNEL_ATTRIBUTION_SQL).toContain('public.store_traffic_channel');
+    expect(CHANNEL_ATTRIBUTION_SQL).toContain('REVOKE ALL ON TABLE public.ecommerce_store_visits FROM anon, authenticated');
+    expect(CHANNEL_ATTRIBUTION_SQL).toContain('public.is_org_member(p_org_id, v_actor)');
+    expect(CHANNEL_ATTRIBUTION_SQL).not.toContain('user_agent text');
+    expect(CHANNEL_ATTRIBUTION_SQL).not.toContain('ip_address text');
+  });
+
+  it('no mide antes de que el comercio informe y acepte la política', () => {
+    const generated = politicaDePrivacidad({
+      razonSocial: 'Comercio Ejemplo SA',
+      cuit: '30712345678',
+      domicilio: 'Calle 123',
+      emailContacto: 'legal@example.com',
+      nombreTienda: 'Ejemplo',
+      usaPixeles: false,
+    });
+    expect(storeAnalyticsDisclosureReady([{
+      slug: 'politica-de-privacidad',
+      content: generated,
+      status: 'published',
+    }])).toBe(true);
+    expect(storeAnalyticsDisclosureReady([{
+      slug: 'politica-de-privacidad',
+      content: generated,
+      status: 'draft',
+    }])).toBe(false);
+    expect(ANALYTICS_DISCLOSURE_SQL).toContain("'privacy_disclosure_required'");
+    expect(ANALYTICS_DISCLOSURE_SQL).toContain('public.store_analytics_disclosure_ready');
+    expect(ANALYTICS_DISCLOSURE_SQL).toContain("v_role NOT IN ('owner', 'admin')");
+    expect(ANALYTICS_DISCLOSURE_SQL).toContain("'store.analytics.enable'");
+    expect(STORE).toContain('La medición de visitas está pausada');
+    expect(STORE).toContain('Confirmo y activar');
   });
 });
 

@@ -8,7 +8,7 @@ es ilegible para cualquier otro.
 Acá va la otra mitad: **qué es este producto, contra quién compite y qué habría
 que demostrar para que sea un negocio** y no sólo un sistema que funciona.
 
-Última revisión: 2026-09-01. Categoría y Pay/Capital:
+Última revisión: 2026-09-04. Categoría y Pay/Capital:
 [ADR 002](ADR_002_COMMERCE_OPERATING_SYSTEM.md). Narrativa de ronda:
 [INVERSORES.md](INVERSORES.md).
 
@@ -202,16 +202,41 @@ define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-m
 como sesiones que terminan en una orden y su embudo separa sesión, agregado al
 carrito, checkout y compra. Tiendanube también separa
 [facturación/pedidos pagos de conversión y permite elegir período](https://ayuda.tiendanube.com/es_AR/como-ver-las-estadisticas-de-mi-tiendanube).
-Nerqia tenía 6 pedidos históricos sin `cart_session_id` y 5 sesiones posteriores
+Nerqia tenía 6 pedidos históricos sin `cart_session_id` y 5 carritos posteriores
 al contrato canónico: mezclarlos habría inventado 85,7%. D5.21 agrega el
 snapshot exacto en servidor, cuenta facturación sólo acreditada y muestra la
 brecha de atribución en texto. D5.22 conserva ahora `checkout_started_at` en la
-misma sesión canónica, después de volver a validar las líneas en servidor, y
-completa el embudo sesión → carrito → checkout → compra. La cobertura empieza
-el 4/9 y se muestra: no se reconstruye hacia atrás. D5.23 agrega fechas en URL
-y compara el mismo número de días anterior con cierre horario argentino; sin
-base previa no muestra una suba infinita. La atribución por canal sigue
-pendiente y no se estima desde el carrito.
+misma sesión de carrito, después de volver a validar las líneas en servidor.
+D5.23 agrega fechas en URL y compara el mismo número de días anterior con
+cierre horario argentino; sin base previa no muestra una suba infinita.
+
+✅ **Atribución por canal con población real, verificada el 2026-09-04.** La
+auditoría encontró que las 7/7 supuestas “sesiones” productivas tenían items:
+eran carritos, no visitas, y 0/7 conservaban UTM. Shopify separa
+[adquisición por referente](https://help.shopify.com/en/manual/reports-and-analytics/shopify-reports/report-types/default-reports/acquisition-reports)
+de ventas y permite modelos de
+[primera/última interacción](https://help.shopify.com/manual/reports-and-analytics/shopify-reports/report-types/marketing-reports?locale=en-US);
+sus métricas de costo/ROAS dependen de
+[actividades publicitarias conectadas](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance).
+Tiendanube también exige UTM para atribuir campañas y diferencia
+[canal, dispositivo y calidad de visita](https://ayuda.tiendanube.com/es_ES/123489-estadisticas/como-usar-las-estadisticas-de-visitas-para-entender-el-comportamiento-de-tus-clientes).
+
+La traducción D5.25 no reutiliza el carrito de 30 días como sesión: crea una
+visita first-party de 30 minutos, hashea su capacidad, guarda sólo primera UTM
+y hostname referente, y no recibe IP, user-agent, URL completa ni formularios.
+El limitador antiabuso conserva la protección por origen pero desde el mismo
+corte hashea la IP antes de escribir su contador transitorio; se purgaron 53
+claves legacy y quedaron 0 en claro.
+Carrito, checkout y orden se enlazan a esa visita sin mover sus autoridades. El
+panel agrupa visitas/compras/ingreso pago por canal y explicita cohorte,
+cobertura y retención de 13 meses; costo y ROAS permanecen ausentes hasta que
+una integración publicitaria los pruebe. No hay backfill: el pasado sigue como
+no atribuible. La medición no se activa sólo por desplegar código: exige que el
+merchant publique esos límites y los confirme como owner/admin. Al corte, la
+única tienda real sigue pausada, con 0 visitas guardadas y 0 aceptaciones; eso
+es cumplimiento preventivo, no falta de funcionamiento. El editor puede anexar
+la divulgación a una política previa como borrador revisable; nunca reemplaza ni
+publica automáticamente una declaración legal del comercio.
 
 ✅ **Catálogo rastreable, verificado localmente el 2026-09-04.** Google exige
 [enlaces `<a href>` entre categorías, páginas y productos](https://developers.google.com/search/docs/specialty/ecommerce/help-google-understand-your-ecommerce-site-structure)

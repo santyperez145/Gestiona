@@ -589,9 +589,44 @@ export interface StoreCartSaveLine {
   image: string | null;
 }
 
+export interface StoreVisitAttributionPayload {
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  referrer_host: string | null;
+}
+
+/**
+ * Registra una visita first-party de 30 minutos. Es auxiliar: una caída de la
+ * medición nunca bloquea catálogo, carrito ni checkout, pero tampoco se oculta
+ * como un cero en el panel.
+ */
+export async function recordStoreVisit(args: {
+  slug: string;
+  visitToken: string;
+  attribution: StoreVisitAttributionPayload;
+}): Promise<{ error: PgError | null; supported: boolean }> {
+  const invoke = () => supabase.rpc('record_store_visit' as never, {
+    p_slug: args.slug,
+    p_visit_token: args.visitToken,
+    p_attribution: args.attribution,
+  } as never) as unknown as PromiseLike<{ data: unknown; error: PgError | null }>;
+
+  let result = await invoke();
+  if (result.error && isTransientPublicError(result.error)) result = await invoke();
+  if (!result.error) return { error: null, supported: true };
+  if (isMissingFunction(result.error)) {
+    warnFallback('record_store_visit()');
+    return { error: null, supported: false };
+  }
+  console.error('[tienda] no se pudo registrar la visita:', result.error.message);
+  return { error: result.error, supported: true };
+}
+
 export async function saveActiveStoreCart(args: {
   slug: string;
   token: string;
+  visitToken: string | null;
   lines: StoreCartSaveLine[];
   email: string | null;
 }): Promise<{ data: unknown; error: PgError | null; supported: boolean }> {
@@ -600,6 +635,21 @@ export async function saveActiveStoreCart(args: {
     variant_id: line.variantId ?? null,
     quantity: line.qty,
   }));
+  const attributed = await supabase.rpc('save_store_cart_v3' as never, {
+    p_slug: args.slug,
+    p_token: args.token,
+    p_items: references,
+    p_email: args.email,
+    p_visit_token: args.visitToken,
+  } as never) as unknown as { data: unknown; error: PgError | null };
+
+  if (!attributed.error) return { ...attributed, supported: true };
+  if (!isMissingFunction(attributed.error)) {
+    console.error('[carrito] no se pudo sincronizar la sesión:', attributed.error.message);
+    return { ...attributed, supported: true };
+  }
+
+  warnFallback('save_store_cart_v3()');
   const canonical = await supabase.rpc('save_store_cart_v2' as never, {
     p_slug: args.slug,
     p_token: args.token,
@@ -641,6 +691,7 @@ export async function saveActiveStoreCart(args: {
 export async function startStoreCheckout(args: {
   slug: string;
   token: string;
+  visitToken: string | null;
   lines: StoreCartSaveLine[];
 }): Promise<{ data: unknown; error: PgError | null; supported: boolean }> {
   const payload = {
@@ -654,9 +705,10 @@ export async function startStoreCheckout(args: {
     // El email se persiste por el flujo específico de recovery. Medir una
     // etapa no necesita sumar PII a la request.
     p_email: null,
+    p_visit_token: args.visitToken,
   };
   const invoke = () => supabase.rpc(
-    'start_store_checkout' as never,
+    'start_store_checkout_v2' as never,
     payload as never,
   ) as unknown as PromiseLike<{ data: unknown; error: PgError | null }>;
 
@@ -674,10 +726,28 @@ export async function startStoreCheckout(args: {
 
   // Ventana de despliegue: conservar el carrito es más importante que medir la
   // etapa. El checkout continúa operativo y el panel no inventa el evento.
+  warnFallback('start_store_checkout_v2()');
+  const legacyPayload = {
+    p_slug: args.slug,
+    p_token: args.token,
+    p_items: payload.p_items,
+    p_email: null,
+  };
+  const legacy = await supabase.rpc(
+    'start_store_checkout' as never,
+    legacyPayload as never,
+  ) as unknown as { data: unknown; error: PgError | null };
+  if (!legacy.error) return { ...legacy, supported: true };
+  if (!isMissingFunction(legacy.error)) {
+    console.error('[checkout] no se pudo registrar el inicio:', legacy.error.message);
+    return { ...legacy, supported: true };
+  }
+
   warnFallback('start_store_checkout()');
   const fallback = await saveActiveStoreCart({
     slug: args.slug,
     token: args.token,
+    visitToken: args.visitToken,
     lines: args.lines,
     email: null,
   });
