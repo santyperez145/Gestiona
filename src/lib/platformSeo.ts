@@ -27,26 +27,26 @@ export interface PlatformSeoPage {
 export const PLATFORM_SEO_PAGES = [
   {
     path: '/',
-    title: 'Nerqia | Sistema de gestión omnicanal, POS y tienda online',
-    description: 'Software de gestión para comercios argentinos: unificá stock, punto de venta, tienda online, clientes, costos, caja y margen real por canal.',
-    eyebrow: 'Sistema operativo para comercios omnicanal',
-    heading: 'Nerqia, el sistema operativo de tu comercio.',
+    title: 'Nerqia | Tienda online con gestión y finanzas conectadas',
+    description: 'Creá tu tienda online y conectá pedidos, stock, clientes, pagos, costos, caja y margen real en una sola plataforma para comercios argentinos.',
+    eyebrow: 'Tu tienda online, conectada de verdad',
+    heading: 'Nerqia, tu tienda online conectada a todo tu negocio.',
     sections: [
       {
-        heading: 'Stock único para el mostrador y la tienda online',
-        text: 'Productos, variantes e inventario comparten una sola fuente entre el punto de venta, el ecommerce y los canales conectados.',
+        heading: 'Una tienda online preparada para vender',
+        text: 'Diseño, catálogo, variantes, promociones, checkout, pagos, envíos y dominio propio conviven en una experiencia conectada con la operación real.',
       },
       {
-        heading: 'Ventas, caja y pedidos conectados',
-        text: 'Nerqia reúne el POS, los pedidos online, los clientes y la operación diaria para que el negocio no dependa de planillas aisladas.',
+        heading: 'Gestión conectada a cada pedido',
+        text: 'Productos, stock, clientes, ventas, compras y entregas comparten una sola fuente para que el negocio no dependa de planillas aisladas.',
       },
       {
-        heading: 'Margen real por canal',
-        text: 'Costos, medios de pago, envíos e impuestos se combinan para mostrar cuánto deja cada venta y ayudar a decidir con evidencia.',
+        heading: 'Finance y margen real por canal',
+        text: 'Documentos, caja, costos, medios de pago, envíos e impuestos explican cuánto deja cada venta sin duplicar la operación comercial.',
       },
       {
-        heading: 'Nerqia Commerce y Nerqia Finance',
-        text: 'La tienda online vende sobre el mismo Business Core. Finance organiza documentos, controles y aprobaciones sin duplicar compras, proveedores ni contabilidad operativa.',
+        heading: 'Tienda online, Gestión y Finance',
+        text: 'Las tres superficies trabajan sobre el mismo Business Core: la tienda vende, Gestión opera y Finance explica el dinero detrás de cada movimiento.',
       },
     ],
     indexable: true,

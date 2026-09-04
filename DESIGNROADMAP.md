@@ -129,6 +129,11 @@ Medición del código al 2026-08-29:
   recién al abrir la superficie. La landing pasó de 26 a 11 assets iniciales y
   de 342.897 a 295.641 bytes gzip; el presupuesto queda fijado en CI y no se
   confunde homogeneidad visual con cargar tres productos a la vez;
+- D5.38 convierte la tienda online en la puerta visual y verbal de Nerqia. El
+  hero muestra una vitrina ecommerce realista con asset propio; un solo pedido
+  continúa hacia Gestión y Finance en una banda compartida, y los tabs empiezan
+  por Tienda sin dar a las otras dos capas jerarquías distintas ni datos
+  duplicados;
 - D2.4 unificó los cinco paginadores manuales de Admin, Productos, Compras,
   Reportes y Ventas en `DataPagination`, con rango real, límites, responsive y
   `aria-live` bajo guarda. También puso los 82 campos temporales de 46 archivos
@@ -152,7 +157,7 @@ usa en material de producto o inversión.
 
 | Superficie | Dirección | Estado | Próxima evidencia |
 |---|---|---|---|
-| Landing | Producto full-bleed frambuesa, centro de control claro y narrativa Business Core/Commerce/Finance; los shells privados comparten diseño pero quedan fuera de su payload inicial. | D5.36 publicado (`987fbb9c`); D5.37 local 2026-09-04 | Hacer Tienda online la puerta principal, sostener Gestión/Finance al mismo nivel, medir conversión CTA y retirar CSS v3 muerto. |
+| Landing | Producto full-bleed frambuesa, tienda online como objeto principal y un pedido que conecta Gestión/Finance con peso equivalente; los shells privados comparten diseño pero quedan fuera de su payload inicial. | D5.36 publicado (`987fbb9c`); D5.37-D5.38 locales 2026-09-04 | Publicar D5.38, medir conversión CTA y retirar CSS v3 muerto sin cambiar la dirección visual. |
 | Auth | Split editorial + formulario inequívoco. | Implementada | Error, recovery y registro en mobile. |
 | Business shell | Rail claro, topbar contextual, canvas v3, cambio de organización sin cache cruzado y navegación interna sin reinicios; el mismo contrato alcanza Gestión, Finance y Platform. | Implementado D2.7-D2.8 y publicado en `325a4a02` (2026-09-04) | Captura autenticada 4 viewports y prueba manual de dos tenants cuando exista usuario E2E. |
 | Dashboard | Seis vistas ejecutivas persistidas. El Business Copilot sólo monta Pulso en Resumen y Proyección en Inteligencia cuando el entitlement está resuelto; sin IA ofrece una única salida a Mi plan en vez de errores ocultos. Briefing usa modal canónico, carga/error/retry/copy, cuatro cifras de respaldo provenientes de la misma lectura server-side y cache tenant/fecha. El pulso separa expandir/regenerar sin controles anidados y conserva sugerencias stale con error visible. `d9a583e` certificó el canvas sin overflow en 360/768/1024/1440 y la tab activa completamente visible después de corregir el recorte causado por el metadato lateral. | Parcial D3 2026-08-30 | Respuesta del proveedor sólo después de DPA/clave y organización activa. Medir tiempo a acción y `AI Action Rate`. |
@@ -829,6 +834,24 @@ Vercel con `nerqia.app`, `www` y wildcard como aliases; la inspección desktop
 publicada confirmó H1, CTA, tabs, ancho 1136/1136 y cero logs `warn`/`error`.
 Falta medir conversión y retirar las reglas v3 ya superadas para recuperar los
 2,32 kB gzip de CSS que sumó el nuevo contrato.
+
+D5.38 corrige la jerarquía comercial que D5.36 todavía dejaba incompleta. La
+tienda online pasa al H1, primer enlace, CTA y primera tab; el centro de control
+genérico se reemplaza por una vitrina ecommerce con fotografía de producto
+propia. La escena no inventa otra aplicación: una banda continua toma el mismo
+pedido y explicita su efecto en Gestión y Finance con igual peso secundario. El
+texto SEO del borde y los metadatos comparten la misma promesa, y todo valor de
+la demostración se rotula como ilustrativo.
+
+El asset se generó sin marca, texto ni host de terceros y se optimizó de
+1.876.857 bytes PNG a **82.936 bytes WebP** a 1.600 px. El primer Playwright
+detectó continuidad fuera de pliegue entre 10 y 37 px y contraste Finance de
+4,43:1; la corrección compactó el mockup sin ocultar Tienda/Gestión/Finance y
+subió el contraste sin relajar el gate. La matriz final pasó **10/10** en
+Chromium/mobile a 360/768/1024/1440, sin overflow, y Axe WCAG A/AA quedó sin
+impactos críticos o serios. Puerta completa del 2026-09-04: typecheck, lint con
+0 errores/142 warnings conocidos, **2.718 tests en 296 archivos** y build/PWA;
+CSS en 49,32 kB gzip. Quedan validación publicada y conversión real del CTA.
 
 - home de tienda, listado paginado, búsqueda y filtros;
 - ficha de producto: CTA móvil y decisión exacta de variantes hechas; falta

@@ -3,20 +3,16 @@ import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   ArrowUpRight,
-  BarChart3,
   Boxes,
   Check,
   ChevronRight,
   CircleDollarSign,
-  CircleHelp,
   Layers3,
   Menu,
   PackageCheck,
-  ScanLine,
   ShoppingCart,
   Sparkles,
   Store,
-  Users,
   WalletCards,
   X,
 } from 'lucide-react';
@@ -24,36 +20,46 @@ import BrandLogo from '@/components/shared/BrandLogo';
 
 const CAPABILITIES = [
   {
-    icon: ShoppingCart,
-    kicker: 'Vendé',
-    title: 'Todos los canales usan el mismo stock.',
-    description: 'POS, tienda online y marketplaces descuentan del mismo inventario y alimentan una única historia de ventas.',
+    icon: Store,
+    kicker: 'Tienda online',
+    title: 'Vendé con una experiencia lista para crecer.',
+    description: 'Catálogo, variantes, promociones, checkout, pagos, envíos y dominio propio en una tienda conectada desde el primer pedido.',
     tone: 'coral',
   },
   {
     icon: Boxes,
-    kicker: 'Operá',
-    title: 'Del producto al pedido, sin volver a cargar datos.',
-    description: 'Catálogo, costos, clientes, compras y entregas quedan conectados para que el equipo trabaje sobre la misma verdad.',
+    kicker: 'Gestión',
+    title: 'Operá cada pedido sin volver a cargar datos.',
+    description: 'Productos, clientes, ventas, compras, stock y entregas comparten autoridad para que el equipo trabaje sobre la misma verdad.',
     tone: 'teal',
   },
   {
     icon: CircleDollarSign,
-    kicker: 'Decidí',
-    title: 'Mirá margen real, no sólo facturación.',
+    kicker: 'Finance',
+    title: 'Entendé el dinero detrás de cada venta.',
     description: 'Costo, comisión, envío e impuestos explican cuánto dejó cada producto, pedido y canal.',
     tone: 'yellow',
   },
 ] as const;
 
 const OPERATING_LAYERS = [
-  { icon: Store, title: 'Canales', description: 'POS, ecommerce y marketplaces conectados.' },
-  { icon: PackageCheck, title: 'Inventario', description: 'Stock único, trazabilidad y reposición.' },
+  { icon: Store, title: 'Tienda online', description: 'Catálogo, checkout, pagos, envíos y dominio.' },
+  { icon: PackageCheck, title: 'Gestión', description: 'Pedidos, stock, clientes y operación diaria.' },
   { icon: WalletCards, title: 'Finance', description: 'Documentos, caja, conciliación y margen.' },
   { icon: Sparkles, title: 'Inteligencia', description: 'Hallazgos accionables sobre la operación.' },
 ] as const;
 
 const SURFACES = [
+  {
+    id: 'tienda',
+    label: 'Tienda online',
+    eyebrow: 'La puerta de entrada',
+    title: 'Tu marca, tu dominio y una tienda preparada para vender.',
+    description: 'Diseño, catálogo, variantes, promociones, checkout, pagos, envíos y medición nacen conectados con la operación real de tu comercio.',
+    facts: ['Diseño y dominio propio', 'Checkout, pagos y envíos', 'Pedidos conectados al stock'],
+    icon: Store,
+    tone: 'coral',
+  },
   {
     id: 'gestion',
     label: 'Gestión',
@@ -63,16 +69,6 @@ const SURFACES = [
     facts: ['Stock por sucursal', 'Ventas y devoluciones', 'Clientes y proveedores'],
     icon: Layers3,
     tone: 'berry',
-  },
-  {
-    id: 'tienda',
-    label: 'Tienda',
-    eyebrow: 'Commerce',
-    title: 'Una tienda que vende con la verdad del negocio.',
-    description: 'Catálogo, variantes, precios, promociones, checkout, pagos, envíos y pedidos nacen del mismo núcleo que usa el mostrador.',
-    facts: ['Diseño publicable', 'Checkout y pedidos', 'Dominio y medición'],
-    icon: Store,
-    tone: 'coral',
   },
   {
     id: 'finance',
@@ -100,60 +96,54 @@ function BrandMark({ small = false }: { small?: boolean }) {
   );
 }
 
-function DashboardPreview() {
-  const bars = [38, 56, 44, 68, 52, 82, 66, 92, 61, 78, 73, 96];
-
+function StorefrontPreview() {
   return (
-    <div className="landing-product-stage" aria-label="Vista de muestra del centro de control de Nerqia">
+    <div className="landing-product-stage" aria-label="Vista de muestra de una tienda online conectada con Nerqia">
       <div className="landing-product-window">
         <div className="landing-product-window__topbar">
           <div className="landing-product-window__dots" aria-hidden="true"><i /><i /><i /></div>
-          <span>Centro de control · Datos ilustrativos</span>
-          <div className="landing-product-window__live"><b /> sincronizado</div>
+          <span>Tienda de demostración · Contenido ilustrativo</span>
+          <div className="landing-product-window__live"><b /> publicada</div>
         </div>
-        <div className="landing-product-window__body">
-          <aside className="landing-product-window__rail" aria-label="Módulos de muestra">
-            <BrandMark small />
-            {[BarChart3, ShoppingCart, Boxes, Users, WalletCards].map((Icon, index) => (
-              <span key={index} className={index === 0 ? 'is-active' : ''}><Icon /></span>
-            ))}
-            <span className="is-bottom"><CircleHelp /></span>
-          </aside>
-          <div className="landing-product-window__content">
-            <div className="landing-preview-heading">
+        <div className="landing-store-preview">
+          <div className="landing-storefront">
+            <div className="landing-storefront__nav">
+              <strong>AUREA</strong>
+              <div aria-hidden="true"><span>Novedades</span><span>Casa</span><span>Objetos</span></div>
+              <span className="landing-storefront__cart"><ShoppingCart /> 2</span>
+            </div>
+            <div className="landing-storefront__hero">
               <div>
-                <span className="landing-preview-eyebrow">Resumen operativo</span>
-                <strong>Todo tu negocio, hoy.</strong>
+                <span>Nueva colección</span>
+                <strong>Objetos que hacen bien todos los días.</strong>
+                <p>Diseño simple, materiales nobles y envíos a todo el país.</p>
+                <span className="landing-storefront__cta">Comprar ahora <ArrowRight /></span>
               </div>
-              <div className="landing-preview-tabs" aria-hidden="true">
-                <span className="is-active">Resumen</span><span>Ventas</span><span>Finance</span>
-              </div>
-              <button type="button" aria-label="Nueva venta de muestra"><ArrowUpRight /></button>
+              <img
+                src="/landing/storefront-aurea.webp"
+                alt="Colección ilustrativa de objetos de diseño para una tienda online"
+                width="1600"
+                height="1067"
+                loading="eager"
+              />
             </div>
-            <div className="landing-preview-kpis">
-              <div><span>Ventas del mes</span><strong>$ 4.286.450</strong><small>+18,4% <ArrowUpRight /></small></div>
-              <div><span>Margen promedio</span><strong>34,8%</strong><small>+4,2% <ArrowUpRight /></small></div>
-              <div><span>Stock crítico</span><strong>12 <em>ítems</em></strong><small className="is-warning">Revisar ahora</small></div>
+          </div>
+          <div className="landing-order-flow" aria-label="Flujo ilustrativo de un pedido conectado">
+            <div className="landing-order-flow__event">
+              <span>Pedido #1082</span>
+              <strong>Nueva compra online</strong>
+              <small>$ 84.500 · pagada</small>
             </div>
-            <div className="landing-preview-grid">
-              <div className="landing-preview-chart">
-                <div className="landing-preview-card-heading">
-                  <div><span>Rendimiento de ventas</span><strong>Últimos 30 días</strong></div>
-                  <span className="landing-preview-filter">Todos los canales <ChevronRight /></span>
-                </div>
-                <div className="landing-preview-bars" aria-hidden="true">
-                  {bars.map((height, index) => <i key={index} style={{ height: `${height}%` }} className={index > 8 ? 'is-current' : ''} />)}
-                </div>
-                <div className="landing-preview-chart-labels"><span>01 Jun</span><span>15 Jun</span><span>30 Jun</span></div>
-              </div>
-              <div className="landing-preview-activity">
-                <div className="landing-preview-card-heading"><div><span>Actividad reciente</span><strong>Ahora</strong></div><ArrowUpRight /></div>
-                <div className="landing-preview-activity-row"><b className="is-coral"><ShoppingCart /></b><div><strong>Nueva venta online</strong><span>Hace 4 minutos</span></div><em>$ 84.500</em></div>
-                <div className="landing-preview-activity-row"><b className="is-teal"><PackageCheck /></b><div><strong>Compra recibida</strong><span>Hace 18 minutos</span></div><em>24 unidades</em></div>
-                <div className="landing-preview-activity-row"><b className="is-yellow"><Users /></b><div><strong>Cliente recuperado</strong><span>Hace 32 minutos</span></div><em>CRM</em></div>
-              </div>
+            <div className="landing-order-flow__surface landing-order-flow__surface--management">
+              <span><PackageCheck /> Gestión</span>
+              <strong>Stock actualizado</strong>
+              <small>2 unidades reservadas</small>
             </div>
-            <div className="landing-preview-footer"><span><ScanLine /> Operación conectada</span><span>Vista de demostración</span></div>
+            <div className="landing-order-flow__surface landing-order-flow__surface--finance">
+              <span><WalletCards /> Finance</span>
+              <strong>Margen explicado</strong>
+              <small>36,4% · dato ilustrativo</small>
+            </div>
           </div>
         </div>
       </div>
@@ -163,7 +153,7 @@ function DashboardPreview() {
 
 export default function LandingPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [surfaceId, setSurfaceId] = useState<(typeof SURFACES)[number]['id']>('gestion');
+  const [surfaceId, setSurfaceId] = useState<(typeof SURFACES)[number]['id']>('tienda');
   const activeSurface = SURFACES.find(surface => surface.id === surfaceId) ?? SURFACES[0];
   const SurfaceIcon = activeSurface.icon;
 
@@ -195,8 +185,8 @@ export default function LandingPage() {
           </Link>
 
           <nav className={`landing-nav__links ${mobileOpen ? 'is-open' : ''}`} aria-label="Navegación principal">
-            <a href="#producto" onClick={() => setMobileOpen(false)}>Producto</a>
-            <a href="#commerce" onClick={() => setMobileOpen(false)}>Commerce</a>
+            <a href="#tienda" onClick={() => setMobileOpen(false)}>Tienda online</a>
+            <a href="#gestion" onClick={() => setMobileOpen(false)}>Gestión</a>
             <a href="#finance" onClick={() => setMobileOpen(false)}>Finance</a>
             <Link to="/precios" onClick={() => setMobileOpen(false)}>Precios</Link>
             <div className="landing-nav__mobile-actions">
@@ -225,29 +215,29 @@ export default function LandingPage() {
         <section className="landing-hero">
           <div className="landing-container landing-hero__inner">
             <div className="landing-hero__copy">
-              <p className="landing-eyebrow"><span className="landing-eyebrow__dot" /> Commerce Operating System</p>
-              <h1><span>Nerqia</span>, el sistema operativo de tu comercio.</h1>
-              <p className="landing-hero__lead">Vendé, operá y entendé cuánto ganaste desde un solo lugar. Tu mostrador, tienda online y canales comparten stock, clientes, costos y margen real.</p>
+              <p className="landing-eyebrow"><span className="landing-eyebrow__dot" /> Tu tienda online, conectada de verdad</p>
+              <h1><span>Nerqia</span>, tu tienda online conectada a todo tu negocio.</h1>
+              <p className="landing-hero__lead">Creá una tienda preparada para vender y crecer. Cada pedido comparte productos, stock y clientes con Gestión, mientras Finance explica costos, cobros y margen real.</p>
               <div className="landing-hero__actions">
-                <Link to="/login?mode=register" className="landing-button landing-button--primary">Crear mi cuenta gratis <ArrowRight /></Link>
-                <a href="#producto" className="landing-button landing-button--outline">Explorar el producto <ChevronRight /></a>
+                <Link to="/login?mode=register" className="landing-button landing-button--primary">Crear mi tienda gratis <ArrowRight /></Link>
+                <a href="#tienda" className="landing-button landing-button--outline">Ver cómo funciona <ChevronRight /></a>
               </div>
               <div className="landing-checks">{CHECKS.map(check => <span key={check}><Check /> {check}</span>)}</div>
             </div>
-            <DashboardPreview />
+            <StorefrontPreview />
           </div>
           <div className="landing-hero__signal" aria-label="Canales conectados">
             <div className="landing-container">
-              <span>POS</span><i /><span>Tienda online</span><i /><span>Mercado Libre</span><i /><span>Finance</span><i /><strong>Una sola verdad</strong>
+              <span>Tienda online</span><i /><span>Gestión</span><i /><span>Finance</span><i /><span>Todos tus canales</span><i /><strong>Una sola operación</strong>
             </div>
           </div>
         </section>
 
-        <section className="landing-proof" id="producto">
+        <section className="landing-proof" id="tienda">
           <div className="landing-container">
             <div className="landing-section-heading landing-section-heading--row">
-              <div><p className="landing-eyebrow">El núcleo de Nerqia</p><h2>Un comercio conectado funciona distinto.</h2></div>
-              <p>Dejá de reconstruir la operación entre plataformas. Cada venta mueve inventario, registra su costo y explica el margen desde el mismo Business Core.</p>
+              <div><p className="landing-eyebrow">Todo empieza por vender</p><h2>Una tienda atractiva por fuera. Un negocio conectado por dentro.</h2></div>
+              <p>Publicá una experiencia propia sin separar el ecommerce de la operación. Cada pedido mueve inventario, conserva al cliente y explica el margen desde el mismo núcleo.</p>
             </div>
             <div className="landing-capability-grid">
               {CAPABILITIES.map(({ icon: Icon, kicker, title, description, tone }) => (
@@ -262,7 +252,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="landing-operation" id="commerce">
+        <section className="landing-operation" id="gestion">
           <div className="landing-container landing-operation__grid">
             <div className="landing-operation__copy">
               <p className="landing-eyebrow">El mapa completo</p>

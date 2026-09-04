@@ -7,19 +7,23 @@ const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
 const landingV4 = css.split('/* Landing v4:')[1]?.split('.auth-shell {')[0] ?? '';
 
 describe('contrato visual de la landing de Nerqia', () => {
-  it('presenta la marca y la categoría de producto en el H1', () => {
-    expect(page).toContain('<h1><span>Nerqia</span>, el sistema operativo de tu comercio.</h1>');
+  it('presenta la tienda online como puerta principal en el H1', () => {
+    expect(page).toContain('<h1><span>Nerqia</span>, tu tienda online conectada a todo tu negocio.</h1>');
   });
 
-  it('usa una escena inmersiva y no vuelve al hero dividido', () => {
+  it('usa una escena inmersiva de ecommerce y no vuelve al hero dividido', () => {
     expect(page).toContain('landing-hero__inner');
-    expect(page).toContain('<DashboardPreview />');
+    expect(page).toContain('<StorefrontPreview />');
+    expect(page).toContain('/landing/storefront-aurea.webp');
+    expect(page).toContain('Nueva compra online');
+    expect(page).toContain('Stock actualizado');
+    expect(page).toContain('Margen explicado');
     expect(page).not.toContain('landing-hero__grid');
   });
 
   it('declara los números del preview como ilustrativos', () => {
-    expect(page).toContain('Datos ilustrativos');
-    expect(page).toContain('Vista de demostración');
+    expect(page).toContain('Contenido ilustrativo');
+    expect(page).toContain('dato ilustrativo');
   });
 
   it('conecta Gestión, Tienda y Finance en tabs accesibles', () => {
@@ -30,6 +34,8 @@ describe('contrato visual de la landing de Nerqia', () => {
     expect(page).toContain("id: 'gestion'");
     expect(page).toContain("id: 'tienda'");
     expect(page).toContain("id: 'finance'");
+    expect(page.indexOf("id: 'tienda'")).toBeLessThan(page.indexOf("id: 'gestion'"));
+    expect(page).toContain("useState<(typeof SURFACES)[number]['id']>('tienda')");
   });
 
   it('usa color plano y evita gradientes u orbes decorativos', () => {
