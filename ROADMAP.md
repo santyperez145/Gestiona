@@ -4764,11 +4764,13 @@ Finance Connect.
      checkout pasaron **8/8** en Chromium/Pixel 5. La ficha encontró una segunda
      causa real: los links “Iniciá sesión” de Opiniones y Preguntas sólo se
      subrayaban en hover y su color quedaba a 1,2:1 del texto circundante. Ya
-     son distinguibles sin depender del color. Estado: **segundo ajuste local;
-     falta publicar y repetir la ficha antes de cerrar la evidencia**.
-     La auditoría de teclado, zoom 200%, los otros temas y lector de pantalla
-     continúa en D6. `npm audit --omit=dev` no entregó evidencia por timeout de
-     red; no se declara aprobado.
+     son distinguibles sin depender del color. `4129f0a4` también llegó a
+     Vercel `Ready`; primero la PDP pasó 2/2 y luego la matriz completa repitió
+     **10/10 en Chromium/Pixel 5**, sin escribir visitas, carritos, checkouts ni
+     pedidos. Estado: **D6.1 cerrado para el gate axe del recorrido y tema
+     productivos**. La auditoría de teclado, zoom 200%, los otros temas y lector
+     de pantalla continúa en D6. `npm audit --omit=dev` no entregó evidencia por
+     timeout de red; no se declara aprobado.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
