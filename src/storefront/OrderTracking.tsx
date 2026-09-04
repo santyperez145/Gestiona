@@ -129,7 +129,7 @@ export default function OrderTracking({
         style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
       >
         <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: "hsl(var(--st-accent))" }} aria-hidden="true" />
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: "hsl(var(--st-link))" }} aria-hidden="true" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold">No pudimos actualizar el seguimiento</p>
             <p className="mt-1 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
@@ -206,7 +206,7 @@ export default function OrderTracking({
             <a
               href={t.tracking_url} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-xs mt-1.5 hover:underline"
-              style={{ color: "hsl(var(--st-accent))" }}
+              style={{ color: "hsl(var(--st-link))" }}
             >
               Seguirlo en el sitio del correo <ExternalLink className="w-3 h-3" />
             </a>

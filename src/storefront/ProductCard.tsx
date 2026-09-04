@@ -67,7 +67,7 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         >
           <Heart
             className={`w-4 h-4 ${deseado ? "fill-current" : ""}`}
-            style={{ color: deseado ? "hsl(var(--st-accent))" : "#555" }}
+            style={{ color: deseado ? "hsl(var(--st-link))" : "#555" }}
           />
         </button>
 

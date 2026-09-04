@@ -279,7 +279,7 @@ function TrustBar({
           { icon: Sparkles, t: "Catálogo actualizado", s: "Mostramos precios y disponibilidad al día" },
         ].map(({ icon: Icon, t, s }) => (
           <div key={t} className="storefront-trust-item flex items-start gap-3">
-            <Icon className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--st-accent))" }} />
+            <Icon className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--st-link))" }} />
             <div>
               <p className="font-medium">{t}</p>
               <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>{s}</p>
@@ -349,7 +349,7 @@ function Row({ title, items, href }: { title: string; items: ReturnType<typeof u
     <section className="storefront-section storefront-product-row max-w-6xl mx-auto px-4 py-8">
       <div className="storefront-section__heading flex items-center justify-between mb-4">
         <h2 className="storefront-section__title text-lg font-semibold">{title}</h2>
-        <Link to={href} className="storefront-section__link text-sm hover:underline inline-flex items-center gap-1" style={{ color: "hsl(var(--st-accent))" }}>
+        <Link to={href} className="storefront-section__link text-sm hover:underline inline-flex items-center gap-1" style={{ color: "hsl(var(--st-link))" }}>
           Ver todo <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>

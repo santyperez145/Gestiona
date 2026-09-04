@@ -73,7 +73,7 @@ export default function StoreArrepentimiento() {
   if (listo) {
     return (
       <div className="max-w-xl mx-auto px-4 py-16 text-center">
-        <CheckCircle2 className="w-12 h-12 mx-auto mb-4" style={{ color: "hsl(var(--st-accent))" }} />
+        <CheckCircle2 className="w-12 h-12 mx-auto mb-4" style={{ color: "hsl(var(--st-link))" }} />
         <h1 className="text-2xl font-semibold mb-2">Pedido registrado</h1>
         <p className="text-sm mb-6" style={{ color: "hsl(var(--st-muted))" }}>
           Tu número de seguimiento es <strong>{listo.rma}</strong>. Te vamos a
@@ -114,7 +114,7 @@ export default function StoreArrepentimiento() {
                 background: tipo === o.v ? "hsl(var(--st-accent) / 0.06)" : undefined,
               }}
             >
-              <o.icon className="w-5 h-5 mb-2" style={{ color: "hsl(var(--st-accent))" }} />
+              <o.icon className="w-5 h-5 mb-2" style={{ color: "hsl(var(--st-link))" }} />
               <p className="font-medium text-sm mb-1">{o.t}</p>
               <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>{o.d}</p>
             </button>

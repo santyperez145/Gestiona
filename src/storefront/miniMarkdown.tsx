@@ -33,7 +33,7 @@ function inline(texto: string, keyBase: string): ReactNode[] {
           target="_blank"
           rel="noopener noreferrer nofollow"
           className="underline"
-          style={{ color: "hsl(var(--st-accent))" }}
+          style={{ color: "hsl(var(--st-link))" }}
         >
           {m[2]}
         </a>,

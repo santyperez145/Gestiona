@@ -52,7 +52,7 @@ export default function StockAlertForm({
         className="mt-6 p-4 border flex items-start gap-3"
         style={{ borderColor: "hsl(var(--st-accent))", borderRadius: "var(--st-radius)" }}
       >
-        <Check className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--st-accent))" }} />
+        <Check className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--st-link))" }} />
         <div>
           <p className="text-sm font-medium">Listo, te avisamos</p>
           <p className="text-xs mt-0.5" style={{ color: "hsl(var(--st-muted))" }}>
@@ -70,7 +70,7 @@ export default function StockAlertForm({
       style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
     >
       <div className="flex items-center gap-2">
-        <BellRing className="w-4 h-4" style={{ color: "hsl(var(--st-accent))" }} />
+        <BellRing className="w-4 h-4" style={{ color: "hsl(var(--st-link))" }} />
         <p className="text-sm font-medium">Sin stock por ahora</p>
       </div>
       <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>

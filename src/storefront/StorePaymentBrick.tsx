@@ -47,7 +47,7 @@ export default function StorePaymentBrick({ slug, orderNumber, accessToken, conf
   return (
     <div className="text-left">
       <div className="flex gap-2 items-start px-1 mb-2 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
-        <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--st-accent))" }} />
+        <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--st-link))" }} />
         <p>Los datos de tu tarjeta los procesa MercadoPago de forma segura.</p>
       </div>
 

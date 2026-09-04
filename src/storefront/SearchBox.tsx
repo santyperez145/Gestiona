@@ -193,7 +193,7 @@ export default function SearchBox({
             type="button"
             onMouseDown={e => { e.preventDefault(); buscarTexto(); }}
             className="w-full min-h-11 px-3 py-2 text-left text-xs border-t hover:opacity-80"
-            style={{ borderColor: "hsl(var(--st-border))", color: "hsl(var(--st-accent))" }}
+            style={{ borderColor: "hsl(var(--st-border))", color: "hsl(var(--st-link))" }}
           >
             Ver todo lo que coincide con "{q.trim()}"
           </button>

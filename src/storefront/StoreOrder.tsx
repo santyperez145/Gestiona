@@ -51,7 +51,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
           }}
         >
           {copied
-            ? <CheckCircle2 className="w-3.5 h-3.5" style={{ color: "hsl(var(--st-accent))" }} />
+            ? <CheckCircle2 className="w-3.5 h-3.5" style={{ color: "hsl(var(--st-link))" }} />
             : <Copy className="w-3.5 h-3.5" />}
         </button>
       </div>
@@ -278,7 +278,7 @@ export default function StoreOrder() {
           >
             Reintentar
           </button>
-          <Link to={base || "/"} className="inline-block mt-5 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
+          <Link to={base || "/"} className="inline-block mt-5 text-sm hover:underline" style={{ color: "hsl(var(--st-link))" }}>
             Volver a la tienda
           </Link>
         </div>
@@ -293,7 +293,7 @@ export default function StoreOrder() {
           className="border p-6 text-center"
           style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
         >
-          <ShieldCheck className="w-10 h-10 mx-auto mb-3" style={{ color: "hsl(var(--st-accent))" }} />
+          <ShieldCheck className="w-10 h-10 mx-auto mb-3" style={{ color: "hsl(var(--st-link))" }} />
           <h1 className="text-xl font-bold">Verificá tu pedido</h1>
           <p className="text-sm mt-2" style={{ color: "hsl(var(--st-muted))" }}>
             Para proteger tus datos, ingresá el email que usaste al comprar.
@@ -335,10 +335,10 @@ export default function StoreOrder() {
             </button>
           </form>
           {accesoError && <p className="text-xs text-red-600 mt-3" role="alert">{accesoError}</p>}
-          <Link to={`${base}/seguimiento`} className="inline-block mt-4 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
+          <Link to={`${base}/seguimiento`} className="inline-block mt-4 text-sm hover:underline" style={{ color: "hsl(var(--st-link))" }}>
             ¿No tenés el link? Consultá con número y email
           </Link>
-          <Link to={base || "/"} className="inline-block mt-3 text-sm hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
+          <Link to={base || "/"} className="inline-block mt-3 text-sm hover:underline" style={{ color: "hsl(var(--st-link))" }}>
             Volver a la tienda
           </Link>
         </div>
@@ -373,7 +373,7 @@ export default function StoreOrder() {
     <div className="max-w-2xl mx-auto px-4 py-10">
       <div className="text-center">
         {pagado
-          ? <CheckCircle2 className="w-14 h-14 mx-auto mb-3" style={{ color: "hsl(var(--st-accent))" }} />
+          ? <CheckCircle2 className="w-14 h-14 mx-auto mb-3" style={{ color: "hsl(var(--st-link))" }} />
           : pagoRevertido
             ? <AlertTriangle className="w-14 h-14 mx-auto mb-3 text-red-600" />
           : <Clock className="w-14 h-14 mx-auto mb-3" style={{ color: "hsl(var(--st-muted))" }} />}
@@ -459,7 +459,7 @@ export default function StoreOrder() {
                   onClick={abrirPagoExterno}
                   disabled={pagando}
                   className="text-xs underline underline-offset-4 disabled:opacity-60"
-                  style={{ color: "hsl(var(--st-accent))" }}
+                  style={{ color: "hsl(var(--st-link))" }}
                 >
                   {pagando ? "Abriendo el pago..." : "Elegir otro medio"}
                 </button>

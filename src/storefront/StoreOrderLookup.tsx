@@ -60,7 +60,7 @@ export default function StoreOrderLookup() {
           borderRadius: "var(--st-radius)",
         }}
       >
-        <PackageSearch className="mx-auto mb-3 h-10 w-10" style={{ color: "hsl(var(--st-accent))" }} />
+        <PackageSearch className="mx-auto mb-3 h-10 w-10" style={{ color: "hsl(var(--st-link))" }} />
         <h1 className="text-center text-xl font-bold">Consultar mi pedido</h1>
         <p className="mt-2 text-center text-sm" style={{ color: "hsl(var(--st-muted))" }}>
           Ingresá el número que te mandamos por email y el mismo correo de la compra.
@@ -114,7 +114,7 @@ export default function StoreOrderLookup() {
         <Link
           to={base || "/"}
           className="mt-5 block text-center text-sm hover:underline"
-          style={{ color: "hsl(var(--st-accent))" }}
+          style={{ color: "hsl(var(--st-link))" }}
         >
           Volver a la tienda
         </Link>

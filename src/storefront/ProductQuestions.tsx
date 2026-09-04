@@ -99,7 +99,7 @@ export default function ProductQuestions({ productId }: { productId: string }) {
   return (
     <section className="mt-14 pt-8 border-t" style={{ borderColor: "hsl(var(--st-border))" }}>
       <div className="flex items-center gap-2 mb-5">
-        <MessageCircleQuestion className="w-5 h-5" style={{ color: "hsl(var(--st-accent))" }} />
+        <MessageCircleQuestion className="w-5 h-5" style={{ color: "hsl(var(--st-link))" }} />
         <h2 className="text-lg font-semibold">Preguntas y respuestas</h2>
         {preguntas.length > 0 && (
           <span className="text-sm" style={{ color: "hsl(var(--st-muted))" }}>
@@ -120,7 +120,7 @@ export default function ProductQuestions({ productId }: { productId: string }) {
           />
           {error && <p className="text-xs text-red-600 mt-1.5">{error}</p>}
           {listo && !error && (
-            <p className="text-xs mt-1.5" style={{ color: "hsl(var(--st-accent))" }}>
+            <p className="text-xs mt-1.5" style={{ color: "hsl(var(--st-link))" }}>
               Listo, la enviamos. Te avisamos por mail cuando la contesten.
             </p>
           )}
@@ -144,7 +144,7 @@ export default function ProductQuestions({ productId }: { productId: string }) {
         </form>
       ) : (
         <p className="text-sm mb-6" style={{ color: "hsl(var(--st-muted))" }}>
-          <Link to={`${base}/cuenta`} className="underline underline-offset-2" style={{ color: "hsl(var(--st-accent))" }}>
+          <Link to={`${base}/cuenta`} className="underline underline-offset-2" style={{ color: "hsl(var(--st-link))" }}>
             Iniciá sesión
           </Link>{" "}
           para preguntar sobre este producto.

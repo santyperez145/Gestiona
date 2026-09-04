@@ -290,7 +290,7 @@ export default function StoreProduct() {
               los dos. Los descuentos no se acumulan. */}
           {descuentoPago && medioMejoraElPrecio(baseMedioPago, price, descuentoPago.metodo, store?.payment_discounts) && (
             <p className="mt-1.5 text-sm">
-              <strong style={{ color: "hsl(var(--st-accent))" }}>
+              <strong style={{ color: "hsl(var(--st-link))" }}>
                 {fmt(precioConMedioDePago(baseMedioPago, price, descuentoPago.metodo, store?.payment_discounts))}
               </strong>{" "}
               <span style={{ color: "hsl(var(--st-muted))" }}>
@@ -310,7 +310,7 @@ export default function StoreProduct() {
                 className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 text-sm font-medium"
                 style={{
                   background: "hsl(var(--st-accent) / 0.12)",
-                  color: "hsl(var(--st-accent))",
+                  color: "hsl(var(--st-link))",
                   borderRadius: "var(--st-radius)",
                 }}
               >
@@ -431,7 +431,7 @@ export default function StoreProduct() {
             >
               <Heart
                 className={`w-4 h-4 ${deseos.has(p.id) ? "fill-current" : ""}`}
-                style={{ color: deseos.has(p.id) ? "hsl(var(--st-accent))" : "inherit" }}
+                style={{ color: deseos.has(p.id) ? "hsl(var(--st-link))" : "inherit" }}
               />
             </button>
           </div>

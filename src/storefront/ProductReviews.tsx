@@ -35,7 +35,7 @@ export function Stars({
         const estrella = (
           <Star
             className={lleno ? "fill-current" : ""}
-            style={{ width: size, height: size, color: lleno ? "hsl(var(--st-accent))" : "hsl(var(--st-border))" }}
+            style={{ width: size, height: size, color: lleno ? "hsl(var(--st-link))" : "hsl(var(--st-border))" }}
           />
         );
         return onPick ? (
@@ -151,7 +151,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
       )}
       {!abierto && !customer && (
         <p className="text-xs mb-5" style={{ color: "hsl(var(--st-muted))" }}>
-          <Link to={`${base}/cuenta`} className="underline underline-offset-2" style={{ color: "hsl(var(--st-accent))" }}>
+          <Link to={`${base}/cuenta`} className="underline underline-offset-2" style={{ color: "hsl(var(--st-link))" }}>
             Iniciá sesión
           </Link>{" "}
           para dejar tu opinión si ya compraste este producto.
@@ -207,7 +207,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
               {r.verified && (
                 <span
                   className="inline-flex items-center gap-1 text-[11px]"
-                  style={{ color: "hsl(var(--st-accent))" }}
+                  style={{ color: "hsl(var(--st-link))" }}
                   title="Compró este producto en la tienda"
                 >
                   <BadgeCheck className="w-3.5 h-3.5" /> Compra verificada

@@ -226,7 +226,7 @@ export default function StoreAccount() {
             <button
               onClick={() => { setModo(m => (m === "login" ? "registro" : "login")); setError(null); setAviso(null); setOtpSent(false); }}
               className="hover:underline"
-              style={{ color: "hsl(var(--st-accent))" }}
+              style={{ color: "hsl(var(--st-link))" }}
             >
               {modo === "login" ? "No tengo cuenta, quiero registrarme" : "Ya tengo cuenta"}
             </button>
@@ -238,7 +238,7 @@ export default function StoreAccount() {
                   type="button"
                   onClick={() => { setModo("otp"); setError(null); setAviso(null); setOtpSent(false); }}
                   className="hover:underline"
-                  style={{ color: "hsl(var(--st-accent))" }}
+                  style={{ color: "hsl(var(--st-link))" }}
                 >
                   Entrar con enlace o código
                 </button>
@@ -264,7 +264,7 @@ export default function StoreAccount() {
 
         <p className="text-[11px] text-center mt-6" style={{ color: "hsl(var(--st-muted))" }}>
           También podés comprar sin cuenta.{" "}
-          <Link to={`${base}/productos`} className="hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
+          <Link to={`${base}/productos`} className="hover:underline" style={{ color: "hsl(var(--st-link))" }}>
             Ver productos
           </Link>
         </p>

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { accessibleForeground, resolveTheme, hexToHsl, THEME_IDS, resolveFont, googleFontHref, STORE_FONTS, STORE_THEMES, themePaintsHeader } from "@/storefront/theme";
+import { accessibleForeground, contrastRatioHsl, resolveTheme, hexToHsl, THEME_IDS, resolveFont, googleFontHref, STORE_FONTS, STORE_THEMES, themePaintsHeader } from "@/storefront/theme";
 
 describe("hexToHsl", () => {
   it("convierte un hex a la forma que usan las variables CSS", () => {
@@ -27,11 +27,38 @@ describe("resolveTheme", () => {
     // un tema no tiene que obligar a tocar el test, pero olvidarse una variable
     // sí tiene que fallar.
     expect(THEME_IDS.length).toBeGreaterThanOrEqual(5);
-    const requeridas = ["--st-bg", "--st-surface", "--st-border", "--st-text", "--st-muted", "--st-accent", "--st-accent-fg", "--st-header", "--st-header-fg"];
+    const requeridas = ["--st-bg", "--st-surface", "--st-border", "--st-text", "--st-muted", "--st-link", "--st-accent", "--st-accent-fg", "--st-header", "--st-header-fg"];
     for (const id of THEME_IDS) {
       const t = resolveTheme(id, null);
       for (const v of requeridas) expect(t.vars[v], `${id} sin ${v}`).toBeTruthy();
     }
+  });
+
+  it("todos los pares de texto de todos los temas superan WCAG AA", () => {
+    const pairs = [
+      ["--st-text", "--st-bg"],
+      ["--st-text", "--st-surface"],
+      ["--st-muted", "--st-bg"],
+      ["--st-muted", "--st-surface"],
+      ["--st-link", "--st-bg"],
+      ["--st-link", "--st-surface"],
+      ["--st-accent-fg", "--st-accent"],
+      ["--st-header-fg", "--st-header"],
+    ] as const;
+
+    for (const id of THEME_IDS) {
+      const theme = resolveTheme(id, null);
+      for (const [foreground, background] of pairs) {
+        const ratio = contrastRatioHsl(theme.vars[foreground], theme.vars[background]);
+        expect(ratio, `${id}: ${foreground} sobre ${background}`).not.toBeNull();
+        expect(ratio!, `${id}: ${foreground} sobre ${background}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("detecta pares inválidos y contrastes insuficientes", () => {
+    expect(contrastRatioHsl("no-es-hsl", "0 0% 100%")).toBeNull();
+    expect(contrastRatioHsl("0 0% 80%", "0 0% 100%")!).toBeLessThan(4.5);
   });
 
   it("un tema desconocido cae en minimal en vez de quedar sin estilos", () => {

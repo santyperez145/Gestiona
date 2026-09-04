@@ -137,7 +137,7 @@ export default function StoreCart() {
                   : "Carrito guardado"}
           </p>
           {cartSyncNotice && (
-            <p className="text-xs font-medium" style={{ color: "hsl(var(--st-accent))" }}>
+            <p className="text-xs font-medium" style={{ color: "hsl(var(--st-link))" }}>
               {cartSyncNotice}
             </p>
           )}
@@ -296,7 +296,7 @@ export default function StoreCart() {
               <span>{fmt(subtotal)}</span>
             </div>
             {promo2x > 0 && (
-              <div className="flex justify-between text-sm" style={{ color: "hsl(var(--st-accent))" }}>
+              <div className="flex justify-between text-sm" style={{ color: "hsl(var(--st-link))" }}>
                 <span>Promo llevando 2</span>
                 <span>−{fmt(promo2x)}</span>
               </div>

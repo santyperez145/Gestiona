@@ -753,7 +753,7 @@ export default function StoreCheckout() {
                     {pct > 0 && (
                       <span
                         className="text-xs font-medium px-2 py-0.5 rounded"
-                        style={{ background: "hsl(var(--st-accent) / 0.12)", color: "hsl(var(--st-accent))" }}
+                        style={{ background: "hsl(var(--st-accent) / 0.12)", color: "hsl(var(--st-link))" }}
                       >
                         {pct}% — ahorrás {fmt(ahorro)}
                       </span>
@@ -848,7 +848,7 @@ export default function StoreCheckout() {
             {cuponAplicado ? (
               <div className="flex items-center justify-between gap-2 text-sm">
                 <span className="inline-flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5" style={{ color: "hsl(var(--st-accent))" }} />
+                  <Tag className="w-3.5 h-3.5" style={{ color: "hsl(var(--st-link))" }} />
                   <strong>{cuponAplicado.code}</strong>
                 </span>
                 <button
@@ -889,12 +889,12 @@ export default function StoreCheckout() {
               <span style={{ color: "hsl(var(--st-muted))" }}>Subtotal</span><span>{fmt(subtotal)}</span>
             </div>
             {descuento > 0 && (
-              <div className="flex justify-between" style={{ color: "hsl(var(--st-accent))" }}>
+              <div className="flex justify-between" style={{ color: "hsl(var(--st-link))" }}>
                 <span>Cupón {cuponAplicado?.code}</span><span>−{fmt(descuento)}</span>
               </div>
             )}
             {descuentoPago > 0 && (
-              <div className="flex justify-between" style={{ color: "hsl(var(--st-accent))" }}>
+              <div className="flex justify-between" style={{ color: "hsl(var(--st-link))" }}>
                 <span>Pagando con {nombreMedio(form.metodo)}</span>
                 <span>−{fmt(descuentoPago)}</span>
               </div>

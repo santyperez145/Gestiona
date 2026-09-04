@@ -4793,6 +4793,25 @@ Finance Connect.
      foco visible**. Siguen pendientes el recorrido completo de todos los
      controles, zoom y lector de pantalla.
 
+190. La marca y el texto dejan de competir por el mismo token — D6.3,
+     2026-09-04. La matriz de los siete temas encontró dos fallas que el tema
+     productivo no mostraba: el rosa de Pastel con texto blanco quedaba en
+     **3,45:1**, y la corrida publicada con Bold frenó en los links “Ver todo”
+     a **2,07:1** sobre el fondo claro. `--st-accent` no puede ser a la vez
+     fondo de botón y tinta de texto: un color puede contrastar con su
+     foreground y fallar contra el canvas. El contrato incorpora `--st-link`,
+     una tinta accesible y todavía coherente con cada tema; el acento queda
+     para fondos, bordes y marca. Todos los foregrounds públicos que antes
+     usaban el acento crudo —links, importes, estados e iconos— consumen ahora
+     esa tinta. Pastel usa negro sobre su CTA rosa.
+
+     La guarda pura calcula luminancia sRGB y exige **4,5:1** para texto,
+     muted, link, acento y header contra canvas/superficie en cada tema. El E2E
+     read-only sustituye sólo `theme` y `primary_color` en la respuesta del
+     navegador, recorre los siete temas con la tienda real y ejecuta axe sin
+     modificar la configuración del comercio. Estado: **implementado
+     localmente; falta certificar el bundle publicado antes de cerrar D6.3**.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

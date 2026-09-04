@@ -35,6 +35,7 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-border": "0 0% 90%",
       "--st-text": "0 0% 9%",
       "--st-muted": "0 0% 45%",
+      "--st-link": "0 0% 9%",
       "--st-accent": "0 0% 9%",
       "--st-accent-fg": "0 0% 100%",
       "--st-header": "0 0% 100%",
@@ -53,6 +54,7 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-border": "45 60% 85%",
       "--st-text": "24 10% 10%",
       "--st-muted": "24 6% 40%",
+      "--st-link": "24 10% 10%",
       "--st-accent": "38 92% 50%",
       "--st-accent-fg": "24 10% 10%",
       "--st-header": "38 92% 50%",
@@ -71,6 +73,7 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-border": "240 8% 20%",
       "--st-text": "40 20% 96%",
       "--st-muted": "40 8% 62%",
+      "--st-link": "43 74% 58%",
       "--st-accent": "43 74% 58%",
       "--st-accent-fg": "240 12% 6%",
       "--st-header": "240 12% 6%",
@@ -89,6 +92,7 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-border": "215 25% 88%",
       "--st-text": "222 47% 11%",
       "--st-muted": "215 16% 45%",
+      "--st-link": "221 83% 45%",
       "--st-accent": "221 83% 53%",
       "--st-accent-fg": "0 0% 100%",
       "--st-header": "222 47% 11%",
@@ -107,6 +111,7 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-border": "80 15% 85%",
       "--st-text": "120 12% 14%",
       "--st-muted": "120 6% 42%",
+      "--st-link": "158 64% 27%",
       "--st-accent": "158 64% 32%",
       "--st-accent-fg": "0 0% 100%",
       "--st-header": "158 64% 32%",
@@ -127,6 +132,7 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-border": "222 12% 24%",
       "--st-text": "210 20% 96%",
       "--st-muted": "215 14% 62%",
+      "--st-link": "199 89% 55%",
       "--st-accent": "199 89% 55%",
       "--st-accent-fg": "222 18% 9%",
       "--st-header": "222 18% 9%",
@@ -147,8 +153,9 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-border": "20 30% 90%",
       "--st-text": "340 15% 16%",
       "--st-muted": "340 8% 46%",
+      "--st-link": "340 65% 38%",
       "--st-accent": "340 65% 62%",
-      "--st-accent-fg": "0 0% 100%",
+      "--st-accent-fg": "0 0% 0%",
       "--st-header": "0 0% 100%",
       "--st-header-fg": "340 15% 16%",
     },
@@ -182,19 +189,59 @@ export function hexToHsl(hex?: string | null): string | null {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
+type Rgb = readonly [number, number, number];
+
+function relativeLuminanceFromRgb(channels: Rgb): number {
+  const linear = channels.map(channel => (
+    channel <= 0.04045
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4
+  ));
+  return (0.2126 * linear[0]) + (0.7152 * linear[1]) + (0.0722 * linear[2]);
+}
+
 /** Luminancia relativa WCAG de un color hexadecimal sRGB. */
 function relativeLuminance(hex: string): number | null {
   const match = /^#?([\da-f]{6})$/i.exec(hex.trim());
   if (!match) return null;
   const numeric = Number.parseInt(match[1], 16);
-  const channels = [numeric >> 16, numeric >> 8, numeric]
-    .map(channel => (channel & 255) / 255)
-    .map(channel => (
-      channel <= 0.04045
-        ? channel / 12.92
-        : ((channel + 0.055) / 1.055) ** 2.4
-    ));
-  return (0.2126 * channels[0]) + (0.7152 * channels[1]) + (0.0722 * channels[2]);
+  return relativeLuminanceFromRgb([
+    ((numeric >> 16) & 255) / 255,
+    ((numeric >> 8) & 255) / 255,
+    (numeric & 255) / 255,
+  ]);
+}
+
+function hslToRgb(value: string): Rgb | null {
+  const match = /^\s*(-?\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%\s*$/.exec(value);
+  if (!match) return null;
+  const hue = ((Number.parseFloat(match[1]) % 360) + 360) % 360;
+  const saturation = Number.parseFloat(match[2]) / 100;
+  const lightness = Number.parseFloat(match[3]) / 100;
+  if (saturation > 1 || lightness > 1) return null;
+
+  const channel = (offset: number) => {
+    const k = (offset + (hue / 30)) % 12;
+    const amplitude = saturation * Math.min(lightness, 1 - lightness);
+    return lightness - (amplitude * Math.max(-1, Math.min(k - 3, 9 - k, 1)));
+  };
+  return [channel(0), channel(8), channel(4)];
+}
+
+/** Relación WCAG entre dos tokens HSL del Storefront. */
+export function contrastRatioHsl(first: string, second: string): number | null {
+  const firstRgb = hslToRgb(first);
+  const secondRgb = hslToRgb(second);
+  if (!firstRgb || !secondRgb) return null;
+  const high = Math.max(
+    relativeLuminanceFromRgb(firstRgb),
+    relativeLuminanceFromRgb(secondRgb),
+  );
+  const low = Math.min(
+    relativeLuminanceFromRgb(firstRgb),
+    relativeLuminanceFromRgb(secondRgb),
+  );
+  return (high + 0.05) / (low + 0.05);
 }
 
 /**

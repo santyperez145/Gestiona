@@ -32,7 +32,7 @@ export default function StoreTrackingConsent({ enabled }: { enabled: boolean }) 
       }}
     >
       <div className="flex items-start gap-3">
-        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" style={{ color: "hsl(var(--st-accent))" }} aria-hidden="true" />
+        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" style={{ color: "hsl(var(--st-link))" }} aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <h2 id="store-tracking-consent-title" className="text-sm font-semibold">
             Tu privacidad en esta tienda

@@ -207,7 +207,7 @@ export default function StoreProducts() {
         {/* ── Filtros ─────────────────────────────────────────────── */}
         <aside className={`storefront-filter-panel ${showFilters ? "block" : "hidden"} sm:block space-y-5`}>
           {activos > 0 && (
-            <button onClick={limpiar} className="text-xs inline-flex items-center gap-1 hover:underline" style={{ color: "hsl(var(--st-accent))" }}>
+            <button onClick={limpiar} className="text-xs inline-flex items-center gap-1 hover:underline" style={{ color: "hsl(var(--st-link))" }}>
               <X className="w-3 h-3" /> Limpiar filtros
             </button>
           )}
@@ -417,7 +417,7 @@ function Opcion({ activo, onClick, children }: { activo: boolean; onClick: () =>
     <button
       onClick={onClick}
       className={`block w-full min-h-11 text-left text-sm py-2.5 transition-opacity ${activo ? "font-semibold" : "opacity-70 hover:opacity-100"}`}
-      style={activo ? { color: "hsl(var(--st-accent))" } : undefined}
+      style={activo ? { color: "hsl(var(--st-link))" } : undefined}
     >
       {children}
     </button>

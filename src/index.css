@@ -4183,7 +4183,7 @@
   .storefront-hero__aside-head svg {
     width: 1rem;
     height: 1rem;
-    color: hsl(var(--st-accent));
+    color: hsl(var(--st-link));
   }
 
   .storefront-hero__aside-stat {
@@ -4219,7 +4219,7 @@
   .storefront-hero__aside-row svg {
     width: 0.8rem;
     height: 0.8rem;
-    color: hsl(var(--st-accent));
+    color: hsl(var(--st-link));
   }
 
   .storefront-eyebrow {
@@ -4230,7 +4230,7 @@
     border: 1px solid hsl(var(--st-accent) / 0.28);
     border-radius: var(--st-radius);
     background: hsl(var(--st-accent) / 0.1);
-    color: hsl(var(--st-accent));
+    color: hsl(var(--st-link));
     font-size: 0.6875rem;
     font-weight: 700;
     letter-spacing: 0.08em;
