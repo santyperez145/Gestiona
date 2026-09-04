@@ -73,6 +73,25 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("WCAG A/AA del Storefront", () => {
+  test("el primer Tab permite saltar al contenido y conserva foco visible", async ({ page }) => {
+    await page.goto(tienda());
+    await fichasVisibles(page);
+
+    await page.keyboard.press("Tab");
+    const salto = page.getByRole("link", { name: "Saltar al contenido principal" });
+    await expect(salto).toBeFocused();
+    await expect(salto).toBeVisible();
+    const foco = await salto.evaluate(element => {
+      const style = getComputedStyle(element);
+      return { width: Number.parseFloat(style.outlineWidth), style: style.outlineStyle };
+    });
+    expect(foco.style).not.toBe("none");
+    expect(foco.width).toBeGreaterThanOrEqual(2);
+
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#contenido-principal")).toBeFocused();
+  });
+
   test("Inicio no tiene violaciones axe críticas o serias", async ({ page }) => {
     await page.goto(tienda());
     await fichasVisibles(page);

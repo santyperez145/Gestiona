@@ -246,6 +246,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         ...(font ? { fontFamily: font.stack } : {}),
       }}
     >
+      <a className="storefront-skip-link" href="#contenido-principal">
+        Saltar al contenido principal
+      </a>
+
       {/* ── Barra legal ──────────────────────────────────────────────────
           La Res. 424/2020 no pide que el botón de arrepentimiento sea
           "accesible": pide que esté **en la primera pantalla**. Por eso va
@@ -460,7 +464,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         )}
       </header>
 
-      <main className="storefront-main">{children}</main>
+      <main id="contenido-principal" tabIndex={-1} className="storefront-main">
+        {children}
+      </main>
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
       <footer className="storefront-footer border-t mt-16" style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))" }}>

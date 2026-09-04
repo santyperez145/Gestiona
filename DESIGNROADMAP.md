@@ -797,7 +797,7 @@ y sin filtrar chrome o colores del SaaS.
 
 ### D6 — Responsive, accesibilidad y resiliencia
 
-**Estado:** parcial D6.1, 2026-09-04.
+**Estado:** parcial D6.2, 2026-09-04.
 
 D6.1 instala el gate automático WCAG A/AA del recorrido de compra sin escribir
 en producción. La primera medición publicada falló 5/5 superficies y encontró
@@ -811,6 +811,17 @@ texto distinguibles sólo por color/hover, ahora subrayados de forma permanente.
 El segundo bundle quedó `Ready`, la ficha pasó 2/2 y la matriz completa cerró
 **10/10 en Chromium/Pixel 5** sin escrituras productivas. Axe tampoco sustituye
 teclado, zoom o lector de pantalla, por lo que D6 continúa parcial.
+
+D6.2 comienza por el punto de entrada del teclado. La prueba publicada previa
+falló porque el primer `Tab` no ofrecía salto al contenido: ahora el primer
+control del DOM es un skip link que aparece con foco, apunta a un `<main>`
+enfocable y usa un indicador blanco/negro independiente del tema del comercio.
+La transición se anula con reducción de movimiento. El contrato sigue las
+guías oficiales verificadas de
+[Shopify](https://shopify.dev/docs/storefronts/themes/best-practices/accessibility)
+y [W3C G1](https://www.w3.org/WAI/WCAG22/Techniques/general/G1.html), y queda
+cubierto por Playwright read-only y una guarda estructural. Falta ejecutar el
+bundle publicado en Chromium/Pixel 5 antes de cerrar este slice.
 
 - matriz 360/768/1024/1440 para cada flujo crítico;
 - navegación completa con teclado y foco visible;
@@ -862,7 +873,7 @@ declara validado porque “se ve mejor”.
 | 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
 | 20 | Storefront y operación Commerce | Parcial D5.34 2026-09-04 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias. D5.7 deja el CTA de compra al pie en 360 px. D5.8 reserva geometría al cargar y declara tamaño de imagen. D5.9 hace que crawlers vean HTML del comercio. D5.10 distingue 404 de red caída y no pinta un catálogo vacío. D5.11 no pide email ni declara el carrito vencido si la red falló. D5.12 conserva enlaces `/catalogo/:id` user/org. D5.13 hace visible y honesta la persistencia server-side y recupera todas las líneas/variantes. D5.14 reutiliza ese mismo Storefront en `<slug>.nerqia.app` con base, canonical, robots, sitemap, feed y previews resueltos por host. D5.15 corrige Inicio, H1 y robots a partir de la recorrida real. D5.20 pagina el PLP publicado con 20 cards, URL/retorno/filtros, 44 px y cero overflow/logs. D5.21–D5.25 cierran analítica, SEO y atribución first-party. D5.26 retira el fixture público. D5.27 opera pedidos en lote. D5.28 decide el SKU real y D5.29 deriva variantes a una única PDP. D5.30 cierra checkout responsive publicado. D5.31 compacta el carrito sin retirar cotizador ni descuentos, evita el total sin flete y pasó publicado 2/2. D5.32 corrige bootstrap TikTok, PageView SPA y separación pedido/pago con deduplicación; pasó 4/4 publicado. D5.33 agrega carga/error/reintento al tracking sin otra página ni otra autoridad y pasó 2/2 publicado. D5.34 agrega opt-in por tienda, destinos tenant-safe y CSP mínima; pasó 2/2 publicado con SDK interceptado. También faltan señal de proveedor real, tarea con pedido operable, tráfico real tras opt-in, compra sandbox/real y cursor server-side cuando el volumen lo exija. |
 | 21 | Carrito/checkout/pago | Parcial D5.31 2026-09-04 | Resultado protegido por capacidad; D5.3–D5.6 cierran avisos, Pay honesto, cola e inspector. D5.7 deja CTA de ficha/carrito/checkout a 44 px en 360. D5.10 reintenta `create_store_order_idem` ante un corte de red con la misma clave. D5.11 distingue link de pago inexistente de corte de red y no borra un pedido ya visto. D5.27 agrega selección desktop/mobile, confirmación, resultados parciales persistentes y RPC tenant-safe. D5.30 cierra checkout publicado 2/2. D5.31 deja un único resumen de carrito, una barra móvil compacta y total pendiente explícito; pasó publicado 2/2. Falta compra sandbox/real. |
-| 22 | Accesibilidad AA | Parcial D6.1 2026-09-04 | Gate axe WCAG A/AA para Inicio, PLP, PDP, carrito y checkout; la primera corrida publicada encontró contraste 2,13:1/1,19:1 y dos links distinguibles sólo por color. Los ajustes quedaron `Ready` y la matriz cerró 10/10 en Chromium/Pixel 5 sin escrituras. Falta teclado, zoom, todos los temas y lector de pantalla. |
+| 22 | Accesibilidad AA | Parcial D6.2 2026-09-04 | Gate axe WCAG A/AA para Inicio, PLP, PDP, carrito y checkout; la primera corrida publicada encontró contraste 2,13:1/1,19:1 y dos links distinguibles sólo por color. Los ajustes quedaron `Ready` y la matriz cerró 10/10 en Chromium/Pixel 5 sin escrituras. D6.2 agrega skip link, destino enfocable y foco de dos colores; la prueba pre-fix publicada falló como debía y queda pendiente validar el bundle nuevo. Falta recorrido teclado completo, zoom, todos los temas y lector de pantalla. |
 | 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
 | 24 | Pruebas con comercios | Bloqueado externamente | Tareas reales y hallazgos registrados. |
 | 25 | Investor demo mode con datos seguros | Pendiente tras validación | Narrativa reproducible, sin métricas falsas. |

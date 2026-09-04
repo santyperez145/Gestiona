@@ -4002,6 +4002,39 @@
     isolation: isolate;
   }
 
+  .storefront-skip-link {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 100;
+    min-height: 2.75rem;
+    padding: 0.65rem 1rem;
+    border-radius: var(--st-radius);
+    background: hsl(var(--st-accent));
+    color: hsl(var(--st-accent-fg));
+    font-size: 0.875rem;
+    font-weight: 700;
+    transform: translateY(calc(-100% - 1rem));
+    transition: transform 120ms ease;
+  }
+
+  .storefront-skip-link:focus-visible {
+    transform: translateY(0);
+  }
+
+  /* Dos colores mantienen el indicador visible tanto sobre el fondo de una
+     tienda clara como sobre un botón o header oscuro. */
+  .storefront-shell :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px #111111;
+  }
+
+  .storefront-main:focus-visible {
+    outline: 0;
+    box-shadow: none;
+  }
+
   /* Los controles nativos no heredan color de forma consistente. Sin este
      límite, una tienda oscura recibe el foreground/placeholder del SaaS y el
      texto queda prácticamente negro sobre negro. */
@@ -4303,6 +4336,10 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .storefront-skip-link {
+      transition: none;
+    }
+
     .storefront-skeleton-bone {
       animation: none;
       background-image: none;

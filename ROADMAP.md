@@ -4772,6 +4772,24 @@ Finance Connect.
      de pantalla continúa en D6. `npm audit --omit=dev` no entregó evidencia por
      timeout de red; no se declara aprobado.
 
+189. El Storefront empieza por la compra, también con teclado — D6.2,
+     2026-09-04. La medición previa sobre `nerqia.app` confirmó que el primer
+     `Tab` entraba al chrome superior sin ofrecer una forma de saltarlo. Esto
+     incumplía el patrón que Shopify exige a sus themes y la técnica G1 de W3C:
+     un enlace descriptivo, primero en el orden de foco, visible al enfocarse y
+     dirigido al contenido principal. El shell público ahora incorpora
+     “Saltar al contenido principal”, un `<main>` enfocable y un indicador de
+     foco blanco/negro de dos capas que no depende del color configurado por el
+     merchant. `prefers-reduced-motion` retira la transición del enlace sin
+     ocultarlo. La suite read-only ya comprueba primer `Tab`, foco visible y
+     transferencia de foco, y una guarda local protege el orden y el contrato
+     CSS. Referencias verificadas el 2026-09-04:
+     [Shopify Accessibility](https://shopify.dev/docs/storefronts/themes/best-practices/accessibility),
+     [W3C G1](https://www.w3.org/WAI/WCAG22/Techniques/general/G1.html) y
+     [W3C Focus Visible](https://www.w3.org/WAI/WCAG21/Understanding/focus-visible?lang=en).
+     Estado: **implementado localmente; falta certificar el bundle publicado en
+     Chromium y Pixel 5 antes de cerrar D6.2**.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

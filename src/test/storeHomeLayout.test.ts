@@ -80,4 +80,18 @@ describe("portada modular de la tienda", () => {
     expect(card).toContain('replace(/^Elegí/, "Elegir")');
     expect(card).not.toContain("addToCart(p, 1");
   });
+
+  it("permite saltar el chrome y muestra un foco independiente del tema", () => {
+    const layout = readFileSync(resolve(process.cwd(), "src/storefront/StoreLayout.tsx"), "utf8");
+    const css = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8");
+
+    expect(layout.indexOf('className="storefront-skip-link"')).toBeGreaterThan(-1);
+    expect(layout.indexOf('className="storefront-skip-link"')).toBeLessThan(
+      layout.indexOf("Barra legal"),
+    );
+    expect(layout).toContain('href="#contenido-principal"');
+    expect(layout).toContain('id="contenido-principal" tabIndex={-1}');
+    expect(css).toContain(".storefront-skip-link:focus-visible");
+    expect(css).toContain(".storefront-shell :where(a, button, input, select, textarea, [tabindex]):focus-visible");
+  });
 });
