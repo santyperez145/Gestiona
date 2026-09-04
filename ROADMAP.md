@@ -4405,8 +4405,18 @@ Finance Connect.
      libro en brecha 0. Puerta dirigida: 76/76 tests. Puerta completa local:
      **2.652/2.652 tests en 284 archivos**, TypeScript, lint sin errores y
      build/PWA productivo; `npm audit` no respondió en su ventana y no se
-     declara verificado. Pendientes antes de cerrar: deploy, matriz publicada y
-     observar tráfico no sintético.
+     declara verificado.
+
+     `bc1ef553` quedó **Ready** y aliasado a `nerqia.app`. La sesión publicada
+     autenticada a 1.288 px mostró alerta pausada, embudo 0/0 y canales vacíos
+     sin atribuir los 7 pedidos legacy; Páginas agregó la divulgación sólo al
+     estado local de un borrador y la recarga la descartó, sin escrituras ni
+     logs. La tienda pública siguió cargando su catálogo sin logs. La consulta
+     posterior conservó `enabled=false`, 0 aceptaciones y 0 visitas; el rate
+     limit creó 2 contadores hasheados y **0** claves legacy. Estado: corte de
+     código y deploy D5.25 cerrado; quedan la matriz mobile autenticada y
+     observar tráfico real después de que el dueño publique/active, que no se
+     fabrican desde una prueba.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
