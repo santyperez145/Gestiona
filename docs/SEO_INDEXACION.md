@@ -11,12 +11,12 @@ la primera posición ni una fecha de aparición.** Google decide si indexa y có
 ordena; incluso una solicitud manual puede tardar días o semanas y no garantiza
 inclusión.
 
-La medición del 2026-09-04 sigue dando cero resultados útiles para
-`site:nerqia.app` y `"Nerqia" software comercio`; el resultado de marca visible
-es una tienda Shopify ajena (`nerqia.myshopify.com`). Eso es línea de base
-externa, no un test fallido ni evidencia de que Search Console haya rechazado
-la propiedad. Google advierte que descubrir un sitio nuevo puede llevar días o
-semanas y que ni el sitemap ni una solicitud manual garantizan inclusión.
+La medición del 2026-09-04 ya muestra un cambio externo verificable: la búsqueda
+pública `site:nerqia.app` devuelve la plataforma **Nerqia | Sistema de gestión
+omnicanal, POS y tienda online** y la home **Exentry Imports — Tienda online**.
+URL Inspection confirma para ambas `La URL está en Google` y `La página está
+indexada`. Esto prueba inclusión de esas dos homes, no una posición estable ni
+la indexación de las 71 páginas descubiertas.
 
 ### Evidencia productiva del 2026-09-03
 
@@ -41,6 +41,26 @@ confirmaron la línea de base —Nerqia y Exentry todavía no estaban en Google 
 buscador no reconocía sus URLs— y aceptaron ambas homes en la cola prioritaria
 de indexación. Search Console quedó procesando datos; aparición, cobertura e
 impresiones siguen pendientes de evidencia posterior.
+
+### Evidencia externa del 2026-09-04
+
+- la búsqueda pública `site:nerqia.app` mostró dos resultados propios: la home
+  de `nerqia.app` y `https://exentryimports.nerqia.app/`, con sus títulos y
+  descripciones diferenciados;
+- URL Inspection de la propiedad de dominio marcó ambas homes como **La URL
+  está en Google**, **La página está indexada** y servida mediante HTTPS;
+- `https://nerqia.app/sitemap.xml` respondió HTTP 200, `application/xml`, con
+  un índice de dos sitemaps; Search Console lo conserva como **Correcto**, con
+  última lectura del 3 de septiembre y 71 páginas descubiertas;
+- Acciones manuales y Problemas de seguridad informaron **No se ha detectado
+  ningún problema**;
+- Rendimiento, actualizado cinco horas antes de la revisión, todavía muestra
+  0 clics, 0 impresiones y ninguna consulta. La cobertura general sigue
+  procesando datos, por lo que no se extrapolan CTR, posición ni tráfico.
+
+Estado: **descubrimiento e indexación de las dos homes cerrados con evidencia
+externa**. Continúan abiertos la cobertura del resto del catálogo, las primeras
+impresiones/consultas y la conversión orgánica.
 
 Fuentes oficiales:
 
@@ -160,8 +180,9 @@ capturar otra keyword.
 4. ~~Enviar `https://nerqia.app/sitemap.xml`.~~ Correcto en la primera lectura.
 5. ~~Solicitar indexación de la home.~~ Nerqia y la tienda activa quedaron en
    cola prioritaria; no gastar el cupo pidiendo todas las fichas.
-6. Revisar lectura del sitemap, páginas indexadas/no indexadas, datos
-   estructurados y acciones manuales.
+6. ~~Confirmar la primera indexación de Nerqia y Exentry.~~ Ambas homes figuran
+   indexadas el 2026-09-04; continuar revisando cobertura del resto del catálogo,
+   datos estructurados y acciones manuales.
 7. Medir por semana: URLs conocidas/indexadas, impresiones, consultas, CTR,
    posición por consulta y conversiones orgánicas. La posición de marca se
    informa observada, nunca garantizada.
@@ -178,4 +199,5 @@ no se copiaron ni buscaron credenciales del navegador.
 - comprador humano conserva la SPA; crawler recibe semántica equivalente;
 - build, guardas y prueba publicada sin regresión de Storefront;
 - sitemap enviado/aceptado y home inspeccionada cuando haya acceso a Search Console;
-- aparición e impresiones se cierran sólo con evidencia posterior de Google.
+- aparición de las dos homes cerrada con URL Inspection y búsqueda pública;
+  impresiones, consultas, cobertura restante y posición siguen abiertas.

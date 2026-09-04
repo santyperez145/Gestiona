@@ -3933,10 +3933,12 @@ Finance Connect.
      fue enviado y figura **Índice de sitemaps · Correcto**. La home de Nerqia y
      la tienda activa fueron aceptadas en la cola prioritaria de indexación.
 
-     Estado: **rastreabilidad, propiedad y envío cerrados; indexación externa en
-     curso**. Search Console confirmó que ambas URLs todavía eran desconocidas y
-     quedó procesando datos. Que Google las indexe o ubique primero sólo se
-     cierra cuando aparezca medido, no por el push ni por la solicitud.
+     Estado actualizado el 2026-09-04: **rastreabilidad, propiedad, envío e
+     indexación de las dos homes cerrados con evidencia externa**. La búsqueda
+     pública `site:nerqia.app` muestra Nerqia y Exentry, y URL Inspection marca
+     ambas como indexadas y servidas por HTTPS. El sitemap sigue Correcto con 71
+     páginas descubiertas; cobertura del catálogo, impresiones, consultas y
+     posición continúan abiertos y no se infieren de una solicitud.
 
 168. Contrato público honesto y telemetría minimizada — 2026-09-03.
      La auditoría posterior al SEO encontró una contradicción de lanzamiento:
@@ -4831,6 +4833,22 @@ Finance Connect.
      Estado: **D6.3 cerrado para contraste automático de todos los temas
      actuales**. Siguen pendientes navegación completa con teclado, zoom 200% y
      lector de pantalla.
+
+191. Google ya reconoce las dos puertas públicas — 2026-09-04. La búsqueda
+     pública `site:nerqia.app` devolvió dos resultados propios con títulos y
+     descripciones distintos: **Nerqia | Sistema de gestión omnicanal, POS y
+     tienda online** y **Exentry Imports — Tienda online**. La propiedad de
+     dominio confirmó mediante URL Inspection **La URL está en Google / La
+     página está indexada / HTTPS** para `https://nerqia.app/` y
+     `https://exentryimports.nerqia.app/`.
+
+     El índice `https://nerqia.app/sitemap.xml` respondió 200 XML con dos
+     sitemaps y Search Console lo conserva **Correcto**, última lectura del 3/9
+     y 71 páginas descubiertas. Acciones manuales y Problemas de seguridad
+     informan **No se ha detectado ningún problema**. Rendimiento todavía marca
+     0 clics, 0 impresiones y sin consultas; el informe general sigue procesando
+     cobertura. Estado: **primera indexación externa cerrada para ambas homes;
+     alcance, consultas, posición y cobertura del catálogo siguen pendientes**.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
