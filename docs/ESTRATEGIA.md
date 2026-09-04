@@ -213,6 +213,16 @@ y compara el mismo número de días anterior con cierre horario argentino; sin
 base previa no muestra una suba infinita. La atribución por canal sigue
 pendiente y no se estima desde el carrito.
 
+✅ **Catálogo rastreable, verificado localmente el 2026-09-04.** Google exige
+[enlaces `<a href>` entre categorías, páginas y productos](https://developers.google.com/search/docs/specialty/ecommerce/help-google-understand-your-ecommerce-site-structure)
+y [URL/canonical propios para cada página](https://developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading):
+un botón operado por JavaScript no es arquitectura de descubrimiento. D5.24
+alinea el storefront humano y el documento del borde sobre la misma ventana de
+20 productos, agrega vecinos secuenciales, migas y el grafo
+`WebSite`/`OnlineStore`/`CollectionPage`/`Product`. No agrega texto invisible ni
+`meta keywords`; ganar una posición requiere rastreo, contenido útil y señales
+externas observadas, no una afirmación del producto.
+
 ✅ **Margin facts medidos el 2026-08-22:** “tener margen” tampoco alcanza como
 argumento. Shopify ya documenta profit por orden/mercado y Odoo margen por
 línea/pedido. Nerqia ahora conserva por venta la fuente de costo, comisión,

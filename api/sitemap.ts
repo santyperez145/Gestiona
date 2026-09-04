@@ -14,6 +14,8 @@ import {
   resolveHostedStoreRequest,
   resolvedStoreOrigin,
 } from "../src/lib/storefrontHost.js";
+import { storeCatalogPage } from "../src/lib/storeCatalogPagination.js";
+import { slugsDeRama, type CategoriaTienda } from "../src/lib/storeCategories.js";
 
 export const config = { runtime: "edge" };
 
@@ -56,9 +58,10 @@ export default async function handler(req: Request): Promise<Response> {
 
   if (resolution.customDomain && !hostedSlug) return xml("", 404, false);
 
-  if (!slug || !SUPABASE_URL || !SUPABASE_KEY) {
+  if (!slug) {
     return xml(`  <url><loc>${esc(origin)}</loc></url>`);
   }
+  if (!SUPABASE_URL || !SUPABASE_KEY) return xml("", 503, false);
 
   const headers = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
 
@@ -68,6 +71,10 @@ export default async function handler(req: Request): Promise<Response> {
       headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify({ p_slug: slug }),
     });
+    if (!sRes.ok) {
+      console.error(`[sitemap] get_store_by_slug respondió HTTP ${sRes.status}`);
+      return xml("", 503, false);
+    }
     const stores = sRes.ok ? await sRes.json() : [];
     const store = Array.isArray(stores) ? stores[0] : stores;
     if (!store?.org_id) return xml(`  <url><loc>${esc(origin)}</loc></url>`);
@@ -77,16 +84,21 @@ export default async function handler(req: Request): Promise<Response> {
     // filas** y el sitemap sólo listaba la home y el listado. Ni una ficha de
     // producto indexada — que es justo el tráfico que se buscaba.
     //
-    // La vista no tiene `updated_at`, así que se ordena y fecha por
-    // `created_at`, que sí trae.
+    // La vista no tiene `updated_at`: no se fabrica un `lastmod` con la fecha
+    // de hoy ni se confunde creación con modificación. Google pide que ese
+    // valor sea exacto; si no podemos sostenerlo, se omite.
     const pRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/store_catalog_products?org_id=eq.${store.org_id}&select=id,created_at,stock&limit=5000`,
+      `${SUPABASE_URL}/rest/v1/store_catalog_products?org_id=eq.${store.org_id}&select=id,category&limit=5000`,
       { headers },
     );
+    if (!pRes.ok) {
+      console.error(`[sitemap] store_catalog_products respondió HTTP ${pRes.status}`);
+      return xml("", 503, false);
+    }
     const products = pRes.ok ? await pRes.json() : [];
 
     let pages: Array<{ slug: string; updated_at: string | null }> = [];
-    let categorias: Array<{ slug: string; productos: number }> = [];
+    let categorias: CategoriaTienda[] = [];
     try {
       const [pags, cats] = await Promise.all([
         fetch(`${SUPABASE_URL}/rest/v1/rpc/get_store_pages`, {
@@ -102,33 +114,51 @@ export default async function handler(req: Request): Promise<Response> {
       ]);
       pages = pags.ok ? await pags.json() : [];
       categorias = cats.ok ? await cats.json() : [];
-    } catch { /* el catálogo igual se indexa */ }
+      if (!pags.ok || !cats.ok) {
+        console.error(`[sitemap] páginas/categorías respondieron HTTP ${pags.status}/${cats.status}`);
+        return xml("", 503, false);
+      }
+    } catch (error) {
+      console.error("[sitemap] no se pudieron leer páginas o categorías", error);
+      return xml("", 503, false);
+    }
 
     const base = publicStoreBaseUrl(origin, slug, Boolean(hostedSlug));
-    const hoy = new Date().toISOString().slice(0, 10);
+    const catalog = Array.isArray(products)
+      ? products as Array<{ id: string; category?: string | null }>
+      : [];
+    const urlEntry = (loc: string, lastmod?: string | null) =>
+      `  <url><loc>${esc(loc)}</loc>${lastmod ? `<lastmod>${esc(lastmod.slice(0, 10))}</lastmod>` : ""}</url>`;
+    const paginationEntries = (path: string, total: number) => {
+      const { pageCount } = storeCatalogPage(total, 1);
+      return Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) => {
+        const pageNumber = index + 2;
+        const separator = path.includes("?") ? "&" : "?";
+        return urlEntry(`${base}${path}${separator}page=${pageNumber}`);
+      });
+    };
 
     const urls = [
-      `  <url><loc>${esc(base)}</loc><changefreq>daily</changefreq><priority>1.0</priority><lastmod>${hoy}</lastmod></url>`,
-      `  <url><loc>${esc(base)}/productos</loc><changefreq>daily</changefreq><priority>0.9</priority><lastmod>${hoy}</lastmod></url>`,
-      `  <url><loc>${esc(base)}/arrepentimiento</loc><changefreq>yearly</changefreq><priority>0.3</priority><lastmod>${hoy}</lastmod></url>`,
+      urlEntry(base),
+      urlEntry(`${base}/productos`),
+      ...paginationEntries("/productos", catalog.length),
+      urlEntry(`${base}/arrepentimiento`),
       ...(Array.isArray(categorias) ? categorias : [])
-        .filter(c => Number(c.productos) > 0 && c.slug)
-        .map(c =>
-          `  <url><loc>${esc(base)}/productos?cat=${esc(encodeURIComponent(c.slug))}</loc><changefreq>weekly</changefreq><priority>0.7</priority><lastmod>${hoy}</lastmod></url>`,
-        ),
+        .filter(c => c.slug && catalog.some(product => slugsDeRama(c.slug, categorias).includes(product.category ?? "")))
+        .flatMap(c => {
+          const path = `/productos?cat=${encodeURIComponent(c.slug)}`;
+          const total = catalog.filter(product => slugsDeRama(c.slug, categorias).includes(product.category ?? "")).length;
+          return [urlEntry(`${base}${path}`), ...paginationEntries(path, total)];
+        }),
       ...(Array.isArray(pages) ? pages : [])
         .filter(p => p.slug)
-        .map(p =>
-          `  <url><loc>${esc(base)}/pagina/${esc(encodeURIComponent(p.slug))}</loc><changefreq>monthly</changefreq><priority>0.5</priority><lastmod>${esc(String(p.updated_at ?? hoy).slice(0, 10))}</lastmod></url>`,
-        ),
-      ...(products as Array<{ id: string; created_at?: string; stock?: number }>).map(p => {
-        const enStock = Number(p.stock) > 0;
-        return `  <url><loc>${esc(base)}/producto/${esc(p.id)}</loc><changefreq>weekly</changefreq><priority>${enStock ? "0.8" : "0.4"}</priority><lastmod>${esc(String(p.created_at ?? hoy).slice(0, 10))}</lastmod></url>`;
-      }),
+        .map(p => urlEntry(`${base}/pagina/${encodeURIComponent(p.slug)}`, p.updated_at)),
+      ...catalog.map(p => urlEntry(`${base}/producto/${encodeURIComponent(p.id)}`)),
     ];
 
     return xml(urls.join("\n"));
-  } catch {
-    return xml(`  <url><loc>${esc(origin)}</loc></url>`);
+  } catch (error) {
+    console.error("[sitemap] no se pudo construir el sitemap", error);
+    return xml("", 503, false);
   }
 }

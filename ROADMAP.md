@@ -4318,6 +4318,36 @@ Finance Connect.
      certificado publicado en móvil y no se declara una recorrida desktop
      nueva. La atribución por canal sigue como próxima capa.
 
+176. Google puede recorrer el catálogo completo, no sólo encontrar su portada
+     — D5.24, 2026-09-04. La auditoría contrastó el storefront con las guías
+     oficiales de arquitectura ecommerce de Google: el buscador no opera el
+     search box ni botones JavaScript para descubrir inventario. La SPA humana
+     tenía paginación, pero anterior/siguiente eran botones sin `href`; el HTML
+     del borde sólo tenía un H1 y la página 2 canonicalizaba hacia la 1.
+
+     `RutaTienda` incorpora la página, construye un canonical propio y agrega
+     el número al título. La UI conserva navegación SPA y foco, pero expone
+     enlaces `prev`/`next` reales y normaliza páginas fuera de rango. El borde
+     usa el mismo `store_catalog_products`, orden y ventana canónica de 20:
+     home enlaza categorías/productos y el listado enlaza exactamente las
+     fichas de esa página más sus vecinas. El grafo pasa a `WebSite` +
+     `OnlineStore` y suma `BreadcrumbList`, `CollectionPage` e `ItemList`; no
+     inventa reseñas, disponibilidad ni otro catálogo.
+
+     El sitemap enumera las páginas de catálogo/categoría, escapa sus queries
+     y deja de emitir `changefreq`, `priority` y un `lastmod` falso igual a
+     “hoy”. Sólo conserva fechas editoriales con `updated_at` real. Las fallas
+     parciales de RPC/vista devuelven 503 reintentable y quedan en logs del
+     borde en vez de convertirse en 404/catálogo vacío o desaparecer en un
+     `catch`. Puerta completa local: typecheck; lint con 0 errores/143 warnings
+     heredados; **2.642 tests en 282 archivos**; build/PWA y bundling aislado de
+     ambos handlers. `npm audit` no obtuvo respuesta del endpoint del registro
+     en dos intentos y se registra como evidencia no disponible, no como verde;
+     las guardas de dependencias sí pasaron dentro de la suite. Pendiente:
+     deploy y comprobar con Googlebot el HTML publicado; la
+     indexación/posición sigue siendo una decisión externa y no se declara
+     cerrada por este cambio.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

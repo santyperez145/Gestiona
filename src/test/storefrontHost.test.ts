@@ -61,7 +61,7 @@ describe('host canónico de una tienda Nerqia', () => {
     expect(parseRutaTienda('/', new URLSearchParams(), 'mi-tienda'))
       .toEqual({ kind: 'home', slug: 'mi-tienda' });
     expect(parseRutaTienda('/productos', new URLSearchParams('cat=ropa'), 'mi-tienda'))
-      .toEqual({ kind: 'plp', slug: 'mi-tienda', cat: 'ropa' });
+      .toEqual({ kind: 'plp', slug: 'mi-tienda', cat: 'ropa', page: 1 });
     expect(parseRutaTienda('/producto/abc', new URLSearchParams(), 'mi-tienda'))
       .toEqual({ kind: 'pdp', slug: 'mi-tienda', productId: 'abc' });
     expect(parseRutaTienda('/checkout', new URLSearchParams(), 'mi-tienda')?.kind)

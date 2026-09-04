@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  canonicalStorefrontPath,
   cuerpoRobots,
   parseRutaTienda,
   precioDeCatalogo,
@@ -24,10 +25,10 @@ describe("rutas públicas de la tienda", () => {
   it("distingue home, listado, ficha y página, y no indexa el checkout", () => {
     expect(parseRutaTienda("/tienda/exentryimports")).toEqual({ kind: "home", slug: "exentryimports" });
     expect(parseRutaTienda("/tienda/exentryimports/productos")).toEqual({
-      kind: "plp", slug: "exentryimports", cat: null,
+      kind: "plp", slug: "exentryimports", cat: null, page: 1,
     });
     expect(parseRutaTienda("/tienda/exentryimports/productos", new URLSearchParams("cat=vaper"))).toEqual({
-      kind: "plp", slug: "exentryimports", cat: "vaper",
+      kind: "plp", slug: "exentryimports", cat: "vaper", page: 1,
     });
     expect(parseRutaTienda("/tienda/exentryimports/producto/abc")).toEqual({
       kind: "pdp", slug: "exentryimports", productId: "abc",
@@ -38,6 +39,17 @@ describe("rutas públicas de la tienda", () => {
     expect(parseRutaTienda("/tienda/exentryimports/arrepentimiento")?.kind).toBe("legal");
     expect(parseRutaTienda("/tienda/exentryimports/checkout")?.kind).toBe("private");
     expect(parseRutaTienda("/tienda/exentryimports/productos")?.kind).not.toBe("home");
+  });
+
+  it("da identidad propia a cada página canónica del catálogo", () => {
+    const ruta = parseRutaTienda(
+      "/tienda/exentryimports/productos",
+      new URLSearchParams("cat=ropa&page=2"),
+    );
+    expect(ruta).toEqual({ kind: "plp", slug: "exentryimports", cat: "ropa", page: 2 });
+    expect(canonicalStorefrontPath(ruta)).toBe("/productos?cat=ropa&page=2");
+    expect(tituloDeRutaTienda({ ruta, storeName: "Mi tienda", categoryLabel: "Ropa" }))
+      .toBe("Ropa — Mi tienda · Página 2");
   });
 
   it("interpreta las mismas rutas limpias cuando el slug viene del host", () => {
@@ -64,7 +76,7 @@ describe("rutas públicas de la tienda", () => {
     })).toBe("Afnan 9am Dive — Exentry Imports");
     expect(tituloDeRutaTienda({
       ...base,
-      ruta: { kind: "plp", slug: "exentryimports", cat: "vaper" },
+      ruta: { kind: "plp", slug: "exentryimports", cat: "vaper", page: 1 },
       categoryLabel: "Vaper",
     })).toBe("Vaper — Exentry Imports");
     expect(tituloDeRutaTienda({
@@ -133,5 +145,15 @@ describe("robots e índice salen del servidor", () => {
     for (const path of ROBOTS_DISALLOW_PANEL) {
       expect(txt, `cuerpoRobots no niega ${path}`).toContain(`Disallow: ${path}`);
     }
+  });
+
+  it("el sitemap enumera páginas reales sin fechas ni prioridades inventadas", () => {
+    const sitemap = leer("api/sitemap.ts");
+    expect(sitemap).toContain("paginationEntries");
+    expect(sitemap).toContain("storeCatalogPage");
+    expect(sitemap).not.toContain("<changefreq>");
+    expect(sitemap).not.toContain("<priority>");
+    expect(sitemap).not.toContain("const hoy =");
+    expect(sitemap).toContain("p.updated_at");
   });
 });

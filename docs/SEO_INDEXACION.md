@@ -1,6 +1,6 @@
 # SEO e indexación de Nerqia y sus tiendas
 
-Última revisión: **2026-09-03**.
+Última revisión: **2026-09-04**.
 
 ## Objetivo y límite honesto
 
@@ -11,9 +11,12 @@ la primera posición ni una fecha de aparición.** Google decide si indexa y có
 ordena; incluso una solicitud manual puede tardar días o semanas y no garantiza
 inclusión.
 
-La medición del 2026-09-03 dio cero resultados útiles para `site:nerqia.app` y
-`"Nerqia" software comercio`. Eso es línea de base externa, no un test fallido.
-Se vuelve a medir luego de publicar, enviar el sitemap y dejar tiempo de rastreo.
+La medición del 2026-09-04 sigue dando cero resultados útiles para
+`site:nerqia.app` y `"Nerqia" software comercio`; el resultado de marca visible
+es una tienda Shopify ajena (`nerqia.myshopify.com`). Eso es línea de base
+externa, no un test fallido ni evidencia de que Search Console haya rechazado
+la propiedad. Google advierte que descubrir un sitio nuevo puede llevar días o
+semanas y que ni el sitemap ni una solicitud manual garantizan inclusión.
 
 ### Evidencia productiva del 2026-09-03
 
@@ -46,6 +49,9 @@ Fuentes oficiales:
 - [Construir y enviar un sitemap](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap): sólo URLs canónicas que queremos en resultados.
 - [URL Inspection](https://support.google.com/webmasters/answer/9012289): sirve para probar y solicitar rastreo; no promete indexación.
 - [Sitemaps en Search Console](https://support.google.com/webmasters/answer/7451001): el reporte exige propiedad verificada y permite observar lectura/errores.
+- [Estructura de un ecommerce](https://developers.google.com/search/docs/specialty/ecommerce/help-google-understand-your-ecommerce-site-structure): categorías y productos deben enlazarse con `<a href>`; el buscador interno no reemplaza la navegación.
+- [Paginación incremental](https://developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading): cada página necesita URL/canonical propios y enlaces secuenciales rastreables.
+- [Solicitar un nuevo rastreo](https://developers.google.com/search/docs/crawling-indexing/ask-google-to-recrawl): pedirlo repetidamente no acelera el proceso ni garantiza indexación.
 
 ## Arquitectura única
 
@@ -72,6 +78,13 @@ Fuentes oficiales:
   cuenta, pedido y seguimiento no lo son.
 - Los datos estructurados de producto reflejan el precio y stock que el Core
   autoritativo expone al checkout; no inventan reviews, descuentos ni entrega.
+- D5.24 hace equivalente el documento del crawler con la jerarquía comercial:
+  home enlaza categorías y productos, cada PLP enlaza sus 20 fichas y sus
+  páginas anterior/siguiente, y el grafo declara `WebSite`, `OnlineStore`,
+  `CollectionPage`/`Product`, `ItemList` y `BreadcrumbList` según corresponda.
+  La página 2 conserva canonical y título propios; una página fuera de rango
+  se normaliza a la última real. Si falla la fuente pública, el borde devuelve
+  503 reintentable y `noindex` en vez de fijar como real un 404 o catálogo vacío.
 
 ## Descubrimiento
 
@@ -83,6 +96,26 @@ Fuentes oficiales:
 `robots.txt` declara el índice raíz y los sitemaps de tienda. Privacidad y
 términos siguen públicamente enlazados, pero quedan fuera del sitemap y con
 `noindex`: son obligaciones de acceso, no páginas de adquisición.
+
+El sitemap de tienda enumera también cada página paginada de catálogo y
+categoría. No emite `changefreq`/`priority`, que Google ignora, ni fabrica
+`lastmod` con la fecha de la request. Sólo las páginas editoriales que traen un
+`updated_at` confiable lo declaran; una fecha falsa erosiona la señal que se
+buscaba aportar.
+
+### Evidencia local D5.24 — 2026-09-04
+
+- 36 pruebas focalizadas cubren ruta/canonical, host, ventana paginada, enlaces
+  humanos, HTML estructurado y caída reintentable;
+- la puerta completa cerró 2.642 tests en 282 archivos, TypeScript, lint con
+  cero errores/143 warnings heredados y build/PWA;
+- `api/og.ts` y `api/sitemap.ts` empaquetaron de forma independiente;
+- `npm audit` se solicitó dos veces, pero el endpoint del registro agotó el
+  tiempo. No se presenta como auditado; las guardas locales de dependencias y
+  de SheetJS sí pasaron dentro de la suite.
+
+La evidencia publicada se agrega sólo después del deploy y una lectura externa
+con user-agent Googlebot.
 
 ## Criterio competitivo
 

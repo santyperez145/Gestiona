@@ -71,7 +71,7 @@ export function precioDeCatalogo(p: PrecioDeCatalogo): number {
 
 export type RutaTienda =
   | { kind: "home"; slug: string }
-  | { kind: "plp"; slug: string; cat: string | null }
+  | { kind: "plp"; slug: string; cat: string | null; page: number }
   | { kind: "pdp"; slug: string; productId: string }
   | { kind: "page"; slug: string; pageSlug: string }
   | { kind: "legal"; slug: string }
@@ -109,7 +109,9 @@ export function parseRutaTienda(
   const [seccion, id] = resto;
   if (seccion === "productos" && resto.length === 1) {
     const cat = search.get("cat");
-    return { kind: "plp", slug, cat: cat && cat.trim() ? cat : null };
+    const rawPage = Number.parseInt(search.get("page") ?? "1", 10);
+    const page = Number.isFinite(rawPage) && rawPage > 1 ? rawPage : 1;
+    return { kind: "plp", slug, cat: cat && cat.trim() ? cat : null, page };
   }
   if (seccion === "producto" && id) {
     return { kind: "pdp", slug, productId: slugLimpio(id) };
@@ -146,7 +148,8 @@ export function tituloDeRutaTienda(input: {
   }
   if (input.ruta.kind === "plp") {
     const cat = input.categoryLabel?.trim();
-    return cat ? `${cat} — ${tienda}` : `Productos — ${tienda}`;
+    const base = cat ? `${cat} — ${tienda}` : `Productos — ${tienda}`;
+    return input.ruta.page > 1 ? `${base} · Página ${input.ruta.page}` : base;
   }
   if (input.ruta.kind === "page") {
     const page = input.pageTitle?.trim();
@@ -161,7 +164,11 @@ export function tituloDeRutaTienda(input: {
 export function canonicalStorefrontPath(ruta: RutaTienda | null): string | null {
   if (!ruta || ruta.kind === "home") return "";
   if (ruta.kind === "plp") {
-    return ruta.cat ? `/productos?cat=${encodeURIComponent(ruta.cat)}` : "/productos";
+    const params = new URLSearchParams();
+    if (ruta.cat) params.set("cat", ruta.cat);
+    if (ruta.page > 1) params.set("page", String(ruta.page));
+    const query = params.toString();
+    return `/productos${query ? `?${query}` : ""}`;
   }
   if (ruta.kind === "pdp") return `/producto/${encodeURIComponent(ruta.productId)}`;
   if (ruta.kind === "page") return `/pagina/${encodeURIComponent(ruta.pageSlug)}`;

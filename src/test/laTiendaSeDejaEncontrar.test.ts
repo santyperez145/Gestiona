@@ -69,7 +69,8 @@ describe("la tienda se deja encontrar", () => {
   });
 
   it("la home se declara como un comercio", () => {
-    expect(cuerpo).toMatch(/"@type":\s*"Store"/);
+    expect(cuerpo).toMatch(/"@type":\s*"OnlineStore"/);
+    expect(cuerpo).toMatch(/"@type":\s*"WebSite"/);
   });
 
   it("el listado no se declara como la home", () => {
@@ -77,12 +78,30 @@ describe("la tienda se deja encontrar", () => {
     expect(cuerpo).toMatch(/parseRutaTienda/);
   });
 
+  it("entrega jerarquía y navegación rastreable en el HTML del borde", () => {
+    expect(cuerpo).toMatch(/"@type":\s*"BreadcrumbList"/);
+    expect(cuerpo).toMatch(/"@type":\s*"ItemList"/);
+    expect(cuerpo).toContain("Productos de esta página");
+    expect(cuerpo).toContain("Página siguiente");
+    expect(cuerpo).toContain("canonicalStorefrontPath");
+  });
+
+  it("una caída de datos es reintentable y no se disfraza de 404 o catálogo vacío", () => {
+    expect(cuerpo).toContain("Retry-After");
+    expect(cuerpo).toContain("productUnavailable(503");
+    expect(cuerpo).toContain("catalog === null");
+    expect(cuerpo).toContain("Tienda temporalmente no disponible");
+  });
+
   it("la ficha declara og:type product y el precio que se cobra", () => {
     expect(cuerpo).toMatch(/type === "product"/);
     expect(cuerpo).toMatch(/precioDeCatalogo/);
-    const select = cuerpo.match(/store_catalog_products[^`]*select=([^&`]*)/)?.[1] ?? "";
-    expect(select, `el select no pide promo_price: «${select}»`).toContain("promo_price");
-    expect(select).toContain("stock");
+    const selects = [...cuerpo.matchAll(/store_catalog_products[^`]*select=([^&`]*)/g)]
+      .map(match => match[1] ?? "");
+    const productSelect = selects.find(select => select.includes("promo_price")) ?? "";
+    expect(productSelect, `ningún select de ficha pide promo_price: «${selects.join(" | ")}»`)
+      .toContain("promo_price");
+    expect(productSelect).toContain("stock");
   });
 
   it("⚠️ el JSON-LD se escapa: un </script> en un nombre no cierra la etiqueta", () => {

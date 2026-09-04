@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { STORE_CATALOG_PAGE_SIZE, storeCatalogPage } from "@/lib/storeCatalogPagination";
 
@@ -45,5 +47,13 @@ describe("paginación del catálogo público", () => {
       hasPrevious: false,
       hasNext: false,
     });
+  });
+
+  it("expone anterior y siguiente como enlaces rastreables, no botones opacos", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/storefront/StoreProducts.tsx"), "utf8");
+    expect(source).toContain('href={hrefDePagina(pagina.page - 1)}');
+    expect(source).toContain('href={hrefDePagina(pagina.page + 1)}');
+    expect(source).toContain('rel="prev"');
+    expect(source).toContain('rel="next"');
   });
 });

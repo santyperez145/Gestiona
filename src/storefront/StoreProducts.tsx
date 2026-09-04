@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "./storeContext";
 import ProductCard from "./ProductCard";
@@ -139,6 +139,25 @@ export default function StoreProducts() {
   });
   const pagina = storeCatalogPage(filtrados.length, params.get("page"));
   const productosVisibles = filtrados.slice(pagina.start, pagina.end);
+
+  // Una URL pedida fuera de rango tiene una sola identidad canónica. Si el
+  // catálogo quedó con dos páginas y alguien abre `page=9`, mostramos y
+  // dejamos escrita la página 2; no exponemos dos URL para el mismo contenido.
+  useEffect(() => {
+    const requested = params.get("page");
+    const normalized = pagina.page > 1 ? String(pagina.page) : null;
+    if (requested === normalized) return;
+    const next = new URLSearchParams(params);
+    if (normalized) next.set("page", normalized); else next.delete("page");
+    setParams(next, { replace: true });
+  }, [pagina.page, params, setParams]);
+
+  const hrefDePagina = (nextPage: number) => {
+    const next = new URLSearchParams(params);
+    if (nextPage <= 1) next.delete("page"); else next.set("page", String(nextPage));
+    const query = next.toString();
+    return query ? `?${query}` : "?";
+  };
 
   const irAPagina = (nextPage: number) => {
     const next = new URLSearchParams(params);
@@ -322,30 +341,56 @@ export default function StoreProducts() {
                   aria-label="Páginas del catálogo"
                   className="mt-8 flex flex-wrap items-center justify-center gap-3"
                 >
-                  <button
-                    type="button"
-                    onClick={() => irAPagina(pagina.page - 1)}
-                    disabled={!pagina.hasPrevious}
-                    className="min-h-11 min-w-11 px-4 py-2 text-sm font-medium border disabled:opacity-40"
-                    style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
-                  >
-                    Anterior
-                  </button>
+                  {pagina.hasPrevious ? (
+                    <a
+                      href={hrefDePagina(pagina.page - 1)}
+                      onClick={event => {
+                        event.preventDefault();
+                        irAPagina(pagina.page - 1);
+                      }}
+                      rel="prev"
+                      className="inline-flex min-h-11 min-w-11 items-center px-4 py-2 text-sm font-medium border"
+                      style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+                    >
+                      Anterior
+                    </a>
+                  ) : (
+                    <span
+                      aria-disabled="true"
+                      className="inline-flex min-h-11 min-w-11 items-center px-4 py-2 text-sm font-medium border opacity-40"
+                      style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+                    >
+                      Anterior
+                    </span>
+                  )}
                   <span className="min-w-28 text-center text-sm" aria-live="polite">
                     Página {pagina.page} de {pagina.pageCount}
                     <span className="block text-xs" style={{ color: "hsl(var(--st-muted))" }}>
                       {pagina.start + 1}–{pagina.end} de {filtrados.length}
                     </span>
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => irAPagina(pagina.page + 1)}
-                    disabled={!pagina.hasNext}
-                    className="min-h-11 min-w-11 px-4 py-2 text-sm font-medium border disabled:opacity-40"
-                    style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
-                  >
-                    Siguiente
-                  </button>
+                  {pagina.hasNext ? (
+                    <a
+                      href={hrefDePagina(pagina.page + 1)}
+                      onClick={event => {
+                        event.preventDefault();
+                        irAPagina(pagina.page + 1);
+                      }}
+                      rel="next"
+                      className="inline-flex min-h-11 min-w-11 items-center px-4 py-2 text-sm font-medium border"
+                      style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+                    >
+                      Siguiente
+                    </a>
+                  ) : (
+                    <span
+                      aria-disabled="true"
+                      className="inline-flex min-h-11 min-w-11 items-center px-4 py-2 text-sm font-medium border opacity-40"
+                      style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+                    >
+                      Siguiente
+                    </span>
+                  )}
                 </nav>
               )}
             </>
