@@ -4809,8 +4809,15 @@ Finance Connect.
      muted, link, acento y header contra canvas/superficie en cada tema. El E2E
      read-only sustituye sólo `theme` y `primary_color` en la respuesta del
      navegador, recorre los siete temas con la tienda real y ejecuta axe sin
-     modificar la configuración del comercio. Estado: **implementado
-     localmente; falta certificar el bundle publicado antes de cerrar D6.3**.
+     modificar la configuración del comercio. `4337dec7` llegó a Vercel
+     `Ready` y la matriz descubrió dos interacciones que los tokens aislados no
+     representan: el selector global de controles pisaba el fondo del buscador
+     Sport y dejaba blanco sobre casi blanco en **1,07:1**; además el header
+     Natural se componía al 95% sobre el canvas y bajaba de 4,54:1 teórico a
+     **4,16:1 real**. El buscador ahora fija fondo/foreground coherentes con su
+     superficie y el header usa el token opaco que fue validado. Estado:
+     **segundo ajuste implementado localmente; falta certificar el nuevo bundle
+     antes de cerrar D6.3**.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

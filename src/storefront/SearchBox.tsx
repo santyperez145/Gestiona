@@ -118,7 +118,11 @@ export default function SearchBox({
               ? "h-9 w-full rounded-full pl-8 pr-8 text-sm bg-white/15 placeholder:opacity-60 outline-none focus:bg-white/25 transition-colors"
               : "w-full h-9 rounded-full pl-8 pr-8 text-sm bg-white/15 outline-none"
           }
-          style={{ color: enHeader ? "hsl(var(--st-header-fg))" : "hsl(var(--st-accent-fg))" }}
+          style={{
+            color: enHeader ? "hsl(var(--st-header-fg))" : "hsl(var(--st-text))",
+            background: enHeader ? "hsl(var(--st-header))" : "hsl(var(--st-bg))",
+            border: enHeader ? "1px solid hsl(var(--st-header-fg) / 0.35)" : undefined,
+          }}
         />
         {q && (
           <button
@@ -126,7 +130,7 @@ export default function SearchBox({
             onClick={() => { setQ(""); setAbierto(false); }}
             className="absolute right-2 opacity-60 hover:opacity-100"
             aria-label="Borrar la búsqueda"
-            style={{ color: enHeader ? "hsl(var(--st-header-fg))" : "hsl(var(--st-accent-fg))" }}
+            style={{ color: enHeader ? "hsl(var(--st-header-fg))" : "hsl(var(--st-text))" }}
           >
             <X className="w-3.5 h-3.5" />
           </button>

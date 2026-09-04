@@ -283,7 +283,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       {/* ── Header ───────────────────────────────────────────────────── */}
       <header
         className="storefront-header sticky top-0 z-40 border-b backdrop-blur"
-        style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-header) / 0.95)" }}
+        style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-header))" }}
       >
         <div className="storefront-header__inner max-w-6xl mx-auto px-4 h-16 flex items-center gap-3">
           <button
