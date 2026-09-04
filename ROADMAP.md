@@ -4418,6 +4418,17 @@ Finance Connect.
      observar tráfico real después de que el dueño publique/active, que no se
      fabrican desde una prueba.
 
+178. Ningún fixture interno queda en el escaparate — D5.26, 2026-09-04.
+     La recorrida publicada de D5.25 encontró entre 60 productos visibles uno
+     llamado literalmente `ZZ NO COMPRAR - Prueba de pago`. La auditoría de
+     base confirmó un único match exacto: stock 0, activo desde julio y
+     referenciado por dos pedidos históricos. `20260904000070` lo desactiva por
+     ID + nombre + stock 0 y retira `featured`, sin borrar la fila, los pedidos
+     ni tocar inventario. Aplicada en producción: fila inactiva, stock 0, dos
+     referencias históricas intactas; `store_catalog_products` pasó 60→59 y
+     devuelve 0 fixtures. El storefront publicado confirmó “59 productos”,
+     ausencia del nombre interno y 0 logs. Estado: **D5.26 cerrado**.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
