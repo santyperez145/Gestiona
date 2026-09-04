@@ -104,6 +104,12 @@ import WorkspaceState from "@/components/shared/WorkspaceState";
 import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import StoreDomainsPanel from "@/components/ecommerce/StoreDomainsPanel";
+import StoreThemePublishingPanel from "@/components/ecommerce/StoreThemePublishingPanel";
+import {
+  applyStoreThemeConfig,
+  storeThemeConfigFromEditor,
+  type StoreThemeConfig,
+} from "@/lib/storeThemePublishing";
 
 function hsl(vars: Record<string, string>, key: string, alpha?: number) {
   const value = vars[key];
@@ -233,6 +239,27 @@ export default function EcommerceStorePage() {
     legalPages: { missingOrTemplate: 2, drafts: 0 },
     analyticsDisclosureReady: false,
   });
+
+  const themeEditorConfig = useMemo(
+    () => storeThemeConfigFromEditor(selectedTheme, storeForm),
+    [selectedTheme, storeForm],
+  );
+  const loadThemeConfig = useCallback((config: StoreThemeConfig) => {
+    setSelectedTheme(config.theme);
+    setStoreForm(current => applyStoreThemeConfig(current, config));
+  }, []);
+  const acceptPublishedTheme = useCallback((config: StoreThemeConfig) => {
+    loadThemeConfig(config);
+    setStore((current: any) => current ? {
+      ...current,
+      theme: config.theme,
+      primary_color: config.primary_color,
+      font: config.font,
+      logo_url: config.logo_url,
+      banner_url: config.banner_url,
+      storefront_layout: config.storefront_layout,
+    } : current);
+  }, [loadThemeConfig]);
   // CBU/alias viven en settings (misma autoridad que el link de pago).
   const [bankForm, setBankForm] = useState({
     bank_cbu: "",
@@ -556,12 +583,22 @@ export default function EcommerceStorePage() {
       return;
     }
     setLoading(true);
+    // Un borrador visual puede estar abierto mientras se editan pagos o
+    // entrega. Guardar otra pestaña nunca debe publicarlo por accidente.
+    const publishedDesign = store?.id ? {
+      theme: store.theme,
+      primary_color: store.primary_color,
+      font: store.font,
+      logo_url: store.logo_url,
+      banner_url: store.banner_url,
+      storefront_layout: store.storefront_layout,
+    } : themeEditorConfig;
     const row = {
       org_id: orgId,
       name,
       slug,
-      theme: selectedTheme,
-      primary_color: storeForm.primary_color,
+      theme: publishedDesign.theme,
+      primary_color: publishedDesign.primary_color,
       currency: storeForm.currency,
       tax_included: storeForm.tax_included,
       free_shipping_above: envioGratisAlGuardar(storeForm.free_shipping_above),
@@ -570,10 +607,10 @@ export default function EcommerceStorePage() {
       payment_methods: normalizarMediosTienda(storeForm.payment_methods),
       payment_discounts: normalizarDescuentosMedios(storeForm.payment_discounts),
       payment_discount_stacks: storeForm.payment_discount_stacks,
-      font: storeForm.font,
+      font: publishedDesign.font,
       description: storeForm.description || null,
-      logo_url: storeForm.logo_url || null,
-      banner_url: storeForm.banner_url || null,
+      logo_url: publishedDesign.logo_url || null,
+      banner_url: publishedDesign.banner_url || null,
       notification_email: storeForm.notification_email || null,
       meta_pixel_id: storeForm.meta_pixel_id || null,
       ga_measurement_id: storeForm.ga_measurement_id || null,
@@ -585,7 +622,9 @@ export default function EcommerceStorePage() {
       pickup_address: storeForm.pickup_address || null,
       pickup_instructions: storeForm.pickup_instructions || null,
       default_item_weight_kg: Number(storeForm.default_item_weight_kg) || 0.5,
-      storefront_layout: layoutParaGuardar(storeForm.storefront_layout),
+      storefront_layout: store?.id
+        ? publishedDesign.storefront_layout
+        : layoutParaGuardar(storeForm.storefront_layout),
       social_links: socialLinksParaGuardar({
         whatsapp: storeForm.whatsapp,
         instagram: storeForm.instagram,
@@ -1291,6 +1330,13 @@ export default function EcommerceStorePage() {
       {/* ─── Design tab ─── */}
       {tab === "design" && (
         <div className="space-y-5">
+          <StoreThemePublishingPanel
+            storeId={store?.id ?? null}
+            slug={store?.slug ?? storeForm.slug}
+            config={themeEditorConfig}
+            onLoadDraft={loadThemeConfig}
+            onPublished={acceptPublishedTheme}
+          />
           <div className="bg-card border border-border/40 rounded-xl p-5">
             <h3 className="font-semibold flex items-center gap-2 mb-1"><Palette className="w-4 h-4 text-primary" />Tema de la Tienda</h3>
             <p className="text-xs text-muted-foreground mb-4">
@@ -1490,10 +1536,6 @@ export default function EcommerceStorePage() {
               <div className="w-8 h-8 rounded-full border border-border/40" style={{ background: storeForm.primary_color }} />
             </div>
           </div>
-          <Button onClick={() => { void saveStore(); }} disabled={loading} className="gradient-gold text-primary-foreground">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Guardar Diseño
-          </Button>
         </div>
       )}
 

@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       activation_interventions: {
@@ -10980,13 +10955,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "ecommerce_cart_sessions_visit_session_id_fkey"
-            columns: ["visit_session_id"]
-            isOneToOne: false
-            referencedRelation: "ecommerce_store_visits"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "ecommerce_cart_sessions_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -11104,6 +11072,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_org_activation"
             referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_cart_sessions_visit_session_id_fkey"
+            columns: ["visit_session_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_store_visits"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -11426,13 +11401,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "ecommerce_orders_visit_session_id_fkey"
-            columns: ["visit_session_id"]
-            isOneToOne: false
-            referencedRelation: "ecommerce_store_visits"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "ecommerce_orders_cart_session_id_fkey"
             columns: ["cart_session_id"]
             isOneToOne: false
@@ -11572,6 +11540,13 @@ export type Database = {
             referencedRelation: "platform_org_activation"
             referencedColumns: ["store_id"]
           },
+          {
+            foreignKeyName: "ecommerce_orders_visit_session_id_fkey"
+            columns: ["visit_session_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_store_visits"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ecommerce_orders_iva_backup: {
@@ -11643,8 +11618,85 @@ export type Database = {
             foreignKeyName: "ecommerce_store_visits_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_store_visits_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_store_visits_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_store_visits_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_store_visits_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_store_visits_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_store_visits_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_store_visits_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_store_visits_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_store_visits_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_store_visits_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_store_visits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_funnel"
+            referencedColumns: ["store_id"]
           },
           {
             foreignKeyName: "ecommerce_store_visits_store_id_fkey"
@@ -11653,10 +11705,19 @@ export type Database = {
             referencedRelation: "ecommerce_stores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ecommerce_store_visits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
+          },
         ]
       }
       ecommerce_stores: {
         Row: {
+          analytics_disclosure_accepted_at: string | null
+          analytics_disclosure_accepted_by: string | null
           banner_url: string | null
           created_at: string
           currency: string
@@ -11667,13 +11728,11 @@ export type Database = {
           custom_domain_status: string
           custom_domain_verification: Json
           custom_domain_verified_at: string | null
-          analytics_disclosure_accepted_at: string | null
-          analytics_disclosure_accepted_by: string | null
           default_item_weight_kg: number
           description: string | null
           domain: string | null
-          font: string | null
           first_party_analytics_enabled: boolean
+          font: string | null
           free_shipping_above: number | null
           fulfillment_location_id: string | null
           ga_measurement_id: string | null
@@ -11706,6 +11765,8 @@ export type Database = {
           tiktok_pixel_id: string | null
         }
         Insert: {
+          analytics_disclosure_accepted_at?: string | null
+          analytics_disclosure_accepted_by?: string | null
           banner_url?: string | null
           created_at?: string
           currency?: string
@@ -11716,13 +11777,11 @@ export type Database = {
           custom_domain_status?: string
           custom_domain_verification?: Json
           custom_domain_verified_at?: string | null
-          analytics_disclosure_accepted_at?: string | null
-          analytics_disclosure_accepted_by?: string | null
           default_item_weight_kg?: number
           description?: string | null
           domain?: string | null
-          font?: string | null
           first_party_analytics_enabled?: boolean
+          font?: string | null
           free_shipping_above?: number | null
           fulfillment_location_id?: string | null
           ga_measurement_id?: string | null
@@ -11755,6 +11814,8 @@ export type Database = {
           tiktok_pixel_id?: string | null
         }
         Update: {
+          analytics_disclosure_accepted_at?: string | null
+          analytics_disclosure_accepted_by?: string | null
           banner_url?: string | null
           created_at?: string
           currency?: string
@@ -11765,13 +11826,11 @@ export type Database = {
           custom_domain_status?: string
           custom_domain_verification?: Json
           custom_domain_verified_at?: string | null
-          analytics_disclosure_accepted_at?: string | null
-          analytics_disclosure_accepted_by?: string | null
           default_item_weight_kg?: number
           description?: string | null
           domain?: string | null
-          font?: string | null
           first_party_analytics_enabled?: boolean
+          font?: string | null
           free_shipping_above?: number | null
           fulfillment_location_id?: string | null
           ga_measurement_id?: string | null
@@ -17877,14 +17936,14 @@ export type Database = {
       }
       invoices: {
         Row: {
-          arca_qr_payload: Json | null
-          afip_candidate_number: number | null
-          afip_candidate_set_at: string | null
           afip_authorization_requested_by: string | null
           afip_authorization_started_at: string | null
+          afip_candidate_number: number | null
+          afip_candidate_set_at: string | null
           afip_environment: string | null
           afip_error: string | null
           afip_status: string | null
+          arca_qr_payload: Json | null
           cae: string | null
           cae_vencimiento: string | null
           codigo_autorizacion_tipo: string | null
@@ -17908,8 +17967,8 @@ export type Database = {
           fiscal_snapshot_source: string | null
           id: string
           issue_date: string
-          motivo_nota_credito: string | null
           moneda_cotizacion: number | null
+          motivo_nota_credito: string | null
           nota_credito_de: string | null
           notes: string | null
           number: string
@@ -17929,14 +17988,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          arca_qr_payload?: Json | null
-          afip_candidate_number?: number | null
-          afip_candidate_set_at?: string | null
           afip_authorization_requested_by?: string | null
           afip_authorization_started_at?: string | null
+          afip_candidate_number?: number | null
+          afip_candidate_set_at?: string | null
           afip_environment?: string | null
           afip_error?: string | null
           afip_status?: string | null
+          arca_qr_payload?: Json | null
           cae?: string | null
           cae_vencimiento?: string | null
           codigo_autorizacion_tipo?: string | null
@@ -17960,8 +18019,8 @@ export type Database = {
           fiscal_snapshot_source?: string | null
           id?: string
           issue_date?: string
-          motivo_nota_credito?: string | null
           moneda_cotizacion?: number | null
+          motivo_nota_credito?: string | null
           nota_credito_de?: string | null
           notes?: string | null
           number: string
@@ -17981,14 +18040,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          arca_qr_payload?: Json | null
-          afip_candidate_number?: number | null
-          afip_candidate_set_at?: string | null
           afip_authorization_requested_by?: string | null
           afip_authorization_started_at?: string | null
+          afip_candidate_number?: number | null
+          afip_candidate_set_at?: string | null
           afip_environment?: string | null
           afip_error?: string | null
           afip_status?: string | null
+          arca_qr_payload?: Json | null
           cae?: string | null
           cae_vencimiento?: string | null
           codigo_autorizacion_tipo?: string | null
@@ -18012,8 +18071,8 @@ export type Database = {
           fiscal_snapshot_source?: string | null
           id?: string
           issue_date?: string
-          motivo_nota_credito?: string | null
           moneda_cotizacion?: number | null
+          motivo_nota_credito?: string | null
           nota_credito_de?: string | null
           notes?: string | null
           number?: string
@@ -39318,6 +39377,150 @@ export type Database = {
           },
         ]
       }
+      store_theme_versions: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          org_id: string
+          published_at: string | null
+          published_by: string | null
+          status: string
+          store_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          config: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          org_id: string
+          published_at?: string | null
+          published_by?: string | null
+          status: string
+          store_id: string
+          updated_at?: string
+          version: number
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          org_id?: string
+          published_at?: string | null
+          published_by?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_theme_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_limite_peor_que_la_prueba"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_theme_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "audit_org_sin_settings"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_theme_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization_activation_readiness"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_theme_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_theme_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_theme_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_ai_actions"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_theme_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_theme_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health_source"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_theme_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_integration_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_theme_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_margin_coverage"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_theme_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_stock_accuracy"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "store_theme_versions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_funnel"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "store_theme_versions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_theme_versions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_activation"
+            referencedColumns: ["store_id"]
+          },
+        ]
+      }
       store_wishlists: {
         Row: {
           created_at: string
@@ -52053,6 +52256,14 @@ export type Database = {
         }
         Returns: string
       }
+      afip_autorizacion_candidato: {
+        Args: { p_invoice_id: string; p_numero_afip: number }
+        Returns: Json
+      }
+      afip_autorizacion_preflight_error: {
+        Args: { p_error: string; p_invoice_id: string; p_status: string }
+        Returns: Json
+      }
       afip_autorizacion_reservar: {
         Args: {
           p_environment: string
@@ -52229,6 +52440,10 @@ export type Database = {
           org_id: string
           phone: string
         }[]
+      }
+      bulk_update_store_order_fulfillment: {
+        Args: { p_order_ids: string[]; p_org_id: string; p_status: string }
+        Returns: Json
       }
       business_blueprint_intent_uuid: {
         Args: { p_intent: string }
@@ -53155,30 +53370,7 @@ export type Database = {
         }[]
       }
       get_store_performance_snapshot: {
-        Args: {
-          p_from?: string | null
-          p_org_id: string
-          p_to?: string | null
-        }
-        Returns: Json
-      }
-      start_store_checkout: {
-        Args: {
-          p_email?: string | null
-          p_items: Json
-          p_slug: string
-          p_token: string
-        }
-        Returns: Json
-      }
-      start_store_checkout_v2: {
-        Args: {
-          p_email?: string | null
-          p_items: Json
-          p_slug: string
-          p_token: string
-          p_visit_token?: string | null
-        }
+        Args: { p_from?: string; p_org_id: string; p_to?: string }
         Returns: Json
       }
       get_store_perfume_details: {
@@ -53243,6 +53435,39 @@ export type Database = {
         }[]
       }
       get_store_slug_by_host: { Args: { p_host: string }; Returns: string }
+      get_store_theme_preview: {
+        Args: { p_slug: string; p_version_id: string }
+        Returns: {
+          banner_url: string
+          currency: string
+          description: string
+          font: string
+          free_shipping_above: number
+          ga_measurement_id: string
+          logo_url: string
+          meta_description: string
+          meta_pixel_id: string
+          meta_title: string
+          name: string
+          nav_links: Json
+          org_id: string
+          owner_user_id: string
+          payment_discounts: Json
+          payment_methods: string[]
+          pickup_address: string
+          pickup_enabled: boolean
+          pickup_instructions: string
+          primary_color: string
+          shipping_cost: number
+          shipping_mode: string
+          shipping_provinces: string[]
+          slug: string
+          social_links: Json
+          storefront_layout: Json
+          theme: string
+          tiktok_pixel_id: string
+        }[]
+      }
       get_store_variants: {
         Args: { p_slug: string }
         Returns: {
@@ -53552,6 +53777,7 @@ export type Database = {
         Args: { p_raw: string }
         Returns: string
       }
+      normalize_store_theme_config: { Args: { p_config: Json }; Returns: Json }
       org_entitlements: { Args: { p_org: string }; Returns: Json }
       organization_capability_access: {
         Args: { p_action?: string; p_capability_key: string; p_org_id: string }
@@ -53956,6 +54182,15 @@ export type Database = {
         }
         Returns: Json
       }
+      prune_store_visits: { Args: never; Returns: number }
+      publish_store_theme_draft: {
+        Args: {
+          p_draft_id: string
+          p_expected_updated_at?: string
+          p_store_id: string
+        }
+        Returns: Json
+      }
       purge_expired_oauth_states: { Args: never; Returns: number }
       quote_store_shipping: {
         Args: {
@@ -54110,6 +54345,14 @@ export type Database = {
         }
         Returns: string
       }
+      record_store_visit: {
+        Args: { p_attribution?: Json; p_slug: string; p_visit_token: string }
+        Returns: Json
+      }
+      record_store_visit_unchecked: {
+        Args: { p_attribution?: Json; p_slug: string; p_visit_token: string }
+        Returns: Json
+      }
       redondear_moneda: {
         Args: { p_importe: number; p_moneda?: string }
         Returns: number
@@ -54186,6 +54429,10 @@ export type Database = {
           p_qty: number
           p_variant_id: string
         }
+        Returns: Json
+      }
+      restore_store_theme_version: {
+        Args: { p_store_id: string; p_version_id: string }
         Returns: Json
       }
       resumen_sin_facturar: { Args: { p_org: string }; Returns: Json }
@@ -54302,14 +54549,6 @@ export type Database = {
         }
         Returns: Json
       }
-      record_store_visit: {
-        Args: {
-          p_attribution?: Json
-          p_slug: string
-          p_visit_token: string
-        }
-        Returns: Json
-      }
       save_store_cart: {
         Args: {
           p_email?: string
@@ -54331,19 +54570,20 @@ export type Database = {
       }
       save_store_cart_v3: {
         Args: {
-          p_email?: string | null
+          p_email?: string
           p_items: Json
           p_slug: string
           p_token: string
-          p_visit_token?: string | null
+          p_visit_token?: string
         }
         Returns: Json
       }
-      set_store_first_party_analytics: {
+      save_store_theme_draft: {
         Args: {
-          p_acknowledged?: boolean
-          p_enabled: boolean
-          p_org_id: string
+          p_config: Json
+          p_expected_updated_at?: string
+          p_label?: string
+          p_store_id: string
         }
         Returns: Json
       }
@@ -54385,6 +54625,10 @@ export type Database = {
         Args: { p_carrier: string; p_order_id: string; p_tracking: string }
         Returns: Json
       }
+      set_store_first_party_analytics: {
+        Args: { p_acknowledged?: boolean; p_enabled: boolean; p_org_id: string }
+        Returns: Json
+      }
       siguiente_numero_factura: { Args: { p_org: string }; Returns: string }
       stage_product_import: {
         Args: {
@@ -54401,6 +54645,25 @@ export type Database = {
         }
         Returns: Json
       }
+      start_store_checkout: {
+        Args: {
+          p_email?: string
+          p_items: Json
+          p_slug: string
+          p_token: string
+        }
+        Returns: Json
+      }
+      start_store_checkout_v2: {
+        Args: {
+          p_email?: string
+          p_items: Json
+          p_slug: string
+          p_token: string
+          p_visit_token?: string
+        }
+        Returns: Json
+      }
       stock_disponible: {
         Args: {
           p_location_id?: string
@@ -54408,6 +54671,10 @@ export type Database = {
           p_variant_id?: string
         }
         Returns: number
+      }
+      store_analytics_disclosure_ready: {
+        Args: { p_store_id: string }
+        Returns: boolean
       }
       store_cart_weight_kg: {
         Args: { p_default_weight?: number; p_items: Json; p_org_id: string }
@@ -54431,6 +54698,10 @@ export type Database = {
           p_product_id: string
         }
         Returns: number
+      }
+      store_traffic_channel: {
+        Args: { p_medium: string; p_referrer_host: string; p_source: string }
+        Returns: string
       }
       store_volume_discount: {
         Args: { p_items: Json; p_org_id: string }
@@ -54468,10 +54739,6 @@ export type Database = {
       tipo_nota_credito: { Args: { p_tipo_factura: number }; Returns: number }
       toggle_wishlist: {
         Args: { p_product_id: string; p_slug: string }
-        Returns: Json
-      }
-      bulk_update_store_order_fulfillment: {
-        Args: { p_order_ids: string[]; p_org_id: string; p_status: string }
         Returns: Json
       }
       transfer_stock_between_locations: {
@@ -54704,9 +54971,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "viewer"],

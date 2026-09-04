@@ -316,6 +316,7 @@ function ApplicationRoutes() {
 
       {/* A mano: llevan parámetros, que el manifest todavía no modela. */}
       <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
+      <Route path="/tienda/:slug/vista-previa/:previewVersionId/*" element={<StorefrontPage preview />} />
       <Route path="/tienda/:slug/*" element={<StorefrontPage />} />
       <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
       <Route path="/portal-influencer/:token" element={<InfluencerPortalPage />} />

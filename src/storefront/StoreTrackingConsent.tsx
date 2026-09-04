@@ -8,14 +8,14 @@ import { useStoreTrackingConsent } from "./trackingConsent";
  * funcionando porque no identifican al comprador ni salen de Nerqia.
  */
 export default function StoreTrackingConsent({ enabled }: { enabled: boolean }) {
-  const { decision, choose } = useStoreTrackingConsent();
+  const { decision, disabled, choose } = useStoreTrackingConsent();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     setOpen(enabled && decision === null);
   }, [enabled, decision]);
 
-  if (!enabled) return null;
+  if (!enabled || disabled) return null;
 
   const panel = open ? (
     <aside

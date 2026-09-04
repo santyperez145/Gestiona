@@ -44,11 +44,13 @@ export function writeStoreTrackingConsent(
 
 interface StoreTrackingConsentValue {
   decision: StoreTrackingConsent;
+  disabled: boolean;
   choose: (value: Exclude<StoreTrackingConsent, null>) => void;
 }
 
 const Context = createContext<StoreTrackingConsentValue>({
   decision: null,
+  disabled: false,
   choose: () => {},
 });
 
@@ -56,16 +58,22 @@ const RuntimeContext = createContext(false);
 
 export function StoreTrackingConsentProvider({
   slug,
+  disabled = false,
   children,
 }: {
   slug: string;
+  disabled?: boolean;
   children: ReactNode;
 }) {
   const [decision, setDecision] = useState<StoreTrackingConsent>(() => (
-    typeof window === "undefined" ? null : readStoreTrackingConsent(window.localStorage, slug)
+    disabled || typeof window === "undefined" ? (disabled ? "denied" : null) : readStoreTrackingConsent(window.localStorage, slug)
   ));
 
   useEffect(() => {
+    if (disabled) {
+      setDecision("denied");
+      return;
+    }
     setDecision(readStoreTrackingConsent(window.localStorage, slug));
     const key = storeTrackingConsentKey(slug);
     const onStorage = (event: StorageEvent) => {
@@ -74,14 +82,15 @@ export function StoreTrackingConsentProvider({
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, [slug]);
+  }, [disabled, slug]);
 
   const choose = useCallback((value: Exclude<StoreTrackingConsent, null>) => {
+    if (disabled) return;
     writeStoreTrackingConsent(window.localStorage, slug, value);
     setDecision(value);
-  }, [slug]);
+  }, [disabled, slug]);
 
-  const value = useMemo(() => ({ decision, choose }), [decision, choose]);
+  const value = useMemo(() => ({ decision, disabled, choose }), [decision, disabled, choose]);
   return createElement(Context.Provider, { value }, children);
 }
 

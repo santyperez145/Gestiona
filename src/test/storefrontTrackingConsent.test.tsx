@@ -40,4 +40,16 @@ describe("consentimiento de medición por tienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Aceptar medición" }));
     expect(readStoreTrackingConsent(localStorage, "demo")).toBe("granted");
   });
+
+  it("no muestra ni persiste consentimiento dentro de una vista previa", () => {
+    render(
+      <StoreTrackingConsentProvider slug="demo" disabled>
+        <StoreTrackingConsent enabled />
+      </StoreTrackingConsentProvider>,
+    );
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Preferencias de privacidad" })).toBeNull();
+    expect(readStoreTrackingConsent(localStorage, "demo")).toBeNull();
+  });
 });

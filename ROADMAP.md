@@ -1227,6 +1227,23 @@ transacción; no existe un segundo cálculo de orden ni un segundo stock. Falta
 certificar dos dispositivos con un comprador de prueba y completar las máquinas
 de estados independientes de cart/order/payment/fulfillment antes de cerrar F4.
 
+**Estado slice 22 + Design, 2026-09-04 — publicación de tema versionada.**
+El diseño de una tienda ya no se edita sobre producción. Un borrador privado
+guarda tema, colores, tipografías, imágenes y layout; el owner lo abre en el
+Storefront real mediante una preview autenticada que no registra visitas, no
+sincroniza carrito, no carga medición externa y no permite comprar. Publicar
+archiva la versión vigente y actualiza atómicamente `ecommerce_stores`, que
+continúa siendo la única autoridad consumida por la tienda pública. El historial
+es inmutable y restaurar crea una versión nueva, sin borrar evidencia ni el
+borrador en curso. El `expected_updated_at` evita que dos pestañas se pisen.
+
+La base real quedó sembrada con una versión publicada por tienda y el fixture
+reversible cerró preview, publicación, conflicto stale, rollback, permiso y cero
+restos. La referencia competitiva oficial confirma el patrón draft → preview →
+publish y conservación del tema anterior; no se declara paridad completa:
+faltan múltiples borradores simultáneos, links compartibles con vencimiento,
+page contract y la tarea de un merchant real.
+
 ### F5 — Nerqia Finance Mendel-class
 
 **Objetivo:** pasar de capturar documentos a una plataforma comparable con
@@ -1412,7 +1429,7 @@ contratos técnicos; **externo** = requiere dueño/proveedor/operación real;
 | P1-08 | F4 · slice 20 | **Parcial técnico 2026-09-03** | Sesión server-side, capacidad anónima, identidad por tienda, merge sin suma, rehidratación y orden enlazada están implementados; falta prueba real con dos dispositivos/cuenta. |
 | P1-09 | F4 · slice 20 | **Parcial técnico 2026-09-03** | Cart convierte atómicamente con la orden y el checkout conserva idempotencia; faltan state machines separadas y concurrencia/partial flows de payment/fulfillment. |
 | P1-10 | F4 · slice 22 | **Parcial técnico 2026-09-03** | Reclamo tenant-scoped, unicidad, challenge DNS, TLS/canonical y prevención de takeover están modelados y cableados al proveedor; falta configurar la credencial server-side y certificar un dominio externo real. |
-| P1-11 | F4 · slice 22 + Design | **Parcial** | Themes existen; faltan draft/preview/publish/version/rollback y page contract. |
+| P1-11 | F4 · slice 22 + Design | **Parcial técnico 2026-09-04** | Borrador privado, preview autenticada sin efectos, publicación atómica, historial inmutable, conflicto stale y rollback están implementados y verificados en la base real. Faltan múltiples borradores, preview compartible con vencimiento, page contract y tarea de merchant real. |
 | P1-12 | F4 · slice 22 | **Parcial técnico 2026-09-03** | Robots, índice, JSON-LD, OG, sitemap y feed salen del borde tanto para el subdominio incluido como para el dominio propio (D5.9/D5.16). Faltan redirects, hreflang y reporte de migración. |
 | P1-13 | F8 · bitácora 52 | **Cerrado técnicamente 2026-08-29** | API v1 con OpenAPI público, path obligatorio, scopes sin filtraciones, cupo durable por key, mutación atómica, precisión monetaria, política de compatibilidad/deprecation y CORS browser deshabilitado. Medir la primera key e integración reales. |
 | P1-14 | F8 · bitácoras 48/50/51 | **Cerrado técnicamente 2026-08-29** | Contrato OpenAPI público, receptor HTTPS externo certificado, outbox transaccional, DLQ/replay, filtro, firma e ids estables. Mantener compatibilidad y medir primera integración real. |
@@ -1482,7 +1499,7 @@ por eso puede crecer por encima de 25.
 | 19 | Split Storefront | F4 | Pendiente | Despliegue, SLO y fallas aislados del panel. |
 | 20 | Cart y order canónicos | F4 | **Base técnica parcial 2026-09-03** | Carrito server-side por dispositivo/cuenta, merge, catálogo vigente y vínculo idempotente a orden hechos; faltan prueba real multidispositivo y estados independientes completos. |
 | 21 | Store first-class | F4 | Pendiente | Una organización opera dos stores sin duplicar Core. |
-| 22 | Domains + migración inicial | F4 | **Parcial técnico 2026-09-03** | Modelo, UI, Edge Function, DNS dinámico y SEO del dominio propio listos; faltan credencial server-side, certificación con un dominio externo real y migrador/redirects. |
+| 22 | Domains, tema y migración inicial | F4 | **Parcial técnico 2026-09-04** | Dominio propio suma modelo, UI, Edge Function, DNS dinámico y SEO; diseño suma draft, preview privada, publicación, versiones y rollback. Faltan credencial/certificación de dominio real, múltiples borradores, preview compartible, page contract, migrador y redirects. |
 | 23 | Finance Mendel-class piloto | F5 | Congelado hasta adopción F3 | Un piloto completa solicitud → presupuesto/política → aprobación → gasto/evidencia → conciliación/exportación; tarjetas externas primero y emisión sólo con gate regulado. |
 | 24 | Commerce diferencial | F6 | Congelado hasta F4 y demanda | Una capacidad diferencial adoptada por merchants. |
 | 25 | Pay/Ship + Developer gates | F7–F8 | Congelado por volumen/regulación | Margen transaccional y app externa reales. |
@@ -2674,7 +2691,7 @@ Finance Connect.
 
     La puerta local pasa typecheck, lint 0 errores/139 warnings conocidos,
     **2.083 tests en 209 archivos**, build/PWA (18 entradas, 2.018,63 KiB),
-    74 Edge Functions, `npm audit` sin vulnerabilidades, 82 enlaces internos y
+    74 Edge Functions (medidas el 2026-08-30), `npm audit` sin vulnerabilidades, 82 enlaces internos y
     conteos 74/497. Cinco guardas nuevas fijan plan/vista, payload mínimo,
     orden membresía→plan→contexto, minimización de PII y error recuperable.
     `ANTHROPIC_API_KEY` continúa ausente al corte: no se presenta una respuesta
@@ -2770,7 +2787,8 @@ Finance Connect.
     Estado al primer commit: SQL completo ejecutado dentro de una transacción
     revertida (`old_removed=true`, `secure_created=true`, `missing_tokens=0`),
     typecheck, lint 0 errores/139 warnings conocidos, **2.096/2.096 pruebas en
-    212 archivos**, build/PWA (18 entradas, 2.018,70 KiB), 74 Edge Functions,
+    212 archivos**, build/PWA (18 entradas, 2.018,70 KiB), 74 Edge Functions
+    (medidas el 2026-08-30),
     `npm audit` sin vulnerabilidades, 84 enlaces internos y conteos 74/498.
     `c543249` quedó `Ready / Production`; después se aplicó y registró
     `20260830000020`, y el dry-run final quedó `upToDate=true`. `store-pay` v40,
@@ -3921,7 +3939,8 @@ Finance Connect.
      redirect HTTP a `/precios` y el enlace visible deja de partir señales. El
      runbook, fuentes oficiales, criterio competitivo y métricas viven en
      `docs/SEO_INDEXACION.md`. Puerta local: typecheck verde; lint 0 errores/143
-     warnings heredados; **2.600 tests verdes en 276 archivos**; build/PWA y 75
+     warnings heredados; **2.600 tests verdes en 276 archivos** (`npm test`);
+     build/PWA y 75
      Edge Functions verdes; auditoría estándar con 0 vulnerabilidades.
 
      El commit `15124ccd` quedó `READY` en producción. La matriz publicada
@@ -4014,7 +4033,7 @@ Finance Connect.
      carrito y confirmación deshabilitada sin escribir una venta.
 
      Puerta local: typecheck verde; lint 0 errores/143 warnings heredados;
-     **2.607 tests verdes en 277 archivos**; build/PWA, 75 Edge Functions y
+     **2.607 tests verdes en 277 archivos** (`npm test`); build/PWA, 75 Edge Functions y
      auditoría high en cero vulnerabilidades. El chunk POS queda en 122,17 kB
      (34,43 kB gzip); este slice no agregó una dependencia ni otro motor de
      checkout.
@@ -4133,7 +4152,7 @@ Finance Connect.
      día. No se envió una factura ficticia a ARCA.
 
      Puerta local: typecheck verde; lint 0 errores/143 warnings heredados;
-     **2.629 tests verdes en 281 archivos**; build/PWA y 75 Edge Functions.
+     **2.629 tests verdes en 281 archivos** (`npm test`); build/PWA y 75 Edge Functions.
      El endpoint del registro agotó tres veces el timeout en la PC, pero la
      instalación limpia del deploy auditó **911 paquetes y encontró 0
      vulnerabilidades**; Vercel terminó `READY` sobre `db6fa0b8`.
@@ -4466,7 +4485,7 @@ Finance Connect.
      preparado, retiro, impago, finalizado, ausente, repetido, outsider y 51
      IDs: **6/6 checks**, dos auditorías y **0 residuos**. Migración aplicada y
      libro en brecha 0. Puerta integral local: TypeScript; lint con 0 errores y
-     143 warnings heredados; **2.657/2.657 tests en 285 archivos**; build/PWA
+     143 warnings heredados; **2.657/2.657 tests en 285 archivos** (`npm test`); build/PWA
      productivo. `722c4951` quedó `success` en Vercel y el navegador autenticado
      recibió el bundle nuevo. La cola real mostró 7 pedidos —5 impagos y 2 ya
      entregados—, 15 representaciones accesibles desktop/mobile de selección
@@ -4505,7 +4524,7 @@ Finance Connect.
      en producción: la comparación read-only con `SET LOCAL ROLE anon` devolvió
      **26/26 activas, 6/6 agotadas, 0 diferencias** y el dry-run dejó el libro en
      brecha 0. Puerta integral posterior: TypeScript; lint con 0 errores y 143
-     warnings heredados; **2.663/2.663 tests en 286 archivos**; build/PWA
+     warnings heredados; **2.663/2.663 tests en 286 archivos** (`npm test`); build/PWA
      productivo.
 
      `8e632f80` quedó Ready. En `exentryimports.nerqia.app`, la PDP real mostró
@@ -4560,7 +4579,7 @@ Finance Connect.
      opciones.
 
      La puerta posterior quedó verde con TypeScript, lint sin errores y 143
-     warnings heredados, **2.665/2.665 tests en 286 archivos** y build/PWA.
+     warnings heredados, **2.665/2.665 tests en 286 archivos** (`npm test`) y build/PWA.
      `bfb1b0a7` quedó Ready y aliasado a `nerqia.app` + wildcard. La grilla real
      montó 20 cards: la de 9 sabores bajó a 459,8 px frente a 434,2 px de una
      simple —25,6 px, no 178—, mostró 7 disponibles + 2 agotadas, 0 radios, 0
@@ -4601,7 +4620,7 @@ Finance Connect.
      separación desktop/mobile sin confirmar una orden.
 
      Puerta local: TypeScript OK, lint **0 errores / 143 warnings heredados**,
-     **2.665/2.665 tests en 286 archivos** y build/PWA. `7e5c3a22` quedó Ready
+     **2.665/2.665 tests en 286 archivos** (`npm test`) y build/PWA. `7e5c3a22` quedó Ready
      y aliasado a `nerqia.app` + wildcard. La repetición publicada pasó **2/2**
      en Chromium y Pixel 5: resumen estático en mobile, lateral sticky en
      desktop, barra fija ≤120 px y por debajo del 70% superior del viewport,
@@ -4635,7 +4654,7 @@ Finance Connect.
      E2E read-only mide resumen/barra, posición, alto, safe bottom, overflow,
      total pendiente y consola en desktop/Pixel 5. La puerta local pasó
      TypeScript, lint con 0 errores/143 warnings conocidos, 2.665 tests en 286
-     archivos y build/PWA. El commit `6f8e9f66` quedó `Ready` con alias raíz y
+     archivos (`npm test`) y build/PWA. El commit `6f8e9f66` quedó `Ready` con alias raíz y
      wildcard; el bundle publicado pasó **2/2** en Chromium/Pixel 5, sin
      overflow ni errores de consola. La inspección visual desktop confirmó el
      resumen lateral sin contenido tapado. Estado: **D5.31 cerrado en
@@ -4665,7 +4684,7 @@ Finance Connect.
 
      Cinco pruebas nuevas verifican bootstrap, PageView SPA, semántica
      pedido/pago, IDs y receipt. La puerta local pasó TypeScript, lint con 0
-     errores/142 warnings conocidos, 2.670 tests en 287 archivos y build/PWA.
+     errores/142 warnings conocidos, 2.670 tests en 287 archivos (`npm test`) y build/PWA.
      El commit `64ab5bd6` quedó `Ready` con alias raíz/wildcard. El bundle
      publicado pasó **4/4** en Chromium/Pixel 5 recorriendo home y una
      navegación SPA por filtro/URL, sin errores de consola y con las escrituras
@@ -4695,7 +4714,7 @@ Finance Connect.
      respuestas tardías al cambiar de pedido o desmontar. Tres pruebas de
      componente recorren carga, error de Supabase, reintento exitoso e
      inconsistencia. La puerta completa pasó TypeScript, lint con 0 errores/142
-     warnings conocidos, **2.673 tests en 288 archivos** y build/PWA. Estado:
+     warnings conocidos, **2.673 tests en 288 archivos** (`npm test`) y build/PWA. Estado:
      **implementado, publicado y protegido; la matriz sintética sobre
      `nerqia.app` pasó 2/2 en Chromium y Pixel 5 sin tocar pedidos reales**.
      El tracking live del transportista sigue siendo un gate externo.
@@ -4726,7 +4745,7 @@ Finance Connect.
      direccionamiento por merchant, espera del runtime, exclusión de rutas con
      capacidades y correspondencia código↔CSP sin `*`. La puerta completa pasó
      TypeScript, lint con 0 errores/142 warnings conocidos, **2.685 tests en
-     290 archivos** y build/PWA. El commit `a55f293f` llegó a Vercel `Ready` y
+     290 archivos** (`npm test`) y build/PWA. El commit `a55f293f` llegó a Vercel `Ready` y
      `nerqia.app` respondió 200 con los hosts exactos y sin `*` en
      `script-src`/`connect-src`. La matriz sintética —ID agregado sólo a la
      respuesta interceptada y SDK sustituido localmente— pasó **2/2 en Chromium
@@ -4849,6 +4868,30 @@ Finance Connect.
      0 clics, 0 impresiones y sin consultas; el informe general sigue procesando
      cobertura. Estado: **primera indexación externa cerrada para ambas homes;
      alcance, consultas, posición y cobertura del catálogo siguen pendientes**.
+
+192. El diseño deja de editar producción — F4 / D5.35, 2026-09-04. Shopify y
+     Tiendanube documentan el mismo límite operativo: se trabaja en un tema no
+     publicado, se previsualiza y el cambio público ocurre recién al publicar;
+     el tema anterior queda disponible. Nerqia ahora expresa esa frontera en
+     `store_theme_versions`: una versión publicada y un borrador por tienda,
+     configuración validada, RLS tenant-scoped, RPCs con `ecommerce.edit`,
+     auditoría y control optimista. La publicación sigue escribiendo sobre
+     `ecommerce_stores`, por lo que no nace un segundo Storefront ni otra
+     autoridad visual.
+
+     La preview reutiliza `/tienda/:slug`, pero exige sesión miembro y carga la
+     versión por capacidad server-side. Quedan apagados checkout, persistencia
+     server-side de carrito, visitas y proveedores de medición. El fixture
+     reversible descubrió un defecto real: `now()` no cambia dentro de una
+     transacción y dejaba pasar una escritura stale; los RPC usan ahora
+     `clock_timestamp()`. Publicación, rollback, denegación y limpieza pasaron
+     con roles reales; el agregado productivo quedó en **1 tienda / 1 versión
+     publicada / 0 borradores / 0 versiones huérfanas**. La puerta local pasó
+     typecheck, lint con 0 errores/142 warnings conocidos, **2.705 tests en 293
+     archivos** (`npm test`, 2026-09-04) y build/PWA. Faltan múltiples
+     borradores, enlace de preview compartible con vencimiento, page contract,
+     navegador autenticado con usuario de prueba y una publicación operada por
+     un merchant real.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

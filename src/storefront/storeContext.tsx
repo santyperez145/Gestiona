@@ -234,12 +234,16 @@ const cartSessionKey = (slug: string) => `gestiona.store.session.${slug}`;
 export function StoreProvider({
   slug,
   basePath = `/tienda/${encodeURIComponent(slug)}`,
+  previewVersionId,
   children,
 }: {
   slug: string;
   basePath?: string;
+  previewVersionId?: string;
   children: ReactNode;
 }) {
+  const previewMode = Boolean(previewVersionId);
+  const storageScope = previewVersionId ? `${slug}.preview.${previewVersionId}` : slug;
   const location = useLocation();
   const {
     loading: buyerIdentityLoading,
@@ -287,8 +291,12 @@ export function StoreProvider({
     setLoadError(false);
 
     (async () => {
-      const storeResponse = await retryPublicRead(() =>
-        supabase.rpc("get_store_by_slug", { p_slug: slug }));
+      const storeResponse = await retryPublicRead(() => previewVersionId
+        ? supabase.rpc("get_store_theme_preview", {
+          p_slug: slug,
+          p_version_id: previewVersionId,
+        })
+        : supabase.rpc("get_store_by_slug", { p_slug: slug }));
       if (storeResponse.error) {
         console.error("[tienda] error leyendo la tienda:", storeResponse.error.message);
         if (!cancelled) { setLoadError(true); setLoading(false); }
@@ -374,7 +382,7 @@ export function StoreProvider({
     });
 
     return () => { cancelled = true; };
-  }, [slug, reloadTick]);
+  }, [slug, previewVersionId, reloadTick]);
 
   // ── Carrito persistido ──────────────────────────────────────────────────
   useEffect(() => {
@@ -382,20 +390,20 @@ export function StoreProvider({
     setCartSyncStatus("loading");
     setCartSyncNotice(null);
     try {
-      const raw = localStorage.getItem(cartKey(slug));
+      const raw = localStorage.getItem(cartKey(storageScope));
       const parsed = raw ? JSON.parse(raw) : [];
       const initial = Array.isArray(parsed) ? parsed as CartLine[] : [];
       cartRef.current = initial;
       setCart(initial);
-      cartLocalUpdatedAtRef.current = Number(localStorage.getItem(cartUpdatedKey(slug))) || 0;
+      cartLocalUpdatedAtRef.current = Number(localStorage.getItem(cartUpdatedKey(storageScope))) || 0;
 
-      let token = localStorage.getItem(cartSessionKey(slug)) ?? "";
+      let token = localStorage.getItem(cartSessionKey(storageScope)) ?? "";
       if (!token) {
         token = crypto.randomUUID();
-        localStorage.setItem(cartSessionKey(slug), token);
+        localStorage.setItem(cartSessionKey(storageScope), token);
       }
       setCartToken(token);
-      setVisitToken(storeVisitToken({
+      setVisitToken(previewMode ? "" : storeVisitToken({
         storage: localStorage,
         slug,
         now: Date.now(),
@@ -408,13 +416,18 @@ export function StoreProvider({
       setVisitToken(crypto.randomUUID());
       cartLocalUpdatedAtRef.current = 0;
     }
-  }, [slug]);
+  }, [previewMode, slug, storageScope]);
 
   // Una visita y un carrito no comparten duración. En cada navegación se
   // renueva la actividad; después de 30 minutos la capacidad rota. El RPC
   // hashea el token y conserva sólo primera fuente/medio/campaña + hostname.
   useEffect(() => {
     if (loading || !store) return;
+    if (previewMode) {
+      setVisitToken("");
+      setVisitRecordReady(true);
+      return;
+    }
     let cancelled = false;
     const nextVisitToken = storeVisitToken({
       storage: localStorage,
@@ -440,7 +453,7 @@ export function StoreProvider({
       if (!cancelled) setVisitRecordReady(true);
     });
     return () => { cancelled = true; };
-  }, [loading, location.pathname, location.search, slug, store]);
+  }, [loading, location.pathname, location.search, previewMode, slug, store]);
 
   const persist = useCallback((next: CartLine[]) => {
     cartRef.current = next;
@@ -448,10 +461,10 @@ export function StoreProvider({
     const updatedAt = Date.now();
     cartLocalUpdatedAtRef.current = updatedAt;
     try {
-      localStorage.setItem(cartKey(slug), JSON.stringify(next));
-      localStorage.setItem(cartUpdatedKey(slug), String(updatedAt));
+      localStorage.setItem(cartKey(storageScope), JSON.stringify(next));
+      localStorage.setItem(cartUpdatedKey(storageScope), String(updatedAt));
     } catch { /* cuota */ }
-  }, [slug]);
+  }, [storageScope]);
 
   const rememberCartEmail = useCallback((raw: string | null | undefined) => {
     setCartEmail(normalizarEmail(raw));
@@ -538,16 +551,21 @@ export function StoreProvider({
     if (previousBuyerUserRef.current && !currentUser) {
       const nextToken = crypto.randomUUID();
       setCartToken(nextToken);
-      try { localStorage.setItem(cartSessionKey(slug), nextToken); } catch { /* privacidad */ }
+      try { localStorage.setItem(cartSessionKey(storageScope), nextToken); } catch { /* privacidad */ }
     }
     previousBuyerUserRef.current = currentUser;
-  }, [buyerSession?.user.id, slug]);
+  }, [buyerSession?.user.id, storageScope]);
 
   // El servidor decide qué sesión corresponde. Si al iniciar sesión existen
   // una del dispositivo y otra de la cuenta, devuelve ambas consolidadas. La
   // vista se rearma siempre con catálogo actual para no revivir precio/stock.
   useEffect(() => {
     if (loading || buyerIdentityLoading || !store || !cartToken) return;
+    if (previewMode) {
+      setCartHydrated(true);
+      setCartSyncStatus("local");
+      return;
+    }
     let cancelled = false;
     setCartHydrated(false);
     setCartSyncStatus("loading");
@@ -594,12 +612,13 @@ export function StoreProvider({
     });
 
     return () => { cancelled = true; };
-  }, [loading, buyerIdentityLoading, buyerSession?.user.id, buyerCustomer?.id, store, slug, cartToken, products, variantsByProduct, priceOf, persist]);
+  }, [loading, buyerIdentityLoading, buyerSession?.user.id, buyerCustomer?.id, store, slug, cartToken, products, variantsByProduct, priceOf, persist, previewMode]);
 
   // Debounce corto: el carrito sigue respondiendo en memoria, y una ráfaga de
   // clics en + termina en una sola escritura. Los errores quedan visibles en
   // consola y en la UI; no se convierten en un falso “carrito vacío”.
   useEffect(() => {
+    if (previewMode) return;
     if (!cartHydrated || loading || !store || !cartToken || !visitToken || !visitRecordReady) return;
     let cancelled = false;
     setCartSyncStatus("syncing");
@@ -620,7 +639,7 @@ export function StoreProvider({
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [cart, cartEmail, cartHydrated, cartToken, loading, slug, store, visitRecordReady, visitToken]);
+  }, [cart, cartEmail, cartHydrated, cartToken, loading, previewMode, slug, store, visitRecordReady, visitToken]);
 
   const fmt = useCallback((n: number) =>
     new Intl.NumberFormat("es-AR", {

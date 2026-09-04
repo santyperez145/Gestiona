@@ -11,7 +11,7 @@
  * "Tienda Online", que hasta ahora configuraba una vitrina inexistente.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Route, Routes, useParams, useLocation } from "react-router-dom";
+import { Link, Route, Routes, useParams, useLocation } from "react-router-dom";
 import { StoreProvider, useStore } from "@/storefront/storeContext";
 import StoreLayout from "@/storefront/StoreLayout";
 import StoreHome from "@/storefront/StoreHome";
@@ -53,12 +53,37 @@ function tituloPrivadoDeRuta(pathname: string): string | null {
   return null;
 }
 
-function StoreShell({ expectedSlug }: { expectedSlug: string }) {
+function PreviewCheckoutBlocked({ basePath }: { basePath: string }) {
+  return (
+    <section className="mx-auto max-w-xl px-4 py-16 text-center">
+      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "hsl(var(--st-muted))" }}>
+        Vista previa
+      </p>
+      <h1 className="mt-2 text-2xl font-semibold">El checkout está desactivado</h1>
+      <p className="mt-3 text-sm leading-relaxed" style={{ color: "hsl(var(--st-muted))" }}>
+        Podés recorrer el catálogo y probar el carrito. Publicá el diseño para habilitar una compra real.
+      </p>
+      <Link
+        to={basePath || "/"}
+        className="mt-6 inline-flex min-h-11 items-center justify-center px-5 font-semibold"
+        style={{
+          borderRadius: "var(--st-radius)",
+          background: "hsl(var(--st-accent))",
+          color: "hsl(var(--st-accent-fg))",
+        }}
+      >
+        Volver a la tienda
+      </Link>
+    </section>
+  );
+}
+
+function StoreShell({ expectedSlug, previewMode }: { expectedSlug: string; previewMode: boolean }) {
   const { basePath, loading, notFound, loadError, store, products, pages, categorias, reload } = useStore();
   const { pathname, search } = useLocation();
   const { decision: trackingConsent } = useStoreTrackingConsent();
   const trackingKey = useMemo(() => {
-    if (!store || store.slug !== expectedSlug || trackingConsent !== "granted") return null;
+    if (previewMode || !store || store.slug !== expectedSlug || trackingConsent !== "granted") return null;
     const ids = [
       store.meta_pixel_id?.trim() || null,
       store.ga_measurement_id?.trim() || null,
@@ -69,7 +94,7 @@ function StoreShell({ expectedSlug }: { expectedSlug: string }) {
       store.slug,
       ...ids,
     ]);
-  }, [expectedSlug, store, trackingConsent]);
+  }, [expectedSlug, previewMode, store, trackingConsent]);
   const [activeTrackingKey, setActiveTrackingKey] = useState<string | null>(null);
   const trackingRuntimeReady = trackingKey !== null && trackingKey === activeTrackingKey;
 
@@ -133,7 +158,7 @@ function StoreShell({ expectedSlug }: { expectedSlug: string }) {
     canonical.href = canonicalPath === null ? canonicalHome : `${canonicalHome}${canonicalPath}`;
 
     const previousRobots = document.querySelector<HTMLMetaElement>('meta[name="robots"][data-storefront]');
-    if (canonicalPath === null) {
+    if (previewMode || canonicalPath === null) {
       const robots = previousRobots ?? document.createElement("meta");
       robots.name = "robots";
       robots.content = "noindex,nofollow";
@@ -151,7 +176,7 @@ function StoreShell({ expectedSlug }: { expectedSlug: string }) {
       }
       tag.setAttribute("content", store.meta_description);
     }
-  }, [store, basePath, pathname, search, products, pages, categorias]);
+  }, [store, basePath, pathname, search, products, pages, categorias, previewMode]);
 
   if (loading) {
     return <StorefrontSkeleton />;
@@ -174,11 +199,32 @@ function StoreShell({ expectedSlug }: { expectedSlug: string }) {
   return (
     <StoreTrackingRuntimeProvider ready={trackingRuntimeReady}>
       <StoreLayout>
+        {previewMode ? (
+          <aside
+            role="status"
+            className="sticky top-16 z-30 border-b px-4 py-2.5 text-sm"
+            style={{
+              borderColor: "hsl(var(--st-border))",
+              background: "hsl(var(--st-text))",
+              color: "hsl(var(--st-bg))",
+            }}
+          >
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
+              <span><strong>Vista previa.</strong> Estos cambios todavía no están publicados.</span>
+              <a className="font-semibold underline underline-offset-4" href="/tienda-online?tab=design">
+                Volver al editor
+              </a>
+            </div>
+          </aside>
+        ) : null}
         <Routes>
         <Route index element={<StoreHome />} />
         <Route path="productos" element={<StoreProducts />} />
         <Route path="producto/:productId" element={<StoreProduct />} />
-        <Route path="checkout" element={<StoreCheckout />} />
+        <Route
+          path="checkout"
+          element={previewMode ? <PreviewCheckoutBlocked basePath={basePath} /> : <StoreCheckout />}
+        />
         <Route path="carrito" element={<StoreCart />} />
         <Route path="orden/:orderNumber" element={<StoreOrder />} />
         <Route path="seguimiento" element={<StoreOrderLookup />} />
@@ -198,19 +244,25 @@ function StoreShell({ expectedSlug }: { expectedSlug: string }) {
 export default function StorefrontPage({
   hostedSlug,
   basePath,
+  preview = false,
 }: {
   hostedSlug?: string;
   basePath?: string;
+  preview?: boolean;
 } = {}) {
-  const { slug: routeSlug } = useParams<{ slug: string }>();
+  const { slug: routeSlug, previewVersionId } = useParams<{ slug: string; previewVersionId: string }>();
   const slug = hostedSlug ?? routeSlug;
   if (!slug) return null;
+  const activePreviewId = preview ? previewVersionId : undefined;
+  const resolvedBasePath = activePreviewId
+    ? `/tienda/${encodeURIComponent(slug)}/vista-previa/${encodeURIComponent(activePreviewId)}`
+    : basePath;
   return (
-    <StoreTrackingConsentProvider slug={slug}>
-      <StoreAuthProvider slug={slug} basePath={basePath}>
-        <StoreProvider slug={slug} basePath={basePath}>
+    <StoreTrackingConsentProvider slug={slug} disabled={Boolean(activePreviewId)}>
+      <StoreAuthProvider slug={slug} basePath={resolvedBasePath}>
+        <StoreProvider slug={slug} basePath={resolvedBasePath} previewVersionId={activePreviewId}>
           <WishlistProvider slug={slug}>
-            <StoreShell expectedSlug={slug} />
+            <StoreShell expectedSlug={slug} previewMode={Boolean(activePreviewId)} />
           </WishlistProvider>
         </StoreProvider>
       </StoreAuthProvider>

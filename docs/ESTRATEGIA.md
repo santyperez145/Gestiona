@@ -258,7 +258,8 @@ faltaban. D5.30 devuelve ese resumen al flujo y deja persistente sólo Total +
 acción, con safe area y una causa explícita cuando entrega o cobro bloquean el
 cierre. Stock, precio, cupón, envío y orden siguen resueltos por servidor. El
 E2E intercepta las escrituras auxiliares de visita/carrito/checkout para no
-contaminar conversión. La puerta local cerró 2.665 tests, TypeScript, lint sin
+contaminar conversión. La puerta local cerró 2.665 tests (`npm test`,
+2026-09-04), TypeScript, lint sin
 errores y build/PWA. `7e5c3a22` quedó Ready y la matriz publicada pasó **2/2**
 en Chromium/Pixel 5 con safe bottom, barra ≤120 px, cero overflow y cero
 errores de consola. La captura mantuvo Entrega/Tus datos visibles sobre Total +
@@ -275,7 +276,8 @@ es sticky en desktop, el resumen vuelve al documento mobile y sólo Total +
 Finalizar permanece al pie. Si falta cotizar, el importe dice `+ envío`; si la
 red falla, el error no se esconde. La autoridad sigue en servidor. La puerta
 local pasó TypeScript, lint con 0 errores/143 warnings conocidos, 2.665 tests en
-286 archivos y build/PWA. `6f8e9f66` quedó Ready con alias raíz/wildcard y el
+286 archivos (`npm test`, 2026-09-04)
+y build/PWA. `6f8e9f66` quedó Ready con alias raíz/wildcard y el
 bundle publicado pasó **2/2** en Chromium/Pixel 5, sin overflow ni errores de
 consola. La compra sandbox/real sigue siendo un gate externo.
 
@@ -290,7 +292,7 @@ primer PageView y llamaba pago completo aun para transferencias pendientes.
 D5.32 carga el Pixel ID real, mide una vez cada navegación SPA y usa IDs
 estables + receipt local para separar pedido colocado de pago acreditado sin
 enviar PII. La puerta local pasó TypeScript, lint con 0 errores/142 warnings
-conocidos, 2.670 tests en 287 archivos y build/PWA. `64ab5bd6` quedó Ready con
+conocidos, 2.670 tests en 287 archivos (`npm test`, 2026-09-04) y build/PWA. `64ab5bd6` quedó Ready con
 alias raíz/wildcard y el bundle publicado pasó **4/4** en Chromium/Pixel 5,
 incluida navegación SPA, sin errores de consola. La base tiene una tienda activa
 y **0 IDs Meta/GA4/TikTok configurados**: falta conectar un píxel de prueba y
@@ -325,7 +327,7 @@ misma SPA no compartan eventos. El footer permite cambiar la decisión y revocar
 corta destinos futuros. Ocho pruebas nuevas y trece del contrato cubren
 preferencia, UI, corte, espera del runtime, rutas con capacidades, tenant
 routing y CSP. La puerta completa pasó TypeScript, lint con 0 errores/142
-warnings conocidos, **2.685 tests en 290 archivos** y build/PWA. El deploy quedó
+warnings conocidos, **2.685 tests en 290 archivos** (`npm test`, 2026-09-04) y build/PWA. El deploy quedó
 `Ready`, el header canónico respondió 200 con la allowlist esperada y el E2E
 sintético pasó 2/2 en Chromium/Pixel 5 sin contactar proveedores. Falta el
 diagnóstico real con un ID autorizado; no se confunde consentimiento técnico
