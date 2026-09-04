@@ -4223,9 +4223,16 @@ Finance Connect.
      vulnerabilidades. La guarda fija autorización, pago acreditado, vínculo
      carrito–pedido, corte atribuible y expiración de recuperación.
 
-     Estado: **autoridad server-side aplicada y validada en producción; UI y
-     pruebas listas para deploy**. Falta certificar el render publicado en
-     desktop/mobile y registrar la puerta completa del commit.
+     El commit `7e2b7295` quedó `READY` y aliasado a `nerqia.app`. En la sesión
+     autenticada publicada, el panel mostró **$2 / 2 pedidos acreditados**,
+     **6 pedidos registrados**, **0 de 5 sesiones medibles**, **5 carritos con
+     items / 0 recuperables** y el aviso de **6 pedidos anteriores o sin
+     atribución**. A 1.440 px y 360 px conservó toda la jerarquía, no produjo
+     overflow horizontal y la consola quedó sin warnings ni errores.
+
+     Estado: **D5.21 cerrado en implementación, autoridad productiva y
+     navegador publicado**. Todavía no se atribuye impacto sobre conversión:
+     eso necesita tráfico real posterior al corte, no una cifra de prueba.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
