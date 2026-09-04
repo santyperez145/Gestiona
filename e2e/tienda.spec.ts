@@ -55,6 +55,43 @@ test.describe("vitrina", () => {
 });
 
 test.describe("catálogo", () => {
+  test("la paginación usa enlaces reales, veinte cards y no desborda", async ({ page }) => {
+    const errores: string[] = [];
+    page.on("console", message => {
+      if (message.type() === "error") errores.push(message.text());
+    });
+    page.on("pageerror", error => errores.push(error.message));
+
+    await page.goto(tienda("/productos?page=2"));
+    await fichasVisibles(page);
+    const nav = page.getByRole("navigation", { name: "Páginas del catálogo" });
+    await expect(nav).toContainText("Página 2 de");
+    await expect(page.locator(".storefront-products__grid > *")).toHaveCount(20);
+
+    const anterior = nav.getByRole("link", { name: "Anterior" });
+    await expect(anterior).toHaveAttribute("rel", "prev");
+    await expect(anterior).toHaveAttribute("href", /^(?!javascript:).+/);
+
+    const siguiente = nav.getByRole("link", { name: "Siguiente" });
+    if (await siguiente.count()) {
+      await expect(siguiente).toHaveAttribute("rel", "next");
+      await expect(siguiente).toHaveAttribute("href", /page=3/);
+      await siguiente.click();
+      await expect(page).toHaveURL(/(?:\?|&)page=3(?:&|$)/);
+      await expect(nav).toContainText("Página 3 de");
+    }
+
+    const geometry = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+      targets: [...document.querySelectorAll<HTMLElement>('nav[aria-label="Páginas del catálogo"] a')]
+        .map(element => element.getBoundingClientRect().height),
+    }));
+    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+    expect(geometry.targets.every(height => height >= 44)).toBe(true);
+    expect(errores, `errores en consola:\n${errores.join("\n")}`).toEqual([]);
+  });
+
   test("el filtro por precio vive en la URL y se respeta", async ({ page }) => {
     await page.goto(tienda("/productos?min=50000&max=90000"));
     await fichasVisibles(page);

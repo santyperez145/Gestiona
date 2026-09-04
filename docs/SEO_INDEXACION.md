@@ -114,8 +114,25 @@ buscaba aportar.
   tiempo. No se presenta como auditado; las guardas locales de dependencias y
   de SheetJS sí pasaron dentro de la suite.
 
-La evidencia publicada se agrega sólo después del deploy y una lectura externa
-con user-agent Googlebot.
+### Evidencia publicada D5.24 — 2026-09-04
+
+- `c68abf90` quedó `Ready` en Vercel y construyó `api/og`/`api/sitemap`;
+- Googlebot recibió 200/indexable: home con 12 productos enlazados y
+  `OnlineStore`; PLP 1/2/3 con 20 fichas por ventana, canonical/título propios,
+  migas y vecinos correctos; `page=99` consolidó hacia la página 3;
+- el sitemap respondió 200 con 75 URLs, páginas 2/3, cero `changefreq`/`priority`
+  y sólo 5 `lastmod` editoriales; una PDP real expuso Product/Offer/migas y una
+  inexistente respondió 404 + `noindex,nofollow`;
+- con user-agent humano, la misma URL siguió entregando la SPA, no el documento
+  especial de crawler;
+- la SPA publicada a 1.288 px navegó 2→3 con 20 cards, enlaces/targets de 44 px,
+  cero overflow y consola vacía; `page=99` reescribió su URL a página 3;
+- el E2E de sólo lectura corrió contra producción como Pixel 5: 1/1 verde,
+  20 cards, anchors `prev`/`next`, navegación a página 3, targets ≥44 px, cero
+  overflow y cero errores de consola.
+
+D5.24 queda certificado. Esto prueba que Google puede recorrer el grafo; no que
+ya lo haya indexado ni que le asigne una posición concreta.
 
 ## Criterio competitivo
 

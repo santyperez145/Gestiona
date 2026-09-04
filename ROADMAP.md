@@ -4344,9 +4344,20 @@ Finance Connect.
      ambos handlers. `npm audit` no obtuvo respuesta del endpoint del registro
      en dos intentos y se registra como evidencia no disponible, no como verde;
      las guardas de dependencias sí pasaron dentro de la suite. Pendiente:
-     deploy y comprobar con Googlebot el HTML publicado; la
-     indexación/posición sigue siendo una decisión externa y no se declara
-     cerrada por este cambio.
+     El commit `c68abf90` quedó `Ready` en Vercel. Googlebot recibió la home con
+     12 enlaces y `OnlineStore`; las tres ventanas con 20 fichas, canonical y
+     título propios, migas y vecinos correctos; `page=99` convergió a la 3. El
+     sitemap publicó 75 URLs, incluyó páginas 2/3, omitió
+     `changefreq`/`priority` y conservó sólo 5 fechas editoriales reales. Una
+     ficha real expuso Product/Offer/migas; un UUID inexistente respondió
+     404+noindex; el user-agent humano siguió recibiendo la SPA.
+
+     La sesión publicada a 1.288 px navegó 2→3, midió 20 cards y controles de
+     44 px, sin overflow ni logs. La nueva guarda E2E volvió a ejecutar el
+     recorrido contra producción como Pixel 5: **1/1 verde**, 20 cards,
+     anchors `prev`/`next`, página 3, targets ≥44 px, cero overflow y cero
+     errores. Estado: **D5.24 cerrado y publicado**. La indexación/posición
+     sigue siendo una decisión externa y no se declara cerrada por este cambio.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
