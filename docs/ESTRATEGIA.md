@@ -247,6 +247,21 @@ y Pixel 5: **4/4**, sin escrituras. Los tres productos productivos con variantes
 tienen 0 overrides distintos de precio; “Desde” queda probado en cálculo puro
 sin fabricar un dato comercial. D5.29 cerrado.
 
+🟡 **Checkout móvil orientado al cierre, implementado localmente el
+2026-09-04.** Tiendanube documenta que el comprador recorre
+[datos, entrega y pago](https://ayuda.tiendanube.com/123288-mis-ventas/como-es-el-proceso-de-compra-para-mi-cliente),
+y Shopify organiza el [checkout alrededor de contacto, entrega y pago](https://help.shopify.com/en/manual/checkout-settings)
+mientras vuelve a comprobar inventario. La referencia no justifica copiar su
+piel: fija la jerarquía transaccional. Nerqia tenía pegado al pie móvil todo el
+pedido —líneas, cupón, desglose, error y CTA—, que podía cubrir los datos que
+faltaban. D5.30 devuelve ese resumen al flujo y deja persistente sólo Total +
+acción, con safe area y una causa explícita cuando entrega o cobro bloquean el
+cierre. Stock, precio, cupón, envío y orden siguen resueltos por servidor. El
+E2E intercepta las escrituras auxiliares de visita/carrito/checkout para no
+contaminar conversión. La puerta local cerró 2.665 tests, TypeScript, lint sin
+errores y build/PWA; sigue parcial hasta validar Chromium/Pixel 5 publicados y
+no se declara una compra real ni sandbox.
+
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)
 como sesiones que terminan en una orden y su embudo separa sesión, agregado al

@@ -502,9 +502,24 @@ export default function StoreCheckout() {
 
   const input = "w-full min-h-11 px-3 py-2 text-sm border bg-transparent outline-none focus:ring-1";
   const inputStyle = { borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" } as React.CSSProperties;
+  const totalComprador = envioPendiente
+    ? `${fmt(Math.max(0, baseMercaderia - descuentoPago))} + envío`
+    : fmt(totalFinal);
+  const accionDeshabilitada = enviando || cotizando || !!entrega.bloqueo || metodos.length === 0;
+  const textoAccion = enviando
+    ? "Confirmando..."
+    : cotizando
+      ? "Calculando entrega..."
+      : entrega.bloqueo
+        ? "Revisá la entrega"
+        : metodos.length === 0
+          ? "Sin medios de pago"
+          : esMedioGestionaPay(form.metodo)
+            ? "Continuar a Nerqia Pay"
+            : "Confirmar pedido";
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-4 pt-8 pb-32 md:py-8">
       <h1 className="text-2xl font-bold mb-1">Finalizar compra</h1>
       <p className="text-sm mb-6" style={{ color: "hsl(var(--st-muted))" }}>
         Comprás como invitado. La cuenta es opcional si querés seguir el pedido más fácil.
@@ -801,12 +816,11 @@ export default function StoreCheckout() {
 
         {/* ── Resumen ─────────────────────────────────────────────── */}
         <aside
-          className="border p-4 space-y-3 md:sticky md:top-20 max-md:sticky max-md:bottom-0 max-md:z-20"
+          className="storefront-checkout-summary border p-4 space-y-3 md:sticky md:top-20"
           style={{
             borderColor: "hsl(var(--st-border))",
             background: "hsl(var(--st-surface))",
             borderRadius: "var(--st-radius)",
-            paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
           }}
         >
           <p className="font-semibold">Tu pedido</p>
@@ -897,34 +911,75 @@ export default function StoreCheckout() {
             </div>
             <div className="flex justify-between font-semibold text-base pt-1">
               <span>Total</span>
-              <span>
-                {envioPendiente
-                  ? `${fmt(Math.max(0, baseMercaderia - descuentoPago))} + envío`
-                  : fmt(totalFinal)}
-              </span>
+              <span>{totalComprador}</span>
             </div>
           </div>
 
           {error && (
-            <p className="text-xs px-3 py-2 bg-red-500/10 text-red-600" style={{ borderRadius: "var(--st-radius)" }}>
+            <p
+              className="hidden md:block text-xs px-3 py-2 bg-red-500/10 text-red-600"
+              role="alert"
+              style={{ borderRadius: "var(--st-radius)" }}
+            >
               {error}
             </p>
           )}
 
           <button
             type="submit"
-            disabled={enviando || cotizando || !!entrega.bloqueo || metodos.length === 0}
-            className="w-full min-h-11 py-3 font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
+            disabled={accionDeshabilitada}
+            className="hidden md:inline-flex w-full min-h-11 py-3 font-medium items-center justify-center gap-2 disabled:opacity-60"
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >
             {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-            {enviando ? "Confirmando..." : esMedioGestionaPay(form.metodo) ? "Continuar a Nerqia Pay" : "Confirmar pedido"}
+            {textoAccion}
           </button>
 
           <p className="text-[11px] text-center" style={{ color: "hsl(var(--st-muted))" }}>
             Antes de confirmar, revisamos disponibilidad y total final para que tu compra salga correcta.
           </p>
         </aside>
+
+        {/* En teléfono sólo queda fija la decisión: total + acción. El pedido,
+            cupón y desglose permanecen en el flujo normal y nunca tapan los
+            campos de entrega o pago. `pb-32` deja espacio hasta la safe area. */}
+        <div
+          className="storefront-checkout-mobile-bar md:hidden fixed inset-x-0 bottom-0 z-40 border-t shadow-[0_-10px_30px_rgba(0,0,0,0.12)]"
+          style={{
+            borderColor: "hsl(var(--st-border))",
+            background: "hsl(var(--st-surface))",
+          }}
+        >
+          <div
+            className="max-w-5xl mx-auto px-4 pt-3"
+            style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+          >
+            {error && (
+              <p
+                className="max-h-14 overflow-y-auto mb-2 text-xs px-3 py-2 bg-red-500/10 text-red-600"
+                role="alert"
+                style={{ borderRadius: "var(--st-radius)" }}
+              >
+                {error}
+              </p>
+            )}
+            <div className="flex items-center gap-3">
+              <p className="min-w-0 flex-1" aria-live="polite">
+                <span className="block text-[11px]" style={{ color: "hsl(var(--st-muted))" }}>Total</span>
+                <strong className="block truncate text-sm tabular-nums">{totalComprador}</strong>
+              </p>
+              <button
+                type="submit"
+                disabled={accionDeshabilitada}
+                className="min-h-12 shrink-0 px-4 text-sm font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+              >
+                {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                {textoAccion}
+              </button>
+            </div>
+          </div>
+        </div>
       </form>
     </div>
   );

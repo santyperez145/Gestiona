@@ -4566,6 +4566,37 @@ Finance Connect.
      fotografiarlo. Estado: **D5.29 cerrado en implementación, desktop, mobile
      y accesibilidad; el cobro sigue bajo autoridad server-side**.
 
+182. El checkout móvil conserva la decisión sin tapar la compra — D5.30,
+     2026-09-04. Tiendanube documenta una secuencia de
+     [datos → entrega → pago](https://ayuda.tiendanube.com/123288-mis-ventas/como-es-el-proceso-de-compra-para-mi-cliente)
+     y Shopify mantiene [contacto, entrega y pago](https://help.shopify.com/en/manual/checkout-settings)
+     con control de inventario durante el checkout. La auditoría del código de
+     Nerqia encontró una desviación de esa jerarquía: en pantallas chicas todo
+     el `aside` —líneas, cupón, desglose, error y CTA— tenía `sticky bottom-0`.
+     Un pedido largo podía convertirse en una capa alta sobre los campos que el
+     comprador todavía necesitaba completar.
+
+     La corrección conserva el resumen completo en el flujo normal y deja fija
+     sólo una barra de decisión con **Total + Confirmar/Continuar a Nerqia Pay**,
+     altura táctil de 48 px, safe area y espacio reservado al final del
+     documento. Desktop conserva el resumen lateral sticky. El botón ya no
+     queda mudo al bloquearse: distingue `Calculando entrega`, `Revisá la
+     entrega` y `Sin medios de pago`. El total visual sigue siendo espejo; stock,
+     cupón, envío, precio y orden se recalculan en las autoridades server-side
+     existentes.
+
+     La suite publicada se declaraba read-only, pero cada navegación todavía
+     podía persistir visita, carrito e inicio de checkout. El E2E intercepta
+     ahora esas tres escrituras first-party; continúa leyendo catálogo, stock,
+     precios y cotización reales, pero no infla conversión ni deja carritos de
+     prueba. La nueva prueba mide posición, alto, safe bottom, overflow y
+     separación desktop/mobile sin confirmar una orden.
+
+     Puerta local previa al deploy: TypeScript OK, lint **0 errores / 143
+     warnings heredados**, **2.665/2.665 tests en 286 archivos** y build/PWA.
+     Estado: **implementado y protegido localmente; falta la matriz publicada
+     Chromium/Pixel 5 antes de cerrar D5.30**.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

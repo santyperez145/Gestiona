@@ -133,6 +133,12 @@ describe("recorrido de compra a 360 px", () => {
     expect(productos).toContain("min-h-11 text-left");
     expect(checkout).toContain("w-full min-h-11 px-3");
     expect(checkout).toContain("w-full min-h-11 py-3");
-    expect(checkout).toContain("max-md:sticky max-md:bottom-0");
+    expect(checkout).toContain("storefront-checkout-summary");
+    expect(checkout).toContain("storefront-checkout-mobile-bar");
+    expect(checkout).toContain("md:hidden fixed inset-x-0 bottom-0");
+    expect(checkout).toContain("min-h-12 shrink-0");
+    expect(checkout).not.toContain("max-md:sticky max-md:bottom-0");
+    expect(checkout).toContain("Revisá la entrega");
+    expect(checkout).toContain("Sin medios de pago");
   });
 });

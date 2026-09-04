@@ -27,6 +27,22 @@ async function fichasVisibles(page: Page) {
   return fichas;
 }
 
+/**
+ * La vitrina registra visita, carrito e inicio de checkout first-party. En un
+ * E2E publicado esas escrituras no son necesarias para verificar la interfaz:
+ * se responden en el navegador y las lecturas siguen llegando a producción.
+ * Así la suite no infla conversión ni deja carritos anónimos de prueba.
+ */
+test.beforeEach(async ({ page }) => {
+  for (const rpc of ["record_store_visit", "save_store_cart_v3", "start_store_checkout_v2"]) {
+    await page.route(`**/rest/v1/rpc/${rpc}`, route => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: "null",
+    }));
+  }
+});
+
 test.describe("vitrina", () => {
   test("la home carga con productos y sin errores de consola", async ({ page }) => {
     const errores: string[] = [];
@@ -287,6 +303,52 @@ test.describe("carrito", () => {
     // vaciara al navegar —localStorage por slug— esto lo agarra.
     await expect(page.getByText("Tu pedido")).toBeVisible();
     await expect(page.locator("body")).toContainText(titulo.split(" ")[0]);
+  });
+
+  test("el checkout conserva la acción sin tapar el formulario", async ({ page }) => {
+    await page.goto(tienda("/productos"));
+    const fichas = await fichasVisibles(page);
+    await fichas.first().click();
+    await page.getByRole("button", { name: /Agregar al carrito/i }).click();
+    await page.goto(tienda("/checkout"));
+
+    await expect(page.getByRole("heading", { name: "Finalizar compra" })).toBeVisible();
+    const resumen = page.locator(".storefront-checkout-summary");
+    const barra = page.locator(".storefront-checkout-mobile-bar");
+    await expect(resumen).toBeVisible();
+
+    const ancho = page.viewportSize()?.width ?? 1280;
+    if (ancho < 768) {
+      await expect(barra).toBeVisible();
+      await expect(barra.getByText("Total", { exact: true })).toBeVisible();
+      await expect(barra.getByRole("button", { name: /Confirmar pedido|Continuar a Nerqia Pay|Calculando entrega|Revisá la entrega/ })).toBeVisible();
+
+      const geometria = await page.evaluate(() => {
+        const summary = document.querySelector<HTMLElement>(".storefront-checkout-summary")!;
+        const mobileBar = document.querySelector<HTMLElement>(".storefront-checkout-mobile-bar")!;
+        const rect = mobileBar.getBoundingClientRect();
+        return {
+          summaryPosition: getComputedStyle(summary).position,
+          barPosition: getComputedStyle(mobileBar).position,
+          barHeight: rect.height,
+          barBottom: window.innerHeight - rect.bottom,
+          barTopRatio: rect.top / window.innerHeight,
+          scrollWidth: document.documentElement.scrollWidth,
+          clientWidth: document.documentElement.clientWidth,
+        };
+      });
+
+      expect(geometria.summaryPosition, "el pedido completo volvió a quedar pegado").toBe("static");
+      expect(geometria.barPosition).toBe("fixed");
+      expect(geometria.barHeight, "la acción móvil ocupa demasiado alto").toBeLessThanOrEqual(120);
+      expect(Math.abs(geometria.barBottom)).toBeLessThanOrEqual(1);
+      expect(geometria.barTopRatio, "la barra tapa demasiado formulario").toBeGreaterThan(0.7);
+      expect(geometria.scrollWidth).toBeLessThanOrEqual(geometria.clientWidth);
+    } else {
+      await expect(barra).toBeHidden();
+      const position = await resumen.evaluate(element => getComputedStyle(element).position);
+      expect(position).toBe("sticky");
+    }
   });
 });
 
