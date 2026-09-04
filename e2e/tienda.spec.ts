@@ -408,6 +408,88 @@ test.describe("carrito", () => {
   });
 });
 
+test.describe("postcompra", () => {
+  test("el seguimiento se recupera sin borrar el pedido", async ({ page }) => {
+    const errores: string[] = [];
+    page.on("console", message => {
+      if (message.type() === "error") errores.push(message.text());
+    });
+    page.on("pageerror", error => errores.push(error.message));
+
+    const pedido = {
+      order_number: "ZZ-TRACK-VIEW",
+      customer_name: "Comprador de prueba",
+      customer_email: "buyer@example.test",
+      items: [{ name: "Producto de prueba", quantity: 1, unit_price: 1000, total: 1000 }],
+      subtotal: 1000,
+      shipping_cost: 0,
+      total: 1000,
+      payment_method: "transferencia",
+      payment_status: "paid",
+      fulfillment_status: "processing",
+      shipping_address: { calle: "Calle de prueba", ciudad: "Córdoba", provincia: "Córdoba", cp: "5000" },
+      created_at: "2026-09-04T12:00:00Z",
+      access_token: "zz-capability-only-in-browser",
+      carrier: "andreani",
+      shipping_service: "Estándar",
+    };
+    await page.route("**/rest/v1/rpc/get_store_order_secure", route => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([pedido]),
+    }));
+
+    let lecturasTracking = 0;
+    await page.route("**/rest/v1/rpc/get_order_tracking", route => {
+      lecturasTracking += 1;
+      if (lecturasTracking === 1) {
+        return route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({ code: "ZZ_UNAVAILABLE", message: "synthetic tracking outage" }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          found: true,
+          fulfillment_status: "processing",
+          carrier: "andreani",
+          shipping_service: "Estándar",
+          tracking_number: null,
+          ordered_at: "2026-09-04T12:00:00Z",
+        }),
+      });
+    });
+
+    await page.goto(tienda(`/orden/${pedido.order_number}`));
+    await expect(page.getByRole("heading", { name: "¡Pago confirmado!" })).toBeVisible();
+    const error = page.locator('[data-storefront-state="tracking-error"]');
+    await expect(error).toContainText("Tu pedido sigue guardado");
+
+    const reintentar = error.getByRole("button", { name: "Reintentar seguimiento" });
+    await expect(reintentar).toBeVisible();
+    expect(await reintentar.evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+    await reintentar.click();
+
+    const listo = page.locator('[data-storefront-state="tracking-ready"]');
+    await expect(listo).toContainText("Preparando el envío");
+    await expect(error).toHaveCount(0);
+    expect(lecturasTracking).toBe(2);
+
+    const geometry = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+    expect(
+      errores.filter(message => !message.includes("No se pudo cargar el seguimiento del pedido")),
+      `errores inesperados en consola:\n${errores.join("\n")}`,
+    ).toEqual([]);
+  });
+});
+
 test.describe("páginas de contenido", () => {
   test("las publicadas se listan en el pie y abren", async ({ page }) => {
     await page.goto(tienda());
