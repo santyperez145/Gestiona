@@ -297,6 +297,20 @@ y **0 IDs Meta/GA4/TikTok configurados**: falta conectar un píxel de prueba y
 observar el evento en el diagnóstico real del proveedor. Events API/CAPI no se
 declara implementada.
 
+🟡 **Seguimiento postcompra recuperable, implementado localmente el
+2026-09-04.** Shopify convierte la
+[página de estado en el destino principal del tracking](https://help.shopify.com/en/manual/fulfillment/setup/order-status-page/order-tracking)
+y Tiendanube reúne
+[orden, pago, preparación, envío y código del transportista](https://ayuda.tiendanube.com/es_CO/123288-mis-ventas/como-puede-mi-cliente-conocer-el-estado-de-su-compra)
+en el mismo recorrido. Nerqia mantiene una sola orden segura —número + email o
+capacidad—, pero el bloque de envío ocultaba rechazos y el `{ error }` resuelto
+por Supabase. D5.33 reemplaza esa ausencia por carga estable, error accionable y
+reintento de 44 px; un `found: false` incoherente no borra un pedido ya
+verificado. Tres pruebas de componente recorren carga, retry e inconsistencia.
+La puerta local pasó TypeScript, lint con 0 errores/142 warnings conocidos,
+**2.673 tests en 288 archivos** y build/PWA. Falta el bundle publicado; no se
+declara tracking live del transportista.
+
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)
 como sesiones que terminan en una orden y su embudo separa sesión, agregado al

@@ -10,14 +10,24 @@
  * carrier/shipping_service de la orden; el padre puede pasar `esRetiro` si
  * ya lo sabe (gracias) para no esperar al round-trip.
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { carrierLabel } from "@/lib/carriers";
 import { esPedidoRetiro } from "@/lib/storeOrderQueue";
 import {
   indicePasoSeguimiento, pasosSeguimiento,
 } from "@/lib/storeOrderBuyerCopy";
-import { Package, Truck, Home, Check, Store, ExternalLink } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  ExternalLink,
+  Home,
+  Loader2,
+  Package,
+  RefreshCw,
+  Store,
+  Truck,
+} from "lucide-react";
 
 interface Tracking {
   found: boolean;
@@ -58,15 +68,87 @@ export default function OrderTracking({
   esRetiro?: boolean;
 }) {
   const [t, setT] = useState<Tracking | null>(null);
+  const [estado, setEstado] = useState<"loading" | "ready" | "error">("loading");
+  const solicitud = useRef(0);
 
-  useEffect(() => {
+  const cargar = useCallback(async () => {
     if (!orderNumber || !email) return;
-    supabase
-      .rpc("get_order_tracking", { p_order_number: orderNumber, p_email: email })
-      .then(({ data }) => setT(data as unknown as Tracking), () => {});
+    const estaSolicitud = ++solicitud.current;
+    setEstado("loading");
+    try {
+      const { data, error } = await supabase.rpc("get_order_tracking", {
+        p_order_number: orderNumber,
+        p_email: email,
+      });
+      if (error) throw error;
+      const siguiente = data as unknown as Tracking | null;
+      // Esta pieza vive dentro de una orden que ya fue verificada. Un `found`
+      // falso no significa que el pedido desapareció: es una lectura
+      // inconsistente y se presenta como recuperable, nunca como vacío.
+      if (!siguiente?.found) throw new Error("Tracking no disponible para una orden verificada");
+      if (estaSolicitud !== solicitud.current) return;
+      setT(siguiente);
+      setEstado("ready");
+    } catch (error) {
+      if (estaSolicitud !== solicitud.current) return;
+      console.error("No se pudo cargar el seguimiento del pedido", error);
+      setEstado("error");
+    }
   }, [orderNumber, email]);
 
-  if (!t?.found) return null;
+  useEffect(() => {
+    void cargar();
+    return () => { solicitud.current += 1; };
+  }, [cargar]);
+
+  if (!orderNumber || !email) return null;
+
+  if (estado === "loading") {
+    return (
+      <section
+        className="mt-6 border p-4"
+        data-storefront-state="tracking-loading"
+        role="status"
+        aria-live="polite"
+        style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
+      >
+        <div className="flex items-center gap-2 text-sm" style={{ color: "hsl(var(--st-muted))" }}>
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          Actualizando seguimiento…
+        </div>
+      </section>
+    );
+  }
+
+  if (estado === "error" || !t?.found) {
+    return (
+      <section
+        className="mt-6 border p-4"
+        data-storefront-state="tracking-error"
+        role="alert"
+        style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
+      >
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: "hsl(var(--st-accent))" }} aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">No pudimos actualizar el seguimiento</p>
+            <p className="mt-1 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+              Tu pedido sigue guardado. Revisá tu conexión y volvé a intentar.
+            </p>
+            <button
+              type="button"
+              onClick={() => { void cargar(); }}
+              className="mt-3 inline-flex min-h-11 items-center gap-2 border px-3 py-2 text-sm font-medium"
+              style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              Reintentar seguimiento
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const esRetiro = esRetiroProp ?? esPedidoRetiro(t);
   const pasos = pasosSeguimiento(esRetiro);
@@ -77,6 +159,7 @@ export default function OrderTracking({
   return (
     <section
       className="mt-6 border p-4"
+      data-storefront-state="tracking-ready"
       style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
     >
       <p className="text-xs uppercase tracking-wide mb-3" style={{ color: "hsl(var(--st-muted))" }}>

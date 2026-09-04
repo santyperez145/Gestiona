@@ -4669,6 +4669,29 @@ Finance Connect.
      slice hasta contar con consentimiento, credenciales y contrato de
      retención**.
 
+185. El seguimiento no desaparece cuando falla la red — D5.33, 2026-09-04.
+     Shopify define la
+     [página de estado como destino principal de seguimiento](https://help.shopify.com/en/manual/fulfillment/setup/order-status-page/order-tracking)
+     y permite volver con cuenta o número + identidad; Tiendanube muestra en
+     [una sola página orden, pago, preparación, envío y tracking](https://ayuda.tiendanube.com/es_CO/123288-mis-ventas/como-puede-mi-cliente-conocer-el-estado-de-su-compra).
+     Nerqia ya resolvía esa identidad con orden + email/capacidad y no necesita
+     otra ruta, pero `OrderTracking` tragaba tanto el rechazo de red como el
+     `{ error }` que Supabase suele resolver sin rechazar la promesa. El bloque
+     desaparecía y el comprador interpretaba que no había seguimiento.
+
+     D5.33 incorpora estados `loading/ready/error`, conserva la geometría,
+     informa que el pedido sigue guardado y ofrece un reintento táctil de 44 px.
+     Una respuesta `found: false` dentro de una orden ya verificada se trata
+     como inconsistencia recuperable, no como pedido ausente; la consola recibe
+     el error operativo sin imprimir email ni número. Un contador invalida
+     respuestas tardías al cambiar de pedido o desmontar. Tres pruebas de
+     componente recorren carga, error de Supabase, reintento exitoso e
+     inconsistencia. La puerta completa pasó TypeScript, lint con 0 errores/142
+     warnings conocidos, **2.673 tests en 288 archivos** y build/PWA. Estado:
+     **implementado y protegido localmente; falta bundle publicado y matriz de
+     seguimiento interceptada sin tocar pedidos reales**. El tracking live del
+     transportista sigue siendo un gate externo.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso
