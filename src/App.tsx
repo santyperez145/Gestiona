@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, useEffect } from "react";
 import * as Sentry from "@sentry/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -23,7 +23,6 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   forceStaleBuildRecovery,
   isStaleBuildError,
-  recoverFromStaleBuild,
 } from "@/lib/staleBuildRecovery";
 import { ShieldAlert, BookOpen } from "lucide-react";
 import { storeSlugFromHostname } from "@/lib/storefrontHost";
@@ -329,21 +328,38 @@ function ApplicationRoutes() {
   );
 }
 
+function OrganizationScope() {
+  const { activeOrg } = useOrg();
+  const client = useQueryClient();
+  const requestedScope = activeOrg?.id ?? "public";
+  const [readyScope, setReadyScope] = useState(requestedScope);
+
+  useEffect(() => {
+    if (requestedScope === readyScope) return;
+    let active = true;
+    void client.cancelQueries().finally(() => {
+      if (!active) return;
+      client.removeQueries();
+      setReadyScope(requestedScope);
+    });
+    return () => { active = false; };
+  }, [client, readyScope, requestedScope]);
+
+  if (requestedScope !== readyScope) {
+    return <AppLoader label="Cambiando organización..." />;
+  }
+  return <ApplicationRoutes key={readyScope} />;
+}
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="gestiona-theme">
   <Sentry.ErrorBoundary fallback={({ error }) => {
     if (isStaleBuildError(error)) {
-      // Deploy nuevo: los chunks viejos ya no existen. Limpiamos caches + SW
-      // y recargamos. La guardia temporal corta loops sin bloquear el deploy
-      // siguiente durante toda la sesión.
-      if (recoverFromStaleBuild()) return null;
-
-      // Si el intento acaba de fallar, el botón permite una salida manual.
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-8 text-center">
           <div>
             <h1 className="text-xl font-bold mb-2">Nueva versión disponible</h1>
-            <p className="text-muted-foreground text-sm mb-4">La app se actualizó. Vamos a limpiar la versión anterior para continuar.</p>
+            <p className="text-muted-foreground text-sm mb-4">Tu trabajo no se recargó. Actualizá cuando estés listo para continuar con la versión nueva.</p>
             <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm"
               onClick={forceStaleBuildRecovery}>
               Actualizar ahora
@@ -373,7 +389,7 @@ const App = () => (
           <BrowserRouter>
             <PlatformSeoHead />
             <Suspense fallback={<PageLoader />}>
-              <ApplicationRoutes />
+              <OrganizationScope />
             </Suspense>
           </BrowserRouter>
         </OrgProvider>

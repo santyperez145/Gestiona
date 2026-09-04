@@ -1,79 +1,42 @@
 import { toast } from "sonner";
+import { hardReload } from "@/lib/hardReload";
 
 /**
- * Detecta versiones nuevas del service worker y recarga para que el usuario
- * vea siempre el último deploy.
+ * Detecta versiones nuevas sin interrumpir el trabajo en curso.
  *
  * El SW usa `skipWaiting()` + `clients.claim()`, así que al llegar un deploy
- * toma el control de las pestañas abiertas al instante. Pero el JS que ya está
- * corriendo sigue siendo el viejo: sin una recarga la pantalla queda
- * desactualizada aunque el SW ya sirva los assets nuevos.
- *
- * OJO con el guard anti-loop: antes era un flag de sessionStorage sin
- * vencimiento, así que después de la primera recarga de la sesión **ningún**
- * deploy posterior volvía a recargar. La app se quedaba mostrando código viejo
- * indefinidamente (por eso un botón arreglado seguía apuntando al link viejo).
- * Ahora el guard es por tiempo: corta los loops —que ocurren en milisegundos—
- * pero deja pasar las actualizaciones legítimas.
+ * toma el control de las pestañas abiertas. El JS actual puede seguir operando;
+ * actualizar es una decisión explícita para no perder formularios, caja ni
+ * tareas a medio completar.
  */
-const LAST_RELOAD_KEY = "sw_last_reload_at";
-/** Dos recargas más seguidas que esto son un loop, no una actualización. */
-export const LOOP_WINDOW_MS = 15_000;
+export const UPDATE_AVAILABLE_EVENT = "nerqia:update-available";
+const UPDATE_TOAST_ID = "nerqia-update-available";
 
-/**
- * ¿Conviene recargar sola la app al cambiar el service worker?
- *
- * Pura y exportada a propósito: es la regla que estuvo rota y dejaba a la app
- * mostrando código viejo para siempre.
- *
- * @param lastReloadAt marca de la última recarga automática (ms), o null
- * @param now momento actual (ms)
- */
-export function shouldAutoReload(lastReloadAt: number | null, now: number): boolean {
-  if (lastReloadAt === null || !Number.isFinite(lastReloadAt)) return true;
-  return now - lastReloadAt >= LOOP_WINDOW_MS;
+export function announceUpdateAvailable() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(UPDATE_AVAILABLE_EVENT));
 }
 
-function reloadedRecently(): boolean {
-  try {
-    const raw = sessionStorage.getItem(LAST_RELOAD_KEY);
-    return !shouldAutoReload(raw === null ? null : Number(raw), Date.now());
-  } catch {
-    return false;
-  }
-}
-
-function markReload() {
-  try { sessionStorage.setItem(LAST_RELOAD_KEY, String(Date.now())); } catch { /* modo privado */ }
+function showUpdateNotice() {
+  toast.info("Hay una versión nueva de Nerqia", {
+    id: UPDATE_TOAST_ID,
+    description: "Seguí trabajando y actualizá cuando te convenga.",
+    duration: Infinity,
+    action: {
+      label: "Actualizar",
+      onClick: () => {
+        toast.dismiss(UPDATE_TOAST_ID);
+        void hardReload();
+      },
+    },
+  });
 }
 
 export function setupServiceWorkerUpdates() {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-  let refreshing = false;
-
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (refreshing) return;
-
-    if (reloadedRecently()) {
-      // Sospecha de loop: no recargamos solos, pero se lo ofrecemos al usuario
-      // para que no quede atrapado en una versión vieja sin salida.
-      toast.info("Hay una versión nueva de la app", {
-        description: "Actualizá para verla.",
-        duration: Infinity,
-        action: {
-          label: "Actualizar",
-          onClick: () => { markReload(); window.location.reload(); },
-        },
-      });
-      return;
-    }
-
-    refreshing = true;
-    markReload();
-    // Margen para que terminen las peticiones en vuelo.
-    setTimeout(() => window.location.reload(), 200);
-  });
+  window.addEventListener(UPDATE_AVAILABLE_EVENT, showUpdateNotice);
+  navigator.serviceWorker.addEventListener("controllerchange", showUpdateNotice);
 
   // Chequeo periódico mientras la pestaña esté abierta.
   setInterval(() => {

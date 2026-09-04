@@ -3,11 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   isStaleBuildError,
-  shouldRecoverStaleBuild,
-  STALE_BUILD_LOOP_WINDOW_MS,
 } from "@/lib/staleBuildRecovery";
-
-const NOW = 1_800_000_000_000;
 
 describe("recuperación de un build obsoleto", () => {
   it.each([
@@ -23,18 +19,24 @@ describe("recuperación de un build obsoleto", () => {
     expect(isStaleBuildError(new Error("No hay stock disponible"))).toBe(false);
   });
 
-  it("permite el primer rescate y otro deploy posterior en la misma sesión", () => {
-    expect(shouldRecoverStaleBuild(null, NOW)).toBe(true);
-    expect(shouldRecoverStaleBuild(NOW - 60_000, NOW)).toBe(true);
+  it("la recuperación que borra caches sólo existe detrás de una acción manual", () => {
+    const recovery = readFileSync(resolve(process.cwd(), "src/lib/staleBuildRecovery.ts"), "utf8");
+    expect(recovery).toContain("forceStaleBuildRecovery");
+    expect(recovery).toContain("void hardReload()");
+    expect(recovery).not.toContain("recoverFromStaleBuild");
   });
 
-  it("corta sólo las recargas consecutivas que formarían un loop", () => {
-    expect(shouldRecoverStaleBuild(NOW - 200, NOW)).toBe(false);
-    expect(shouldRecoverStaleBuild(NOW - STALE_BUILD_LOOP_WINDOW_MS, NOW)).toBe(true);
+  it("el fallback de React no recarga durante render", () => {
+    const app = readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8");
+    expect(app).toContain("onClick={forceStaleBuildRecovery}");
+    expect(app).not.toContain("recoverFromStaleBuild()");
   });
 
-  it("una marca corrupta no deja la app bloqueada", () => {
-    expect(shouldRecoverStaleBuild(Number.NaN, NOW)).toBe(true);
+  it("los errores de preload conservan la pantalla y anuncian la versión", () => {
+    const main = readFileSync(resolve(process.cwd(), "src/main.tsx"), "utf8");
+    expect(main).toContain("announceUpdateAvailable()");
+    expect(main).toContain("event.preventDefault()");
+    expect(main).not.toContain("recoverFromStaleBuild");
   });
 
   it("mantiene la recuperación temprana y evita fallback HTML para archivos estáticos", () => {
@@ -45,7 +47,7 @@ describe("recuperación de un build obsoleto", () => {
     };
 
     expect(main).toContain('window.addEventListener("vite:preloadError"');
-    expect(main).toContain("recoverFromStaleBuild()");
+    expect(main).toContain("announceUpdateAvailable()");
     const fallbackSource = vercel.rewrites.at(-1)?.source ?? "";
     expect(fallbackSource).toContain("api/");
     expect(fallbackSource).toContain("assets/");

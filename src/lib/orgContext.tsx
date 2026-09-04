@@ -128,8 +128,6 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     _activeOrgId = m.org_id;
     _activeRole = m.role;
     localStorage.setItem(ACTIVE_ORG_KEY, m.org_id);
-    // hard reload to refresh all data scoped queries
-    window.location.reload();
   }, [memberships]);
 
   return (

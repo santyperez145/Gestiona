@@ -318,7 +318,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 | Rediseño público v3 | Landing pública y Auth fueron reconstruidos el 2026-08-22 con propuesta omnicanal, preview del producto, registro directo desde CTA, responsive desktop/mobile y metadatos SEO alineados. D5.1 agrega resiliencia transversal de medios: un banner/producto/logo roto conserva fallback de marca y acción, mientras Gestión identifica el activo inválido y bloquea reactivarlo. `e63c0ad` quedó publicado y la tienda + Banners pasaron 360/768/1024/1440 sin overflow ni logs propios. | Medir conversión del CTA y continuar la auditoría de PLP/PDP/carrito/checkout; el comercio aún debe reemplazar la URL externa inválida. |
 | CRM command center v2 | Clientes / CRM reemplaza la referencia minimalista anterior por la estructura de gestión densa de Aerten y el lenguaje violeta/tintado de eMarketplace Admin, ambos inspeccionados en preview público el 2026-08-22. Incorpora resumen ejecutivo de cartera/actividad/recurrencia/riesgo, tabs persistidos, rail de segmentos, filtros, tabla responsive con relación/compras/facturación/ticket/salud y ficha 360; conserva campañas, notas, comunicaciones, permisos y el mismo Business Core. La comparativa visual y su traducción están en `docs/INTERFAZ.md`. | Captura autenticada desktop/mobile, validación con un comercio real y medición de tiempo para encontrar/actuar sobre un cliente; el rediseño está implementado, no validado comercialmente. |
 | Admin/marketplace workspace v1 | `WorkspaceViewTabs` extiende el contrato Figma a Productos, Ventas y Dashboard: Catálogo/Operación, Ventas/Rendimiento y seis vistas ejecutivas con contadores, meta contextual, responsive móvil y persistencia por organización; Settings, Admin, Integraciones, Reportes y Tienda quedan bajo el mismo contrato de tokens. El shell compartido expone identidad de workspace en topbar, breadcrumb, CTA, headers con acento, métricas con estados y plataforma con consola/rail violeta. | Captura autenticada de las superficies operativas y medición de tiempo a tarea antes de declarar la renovación visual validada. |
-| Deploy/PWA sin chunks huérfanos | El incidente del 2026-08-22 confirmó que una pestaña abierta podía conservar `index-Bj1ae_cF.js` y pedir chunks ya retirados (`Dashboard-DTnpFc_O.js`, `ProductsPage-COufPAuI.js`); Vercel respondía `index.html` con MIME `text/html`. La recuperación ahora escucha `vite:preloadError`, promesas rechazadas y ErrorBoundary, limpia caches/SW, usa guardia temporal en vez de bloquear toda la sesión y excluye `/assets/` del fallback SPA. `sw.js` y `registerSW.js` se sirven sin cache. | Probar dos deploys consecutivos con una pestaña autenticada abierta y verificar una sola recarga automática, ruta preservada, cero loops y chunk inexistente con HTTP 404. |
+| Deploy/PWA sin interrumpir el trabajo | El incidente del 2026-08-22 confirmó que una pestaña abierta podía conservar `index-Bj1ae_cF.js` y pedir chunks ya retirados (`Dashboard-DTnpFc_O.js`, `ProductsPage-COufPAuI.js`); Vercel respondía `index.html` con MIME `text/html`. Desde el 2026-09-04 `vite:preloadError`, promesas rechazadas y `controllerchange` muestran un único aviso persistente y dejan a la persona decidir cuándo actualizar. Sólo esa acción explícita limpia caches/SW y recarga; `/assets/` continúa excluido del fallback SPA. | Probar dos deploys consecutivos con una pestaña autenticada abierta: cero recargas automáticas, trabajo y ruta preservados, un solo aviso deduplicado, actualización manual exitosa y chunk inexistente con HTTP 404. |
 
 ### Bloqueos externos vigentes
 
@@ -4892,6 +4892,27 @@ Finance Connect.
      borradores, enlace de preview compartible con vencimiento, page contract,
      navegador autenticado con usuario de prueba y una publicación operada por
      un merchant real.
+
+193. Cambiar de comercio o recibir un deploy ya no recarga el trabajo — D2.7,
+     2026-09-04. La auditoría encontró tres reinicios automáticos distintos:
+     `switchOrg` recargaba toda la aplicación, la PWA recargaba 200 ms después
+     de `controllerchange` y un chunk obsoleto limpiaba caches y navegaba desde
+     eventos globales o incluso desde el ErrorBoundary. Eran interrupciones
+     visibles, destruían filtros y borradores locales y escondían el costo real
+     de cambiar de tenant.
+
+     `OrganizationScope` actualiza la organización activa inmediatamente,
+     cancela y elimina todas las consultas React Query del alcance anterior y
+     remonta las rutas con una clave tenant-scoped conservando la URL. Esto
+     cubre también las pantallas que todavía cargan Supabase con efectos
+     propios: ninguna queda montada mientras cambia la autoridad. Service
+     Worker y recuperación de chunks ahora emiten un aviso deduplicado; limpiar
+     caches, desregistrar el SW y recargar sólo ocurre al tocar **Actualizar**.
+     La puerta pasó typecheck, lint con **0 errores/142 warnings conocidos**,
+     **2.709 tests en 294 archivos** (`npm test`, 2026-09-04) y build/PWA. La
+     deuda siguiente es migrar las navegaciones internas que aún usan
+     `window.location.href`; las salidas reales a OAuth y proveedores de pago
+     se conservan deliberadamente como navegación completa.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

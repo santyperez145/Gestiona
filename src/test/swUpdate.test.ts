@@ -1,31 +1,33 @@
 import { describe, it, expect } from "vitest";
-import { shouldAutoReload, LOOP_WINDOW_MS } from "@/lib/swUpdate";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { UPDATE_AVAILABLE_EVENT } from "@/lib/swUpdate";
 
-const AHORA = 1_800_000_000_000;
+const source = readFileSync(resolve(process.cwd(), "src/lib/swUpdate.ts"), "utf8");
 
-describe("shouldAutoReload", () => {
-  it("recarga la primera vez, cuando no hay marca previa", () => {
-    expect(shouldAutoReload(null, AHORA)).toBe(true);
+describe("actualizaciones sin interrupciones", () => {
+  it("no recarga automáticamente al cambiar el service worker", () => {
+    expect(source).not.toContain("window.location.reload");
+    expect(source).not.toMatch(/setTimeout\([\s\S]{0,120}reload/);
   });
 
-  it("NO recarga si acaba de recargar — eso sería un loop", () => {
-    expect(shouldAutoReload(AHORA - 200, AHORA)).toBe(false);
-    expect(shouldAutoReload(AHORA - (LOOP_WINDOW_MS - 1), AHORA)).toBe(false);
+  it("controllerchange sólo anuncia que hay una versión", () => {
+    expect(source).toContain('addEventListener("controllerchange", showUpdateNotice)');
+    expect(source).toContain("Hay una versión nueva de Nerqia");
   });
 
-  it("SÍ recarga ante un deploy posterior en la misma sesión", () => {
-    // El bug original: un flag sin vencimiento hacía que después de la primera
-    // recarga ningún deploy volviera a aplicarse y la app quedaba vieja.
-    expect(shouldAutoReload(AHORA - 60_000, AHORA)).toBe(true);
-    expect(shouldAutoReload(AHORA - 3_600_000, AHORA)).toBe(true);
+  it("el evento de chunks obsoletos usa el mismo aviso deduplicado", () => {
+    expect(UPDATE_AVAILABLE_EVENT).toBe("nerqia:update-available");
+    expect(source).toContain("id: UPDATE_TOAST_ID");
   });
 
-  it("el límite exacto de la ventana ya habilita la recarga", () => {
-    expect(shouldAutoReload(AHORA - LOOP_WINDOW_MS, AHORA)).toBe(true);
+  it("conserva chequeos de versión sin recargar en segundo plano", () => {
+    expect(source).toContain("reg.update()");
+    expect(source).toContain('document.addEventListener("visibilitychange"');
   });
 
-  it("una marca corrupta no bloquea la actualización", () => {
-    // sessionStorage devuelve texto: Number('basura') es NaN.
-    expect(shouldAutoReload(NaN, AHORA)).toBe(true);
+  it("sólo el botón explícito limpia caches y actualiza", () => {
+    expect(source).toContain("void hardReload()");
+    expect(source).toContain('label: "Actualizar"');
   });
 });
