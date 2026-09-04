@@ -4658,10 +4658,16 @@ Finance Connect.
      Cinco pruebas nuevas verifican bootstrap, PageView SPA, semántica
      pedido/pago, IDs y receipt. La puerta local pasó TypeScript, lint con 0
      errores/142 warnings conocidos, 2.670 tests en 287 archivos y build/PWA.
-     Estado: **implementado y protegido localmente; falta bundle publicado y
-     observar un evento real en los diagnósticos de cada proveedor. Events
-     API/CAPI continúa fuera de este slice hasta contar con consentimiento,
-     credenciales y contrato de retención**.
+     El commit `64ab5bd6` quedó `Ready` con alias raíz/wildcard. El bundle
+     publicado pasó **4/4** en Chromium/Pixel 5 recorriendo home y una
+     navegación SPA por filtro/URL, sin errores de consola y con las escrituras
+     auxiliares interceptadas. La consulta agregada del 2026-09-04 encontró una
+     tienda activa y **0 IDs Meta/GA4/TikTok configurados**, por lo que no se
+     inventó una señal del proveedor. Estado: **D5.32 cerrado en implementación
+     y regresión publicada; falta configurar un píxel de prueba y observar el
+     evento real en su diagnóstico. Events API/CAPI continúa fuera de este
+     slice hasta contar con consentimiento, credenciales y contrato de
+     retención**.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
