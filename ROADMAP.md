@@ -4172,9 +4172,16 @@ Finance Connect.
      catálogo vacío y parámetros inválidos; la guarda de conversión impide
      volver a `filtrados.map` sin límite.
 
-     Estado: **implementado y listo para publicar**. Falta medir el DOM
-     publicado, navegar página 1→2→PDP→volver en 360/1440 y confirmar consola
-     limpia antes de cerrar D5.20 como evidencia productiva.
+     Evidencia publicada sobre `6dddf72e`: a 360 px la primera página pasó de
+     60 cards/12.179 px a **20 cards/5.000 px**, sin overflow. Siguiente dejó
+     `page=2`, mostró 21–40/60 y la vuelta desde el primer PDP recuperó la misma
+     página con 20 cards. A 1.440 px también montó 20, ambos controles midieron
+     44 px y elegir Perfume Árabe quitó `page=2`, volvió a página 1 y mostró
+     1–20/54. Todo el recorrido quedó sin warnings ni errores de consola.
+
+     Estado: **D5.20 cerrado en implementación y navegador publicado**. Aún no
+     se atribuye mejora de conversión ni Web Vitals: necesitan tráfico real.
+     Cursor server-side queda como umbral de volumen, no como trabajo por moda.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

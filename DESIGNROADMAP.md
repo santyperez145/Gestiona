@@ -550,9 +550,13 @@ ahora muestra 20 productos por página sobre la misma lectura canónica, conserv
 Anterior/Siguiente, foco y objetivos de 44 px. Tiendanube publica 12/16/20 y
 permite carga progresiva o páginas; Shopify usa conexiones con cursor. El
 siguiente escalón de Nerqia será paginación server-side cuando el volumen real
-lo justifique, sin abrir otro catálogo ni duplicar el Business Core. Falta
-revalidación publicada 360/1440 y retorno desde PDP. Puerta local: 2.633 tests,
-typecheck, build/PWA, lint sin errores y audit con 0 vulnerabilidades.
+lo justifique, sin abrir otro catálogo ni duplicar el Business Core. Puerta
+local: 2.633 tests, typecheck, build/PWA, lint sin errores y audit con 0
+vulnerabilidades. El deploy
+`6dddf72e` quedó `READY`: 360 px bajó de 60 cards/12.179 px a 20/5.000 px;
+página 2 y retorno desde PDP conservaron 21–40/60. A 1.440 px montó 20, mantuvo
+44 px, reinició página al filtrar y ambas matrices cerraron sin overflow ni
+logs. D5.20 queda cerrado; cursor server-side espera volumen real.
 
 - home de tienda, listado paginado, búsqueda y filtros;
 - ficha de producto: CTA móvil hecho; faltan variantes densas y confianza extra;
@@ -621,7 +625,7 @@ declara validado porque “se ve mejor”.
 | 17 | Finance Document Inbox | Parcial 2026-08-22 | Cola, retry, bloqueo, cuarentena, confianza, revisión, matching y diálogo Supplier Invoice/Purchase/Payable Draft visibles. Líneas, vencimiento, TC, efectos, aprobación y handoff a recepción usan estados claros; faltan proveedor OCR aprobado y validación responsive con documentos reales. |
 | 18 | Finance command center Mendel-class | Congelado hasta adopción F3 | Inicio, gastos, solicitudes/aprobaciones, presupuestos/políticas, medios, centros, conciliación e integraciones completan desktop/mobile con estados y autoridad visibles. |
 | 19 | Platform Merchant 360/cola | Pendiente | Staff resuelve sin entrar al tenant. |
-| 20 | Storefront home/PLP/PDP | Parcial D5.20 2026-09-03 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias. D5.7 deja el CTA de compra al pie en 360 px. D5.8 reserva geometría al cargar y declara tamaño de imagen. D5.9 hace que crawlers vean HTML del comercio. D5.10 distingue 404 de red caída y no pinta un catálogo vacío. D5.11 no pide email ni declara el carrito vencido si la red falló. D5.12 conserva enlaces `/catalogo/:id` user/org. D5.13 hace visible y honesta la persistencia server-side y recupera todas las líneas/variantes. D5.14 reutiliza ese mismo Storefront en `<slug>.nerqia.app` con base, canonical, robots, sitemap, feed y previews resueltos por host. D5.15 corrige Inicio, H1 y robots a partir de la recorrida real. D5.20 limita el PLP a 20 productos, conserva página en URL, reinicia ante filtros y expone rango/navegación accesible sobre el mismo Core. Falta revalidación publicada, cursor server-side cuando el volumen real lo justifique y flujo sandbox/real. |
+| 20 | Storefront home/PLP/PDP | Parcial D5.20 2026-09-03 | D5.1 cubre resiliencia de banners, hero, categorías, cards, PDP, búsqueda, logo, carrito y sugerencias. D5.7 deja el CTA de compra al pie en 360 px. D5.8 reserva geometría al cargar y declara tamaño de imagen. D5.9 hace que crawlers vean HTML del comercio. D5.10 distingue 404 de red caída y no pinta un catálogo vacío. D5.11 no pide email ni declara el carrito vencido si la red falló. D5.12 conserva enlaces `/catalogo/:id` user/org. D5.13 hace visible y honesta la persistencia server-side y recupera todas las líneas/variantes. D5.14 reutiliza ese mismo Storefront en `<slug>.nerqia.app` con base, canonical, robots, sitemap, feed y previews resueltos por host. D5.15 corrige Inicio, H1 y robots a partir de la recorrida real. D5.20 limita el PLP a 20 productos, conserva página en URL, reinicia ante filtros y expone rango/navegación accesible sobre el mismo Core. Publicado: 20 cards y 5.000 px en 360, 20 cards en 1.440, página 2/retorno/filtro correctos, 44 px, cero overflow/logs. Falta flujo sandbox/real; cursor server-side espera volumen real. |
 | 21 | Carrito/checkout/pago | Parcial D5.11 2026-09-01 | Resultado protegido por capacidad; D5.3–D5.6 cierran avisos, Pay honesto, cola e inspector. D5.7 deja CTA de ficha/carrito/checkout a 44 px en 360. D5.10 reintenta `create_store_order_idem` ante un corte de red con la misma clave. D5.11 distingue link de pago inexistente de corte de red y no borra un pedido ya visto. Faltan compra sandbox/real y bulk con RPC. |
 | 22 | Accesibilidad AA | Pendiente | axe + teclado + zoom + contraste. |
 | 23 | Visual regression CI | Pendiente | Capturas deterministas claro/oscuro. |
