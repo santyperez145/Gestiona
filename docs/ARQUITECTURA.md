@@ -63,6 +63,13 @@ tienda es dueña de dominio, diseño, navegación, páginas, surtido visible,
 promociones de vitrina, pedidos, recuperación y analítica. Producto, stock,
 cliente, costo y categoría siguen perteneciendo al Core.
 
+`store_product_publications` es un overlay escaso: si no hay fila, el producto
+activo se publica con los datos del Core; si la hay, sólo puede cambiar
+visibilidad, precio visible/comparativo, categoría de navegación, destacado y
+orden para esa tienda. No contiene stock, costo, descripción ni imágenes. El
+catálogo público, variantes, carrito, checkout, feed, sitemap y metadata
+resuelven el mismo `store_id` server-side para evitar vitrinas divergentes.
+
 ## 4. Autoridades transaccionales
 
 ### Stock

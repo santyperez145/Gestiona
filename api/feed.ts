@@ -22,6 +22,7 @@
  * códigos de barras de verdad, se agrega.
  */
 import { precioDeCatalogo } from "../src/lib/storefrontSeo.js";
+import { fetchStoreCatalog } from "../src/lib/storeCatalogApi.js";
 import {
   lookupStoreSlugByHost,
   publicStoreBaseUrl,
@@ -117,15 +118,17 @@ export default async function handler(req: Request): Promise<Response> {
     const store = Array.isArray(stores) ? stores[0] : stores;
     if (!store?.org_id) return xml("Tienda", "");
 
-    // La vista pública, no `products`: la tabla cruda está cerrada a la clave
-    // anónima y además lleva costos y márgenes, que no van a un feed público.
-    const pRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/store_catalog_products?org_id=eq.${store.org_id}` +
-      `&select=id,name,brand,category,gender,description,image_url,image_urls,` +
-      `sale_price_ars,discount_price_ars,promo_price,stock,content_ml&limit=5000`,
-      { headers },
-    );
-    const productos: FilaCatalogo[] = pRes.ok ? await pRes.json() : [];
+    const catalog = await fetchStoreCatalog<FilaCatalogo>({
+      supabaseUrl: SUPABASE_URL,
+      supabaseKey: SUPABASE_KEY,
+      slug,
+      select: "id,name,brand,category,gender,description,image_url,image_urls,sale_price_ars,discount_price_ars,promo_price,stock,content_ml",
+    });
+    if (!catalog.data) {
+      console.error(`[feed] ${catalog.error ?? "catálogo no disponible"}`);
+      return xml(String(store.name ?? "Tienda"), "", 503, false);
+    }
+    const productos = catalog.data;
 
     const base = storeBase;
     const moneda = String(store.currency ?? "ARS");

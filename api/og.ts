@@ -8,6 +8,7 @@
  */
 import { storeCatalogPage } from "../src/lib/storeCatalogPagination.js";
 import { slugsDeRama, type CategoriaTienda } from "../src/lib/storeCategories.js";
+import { fetchStoreCatalog } from "../src/lib/storeCatalogApi.js";
 import {
   canonicalStorefrontPath,
   parseRutaTienda,
@@ -71,30 +72,37 @@ interface SeoCatalogProduct {
   stock: number | null;
 }
 
-async function storeCatalogForSeo(orgId: string): Promise<SeoCatalogProduct[] | null> {
+interface SeoProductDetail {
+  name: string;
+  brand: string | null;
+  description: string | null;
+  sale_price_ars: number | null;
+  discount_price_ars: number | null;
+  promo_price: number | null;
+  image_url: string | null;
+  stock: number | null;
+}
+
+async function storeCatalogForSeo(slug: string): Promise<SeoCatalogProduct[] | null> {
   if (!SUPABASE_URL || !SUPABASE_KEY) return null;
-  try {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/store_catalog_products?org_id=eq.${encodeURIComponent(orgId)}&select=id,name,category,featured,stock&order=featured.desc.nullslast,name.asc&limit=5000`,
-      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
-    );
-    if (!response.ok) {
-      console.error(`[seo] store_catalog_products respondió HTTP ${response.status}`);
-      return null;
-    }
-    const rows = await response.json();
-    if (!Array.isArray(rows)) return null;
-    return (rows as SeoCatalogProduct[]).sort((a, b) => {
-      const stock = Number(b.stock) > 0 ? 1 : 0;
-      const otherStock = Number(a.stock) > 0 ? 1 : 0;
-      return stock - otherStock
-        || Number(Boolean(b.featured)) - Number(Boolean(a.featured))
-        || String(a.name).localeCompare(String(b.name), "es-AR");
-    });
-  } catch (error) {
-    console.error("[seo] no se pudo leer el catálogo enlazable", error);
+  const result = await fetchStoreCatalog<SeoCatalogProduct>({
+    supabaseUrl: SUPABASE_URL,
+    supabaseKey: SUPABASE_KEY,
+    slug,
+    select: "id,name,category,featured,stock",
+    order: "featured.desc.nullslast,name.asc",
+  });
+  if (!result.data) {
+    console.error(`[seo] ${result.error ?? "catálogo no disponible"}`);
     return null;
   }
+  return result.data.sort((a, b) => {
+    const stock = Number(b.stock) > 0 ? 1 : 0;
+    const otherStock = Number(a.stock) > 0 ? 1 : 0;
+    return stock - otherStock
+      || Number(Boolean(b.featured)) - Number(Boolean(a.featured))
+      || String(a.name).localeCompare(String(b.name), "es-AR");
+  });
 }
 
 /**
@@ -306,16 +314,19 @@ export default async function handler(req: Request): Promise<Response> {
       return productUnavailable(503, "No pudimos cargar este producto. Intentá nuevamente en unos minutos.");
     }
     try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/store_catalog_products?id=eq.${encodeURIComponent(ruta.productId)}&org_id=eq.${encodeURIComponent(store.org_id)}&select=name,brand,description,sale_price_ars,discount_price_ars,promo_price,image_url,stock&limit=1`,
-        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
-      );
-      if (!res.ok) {
-        console.error(`[seo] producto ${ruta.productId} respondió HTTP ${res.status}`);
+      const productResult = await fetchStoreCatalog<SeoProductDetail>({
+        supabaseUrl: SUPABASE_URL,
+        supabaseKey: SUPABASE_KEY,
+        slug: ruta.slug,
+        select: "name,brand,description,sale_price_ars,discount_price_ars,promo_price,image_url,stock",
+        filters: { id: `eq.${ruta.productId}` },
+        limit: 1,
+      });
+      if (!productResult.data) {
+        console.error(`[seo] producto ${ruta.productId}: ${productResult.error ?? "no disponible"}`);
         return productUnavailable(503, "No pudimos cargar este producto. Intentá nuevamente en unos minutos.");
       }
-      const rows = res.ok ? await res.json() : [];
-      const p = rows?.[0];
+      const p = productResult.data[0];
       if (p) {
         const price = precioDeCatalogo(p);
         const precio = price
@@ -379,7 +390,7 @@ export default async function handler(req: Request): Promise<Response> {
     let nombreCat = cat ? cat.replace(/_/g, " ") : null;
     const [categoriesResult, catalog] = await Promise.all([
       rpc<CategoriaTienda[]>("get_store_categories", { p_slug: ruta.slug }),
-      storeCatalogForSeo(store.org_id),
+      storeCatalogForSeo(ruta.slug),
     ]);
     if (categoriesResult === null || catalog === null) {
       return html(page({
@@ -548,7 +559,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   const [categoriesResult, catalog] = await Promise.all([
     rpc<CategoriaTienda[]>("get_store_categories", { p_slug: ruta.slug }),
-    storeCatalogForSeo(store.org_id),
+    storeCatalogForSeo(ruta.slug),
   ]);
   if (categoriesResult === null || catalog === null) {
     return html(page({

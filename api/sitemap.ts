@@ -16,6 +16,7 @@ import {
 } from "../src/lib/storefrontHost.js";
 import { storeCatalogPage } from "../src/lib/storeCatalogPagination.js";
 import { slugsDeRama, type CategoriaTienda } from "../src/lib/storeCategories.js";
+import { fetchStoreCatalog } from "../src/lib/storeCatalogApi.js";
 
 export const config = { runtime: "edge" };
 
@@ -79,23 +80,19 @@ export default async function handler(req: Request): Promise<Response> {
     const store = Array.isArray(stores) ? stores[0] : stores;
     if (!store?.org_id) return xml(`  <url><loc>${esc(origin)}</loc></url>`);
 
-    // `store_catalog_products`, no `products`: la tabla cruda está cerrada a la
-    // clave anónima desde el hardening de RLS, así que esto devolvía **cero
-    // filas** y el sitemap sólo listaba la home y el listado. Ni una ficha de
-    // producto indexada — que es justo el tráfico que se buscaba.
-    //
-    // La vista no tiene `updated_at`: no se fabrica un `lastmod` con la fecha
-    // de hoy ni se confunde creación con modificación. Google pide que ese
-    // valor sea exacto; si no podemos sostenerlo, se omite.
-    const pRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/store_catalog_products?org_id=eq.${store.org_id}&select=id,category&limit=5000`,
-      { headers },
-    );
-    if (!pRes.ok) {
-      console.error(`[sitemap] store_catalog_products respondió HTTP ${pRes.status}`);
+    // El sitemap usa el catálogo de ESTA vitrina. Consultar por organización
+    // volvería indexables productos que el comercio ocultó de la tienda.
+    const catalogResult = await fetchStoreCatalog<{ id: string; category?: string | null }>({
+      supabaseUrl: SUPABASE_URL,
+      supabaseKey: SUPABASE_KEY,
+      slug,
+      select: "id,category",
+    });
+    if (!catalogResult.data) {
+      console.error(`[sitemap] ${catalogResult.error ?? "catálogo no disponible"}`);
       return xml("", 503, false);
     }
-    const products = pRes.ok ? await pRes.json() : [];
+    const products = catalogResult.data;
 
     let pages: Array<{ slug: string; updated_at: string | null }> = [];
     let categorias: CategoriaTienda[] = [];

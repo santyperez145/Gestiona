@@ -64,7 +64,7 @@ describe("la tienda se deja encontrar", () => {
   it("el select trae el stock que la disponibilidad necesita", () => {
     // Pedir de menos no falla: llega undefined, `Number(undefined) > 0` es
     // false, y toda la tienda quedaría declarada agotada.
-    const select = cuerpo.match(/store_catalog_products[^`]*select=([^&`]*)/)?.[1] ?? "";
+    const select = cuerpo.match(/select:\s*"([^"]*id,name,category,featured,stock[^"]*)"/)?.[1] ?? "";
     expect(select, `el select no pide stock: «${select}»`).toContain("stock");
   });
 
@@ -96,7 +96,7 @@ describe("la tienda se deja encontrar", () => {
   it("la ficha declara og:type product y el precio que se cobra", () => {
     expect(cuerpo).toMatch(/type === "product"/);
     expect(cuerpo).toMatch(/precioDeCatalogo/);
-    const selects = [...cuerpo.matchAll(/store_catalog_products[^`]*select=([^&`]*)/g)]
+    const selects = [...cuerpo.matchAll(/select:\s*"([^"]+)"/g)]
       .map(match => match[1] ?? "");
     const productSelect = selects.find(select => select.includes("promo_price")) ?? "";
     expect(productSelect, `ningún select de ficha pide promo_price: «${selects.join(" | ")}»`)

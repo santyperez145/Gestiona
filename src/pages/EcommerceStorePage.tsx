@@ -106,7 +106,12 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import StoreDomainsPanel from "@/components/ecommerce/StoreDomainsPanel";
 import StoreThemePublishingPanel from "@/components/ecommerce/StoreThemePublishingPanel";
 import StoreWorkspacePicker from "@/components/ecommerce/StoreWorkspacePicker";
+import StoreAssortmentEditor from "@/components/ecommerce/StoreAssortmentEditor";
 import { useCommerceStores } from "@/hooks/useCommerceStores";
+import {
+  parseStoreAssortmentSummary,
+  type StoreAssortmentSummary,
+} from "@/lib/storeAssortment";
 import {
   applyStoreThemeConfig,
   storeThemeConfigFromEditor,
@@ -169,7 +174,7 @@ interface FunnelRow {
   color: string;
 }
 
-const STORE_TAB_IDS = ["overview", "reviews", "categorias", "pages", "banners", "design", "settings"] as const;
+const STORE_TAB_IDS = ["overview", "products", "reviews", "categorias", "pages", "banners", "design", "settings"] as const;
 type StoreTab = typeof STORE_TAB_IDS[number];
 
 function isStoreTab(value: string | null): value is StoreTab {
@@ -565,11 +570,8 @@ export default function EcommerceStorePage() {
   const reloadReadinessSignals = useCallback(async () => {
     if (!orgId || !store?.id) return;
     try {
-      const [prods, sinPeso, zonas, tarifas, paginas, cobro] = await Promise.all([
-        supabase.from("products").select("id", { count: "exact", head: true })
-          .eq("org_id", orgId).gt("stock", 0).gt("sale_price_ars", 0),
-        supabase.from("products").select("id", { count: "exact", head: true })
-          .eq("org_id", orgId).gt("stock", 0).gt("sale_price_ars", 0).is("weight_kg", null),
+      const [assortment, zonas, tarifas, paginas, cobro] = await Promise.all([
+        supabase.rpc("get_store_assortment_summary", { p_store_id: store.id }),
         supabase.from("shipping_zones").select("id, provinces")
           .eq("org_id", orgId).eq("is_active", true),
         supabase.from("shipping_rates").select("zone_id").eq("org_id", orgId).eq("is_active", true),
@@ -579,6 +581,12 @@ export default function EcommerceStorePage() {
           .in("slug", ["politica-de-privacidad", "terminos-y-condiciones"]),
         fetchPaymentStatus(orgId),
       ]);
+      if (assortment.error) throw assortment.error;
+      if (zonas.error) throw zonas.error;
+      if (tarifas.error) throw tarifas.error;
+      if (paginas.error) throw paginas.error;
+      const assortmentSummary = parseStoreAssortmentSummary(assortment.data);
+      if (!assortmentSummary) throw new Error("El resumen del surtido no es válido");
       const zonasList = (zonas.data ?? []) as { id: string; provinces: string[] | null }[];
       const conTarifa = new Set(((tarifas.data ?? []) as { zone_id: string }[]).map(r => r.zone_id));
       const provincias = new Set(
@@ -590,10 +598,9 @@ export default function EcommerceStorePage() {
       const analyticsDisclosureReady = storeAnalyticsDisclosureReady(
         (paginas.data ?? []) as { slug: string; content: string | null; status: string | null }[],
       );
-      if (paginas.error) console.error("No se pudieron leer las páginas legales", paginas.error);
       setSignals({
-        publishedProducts: prods.count ?? 0,
-        productsWithoutWeight: sinPeso.count ?? 0,
+        publishedProducts: assortmentSummary.published,
+        productsWithoutWeight: assortmentSummary.withoutWeight,
         shippingZones: zonasList.length,
         zonesWithRates: zonasList.filter(z => conTarifa.has(z.id)).length,
         coveredProvinces: provincias.size,
@@ -612,6 +619,14 @@ export default function EcommerceStorePage() {
   useEffect(() => {
     void reloadReadinessSignals();
   }, [reloadReadinessSignals, tab]);
+
+  const applyAssortmentSummary = useCallback((summary: StoreAssortmentSummary) => {
+    setSignals(current => ({
+      ...current,
+      publishedProducts: summary.published,
+      productsWithoutWeight: summary.withoutWeight,
+    }));
+  }, []);
 
   const updateFirstPartyAnalytics = async (enabled: boolean) => {
     if (!orgId || !store?.id || analyticsBusy) return;
@@ -849,6 +864,7 @@ export default function EcommerceStorePage() {
 
   const TABS: { id: StoreTab; label: string }[] = [
     { id: "overview",  label: "Publicar" },
+    { id: "products",  label: "Productos" },
     { id: "reviews",   label: "Opiniones y preguntas" },
     { id: "categorias", label: "Categorías" },
     { id: "pages",     label: "Páginas" },
@@ -1093,6 +1109,16 @@ export default function EcommerceStorePage() {
           </button>
         ))}
       </div>
+
+      {tab === "products" && (
+        <StoreAssortmentEditor
+          storeId={store?.id ?? null}
+          storeName={store?.name ?? null}
+          storeSlug={store?.slug ?? null}
+          canEdit={role === "owner" || role === "admin"}
+          onSummaryChange={applyAssortmentSummary}
+        />
+      )}
 
       {tab === "reviews" && (
         <div className="space-y-4">

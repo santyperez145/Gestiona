@@ -53342,6 +53342,44 @@ export type Database = {
         Args: { p_slug: string; p_token: string }
         Returns: Json
       }
+      get_store_assortment: {
+        Args: {
+          p_filter?: string
+          p_limit?: number
+          p_offset?: number
+          p_query?: string
+          p_store_id: string
+        }
+        Returns: {
+          active: boolean
+          brand: string
+          core_category: string
+          core_discount_price_ars: number
+          core_price_ars: number
+          customized: boolean
+          effective_category: string
+          effective_compare_at_price_ars: number
+          effective_price_ars: number
+          featured: boolean
+          featured_override: boolean
+          has_variants: boolean
+          image_url: string
+          name: string
+          override_category_slug: string
+          override_compare_at_price_ars: number
+          override_price_ars: number
+          product_id: string
+          sellable: boolean
+          sort_order: number
+          stock: number
+          total_count: number
+          visibility: string
+        }[]
+      }
+      get_store_assortment_summary: {
+        Args: { p_store_id: string }
+        Returns: Json
+      }
       get_store_catalog_products: {
         Args: { p_slug: string }
         Returns: {
@@ -54644,6 +54682,10 @@ export type Database = {
           p_token: string
           p_visit_token?: string
         }
+        Returns: Json
+      }
+      save_store_product_publications: {
+        Args: { p_changes: Json; p_store_id: string }
         Returns: Json
       }
       save_store_theme_draft: {

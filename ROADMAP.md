@@ -82,11 +82,13 @@ Decisiones canónicas: [Commerce OS](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md),
 - varias vitrinas por organización con exactamente una principal. Configuración,
   dominio, páginas, menú, pedidos, recuperación, reseñas, preguntas y analítica
   quedan por tienda; productos, stock, clientes, categorías y costos se
-  comparten.
+  comparten;
+- surtido por vitrina con publicación/ocultamiento, precio comparativo, categoría,
+  destacado y orden propios. El checkout y los endpoints SEO vuelven a resolver
+  la vitrina en la base; producto y stock continúan en el Core.
 
 **Falta para llamarlo Commerce first-level**
 
-- surtido, visibilidad y publicación de producto por tienda;
 - migrador completo desde Tiendanube/Shopify/Empretienda con productos,
   variantes, imágenes, clientes, redirects y reconciliación;
 - validación real con dos vitrinas de una organización y un segundo comercio;
@@ -160,9 +162,9 @@ reducir intervención/MTTR con evidencia antes de sumar paneles.
 - los deploys no recargan automáticamente: anuncian la versión y actualizan por
   acción explícita;
 - corte técnico 2026-09-04: typecheck, lint con **0 errores/142 warnings
-  conocidos**, **2.727 tests en 297 archivos** (`npm test`) y build/PWA verde;
-- `8cdfe553` está publicado en `nerqia.app`; Commerce y Pedidos cargaron datos
-  reales con la sesión autenticada disponible.
+  conocidos**, **2.742 tests en 299 archivos** (`npm test`) y build/PWA verde;
+- el deploy productivo se verifica después de cada push tanto en la tienda
+  pública como en Commerce con una sesión autenticada.
 
 ## 4. Gates externos
 
@@ -195,8 +197,8 @@ Estos puntos no se cierran con más código:
 
 ### P1 — Commerce first-level
 
-1. **Surtido multi-tienda:** publicación, precio/promoción visible y categoría
-   por vitrina sin duplicar producto ni stock.
+1. **Cerrado — surtido multi-tienda:** publicación, precio visible, categoría,
+   destacado y orden por vitrina sin duplicar producto ni stock.
 2. **Migración:** importador reconciliable con preview, redirects y rollback.
 3. **Checkout:** estados separados de cart/order/payment/fulfillment, concurrencia
    y recuperación clara.
@@ -232,23 +234,22 @@ partner.
 
 | Orden | Slice | Resultado verificable |
 |---|---|---|
-| 1 | C21.2 Surtido multi-tienda | Dos vitrinas publican subconjuntos distintos y comparten stock. |
-| 2 | C22 Migración de catálogo | Preview + import + reconciliación + redirects, probado con export real. |
-| 3 | C20 Estados de checkout | Cart/order/payment/fulfillment recuperan fallos y concurrencia. |
-| 4 | C23 Operación de pedidos | Cola por SLA, fulfillment y devolución completos. |
-| 5 | C24 Storefront de conversión | Mobile/A11y/performance y búsqueda medidos. |
-| 6 | F5.1 Primer documento Finance | Un original real termina aprobado y entregado al Core. |
-| 7 | F5.2 Políticas y presupuesto | Solicitud bloqueada/aprobada con saldo comprometido. |
-| 8 | M2 Acción de margen | Una recomendación ejecutada muestra resultado atribuible. |
-| 9 | P0 Segundo comercio | Alta, migración y venta sin intervención SQL. |
-| 10 | Economics | Pricing y comisión aprobados con costos reales. |
+| 1 | C22 Migración de catálogo | Preview + import + reconciliación + redirects, probado con export real. |
+| 2 | C20 Estados de checkout | Cart/order/payment/fulfillment recuperan fallos y concurrencia. |
+| 3 | C23 Operación de pedidos | Cola por SLA, fulfillment y devolución completos. |
+| 4 | C24 Storefront de conversión | Mobile/A11y/performance y búsqueda medidos. |
+| 5 | F5.1 Primer documento Finance | Un original real termina aprobado y entregado al Core. |
+| 6 | F5.2 Políticas y presupuesto | Solicitud bloqueada/aprobada con saldo comprometido. |
+| 7 | M2 Acción de margen | Una recomendación ejecutada muestra resultado atribuible. |
+| 8 | P0 Segundo comercio | Alta, migración y venta sin intervención SQL. |
+| 9 | Economics | Pricing y comisión aprobados con costos reales. |
 
 No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
 
-**Último cierre P0 (2026-09-04):** documentación consolidada, dependencias de
-generadores retiradas, `npm audit` en cero, contratos de funciones privilegiadas
-aplicados y libro remoto de migraciones sin brecha. Detalle en
-[SEGURIDAD](docs/SEGURIDAD.md).
+**Último cierre Commerce (2026-09-04):** C21.2 aplica un overlay de surtido por
+tienda sin copiar stock ni producto; catálogo, carrito, checkout, feed, sitemap
+y SEO respetan la misma publicación y el mismo precio server-side. La prueba
+vinculada creó una segunda vitrina, aisló catálogo/precio y terminó en rollback.
 
 ## 7. Definition of Done
 

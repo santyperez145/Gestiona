@@ -61,6 +61,19 @@ revisar el contrato. No se aceptan allowlists sin motivo o sin fecha.
 `audit_costo_expuesto` inspecciona además el tipo devuelto: usar costo para
 calcular un precio público es válido; devolver una columna de costo no lo es.
 
+### Autoridad del surtido
+
+`store_product_publications` valida que tienda, producto, categoría y actor
+pertenezcan al mismo tenant. Los miembros pueden leer; sólo owner, admin o
+manager escriben. El navegador nunca modifica stock ni precio Core.
+
+Carrito y checkout fijan el `store_id` dentro de wrappers públicos y llaman a
+los resolutores internos. `resolve_store_line` y `normalize_store_cart_items`
+no tienen ejecución para `anon` ni `authenticated`: así un precio visible u
+ocultamiento por tienda se vuelve a comprobar antes de crear la orden. La
+verificación C21.2 prueba Core sin contexto, aislamiento entre dos vitrinas y
+precio autoritativo dentro de una transacción con rollback.
+
 ## Secretos y proveedores
 
 - Mercado Pago, Mercado Libre y proveedores equivalentes usan OAuth cuando
