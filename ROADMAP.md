@@ -4512,9 +4512,9 @@ Finance Connect.
      que `IntersectionObserver` seguía observando el bloque de compra desmontado:
      el CTA reaparecía visualmente pero conservaba `aria-hidden`. La dependencia
      de `variantId` fuerza ahora cleanup + observación del nodo nuevo, con guarda
-     unitaria. Estado: **autoridad, UI publicada alta y mobile certificadas**;
-     falta desplegar la corrección del observer y repetir el E2E desktop/mobile
-     antes de cerrar la matriz D5.28.
+     unitaria. `940cee4a` quedó Ready y aliasado a `nerqia.app`; el E2E publicado
+     repitió el flujo completo en Chromium y Pixel 5: **2/2**, sin escrituras.
+     Estado: **D5.28 cerrado en autoridad, desktop, mobile y accesibilidad**.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

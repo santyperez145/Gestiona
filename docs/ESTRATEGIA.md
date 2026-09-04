@@ -225,7 +225,8 @@ saldo, envío y CTA; no se compró ni se alteró información real. Falta repeti
 la tarea sobre el fix publicado: el primer E2E pasó en Pixel 5 y descubrió en
 Chromium bajo que el CTA recuperado mantenía `aria-hidden` por observar un nodo
 desmontado. La corrección reobserva al cambiar de variante; no cambia autoridad
-ni datos.
+ni datos. `940cee4a` quedó Ready y la repetición publicada pasó **2/2** en
+Chromium y Pixel 5 sin escrituras.
 
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)
