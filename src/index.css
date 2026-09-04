@@ -5924,6 +5924,20 @@
     .landing-surface-panel { gap: 2.5rem; }
   }
 
+  @media (min-width: 821px) and (max-height: 780px) {
+    .landing-hero { padding-top: 1.8rem; }
+    .landing-hero h1 { max-width: 1040px; margin: 0.8rem 0; font-size: 3.6rem; }
+    .landing-hero__lead { line-height: 1.5; }
+    .landing-hero__actions { margin-top: 1rem; }
+    .landing-checks { display: none; }
+    .landing-product-stage { height: 12.4rem; margin-top: 1rem; }
+    .landing-product-window {
+      width: 138.89%;
+      transform: scale(0.72);
+      transform-origin: top left;
+    }
+  }
+
   @media (max-width: 820px) {
     .landing-container { width: min(100% - 40px, 680px); }
     .landing-menu-toggle { border-color: hsl(var(--landing-line)); color: hsl(var(--landing-ink)); }

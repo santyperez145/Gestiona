@@ -847,11 +847,14 @@ El asset se generó sin marca, texto ni host de terceros y se optimizó de
 1.876.857 bytes PNG a **82.936 bytes WebP** a 1.600 px. El primer Playwright
 detectó continuidad fuera de pliegue entre 10 y 37 px y contraste Finance de
 4,43:1; la corrección compactó el mockup sin ocultar Tienda/Gestión/Finance y
-subió el contraste sin relajar el gate. La matriz final pasó **10/10** en
-Chromium/mobile a 360/768/1024/1440, sin overflow, y Axe WCAG A/AA quedó sin
-impactos críticos o serios. Puerta completa del 2026-09-04: typecheck, lint con
-0 errores/142 warnings conocidos, **2.718 tests en 296 archivos** y build/PWA;
-CSS en 49,32 kB gzip. Quedan validación publicada y conversión real del CTA.
+subió el contraste sin relajar el gate. La primera inspección publicada agregó
+el caso 1.280×720: el contenido siguiente quedaba fuera del pliegue, por lo que
+la escena completa se escala sólo en notebooks anchos de poca altura y ese caso
+queda bajo regresión. La matriz final pasó **12/12** en Chromium/mobile a
+360/768/1024/1280×720/1440, sin overflow, y Axe WCAG A/AA quedó sin impactos
+críticos o serios. Puerta completa del 2026-09-04: typecheck, lint con
+0 errores/142 warnings conocidos, **2.719 tests en 296 archivos** y build/PWA;
+CSS en 49,39 kB gzip. Quedan validación publicada y conversión real del CTA.
 
 - home de tienda, listado paginado, búsqueda y filtros;
 - ficha de producto: CTA móvil y decisión exacta de variantes hechas; falta

@@ -43,4 +43,10 @@ describe('contrato visual de la landing de Nerqia', () => {
     expect(landingV4).not.toContain('linear-gradient');
     expect(page).not.toMatch(/glow|orb/i);
   });
+
+  it('conserva continuidad en notebooks anchos de poca altura', () => {
+    expect(landingV4).toContain('@media (min-width: 821px) and (max-height: 780px)');
+    expect(landingV4).toContain('transform: scale(0.72);');
+    expect(landingV4).toContain('transform-origin: top left;');
+  });
 });
