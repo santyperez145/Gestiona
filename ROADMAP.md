@@ -4459,8 +4459,14 @@ Finance Connect.
      IDs: **6/6 checks**, dos auditorías y **0 residuos**. Migración aplicada y
      libro en brecha 0. Puerta integral local: TypeScript; lint con 0 errores y
      143 warnings heredados; **2.657/2.657 tests en 285 archivos**; build/PWA
-     productivo. Estado: implementación, base y puerta local cerradas; falta
-     certificar la UI publicada antes de cerrar D5.27.
+     productivo. `722c4951` quedó `success` en Vercel y el navegador autenticado
+     recibió el bundle nuevo. La cola real mostró 7 pedidos —5 impagos y 2 ya
+     entregados—, 15 representaciones accesibles desktop/mobile de selección
+     correctamente deshabilitadas, ancho de documento = viewport y 0 logs. No
+     se creó ni alteró una orden productiva para forzar el estado activo: barra,
+     confirmación y resultado tienen cobertura de código/guardas, y su tarea
+     interactiva queda para el primer pedido operable real. Estado: **D5.27
+     cerrado y publicado**; la medición de tarea real sigue siendo gate externo.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
