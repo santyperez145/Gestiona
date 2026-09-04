@@ -4308,9 +4308,15 @@ Finance Connect.
      puerta local terminó con TypeScript, lint 0 errores/143 advertencias
      heredadas, 2.637 tests, build/PWA y auditoría de dependencias en 0.
 
-     Estado: **autoridad aplicada y verificada en producción; UI y pruebas
-     listas para deploy**. Falta certificar selector, URL, comparación y estados
-     en el navegador publicado. La atribución por canal sigue como próxima capa.
+     El commit `7ea5a0a9` quedó Ready en Vercel y servido por `nerqia.app`. Con
+     la sesión real, en 360 px, `df=2026-07-30&dt=2026-07-31` sobrevivió al
+     reload, presentó 4 pedidos/2 pagos frente a 2/0, dejó la facturación sin
+     tendencia falsa porque la base era cero y mostró +100% sólo en pedidos.
+     Selector y limpiar midieron 44 px, no hubo overflow ni logs; al limpiar,
+     la URL conservó `audit` y volvió a 6 pedidos/5 sesiones. El navegador de
+     esta sesión no aceptó ampliar su viewport, por lo que D5.23 queda
+     certificado publicado en móvil y no se declara una recorrida desktop
+     nueva. La atribución por canal sigue como próxima capa.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
