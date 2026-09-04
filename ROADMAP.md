@@ -4516,6 +4516,38 @@ Finance Connect.
      repitió el flujo completo en Chromium y Pixel 5: **2/2**, sin escrituras.
      Estado: **D5.28 cerrado en autoridad, desktop, mobile y accesibilidad**.
 
+181. Las tarjetas dejan de duplicar una ficha de producto y dicen el precio
+     real de la opción — D5.29, 2026-09-04. Shopify documenta que una grilla o
+     quick view puede [seleccionar variantes y actualizar sus datos](https://shopify.dev/docs/storefronts/themes/product-merchandising/variants),
+     mientras Tiendanube reserva el
+     [selector completo y el agotado tachado](https://ayuda.tiendanube.com/es_ES/123159-detalle-del-producto/como-mostrar-las-variantes-de-producto-como-botones)
+     para el detalle. No son mandatos visuales universales: la guía oficial de
+     Shopify aclara que exponer variantes en colección es útil sobre todo cuando
+     hay muchas opciones similares. En Nerqia, el RPC ahora entrega también las
+     agotadas y la card histórica intentaba renderizarlas todas: un producto real
+     ya tenía 9 sabores, por lo que una grilla de 20 cards podía convertirse en
+     otra PDP repetida y perder el CTA debajo del pliegue.
+
+     D5.29 fija una frontera: la card ofrece como máximo tres variantes
+     **disponibles** para quick-add y enlaza el total restante a la ficha, donde
+     siguen visibles las agotadas y su aviso exacto. El enlace explicita número
+     de opciones y agotadas; un producto sin ningún SKU disponible deriva a
+     “Ver opciones y avisos”. La selección usa `radiogroup`, 44 px y estado
+     `aria-checked`, cambia imagen cuando ese SKU la tiene y cambia el monto al
+     `price_override` real. Antes de elegir, si los SKU tienen valores distintos,
+     muestra “Desde” sobre el menor precio comprable; nunca usa el precio menor
+     de una variante agotada para atraer un clic.
+
+     La regla de override dejó de estar copiada en Card, PDP y carrito:
+     `precioDeVariante` es el espejo cliente único, mientras
+     `resolve_store_line` conserva la autoridad server-side. El stock de la card
+     también sale de la suma de variantes disponibles cuando existen, no del
+     agregado ambiguo del producto. La guarda pura cubre límite, overflow,
+     agotadas, stock, “Desde”, selección y fallback de precio; el E2E read-only
+     descubre la PDP agotada mediante metadata de la card sin volver a exponer
+     un botón imposible. Estado: **D5.29 implementado; falta puerta integral,
+     deploy y matriz publicada desktop/mobile antes de cerrarlo**.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

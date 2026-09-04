@@ -161,14 +161,13 @@ test.describe("ficha de producto", () => {
     await page.goto(tienda("/productos"));
     await fichasVisibles(page);
 
-    // En la grilla las variantes agotadas no se compran; se usa una de ellas
-    // sólo para descubrir una ficha real que tenga los dos estados. El test no
+    // La card compacta no ofrece quick-add de variantes agotadas: las marca con
+    // metadata semántica y deriva su decisión completa a la ficha. El test no
     // agrega al carrito, no envía el formulario y no escribe en producción.
-    const agotadaEnCard = page.locator(".storefront-product-card button:disabled").first();
-    if (!(await agotadaEnCard.count())) {
+    const card = page.locator('.storefront-product-card[data-has-sold-out-variants="true"]').first();
+    if (!(await card.count())) {
       test.skip(true, "no hay una variante agotada visible en el catálogo actual");
     }
-    const card = agotadaEnCard.locator("xpath=ancestor::*[contains(@class,'storefront-product-card')][1]");
     const href = await card.locator('a[href*="/producto/"]').first().getAttribute("href");
     expect(href, "la card con variante agotada no enlaza a su ficha").toBeTruthy();
     await page.goto(href!);

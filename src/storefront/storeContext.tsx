@@ -12,6 +12,7 @@ import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ahorroPorVolumen, type ReglaCantidad } from "@/lib/promo2x";
 import { precioDeCatalogo } from "@/lib/storefrontSeo";
+import { precioDeVariante } from "@/lib/storeProductVariant";
 import type { CategoriaTienda } from "@/lib/storeCategories";
 import {
   fetchStoreProducts,
@@ -477,9 +478,7 @@ export function StoreProvider({
     const key = variant ? `${p.id}::${variant.id}` : p.id;
     const existing = cart.find(l => lineKeyOf(l) === key);
     const stock = variant ? variant.stock : p.stock;
-    const precio = variant && Number(variant.price_override) > 0
-      ? Number(variant.price_override)
-      : priceOf(p);
+    const precio = precioDeVariante(priceOf(p), variant);
     // Nunca se deja superar el stock: si no, el checkout falla al final,
     // que es el peor momento para enterarse.
     const nextQty = Math.min(stock, (existing?.qty ?? 0) + qty);

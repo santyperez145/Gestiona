@@ -28,6 +28,7 @@ import { useWishlist } from "./wishlist";
 import StoreShippingQuote from "./StoreShippingQuote";
 import {
   etiquetaTipoVariante,
+  precioDeVariante,
   textoCtaVariante,
   textoDisponibilidadProducto,
 } from "@/lib/storeProductVariant";
@@ -111,7 +112,7 @@ export default function StoreProduct() {
   // Ver producto: es el evento con el que Meta arma públicos similares.
   // Va ANTES del early return: los hooks no pueden ser condicionales.
   const precioParaTracking = p
-    ? (variantsByProduct[p.id]?.find(v => v.id === variantId)?.price_override || priceOf(p))
+    ? precioDeVariante(priceOf(p), variantsByProduct[p.id]?.find(v => v.id === variantId))
     : 0;
   useEffect(() => {
     if (!p) return;
@@ -165,9 +166,7 @@ export default function StoreProduct() {
   const tipoVariante = variantes[0]?.variant_type;
   const etiquetaVariante = etiquetaTipoVariante(tipoVariante);
 
-  const price = variante && Number(variante.price_override) > 0
-    ? Number(variante.price_override)
-    : priceOf(p);
+  const price = precioDeVariante(priceOf(p), variante);
   const stockEfectivo = variante ? variante.stock : p.stock;
   const agotadoParaCompra = variante
     ? variante.stock <= 0

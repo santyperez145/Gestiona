@@ -228,6 +228,20 @@ desmontado. La corrección reobserva al cambiar de variante; no cambia autoridad
 ni datos. `940cee4a` quedó Ready y la repetición publicada pasó **2/2** en
 Chromium y Pixel 5 sin escrituras.
 
+✅ **La card acelera la compra sin duplicar la PDP, implementado el
+2026-09-04.** Shopify admite [selección de variantes desde la grilla o quick
+view](https://shopify.dev/docs/storefronts/themes/product-merchandising/variants)
+cuando aporta a la comparación, y Tiendanube concentra el
+[selector completo con agotadas tachadas](https://ayuda.tiendanube.com/es_ES/123159-detalle-del-producto/como-mostrar-las-variantes-de-producto-como-botones)
+en el detalle. Nerqia traduce ambas señales al catálogo real: máximo tres
+opciones comprables en la card, y un enlace que cuenta todas las variantes y
+las agotadas para decidirlas en la PDP. La selección rápida es accesible,
+cambia imagen y precio exacto; antes de seleccionar, “Desde” sólo considera
+SKU disponibles. Si ninguno queda, se deriva a opciones y avisos, no a un CTA
+imposible. Card, PDP y carrito comparten `precioDeVariante`; el servidor vuelve
+a decidir mediante `resolve_store_line`. Falta verificar el deploy en grilla
+desktop/mobile antes de cerrar D5.29.
+
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)
 como sesiones que terminan en una orden y su embudo separa sesión, agregado al

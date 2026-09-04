@@ -3,6 +3,13 @@ type VariantLike = {
   variant_type?: string | null;
 };
 
+type PricedVariantLike = VariantLike & {
+  id: string;
+  price_override?: number | null;
+};
+
+export const MAX_VARIANTES_RAPIDAS = 3;
+
 const LABELS: Record<string, string> = {
   sabor: "Sabor",
   color: "Color",
@@ -43,6 +50,53 @@ export function textoDisponibilidadProducto({
 export function textoCtaVariante(tipo: string | null | undefined): string {
   const etiqueta = etiquetaTipoVariante(tipo).toLocaleLowerCase("es-AR");
   return `Elegí ${articuloPara(etiqueta)} ${etiqueta}`;
+}
+
+/**
+ * Precio efectivo de una variante en la tienda. Es la misma regla que usa el
+ * carrito y la ficha: un override positivo reemplaza al precio promocional del
+ * producto; sin override, hereda ese precio. La orden vuelve a calcularlo en
+ * `resolve_store_line`, que sigue siendo la autoridad.
+ */
+export function precioDeVariante(
+  precioProducto: number,
+  variante: Pick<PricedVariantLike, "price_override"> | null | undefined,
+): number {
+  const override = Number(variante?.price_override);
+  return override > 0 ? override : Number(precioProducto);
+}
+
+/**
+ * Una card debe permitir una decisión rápida sin convertirse en otra ficha de
+ * producto. Expone hasta tres opciones comprables y deriva el resto a la PDP,
+ * donde también se pueden elegir las agotadas para pedir reposición.
+ */
+export function resumenVariantesParaCard<T extends PricedVariantLike>(
+  variantes: T[],
+  precioProducto: number,
+  varianteId: string | null,
+  limite = MAX_VARIANTES_RAPIDAS,
+) {
+  const disponibles = variantes.filter(variante => Number(variante.stock) > 0);
+  const agotadas = variantes.length - disponibles.length;
+  const rapidas = disponibles.slice(0, Math.max(0, limite));
+  const elegida = disponibles.find(variante => variante.id === varianteId) ?? null;
+  const candidatasDePrecio = disponibles.length > 0 ? disponibles : variantes;
+  const precios = candidatasDePrecio.map(variante => precioDeVariante(precioProducto, variante));
+  const precio = elegida
+    ? precioDeVariante(precioProducto, elegida)
+    : (precios.length > 0 ? Math.min(...precios) : Number(precioProducto));
+
+  return {
+    disponibles,
+    agotadas,
+    rapidas,
+    elegida,
+    precio,
+    desde: !elegida && new Set(precios).size > 1,
+    requiereDetalle: variantes.length > rapidas.length,
+    stockDisponible: disponibles.reduce((total, variante) => total + Number(variante.stock), 0),
+  };
 }
 
 function articuloPara(etiqueta: string): "un" | "una" {

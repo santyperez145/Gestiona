@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   etiquetaTipoVariante,
+  precioDeVariante,
+  resumenVariantesParaCard,
   textoCtaVariante,
   textoDisponibilidadProducto,
 } from "@/lib/storeProductVariant";
@@ -59,5 +61,39 @@ describe("decisión de variantes en la ficha pública", () => {
     expect(visibilityMigration).toContain("(v.stock > 0) DESC");
     expect(visibilityMigration).toContain("REVOKE ALL ON FUNCTION public.get_store_variants(text) FROM PUBLIC");
     expect(visibilityMigration).toContain("GRANT EXECUTE ON FUNCTION public.get_store_variants(text) TO anon, authenticated");
+  });
+
+  it("la card muestra como máximo tres decisiones comprables y deriva el resto", () => {
+    const variants = [
+      { id: "a", stock: 2, price_override: 900 },
+      { id: "b", stock: 1, price_override: 1100 },
+      { id: "c", stock: 4, price_override: null },
+      { id: "d", stock: 3, price_override: 950 },
+      { id: "e", stock: 0, price_override: 800 },
+    ];
+    const resumen = resumenVariantesParaCard(variants, 1000, null);
+
+    expect(resumen.rapidas.map(v => v.id)).toEqual(["a", "b", "c"]);
+    expect(resumen.disponibles).toHaveLength(4);
+    expect(resumen.agotadas).toBe(1);
+    expect(resumen.requiereDetalle).toBe(true);
+    expect(resumen.stockDisponible).toBe(10);
+  });
+
+  it("la card anuncia desde el menor precio y cambia al monto exacto al elegir", () => {
+    const variants = [
+      { id: "a", stock: 2, price_override: 900 },
+      { id: "b", stock: 1, price_override: 1200 },
+      { id: "c", stock: 0, price_override: 700 },
+    ];
+    const inicial = resumenVariantesParaCard(variants, 1000, null);
+    const elegida = resumenVariantesParaCard(variants, 1000, "b");
+
+    expect(inicial.precio).toBe(900);
+    expect(inicial.desde).toBe(true);
+    expect(elegida.precio).toBe(1200);
+    expect(elegida.desde).toBe(false);
+    expect(precioDeVariante(1000, variants[2])).toBe(700);
+    expect(precioDeVariante(1000, { price_override: 0 })).toBe(1000);
   });
 });
