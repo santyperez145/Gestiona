@@ -4956,8 +4956,12 @@ Finance Connect.
      cobros y enlaces externos continúan con navegación completa por diseño.
      La puerta local pasó typecheck, lint con **0 errores/142 warnings
      conocidos**, **2.716 tests en 296 archivos** (`npm test`, 2026-09-04) y
-     build/PWA; el JS inicial medido quedó en **119,97 kB gzip**. Falta validar
-     el aviso y las transiciones sobre el deploy publicado y una sesión E2E.
+     build/PWA; el JS inicial medido quedó en **119,97 kB gzip**. `325a4a02`
+     quedó `Ready` con los aliases productivos. Una visita al hostname limpio,
+     observada después del claim inicial, mantuvo H1/CTA, ancho 1136/1136,
+     cero logs `warn`/`error` y **ningún aviso de versión falso**. Falta probar
+     una transición autenticada y dos deploys consecutivos sobre la misma
+     pestaña cuando exista sesión E2E.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
