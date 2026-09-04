@@ -1,7 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { UPDATE_AVAILABLE_EVENT } from "@/lib/swUpdate";
+import {
+  createControllerChangeHandler,
+  UPDATE_AVAILABLE_EVENT,
+} from "@/lib/swUpdate";
 
 const source = readFileSync(resolve(process.cwd(), "src/lib/swUpdate.ts"), "utf8");
 
@@ -11,8 +14,23 @@ describe("actualizaciones sin interrupciones", () => {
     expect(source).not.toMatch(/setTimeout\([\s\S]{0,120}reload/);
   });
 
-  it("controllerchange sólo anuncia que hay una versión", () => {
-    expect(source).toContain('addEventListener("controllerchange", showUpdateNotice)');
+  it("una instalación limpia no se anuncia como una versión nueva", () => {
+    const onUpdate = vi.fn();
+    const onControllerChange = createControllerChangeHandler(false, onUpdate);
+
+    onControllerChange();
+    expect(onUpdate).not.toHaveBeenCalled();
+
+    onControllerChange();
+    expect(onUpdate).toHaveBeenCalledOnce();
+  });
+
+  it("una pestaña ya controlada anuncia el primer cambio de versión", () => {
+    const onUpdate = vi.fn();
+    const onControllerChange = createControllerChangeHandler(true, onUpdate);
+
+    onControllerChange();
+    expect(onUpdate).toHaveBeenCalledOnce();
     expect(source).toContain("Hay una versión nueva de Nerqia");
   });
 

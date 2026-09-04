@@ -3784,7 +3784,7 @@ export default function CustomersPage() {
                           sales={sales}
                           debts={debts}
                           onCreateInvoice={(sale) => {
-                            window.location.href = `/facturas?from_sale=${sale.id}&customer=${encodeURIComponent(sale.customer_name || '')}&total=${sale.total_ars}`;
+                            navigate(`/facturas?from_sale=${sale.id}&customer=${encodeURIComponent(sale.customer_name || '')}&total=${sale.total_ars}`);
                           }}
                         />
                       </TabsContent>
@@ -4175,7 +4175,7 @@ export default function CustomersPage() {
                       sales={sales}
                       debts={debts}
                       onCreateInvoice={(sale) => {
-                        window.location.href = `/facturas?from_sale=${sale.id}&customer=${encodeURIComponent(sale.customer_name || '')}&total=${sale.total_ars}`;
+                        navigate(`/facturas?from_sale=${sale.id}&customer=${encodeURIComponent(sale.customer_name || '')}&total=${sale.total_ars}`);
                       }}
                     />
 

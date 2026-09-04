@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
+import { useOrg } from '@/lib/orgContext';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Mail, Check, AlertTriangle } from 'lucide-react';
@@ -10,6 +11,7 @@ import BrandLogo from '@/components/shared/BrandLogo';
 export default function InvitationAcceptPage() {
   const { token } = useParams<{ token: string }>();
   const { user, loading: authLoading } = useAuth();
+  const { refresh: refreshOrganizations } = useOrg();
   const navigate = useNavigate();
   const [invite, setInvite] = useState<any>(null);
   const [org, setOrg] = useState<any>(null);
@@ -47,8 +49,9 @@ export default function InvitationAcceptPage() {
     }
     await supabase.from('org_invitations').update({ accepted_at: new Date().toISOString() }).eq('id', invite.id);
     localStorage.setItem('gestiona.activeOrgId', invite.org_id);
+    await refreshOrganizations();
     toast.success(`¡Bienvenido a ${org?.name}!`);
-    window.location.href = '/';
+    navigate('/', { replace: true });
   };
 
   if (loading || authLoading) {

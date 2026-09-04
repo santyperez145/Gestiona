@@ -32,11 +32,31 @@ function showUpdateNotice() {
   });
 }
 
+export function createControllerChangeHandler(
+  wasControlled: boolean,
+  onUpdateAvailable: () => void,
+) {
+  let hasController = wasControlled;
+
+  return () => {
+    // `clients.claim()` también dispara controllerchange la primera vez que un
+    // SW toma una visita limpia. Eso es instalación, no una versión nueva.
+    if (!hasController) {
+      hasController = true;
+      return;
+    }
+    onUpdateAvailable();
+  };
+}
+
 export function setupServiceWorkerUpdates() {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
   window.addEventListener(UPDATE_AVAILABLE_EVENT, showUpdateNotice);
-  navigator.serviceWorker.addEventListener("controllerchange", showUpdateNotice);
+  navigator.serviceWorker.addEventListener(
+    "controllerchange",
+    createControllerChangeHandler(Boolean(navigator.serviceWorker.controller), showUpdateNotice),
+  );
 
   // Chequeo periódico mientras la pestaña esté abierta.
   setInterval(() => {

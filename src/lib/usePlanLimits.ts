@@ -3,10 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEntitlements } from './useEntitlements';
 import { useOrg } from './orgContext';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 export function usePlanLimits() {
   const { activeOrg } = useOrg();
   const { plan, subscription } = useEntitlements();
+  const navigate = useNavigate();
 
   // Returns true if allowed to proceed, false if limit hit (shows toast)
   const checkProductLimit = useCallback(async (): Promise<boolean> => {
@@ -21,13 +23,13 @@ export function usePlanLimits() {
     }
     if ((count ?? 0) >= plan.max_products) {
       toast.error(`Límite de ${plan.max_products} productos alcanzado en tu plan ${plan.name}.`, {
-        action: { label: 'Ver planes', onClick: () => { window.location.href = '/precios'; } },
+        action: { label: 'Ver planes', onClick: () => navigate('/precios') },
         duration: 6000,
       });
       return false;
     }
     return true;
-  }, [activeOrg, plan]);
+  }, [activeOrg, navigate, plan]);
 
   const checkSalesLimit = useCallback(async (): Promise<boolean> => {
     if (!activeOrg) return true;
@@ -42,13 +44,13 @@ export function usePlanLimits() {
     }
     if (data.max_sales_per_month != null && data.sales_used >= data.max_sales_per_month) {
       toast.error(`Límite de ${data.max_sales_per_month} ventas/mes alcanzado en tu plan ${plan?.name ?? ''}.`, {
-        action: { label: 'Ver planes', onClick: () => { window.location.href = '/precios'; } },
+        action: { label: 'Ver planes', onClick: () => navigate('/precios') },
         duration: 6000,
       });
       return false;
     }
     return true;
-  }, [activeOrg, plan]);
+  }, [activeOrg, navigate, plan]);
 
   const checkUserLimit = useCallback(async (): Promise<boolean> => {
     if (!activeOrg || plan?.max_users == null) return true;
@@ -62,13 +64,13 @@ export function usePlanLimits() {
     }
     if ((count ?? 0) >= plan.max_users) {
       toast.error(`Límite de ${plan.max_users} usuario${plan.max_users !== 1 ? 's' : ''} alcanzado en tu plan ${plan.name}.`, {
-        action: { label: 'Ver planes', onClick: () => { window.location.href = '/precios'; } },
+        action: { label: 'Ver planes', onClick: () => navigate('/precios') },
         duration: 6000,
       });
       return false;
     }
     return true;
-  }, [activeOrg, plan]);
+  }, [activeOrg, navigate, plan]);
 
   // Subscription is effectively blocked if canceled or past_due past the period end
   const subscriptionBlocked =

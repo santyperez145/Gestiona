@@ -11,6 +11,7 @@
  * in favor of this one).
  */
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { llamarIA } from "@/lib/ia";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -750,6 +751,7 @@ export default function PipelineKanbanTab() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const { ask, dialog: confirmDialog } = useConfirmDialog();
+  const navigate = useNavigate();
 
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -991,7 +993,7 @@ export default function PipelineKanbanTab() {
         autoCreateQuoteFromDeal(deal).then(quoteId => {
           if (quoteId) {
             toast.success("📄 Presupuesto creado automáticamente", {
-              action: { label: "Ver", onClick: () => window.location.href = "/presupuestos" },
+              action: { label: "Ver", onClick: () => navigate("/presupuestos") },
               duration: 6000,
             });
           }

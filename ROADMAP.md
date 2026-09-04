@@ -318,7 +318,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 | Rediseño público v4 | La landing de Nerqia fue reconstruida el 2026-09-04 como portada de producto: marca/categoría en el H1, hero frambuesa full-bleed, centro de control claro como escena principal, propuesta Business Core y tabs accesibles para Gestión/Tienda/Finance. Retira el split hero y el testimonio ficticio, etiqueta todos los números como ilustrativos y mantiene registro directo. El E2E local pasó 5/5 con continuidad del pliegue, menú y cero overflow en 360/768/1024/1440; Axe no encontró impactos críticos/serios. El commit `987fbb9c` quedó `Ready` en producción y `nerqia.app` sirve el H1, CTA y tabs nuevos sin overflow ni logs warn/error en la inspección desktop. D5.1 mantiene la resiliencia transversal de medios del Storefront. | Medir conversión real del CTA; después retirar las reglas CSS muertas de la landing v3 sin mezclarlo con el rediseño visual. |
 | CRM command center v2 | Clientes / CRM reemplaza la referencia minimalista anterior por la estructura de gestión densa de Aerten y el lenguaje violeta/tintado de eMarketplace Admin, ambos inspeccionados en preview público el 2026-08-22. Incorpora resumen ejecutivo de cartera/actividad/recurrencia/riesgo, tabs persistidos, rail de segmentos, filtros, tabla responsive con relación/compras/facturación/ticket/salud y ficha 360; conserva campañas, notas, comunicaciones, permisos y el mismo Business Core. La comparativa visual y su traducción están en `docs/INTERFAZ.md`. | Captura autenticada desktop/mobile, validación con un comercio real y medición de tiempo para encontrar/actuar sobre un cliente; el rediseño está implementado, no validado comercialmente. |
 | Admin/marketplace workspace v1 | `WorkspaceViewTabs` extiende el contrato Figma a Productos, Ventas y Dashboard: Catálogo/Operación, Ventas/Rendimiento y seis vistas ejecutivas con contadores, meta contextual, responsive móvil y persistencia por organización; Settings, Admin, Integraciones, Reportes y Tienda quedan bajo el mismo contrato de tokens. El shell compartido expone identidad de workspace en topbar, breadcrumb, CTA, headers con acento, métricas con estados y plataforma con consola/rail violeta. | Captura autenticada de las superficies operativas y medición de tiempo a tarea antes de declarar la renovación visual validada. |
-| Deploy/PWA sin interrumpir el trabajo | El incidente del 2026-08-22 confirmó que una pestaña abierta podía conservar `index-Bj1ae_cF.js` y pedir chunks ya retirados (`Dashboard-DTnpFc_O.js`, `ProductsPage-COufPAuI.js`); Vercel respondía `index.html` con MIME `text/html`. Desde el 2026-09-04 `vite:preloadError`, promesas rechazadas y `controllerchange` muestran un único aviso persistente y dejan a la persona decidir cuándo actualizar. Sólo esa acción explícita limpia caches/SW y recarga; `/assets/` continúa excluido del fallback SPA. | Probar dos deploys consecutivos con una pestaña autenticada abierta: cero recargas automáticas, trabajo y ruta preservados, un solo aviso deduplicado, actualización manual exitosa y chunk inexistente con HTTP 404. |
+| Deploy/PWA sin interrumpir el trabajo | El incidente del 2026-08-22 confirmó que una pestaña abierta podía conservar `index-Bj1ae_cF.js` y pedir chunks ya retirados (`Dashboard-DTnpFc_O.js`, `ProductsPage-COufPAuI.js`); Vercel respondía `index.html` con MIME `text/html`. Desde el 2026-09-04 `vite:preloadError`, promesas rechazadas y un `controllerchange` sobre una pestaña ya controlada muestran un único aviso persistente y dejan a la persona decidir cuándo actualizar. La instalación limpia se ignora: no es un deploy. Sólo la acción explícita limpia caches/SW y recarga; `/assets/` continúa excluido del fallback SPA. La navegación interna de Clientes, Pipeline, planes e invitaciones ya usa Router y queda protegida por una guarda transversal. | Probar dos deploys consecutivos con una pestaña autenticada abierta: cero recargas automáticas, trabajo y ruta preservados, un solo aviso deduplicado, actualización manual exitosa y chunk inexistente con HTTP 404. Medir transición interna y eliminar la siguiente fuente de latencia por evidencia, no por timers cosméticos. |
 
 ### Bloqueos externos vigentes
 
@@ -4939,6 +4939,25 @@ Finance Connect.
      commit `987fbb9c` quedó `Ready` en Vercel con alias `nerqia.app`, `www` y
      wildcard; la inspección publicada confirmó H1, CTA y tabs nuevas, ancho
      1136/1136 y cero logs `warn`/`error`.
+
+195. La navegación interna deja de reiniciar Nerqia — D2.8, 2026-09-04.
+     Clientes facturaba, Pipeline abría el presupuesto y los límites de plan
+     llevaban a Precios abandonando el documento completo. Invitaciones hacía
+     lo mismo para forzar que apareciera la membresía recién aceptada. Los
+     cuatro recorridos usan ahora React Router; invitaciones primero refresca
+     membresías y activa el tenant guardado, por lo que no intercambia lentitud
+     por contexto viejo.
+
+     La validación productiva de la landing también descubrió que una visita
+     limpia podía recibir “Hay una versión nueva” cuando `clients.claim()`
+     tomaba control por primera vez. El listener diferencia instalación inicial
+     de reemplazo de un controlador existente. Una guarda recorre todo `src` y
+     prohíbe destinos internos literales mediante `location`; OAuth, checkout,
+     cobros y enlaces externos continúan con navegación completa por diseño.
+     La puerta local pasó typecheck, lint con **0 errores/142 warnings
+     conocidos**, **2.716 tests en 296 archivos** (`npm test`, 2026-09-04) y
+     build/PWA; el JS inicial medido quedó en **119,97 kB gzip**. Falta validar
+     el aviso y las transiciones sobre el deploy publicado y una sesión E2E.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
