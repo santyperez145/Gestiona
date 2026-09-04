@@ -10,7 +10,7 @@
  * El tema, los colores, los métodos de pago y el SEO salen del panel
  * "Tienda Online", que hasta ahora configuraba una vitrina inexistente.
  */
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Route, Routes, useParams, useLocation } from "react-router-dom";
 import { StoreProvider, useStore } from "@/storefront/storeContext";
 import StoreLayout from "@/storefront/StoreLayout";
@@ -29,7 +29,17 @@ import { StoreAuthProvider } from "@/storefront/storeAuth";
 import { WishlistProvider } from "@/storefront/wishlist";
 import StorefrontSkeleton from "@/storefront/StorefrontSkeleton";
 import StorefrontStatus from "@/storefront/StorefrontStatus";
-import { initTracking, trackPageView } from "@/storefront/tracking";
+import {
+  deactivateTracking,
+  initTracking,
+  isSensitiveStorefrontTrackingPath,
+  trackPageView,
+} from "@/storefront/tracking";
+import {
+  StoreTrackingConsentProvider,
+  StoreTrackingRuntimeProvider,
+  useStoreTrackingConsent,
+} from "@/storefront/trackingConsent";
 import { canonicalStorefrontPath, parseRutaTienda, tituloDeRutaTienda } from "@/lib/storefrontSeo";
 import { nombreDeCategoria } from "@/lib/storeCategories";
 import { hostedStoreUrl } from "@/lib/storefrontHost";
@@ -43,22 +53,46 @@ function tituloPrivadoDeRuta(pathname: string): string | null {
   return null;
 }
 
-function StoreShell() {
+function StoreShell({ expectedSlug }: { expectedSlug: string }) {
   const { basePath, loading, notFound, loadError, store, products, pages, categorias, reload } = useStore();
   const { pathname, search } = useLocation();
+  const { decision: trackingConsent } = useStoreTrackingConsent();
+  const trackingKey = useMemo(() => {
+    if (!store || store.slug !== expectedSlug || trackingConsent !== "granted") return null;
+    const ids = [
+      store.meta_pixel_id?.trim() || null,
+      store.ga_measurement_id?.trim() || null,
+      store.tiktok_pixel_id?.trim() || null,
+    ];
+    if (!ids.some(Boolean)) return null;
+    return JSON.stringify([
+      store.slug,
+      ...ids,
+    ]);
+  }, [expectedSlug, store, trackingConsent]);
+  const [activeTrackingKey, setActiveTrackingKey] = useState<string | null>(null);
+  const trackingRuntimeReady = trackingKey !== null && trackingKey === activeTrackingKey;
 
-  // Píxeles: se inicializan una vez, en cuanto se conoce la tienda.
+  // Píxeles externos: sólo después de una decisión afirmativa de esta tienda.
+  // Cambiar de merchant desactiva el destino anterior antes de inicializar el
+  // siguiente, para no mezclar tráfico entre organizaciones en la misma SPA.
   useEffect(() => {
-    if (!store) return;
+    deactivateTracking();
+    setActiveTrackingKey(null);
+    if (!store || !trackingKey) return;
     initTracking({
       metaPixelId: store.meta_pixel_id,
       gaMeasurementId: store.ga_measurement_id,
       tiktokPixelId: store.tiktok_pixel_id,
     });
-  }, [store]);
+    setActiveTrackingKey(trackingKey);
+    return () => deactivateTracking();
+  }, [store, trackingKey]);
 
   // En una SPA el cambio de ruta no dispara PageView solo.
-  useEffect(() => { if (store) trackPageView(); }, [pathname, search, store]);
+  useEffect(() => {
+    if (store && trackingRuntimeReady && !isSensitiveStorefrontTrackingPath(pathname)) trackPageView();
+  }, [pathname, search, store, trackingRuntimeReady]);
 
   // Título de la pestaña por ruta. WhatsApp/Google no ejecutan JS — eso es
   // `api/og`. Acá es lo que ve el comprador al cambiar de ficha.
@@ -138,8 +172,9 @@ function StoreShell() {
   }
 
   return (
-    <StoreLayout>
-      <Routes>
+    <StoreTrackingRuntimeProvider ready={trackingRuntimeReady}>
+      <StoreLayout>
+        <Routes>
         <Route index element={<StoreHome />} />
         <Route path="productos" element={<StoreProducts />} />
         <Route path="producto/:productId" element={<StoreProduct />} />
@@ -154,8 +189,9 @@ function StoreShell() {
             primera pantalla. El link vive en la barra de arriba del header. */}
         <Route path="arrepentimiento" element={<StoreArrepentimiento />} />
         <Route path="*" element={<StoreHome />} />
-      </Routes>
-    </StoreLayout>
+        </Routes>
+      </StoreLayout>
+    </StoreTrackingRuntimeProvider>
   );
 }
 
@@ -170,12 +206,14 @@ export default function StorefrontPage({
   const slug = hostedSlug ?? routeSlug;
   if (!slug) return null;
   return (
-    <StoreAuthProvider slug={slug} basePath={basePath}>
-      <StoreProvider slug={slug} basePath={basePath}>
-        <WishlistProvider slug={slug}>
-          <StoreShell />
-        </WishlistProvider>
-      </StoreProvider>
-    </StoreAuthProvider>
+    <StoreTrackingConsentProvider slug={slug}>
+      <StoreAuthProvider slug={slug} basePath={basePath}>
+        <StoreProvider slug={slug} basePath={basePath}>
+          <WishlistProvider slug={slug}>
+            <StoreShell expectedSlug={slug} />
+          </WishlistProvider>
+        </StoreProvider>
+      </StoreAuthProvider>
+    </StoreTrackingConsentProvider>
   );
 }

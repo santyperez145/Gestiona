@@ -29,6 +29,7 @@ import {
   leerProvinciaCarrito,
   resumenEnvioCarrito,
 } from "@/lib/storeCartProvince";
+import StoreTrackingConsent from "./StoreTrackingConsent";
 
 /**
  * Un link del menú. Los externos salen del router: con `<Link>` un
@@ -121,6 +122,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     shippingProvinces: store?.shipping_provinces,
   });
   const coberturaEnvio = textoCoberturaDomicilio(store?.shipping_provinces);
+  const trackingConfigurado = Boolean(
+    store?.meta_pixel_id || store?.ga_measurement_id || store?.tiktok_pixel_id,
+  );
 
   // Provincia del drawer: sobrevive al checkout (sessionStorage) y no pide
   // dirección completa — patrón Shopify/Tiendanube de cotizar con ubicación.
@@ -554,6 +558,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               Defensa del Consumidor
             </a>
           </p>
+          <StoreTrackingConsent enabled={trackingConfigurado} />
           <p>© {new Date().getFullYear()} {store?.name}</p>
         </div>
       </footer>

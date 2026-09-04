@@ -42,6 +42,8 @@ interface TikTokPixelQueue extends Array<unknown> {
   track: (event: string, properties?: unknown, options?: { event_id?: string }) => void;
   load: (id: string, options?: Record<string, unknown>) => void;
   instance?: (id: string) => TikTokPixelQueue;
+  enableCookie?: () => void;
+  disableCookie?: () => void;
   _i?: Record<string, TikTokPixelQueue>;
   _t?: Record<string, number>;
   _o?: Record<string, Record<string, unknown>>;
@@ -50,6 +52,19 @@ interface TikTokPixelQueue extends Array<unknown> {
 const metaIniciados = new Set<string>();
 const gaIniciados = new Set<string>();
 const tiktokIniciados = new Set<string>();
+let activos: TrackingIds = {};
+
+const consentimientoGoogle = (value: "granted" | "denied") => ({
+  analytics_storage: value,
+  ad_storage: value,
+  ad_user_data: "denied",
+  ad_personalization: value,
+});
+
+function tiktokActivo() {
+  if (!activos.tiktokPixelId || !window.ttq) return null;
+  return window.ttq.instance?.(activos.tiktokPixelId) ?? window.ttq;
+}
 
 function cargarScript(src: string, id: string) {
   if (document.getElementById(id)) return;
@@ -109,9 +124,18 @@ function prepararTikTok(): TikTokPixelQueue {
 export function initTracking({ metaPixelId, gaMeasurementId, tiktokPixelId }: TrackingIds) {
   if (typeof window === "undefined") return;
 
+  activos = {
+    metaPixelId: metaPixelId?.trim() || null,
+    gaMeasurementId: gaMeasurementId?.trim() || null,
+    tiktokPixelId: tiktokPixelId?.trim() || null,
+  };
+  const metaId = activos.metaPixelId;
+  const gaId = activos.gaMeasurementId;
+  const tiktokId = activos.tiktokPixelId;
+
   try {
     // ── Meta (Facebook / Instagram) ─────────────────────────────────────
-    if (metaPixelId && !metaIniciados.has(metaPixelId)) {
+    if (metaId && !metaIniciados.has(metaId)) {
       // Cola mínima de fbq: encola los eventos hasta que el script real carga.
       // Es la forma que documenta Meta, escrita sin los atajos del snippet
       // original para que pase el linter.
@@ -129,27 +153,33 @@ export function initTracking({ metaPixelId, gaMeasurementId, tiktokPixelId }: Tr
         w._fbq = fbq;
         cargarScript("https://connect.facebook.net/en_US/fbevents.js", "meta-pixel-src");
       }
-      window.fbq?.("init", metaPixelId);
-      metaIniciados.add(metaPixelId);
+      window.fbq?.("init", metaId);
+      metaIniciados.add(metaId);
     }
+    if (activos.metaPixelId) window.fbq?.("consent", "grant");
 
     // ── Google Analytics 4 ──────────────────────────────────────────────
-    if (gaMeasurementId && !gaIniciados.has(gaMeasurementId)) {
-      cargarScript(`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`, "ga4-src");
+    if (gaId && !gaIniciados.has(gaId)) {
+      cargarScript(`https://www.googletagmanager.com/gtag/js?id=${gaId}`, "ga4-src");
       window.dataLayer = window.dataLayer || [];
       window.gtag = function (...args: unknown[]) { window.dataLayer!.push(args); };
       window.gtag("js", new Date());
+      window.gtag("consent", "default", consentimientoGoogle("granted"));
       // La ruta SPA emite el PageView una sola vez en `trackPageView`.
-      window.gtag("config", gaMeasurementId, { send_page_view: false });
-      gaIniciados.add(gaMeasurementId);
+      window.gtag("config", gaId, { send_page_view: false });
+      gaIniciados.add(gaId);
+    }
+    if (activos.gaMeasurementId) {
+      window.gtag?.("consent", "update", consentimientoGoogle("granted"));
     }
 
     // ── TikTok ──────────────────────────────────────────────────────────
-    if (tiktokPixelId && !tiktokIniciados.has(tiktokPixelId)) {
+    if (tiktokId && !tiktokIniciados.has(tiktokId)) {
       const ttq = prepararTikTok();
-      ttq.load(tiktokPixelId);
-      tiktokIniciados.add(tiktokPixelId);
+      ttq.load(tiktokId);
+      tiktokIniciados.add(tiktokId);
     }
+    if (activos.tiktokPixelId) tiktokActivo()?.enableCookie?.();
   } catch {
     // Un bloqueador de anuncios no debe romper la tienda.
   }
@@ -158,11 +188,12 @@ export function initTracking({ metaPixelId, gaMeasurementId, tiktokPixelId }: Tr
 /** Cambio de página en una SPA: los píxeles no lo detectan solos. */
 export function trackPageView() {
   try {
-    window.fbq?.("track", "PageView");
-    window.gtag?.("event", "page_view", {
+    if (activos.metaPixelId) window.fbq?.("trackSingle", activos.metaPixelId, "PageView");
+    if (activos.gaMeasurementId) window.gtag?.("event", "page_view", {
       page_location: window.location.href,
+      send_to: activos.gaMeasurementId,
     });
-    window.ttq?.page();
+    tiktokActivo()?.page();
   } catch { /* best-effort */ }
 }
 
@@ -175,43 +206,56 @@ export interface TrackedItem {
 
 export function trackViewItem(item: TrackedItem, currency = "ARS") {
   try {
-    window.fbq?.("track", "ViewContent", {
+    if (activos.metaPixelId) window.fbq?.("trackSingle", activos.metaPixelId, "ViewContent", {
       content_ids: [item.id], content_name: item.name,
       content_type: "product", value: item.price, currency,
     });
-    window.gtag?.("event", "view_item", {
+    if (activos.gaMeasurementId) window.gtag?.("event", "view_item", {
       currency, value: item.price,
       items: [{ item_id: item.id, item_name: item.name, price: item.price }],
+      send_to: activos.gaMeasurementId,
     });
   } catch { /* best-effort */ }
+}
+
+/**
+ * Las capacidades de pedido y recuperación no salen a proveedores de ads.
+ * El fragmento de la orden se limpia antes de leerla, pero el token del
+ * carrito vive en el path hasta completar la recuperación.
+ */
+export function isSensitiveStorefrontTrackingPath(pathname: string) {
+  return /\/orden\/[^/]+(?:\/|$)/.test(pathname)
+    || /\/carrito\/[^/]+(?:\/|$)/.test(pathname);
 }
 
 export function trackAddToCart(item: TrackedItem, currency = "ARS") {
   try {
     const qty = item.quantity ?? 1;
-    window.fbq?.("track", "AddToCart", {
+    if (activos.metaPixelId) window.fbq?.("trackSingle", activos.metaPixelId, "AddToCart", {
       content_ids: [item.id], content_name: item.name,
       content_type: "product", value: item.price * qty, currency,
     });
-    window.gtag?.("event", "add_to_cart", {
+    if (activos.gaMeasurementId) window.gtag?.("event", "add_to_cart", {
       currency, value: item.price * qty,
       items: [{ item_id: item.id, item_name: item.name, price: item.price, quantity: qty }],
+      send_to: activos.gaMeasurementId,
     });
-    window.ttq?.track("AddToCart", { content_id: item.id, value: item.price * qty, currency });
+    tiktokActivo()?.track("AddToCart", { content_id: item.id, value: item.price * qty, currency });
   } catch { /* best-effort */ }
 }
 
 export function trackBeginCheckout(items: TrackedItem[], total: number, currency = "ARS") {
   try {
-    window.fbq?.("track", "InitiateCheckout", {
+    if (activos.metaPixelId) window.fbq?.("trackSingle", activos.metaPixelId, "InitiateCheckout", {
       content_ids: items.map(i => i.id), content_type: "product",
       num_items: items.length, value: total, currency,
     });
-    window.gtag?.("event", "begin_checkout", {
+    if (activos.gaMeasurementId) window.gtag?.("event", "begin_checkout", {
       currency, value: total,
       items: items.map(i => ({ item_id: i.id, item_name: i.name, price: i.price, quantity: i.quantity ?? 1 })),
+      send_to: activos.gaMeasurementId,
     });
-    window.ttq?.track("InitiateCheckout", { value: total, currency });
+    tiktokActivo()?.track("InitiateCheckout", { value: total, currency });
   } catch { /* best-effort */ }
 }
 
@@ -231,6 +275,18 @@ export function wasStoreConversionSent(storage: Pick<Storage, "getItem">, eventI
   } catch {
     return false;
   }
+}
+
+/**
+ * Corta todos los destinos antes de cambiar de tienda o al rechazar/revocar.
+ * Los SDK que ya llegaron no se pueden "descargar", pero no reciben más
+ * eventos y se actualiza su modo de consentimiento cuando exponen esa API.
+ */
+export function deactivateTracking() {
+  activos = {};
+  try { window.fbq?.("consent", "revoke"); } catch { /* best-effort */ }
+  try { window.gtag?.("consent", "update", consentimientoGoogle("denied")); } catch { /* best-effort */ }
+  try { window.ttq?.disableCookie?.(); } catch { /* best-effort */ }
 }
 
 export function markStoreConversionSent(storage: Pick<Storage, "setItem">, eventId: string) {
@@ -255,23 +311,25 @@ export function trackOrderPlaced(
   const eventId = storeConversionEventId("placed", orderNumber);
   let attempted = false;
   try {
-    if (window.fbq) {
+    if (activos.metaPixelId && window.fbq) {
       attempted = true;
-      window.fbq("track", "Purchase", {
+      window.fbq("trackSingle", activos.metaPixelId, "Purchase", {
         content_ids: items.map(i => i.id), content_type: "product",
         value: total, currency,
       }, { eventID: eventId });
     }
-    if (window.gtag) {
+    if (activos.gaMeasurementId && window.gtag) {
       attempted = true;
       window.gtag("event", "purchase", {
         transaction_id: orderNumber, currency, value: total,
         items: items.map(i => ({ item_id: i.id, item_name: i.name, price: i.price, quantity: i.quantity ?? 1 })),
+        send_to: activos.gaMeasurementId,
       });
     }
-    if (window.ttq) {
+    const ttq = tiktokActivo();
+    if (ttq) {
       attempted = true;
-      window.ttq.track("PlaceAnOrder", {
+      ttq.track("PlaceAnOrder", {
         contents: items.map(i => ({ content_id: i.id, content_name: i.name, price: i.price, quantity: i.quantity ?? 1 })),
         content_type: "product", value: total, currency,
       }, { event_id: eventId });
@@ -287,10 +345,11 @@ export function trackPaymentCompleted(
   total: number,
   currency = "ARS",
 ) {
-  if (!window.ttq) return false;
+  const ttq = tiktokActivo();
+  if (!ttq) return false;
   const eventId = storeConversionEventId("paid", orderNumber);
   try {
-    window.ttq.track("CompletePayment", {
+    ttq.track("CompletePayment", {
       contents: items.map(i => ({ content_id: i.id, content_name: i.name, price: i.price, quantity: i.quantity ?? 1 })),
       content_type: "product", value: total, currency,
     }, { event_id: eventId });

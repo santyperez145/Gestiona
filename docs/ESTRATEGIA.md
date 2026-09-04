@@ -297,7 +297,7 @@ y **0 IDs Meta/GA4/TikTok configurados**: falta conectar un píxel de prueba y
 observar el evento en el diagnóstico real del proveedor. Events API/CAPI no se
 declara implementada.
 
-🟡 **Seguimiento postcompra recuperable, implementado localmente el
+✅ **Seguimiento postcompra recuperable, publicado el
 2026-09-04.** Shopify convierte la
 [página de estado en el destino principal del tracking](https://help.shopify.com/en/manual/fulfillment/setup/order-status-page/order-tracking)
 y Tiendanube reúne
@@ -308,8 +308,26 @@ por Supabase. D5.33 reemplaza esa ausencia por carga estable, error accionable y
 reintento de 44 px; un `found: false` incoherente no borra un pedido ya
 verificado. Tres pruebas de componente recorren carga, retry e inconsistencia.
 La puerta local pasó TypeScript, lint con 0 errores/142 warnings conocidos,
-**2.673 tests en 288 archivos** y build/PWA. Falta el bundle publicado; no se
-declara tracking live del transportista.
+**2.673 tests en 288 archivos** y build/PWA. La matriz publicada pasó 2/2 en
+Chromium y Pixel 5 con RPC interceptado y sin escrituras reales. No se declara
+tracking live del transportista.
+
+🟡 **Medición externa consentida y aislada por merchant, implementada
+localmente el 2026-09-04.** El header productivo impedía cargar Meta, GA4 y
+TikTok aunque existiera un ID. Google documenta los hosts requeridos por
+[Analytics bajo CSP](https://developers.google.com/tag-platform/security/guides/csp)
+y TikTok exige revisar CSP al instalar el
+[Pixel base](https://ads.tiktok.com/help/article/how-to-add-or-edit-events-event-builder-and-custom-code?lang=en).
+D5.34 no abre esos destinos hasta que el comprador elige “Aceptar medición”;
+“sólo esencial” conserva Core/cart/pedido sin terceros. Meta usa `trackSingle`,
+GA4 `send_to` y TikTok una instancia por Pixel ID para que dos comercios en la
+misma SPA no compartan eventos. El footer permite cambiar la decisión y revocar
+corta destinos futuros. Ocho pruebas nuevas y trece del contrato cubren
+preferencia, UI, corte, espera del runtime, rutas con capacidades, tenant
+routing y CSP. La puerta completa pasó TypeScript, lint con 0 errores/142
+warnings conocidos, **2.685 tests en 290 archivos** y build/PWA. Faltan header
+publicado y diagnóstico real con IDs de prueba; no se confunde consentimiento
+técnico con DPA o aprobación legal.
 
 ✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
 define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)

@@ -9,6 +9,7 @@ import { etiquetaProvinciaCheckout } from "@/lib/storeShippingCoverage";
 import { quoteStoreShipping, createStoreOrder, getStoreOrderSecure, isTransientPublicError, startStoreCheckout } from "@/lib/publicDataSource";
 import { orderAccessFragment, saveOrderAccessToken } from "./orderAccess";
 import { trackBeginCheckout } from "./tracking";
+import { useStoreTrackingRuntimeReady } from "./trackingConsent";
 import { precioConMedioDePago, porcentajeDe, nombreMedio } from "@/lib/paymentDiscount";
 import { normalizarEmail } from "@/lib/couponRules";
 import { decisionEntregaCheckout, requiereDireccionDeEntrega } from "@/lib/checkoutDelivery";
@@ -34,6 +35,7 @@ interface ShippingOption {
 }
 
 export default function StoreCheckout() {
+  const trackingRuntimeReady = useStoreTrackingRuntimeReady();
   // `total` del contexto no se usa acá: el checkout calcula el suyo con el cupón.
   const {
     store, products, cart, subtotal, promo2x, shippingCost, fmt,
@@ -320,11 +322,6 @@ export default function StoreCheckout() {
   useEffect(() => {
     if (checkoutStartedRef.current || cart.length === 0 || !store?.slug || !cartToken || !visitToken) return;
     checkoutStartedRef.current = true;
-    trackBeginCheckout(
-      cart.map(l => ({ id: l.variantId ?? l.productId, name: l.name, price: l.price, quantity: l.qty })),
-      subtotal,
-      store?.currency ?? "ARS",
-    );
     void startStoreCheckout({
       slug: store.slug,
       token: cartToken,
@@ -332,6 +329,17 @@ export default function StoreCheckout() {
       lines: cart,
     });
   }, [cart, cartToken, store?.currency, store?.slug, subtotal, visitToken]);
+
+  const checkoutTrackedRef = useRef(false);
+  useEffect(() => {
+    if (checkoutTrackedRef.current || !trackingRuntimeReady || cart.length === 0) return;
+    checkoutTrackedRef.current = true;
+    trackBeginCheckout(
+      cart.map(l => ({ id: l.variantId ?? l.productId, name: l.name, price: l.price, quantity: l.qty })),
+      subtotal,
+      store?.currency ?? "ARS",
+    );
+  }, [cart, store?.currency, subtotal, trackingRuntimeReady]);
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
 

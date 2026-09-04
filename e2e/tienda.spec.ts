@@ -496,6 +496,62 @@ test.describe("postcompra", () => {
   });
 });
 
+test.describe("privacidad de medición", () => {
+  test("no carga terceros hasta que el comprador acepta", async ({ page }) => {
+    let cargasAnalytics = 0;
+    await page.addInitScript((key: string) => localStorage.removeItem(key),
+      `nerqia.store-tracking-consent.v1.${SLUG.toLowerCase()}`);
+
+    // Se conserva la respuesta real y sólo se suma un ID sintético en el
+    // navegador. El SDK también se sustituye localmente: no se envía tráfico
+    // ni se modifica configuración del comercio o del proveedor.
+    await page.route("**/rest/v1/rpc/get_store_by_slug", async route => {
+      const response = await route.fetch();
+      const body = await response.json() as Record<string, unknown> | Record<string, unknown>[];
+      const withTestId = (row: Record<string, unknown>) => ({
+        ...row,
+        ga_measurement_id: "G-NERQIA-E2E",
+      });
+      const json = Array.isArray(body) ? body.map(withTestId) : withTestId(body);
+      await route.fulfill({ response, json });
+    });
+    await page.route("https://www.googletagmanager.com/gtag/js**", route => {
+      cargasAnalytics += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: "application/javascript",
+        body: "window.__NERQIA_GA_E2E__ = true;",
+      });
+    });
+    await page.route(/https:\/\/[^/]*google-analytics\.com\/.*/, route => route.abort());
+
+    await page.goto(tienda());
+    await fichasVisibles(page);
+    const panel = page.locator('[data-storefront-state="tracking-consent"]');
+    await expect(panel).toBeVisible();
+    expect(cargasAnalytics).toBe(0);
+
+    const esencial = panel.getByRole("button", { name: "Usar sólo lo esencial" });
+    const aceptar = panel.getByRole("button", { name: "Aceptar medición" });
+    expect(await esencial.evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+    expect(await aceptar.evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+    await esencial.click();
+    await expect(panel).toHaveCount(0);
+    await page.waitForTimeout(150);
+    expect(cargasAnalytics).toBe(0);
+
+    await page.getByRole("button", { name: "Preferencias de privacidad" }).click();
+    await page.getByRole("button", { name: "Aceptar medición" }).click();
+    await expect.poll(() => cargasAnalytics).toBe(1);
+
+    const geometry = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+  });
+});
+
 test.describe("páginas de contenido", () => {
   test("las publicadas se listan en el pie y abren", async ({ page }) => {
     await page.goto(tienda());

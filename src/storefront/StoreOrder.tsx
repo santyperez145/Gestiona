@@ -21,6 +21,7 @@ import {
 } from "@/lib/storeOrderBuyerCopy";
 import { esMedioGestionaPay } from "@/lib/gestionaPay";
 import { consumeOrderAccessFragment, readOrderAccessToken, saveOrderAccessToken } from "./orderAccess";
+import { useStoreTrackingRuntimeReady } from "./trackingConsent";
 import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard, AlertTriangle, ShieldCheck, Copy } from "lucide-react";
 
 type Order = StoreOrderAccessRow;
@@ -61,6 +62,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
 export default function StoreOrder() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
   const { store, fmt, basePath: base } = useStore();
+  const trackingRuntimeReady = useStoreTrackingRuntimeReady();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -122,9 +124,7 @@ export default function StoreOrder() {
     price: Number(i.unit_price),
     quantity: Number(i.quantity),
   })), [order?.items]);
-  const trackingConfigurado = Boolean(
-    store?.meta_pixel_id || store?.ga_measurement_id || store?.tiktok_pixel_id,
-  );
+  const trackingConfigurado = trackingRuntimeReady;
 
   // Pedido colocado y pago acreditado son hechos distintos. El receipt local
   // evita reemitir al recargar; transaction_id/event_id cubren el proveedor.
@@ -142,7 +142,7 @@ export default function StoreOrder() {
   }, [order, store?.currency, trackedItems, trackingConfigurado]);
 
   useEffect(() => {
-    if (!order || order.payment_status !== "paid" || !store?.tiktok_pixel_id) return;
+    if (!order || order.payment_status !== "paid" || !store?.tiktok_pixel_id || !trackingRuntimeReady) return;
     const eventId = storeConversionEventId("paid", order.order_number);
     if (wasStoreConversionSent(localStorage, eventId)) return;
     const attempted = trackPaymentCompleted(
@@ -152,7 +152,7 @@ export default function StoreOrder() {
       store?.currency ?? "ARS",
     );
     if (attempted) markStoreConversionSent(localStorage, eventId);
-  }, [order, store?.currency, store?.tiktok_pixel_id, trackedItems]);
+  }, [order, store?.currency, store?.tiktok_pixel_id, trackedItems, trackingRuntimeReady]);
 
   // Al volver de MercadoPago el webhook puede tardar unos segundos en
   // confirmar. Se reintenta un rato para no mostrarle "pendiente" a alguien

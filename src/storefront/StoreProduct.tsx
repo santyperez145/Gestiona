@@ -21,6 +21,7 @@ import {
 } from "@/lib/scentTaxonomy";
 import { ChevronLeft, Minus, Plus, ShoppingBag, Check, Heart } from "lucide-react";
 import { trackViewItem, trackAddToCart } from "./tracking";
+import { useStoreTrackingRuntimeReady } from "./trackingConsent";
 import ProductReviews from "./ProductReviews";
 import ProductQuestions from "./ProductQuestions";
 import StockAlertForm from "./StockAlertForm";
@@ -34,6 +35,7 @@ import {
 } from "@/lib/storeProductVariant";
 
 export default function StoreProduct() {
+  const trackingRuntimeReady = useStoreTrackingRuntimeReady();
   const { productId } = useParams<{ productId: string }>();
   const { store, products, perfumes, variantsByProduct, priceOf, fmt, addToCart, basePath: base } = useStore();
 
@@ -115,10 +117,14 @@ export default function StoreProduct() {
     ? precioDeVariante(priceOf(p), variantsByProduct[p.id]?.find(v => v.id === variantId))
     : 0;
   useEffect(() => {
-    if (!p) return;
+    if (!p || !trackingRuntimeReady) return;
     trackViewItem({ id: p.id, name: p.name, price: Number(precioParaTracking) }, store?.currency ?? "ARS");
+  }, [p, precioParaTracking, store?.currency, trackingRuntimeReady]);
+
+  useEffect(() => {
+    if (!p) return;
     if (store?.slug) recordView(store.slug, p.id);
-  }, [p, precioParaTracking, store?.currency, store?.slug]);
+  }, [p, store?.slug]);
 
   // Cuotas: va ANTES del early return por la regla de los hooks, igual que el
   // tracking. Se consulta sobre `precioParaTracking`, que ya contempla la

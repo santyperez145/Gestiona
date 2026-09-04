@@ -227,7 +227,7 @@ export function politicaDePrivacidad(d: DatosDelComercio): string {
     "**Envíos:** el correo o transporte que despacha tu pedido, que recibe tu nombre, dirección y teléfono para poder entregarlo.",
     "**Emails:** el proveedor de correo con el que te mandamos la confirmación de compra y el seguimiento.",
     d.usaPixeles
-      ? "**Analítica y publicidad:** Meta y Google, mediante píxeles que registran tu navegación en la tienda."
+      ? "**Analítica y publicidad:** Meta, Google Analytics y/o TikTok, sólo si aceptás la medición en esta tienda. Podés cambiar la decisión desde «Preferencias de privacidad» en el pie."
       : null,
   ].filter(Boolean).map(t => `- ${t}`).join("\n");
 

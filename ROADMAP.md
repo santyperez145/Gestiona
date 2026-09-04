@@ -19,7 +19,7 @@ Toda pantalla, modal, segmentación o decisión de tecnología se ejecuta bajo e
 investigación fechada, traducción propia, cobertura de estados y una puerta
 medible antes de adoptar dependencias.
 
-## Objetivo canónico aceptado — 2026-09-03
+## Objetivo textual canónico aceptado — 2026-09-04
 
 **Nerqia Commerce OS**: convertir la tienda online en una puerta de entrada de
 primer nivel y sostenerla sobre un único Business Graph; mantener Finance como
@@ -28,6 +28,12 @@ clonar productos, stock, proveedores, cobros, documentos ni páginas del Core.
 Ordenar y auditar todas las rutas, eliminar funciones equivalentes, completar
 los flujos reales de punta a punta y elevar la presentación profesional de
 Commerce, Business, Finance y Platform.
+
+Este objetivo reemplaza canónicamente «Gestiona Commerce OS»: toda marca
+visible debe decir **Nerqia**, mientras los namespaces técnicos heredados sólo
+se migran con compatibilidad. Tiendas online y Finance se terminan como
+productos completos y funcionales, página por página, sin convertir la paridad
+competitiva en duplicación del Core.
 
 Cada decisión se contrasta con evidencia oficial y fechada de Tiendanube,
 Shopify, Mercado Libre, Empretienda y Mendel, sin copiar marca ni prometer
@@ -4688,9 +4694,49 @@ Finance Connect.
      componente recorren carga, error de Supabase, reintento exitoso e
      inconsistencia. La puerta completa pasó TypeScript, lint con 0 errores/142
      warnings conocidos, **2.673 tests en 288 archivos** y build/PWA. Estado:
-     **implementado y protegido localmente; falta bundle publicado y matriz de
-     seguimiento interceptada sin tocar pedidos reales**. El tracking live del
-     transportista sigue siendo un gate externo.
+     **implementado, publicado y protegido; la matriz sintética sobre
+     `nerqia.app` pasó 2/2 en Chromium y Pixel 5 sin tocar pedidos reales**.
+     El tracking live del transportista sigue siendo un gate externo.
+
+186. Los píxeles dejan de estar bloqueados y dejan de medir sin permiso —
+     D5.34, 2026-09-04. La inspección del header publicado encontró que la CSP
+     sólo aceptaba `script-src 'self'`: Meta, GA4 y TikTok no podían cargar
+     aunque un comercio guardara su ID. La documentación oficial de Google
+     enumera los hosts necesarios para
+     [usar Analytics bajo CSP](https://developers.google.com/tag-platform/security/guides/csp),
+     y TikTok exige revisar la CSP cuando se instala su
+     [Pixel base](https://ads.tiktok.com/help/article/how-to-add-or-edit-events-event-builder-and-custom-code?lang=en).
+     Abrir esos hosts sin consentimiento habría cambiado un bug técnico por uno
+     de privacidad.
+
+     D5.34 agrega una preferencia versionada por tienda/origen: sin decisión o
+     con “sólo esencial” no descarga terceros ni envía eventos; el footer deja
+     reabrirla. Al aceptar, una allowlist CSP mínima habilita sólo los scripts y
+     colectores usados. Meta recibe `trackSingle`, GA4 `send_to` y TikTok su
+     instancia por Pixel ID, de modo que visitar dos merchants en la misma SPA
+     no mezcla destinos. Revocar desactiva todos los destinos y actualiza las
+     APIs de consentimiento disponibles; no afirma borrar datos ya recibidos
+     por terceros. El Core first-party de visita→carrito→checkout→pedido sigue
+     separado y no depende de esta elección.
+
+     Ocho pruebas nuevas y trece del contrato cubren storage aislado, valor
+     desconocido, decisión y reapertura, no-emisión sin consentimiento,
+     direccionamiento por merchant, espera del runtime, exclusión de rutas con
+     capacidades y correspondencia código↔CSP sin `*`. La puerta completa pasó
+     TypeScript, lint con 0 errores/142 warnings conocidos, **2.685 tests en
+     290 archivos** y build/PWA. Estado: **implementado y protegido localmente;
+     faltan deploy/header publicado, matriz desktop/mobile y diagnóstico con
+     IDs de prueba**. La aprobación legal de
+     textos, DPA/subencargados y la configuración de cada proveedor siguen
+     externas.
+
+187. La cola de pedidos usa un solo reloj para decidir atrasos — 2026-09-04.
+     La puerta completa cruzó exactamente el umbral de 24 h y descubrió que
+     `filterStoreOrders` aceptaba `now`, pero `orderMatchesStoreView` lo
+     descartaba y volvía a leer la hora del sistema. Una misma prueba podía
+     demostrar que una orden era reciente y filtrarla como atrasada un instante
+     después. El reloj ahora se propaga hasta `isStoreOrderStale`; el caso focal
+     pasó 16/16 y la puerta completa **2.685/2.685**. Publicado en `5e022619`.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

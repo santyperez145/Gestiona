@@ -177,8 +177,11 @@ describe("politicaDePrivacidad", () => {
   });
 
   it("no menciona píxeles si no hay", () => {
-    expect(t).not.toContain("Meta y Google");
-    expect(plano(politicaDePrivacidad({ ...D, usaPixeles: true }))).toContain("Meta y Google");
+    expect(t).not.toContain("Google Analytics");
+    const conPixeles = plano(politicaDePrivacidad({ ...D, usaPixeles: true }));
+    expect(conPixeles).toContain("Meta, Google Analytics y/o TikTok");
+    expect(conPixeles).toContain("sólo si aceptás la medición");
+    expect(conPixeles).toContain("Preferencias de privacidad");
   });
 
   it("no deja ningún hueco sin completar", () => {
