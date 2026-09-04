@@ -4183,6 +4183,50 @@ Finance Connect.
      se atribuye mejora de conversión ni Web Vitals: necesitan tráfico real.
      Cursor server-side queda como umbral de volumen, no como trabajo por moda.
 
+173. La analítica de Commerce deja de mezclar cola, cobro y atribución — D5.21,
+     2026-09-04. La auditoría autenticada encontró una contradicción visible:
+     la organización tenía **6 pedidos reales**, mientras el embudo decía
+     “0 órdenes completadas”. La base confirmó la causa: los seis pedidos son
+     anteriores al carrito canónico y tienen `cart_session_id = NULL`; las
+     sesiones que sí pueden atribuirse empiezan el 3/9. Sumar 6 pedidos sobre
+     7 sesiones habría publicado una conversión ficticia de 85,7%.
+
+     `get_store_performance_snapshot` agrega ahora en servidor y por
+     organización: pedidos registrados, pedidos acreditados, facturación sólo
+     de `payment_status = paid`, sesiones atribuibles, sesiones con items,
+     sesiones con compra y carritos todavía recuperables. La cola conserva su
+     límite operativo de 200, pero ya no se usa como contador total. El RPC
+     exige membresía real, `anon` no tiene `EXECUTE` y un índice parcial evita
+     escanear pedidos sin carrito al crecer. La UI dice **Facturación paga**,
+     **Pedidos registrados** y **Conversión medible**; los pedidos históricos
+     o sin sesión siguen operables, pero una nota explica por qué no entran en
+     el porcentaje. Si el contrato falla, se muestra el error en vez de ceros.
+
+     La cola de recuperación también deja de contar carritos vencidos: cliente
+     y snapshot aplican items, expiración, email e inactividad de una hora con
+     la misma semántica. En producción, el rol `owner` obtuvo 6 pedidos, 2
+     acreditados, ARS 2 de facturación paga, 5 sesiones medibles, 5 con items,
+     0 convertidas y 0 recuperables; el mismo usuario fue bloqueado al pedir
+     otra organización y el dry-run dejó el libro en brecha 0. No se alteró
+     ninguna fila comercial.
+
+     Comparativa verificada el 2026-09-04: Shopify define la conversión como
+     sesiones que terminan en orden y separa el embudo en sesión, carrito,
+     checkout y compra; Tiendanube separa pedidos pagos/facturación de la
+     conversión del carrito y permite período/comparación. Nerqia adopta ahora
+     la separación y la cobertura honesta. Faltan eventos de “checkout
+     iniciado”, filtro temporal/comparación y atribución por canal antes de
+     declarar paridad analítica completa.
+
+     Puerta local: typecheck verde; lint con 0 errores/143 warnings heredados;
+     **2.635 tests verdes en 282 archivos**; build/PWA y `npm audit` con 0
+     vulnerabilidades. La guarda fija autorización, pago acreditado, vínculo
+     carrito–pedido, corte atribuible y expiración de recuperación.
+
+     Estado: **autoridad server-side aplicada y validada en producción; UI y
+     pruebas listas para deploy**. Falta certificar el render publicado en
+     desktop/mobile y registrar la puerta completa del commit.
+
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una
 venta/control real y el impact event requiere una decisión del merchant. Eso

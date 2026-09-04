@@ -30,9 +30,10 @@ import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
 import { storeBankTransferReady, storeOffersBankTransfer } from "@/lib/storeTransfer";
 import { parseActivationHandoff, storeHandoffCopy } from "@/lib/activationHandoff";
 import {
-  storeAbandonedCartCount,
   storeAfterCatalogCopy,
-  storeFunnelFromCarts,
+  parseStorePerformanceSnapshot,
+  storeAttributionCoverageCopy,
+  storeFunnelFromPerformance,
   storePublishCta,
   storePublishNudges,
   storeShouldLeadWithPay,
@@ -59,7 +60,7 @@ import {
   storeShareIntentActive,
   storeShareIntentCopy,
 } from "@/lib/storeFirstPublish";
-import type { AbandonedCartRow } from "@/lib/abandonedCarts";
+import type { StorePerformanceSnapshot } from "@/lib/storeFirstPublish";
 import { countPendingStockAlerts } from "@/lib/stockAlerts";
 import {
   costoEnvioAlGuardar,
@@ -226,8 +227,8 @@ export default function EcommerceStorePage() {
   /** Lead de CBU usa lo persistido: el form en vivo no puede esconder el Guardar. */
   const [bankPersistedReady, setBankPersistedReady] = useState(false);
   const [orders, setOrders] = useState<EcomOrder[]>([]);
-  const [funnelData, setFunnelData] = useState<FunnelRow[]>([]);
-  const [abandonedCarts, setAbandonedCarts] = useState(0);
+  const [performance, setPerformance] = useState<StorePerformanceSnapshot | null>(null);
+  const [performanceError, setPerformanceError] = useState<string | null>(null);
   const [stockAlertsPending, setStockAlertsPending] = useState(0);
   // Opciones para armar el menú: las categorías y las páginas publicadas.
   const [menuCategorias, setMenuCategorias] = useState<{ slug: string; name: string }[]>([]);
@@ -273,6 +274,37 @@ export default function EcommerceStorePage() {
       setOrders((data ?? []) as EcomOrder[]);
     }
     setOrdersLoading(false);
+  }, [orgId]);
+
+  /**
+   * Los KPI son una agregación server-side, separada de la cola limitada de
+   * pedidos recientes. Si el contrato falla, se muestra indisponible: una
+   * lista parcial no puede convertirse en "total" por conveniencia.
+   */
+  const loadStorePerformance = useCallback(async () => {
+    if (!orgId) {
+      setPerformance(null);
+      setPerformanceError(null);
+      return;
+    }
+    setPerformanceError(null);
+    const { data, error } = await supabase.rpc("get_store_performance_snapshot", {
+      p_org_id: orgId,
+    });
+    if (error) {
+      console.error("No se pudo leer el snapshot de rendimiento de Commerce", error);
+      setPerformance(null);
+      setPerformanceError("No pudimos calcular las métricas. Los pedidos siguen disponibles para operar.");
+      return;
+    }
+    const parsed = parseStorePerformanceSnapshot(data);
+    if (!parsed) {
+      console.error("El snapshot de rendimiento de Commerce no cumple el contrato esperado", data);
+      setPerformance(null);
+      setPerformanceError("Las métricas recibidas no son válidas. Los pedidos siguen disponibles para operar.");
+      return;
+    }
+    setPerformance(parsed);
   }, [orgId]);
 
   useEffect(() => {
@@ -342,23 +374,9 @@ export default function EcommerceStorePage() {
         setBankPersistedReady(storeBankTransferReady(next));
       });
 
-    loadOrders();
+    void loadOrders();
+    void loadStorePerformance();
 
-    const loadCartSessions = () => {
-      supabase
-        .from("ecommerce_cart_sessions")
-        .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, updated_at, created_at")
-        .eq("org_id", orgId)
-        .then(({ data, error }) => {
-          if (error) {
-            console.error("EcommerceStorePage / carritos:", error);
-            return;
-          }
-          const rows = (data ?? []) as AbandonedCartRow[];
-          setFunnelData(storeFunnelFromCarts(rows));
-          setAbandonedCarts(storeAbandonedCartCount(rows));
-        });
-    };
     const loadStockAlerts = () => {
       supabase
         .from("store_stock_alerts")
@@ -388,9 +406,8 @@ export default function EcommerceStorePage() {
           setStockAlertsPending(countPendingStockAlerts(rows));
         });
     };
-    loadCartSessions();
     loadStockAlerts();
-  }, [orgId, org, loadOrders]);
+  }, [orgId, org, loadOrders, loadStorePerformance]);
 
   // Las señales viven en otras pestañas (Páginas, Pay, Productos). Si sólo se
   // leyeran al montar, publicar legales o conectar MP dejaba el checklist
@@ -618,14 +635,19 @@ export default function EcommerceStorePage() {
     { id: "settings",  label: "Pagos y envíos" },
   ];
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const todayOrders = useMemo(() => orders.filter(o => o.created_at.slice(0, 10) === todayStr), [orders, todayStr]);
-  const todayRevenue = useMemo(() => todayOrders.reduce((sum, o) => sum + Number(o.total), 0), [todayOrders]);
-  const conversionPct = funnelData.find(f => f.label === "Órdenes completadas")?.pct ?? 0;
-  const activeCartsCount = funnelData.find(f => f.label === "Con items en carrito")?.value ?? 0;
+  const funnelData = useMemo<FunnelRow[]>(
+    () => performance ? storeFunnelFromPerformance(performance) : [],
+    [performance],
+  );
+  const conversionPct = performance && performance.sessionsTotal > 0
+    ? Number(((performance.convertedSessions / performance.sessionsTotal) * 100).toFixed(1))
+    : 0;
+  const attributionCoverage = performance ? storeAttributionCoverageCopy(performance) : null;
+  const activeCartsCount = performance?.sessionsWithItems ?? 0;
+  const abandonedCarts = performance?.recoverableCarts ?? 0;
   const showPerformance = storeShouldShowPerformanceChrome({
-    sessionCount: funnelData.find(f => f.label === "Sesiones")?.value ?? 0,
-    orderCount: orders.length,
+    sessionCount: performance?.sessionsTotal ?? 0,
+    orderCount: performance?.ordersTotal ?? orders.length,
   });
   const methods = storeForm.payment_methods ?? [];
   const leadWithPay = storeShouldLeadWithPay({
@@ -645,12 +667,12 @@ export default function EcommerceStorePage() {
     sessionEmail: user?.email,
   });
 
-  const kpis = useMemo(() => [
-    { label: "Revenue hoy",      value: todayRevenue > 0 ? `$${(todayRevenue / 1000).toFixed(0)}K` : "$0", sub: `${todayOrders.length} órd. hoy`, icon: DollarSign,    color: "success"  as const },
-    { label: "Órdenes totales",  value: String(orders.length || 0),  sub: `${todayOrders.length} hoy`,      icon: ShoppingCart, color: "primary"  as const },
-    { label: "Conversión",       value: `${conversionPct}%`,          sub: `${funnelData[0]?.value ?? 0} sesiones totales`, icon: TrendingUp, color: "warning" as const },
-    { label: "Carritos c/items", value: activeCartsCount,             sub: `${abandonedCarts} abandonados`, icon: Users, color: "blue" as const },
-  ], [todayRevenue, todayOrders.length, orders.length, conversionPct, funnelData, activeCartsCount, abandonedCarts]);
+  const kpis = useMemo(() => performance ? [
+    { label: "Facturación paga", value: `$${performance.paidRevenueArs.toLocaleString("es-AR")}`, sub: `${performance.ordersPaid} pedidos acreditados`, icon: DollarSign, color: "success" as const },
+    { label: "Pedidos registrados", value: String(performance.ordersTotal), sub: `${performance.ordersPaid} acreditados`, icon: ShoppingCart, color: "primary" as const },
+    { label: "Conversión medible", value: `${conversionPct}%`, sub: `${performance.convertedSessions} de ${performance.sessionsTotal} sesiones`, icon: TrendingUp, color: "warning" as const },
+    { label: "Carritos c/items", value: activeCartsCount, sub: `${abandonedCarts} por recuperar`, icon: Users, color: "blue" as const },
+  ] : [], [performance, conversionPct, activeCartsCount, abandonedCarts]);
 
   const urlIncluida = urlPublicaDeTienda(
     typeof window === "undefined" ? "" : window.location.origin,
@@ -768,12 +790,16 @@ export default function EcommerceStorePage() {
       />
 
       {/* KPIs: un $0 y un 0% no son analítica. Aparecen cuando hubo tráfico. */}
-      {showPerformance ? (
+      {performance ? (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map(k => (
           <KPICard key={k.label} label={k.label} value={k.value} sub={k.sub} icon={k.icon} color={k.color} />
         ))}
       </div>
+      ) : performanceError && !showPerformance ? (
+        <div role="alert" className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {performanceError}
+        </div>
       ) : null}
 
       {/* Tabs */}
@@ -938,9 +964,16 @@ export default function EcommerceStorePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Funnel */}
           <div className="bg-card border border-border/40 rounded-xl p-5">
-            <h3 className="font-semibold flex items-center gap-2 mb-4"><BarChart3 className="w-4 h-4 text-primary" />Embudo de Conversión</h3>
+            <h3 className="font-semibold flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" />Embudo de conversión medible</h3>
+            <p className="mb-4 mt-1 text-xs text-muted-foreground">
+              Sesiones del carrito canónico desde el 3 sep 2026. Un pedido sólo convierte si quedó enlazado a su sesión.
+            </p>
             <div className="space-y-3">
-              {funnelData.map((f, i) => (
+              {performanceError ? (
+                <p role="alert" className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
+                  {performanceError}
+                </p>
+              ) : funnelData.map((f, i) => (
                 <div key={f.label}>
                   <div className="flex items-center justify-between text-sm mb-1.5">
                     <div className="flex items-center gap-2">
@@ -959,6 +992,11 @@ export default function EcommerceStorePage() {
                 </div>
               ))}
             </div>
+            {attributionCoverage ? (
+              <p className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                {attributionCoverage}
+              </p>
+            ) : null}
           </div>
 
           {/* Recent orders → cola canónica */}

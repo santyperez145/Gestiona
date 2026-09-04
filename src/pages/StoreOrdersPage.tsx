@@ -90,7 +90,7 @@ export default function StoreOrdersPage() {
     const [carts, alerts] = await Promise.all([
       supabase
         .from("ecommerce_cart_sessions")
-        .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, updated_at, created_at")
+        .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, expires_at, updated_at, created_at")
         .eq("org_id", orgId),
       supabase
         .from("store_stock_alerts")

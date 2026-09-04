@@ -53,7 +53,7 @@ export default function StoreRecoveryWorkspace({ orgId, storeSlug }: Props) {
     setAbandonedError(null);
     const { data, error } = await supabase
       .from("ecommerce_cart_sessions")
-      .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, updated_at, created_at")
+      .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, expires_at, updated_at, created_at")
       .eq("org_id", orgId);
     if (error) {
       console.error("StoreRecoveryWorkspace / carritos:", error);

@@ -36,22 +36,22 @@ describe("abandonedCarts", () => {
       {
         id: "1", status: "abandoned", customer_email: "a@b.c", items: [{ quantity: 1 }],
         subtotal: 10, total: 10, abandoned_email_sent: false,
-        updated_at: "2026-09-02T12:00:00Z", created_at: "2026-09-02T11:00:00Z",
+        expires_at: "2026-10-02T12:00:00Z", updated_at: "2026-09-02T12:00:00Z", created_at: "2026-09-02T11:00:00Z",
       },
       {
         id: "2", status: "abandoned", customer_email: null, items: [],
         subtotal: 0, total: 0, abandoned_email_sent: false,
-        updated_at: "2026-09-02T13:00:00Z", created_at: "2026-09-02T13:00:00Z",
+        expires_at: "2026-10-02T13:00:00Z", updated_at: "2026-09-02T13:00:00Z", created_at: "2026-09-02T13:00:00Z",
       },
       {
         id: "3", status: "active", customer_email: "c@d.e", items: [{ quantity: 2 }],
         subtotal: 20, total: 20, abandoned_email_sent: false,
-        updated_at: "2026-09-03T13:00:00Z", created_at: "2026-09-03T12:00:00Z",
+        expires_at: "2026-10-03T13:00:00Z", updated_at: "2026-09-03T13:00:00Z", created_at: "2026-09-03T12:00:00Z",
       },
       {
         id: "4", status: "active", customer_email: "fresh@d.e", items: [{ quantity: 1 }],
         subtotal: 5, total: 5, abandoned_email_sent: false,
-        updated_at: "2026-09-03T14:30:00Z", created_at: "2026-09-03T14:30:00Z",
+        expires_at: "2026-10-03T14:30:00Z", updated_at: "2026-09-03T14:30:00Z", created_at: "2026-09-03T14:30:00Z",
       },
     ], now);
     expect(rows.map((r) => r.id)).toEqual(["3", "1"]);
@@ -59,13 +59,22 @@ describe("abandonedCarts", () => {
       status: "active",
       customer_email: "x@y.z",
       items: [{ quantity: 1 }],
+      expires_at: "2026-10-03T15:00:00Z",
       updated_at: new Date(now - ABANDONED_CART_IDLE_MS - 1).toISOString(),
     }, now)).toBe(true);
     expect(isRecoverableAbandonedCart({
       status: "active",
       customer_email: "x@y.z",
       items: [{ quantity: 1 }],
+      expires_at: "2026-10-03T15:00:00Z",
       updated_at: new Date(now - 1000).toISOString(),
+    }, now)).toBe(false);
+    expect(isRecoverableAbandonedCart({
+      status: "active",
+      customer_email: "expired@y.z",
+      items: [{ quantity: 1 }],
+      expires_at: "2026-09-03T14:59:59Z",
+      updated_at: "2026-09-03T12:00:00Z",
     }, now)).toBe(false);
   });
 

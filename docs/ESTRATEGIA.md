@@ -197,6 +197,17 @@ conserva la página en la URL y reinicia ante filtros. Sigue usando la lectura
 canónica compartida; cursor server-side es el próximo escalón si un catálogo
 real demuestra el volumen, no una excusa para crear otro stock o catálogo.
 
+✅ **Analítica con población explícita, verificada el 2026-09-04.** Shopify
+define la [conversión de tienda](https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/marketing-performance)
+como sesiones que terminan en una orden y su embudo separa sesión, agregado al
+carrito, checkout y compra. Tiendanube también separa
+[facturación/pedidos pagos de conversión y permite elegir período](https://ayuda.tiendanube.com/es_AR/como-ver-las-estadisticas-de-mi-tiendanube).
+Nerqia tenía 6 pedidos históricos sin `cart_session_id` y 5 sesiones posteriores
+al contrato canónico: mezclarlos habría inventado 85,7%. D5.21 agrega el
+snapshot exacto en servidor, cuenta facturación sólo acreditada y muestra la
+brecha de atribución en texto. Eventos de checkout, período, comparación y
+canal siguen pendientes; no se estiman desde el carrito.
+
 ✅ **Margin facts medidos el 2026-08-22:** “tener margen” tampoco alcanza como
 argumento. Shopify ya documenta profit por orden/mercado y Odoo margen por
 línea/pedido. Nerqia ahora conserva por venta la fuente de costo, comisión,

@@ -13,16 +13,24 @@
 
 import { hostedStoreUrl } from '@/lib/storefrontHost';
 
-export type StoreCartSession = {
-  status: string | null;
-  items: unknown;
-};
-
 export type StoreFunnelStep = {
   label: string;
   value: number;
   pct: number;
   color: string;
+};
+
+export type StorePerformanceSnapshot = {
+  ordersTotal: number;
+  ordersPaid: number;
+  paidRevenueArs: number;
+  attributedOrders: number;
+  sessionsTotal: number;
+  sessionsWithItems: number;
+  convertedSessions: number;
+  recoverableCarts: number;
+  attributionStartedAt: string;
+  snapshotAt: string;
 };
 
 export function storeWizardFinishCopy() {
@@ -330,19 +338,86 @@ function pct(part: number, total: number): number {
   return parseFloat(((part / total) * 100).toFixed(1));
 }
 
-export function storeFunnelFromCarts(sessions: StoreCartSession[]): StoreFunnelStep[] {
-  const total = sessions.length;
-  const withItems = sessions.filter((row) => Array.isArray(row.items) && row.items.length > 0).length;
-  const converted = sessions.filter((row) => row.status === 'converted').length;
+function finiteNonNegative(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+/**
+ * PostgREST devuelve jsonb; validar el contrato evita pintar cero cuando el
+ * servidor cambió de forma o quedó una migración a mitad de camino.
+ */
+export function parseStorePerformanceSnapshot(value: unknown): StorePerformanceSnapshot | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  const numericKeys = [
+    'orders_total',
+    'orders_paid',
+    'paid_revenue_ars',
+    'attributed_orders',
+    'sessions_total',
+    'sessions_with_items',
+    'converted_sessions',
+    'recoverable_carts',
+  ] as const;
+  const numbers = numericKeys.map((key) => finiteNonNegative(row[key]));
+  if (numbers.some((item) => item === null)) return null;
+  const [
+    ordersTotal,
+    ordersPaid,
+    paidRevenueArs,
+    attributedOrders,
+    sessionsTotal,
+    sessionsWithItems,
+    convertedSessions,
+    recoverableCarts,
+  ] = numbers as number[];
+  if (
+    ordersPaid > ordersTotal
+    || attributedOrders > ordersTotal
+    || sessionsWithItems > sessionsTotal
+    || convertedSessions > sessionsWithItems
+    || recoverableCarts > sessionsWithItems
+  ) return null;
+  const attributionStartedAt = String(row.attribution_started_at ?? '');
+  const snapshotAt = String(row.snapshot_at ?? '');
+  if (!Number.isFinite(Date.parse(attributionStartedAt)) || !Number.isFinite(Date.parse(snapshotAt))) {
+    return null;
+  }
+  return {
+    ordersTotal,
+    ordersPaid,
+    paidRevenueArs,
+    attributedOrders,
+    sessionsTotal,
+    sessionsWithItems,
+    convertedSessions,
+    recoverableCarts,
+    attributionStartedAt,
+    snapshotAt,
+  };
+}
+
+export function storeFunnelFromPerformance(
+  snapshot: Pick<StorePerformanceSnapshot, 'sessionsTotal' | 'sessionsWithItems' | 'convertedSessions'>,
+): StoreFunnelStep[] {
+  const total = snapshot.sessionsTotal;
+  const withItems = snapshot.sessionsWithItems;
+  const converted = snapshot.convertedSessions;
   return [
-    { label: 'Sesiones', value: total, pct: total > 0 ? 100 : 0, color: 'bg-blue-400' },
+    { label: 'Sesiones medidas', value: total, pct: total > 0 ? 100 : 0, color: 'bg-blue-400' },
     { label: 'Con items en carrito', value: withItems, pct: pct(withItems, total), color: 'bg-indigo-400' },
-    { label: 'Órdenes completadas', value: converted, pct: pct(converted, total), color: 'bg-emerald-400' },
+    { label: 'Sesiones con compra', value: converted, pct: pct(converted, total), color: 'bg-emerald-400' },
   ];
 }
 
-export function storeAbandonedCartCount(sessions: StoreCartSession[]): number {
-  return sessions.filter((row) => row.status === 'abandoned').length;
+/** Pedidos sin sesión no entran al denominador: se explican, no se esconden. */
+export function storeAttributionCoverageCopy(
+  snapshot: Pick<StorePerformanceSnapshot, 'ordersTotal' | 'attributedOrders'>,
+): string | null {
+  const missing = Math.max(0, snapshot.ordersTotal - snapshot.attributedOrders);
+  if (missing === 0) return null;
+  return `${missing} ${missing === 1 ? 'pedido anterior o sin atribución no participa' : 'pedidos anteriores o sin atribución no participan'} del porcentaje. Siguen visibles y operables en Pedidos.`;
 }
 
 /**

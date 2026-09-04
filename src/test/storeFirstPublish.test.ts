@@ -3,9 +3,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { firstProductPath } from '@/lib/activationHandoff';
 import {
-  storeAbandonedCartCount,
   storeAfterCatalogCopy,
-  storeFunnelFromCarts,
+  parseStorePerformanceSnapshot,
+  storeAttributionCoverageCopy,
+  storeFunnelFromPerformance,
   storePublishCta,
   storePublishNudges,
   storeShouldLeadWithPay,
@@ -43,6 +44,10 @@ const ONBOARDING = readFileSync(resolve(ROOT, 'src/pages/OnboardingPage.tsx'), '
 const STORE = readFileSync(resolve(ROOT, 'src/pages/EcommerceStorePage.tsx'), 'utf8');
 const ORDERS_PAGE = readFileSync(resolve(ROOT, 'src/pages/StoreOrdersPage.tsx'), 'utf8');
 const PRODUCTS = readFileSync(resolve(ROOT, 'src/pages/ProductsPage.tsx'), 'utf8');
+const PERFORMANCE_SQL = readFileSync(
+  resolve(ROOT, 'supabase/migrations/20260904000010_store_performance_snapshot.sql'),
+  'utf8',
+);
 
 describe('la primera publicación empieza por el catálogo', () => {
   it('el wizard online manda a Productos, no a un panel vacío', () => {
@@ -317,30 +322,77 @@ describe('el embudo no inventa un checkout', () => {
     expect(storeShouldShowPerformanceChrome({ sessionCount: 0, orderCount: 1 })).toBe(true);
   });
 
-  it('cuenta sesiones, carritos y órdenes reales', () => {
-    const steps = storeFunnelFromCarts([
-      { status: 'active', items: [] },
-      { status: 'active', items: [{ id: 1 }] },
-      { status: 'converted', items: [{ id: 1 }] },
-      { status: 'abandoned', items: [{ id: 1 }] },
-    ]);
+  it('cuenta el embudo server-side sin confundir pedidos con sesiones', () => {
+    const snapshot = parseStorePerformanceSnapshot({
+      orders_total: 6,
+      orders_paid: 2,
+      paid_revenue_ars: '2.00',
+      attributed_orders: 1,
+      sessions_total: 4,
+      sessions_with_items: 3,
+      converted_sessions: 1,
+      recoverable_carts: 1,
+      attribution_started_at: '2026-09-03T00:00:00Z',
+      snapshot_at: '2026-09-04T12:00:00Z',
+    });
+    expect(snapshot).not.toBeNull();
+    const steps = storeFunnelFromPerformance(snapshot!);
     expect(steps.map((s) => s.label)).toEqual([
-      'Sesiones', 'Con items en carrito', 'Órdenes completadas',
+      'Sesiones medidas', 'Con items en carrito', 'Sesiones con compra',
     ]);
     expect(steps.map((s) => s.value)).toEqual([4, 3, 1]);
-    expect(storeAbandonedCartCount([
-      { status: 'abandoned', items: [] },
-      { status: 'converted', items: [] },
-    ])).toBe(1);
+    expect(steps.map((s) => s.pct)).toEqual([100, 75, 25]);
+    expect(storeAttributionCoverageCopy(snapshot!)).toContain('5 pedidos anteriores o sin atribución');
+  });
+
+  it('rechaza un contrato parcial en vez de convertirlo en ceros', () => {
+    expect(parseStorePerformanceSnapshot({ orders_total: 6 })).toBeNull();
+    expect(parseStorePerformanceSnapshot({
+      orders_total: 0,
+      orders_paid: 0,
+      paid_revenue_ars: 0,
+      attributed_orders: 0,
+      sessions_total: 0,
+      sessions_with_items: 0,
+      converted_sessions: 0,
+      recoverable_carts: -1,
+      attribution_started_at: '2026-09-03T00:00:00Z',
+      snapshot_at: '2026-09-04T12:00:00Z',
+    })).toBeNull();
+    expect(parseStorePerformanceSnapshot({
+      orders_total: 1,
+      orders_paid: 2,
+      paid_revenue_ars: 10,
+      attributed_orders: 0,
+      sessions_total: 1,
+      sessions_with_items: 1,
+      converted_sessions: 0,
+      recoverable_carts: 0,
+      attribution_started_at: '2026-09-03T00:00:00Z',
+      snapshot_at: '2026-09-04T12:00:00Z',
+    })).toBeNull();
   });
 
   it('Commerce usa el embudo medido y no un 37%', () => {
-    expect(STORE).toContain('storeFunnelFromCarts');
+    expect(STORE).toContain('get_store_performance_snapshot');
+    expect(STORE).toContain('storeFunnelFromPerformance');
+    expect(STORE).toContain('Facturación paga');
+    expect(STORE).toContain('Conversión medible');
     expect(STORE).toContain('storeShouldShowPerformanceChrome');
     expect(STORE).toContain('storeShouldLeadWithPay');
     expect(STORE).toContain('StoreReadinessPanel');
     expect(STORE).not.toMatch(/\*\s*0\.37/);
     expect(STORE).not.toContain('Checkout iniciado');
+  });
+
+  it('el snapshot protege tenant, cobro, atribución y recuperación', () => {
+    expect(PERFORMANCE_SQL).toContain('public.is_org_member(p_org_id, v_actor)');
+    expect(PERFORMANCE_SQL).toContain('REVOKE ALL ON FUNCTION public.get_store_performance_snapshot(uuid) FROM anon');
+    expect(PERFORMANCE_SQL).toContain("payment_status = 'paid'");
+    expect(PERFORMANCE_SQL).toContain('linked.cart_session_id = cs.id');
+    expect(PERFORMANCE_SQL).toContain("'2026-09-03 00:00:00+00'");
+    expect(PERFORMANCE_SQL).toContain('cs.expires_at > now()');
+    expect(STORE).not.toContain('value: String(orders.length');
   });
 });
 

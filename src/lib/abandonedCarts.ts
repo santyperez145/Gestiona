@@ -24,6 +24,7 @@ export interface AbandonedCartRow {
   total: number;
   abandoned_email_sent: boolean;
   recovery_token?: string | null;
+  expires_at: string;
   updated_at: string;
   created_at: string;
 }
@@ -69,12 +70,14 @@ export function abandonedCartRecoveryTone(state: AbandonedRecoveryState): string
 }
 
 export function isRecoverableAbandonedCart(
-  row: Pick<AbandonedCartRow, "status" | "customer_email" | "items" | "updated_at">,
+  row: Pick<AbandonedCartRow, "status" | "customer_email" | "items" | "expires_at" | "updated_at">,
   nowMs = Date.now(),
   idleMs = ABANDONED_CART_IDLE_MS,
 ): boolean {
   if (abandonedCartItemCount(row.items) <= 0) return false;
   if (row.status === "converted") return false;
+  const expires = Date.parse(row.expires_at);
+  if (!Number.isFinite(expires) || expires <= nowMs) return false;
   if (row.status === "abandoned") return true;
   if (row.status !== "active") return false;
   if (!String(row.customer_email ?? "").trim()) return false;

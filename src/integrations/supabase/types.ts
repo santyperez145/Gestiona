@@ -53062,6 +53062,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_store_performance_snapshot: {
+        Args: { p_org_id: string }
+        Returns: Json
+      }
       get_store_perfume_details: {
         Args: { p_slug: string }
         Returns: {

@@ -192,7 +192,7 @@ export default function FocoDelDia(p: Props) {
     let cancelado = false;
     supabase
       .from("ecommerce_cart_sessions")
-      .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, updated_at, created_at")
+      .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, expires_at, updated_at, created_at")
       .eq("org_id", p.orgId)
       .in("status", ["abandoned", "active"])
       .then(({ data, error }) => {
