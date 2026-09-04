@@ -45,6 +45,8 @@ export default function AfipConfigForm() {
   const [cuit, setCuit] = useState("");
   const [razonSocial, setRazonSocial] = useState("");
   const [domicilio, setDomicilio] = useState("");
+  const [ingresosBrutos, setIngresosBrutos] = useState("");
+  const [inicioActividades, setInicioActividades] = useState("");
   const [puntoVenta, setPuntoVenta] = useState("1");
   const [environment, setEnvironment] = useState("homologacion");
   /**
@@ -80,7 +82,7 @@ export default function AfipConfigForm() {
     // vuelven al navegador, ni siquiera después de que se hayan guardado.
     const { data, error } = await supabase
       .from("afip_connection_status")
-      .select("cuit, razon_social, domicilio, punto_venta, environment, tipo_emisor, configured, plataforma_lista, ta_expires_at")
+      .select("cuit, razon_social, domicilio, ingresos_brutos, inicio_actividades, punto_venta, environment, tipo_emisor, configured, plataforma_lista, ta_expires_at")
       .eq("org_id", activeOrg.id)
       .maybeSingle();
     if (error) throw error;
@@ -94,6 +96,8 @@ export default function AfipConfigForm() {
     // certificado": el certificado es siempre el de la plataforma.
     setPlataformaLista(!!data.plataforma_lista);
     setDomicilio(data.domicilio || "");
+    setIngresosBrutos(data.ingresos_brutos || "");
+    setInicioActividades(data.inicio_actividades || "");
 
     setCuit(data.cuit || "");
     setRazonSocial(data.razon_social || "");
@@ -112,7 +116,7 @@ export default function AfipConfigForm() {
       try {
         await refreshConnectionStatus();
       } catch (error: any) {
-        toast.error(`No se pudo leer el estado AFIP: ${error.message}`);
+        toast.error(`No se pudo leer el estado ARCA: ${error.message}`);
       } finally {
         setLoading(false);
       }
@@ -135,6 +139,8 @@ export default function AfipConfigForm() {
       p_tipo_emisor: tipoEmisor || null,
       p_razon_social: razonSocial.trim(),
       p_domicilio: domicilio.trim(),
+      p_ingresos_brutos: ingresosBrutos.trim() || null,
+      p_inicio_actividades: inicioActividades || null,
     });
     if (cfgErr) throw new Error(cfgErr.message.replace(/^.*?:\s*/, ""));
 
@@ -182,7 +188,7 @@ export default function AfipConfigForm() {
 
         if (r?.ok) {
           setTaStatus("valid");
-          toast.success("✓ Datos guardados y conexión con AFIP verificada");
+          toast.success("Datos guardados y conexión con ARCA verificada");
         } else {
           toast.success("Datos fiscales guardados");
           // Lo que contestó ARCA, textual. "El CUIT no está autorizado" y "el
@@ -212,7 +218,7 @@ export default function AfipConfigForm() {
       return;
     }
     if (!plataformaLista) {
-      toast.error("La plataforma todavía no cargó su certificado de AFIP. No es un problema de tu configuración.");
+      toast.error("La plataforma todavía no cargó su certificado de ARCA. No es un problema de tu configuración.");
       return;
     }
     setTesting(true);
@@ -232,7 +238,7 @@ export default function AfipConfigForm() {
         console.error("[afip] verificar_delegacion falló:", errMsg, resp);
         toast.error("ARCA respondió: " + errMsg);
       } else {
-        toast.success("✓ Conexión con AFIP verificada correctamente");
+        toast.success("Conexión con ARCA verificada correctamente");
         setTaStatus("valid");
         await refreshConnectionStatus();
       }
@@ -249,13 +255,15 @@ export default function AfipConfigForm() {
   //    comercio ya no sube el suyo, así que su estado no entra acá.
   const isConfigured = !!(cuit && plataformaLista);
   const canTestConnection = !!(cuit && plataformaLista);
-  const identidadIncompleta = !!mensajeIdentidadFiscalFaltante({ razonSocial, domicilio });
+  const identidadIncompleta = !!mensajeIdentidadFiscalFaltante({ razonSocial, domicilio })
+    || !tipoEmisor
+    || (environment === "produccion" && (!ingresosBrutos.trim() || !inicioActividades));
 
   return (
     <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
-          <FileCheck className="w-4 h-4 text-primary" />AFIP — Facturación Electrónica
+          <FileCheck className="w-4 h-4 text-primary" />ARCA — Facturación electrónica
         </h2>
         {isConfigured && (
           <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-[5px] font-medium ${
@@ -278,9 +286,10 @@ export default function AfipConfigForm() {
       <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs text-muted-foreground">
         <p className="font-medium text-foreground mb-0.5">Estos datos van impresos en tu factura</p>
         <p>
-          Razón social, CUIT y domicilio van impresos en la factura y en los
-          términos. La plataforma no los adivina. La conexión con AFIP se verifica
-          automáticamente al guardar.
+          Razón social, CUIT, condición IVA, Ingresos Brutos e inicio de
+          actividades quedan en la factura. La plataforma no los adivina y cada
+          comprobante autorizado conserva su propia foto fiscal aunque después
+          cambies esta configuración.
         </p>
       </div>
 
@@ -291,15 +300,15 @@ export default function AfipConfigForm() {
         </div>
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Razón social</label>
-          <Input value={razonSocial} onChange={e => setRazonSocial(e.target.value)} placeholder="Tal cual figura en AFIP" className="bg-muted border-border" required />
+          <Input value={razonSocial} onChange={e => setRazonSocial(e.target.value)} placeholder="Tal cual figura en ARCA" className="bg-muted border-border" required />
         </div>
         <div className="md:col-span-2">
           <label className="text-xs text-muted-foreground mb-1 block">Domicilio fiscal</label>
-          <Input value={domicilio} onChange={e => setDomicilio(e.target.value)} placeholder="Calle, número, localidad — el de AFIP, no el de retiro" className="bg-muted border-border" required />
+          <Input value={domicilio} onChange={e => setDomicilio(e.target.value)} placeholder="Calle, número, localidad — el de ARCA, no el de retiro" className="bg-muted border-border" required />
         </div>
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Punto de venta</label>
-          <Input type="number" min="1" max="9999" value={puntoVenta} onChange={e => setPuntoVenta(e.target.value)} className="bg-muted border-border" />
+          <Input type="number" min="1" max="99999" value={puntoVenta} onChange={e => setPuntoVenta(e.target.value)} className="bg-muted border-border" />
         </div>
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Tipo de emisor</label>
@@ -314,6 +323,27 @@ export default function AfipConfigForm() {
             </SelectContent>
           </Select>
         </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Ingresos Brutos</label>
+          <Input
+            value={ingresosBrutos}
+            onChange={e => setIngresosBrutos(e.target.value)}
+            placeholder="Número, Convenio Multilateral o No inscripto"
+            className="bg-muted border-border"
+            required={environment === "produccion"}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Inicio de actividades</label>
+          <Input
+            type="date"
+            max={new Date().toISOString().slice(0, 10)}
+            value={inicioActividades}
+            onChange={e => setInicioActividades(e.target.value)}
+            className="bg-muted border-border"
+            required={environment === "produccion"}
+          />
+        </div>
         <div className="md:col-span-2">
           <label className="text-xs text-muted-foreground mb-1 block">Ambiente</label>
           <Select value={environment} onValueChange={setEnvironment}>
@@ -324,7 +354,10 @@ export default function AfipConfigForm() {
             </SelectContent>
           </Select>
           {environment === "produccion" && (
-            <p className="text-[10px] text-destructive mt-1">⚠ Las facturas emitidas en producción son definitivas ante AFIP.</p>
+            <p className="text-[10px] text-destructive mt-1">
+              Las facturas emitidas en producción son definitivas ante ARCA. Para
+              habilitarlo se exigen Ingresos Brutos e inicio de actividades.
+            </p>
           )}
         </div>
       </div>
@@ -366,7 +399,7 @@ export default function AfipConfigForm() {
 
       <div className="flex gap-2 pt-1">
         <Button onClick={handleSave} disabled={saving || identidadIncompleta} className="gradient-gold text-primary-foreground font-semibold">
-          {saving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Guardando…</> : "Guardar AFIP"}
+          {saving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Guardando…</> : "Guardar datos fiscales"}
         </Button>
         {canTestConnection && (
           <Button onClick={handleTestConnection} disabled={testing || identidadIncompleta} variant="outline">

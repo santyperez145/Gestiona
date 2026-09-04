@@ -270,7 +270,7 @@ antes de usarse en una presentación, valuación o decisión de inversión.
 | Pagos | 2 pagos reales de prueba por ARS 1; matriz interna de 8 escenarios aprobada el 2026-08-21 y 0 suscripciones efectivamente cobradas. La comisión histórica fue 5% en esas pruebas; la propuesta actual de 0,5% quedó en borrador y cobra $0 hasta aprobación. Falta certificación live para probar proveedor/economics. |
 | Turno POS | `20260829000044` vuelve autoritativa la caja por organización/ubicación: apertura/cierre por RPC, efectivo esperado server-side, un vínculo por ticket y una entrada por medio, vendedor, devolución y diferencia. Fixture reversible: 2 líneas → 1 ticket/entrada, ARS 10.000, esperado ARS 20.000, diferencia −ARS 100, outsider bloqueado y 0 restos. Base productiva al 2026-08-29: 0 sesiones y 0 movimientos reales; es confiabilidad técnica, todavía no uso. |
 | Devolución POS | `20260829000045` agrupa cabecera, líneas y reintegros por ticket; `20260830000010` conecta la parte Mercado Pago a Orders/Payments API con IDs y monto server-side, `X-Idempotency-Key` estable, execute/reconcile, permiso `payments.edit` y deuda visible ante timeout/rechazo. Fixture inicial: stock 8→9, caja ARS 12.500, retry/outsider/exceso/ledger/0 restos. Fixture MP: modo Orders, 2 intentos con misma clave, rechazo conserva ARS 5.000 pendientes, confirmación deja pasivo 0 y restos 0. Edge `refund-pos-payment` está ACTIVE y rechaza sin JWT; base productiva: 0 cuentas MP conectadas, 0 QR completados y 0 devoluciones reales, por lo que falta certificación live y nota de crédito productiva. |
-| Fiscal | 1 CAE de homologación; 0 CAE de producción. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
+| Fiscal | 2 CAE históricos de homologación; 0 CAE de producción, medido el 2026-09-03. Configurar identidad exige `invoices.edit`, se audita sin secretos y sólo `service_role` puede confirmar una delegación tras hablar con ARCA. |
 | Ledger | 10 eventos de ledger de dominio; 0 asientos contables operativos reales. |
 | Margen canónico | `20260822000004/5/6` conserva 34/34 líneas y reconstruye 34 operaciones / ARS 1.143.696 sin diferencia. Exige costo + cobro + envío real + IVA, registra fuente, mix y bloqueos. La próxima venta POS crea partes de cobro atómicas: efectivo/transferencia prueban cero; tarjeta espera liquidación real y luego calcula neto + asiento + auditoría. Además persiste ingreso posterior a descuento y precio de referencia. Base histórica: 0 completas, 0% explicable, 2,9% cobertura, 0 liquidaciones POS y 0/34 baselines; no se inventó backfill. |
 | Action Loop de precio | `20260822000007` convierte recomendación en propuesta aprobable, baseline canónica, aplicación, medición y reversión con guard de concurrencia. Fixture: ARS 3.000 → ARS 2.700, 100% de cobertura antes/después, cambio manual a ARS 2.600 protegido, auditoría/RLS/restos 0. Producción: 25 descartadas, 0 aplicadas, 0 outcomes; todavía no prueba impacto comercial. |
@@ -4032,6 +4032,56 @@ Finance Connect.
      descuentos, QR, turno y autoridad server-side no cambian. Siguiente slice:
      comprobante fiscal profesional e inmutable con identidad/CAE/QR derivados
      de la base y evidencia oficial ARCA.
+
+170. La factura autorizada conserva su identidad fiscal y entrega un QR ARCA
+     real — 2026-09-03. La representación descargable reconstruía CUIT, razón
+     social, domicilio y punto de venta desde la configuración vigente: cambiar
+     Ajustes podía redibujar un comprobante ya autorizado con otra identidad.
+     Además imprimía un enlace textual al dominio anterior de AFIP, no un QR, y
+     no diferenciaba visualmente homologación de producción.
+
+     `invoices` conserva ahora un snapshot server-side del emisor, receptor,
+     punto de venta, cotización y tipo de autorización al reservar el intento.
+     El CAE y número completan en la base el payload QR v1; una factura con CAE
+     bloquea cualquier cambio de importes, cliente, identidad o QR y exige nota
+     de crédito para corregirse. La configuración fiscal segura suma Ingresos
+     Brutos e inicio de actividades, obligatorios para pasar a producción, sin
+     exponer certificados ni tickets al navegador. Los dos comprobantes
+     históricos quedan marcados `legacy_backfill`: su identidad reconstruida
+     sirve para representarlos, pero no prueba el domicilio existente al emitir.
+
+     Facturación muestra número fiscal `00000-00000000`, emisor/receptor,
+     condición IVA, domicilio, Ingresos Brutos, inicio, CAE, vencimiento y un QR
+     escaneable también dentro del PDF. Homologación declara en pantalla y PDF
+     que es una prueba sin valor fiscal; un borrador con letra ya no se presenta
+     como «Factura original». La terminología visible pasa a ARCA, preservando
+     los namespaces `afip_*` por compatibilidad técnica.
+
+     Referencia verificada: la especificación QR oficial usa
+     `https://www.arca.gob.ar/fe/qr/` y exige fecha, CUIT, punto de venta, tipo,
+     número, importe, moneda/cotización y autorización; RG 1415 fija los datos
+     visibles y RG 5616 exige la condición IVA del receptor. Tiendanube declara
+     en su ayuda actualizada el 31/08/2026 que la plataforma no emite la factura
+     de venta y deriva la automatización a aplicaciones externas. Nerqia adopta
+     el patrón de emisión automática como oportunidad de producto, no como una
+     capacidad productiva ya demostrada.
+
+     Evidencia de base real: la migración `20260903000090` fue aplicada y
+     reaplicada idempotentemente. Un fixture transaccional hizo
+     pendiente→procesando→autorizada, verificó snapshot y QR, bloqueó la
+     mutación posterior y cerró con rollback y **0 restos**. Estado medido: 2
+     CAE históricos de homologación, 0 productivos; la única configuración
+     existente aún carece de domicilio, Ingresos Brutos e inicio, por lo que no
+     está lista para producción. Siguiente slice: consumir `factura.creada`
+     desde el outbox y autorizar automáticamente sin una segunda lógica fiscal;
+     la prueba contra ARCA productiva sigue siendo un gate externo.
+
+     Puerta local: typecheck verde; lint 0 errores/143 warnings heredados;
+     **2.618 tests verdes en 279 archivos**; build/PWA, 75 Edge Functions y
+     `npm audit --audit-level=high` en cero vulnerabilidades. El dry-run de
+     migraciones confirmó libro remoto al día y el control posterior midió 2/2
+     facturas con QR, 2 de homologación, 0 productivas y 0 configuraciones con
+     identidad productiva completa.
 
 Los gates comerciales previos quedaron demostrados como externos al código: el
 segundo comercio requiere founder-led sales, la operación de margen requiere una

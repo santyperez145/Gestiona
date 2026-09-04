@@ -9,6 +9,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import ConectarAfip, { type MotivoAfip } from "@/components/afip/ConectarAfip";
 import AfipConfigForm from "@/components/afip/AfipConfigForm";
 import KPICard from "@/components/shared/KPICard";
+import { fechaFiscalArgentina } from "@/lib/arcaInvoice";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -28,6 +29,8 @@ interface AfipConnectionStatus {
   razon_social: string | null;
   /** Va impreso en la factura y en los términos. No bloquea CAE: ARCA no lo pide. */
   domicilio: string | null;
+  ingresos_brutos: string | null;
+  inicio_actividades: string | null;
   ta_expires_at: string | null;
   ticket_vigente: boolean | null;
   /** C14: 'delegado' factura con el certificado de la plataforma. */
@@ -74,7 +77,7 @@ function formatARS(value: number) {
 }
 
 function formatDate(value: string | null) {
-  return value ? new Date(value).toLocaleDateString("es-AR") : "—";
+  return fechaFiscalArgentina(value);
 }
 
 function invoiceStatus(invoice: FiscalInvoice) {
@@ -88,7 +91,7 @@ function invoiceStatus(invoice: FiscalInvoice) {
 }
 
 export default function AFIPPage() {
-  usePageTitle("AFIP / Facturación electrónica");
+  usePageTitle("ARCA / Facturación electrónica");
   const { orgId } = useOrganization();
   const [connection, setConnection] = useState<AfipConnectionStatus | null>(null);
   const [invoices, setInvoices] = useState<FiscalInvoice[]>([]);
@@ -119,7 +122,7 @@ export default function AFIPPage() {
         // No lo agarraba nada: `columnasQueExisten` vigila lo contrario —pedir
         // una columna que no existe— y con `strictNullChecks: false` el cast a
         // la interface hace que TypeScript crea que el campo está.
-        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo")
+        .select("cuit, configured, environment, punto_venta, razon_social, domicilio, ingresos_brutos, inicio_actividades, ta_expires_at, ticket_vigente, modo, plataforma_lista, plataforma_cuit, plataforma_razon_social, motivo")
         .eq("org_id", orgId)
         .maybeSingle(),
       supabase
@@ -206,6 +209,22 @@ export default function AFIPPage() {
         icon: AlertTriangle,
       };
     }
+    if (connection.environment === "produccion" && !String(connection.ingresos_brutos ?? "").trim()) {
+      return {
+        title: "Falta declarar Ingresos Brutos",
+        detail: "Informá el número, Convenio Multilateral o la condición de no inscripto. Es un dato visible del comprobante.",
+        className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
+        icon: AlertTriangle,
+      };
+    }
+    if (connection.environment === "produccion" && !connection.inicio_actividades) {
+      return {
+        title: "Falta el inicio de actividades",
+        detail: "Completá la fecha declarada para que la representación de la factura tenga la identidad fiscal completa.",
+        className: "bg-amber-500/5 border-amber-500/20 text-amber-200",
+        icon: AlertTriangle,
+      };
+    }
     if (!connection.ticket_vigente) {
       return {
         title: "Listo para emitir; conexión pendiente de prueba",
@@ -215,7 +234,7 @@ export default function AFIPPage() {
       };
     }
     return {
-      title: "Conexión AFIP verificada",
+        title: "Conexión ARCA verificada",
       detail: `WSAA respondió para ${connection.environment === "produccion" ? "producción" : "homologación"}. El Ticket de Acceso vence ${formatDate(connection.ta_expires_at)}.`,
       className: "bg-emerald-500/5 border-emerald-500/20 text-emerald-200",
       icon: CheckCircle2,
@@ -227,7 +246,7 @@ export default function AFIPPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Shield}
-        title="AFIP / Facturación electrónica"
+        title="ARCA / Facturación electrónica"
         description="Estado real de la conexión fiscal y de los CAE solicitados desde Facturas"
         actions={
           <div className="flex flex-wrap gap-2">
@@ -280,7 +299,7 @@ export default function AFIPPage() {
             <h2 className="font-semibold">Comprobantes del Business Core</h2>
             <p className="text-xs text-muted-foreground mt-1">Una factura se autoriza desde Facturas; esta pantalla nunca inventa importes, clientes ni CAE.</p>
           </div>
-          <Button size="icon" variant="ghost" onClick={() => void load()} disabled={loading} aria-label="Actualizar estado AFIP">
+          <Button size="icon" variant="ghost" onClick={() => void load()} disabled={loading} aria-label="Actualizar estado ARCA">
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
@@ -290,7 +309,7 @@ export default function AFIPPage() {
         ) : loading ? (
           <div className="px-5 py-10 text-sm text-muted-foreground">Actualizando estado fiscal…</div>
         ) : invoices.length === 0 ? (
-          <div className="px-5 py-10 text-sm text-muted-foreground">Todavía no hay facturas con estado AFIP para esta organización.</div>
+          <div className="px-5 py-10 text-sm text-muted-foreground">Todavía no hay facturas con estado ARCA para esta organización.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

@@ -1361,6 +1361,8 @@ export type Database = {
           delegacion_verificada_at: string | null
           domicilio: string | null
           environment: string
+          ingresos_brutos: string | null
+          inicio_actividades: string | null
           last_error: string | null
           modo: string
           org_id: string
@@ -1380,6 +1382,8 @@ export type Database = {
           delegacion_verificada_at?: string | null
           domicilio?: string | null
           environment?: string
+          ingresos_brutos?: string | null
+          inicio_actividades?: string | null
           last_error?: string | null
           modo?: string
           org_id: string
@@ -1399,6 +1403,8 @@ export type Database = {
           delegacion_verificada_at?: string | null
           domicilio?: string | null
           environment?: string
+          ingresos_brutos?: string | null
+          inicio_actividades?: string | null
           last_error?: string | null
           modo?: string
           org_id?: string
@@ -17779,6 +17785,7 @@ export type Database = {
       }
       invoices: {
         Row: {
+          arca_qr_payload: Json | null
           afip_authorization_requested_by: string | null
           afip_authorization_started_at: string | null
           afip_environment: string | null
@@ -17786,6 +17793,7 @@ export type Database = {
           afip_status: string | null
           cae: string | null
           cae_vencimiento: string | null
+          codigo_autorizacion_tipo: string | null
           condicion_iva_receptor: number
           created_at: string
           created_by: string | null
@@ -17796,15 +17804,26 @@ export type Database = {
           customer_tax_id: string | null
           due_date: string | null
           ecommerce_order_id: string | null
+          emisor_condicion_iva: string | null
+          emisor_cuit: string | null
+          emisor_domicilio: string | null
+          emisor_ingresos_brutos: string | null
+          emisor_inicio_actividades: string | null
+          emisor_razon_social: string | null
+          fiscal_issued_at: string | null
+          fiscal_snapshot_source: string | null
           id: string
           issue_date: string
           motivo_nota_credito: string | null
+          moneda_cotizacion: number | null
           nota_credito_de: string | null
           notes: string | null
           number: string
           numero_afip: number | null
           org_id: string
           paid_at: string | null
+          punto_venta: number | null
+          receptor_tipo_documento: number | null
           sale_id: string | null
           sale_transaction_id: string | null
           status: Database["public"]["Enums"]["invoice_status"]
@@ -17816,6 +17835,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          arca_qr_payload?: Json | null
           afip_authorization_requested_by?: string | null
           afip_authorization_started_at?: string | null
           afip_environment?: string | null
@@ -17823,6 +17843,7 @@ export type Database = {
           afip_status?: string | null
           cae?: string | null
           cae_vencimiento?: string | null
+          codigo_autorizacion_tipo?: string | null
           condicion_iva_receptor?: number
           created_at?: string
           created_by?: string | null
@@ -17833,15 +17854,26 @@ export type Database = {
           customer_tax_id?: string | null
           due_date?: string | null
           ecommerce_order_id?: string | null
+          emisor_condicion_iva?: string | null
+          emisor_cuit?: string | null
+          emisor_domicilio?: string | null
+          emisor_ingresos_brutos?: string | null
+          emisor_inicio_actividades?: string | null
+          emisor_razon_social?: string | null
+          fiscal_issued_at?: string | null
+          fiscal_snapshot_source?: string | null
           id?: string
           issue_date?: string
           motivo_nota_credito?: string | null
+          moneda_cotizacion?: number | null
           nota_credito_de?: string | null
           notes?: string | null
           number: string
           numero_afip?: number | null
           org_id: string
           paid_at?: string | null
+          punto_venta?: number | null
+          receptor_tipo_documento?: number | null
           sale_id?: string | null
           sale_transaction_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
@@ -17853,6 +17885,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          arca_qr_payload?: Json | null
           afip_authorization_requested_by?: string | null
           afip_authorization_started_at?: string | null
           afip_environment?: string | null
@@ -17860,6 +17893,7 @@ export type Database = {
           afip_status?: string | null
           cae?: string | null
           cae_vencimiento?: string | null
+          codigo_autorizacion_tipo?: string | null
           condicion_iva_receptor?: number
           created_at?: string
           created_by?: string | null
@@ -17870,15 +17904,26 @@ export type Database = {
           customer_tax_id?: string | null
           due_date?: string | null
           ecommerce_order_id?: string | null
+          emisor_condicion_iva?: string | null
+          emisor_cuit?: string | null
+          emisor_domicilio?: string | null
+          emisor_ingresos_brutos?: string | null
+          emisor_inicio_actividades?: string | null
+          emisor_razon_social?: string | null
+          fiscal_issued_at?: string | null
+          fiscal_snapshot_source?: string | null
           id?: string
           issue_date?: string
           motivo_nota_credito?: string | null
+          moneda_cotizacion?: number | null
           nota_credito_de?: string | null
           notes?: string | null
           number?: string
           numero_afip?: number | null
           org_id?: string
           paid_at?: string | null
+          punto_venta?: number | null
+          receptor_tipo_documento?: number | null
           sale_id?: string | null
           sale_transaction_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
@@ -43736,6 +43781,8 @@ export type Database = {
           delegacion_verificada_at: string | null
           domicilio: string | null
           environment: string | null
+          ingresos_brutos: string | null
+          inicio_actividades: string | null
           last_error: string | null
           modo: string | null
           motivo: string | null
@@ -43756,6 +43803,8 @@ export type Database = {
           delegacion_verificada_at?: string | null
           domicilio?: string | null
           environment?: string | null
+          ingresos_brutos?: string | null
+          inicio_actividades?: string | null
           last_error?: string | null
           modo?: string | null
           motivo?: never
@@ -43776,6 +43825,8 @@ export type Database = {
           delegacion_verificada_at?: string | null
           domicilio?: string | null
           environment?: string | null
+          ingresos_brutos?: string | null
+          inicio_actividades?: string | null
           last_error?: string | null
           modo?: string | null
           motivo?: never
@@ -54068,6 +54119,8 @@ export type Database = {
           p_cuit: string
           p_domicilio?: string
           p_environment: string
+          p_ingresos_brutos?: string
+          p_inicio_actividades?: string
           p_org_id: string
           p_punto_venta: number
           p_razon_social?: string

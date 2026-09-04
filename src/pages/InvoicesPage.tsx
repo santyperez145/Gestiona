@@ -15,6 +15,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as QRCode from "qrcode";
+import {
+  arcaQrUrl,
+  condicionIvaLabel,
+  fechaFiscalArgentina,
+  numeroFiscal,
+} from "@/lib/arcaInvoice";
 import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
   Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText, Mail,
@@ -45,11 +52,26 @@ interface Invoice {
   invoice_items?: InvoiceItem[];
   // AFIP fields
   tipo_comprobante: number | null;
+  condicion_iva_receptor: number;
   cae: string | null;
   cae_vencimiento: string | null;
   afip_status: string | null;
   afip_error: string | null;
   numero_afip: number | null;
+  afip_environment: string | null;
+  emisor_razon_social: string | null;
+  emisor_cuit: string | null;
+  emisor_domicilio: string | null;
+  emisor_condicion_iva: string | null;
+  emisor_ingresos_brutos: string | null;
+  emisor_inicio_actividades: string | null;
+  punto_venta: number | null;
+  receptor_tipo_documento: number | null;
+  moneda_cotizacion: number | null;
+  codigo_autorizacion_tipo: string | null;
+  arca_qr_payload: unknown;
+  fiscal_snapshot_source: string | null;
+  fiscal_issued_at: string | null;
 }
 
 interface AfipSettings {
@@ -59,6 +81,8 @@ interface AfipSettings {
   afip_punto_venta: number | null;
   afip_tipo_emisor: string | null;
   afip_environment: string | null;
+  afip_ingresos_brutos: string | null;
+  afip_inicio_actividades: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -84,83 +108,115 @@ function emptyItem(): InvoiceItem { return { description: "", quantity: 1, unit_
 // ─────────────────────────────────────────────────────────────
 // PDF generator — includes AFIP data when authorized
 // ─────────────────────────────────────────────────────────────
-function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings | null) {
+async function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings | null) {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
   const tipoCbte = inv.tipo_comprobante ? TIPO_CBTE[inv.tipo_comprobante] : null;
+  const autorizado = !!(inv.cae && inv.numero_afip && tipoCbte);
+  const razonSocial = inv.emisor_razon_social || (!autorizado ? afipSettings?.afip_razon_social : null) || orgName;
+  const cuit = inv.emisor_cuit || (!autorizado ? afipSettings?.afip_cuit : null);
+  const domicilio = inv.emisor_domicilio || (!autorizado ? afipSettings?.afip_domicilio : null);
+  const condicionEmisor = inv.emisor_condicion_iva || (!autorizado ? afipSettings?.afip_tipo_emisor : null);
+  const ingresosBrutos = inv.emisor_ingresos_brutos || (!autorizado ? afipSettings?.afip_ingresos_brutos : null);
+  const inicioActividades = inv.emisor_inicio_actividades || (!autorizado ? afipSettings?.afip_inicio_actividades : null);
+  const puntoVenta = inv.punto_venta || (!autorizado ? afipSettings?.afip_punto_venta : null);
+  const numero = numeroFiscal(puntoVenta, inv.numero_afip);
+  const esHomologacion = inv.afip_environment === "homologacion";
 
   // ── Header band ──────────────────────────────────────────
-  doc.setFillColor(26, 26, 46);
-  doc.rect(0, 0, W, 80, "F");
-  doc.setTextColor(212, 168, 67);
-  doc.setFontSize(22);
+  doc.setFillColor(17, 24, 39);
+  doc.rect(0, 0, W, 104, "F");
+  doc.setTextColor(124, 92, 255);
+  doc.setFontSize(21);
   doc.setFont("helvetica", "bold");
-  doc.text((afipSettings?.afip_razon_social || orgName).toUpperCase(), 40, 38);
+  doc.text(razonSocial.toUpperCase(), 40, 34, { maxWidth: W / 2 - 72 });
   doc.setFontSize(11);
-  doc.setTextColor(200, 200, 220);
-  doc.text(tipoCbte ? `FACTURA ${tipoCbte}` : "FACTURA / COMPROBANTE", 40, 58);
-  if (afipSettings?.afip_cuit) {
+  doc.setTextColor(229, 231, 235);
+  doc.text(
+    autorizado
+      ? `FACTURA ${tipoCbte} · ORIGINAL`
+      : tipoCbte
+        ? `BORRADOR FACTURA ${tipoCbte} · SIN CAE`
+        : "COMPROBANTE BORRADOR",
+    40,
+    56,
+  );
+  if (cuit) {
     doc.setFontSize(9);
-    doc.setTextColor(160, 160, 190);
-    doc.text(`CUIT: ${afipSettings.afip_cuit}`, 40, 72);
+    doc.setTextColor(156, 163, 175);
+    doc.text(`CUIT ${cuit.replace(/^(\d{2})(\d{8})(\d)$/, "$1-$2-$3")}`, 40, 73);
+    doc.text(condicionIvaLabel(condicionEmisor), 40, 88);
   }
   doc.setFontSize(14);
   doc.setTextColor(255, 255, 255);
-  doc.text(`N° ${inv.number}`, W - 40, 38, { align: "right" });
+  doc.text(numero ? `N° ${numero}` : `N° interno ${inv.number}`, W - 40, 34, { align: "right" });
   doc.setFontSize(10);
-  doc.setTextColor(180, 180, 200);
-  doc.text(`Fecha: ${new Date(inv.issue_date).toLocaleDateString("es-AR")}`, W - 40, 56, { align: "right" });
-  if (inv.numero_afip && tipoCbte) {
-    doc.setFontSize(9);
-    doc.text(`Comprobante ${tipoCbte} Nro ${String(inv.numero_afip).padStart(8, "0")}`, W - 40, 72, { align: "right" });
-  }
+  doc.setTextColor(209, 213, 219);
+  doc.text(`Fecha de emisión ${fechaFiscalArgentina(inv.issue_date)}`, W - 40, 55, { align: "right" });
+  doc.setFontSize(8);
+  doc.text(`Punto de venta ${puntoVenta ? String(puntoVenta).padStart(5, "0") : "—"}`, W - 40, 72, { align: "right" });
+  doc.text(`Código de comprobante ${inv.tipo_comprobante ?? "—"}`, W - 40, 87, { align: "right" });
 
   // ── Punto de venta divider (AFIP layout) ─────────────────
   if (tipoCbte) {
-    doc.setFillColor(212, 168, 67);
-    doc.rect(W / 2 - 20, 0, 40, 80, "F");
+    doc.setFillColor(124, 92, 255);
+    doc.rect(W / 2 - 22, 0, 44, 104, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(28);
-    doc.setTextColor(26, 26, 46);
-    doc.text(tipoCbte, W / 2, 50, { align: "center" });
-    if (afipSettings?.afip_punto_venta) {
-      doc.setFontSize(8);
-      doc.text(`Pto.Vta: ${String(afipSettings.afip_punto_venta).padStart(4, "0")}`, W / 2, 64, { align: "center" });
-    }
+    doc.setTextColor(255, 255, 255);
+    doc.text(tipoCbte, W / 2, 48, { align: "center" });
+    doc.setFontSize(7);
+    doc.text(`COD. ${inv.tipo_comprobante}`, W / 2, 67, { align: "center" });
   }
 
-  // ── Domicilio comercial ───────────────────────────────────
-  let yStart = 95;
-  if (afipSettings?.afip_domicilio) {
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Domicilio: ${afipSettings.afip_domicilio}`, 40, yStart);
-    yStart += 12;
+  if (esHomologacion) {
+    doc.setFillColor(254, 243, 199);
+    doc.rect(0, 104, W, 24, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(146, 64, 14);
+    doc.setFontSize(9);
+    doc.text("HOMOLOGACIÓN · COMPROBANTE DE PRUEBA SIN VALOR FISCAL", W / 2, 120, { align: "center" });
   }
+
+  // ── Identidad del emisor ──────────────────────────────────
+  let yStart = esHomologacion ? 145 : 121;
+  doc.setTextColor(55, 65, 81);
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Domicilio comercial: ${domicilio || "No informado"}`, 40, yStart, { maxWidth: W - 80 });
+  yStart += 13;
+  doc.text(`Ingresos Brutos: ${ingresosBrutos || "No informado"}`, 40, yStart);
+  doc.text(`Inicio de actividades: ${inicioActividades ? fechaFiscalArgentina(inicioActividades) : "No informado"}`, W / 2, yStart);
+  yStart += 18;
 
   // ── Customer box ──────────────────────────────────────────
+  doc.setFillColor(249, 250, 251);
+  doc.roundedRect(34, yStart - 2, W - 68, 76, 5, 5, "F");
   doc.setTextColor(50, 50, 50);
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text("CLIENTE", 40, yStart + 10);
+  doc.text("RECEPTOR", 46, yStart + 12);
   doc.setFont("helvetica", "normal");
-  doc.text(inv.customer_name, 40, yStart + 23);
-  let cy = yStart + 23;
-  if (inv.customer_tax_id) { cy += 12; doc.text(`CUIT/DNI: ${inv.customer_tax_id}`, 40, cy); }
-  if (inv.customer_email) { cy += 12; doc.text(inv.customer_email, 40, cy); }
-  if (inv.customer_address) { cy += 12; doc.text(inv.customer_address, 40, cy); }
+  doc.text(inv.customer_name || "Consumidor final", 46, yStart + 28);
+  let cy = yStart + 28;
+  if (inv.customer_tax_id) { cy += 13; doc.text(`CUIT/DNI: ${inv.customer_tax_id}`, 46, cy); }
+  if (inv.customer_address) { cy += 13; doc.text(`Domicilio: ${inv.customer_address}`, 46, cy, { maxWidth: W / 2 - 60 }); }
+  doc.setFont("helvetica", "bold");
+  doc.text("Condición IVA", W / 2, yStart + 12);
+  doc.setFont("helvetica", "normal");
+  doc.text(condicionIvaLabel(inv.condicion_iva_receptor), W / 2, yStart + 28);
+  if (inv.customer_email) doc.text(inv.customer_email, W / 2, yStart + 44, { maxWidth: W / 2 - 54 });
 
   if (inv.due_date) {
     doc.setFont("helvetica", "bold");
-    doc.text("VENCIMIENTO", W / 2, yStart + 10);
+    doc.text("Vencimiento de pago", W / 2, yStart + 59);
     doc.setFont("helvetica", "normal");
-    doc.text(new Date(inv.due_date).toLocaleDateString("es-AR"), W / 2, yStart + 23);
+    doc.text(fechaFiscalArgentina(inv.due_date), W - 46, yStart + 59, { align: "right" });
   }
 
   // ── Items table ───────────────────────────────────────────
   const items = inv.invoice_items || [];
-  const tableY = Math.max(cy + 18, yStart + 60);
+  const tableY = Math.max(cy + 18, yStart + 88);
   autoTable(doc, {
     startY: tableY,
     head: [["Descripción", "Cant.", "Precio unit.", "Total"]],
@@ -171,7 +227,7 @@ function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings 
       formatARS(it.total),
     ]),
     theme: "grid",
-    headStyles: { fillColor: [26, 26, 46], textColor: [212, 168, 67], fontStyle: "bold", fontSize: 9 },
+    headStyles: { fillColor: [17, 24, 39], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
     styles: { fontSize: 9, cellPadding: 5 },
     columnStyles: { 0: { cellWidth: "auto" }, 1: { cellWidth: 45, halign: "right" }, 2: { cellWidth: 90, halign: "right" }, 3: { cellWidth: 90, halign: "right" } },
   });
@@ -186,16 +242,17 @@ function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings 
   doc.text(`Subtotal: ${formatARS(inv.subtotal)}`, W / 2 + 8, y + 9);
   doc.text(formatARS(inv.subtotal), right, y + 9, { align: "right" });
   y += 20;
-  if (inv.tax_pct > 0) {
+  // Sólo Factura A discrimina IVA en la representación entregada al receptor.
+  if (inv.tipo_comprobante === 1 && inv.tax_pct > 0) {
     doc.text(`IVA (${inv.tax_pct}%):`, W / 2 + 8, y + 9);
     doc.text(formatARS(inv.tax_amount), right, y + 9, { align: "right" });
     y += 20;
   }
-  doc.setFillColor(212, 168, 67);
+  doc.setFillColor(124, 92, 255);
   doc.rect(W / 2, y - 2, W / 2 - 40, 20, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.setTextColor(26, 26, 46);
+  doc.setTextColor(255, 255, 255);
   doc.text("TOTAL:", W / 2 + 8, y + 13);
   doc.text(formatARS(inv.total), right, y + 13, { align: "right" });
   y += 28;
@@ -211,6 +268,7 @@ function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings 
 
   // ── CAE block ─────────────────────────────────────────────
   if (inv.cae && inv.cae_vencimiento) {
+    if (y > 680) { doc.addPage(); y = 48; }
     y += 10;
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.5);
@@ -227,33 +285,27 @@ function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings 
     doc.setFont("helvetica", "bold");
     doc.text("Vto. CAE:", W / 2, y);
     doc.setFont("helvetica", "normal");
-    doc.text(new Date(inv.cae_vencimiento).toLocaleDateString("es-AR"), W / 2 + 60, y);
+    doc.text(fechaFiscalArgentina(inv.cae_vencimiento), W / 2 + 60, y);
     y += 16;
 
-    // ── AFIP QR code (text-based — real QR requires a library) ──
-    // AFIP QR payload per RG 4291/2018
-    const qrData = {
-      ver: 1,
-      fecha: inv.issue_date,
-      cuit: parseInt((afipSettings?.afip_cuit || "0").replace(/[-\s]/g, "")),
-      ptoVta: afipSettings?.afip_punto_venta || 1,
-      tipoCmp: inv.tipo_comprobante || 11,
-      nroCmp: inv.numero_afip || 0,
-      importe: Number(inv.total),
-      moneda: "PES",
-      ctz: 1,
-      tipoDocRec: inv.customer_tax_id ? (inv.customer_tax_id.replace(/[-\s]/g, "").length === 11 ? 80 : 96) : 99,
-      nroDocRec: inv.customer_tax_id ? parseInt(inv.customer_tax_id.replace(/[-\s]/g, "")) : 0,
-      tipoCodAut: "E",
-      codAut: parseInt(inv.cae),
-    };
-    const qrUrl = `https://www.afip.gob.ar/fe/qr/?p=${btoa(JSON.stringify(qrData))}`;
-    doc.setFontSize(7);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Verificá en AFIP:", 40, y);
-    y += 10;
-    doc.setTextColor(26, 86, 219);
-    doc.text(qrUrl.slice(0, 90), 40, y);
+    const qrUrl = arcaQrUrl(inv);
+    if (qrUrl) {
+      const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+        errorCorrectionLevel: "M", margin: 1, width: 220,
+        color: { dark: "#111827", light: "#FFFFFF" },
+      });
+      doc.addImage(qrDataUrl, "PNG", 40, y, 76, 76);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(17, 24, 39);
+      doc.setFontSize(10);
+      doc.text("Comprobante autorizado por ARCA", 130, y + 21);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(75, 85, 99);
+      doc.text("Escaneá el QR para consultar los datos oficiales del comprobante.", 130, y + 39);
+      doc.text(`CAE ${inv.cae} · Vencimiento ${fechaFiscalArgentina(inv.cae_vencimiento)}`, 130, y + 56);
+      y += 84;
+    }
   }
 
   // ── Footer ────────────────────────────────────────────────
@@ -262,11 +314,11 @@ function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings 
   doc.setTextColor(160, 160, 160);
   doc.setFont("helvetica", "normal");
   const footerText = inv.cae
-    ? "Comprobante Electrónico Autorizado — AFIP"
-    : "Documento generado automáticamente — Nerqia SaaS";
+    ? `Comprobante electrónico autorizado por ARCA${esHomologacion ? " · HOMOLOGACIÓN" : ""}`
+    : "Borrador sin CAE · No es un comprobante fiscal";
   doc.text(footerText, W / 2, fY, { align: "center" });
 
-  doc.save(`factura-${inv.number}.pdf`);
+  doc.save(`factura-${numero || inv.number}.pdf`);
   toast.success("PDF generado");
 }
 
@@ -281,6 +333,7 @@ export default function InvoicesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_FORM });
@@ -342,7 +395,7 @@ export default function InvoicesPage() {
     (async () => {
       const { data, error } = await supabase
         .from("afip_connection_status")
-        .select("cuit,razon_social,domicilio,punto_venta,tipo_emisor,environment,configured")
+        .select("cuit,razon_social,domicilio,ingresos_brutos,inicio_actividades,punto_venta,tipo_emisor,environment,configured")
         .eq("org_id", activeOrg.id)
         .maybeSingle();
 
@@ -362,6 +415,8 @@ export default function InvoicesPage() {
         afip_punto_venta: data.punto_venta,
         afip_tipo_emisor: data.tipo_emisor,
         afip_environment: data.environment,
+        afip_ingresos_brutos: data.ingresos_brutos,
+        afip_inicio_actividades: data.inicio_actividades,
       });
     })();
   }, [activeOrg, user]);
@@ -424,7 +479,7 @@ export default function InvoicesPage() {
 
   const handleAuthorizeAfip = async (inv: Invoice) => {
     if (!afipSettings?.afip_cuit) {
-      toast.error("Configurá AFIP en Ajustes antes de autorizar facturas");
+      toast.error("Configurá ARCA en Facturación electrónica antes de autorizar facturas");
       return;
     }
     if (inv.cae) { toast.info("Esta factura ya tiene CAE"); return; }
@@ -437,7 +492,7 @@ export default function InvoicesPage() {
       if (error) {
         const msg = (error.message || '').toLowerCase();
         if (msg.includes('failed to send') || msg.includes('networkerror') || msg.includes('fetch')) {
-          throw new Error('No se pudo conectar con AFIP. Verificá tu conexión o reintentá en unos segundos.');
+          throw new Error('No se pudo conectar con ARCA. Verificá tu conexión o reintentá en unos segundos.');
         }
         throw error;
       }
@@ -447,11 +502,11 @@ export default function InvoicesPage() {
       } else if (data?.cae) {
         toast.success(`CAE obtenido: ${data.cae}`);
       } else {
-        toast.info("AFIP recibió la solicitud. Actualizá la lista para ver el estado.");
+        toast.info("ARCA recibió la solicitud. Actualizá la lista para ver el estado.");
       }
       load();
     } catch (e: any) {
-      toast.error("Error AFIP: " + e.message);
+      toast.error("Error ARCA: " + e.message);
       load();
     } finally {
       setAuthorizingId(null);
@@ -498,7 +553,7 @@ export default function InvoicesPage() {
     const fallas = res?.fallas ?? [];
 
     if (creadas > 0) {
-      toast.success(`${creadas} comprobante${creadas > 1 ? "s" : ""} generado${creadas > 1 ? "s" : ""}. Falta autorizarlos en AFIP.`);
+      toast.success(`${creadas} comprobante${creadas > 1 ? "s" : ""} generado${creadas > 1 ? "s" : ""}. Falta autorizarlos en ARCA.`);
     }
     // Las fallas se muestran con el número de orden: un contador sin el motivo
     // obliga a mirar logs que el dueño no tiene.
@@ -513,12 +568,19 @@ export default function InvoicesPage() {
   const load = useCallback(async () => {
     if (!activeOrg) return;
     setLoading(true);
-    const { data } = await supabase
+    setLoadError(null);
+    const { data, error } = await supabase
       .from("invoices")
       .select("*, invoice_items(*)")
       .eq("org_id", activeOrg.id)
       .order("created_at", { ascending: false });
-    setInvoices((data || []) as Invoice[]);
+    if (error) {
+      console.error("No se pudieron cargar las facturas", error);
+      setInvoices([]);
+      setLoadError(error.message);
+    } else {
+      setInvoices((data || []) as Invoice[]);
+    }
     setLoading(false);
   }, [activeOrg]);
 
@@ -737,12 +799,12 @@ export default function InvoicesPage() {
       <PageHeader
         icon={Receipt}
         title="Facturas"
-        description={afipConfigured ? "Comprobantes con autorización AFIP" : "Creá y gestioná comprobantes"}
+        description={afipConfigured ? "Comprobantes con autorización ARCA" : "Creá y gestioná comprobantes"}
         badge={
           stats.overdue > 0
             ? { label: `${stats.overdue} vencida${stats.overdue > 1 ? "s" : ""}`, variant: "destructive" }
             : afipConfigured
-            ? { label: "AFIP ✓", variant: "success" }
+            ? { label: "ARCA ✓", variant: "success" }
             : undefined
         }
         actions={
@@ -782,8 +844,8 @@ export default function InvoicesPage() {
         <div className="p-3 rounded-[8px] border border-yellow-500/20 bg-yellow-500/5 flex items-center gap-2 text-sm text-yellow-400">
           <ShieldAlert className="w-4 h-4 shrink-0" />
           <span>
-            AFIP no configurado. Las facturas generadas <strong>no tienen validez fiscal</strong>.
-            Configurá tus credenciales en <strong>Ajustes → AFIP</strong>.
+            ARCA no está configurado. Los borradores generados <strong>no tienen validez fiscal</strong>.
+            Completá la conexión en <strong>Facturación electrónica</strong>.
           </span>
         </div>
       )}
@@ -831,7 +893,7 @@ export default function InvoicesPage() {
             </div>
             {afipConfigured && (
               <div className="md:col-span-2">
-                <Label className="text-xs">Tipo de comprobante AFIP</Label>
+                <Label className="text-xs">Tipo de comprobante ARCA</Label>
                 <Select
                   value={form.tipo_comprobante || defaultTipoCbte}
                   onValueChange={(v) => setForm({ ...form, tipo_comprobante: v })}
@@ -844,7 +906,7 @@ export default function InvoicesPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Podés autorizar con AFIP después de crear la factura usando el botón de escudo.
+                  Podés autorizar con ARCA después de crear la factura usando el botón de escudo.
                 </p>
               </div>
             )}
@@ -1039,7 +1101,16 @@ export default function InvoicesPage() {
             <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setSelectedIds(new Set())}>Cancelar</button>
           </div>
         )}
-        {loading ? (
+        {loadError ? (
+          <div className="p-8 text-center">
+            <AlertTriangle className="mx-auto mb-3 h-9 w-9 text-destructive" />
+            <p className="text-sm font-medium text-destructive">No se pudieron cargar las facturas</p>
+            <p className="mx-auto mt-1 max-w-xl text-xs text-muted-foreground">{loadError}</p>
+            <Button className="mt-4" size="sm" variant="outline" onClick={() => void load()}>
+              Reintentar
+            </Button>
+          </div>
+        ) : loading ? (
           <div className="p-8 text-center text-muted-foreground text-sm">Cargando...</div>
         ) : filteredInvoices.length === 0 ? (
           <div className="p-10 text-center">
@@ -1056,6 +1127,8 @@ export default function InvoicesPage() {
               const isOpen = expanded === inv.id;
               const tipoCbte = inv.tipo_comprobante ? TIPO_CBTE[inv.tipo_comprobante] : null;
               const isAuthorizing = authorizingId === inv.id;
+              const qrUrl = arcaQrUrl(inv);
+              const fiscalNumber = numeroFiscal(inv.punto_venta, inv.numero_afip);
 
               return (
                 <div key={inv.id}>
@@ -1102,14 +1175,14 @@ export default function InvoicesPage() {
                             </span>
                           )}
                           {inv.afip_status === "processing" && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20" title={inv.afip_error || "La respuesta de AFIP está en verificación"}>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20" title={inv.afip_error || "La respuesta de ARCA está en verificación"}>
                               <Loader2 className="w-3 h-3 animate-spin" />En verificación
                             </span>
                           )}
                           {(inv.afip_status === "rejected" || inv.afip_status === "error" || inv.afip_status === "config_error" || inv.afip_status === "network_error" || inv.afip_status === "validation_error") && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20" title={inv.afip_error || undefined}>
                               <ShieldAlert className="w-3 h-3" />
-                              {inv.afip_status === "config_error" ? "Config AFIP" : inv.afip_status === "network_error" ? "Sin conexión AFIP" : "Error AFIP"}
+                              {inv.afip_status === "config_error" ? "Config ARCA" : inv.afip_status === "network_error" ? "Sin conexión ARCA" : "Error ARCA"}
                             </span>
                           )}
                           {inv.sale_id && (
@@ -1124,7 +1197,7 @@ export default function InvoicesPage() {
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground truncate">{inv.customer_name}</p>
-                        <p className="text-xs text-muted-foreground/60">{new Date(inv.issue_date).toLocaleDateString("es-AR")}</p>
+                        <p className="text-xs text-muted-foreground/60">{fechaFiscalArgentina(inv.issue_date)}</p>
                       </div>
                     </button>
                     <div className="text-right shrink-0">
@@ -1132,7 +1205,14 @@ export default function InvoicesPage() {
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Descargar PDF"
-                        onClick={() => generatePDF({ ...inv, invoice_items: inv.invoice_items || [] }, activeOrg?.name || "Nerqia", afipSettings)}
+                        onClick={() => void generatePDF(
+                          { ...inv, invoice_items: inv.invoice_items || [] },
+                          activeOrg?.name || "Nerqia",
+                          afipSettings,
+                        ).catch((error) => {
+                          console.error("No se pudo generar el PDF fiscal", error);
+                          toast.error("No se pudo generar el PDF de la factura");
+                        })}
                       >
                         <FileDown className="w-4 h-4" />
                       </Button>
@@ -1150,7 +1230,7 @@ export default function InvoicesPage() {
                       {canManage && afipConfigured && inv.tipo_comprobante && !inv.cae && inv.afip_status !== "authorized" && inv.afip_status !== "processing" && (
                         <Button
                           size="icon" variant="ghost" className="h-8 w-8"
-                          title="Autorizar con AFIP (obtener CAE)"
+                          title="Autorizar con ARCA (obtener CAE)"
                           onClick={() => handleAuthorizeAfip(inv)}
                           disabled={isAuthorizing}
                         >
@@ -1196,13 +1276,13 @@ export default function InvoicesPage() {
                     <div className="border-t border-border bg-muted/10 px-5 py-4 space-y-3">
                       {inv.customer_email && <p className="text-xs text-muted-foreground">Email: {inv.customer_email}</p>}
                       {inv.customer_tax_id && <p className="text-xs text-muted-foreground">CUIT/DNI: {inv.customer_tax_id}</p>}
-                      {inv.due_date && <p className="text-xs text-muted-foreground">Vence: {new Date(inv.due_date).toLocaleDateString("es-AR")}</p>}
+                      {inv.due_date && <p className="text-xs text-muted-foreground">Vence: {fechaFiscalArgentina(inv.due_date)}</p>}
 
                       {/* CAE info */}
                       {inv.cae && (
                         <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20 space-y-1">
                           <p className="text-xs font-semibold text-green-400 flex items-center gap-1">
-                            <ShieldCheck className="w-3.5 h-3.5" />Autorizada por AFIP
+                            <ShieldCheck className="w-3.5 h-3.5" />Autorizada por ARCA
                           </p>
                           <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
                             CAE: {inv.cae}
@@ -1215,49 +1295,46 @@ export default function InvoicesPage() {
                             </button>
                           </p>
                           {inv.cae_vencimiento && (
-                            <p className="text-xs text-muted-foreground">Vto. CAE: {new Date(inv.cae_vencimiento).toLocaleDateString("es-AR")}</p>
+                            <p className="text-xs text-muted-foreground">Vto. CAE: {fechaFiscalArgentina(inv.cae_vencimiento)}</p>
                           )}
                           {inv.numero_afip && tipoCbte && (
                             <p className="text-xs text-muted-foreground">
-                              Comprobante F{tipoCbte} Nro {String(inv.numero_afip).padStart(8, "0")}
+                              Factura {tipoCbte} N° {fiscalNumber || String(inv.numero_afip).padStart(8, "0")}
                             </p>
                           )}
-                          {/* AFIP QR Code — RG 4291/2018 */}
-                          {afipSettings?.afip_cuit && (() => {
-                            const qrPayload = {
-                              ver: 1,
-                              fecha: inv.issue_date,
-                              cuit: parseInt((afipSettings.afip_cuit || "0").replace(/[-\s]/g, "")),
-                              ptoVta: afipSettings.afip_punto_venta || 1,
-                              tipoCmp: inv.tipo_comprobante || 11,
-                              nroCmp: inv.numero_afip || 0,
-                              importe: Number(inv.total),
-                              moneda: "PES",
-                              ctz: 1,
-                              tipoDocRec: inv.customer_tax_id
-                                ? (inv.customer_tax_id.replace(/[-\s]/g, "").length === 11 ? 80 : 96)
-                                : 99,
-                              nroDocRec: inv.customer_tax_id
-                                ? parseInt(inv.customer_tax_id.replace(/[-\s]/g, "")) || 0
-                                : 0,
-                              tipoCodAut: "E",
-                              codAut: parseInt(inv.cae || "0"),
-                            };
-                            const qrUrl = `https://www.afip.gob.ar/fe/qr/?p=${btoa(JSON.stringify(qrPayload))}`;
-                            return (
-                              <div className="flex items-center gap-3 pt-1">
-                                <div className="bg-white p-1.5 rounded-lg inline-flex">
-                                  <QRCodeSVG value={qrUrl} size={72} bgColor="#ffffff" fgColor="#000000" level="M" />
-                                </div>
-                                <div>
-                                  <p className="text-[10px] font-medium text-green-400 flex items-center gap-1">
-                                    <QrCode className="w-3 h-3" />QR AFIP
-                                  </p>
-                                  <p className="text-[9px] text-muted-foreground mt-0.5">Escaneá para verificar en afip.gob.ar</p>
-                                </div>
+                          <div className="grid gap-2 pt-2 text-[11px] text-muted-foreground sm:grid-cols-2">
+                            <p><span className="font-medium text-foreground">Emisor:</span> {inv.emisor_razon_social || "Snapshot no disponible"}</p>
+                            <p><span className="font-medium text-foreground">CUIT:</span> {inv.emisor_cuit || "—"}</p>
+                            <p><span className="font-medium text-foreground">Condición IVA:</span> {condicionIvaLabel(inv.emisor_condicion_iva)}</p>
+                            <p><span className="font-medium text-foreground">Receptor:</span> {condicionIvaLabel(inv.condicion_iva_receptor)}</p>
+                            <p className="sm:col-span-2"><span className="font-medium text-foreground">Domicilio:</span> {inv.emisor_domicilio || "No informado en el snapshot"}</p>
+                            <p><span className="font-medium text-foreground">Ingresos Brutos:</span> {inv.emisor_ingresos_brutos || "No informado"}</p>
+                            <p><span className="font-medium text-foreground">Inicio de actividades:</span> {inv.emisor_inicio_actividades ? fechaFiscalArgentina(inv.emisor_inicio_actividades) : "No informado"}</p>
+                          </div>
+                          {inv.afip_environment === "homologacion" && (
+                            <p className="rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-1.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                              Homologación: comprobante de prueba sin valor fiscal.
+                            </p>
+                          )}
+                          {inv.fiscal_snapshot_source === "legacy_backfill" && (
+                            <p className="text-[10px] text-amber-700 dark:text-amber-300">
+                              Comprobante histórico: la identidad se reconstruyó desde la configuración actual y no prueba qué domicilio había al emitir.
+                            </p>
+                          )}
+                          {/* QR v1 oficial, construido desde el snapshot server-side. */}
+                          {qrUrl && (
+                            <div className="flex items-center gap-3 pt-1">
+                              <div className="bg-white p-1.5 rounded-lg inline-flex">
+                                <QRCodeSVG value={qrUrl} size={84} bgColor="#ffffff" fgColor="#111827" level="M" />
                               </div>
-                            );
-                          })()}
+                              <div>
+                                <p className="text-[10px] font-medium text-green-400 flex items-center gap-1">
+                                  <QrCode className="w-3 h-3" />QR oficial ARCA
+                                </p>
+                                <p className="text-[9px] text-muted-foreground mt-0.5">Escaneá para verificar en arca.gob.ar</p>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                       {inv.afip_status === "processing" && (
@@ -1274,7 +1351,7 @@ export default function InvoicesPage() {
                       {["rejected","error","config_error","network_error","validation_error"].includes(inv.afip_status || "") && inv.afip_error && (
                         <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/20 space-y-2">
                           <p className="text-xs font-semibold text-red-400 flex items-center gap-1">
-                            <ShieldAlert className="w-3.5 h-3.5" />Error AFIP
+                            <ShieldAlert className="w-3.5 h-3.5" />Error ARCA
                           </p>
                           <p className="text-xs text-muted-foreground">{inv.afip_error}</p>
                           {canManage && afipConfigured && inv.tipo_comprobante && (
