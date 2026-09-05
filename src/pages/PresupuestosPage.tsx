@@ -19,6 +19,7 @@ import KPICard from "@/components/shared/KPICard";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { formatARS, addSaleDB } from "@/lib/supabaseStore";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 type QuoteItem = { description: string; qty: number; unitPrice: number; total: number };
 type Quote = {
@@ -484,8 +485,9 @@ export default function PresupuestosPage() {
     if (!q.customer_email) { toast.error("El presupuesto no tiene email de cliente"); return; }
     setEmailLoading(q.id);
     try {
-      const { error } = await supabase.functions.invoke("send-invoice-email", {
+      const { data, error } = await supabase.functions.invoke("send-invoice-email", {
         body: {
+          orgId: activeOrg?.id,
           to: q.customer_email,
           subject: `Presupuesto ${q.quote_number} — ${orgName}`,
           invoiceNumber: q.quote_number,
@@ -499,11 +501,11 @@ export default function PresupuestosPage() {
           ].join(""),
         },
       });
-      if (error) throw error;
+      if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
       toast.success(`Presupuesto enviado a ${q.customer_email}`);
       if (q.status === "draft") updateStatus(q.id, "sent");
-    } catch {
-      toast.error("Error al enviar el email");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo enviar el presupuesto");
     } finally {
       setEmailLoading(null);
     }

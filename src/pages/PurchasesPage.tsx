@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, ShoppingCart, ChevronUp, ChevronDown, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine, Mail, BarChart3, Printer } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import DataPagination from "@/components/shared/DataPagination";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 function useBarcodeScanner(onDetected: (code: string) => void) {
   const videoRef = useRef<HTMLVideoElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -752,7 +753,7 @@ function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { user
       const supplierEmail = selectedSupplier?.email;
       if (supplierEmail && orgId) {
         try {
-          const { error: emailErr } = await supabase.functions.invoke('send-supplier-po', {
+          const { data: emailData, error: emailErr } = await supabase.functions.invoke('send-supplier-po', {
             body: {
               orgId,
               supplierEmail,
@@ -766,7 +767,9 @@ function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { user
               exchangeRate: rate,
             },
           });
-          if (emailErr) toast.warning(`Compra guardada, pero el email al proveedor falló: ${emailErr.message}`);
+          if (emailErr || emailData?.error) {
+            toast.warning(`Compra guardada. ${await mensajeDeEdgeFunction(emailErr, emailData)}`);
+          }
           else toast.success('Email enviado al proveedor ✓');
         } catch {
           toast.warning('Compra guardada, pero no se pudo enviar el email al proveedor.');

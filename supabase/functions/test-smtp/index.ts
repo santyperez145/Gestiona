@@ -9,6 +9,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { requireUser } from "../_shared/requireUser.ts";
+import { emailFailure } from "../_shared/emailErrors.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,7 +33,7 @@ type Body = {
   fromEmail?: string;
 };
 
-function response(body: Record<string, unknown>, status = 200) {
+function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
 }
 
@@ -159,8 +160,7 @@ Deno.serve(async (req) => {
     await sendConnectionTest({ host, port, user, pass, secure, fromName, fromEmail }, auth.user.email);
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    console.error("test-smtp connection:", detail);
-    return response({ error: "El servidor rechazó la prueba. Revisá host, puerto y credencial." }, 502);
+    return response(emailFailure({ provider: "smtp", error: detail }, "merchant", "test-smtp"), 502);
   }
 
   const { error: saveError } = await admin.from("merchant_smtp_connections").upsert({

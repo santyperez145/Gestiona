@@ -38,6 +38,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 import { plural } from "@/lib/plural";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
@@ -435,8 +436,9 @@ export default function InvoicesPage() {
     if (!inv.customer_email) { toast.error("Esta factura no tiene email del cliente"); return; }
     setSendingEmail(inv.id);
     try {
-      const { error } = await supabase.functions.invoke("send-invoice-email", {
+      const { data, error } = await supabase.functions.invoke("send-invoice-email", {
         body: {
+          orgId: activeOrg?.id,
           to: inv.customer_email,
           subject: `Factura N° ${inv.number} — ${activeOrg?.name || ""}`,
           invoiceNumber: inv.number,
@@ -447,11 +449,11 @@ export default function InvoicesPage() {
           notes: inv.notes,
         },
       });
-      if (error) throw error;
+      if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
       toast.success(`Email enviado a ${inv.customer_email}`);
       if (inv.status === "draft") await updateStatus(inv.id, "sent");
-    } catch (e: any) {
-      toast.error(e.message || "Error al enviar email");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "No se pudo enviar el correo");
     } finally {
       setSendingEmail(null);
     }
@@ -464,8 +466,9 @@ export default function InvoicesPage() {
     let sent = 0; let failed = 0;
     for (const inv of toSend) {
       try {
-        const { error } = await supabase.functions.invoke("send-invoice-email", {
+        const { data, error } = await supabase.functions.invoke("send-invoice-email", {
           body: {
+            orgId: activeOrg?.id,
             to: inv.customer_email,
             subject: `Factura N° ${inv.number} — ${activeOrg?.name || ""}`,
             invoiceNumber: inv.number,
@@ -476,10 +479,13 @@ export default function InvoicesPage() {
             notes: inv.notes,
           },
         });
-        if (error) throw error;
+        if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
         if (inv.status === "draft") await updateStatus(inv.id, "sent");
         sent++;
-      } catch { failed++; }
+      } catch (error) {
+        failed++;
+        if (failed === 1) toast.error(error instanceof Error ? error.message : "Un correo no pudo enviarse");
+      }
     }
     if (sent > 0) toast.success(`${sent} email${sent > 1 ? "s" : ""} enviado${sent > 1 ? "s" : ""}${failed > 0 ? `, ${failed} fallaron` : ""}`);
     else toast.error(`${failed} envíos fallaron`);

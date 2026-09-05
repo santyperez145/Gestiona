@@ -14,7 +14,7 @@ Lo que **no** esté acá, ya funciona sin tocar nada.
 | Catálogo público `/catalogo/:userId` | ✅ Funciona |
 | Notificaciones push | ✅ VAPID cargado |
 | **IA** (chat, descripciones, insights, OCR) | ⚠️ Falta `ANTHROPIC_API_KEY` para IA generativa; el comprobante de Gastos exige además aprobación legal y `EXPENSE_RECEIPT_EXTRACTION_ENABLED=true`. `predict-sales` conserva un respaldo estadístico |
-| **Emails** (campañas, secuencias, facturas) | 🟠 `RESEND_API_KEY` está puesta, pero la cuenta de Resend está en modo de prueba: **sólo envía a la casilla del dueño**. Verificado el 2026-08-27 contra la API. Falta verificar un dominio en resend.com/domains y poner `RESEND_FROM`. |
+| **Emails** (campañas, secuencias, facturas) | 🟡 `nerqia.app` está verificado en Resend y `RESEND_API_KEY`/`FROM_EMAIL` están cargados. Emisores, errores por audiencia, idempotencia y ledger de eventos están desplegados (2026-09-05). Faltan activar Resend, crear el webhook firmado, configurar Auth SMTP y ejecutar la matriz real. |
 | **WhatsApp automático** | ⚠️ Requiere una conexión Evolution por comercio o una configuración global de plataforma |
 | **Cobros con tarjeta** | ❌ Falta Stripe |
 | **MercadoPago** | ⚠️ Token por org en Integraciones; falta el webhook |
@@ -70,12 +70,13 @@ Sin `ANTHROPIC_API_KEY`, las funciones de IA generativa responden con error;
 > entrenamiento, retención y borrado) y medir exactitud/costo con comprobantes
 > autorizados. Tener IA general configurada no habilita este flujo.
 
-> Alternativa a Resend: conectar un SMTP propio en Configuración → Mensajería.
-> La prueba llega al email de la sesión antes de guardar. Sólo owner/admin puede
-> administrarlo; la credencial vive en una tabla privada de backend y nunca
-> vuelve a la pantalla, a un snapshot ni a `settings`. Las funciones intentan
-> SMTP primero y caen a Resend. Preferí OAuth o una credencial específica del
-> proveedor; no uses la contraseña normal de la cuenta.
+> Alternativa a Resend: conectar un SMTP propio en Plataforma → Mensajería.
+> El proveedor activo se elige explícitamente; guardar un SMTP de respaldo ya no
+> lo activa por accidente. Cambiar de proveedor invalida la prueba anterior y la
+> nueva prueba llega al email del staff que la ejecuta. La contraseña vive en los
+> secretos de Edge Functions y nunca vuelve a la pantalla, a un snapshot ni a
+> `settings`. Preferí OAuth o una credencial específica del proveedor; no uses la
+> contraseña normal de la cuenta.
 
 ### Según lo que uses
 
@@ -85,7 +86,7 @@ Sin `ANTHROPIC_API_KEY`, las funciones de IA generativa responden con error;
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Cobro de suscripciones del SaaS |
 | `MP_WEBHOOK_SECRET` | Validar el webhook de MercadoPago (el token va por org en Integraciones) |
 | `TIENDANUBE_CLIENT_SECRET` | Sincronización con Tiendanube |
-| `RESEND_WEBHOOK_SECRET` | Rebotes y desuscripciones desde Resend |
+| `RESEND_WEBHOOK_SECRET` | Firma de eventos de entrega, demora, fallo, rebote, supresión, queja, apertura y click desde Resend |
 | `MELI_CLIENT_ID`, `MELI_CLIENT_SECRET`, `MELI_REDIRECT_URI`, `MELI_CRON_SECRET` | MercadoLibre — ver `docs/MERCADOLIBRE.md` |
 
 ## 3. Vault de Supabase (los crons)
@@ -146,9 +147,27 @@ organizaciones, planes, accesos y roles. El origen Vercel anterior permanece
 sólo durante la transición y se retirará cuando no haya callbacks ni clientes
 activos sobre él.
 
-Vercel no provee correo. Para que `hola@nerqia.app`, invitaciones y campañas
-entreguen mensajes, hay que agregar en Vercel DNS los registros que muestre
-Resend y marcar el dominio como verificado desde Nerqia Platform.
+Vercel no provee casillas, pero sí administra el DNS usado por Resend. El
+2026-09-04 quedaron publicados y resueltos DKIM, SPF, MX y DMARC; Resend marcó
+`nerqia.app` como `verified` en la región São Paulo. El dominio puede emitir
+`noreply@nerqia.app`, `marketing@nerqia.app` y las demás casillas lógicas sin
+crear buzones.
+
+El backend acepta Resend API o SMTP propio con una selección explícita. Usa
+claves de idempotencia, etiquetas compatibles con webhooks, deduplicación por
+`svix-id`, ventana anti-replay de cinco minutos, contadores atómicos y supresión
+automática ante rebote/queja. Los errores tienen código, reintento y referencia:
+el staff ve el diagnóstico del proveedor, el comercio recibe una acción segura
+y el comprador nunca ve Resend, SMTP, Supabase ni roles internos.
+
+Para cerrar producción todavía hay que: seleccionar Resend y enviar la prueba
+desde Plataforma → Mensajería; crear en Resend el webhook
+`https://hummeopatkniwkyrrhwc.supabase.co/functions/v1/resend-webhook`, guardar
+su firma como `RESEND_WEBHOOK_SECRET`; y configurar Authentication → SMTP con
+`smtp.resend.com`, usuario `resend`, puerto `465` o `587` y una API key dedicada.
+La matriz de aceptación debe observar recepción, demora/fallo, rebote, queja,
+supresión, reset de contraseña, magic link e invitación. Ninguno se declara
+productivo por DNS o por un deploy solamente.
 
 ---
 

@@ -311,8 +311,9 @@ function ReceiptModal({
     setSendingEmail(true);
     try {
       const itemsText = items.map(it => `• ${it.quantity}× ${it.name} — ${formatARS(it.price * it.quantity)}`).join("\n");
-      const { error } = await supabase.functions.invoke("send-invoice-email", {
+      const { data, error } = await supabase.functions.invoke("send-invoice-email", {
         body: {
+          orgId,
           to: trimmed,
           subject: `Recibo de compra — ${businessName}`,
           invoiceNumber: `REC-${Date.now().toString().slice(-6)}`,
@@ -323,11 +324,11 @@ function ReceiptModal({
           notes: itemsText,
         },
       });
-      if (error) throw error;
+      if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
       setEmailSent(true);
       toast.success(`Recibo enviado a ${trimmed}`);
-    } catch {
-      toast.error("Error al enviar el recibo");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo enviar el recibo");
     } finally {
       setSendingEmail(false);
     }

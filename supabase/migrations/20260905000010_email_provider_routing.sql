@@ -1,0 +1,4 @@
+-- Marker reconciled from the linked project migration history.
+-- The remote entry is named `email_provider_routing` and contains no stored
+-- statements. The actual provider-routing schema is versioned in
+-- 20260904000150_email_provider_selection.sql.

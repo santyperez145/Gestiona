@@ -13,6 +13,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
+import { emailFailure } from "../_shared/emailErrors.ts";
 import {
   claimStoreOrderEmail,
   finishStoreOrderEmail,
@@ -157,7 +158,8 @@ Deno.serve(async (req) => {
     if (!smtpCfg?.host && !resendKey) {
       // Sin proveedor configurado no es un error del pedido: la compra ya se
       // hizo. Se informa y listo, para no romper el checkout.
-      return json({ ok: false, reason: "sin proveedor de email configurado" });
+      console.warn("store-order-email: email provider unavailable", { orgId: store.org_id, orderId: order.id });
+      return json({ ok: true, emailRequested: true, emailDelivered: false });
     }
 
     const resendFrom = (await remitenteDe("pedidos")).from;
@@ -186,7 +188,7 @@ Deno.serve(async (req) => {
     </table>
   </div>` : "";
 
-    const results: Record<string, unknown> = {};
+    let buyerDelivered: boolean | null = null;
 
     // ── Al comprador ─────────────────────────────────────────────────────
     if (order.customer_email) {
@@ -225,13 +227,15 @@ Deno.serve(async (req) => {
           event: buyerEvent,
         }, { idempotencyKey: claim.idempotencyKey });
         await finishStoreOrderEmail(admin, claim, result);
-        results.comprador = result;
+        buyerDelivered = result.ok;
+        if (!result.ok) emailFailure(result, "customer", "store-order-email-buyer");
       } else {
-        results.comprador = {
-          ok: true,
-          duplicate: claim.duplicate,
-          inProgress: claim.inProgress,
-        };
+        if (claim.duplicate) {
+          buyerDelivered = true;
+        } else if (claim.inProgress) {
+          // Otra ejecución ya tiene el lease: no afirmamos entrega ni reenviamos.
+          buyerDelivered = null;
+        }
       }
     }
 
@@ -286,19 +290,17 @@ Deno.serve(async (req) => {
           event: "order_created",
         }, { idempotencyKey: claim.idempotencyKey });
         await finishStoreOrderEmail(admin, claim, result);
-        results.dueno = result;
-      } else {
-        results.dueno = {
-          ok: true,
-          duplicate: claim.duplicate,
-          inProgress: claim.inProgress,
-        };
+        if (!result.ok) emailFailure(result, "merchant", "store-order-email-merchant");
       }
     }
 
-    return json({ ok: true, ...results });
+    return json({ ok: true, emailRequested: true, emailDelivered: buyerDelivered });
   } catch (e) {
     console.error("store-order-email error:", e);
-    return json({ error: (e as Error).message }, 500);
+    return json({
+      error: "No pudimos preparar el aviso por correo. Tu pedido sigue confirmado.",
+      public_message: "No pudimos preparar el aviso por correo. Tu pedido sigue confirmado.",
+      code: "ORDER_EMAIL_FAILED",
+    }, 500);
   }
 });

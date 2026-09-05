@@ -7,6 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { mensajeSeguroParaCliente } from "@/lib/edgeErrors";
 import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
 import { BellRing, Check, Loader2 } from "lucide-react";
@@ -35,7 +36,11 @@ export default function StockAlertForm({
       p_email: email, p_variant_id: variantId ?? null,
     });
     setEnviando(false);
-    if (rpcErr) { setError(rpcErr.message.replace(/^.*?:\s*/, "")); return; }
+    if (rpcErr) {
+      console.error("[alerta de stock] no se pudo registrar", rpcErr);
+      setError(mensajeSeguroParaCliente(rpcErr, "No pudimos anotar tu email. Reintentá en unos minutos."));
+      return;
+    }
     const res = data as unknown as { ok?: boolean; reason?: string };
     if (!res?.ok) {
       setError(res?.reason === "hay_stock"

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { detalleDeEdgeFunction, mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import { detalleDeEdgeFunction, mensajeDeEdgeFunction, mensajeSeguroParaCliente } from "@/lib/edgeErrors";
 
 /**
  * El mensaje real de la Edge Function llega a la pantalla.
@@ -53,7 +53,7 @@ describe("mensajeDeEdgeFunction", () => {
       error: "Configurá la caja",
       code: "POS_SETUP_REQUIRED",
     }));
-    expect(detalle).toEqual({ message: "Configurá la caja", code: "POS_SETUP_REQUIRED" });
+    expect(detalle).toEqual({ message: "Configurá la caja", code: "POS_SETUP_REQUIRED", reference: "" });
   });
 
   it("acepta `message` además de `error` en el cuerpo", async () => {
@@ -64,7 +64,8 @@ describe("mensajeDeEdgeFunction", () => {
     // Un cuerpo vacío o ya consumido no debe convertir el problema real en
     // "Unexpected end of JSON input", que manda a mirar el lugar equivocado.
     const msg = await mensajeDeEdgeFunction(httpError(null, { rompeJson: true }));
-    expect(msg).toBe("Edge Function returned a non-2xx status code");
+    expect(msg).toContain("No se pudo completar la operación");
+    expect(msg).not.toContain("Edge Function");
   });
 
   it("funciona aunque el Response no tenga clone()", async () => {
@@ -78,13 +79,58 @@ describe("mensajeDeEdgeFunction", () => {
 
   it("nunca devuelve vacío cuando hubo error", async () => {
     // Un toast con string vacío no dice nada y parece que no pasó nada.
-    expect(await mensajeDeEdgeFunction({})).toBe("Error desconocido");
-    expect(await mensajeDeEdgeFunction({ message: "   " })).toBe("Error desconocido");
+    expect(await mensajeDeEdgeFunction({})).toContain("No se pudo completar la operación");
+    expect(await mensajeDeEdgeFunction({ message: "   " })).toContain("No se pudo completar la operación");
   });
 
   it("un cuerpo con error vacío no gana sobre el genérico", async () => {
     expect(await mensajeDeEdgeFunction(httpError({ error: "" })))
-      .toBe("Edge Function returned a non-2xx status code");
+      .toContain("No se pudo completar la operación");
+  });
+
+  it("separa el diagnóstico de plataforma del mensaje para comercio y comprador", async () => {
+    const body = {
+      error: "Resend invalid_api_key en Supabase",
+      public_message: "Tu compra sigue confirmada.",
+      merchant_message: "Revisá la cuenta de correo conectada.",
+      operator_message: "Resend devolvió HTTP 401 invalid_api_key.",
+      code: "EMAIL_CREDENTIALS_REJECTED",
+      reference: "mail-abcd1234",
+    };
+
+    expect(await mensajeDeEdgeFunction(httpError(body), undefined, "customer"))
+      .toBe("Tu compra sigue confirmada. Referencia: mail-abcd1234.");
+    expect(await mensajeDeEdgeFunction(httpError(body), undefined, "merchant"))
+      .toBe("Revisá la cuenta de correo conectada. Referencia: mail-abcd1234.");
+    expect(await mensajeDeEdgeFunction(httpError(body), undefined, "platform"))
+      .toBe("Resend devolvió HTTP 401 invalid_api_key. Referencia: mail-abcd1234.");
+  });
+
+  it("un comprador nunca ve infraestructura aunque la Function sólo devuelva el error crudo", async () => {
+    for (const leaked of ["Resend", "SMTP", "Supabase", "Edge Function", "superadmin", "JWT", "SQLSTATE"]) {
+      const message = await mensajeDeEdgeFunction(httpError({ error: `${leaked}: detalle privado` }), undefined, "customer");
+      expect(message).not.toContain(leaked);
+      expect(message).toContain("Intentá nuevamente");
+    }
+  });
+});
+
+describe("mensajeSeguroParaCliente", () => {
+  it("conserva un mensaje de negocio y elimina el prefijo del RPC", () => {
+    expect(mensajeSeguroParaCliente(new Error("P0001: Sin stock suficiente de Remera")))
+      .toBe("Sin stock suficiente de Remera");
+  });
+
+  it("no filtra diagnósticos de base de datos o infraestructura", () => {
+    for (const detail of [
+      "PGRST202 function public.request_store_return does not exist",
+      "duplicate key violates unique constraint orders_pkey",
+      "Supabase JWT token expired",
+      "invalid input syntax for type uuid",
+    ]) {
+      expect(mensajeSeguroParaCliente(new Error(detail), "Mensaje público"))
+        .toBe("Mensaje público");
+    }
   });
 });
 

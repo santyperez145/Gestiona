@@ -25,6 +25,7 @@ import { useHasPermission } from "@/lib/usePermissions";
 import { canFulfillStoreOrder, isStorePaymentReversed } from "@/lib/storeOrderPayment";
 import { esPedidoRetiro } from "@/lib/storeOrderQueue";
 import { Truck, Printer, Loader2, Check, PackageCheck, Home, Store } from "lucide-react";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 export interface OrderForShipment {
   id: string;
@@ -142,9 +143,11 @@ export default function OrderShipmentDialog({
     const { data, error } = await supabase.functions.invoke("store-order-status-email", {
       body: { orderId: order.id, event },
     });
-    const message = (data as { error?: string } | null)?.error;
-    if (error || message) {
-      toast.warning(`El estado se actualizó, pero no pudimos avisar por email${message ? `: ${message}` : "."}`);
+    const message = error || (data as { error?: string } | null)?.error
+      ? await mensajeDeEdgeFunction(error, data)
+      : "";
+    if (message) {
+      toast.warning(`El estado se actualizó, pero no pudimos avisar por email: ${message}`);
     }
   };
 

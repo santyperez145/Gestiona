@@ -204,7 +204,7 @@ export default function StoreOrder() {
     setPagando(false);
     const url = (data as { url?: string } | null)?.url;
     if (url) window.location.href = url;
-    else setPagoError((await mensajeDeEdgeFunction(error, data)) || "No se pudo abrir el pago online.");
+    else setPagoError((await mensajeDeEdgeFunction(error, data, "customer")) || "No se pudo abrir el pago online.");
   };
 
   const prepararPagoConTarjeta = async () => {
@@ -226,7 +226,7 @@ export default function StoreOrder() {
       setPagoAviso(config.error ?? "El pago con tarjeta está temporalmente pausado. Podés continuar en MercadoPago.");
     } else {
       setPagoError(
-        (await mensajeDeEdgeFunction(error, data))
+        (await mensajeDeEdgeFunction(error, data, "customer"))
           || config?.error
           || "No se pudo preparar el pago con tarjeta. Podés usar MercadoPago para elegir otro medio.",
       );

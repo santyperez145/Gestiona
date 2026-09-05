@@ -31,6 +31,7 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { mensajeSeguroParaCliente } from "@/lib/edgeErrors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -64,7 +65,11 @@ export default function StoreArrepentimiento() {
 
     // No se traga el error: si algo falló, la persona tiene que enterarse.
     // Un "listo" falso acá le hace perder el plazo creyendo que lo usó.
-    if (err) { setError(err.message); return; }
+    if (err) {
+      console.error("[devolución] no se pudo registrar la solicitud", err);
+      setError(mensajeSeguroParaCliente(err, "No pudimos registrar la solicitud. Reintentá en unos minutos."));
+      return;
+    }
     const r = data as { ok?: boolean; error?: string; rma?: string } | null;
     if (!r?.ok) { setError(r?.error || "No pudimos registrar el pedido"); return; }
     setListo({ rma: r.rma ?? "" });

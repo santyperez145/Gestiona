@@ -143,7 +143,7 @@ const adminCall = async (action: string, params: Record<string, unknown> = {}) =
     // otros 47 archivos que invocan Edge Functions mostraban el genérico
     // «Edge Function returned a non-2xx status code». La extracción se mudó a
     // `mensajeDeEdgeFunction` para que haya un solo lugar donde esté bien.
-    const msg = await mensajeDeEdgeFunction(error, data);
+    const msg = await mensajeDeEdgeFunction(error, data, "platform");
     if (msg.includes('Failed to send') || msg.includes('NetworkError') || msg.includes('fetch')) {
       throw new Error('No se pudo conectar con la función. Verificá que esté desplegada en Supabase.');
     }

@@ -302,6 +302,7 @@ export default function SettingsPage() {
   const [smtpConfigured, setSmtpConfigured] = useState(false);
   const [smtpStatusLoading, setSmtpStatusLoading] = useState(false);
   const [smtpStatusError, setSmtpStatusError] = useState('');
+  const [smtpActionError, setSmtpActionError] = useState('');
   const setSmtp = (field: string, value: string | boolean) => {
     setSmtpConfig(prev => ({ ...prev, [field]: value }));
   };
@@ -356,6 +357,7 @@ export default function SettingsPage() {
       return;
     }
     setSmtpSaving(true);
+    setSmtpActionError('');
     try {
       const { data, error } = await supabase.functions.invoke('test-smtp', {
         body: {
@@ -374,8 +376,10 @@ export default function SettingsPage() {
       setSmtpConfigured(true);
       setSmtpConfig(prev => ({ ...prev, pass: '' }));
       toast.success('Correo conectado', { description: `Te enviamos una prueba a ${user.email}.` });
-    } catch (err: any) {
-      toast.error('No se pudo conectar el correo: ' + err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'No se pudo conectar el correo';
+      setSmtpActionError(message);
+      toast.error(message);
     } finally {
       setSmtpSaving(false);
     }
@@ -384,6 +388,7 @@ export default function SettingsPage() {
   const handleSmtpRevoke = async () => {
     if (!orgForTemplates?.id) return;
     setSmtpSaving(true);
+    setSmtpActionError('');
     try {
       const { data, error } = await supabase.functions.invoke('test-smtp', {
         body: { action: 'revoke', orgId: orgForTemplates.id },
@@ -392,8 +397,10 @@ export default function SettingsPage() {
       setSmtpConfigured(false);
       setSmtpConfig(DEFAULT_SMTP);
       toast.success('Correo propio desconectado');
-    } catch (err: any) {
-      toast.error('No se pudo desconectar: ' + err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'No se pudo desconectar el correo';
+      setSmtpActionError(message);
+      toast.error(message);
     } finally {
       setSmtpSaving(false);
     }
@@ -1196,6 +1203,19 @@ export default function SettingsPage() {
               <div role="alert" className="flex flex-col gap-2 rounded-[8px] border border-destructive/30 bg-destructive/5 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-destructive">{smtpStatusError}</p>
                 <Button type="button" size="sm" variant="outline" onClick={loadSmtpStatus}>Reintentar</Button>
+              </div>
+            )}
+
+            {smtpActionError && (
+              <div role="alert" className="flex flex-col gap-2 rounded-[8px] border border-destructive/30 bg-destructive/5 p-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">No pudimos validar esta conexión</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{smtpActionError}</p>
+                  </div>
+                </div>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setSmtpActionError('')}>Cerrar</Button>
               </div>
             )}
 

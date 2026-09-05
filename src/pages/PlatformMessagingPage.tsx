@@ -41,6 +41,7 @@ import {
  */
 
 interface Config {
+  email_proveedor: "resend" | "smtp";
   email_dominio: string | null;
   email_nombre: string | null;
   email_casillas: Record<string, string> | null;
@@ -120,7 +121,7 @@ export default function PlatformMessagingPage() {
     const { data, error } = await supabase.functions.invoke("mensajeria-probar", { body: {} });
     setProbando(false);
     if (error) {
-      const motivo = await mensajeDeEdgeFunction(error, data);
+      const motivo = await mensajeDeEdgeFunction(error, data, "platform");
       console.error("mensajeria-probar", motivo || error);
       setPrueba({ ok: false, etapa: "envio", detalle: motivo || "No se pudo ejecutar la prueba" });
       return;
@@ -171,6 +172,24 @@ export default function PlatformMessagingPage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Proveedor de salida</Label>
+                <Select
+                  value={cfg?.email_proveedor ?? "resend"}
+                  onValueChange={v => void guardar({ email_proveedor: v })}
+                >
+                  <SelectTrigger aria-label="Proveedor de correo activo">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="resend">Resend (recomendado)</SelectItem>
+                    <SelectItem value="smtp">Servidor SMTP propio</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Cambiarlo conserva el otro canal como respaldo, pero exige una prueba nueva.
+                </p>
+              </div>
               <div>
                 <Label htmlFor="dominio">Dominio verificado en Resend</Label>
                 <Input
@@ -250,12 +269,12 @@ export default function PlatformMessagingPage() {
                 en una tabla que la UI consulta. */}
             <details className="rounded-[8px] border border-border bg-muted/10 p-3">
               <summary className="cursor-pointer text-xs font-medium">
-                ¿Todavía no verificaste el dominio? Usá un servidor de correo propio
+                Servidor SMTP {cfg?.email_proveedor === "smtp" ? "activo" : "de respaldo"}
               </summary>
               <p className="mt-2 text-[11px] text-muted-foreground">
-                Si cargás esto, el correo sale por acá y no por Resend. Sirve con la
-                casilla de tu hosting o con Gmail. La contraseña se carga en Supabase
-                como <code>SMTP_PASSWORD</code>, no en esta pantalla.
+                El correo sólo sale por acá cuando elegís <strong>Servidor SMTP propio</strong>.
+                La configuración puede quedar guardada como respaldo. La contraseña se carga
+                en Supabase como <code>SMTP_PASSWORD</code>, no en esta pantalla.
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>

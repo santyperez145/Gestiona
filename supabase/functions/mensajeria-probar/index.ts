@@ -24,6 +24,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { sendEmail } from "../_shared/smtpSender.ts";
 import { remitenteDe } from "../_shared/remitente.ts";
+import { emailFailure } from "../_shared/emailErrors.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -83,7 +84,7 @@ Deno.serve(async (req) => {
   }
 
   const apiKey = Deno.env.get("RESEND_API_KEY") ?? "";
-  if (!apiKey) {
+  if (remitente.proveedor === "resend" && !apiKey) {
     return json({
       ok: false,
       etapa: "configuracion",
@@ -115,12 +116,10 @@ Deno.serve(async (req) => {
 
   if (!r.ok) {
     return json({
-      ok: false,
+      ...emailFailure(r, "platform", "mensajeria-probar"),
       etapa: "envio",
       remitente: remitente.from,
-      // Textual: es la única información que sirve para arreglarlo.
-      detalle: r.error ?? "El proveedor rechazó el envío sin dar un motivo.",
-    });
+    }, 502);
   }
 
   return json({

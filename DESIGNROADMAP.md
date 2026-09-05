@@ -55,7 +55,7 @@ Primitives preferidas: `Button`, `Input`, `Select`, `Tabs`, `Table`, `Badge`,
 | Commerce admin | Configuración, rendimiento, voz, catálogo, páginas, diseño, pagos/envíos. | Selector de tienda compartido con Pedidos; datos reales en producción. | Surtido multi-tienda y responsive autenticado. |
 | Storefront | Marca del comercio, catálogo mobile-first y checkout confiable. | Tema, variantes, carrito, checkout, SEO y resiliencia de medios. | Performance de campo y test con compradores. |
 | Finance | Trabajo de gasto, documentos y aprobación; no espejo de Business. | Layout/entitlement e Inbox técnico. | Primer documento real y políticas preventivas. |
-| Platform | Control plane violeta, colas y Merchant 360. | Shell, MFA y áreas operativas. | SLA, errores parciales y drill-down consistente. |
+| Platform | Control plane violeta, colas y Merchant 360. | Shell, MFA, áreas operativas; Mensajería separa diagnóstico de staff, acción del comercio y copy del comprador, con alertas persistentes en campañas/SMTP/equipo. | Completar matriz visual autenticada y estados reales de webhook/Auth SMTP. |
 
 ## 5. Arquitectura de información objetivo de Finance
 

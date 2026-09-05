@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { mensajeSeguroParaCliente } from "@/lib/edgeErrors";
 import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
 import { MessageCircleQuestion, Loader2, Clock } from "lucide-react";
@@ -78,9 +79,11 @@ export default function ProductQuestions({ productId }: { productId: string }) {
       p_slug: store.slug, p_product_id: productId, p_question: texto.trim(),
     });
     setEnviando(false);
-    // El mensaje del RPC ya viene escrito para el comprador; el prefijo que le
-    // agrega Postgres no.
-    if (rpcErr) { setError(rpcErr.message.replace(/^.*?:\s*/, "")); return; }
+    if (rpcErr) {
+      console.error("[preguntas] no se pudo publicar", rpcErr);
+      setError(mensajeSeguroParaCliente(rpcErr, "No pudimos publicar tu pregunta. Reintentá en unos minutos."));
+      return;
+    }
     setTexto("");
     setListo(true);
     cargarMias();

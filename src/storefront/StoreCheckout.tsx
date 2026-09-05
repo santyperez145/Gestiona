@@ -19,6 +19,7 @@ import { leerProvinciaCarrito, guardarProvinciaCarrito } from "@/lib/storeCartPr
 import { cartShippingCellText, checkoutShippingDisplay } from "@/lib/storeCartShipping";
 import { checkoutDebeIntentarCuenta } from "@/lib/storeCheckoutAccount";
 import { notesWithStoreReferral, readStoreReferral } from "@/lib/storeReferral";
+import { mensajeDeEdgeFunction, mensajeSeguroParaCliente } from "@/lib/edgeErrors";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -421,7 +422,7 @@ export default function StoreCheckout() {
       // Una caída de red ya reintentó con la misma clave: no se duplica.
       setError(isTransientPublicError(rpcError)
         ? "La red falló al confirmar. Reintentá: no se va a duplicar el pedido."
-        : rpcError.message.replace(/^.*?:\s*/, ""));
+        : mensajeSeguroParaCliente(rpcError, "No pudimos confirmar el pedido. Revisá los datos y volvé a intentar."));
       return;
     }
 
@@ -499,7 +500,8 @@ export default function StoreCheckout() {
       const url = (pay as any)?.url;
       if (url) { window.location.href = url; return; }
       if (payErr || (pay as any)?.error) {
-        setError((pay as any)?.error ?? "No se pudo abrir el pago online. Tu pedido quedó registrado.");
+        setError(await mensajeDeEdgeFunction(payErr, pay, "customer")
+          || "No se pudo abrir el pago online. Tu pedido quedó registrado.");
       }
     }
 

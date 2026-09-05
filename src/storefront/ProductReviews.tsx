@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { mensajeSeguroParaCliente } from "@/lib/edgeErrors";
 import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
 import { Star, BadgeCheck, Loader2 } from "lucide-react";
@@ -93,7 +94,11 @@ export default function ProductReviews({ productId }: { productId: string }) {
       p_rating: rating, p_title: titulo || null, p_body: texto || null,
     });
     setGuardando(false);
-    if (rpcErr) { setError(rpcErr.message.replace(/^.*?:\s*/, "")); return; }
+    if (rpcErr) {
+      console.error("[reseñas] no se pudo publicar", rpcErr);
+      setError(mensajeSeguroParaCliente(rpcErr, "No pudimos publicar tu opinión. Reintentá en unos minutos."));
+      return;
+    }
     setAbierto(false);
     setTitulo(""); setTexto("");
     cargar();

@@ -27,16 +27,70 @@
 interface CuerpoDeError {
   error?: unknown;
   message?: unknown;
+  detalle?: unknown;
   code?: unknown;
+  public_message?: unknown;
+  merchant_message?: unknown;
+  operator_message?: unknown;
+  reference?: unknown;
 }
 
 export interface DetalleDeEdgeFunction {
   message: string;
   code: string;
+  reference: string;
 }
+
+export type AudienciaDeError = "platform" | "merchant" | "customer";
 
 function textoDe(valor: unknown): string {
   return typeof valor === "string" && valor.trim() ? valor.trim() : "";
+}
+
+const MENSAJE_CLIENTE = "No pudimos completar esta acción en este momento. Intentá nuevamente en unos minutos.";
+const MENSAJE_COMERCIO = "No se pudo completar la operación. Intentá nuevamente; si continúa, compartí la referencia con soporte.";
+const TECNICO = /\b(resend|smtp|supabase|edge function|service[_ -]?role|anon[_ -]?key|api[_ -]?key|jwt|sqlstate|postgres|platform|superadmin|stack|trace|secret|token)\b/i;
+const TECNICO_BASE = /\b(pgrst\d*|sql|database|schema|relation|column|constraint|row-level|rls|function public\.|invalid input syntax|duplicate key|null value|permission denied|uuid)\b/i;
+
+/**
+ * Conserva mensajes de negocio deliberadamente escritos para el comprador,
+ * pero reemplaza cualquier diagnóstico de infraestructura/RPC por copy público.
+ */
+export function mensajeSeguroParaCliente(
+  error: unknown,
+  fallback = MENSAJE_CLIENTE,
+): string {
+  const candidato = textoDe((error as { message?: unknown } | null)?.message)
+    .replace(/^.*?:\s*/, "");
+  if (!candidato || TECNICO.test(candidato) || TECNICO_BASE.test(candidato)) return fallback;
+  return candidato;
+}
+
+function mensajeSegunAudiencia(cuerpo: CuerpoDeError, audiencia: AudienciaDeError): string {
+  const tieneError = [
+    cuerpo.error,
+    cuerpo.message,
+    cuerpo.detalle,
+    cuerpo.public_message,
+    cuerpo.merchant_message,
+    cuerpo.operator_message,
+  ].some((valor) => textoDe(valor));
+  if (!tieneError) return "";
+  if (audiencia === "platform") {
+    return textoDe(cuerpo.operator_message)
+      || textoDe(cuerpo.detalle)
+      || textoDe(cuerpo.error)
+      || textoDe(cuerpo.message);
+  }
+  if (audiencia === "customer") {
+    const explicito = textoDe(cuerpo.public_message);
+    return explicito || MENSAJE_CLIENTE;
+  }
+
+  const explicito = textoDe(cuerpo.merchant_message);
+  if (explicito) return explicito;
+  const candidato = textoDe(cuerpo.error) || textoDe(cuerpo.message);
+  return candidato && !TECNICO.test(candidato) ? candidato : MENSAJE_COMERCIO;
 }
 
 /**
@@ -52,14 +106,19 @@ function textoDe(valor: unknown): string {
  * Devuelve `""` cuando no hubo error, para que el llamador pueda usar el
  * resultado como condición.
  */
-export async function detalleDeEdgeFunction(error: unknown, data?: unknown): Promise<DetalleDeEdgeFunction> {
+export async function detalleDeEdgeFunction(
+  error: unknown,
+  data?: unknown,
+  audiencia: AudienciaDeError = "merchant",
+): Promise<DetalleDeEdgeFunction> {
   // 1. Respuesta 200 con el error adentro.
   const cuerpo = data as CuerpoDeError | null | undefined;
-  const enData = textoDe(cuerpo?.error) || textoDe(cuerpo?.message);
+  const enData = cuerpo ? mensajeSegunAudiencia(cuerpo, audiencia) : "";
   const codigoEnData = textoDe(cuerpo?.code);
-  if (enData) return { message: enData, code: codigoEnData };
+  const referenciaEnData = textoDe(cuerpo?.reference);
+  if (enData) return { message: enData, code: codigoEnData, reference: referenciaEnData };
 
-  if (!error) return { message: "", code: codigoEnData };
+  if (!error) return { message: "", code: codigoEnData, reference: referenciaEnData };
 
   // 2. El cuerpo del no-2xx.
   const ctx = (error as { context?: unknown }).context;
@@ -71,9 +130,13 @@ export async function detalleDeEdgeFunction(error: unknown, data?: unknown): Pro
       const resp = ctx as Response;
       const fuente = typeof resp.clone === "function" ? resp.clone() : resp;
       const json = (await fuente.json()) as CuerpoDeError;
-      const enCuerpo = textoDe(json?.error) || textoDe(json?.message);
+      const enCuerpo = mensajeSegunAudiencia(json, audiencia);
       if (enCuerpo) {
-        return { message: enCuerpo, code: textoDe(json?.code) || codigoEnData };
+        return {
+          message: enCuerpo,
+          code: textoDe(json?.code) || codigoEnData,
+          reference: textoDe(json?.reference) || referenciaEnData,
+        };
       }
     } catch {
       // Cuerpo vacío, no-JSON o ya consumido: se sigue al genérico. Tragarse
@@ -83,12 +146,23 @@ export async function detalleDeEdgeFunction(error: unknown, data?: unknown): Pro
   }
 
   // 3. El genérico.
+  const fallback = textoDe((error as { message?: unknown }).message);
   return {
-    message: textoDe((error as { message?: unknown }).message) || "Error desconocido",
+    message: audiencia === "platform"
+      ? fallback || "Error desconocido"
+      : audiencia === "customer"
+      ? MENSAJE_CLIENTE
+      : fallback && !TECNICO.test(fallback) ? fallback : MENSAJE_COMERCIO,
     code: codigoEnData,
+    reference: referenciaEnData,
   };
 }
 
-export async function mensajeDeEdgeFunction(error: unknown, data?: unknown): Promise<string> {
-  return (await detalleDeEdgeFunction(error, data)).message;
+export async function mensajeDeEdgeFunction(
+  error: unknown,
+  data?: unknown,
+  audiencia: AudienciaDeError = "merchant",
+): Promise<string> {
+  const detalle = await detalleDeEdgeFunction(error, data, audiencia);
+  return detalle.reference ? `${detalle.message} Referencia: ${detalle.reference}.` : detalle.message;
 }

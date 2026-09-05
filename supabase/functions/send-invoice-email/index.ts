@@ -11,11 +11,17 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
+import { emailFailure } from "../_shared/emailErrors.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const esc = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (char) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]!));
+const text = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -46,9 +52,33 @@ Deno.serve(async (req) => {
   try {
     const { to, subject, invoiceNumber, customerName, orgName, orgId, totalARS, dueDate, pdfBase64, notes } = await req.json();
 
-    if (!to || !subject || !invoiceNumber) {
-      return new Response(JSON.stringify({ error: "Faltan parámetros requeridos: to, subject, invoiceNumber" }), {
+    if (!UUID.test(String(orgId ?? "")) || !EMAIL.test(text(to, 320)) || !text(subject, 180) || !text(invoiceNumber, 80)) {
+      return new Response(JSON.stringify({ error: "Completá organización, destinatario, asunto y número de comprobante válidos", code: "INVALID_EMAIL_REQUEST" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: membership, error: membershipError } = await admin
+      .from("memberships")
+      .select("role")
+      .eq("org_id", orgId)
+      .eq("user_id", userRes.user.id)
+      .in("role", ["owner", "admin", "vendedor"])
+      .maybeSingle();
+    if (membershipError) {
+      console.error("send-invoice-email membership:", membershipError);
+      return new Response(JSON.stringify({ error: "No se pudo verificar tu permiso", code: "PERMISSION_CHECK_FAILED" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!membership) {
+      return new Response(JSON.stringify({ error: "No tenés permiso para enviar comprobantes de esta organización", code: "FORBIDDEN" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (typeof pdfBase64 === "string" && pdfBase64.length > 12_000_000) {
+      return new Response(JSON.stringify({ error: "El PDF supera el límite permitido de 9 MB", code: "ATTACHMENT_TOO_LARGE" }), {
+        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -87,23 +117,23 @@ Deno.serve(async (req) => {
 <body>
 <div class="container">
   <div class="header">
-    <h1>${orgName || "Sistema de Gestión"}</h1>
+    <h1>${esc(orgName || "Tu comercio")}</h1>
     <p>Comprobante de pago</p>
   </div>
   <div class="body">
-    <p class="greeting">Hola <strong>${customerName || "cliente"}</strong>,</p>
-    <p>Adjuntamos el detalle de tu factura <strong>N° ${invoiceNumber}</strong>:</p>
+    <p class="greeting">Hola <strong>${esc(customerName || "cliente")}</strong>,</p>
+    <p>Adjuntamos el detalle de tu comprobante <strong>N° ${esc(invoiceNumber)}</strong>:</p>
     <div>
-      <div class="detail-row"><span class="label">Número</span><span class="value">${invoiceNumber}</span></div>
-      ${totalARS ? `<div class="detail-row total-row"><span class="label">Total</span><span class="value">${totalARS}</span></div>` : ""}
-      ${dueDateStr ? `<div class="detail-row"><span class="label">Vencimiento</span><span class="value">${dueDateStr}</span></div>` : ""}
+      <div class="detail-row"><span class="label">Número</span><span class="value">${esc(invoiceNumber)}</span></div>
+      ${totalARS ? `<div class="detail-row total-row"><span class="label">Total</span><span class="value">${esc(totalARS)}</span></div>` : ""}
+      ${dueDateStr ? `<div class="detail-row"><span class="label">Vencimiento</span><span class="value">${esc(dueDateStr)}</span></div>` : ""}
     </div>
-    ${notes ? `<div class="notes-box">${notes}</div>` : ""}
+    ${notes ? `<div class="notes-box">${esc(text(notes, 2000)).replace(/\n/g, "<br>")}</div>` : ""}
     ${pdfBase64 ? `<p style="font-size:13px; color:#666;">Se adjunta el PDF de la factura a este correo.</p>` : ""}
     <p style="font-size:13px; color:#888; margin-top:24px;">Ante cualquier consulta, no dudes en contactarnos.</p>
   </div>
   <div class="footer">
-    Este correo fue generado automáticamente por ${orgName || "el sistema de gestión"}.<br>
+    Este correo fue generado automáticamente por ${esc(orgName || "el comercio")}.<br>
     Por favor no respondas este mensaje.
   </div>
 </div>
@@ -118,18 +148,18 @@ Deno.serve(async (req) => {
       smtpCfg,
       resendKey,
       resendFrom,
-      { to, subject, html, attachments },
+      { to: text(to, 320), subject: text(subject, 180), html, attachments },
+      { org_id: orgId, document_number: text(invoiceNumber, 80), message_type: "transactional" },
     );
 
     if (!result.ok) {
-      console.error("send-invoice-email error:", result.error);
-      return new Response(JSON.stringify({ error: result.error || "Error al enviar email" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify(emailFailure(result, "merchant", "send-invoice-email")), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     console.log(`send-invoice-email: to=${to} provider=${result.provider}`);
-    return new Response(JSON.stringify({ success: true, provider: result.provider }), {
+    return new Response(JSON.stringify({ success: true }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {

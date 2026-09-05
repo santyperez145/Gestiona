@@ -13,6 +13,19 @@ import {
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
+
+function customerAuthError(error: { message?: string; status?: number } | null, action: "signup" | "signin" | "otp" | "verify" | "reset") {
+  const detail = String(error?.message ?? "");
+  if (/invalid login|invalid credentials/i.test(detail)) return "Email o contraseña incorrectos";
+  if (/already registered|already exists|user.*exists/i.test(detail)) return "Ya existe una cuenta con ese email. Iniciá sesión o recuperá tu contraseña.";
+  if (/password/i.test(detail) && /short|least|weak/i.test(detail)) return "La contraseña debe tener al menos 8 caracteres.";
+  if (/expired|invalid.*otp|token.*invalid/i.test(detail)) return "El código venció o no es válido. Pedí uno nuevo.";
+  if (error?.status === 429 || /rate limit|too many/i.test(detail)) return "Hiciste varios intentos seguidos. Esperá un minuto y volvé a probar.";
+  if (action === "signin") return "No pudimos iniciar sesión. Revisá tus datos e intentá nuevamente.";
+  if (action === "verify") return "No pudimos validar el código. Pedí uno nuevo e intentá otra vez.";
+  if (action === "signup") return "No pudimos crear tu cuenta en este momento. Intentá nuevamente.";
+  return "No pudimos enviar el correo en este momento. Esperá unos minutos y volvé a intentar.";
+}
 import { BRAND_DOMAIN } from '@/lib/brand';
 import { isPotentialCustomStoreHostname } from '@/lib/storeCustomDomain';
 
@@ -118,7 +131,7 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
           emailRedirectTo: storeAccountRedirect(slug, basePath),
         },
       });
-      if (error) return { error: error.message };
+      if (error) return { error: customerAuthError(error, "signup") };
       // Sin sesión inmediata = falta confirmar el email.
       if (!data.session) return { needsConfirm: true };
       await supabase.rpc("upsert_store_customer", { p_slug: slug, p_name: name, p_phone: null });
@@ -130,9 +143,7 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (error) {
         return {
-          error: error.message.includes("Invalid login")
-            ? "Email o contraseña incorrectos"
-            : error.message,
+          error: customerAuthError(error, "signin"),
         };
       }
       await refresh();
@@ -155,7 +166,7 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
             : undefined,
         },
       });
-      return error ? { error: error.message } : {};
+      return error ? { error: customerAuthError(error, "otp") } : {};
     },
 
     verifyEmailOtp: async (email, token) => {
@@ -164,7 +175,7 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
         token: token.trim(),
         type: "email",
       });
-      if (error) return { error: error.message };
+      if (error) return { error: customerAuthError(error, "verify") };
       await refresh();
       return {};
     },
@@ -179,7 +190,7 @@ export function StoreAuthProvider({ slug, basePath, children }: { slug: string; 
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: storeAccountRedirect(slug, basePath),
       });
-      return error ? { error: error.message } : {};
+      return error ? { error: customerAuthError(error, "reset") } : {};
     },
 
     refresh,

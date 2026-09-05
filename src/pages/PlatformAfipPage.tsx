@@ -95,7 +95,7 @@ export default function PlatformAfipPage() {
     setGuardando(false);
 
     if (error || data?.error) {
-      toast.error(await mensajeDeEdgeFunction(error, data) || 'No se pudo guardar');
+      toast.error(await mensajeDeEdgeFunction(error, data, "platform") || 'No se pudo guardar');
       return;
     }
     // El PEM se borra del formulario apenas se guarda: no hay motivo para que
@@ -116,7 +116,7 @@ export default function PlatformAfipPage() {
     const { data, error } = await supabase.functions.invoke('afip-platform-cert', { body: { action: 'delete' } });
     setGuardando(false);
     if (error || data?.error) {
-      toast.error(await mensajeDeEdgeFunction(error, data) || 'No se pudo borrar');
+      toast.error(await mensajeDeEdgeFunction(error, data, "platform") || 'No se pudo borrar');
       return;
     }
     toast.success('Certificado borrado');

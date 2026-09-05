@@ -40,6 +40,9 @@ export interface SendResult {
   provider: "smtp" | "resend" | "none";
   messageId?: string;
   error?: string;
+  providerCode?: string;
+  providerStatus?: number;
+  retryable?: boolean;
 }
 
 export interface EmailDeliveryOptions {
@@ -52,7 +55,11 @@ export interface EmailDeliveryOptions {
 }
 
 /** Send via own SMTP server using denomailer (pure Deno). */
-async function sendViaSmtp(cfg: SmtpConfig, payload: EmailPayload): Promise<void> {
+async function sendViaSmtp(
+  cfg: SmtpConfig,
+  payload: EmailPayload,
+  idempotencyKey?: string,
+): Promise<void> {
   const client = new SMTPClient({
     connection: {
       hostname: cfg.host,
@@ -86,6 +93,9 @@ async function sendViaSmtp(cfg: SmtpConfig, payload: EmailPayload): Promise<void
         mimeType: a.mimeType || "application/octet-stream",
       }));
     }
+    if (idempotencyKey && cfg.host.toLowerCase() === "smtp.resend.com") {
+      mail.headers = { "Resend-Idempotency-Key": idempotencyKey };
+    }
 
     // denomailer declara un tipo más estricto que el objeto que construimos
     // dinámicamente al agregar adjuntos. Los campos requeridos se arman arriba;
@@ -112,7 +122,14 @@ async function sendViaResend(
     subject: payload.subject,
     html: payload.html,
   };
-  if (metadata) body.metadata = metadata;
+  if (metadata) {
+    // Resend expone estos valores como `tags` en webhooks. Se sanea porque el
+    // proveedor sólo admite nombres ASCII y valores acotados.
+    body.tags = Object.entries(metadata).map(([name, value]) => ({
+      name: name.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 256),
+      value: String(value).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 256),
+    })).filter((tag) => tag.name && tag.value);
+  }
   if (payload.attachments?.length) {
     body.attachments = payload.attachments.map((a) => ({
       filename: a.filename,
@@ -136,7 +153,15 @@ async function sendViaResend(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as Record<string, unknown>;
-    throw new Error((err.message as string) || `Resend HTTP ${res.status}`);
+    const providerError = new Error((err.message as string) || `Resend HTTP ${res.status}`) as Error & {
+      providerCode?: string;
+      providerStatus?: number;
+      retryable?: boolean;
+    };
+    providerError.providerCode = String(err.name ?? err.type ?? err.code ?? "");
+    providerError.providerStatus = res.status;
+    providerError.retryable = res.status === 429 || res.status >= 500;
+    throw providerError;
   }
 
   const sent = await res.json().catch(() => ({})) as Record<string, unknown>;
@@ -209,7 +234,7 @@ export async function sendEmail(
   // 1. Try SMTP
   if (smtpCfg?.host && smtpCfg?.user) {
     try {
-      await sendViaSmtp(smtpCfg, payload);
+      await sendViaSmtp(smtpCfg, payload, options?.idempotencyKey);
       return { ok: true, provider: "smtp" };
     } catch (e) {
       errorDelSmtp = e instanceof Error ? e.message : String(e);
@@ -239,7 +264,19 @@ export async function sendEmail(
           error: pistaDelRechazo(errorDelSmtp, smtpCfg?.user ?? "el usuario configurado"),
         };
       }
-      return { ok: false, provider: "resend", error: e instanceof Error ? e.message : String(e) };
+      const providerError = e as Error & {
+        providerCode?: string;
+        providerStatus?: number;
+        retryable?: boolean;
+      };
+      return {
+        ok: false,
+        provider: "resend",
+        error: e instanceof Error ? e.message : String(e),
+        providerCode: providerError.providerCode,
+        providerStatus: providerError.providerStatus,
+        retryable: providerError.retryable,
+      };
     }
   }
 

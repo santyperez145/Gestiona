@@ -1,123 +1,134 @@
 /**
- * resend-webhook — Receives Resend email event webhooks
- *
- * Configure in Resend Dashboard → Webhooks:
- *   URL: https://<project>.supabase.co/functions/v1/resend-webhook
- *   Events: email.opened, email.clicked, email.bounced, email.complained, email.unsubscribed
- *
- * Resend sends: { type: "email.opened", data: { email_id, to: [email], subject, metadata } }
- * Resend uses Svix to sign webhooks — set RESEND_WEBHOOK_SECRET in Supabase secrets.
+ * Webhook de Resend: verificación Svix, ventana anti-replay, deduplicación y
+ * métricas atómicas. Resend entrega al menos una vez y puede desordenar eventos;
+ * `svix-id` es la identidad durable, no el orden de llegada.
  */
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+  status,
+  headers: { "Content-Type": "application/json" },
+});
 
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-);
+type ProviderEvent = {
+  type?: string;
+  created_at?: string;
+  data?: {
+    email_id?: string;
+    to?: string[] | string;
+    tags?: Array<{ name?: string; value?: string }>;
+    metadata?: Record<string, string>;
+    click?: { link?: string };
+  };
+};
 
-async function verifyResendSignature(req: Request, rawBody: string): Promise<boolean> {
+const TYPE_MAP: Record<string, string> = {
+  "email.sent": "sent",
+  "email.delivered": "delivery",
+  "email.delivery_delayed": "delayed",
+  "email.failed": "failed",
+  "email.bounced": "bounce",
+  "email.suppressed": "suppressed",
+  "email.complained": "complaint",
+  "email.opened": "open",
+  "email.clicked": "click",
+  "email.unsubscribed": "unsubscribe",
+};
+
+function base64Bytes(value: string): ArrayBuffer | null {
+  try {
+    return Uint8Array.from(atob(value), (char) => char.charCodeAt(0)).buffer as ArrayBuffer;
+  } catch {
+    return null;
+  }
+}
+
+async function verifyResendSignature(req: Request, rawBody: string): Promise<"ok" | "missing-secret" | "invalid"> {
   const secret = Deno.env.get("RESEND_WEBHOOK_SECRET");
-  if (!secret) return false; // Reject if secret is not configured — never skip in production
+  if (!secret) return "missing-secret";
 
   const svixId = req.headers.get("svix-id");
   const svixTs = req.headers.get("svix-timestamp");
   const svixSig = req.headers.get("svix-signature");
-  if (!svixId || !svixTs || !svixSig) return false;
+  const timestamp = Number(svixTs);
+  if (!svixId || !svixTs || !svixSig || !Number.isFinite(timestamp)) return "invalid";
+  if (Math.abs(Date.now() / 1000 - timestamp) > 300) return "invalid";
 
-  const toSign = `${svixId}.${svixTs}.${rawBody}`;
-  const secretBytes = Uint8Array.from(atob(secret.replace(/^whsec_/, "")), c => c.charCodeAt(0));
-  const key = await crypto.subtle.importKey("raw", secretBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(toSign));
-  const computed = "v1," + btoa(String.fromCharCode(...new Uint8Array(sig)));
-  return svixSig.split(" ").some(s => s === computed);
+  const secretBytes = base64Bytes(secret.replace(/^whsec_/, ""));
+  if (!secretBytes) return "invalid";
+  const key = await crypto.subtle.importKey(
+    "raw",
+    secretBytes,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["verify"],
+  );
+  const signed = new TextEncoder().encode(`${svixId}.${svixTs}.${rawBody}`).buffer as ArrayBuffer;
+
+  for (const candidate of svixSig.split(" ")) {
+    const [version, encoded] = candidate.split(",", 2);
+    const signature = version === "v1" && encoded ? base64Bytes(encoded) : null;
+    if (signature && await crypto.subtle.verify("HMAC", key, signature, signed)) return "ok";
+  }
+  return "invalid";
 }
 
-const TYPE_MAP: Record<string, string> = {
-  "email.opened":       "open",
-  "email.clicked":      "click",
-  "email.bounced":      "bounce",
-  "email.complained":   "complaint",
-  "email.unsubscribed": "unsubscribe",
-  "email.delivered":    "delivery",
-};
+function tagsOf(data: ProviderEvent["data"]): Record<string, string> {
+  const tags = Object.fromEntries((data?.tags ?? [])
+    .filter((tag) => typeof tag.name === "string" && typeof tag.value === "string")
+    .map((tag) => [tag.name!, tag.value!]));
+  return { ...(data?.metadata ?? {}), ...tags };
+}
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*" } });
+  if (req.method !== "POST") return json({ error: "Método no permitido" }, 405);
+
+  const rawBody = await req.text();
+  const signature = await verifyResendSignature(req, rawBody);
+  if (signature === "missing-secret") {
+    console.error("resend-webhook: RESEND_WEBHOOK_SECRET missing");
+    return json({ error: "Webhook no disponible" }, 503);
   }
+  if (signature !== "ok") return json({ error: "Firma inválida" }, 401);
 
   try {
-    const rawBody = await req.text();
+    const payload = JSON.parse(rawBody) as ProviderEvent;
+    const eventType = TYPE_MAP[String(payload.type ?? "")];
+    if (!eventType) return json({ ok: true, skipped: true });
 
-    const valid = await verifyResendSignature(req, rawBody);
-    if (!valid) {
-      return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401 });
-    }
-
-    const payload = JSON.parse(rawBody);
-    const eventType = TYPE_MAP[payload.type];
-    if (!eventType) {
-      return new Response(JSON.stringify({ ok: true, skipped: true }), { status: 200 });
-    }
-
-    const { email_id, to = [], subject, metadata = {} } = payload.data ?? {};
-    const recipientEmail = Array.isArray(to) ? to[0] : to;
-    const campaignId: string | undefined = metadata.campaign_id;
-    const orgId: string | undefined = metadata.org_id;
-    const linkUrl: string | undefined = payload.data?.click?.link;
-
+    const svixId = req.headers.get("svix-id")!;
+    const tags = tagsOf(payload.data);
+    const orgId = tags.org_id;
+    const campaignId = tags.campaign_id || null;
     if (!orgId) {
-      console.warn("resend-webhook: no org_id in metadata, skipping");
-      return new Response(JSON.stringify({ ok: true, skipped: "no org_id" }), { status: 200 });
+      console.warn("resend-webhook: event without org_id", { svixId, type: payload.type });
+      return json({ ok: true, skipped: true });
     }
 
-    // Insert event record
-    await supabase.from("email_events" as any).insert({
-      org_id: orgId,
-      campaign_id: campaignId ?? null,
-      event_type: eventType,
-      recipient_email: recipientEmail ?? null,
-      link_url: linkUrl ?? null,
-      resend_email_id: email_id ?? null,
-      occurred_at: new Date().toISOString(),
+    const url = Deno.env.get("SUPABASE_URL");
+    const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !serviceRole) return json({ error: "Webhook no disponible" }, 503);
+    const admin = createClient(url, serviceRole);
+    const recipient = Array.isArray(payload.data?.to) ? payload.data?.to[0] : payload.data?.to;
+    const occurredAt = payload.created_at && !Number.isNaN(Date.parse(payload.created_at))
+      ? payload.created_at
+      : new Date().toISOString();
+
+    const { data: inserted, error } = await admin.rpc("record_email_provider_event", {
+      p_provider_event_id: svixId,
+      p_org_id: orgId,
+      p_campaign_id: campaignId,
+      p_event_type: eventType,
+      p_recipient_email: recipient || null,
+      p_link_url: payload.data?.click?.link || null,
+      p_provider_message_id: payload.data?.email_id || null,
+      p_occurred_at: occurredAt,
     });
+    if (error) throw error;
 
-    // Update aggregate counters on the campaign
-    if (campaignId) {
-      const counterField =
-        eventType === "open"        ? "open_count" :
-        eventType === "click"       ? "click_count" :
-        eventType === "unsubscribe" ? "unsubscribe_count" : null;
-
-      if (counterField) {
-        // Use RPC increment or raw update
-        const { data: camp } = await supabase
-          .from("email_campaigns" as any)
-          .select(counterField)
-          .eq("id", campaignId)
-          .single();
-
-        if (camp) {
-          await supabase
-            .from("email_campaigns" as any)
-            .update({ [counterField]: ((camp as any)[counterField] ?? 0) + 1 })
-            .eq("id", campaignId);
-        }
-      }
-    }
-
-    // Handle unsubscribes: add to blocklist
-    if (eventType === "unsubscribe" && recipientEmail && orgId) {
-      await supabase.from("email_unsubscribes" as any).upsert(
-        { org_id: orgId, email: recipientEmail.toLowerCase() },
-        { onConflict: "org_id,email" }
-      );
-    }
-
-    return new Response(JSON.stringify({ ok: true, event: eventType }), { status: 200 });
-  } catch (err: any) {
-    console.error("resend-webhook error:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    return json({ ok: true, event: eventType, duplicate: inserted === false });
+  } catch (error) {
+    console.error("resend-webhook processing:", error);
+    return json({ error: "No se pudo registrar el evento" }, 500);
   }
 });

@@ -46,6 +46,8 @@ export interface Remitente {
    * que falta es cargar un secreto.
    */
   faltaLaClaveSmtp: boolean;
+  /** Proveedor elegido por plataforma; configurar SMTP ya no lo activa solo. */
+  proveedor: "resend" | "smtp";
 }
 
 /**
@@ -65,26 +67,35 @@ export async function remitenteDe(proposito: Proposito = "default"): Promise<Rem
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceRole) {
     console.error("remitenteDe: falta SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY");
-    return { from: "", listo: false, dominio: null, smtp: null, faltaLaClaveSmtp: false };
+    return {
+      from: "", listo: false, dominio: null, smtp: null,
+      faltaLaClaveSmtp: false, proveedor: "resend",
+    };
   }
   const admin = createClient(url, serviceRole);
   const { data, error } = await admin.rpc("mensajeria_de_plataforma");
   if (error || !data) {
     console.error("no se pudo leer la configuración de mensajería", error);
-    return { from: "", listo: false, dominio: null, smtp: null, faltaLaClaveSmtp: false };
+    return {
+      from: "", listo: false, dominio: null, smtp: null,
+      faltaLaClaveSmtp: false, proveedor: "resend",
+    };
   }
 
   const dominio = data.email_dominio as string | null;
   const nombre = (data.email_nombre as string) || "Nerqia";
   const casillas = (data.email_casillas ?? {}) as Record<string, string>;
   const casilla = casillas[proposito] || casillas.default || "noreply";
+  const proveedor: "resend" | "smtp" = data.email_proveedor === "smtp"
+    ? "smtp"
+    : "resend";
 
   // ⚠️ Con Gmail —y con casi cualquier SMTP— el `From` tiene que ser la misma
   // casilla que se autentica. Mandar «desde» otra dirección hace que el
   // servidor rechace, o que el mensaje caiga en spam por DMARC. Por eso cuando
   // hay SMTP propio el remitente es su casilla y no se arma con el dominio.
   const pass = Deno.env.get("SMTP_PASSWORD");
-  const smtp: SmtpConfig | null = (data.smtp_configurado && pass)
+  const smtp: SmtpConfig | null = (proveedor === "smtp" && data.smtp_configurado && pass)
     ? {
         host: String(data.smtp_host),
         port: Number(data.smtp_port) || 465,
@@ -96,7 +107,7 @@ export async function remitenteDe(proposito: Proposito = "default"): Promise<Rem
       }
     : null;
 
-  const faltaLaClaveSmtp = Boolean(data.smtp_configurado) && !pass;
+  const faltaLaClaveSmtp = proveedor === "smtp" && Boolean(data.smtp_configurado) && !pass;
 
   const from = smtp
     ? `${nombre} <${smtp.fromEmail}>`
@@ -110,5 +121,6 @@ export async function remitenteDe(proposito: Proposito = "default"): Promise<Rem
     listo: smtp ? true : Boolean(data.email_listo),
     dominio,
     smtp,
+    proveedor,
   };
 }

@@ -15,6 +15,7 @@ import { requireEnv } from "../_shared/env.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
+import { emailFailure } from "../_shared/emailErrors.ts";
 import {
   claimStoreOrderEmail,
   finishStoreOrderEmail,
@@ -205,10 +206,10 @@ Deno.serve(async (req) => {
     }, { idempotencyKey: claim.idempotencyKey });
     await finishStoreOrderEmail(admin, claim, result);
 
-    if (!result.ok) return json({ error: result.error ?? "No se pudo enviar el aviso" }, 502);
-    return json({ ok: true, provider: result.provider });
+    if (!result.ok) return json(emailFailure(result, "merchant", "store-order-status-email"), 502);
+    return json({ ok: true });
   } catch (error) {
     console.error("store-order-status-email:", error);
-    return json({ error: error instanceof Error ? error.message : "Error inesperado" }, 500);
+    return json({ error: "No se pudo preparar el aviso del pedido. Volvé a intentar.", code: "ORDER_STATUS_EMAIL_FAILED" }, 500);
   }
 });

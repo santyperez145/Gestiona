@@ -21,6 +21,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { formatARS, formatUSD } from "@/lib/supabaseStore";
 import { toast } from "sonner";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 import { plural } from "@/lib/plural";
 interface Supplier {
@@ -124,7 +125,6 @@ export default function SupplierPOModal({ open, onClose, supplierId }: Props) {
         `• ${l.product.name}: ${l.qty} uds × U$S ${l.product.cost_usd ?? "—"} = U$S ${(l.qty * (Number(l.product.cost_usd) || 0)).toFixed(2)}`
       ).join("\n");
 
-      const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke("send-supplier-po", {
         body: {
           orgId: activeOrg.id,
@@ -141,11 +141,11 @@ export default function SupplierPOModal({ open, onClose, supplierId }: Props) {
         },
       });
 
-      if (res.error) throw res.error;
+      if (res.error || res.data?.error) throw new Error(await mensajeDeEdgeFunction(res.error, res.data));
       setSent(true);
       toast.success(`Orden enviada a ${supplier.name}`, { duration: 4000 });
-    } catch (e: any) {
-      toast.error(`Error: ${e.message ?? "No se pudo enviar"}`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "No se pudo enviar la orden");
     } finally {
       setSending(false);
     }

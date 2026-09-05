@@ -13,6 +13,7 @@ import StoreOrderInspector from "@/components/ecommerce/StoreOrderInspector";
 import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useHasPermission } from "@/lib/usePermissions";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 import {
   findStoreOrderForInspect,
   isStoreOrderInspectId,
@@ -103,8 +104,10 @@ export default function StoreOrdersWorkspace({
       "store-order-status-email",
       { body: { orderId: order.id, event: "payment_confirmed" } },
     );
-    const mailMsg = (mailData as { error?: string } | null)?.error;
-    if (mailErr || mailMsg) {
+    const mailMsg = mailErr || (mailData as { error?: string } | null)?.error
+      ? await mensajeDeEdgeFunction(mailErr, mailData)
+      : "";
+    if (mailMsg) {
       console.error("store-order-status-email / payment_confirmed:", mailErr ?? mailMsg);
       toast.warning(
         `Cobro acreditado, pero no pudimos avisar por email${mailMsg ? `: ${mailMsg}` : "."}`,
@@ -122,8 +125,10 @@ export default function StoreOrdersWorkspace({
           const { data, error } = await supabase.functions.invoke("store-order-status-email", {
             body: { orderId, event },
           });
-          const message = (data as { error?: string } | null)?.error;
-          if (error || message) {
+          const message = error || (data as { error?: string } | null)?.error
+            ? await mensajeDeEdgeFunction(error, data)
+            : "";
+          if (message) {
             console.error("store-order-status-email / bulk:", error ?? message);
             return false;
           }

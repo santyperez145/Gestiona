@@ -154,8 +154,17 @@ settlement, refund y timeline. Faltan certificaciones live y economics con
 costos reales antes de escalar comisión.
 
 Platform tiene shell, MFA, Merchant 360, métricas, operaciones, integraciones,
-comisiones, mensajería, anuncios, soporte consentido y alta idempotente. Debe
-reducir intervención/MTTR con evidencia antes de sumar paneles.
+comisiones, mensajería, anuncios, soporte consentido y alta idempotente. Correo
+ya tiene dominio Resend verificado, remitentes por propósito y selección
+explícita Resend/SMTP sin borrar el canal de respaldo. El 2026-09-05 se desplegó
+el contrato de errores por audiencia, idempotencia API/SMTP, campañas limitadas
+a clientes elegibles, funciones con autorización de tenant y ledger firmado de
+entrega/rebote/queja con deduplicación y contadores atómicos. Los formularios
+públicos de checkout, pagos, cuenta, preguntas, reseñas, alertas y devoluciones
+conservan el detalle sólo en observabilidad y muestran copy propio de comprador.
+Quedan activar el
+proveedor, Auth SMTP, secreto del webhook y la matriz real de certificación.
+Debe reducir intervención/MTTR con evidencia antes de sumar paneles.
 
 ### Experiencia y rendimiento
 
@@ -183,6 +192,7 @@ Estos puntos no se cierran con más código:
 | Logística real | Contrato, tarifa, etiqueta y entrega trazada. | Comercio/transportista. |
 | Segundo comercio | Onboarding, migración y primera venta sin SQL. | Founder-led sales. |
 | Finance real | Proveedor privado y documentos aprobados/recibidos. | Producto/operación. |
+| Correo productivo | Activar Resend, Auth SMTP y webhook firmado; observar envío real desde `@nerqia.app`, recepción, reset/magic link/invitación, rebote, queja y supresión. | Plataforma/Resend. |
 | Monetización | Costos, comisión neta, soporte y retención medidos. | CEO/CFO. |
 
 ## 5. Orden de ejecución

@@ -12221,9 +12221,12 @@ export type Database = {
       email_campaigns: {
         Row: {
           body_html: string
+          bounce_count: number
           click_count: number
+          complaint_count: number
           coupon_code: string | null
           created_at: string
+          delivered_count: number
           failed_count: number
           id: string
           open_count: number
@@ -12238,9 +12241,12 @@ export type Database = {
         }
         Insert: {
           body_html: string
+          bounce_count?: number
           click_count?: number
+          complaint_count?: number
           coupon_code?: string | null
           created_at?: string
+          delivered_count?: number
           failed_count?: number
           id?: string
           open_count?: number
@@ -12255,9 +12261,12 @@ export type Database = {
         }
         Update: {
           body_html?: string
+          bounce_count?: number
           click_count?: number
+          complaint_count?: number
           coupon_code?: string | null
           created_at?: string
+          delivered_count?: number
           failed_count?: number
           id?: string
           open_count?: number
@@ -12358,6 +12367,8 @@ export type Database = {
           link_url: string | null
           occurred_at: string
           org_id: string
+          provider_created_at: string | null
+          provider_event_id: string | null
           recipient_email: string | null
           resend_email_id: string | null
         }
@@ -12368,6 +12379,8 @@ export type Database = {
           link_url?: string | null
           occurred_at?: string
           org_id: string
+          provider_created_at?: string | null
+          provider_event_id?: string | null
           recipient_email?: string | null
           resend_email_id?: string | null
         }
@@ -12378,6 +12391,8 @@ export type Database = {
           link_url?: string | null
           occurred_at?: string
           org_id?: string
+          provider_created_at?: string | null
+          provider_event_id?: string | null
           recipient_email?: string | null
           resend_email_id?: string | null
         }
@@ -25792,6 +25807,7 @@ export type Database = {
           email_casillas: Json
           email_dominio: string | null
           email_nombre: string
+          email_proveedor: string
           email_verificado_at: string | null
           id: boolean
           smtp_from_email: string | null
@@ -25812,6 +25828,7 @@ export type Database = {
           email_casillas?: Json
           email_dominio?: string | null
           email_nombre?: string
+          email_proveedor?: string
           email_verificado_at?: string | null
           id?: boolean
           smtp_from_email?: string | null
@@ -25832,6 +25849,7 @@ export type Database = {
           email_casillas?: Json
           email_dominio?: string | null
           email_nombre?: string
+          email_proveedor?: string
           email_verificado_at?: string | null
           id?: boolean
           smtp_from_email?: string | null

@@ -19,11 +19,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { remitenteDe } from "../_shared/remitente.ts";
 import { sendEmail, smtpDeOrganizacion } from "../_shared/smtpSender.ts";
+import { emailFailure } from "../_shared/emailErrors.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const esc = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (char) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]!));
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -68,11 +73,30 @@ Deno.serve(async (req) => {
       exchangeRate,
     } = await req.json();
 
-    if (!supplierEmail || !productName || !orgId) {
+    if (!UUID.test(String(orgId ?? "")) || !EMAIL.test(String(supplierEmail ?? "").trim()) || !String(productName ?? "").trim()) {
       return new Response(
         JSON.stringify({ error: "Faltan parámetros: supplierEmail, productName, orgId" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    const { data: membership, error: membershipError } = await admin
+      .from("memberships")
+      .select("role")
+      .eq("org_id", orgId)
+      .eq("user_id", userRes.user.id)
+      .in("role", ["owner", "admin"])
+      .maybeSingle();
+    if (membershipError) {
+      console.error("send-supplier-po membership:", membershipError);
+      return new Response(JSON.stringify({ error: "No se pudo verificar tu permiso", code: "PERMISSION_CHECK_FAILED" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!membership) {
+      return new Response(JSON.stringify({ error: "No tenés permiso para enviar pedidos de compra", code: "FORBIDDEN" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const smtpCfg = await smtpDeOrganizacion(orgId);
@@ -132,12 +156,12 @@ Deno.serve(async (req) => {
 <body>
 <div class="container">
   <div class="header">
-    <h1>${businessName}</h1>
+    <h1>${esc(businessName)}</h1>
     <p>Pedido de Compra N° ${poNumber} · Emitido el ${today}</p>
   </div>
   <div class="body">
     <div class="meta-row">
-      <div><div style="font-size:10px;text-transform:uppercase;color:#aaa;margin-bottom:2px">Proveedor</div><strong>${supplierName || "—"}</strong></div>
+      <div><div style="font-size:10px;text-transform:uppercase;color:#aaa;margin-bottom:2px">Proveedor</div><strong>${esc(supplierName || "—")}</strong></div>
       <div style="text-align:right"><div style="font-size:10px;text-transform:uppercase;color:#aaa;margin-bottom:2px">Número de Pedido</div><strong>${poNumber}</strong></div>
     </div>
 
@@ -152,8 +176,8 @@ Deno.serve(async (req) => {
       <thead><tr><th>Producto</th><th style="text-align:right">Cant.</th><th style="text-align:right">Precio Unit.</th><th style="text-align:right">Total</th></tr></thead>
       <tbody>
         <tr>
-          <td>${productName}</td>
-          <td style="text-align:right">${quantity}</td>
+          <td>${esc(productName)}</td>
+          <td style="text-align:right">${esc(quantity)}</td>
           <td style="text-align:right">${fmtUSD(Number(unitCostUSD || 0))}</td>
           <td style="text-align:right">${fmtUSD(Number(totalUSD || 0))}</td>
         </tr>
@@ -164,17 +188,17 @@ Deno.serve(async (req) => {
       </tbody>
     </table>
 
-    ${notes ? `<div class="notes-box"><strong>Notas:</strong> ${notes}</div>` : ""}
+    ${notes ? `<div class="notes-box"><strong>Notas:</strong> ${esc(String(notes).slice(0, 2000))}</div>` : ""}
 
     <p style="font-size:13px;color:#666;line-height:1.6">
       Por favor confirmá la recepción de este pedido respondiendo este correo.
       Ante cualquier consulta no dudes en contactarnos.
     </p>
     <br>
-    <p style="font-size:13px;color:#1a1a2e;font-weight:600">Muchas gracias,<br>${businessName}</p>
+    <p style="font-size:13px;color:#1a1a2e;font-weight:600">Muchas gracias,<br>${esc(businessName)}</p>
   </div>
   <div class="footer">
-    Este pedido de compra fue generado automáticamente por ${businessName} via Nerqia.<br>
+    Este pedido de compra fue generado automáticamente por ${esc(businessName)} vía Nerqia.<br>
     ${exchangeRate ? `TC referencia: $${Number(exchangeRate).toLocaleString("es-AR")} ARS/USD` : ""}
   </div>
 </div>
@@ -187,26 +211,27 @@ Deno.serve(async (req) => {
       resendKey,
       (await remitenteDe("pedidos")).from,
       {
-        to: supplierEmail,
-        subject: `Pedido de Compra N° ${poNumber} — ${productName} (${quantity} u.)`,
+        to: String(supplierEmail).trim().toLowerCase(),
+        subject: `Pedido de Compra N° ${poNumber} — ${String(productName).slice(0, 100)} (${Number(quantity) || 0} u.)`,
         html,
       },
+      { org_id: orgId, purchase_order: poNumber, message_type: "supplier_purchase_order" },
+      { idempotencyKey: `supplier-po/${orgId}/${poNumber}` },
     );
 
     if (!result.ok) {
-      console.error("send-supplier-po error:", result.error);
-      return new Response(JSON.stringify({ error: result.error || "Error al enviar email" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify(emailFailure(result, "merchant", "send-supplier-po")), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     console.log(`send-supplier-po: to=${supplierEmail} provider=${result.provider}`);
-    return new Response(JSON.stringify({ success: true, poNumber, provider: result.provider }), {
+    return new Response(JSON.stringify({ success: true, poNumber }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("send-supplier-po error:", err);
-    return new Response(JSON.stringify({ error: err.message || "Error interno" }), {
+    return new Response(JSON.stringify({ error: "No se pudo preparar el pedido de compra. Revisá los datos e intentá nuevamente.", code: "PURCHASE_ORDER_EMAIL_FAILED" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

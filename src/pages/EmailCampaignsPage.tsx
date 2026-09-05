@@ -28,6 +28,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import DripSequencesTab from "@/components/marketing/DripSequencesTab";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 // ─── Email Templates ──────────────────────────────────────────────────────────
 
@@ -184,12 +185,12 @@ export default function EmailCampaignsPage() {
       const { data, error } = await supabase.rpc("mensajeria_de_plataforma");
       if (error) { console.error("mensajeria_de_plataforma", error); return; }
       const c = data as unknown as {
-        email_listo?: boolean; smtp_configurado?: boolean;
+        email_listo?: boolean; email_proveedor?: "resend" | "smtp"; smtp_configurado?: boolean;
         smtp_from_email?: string | null; email_nombre?: string | null;
         email_dominio?: string | null; email_casillas?: Record<string, string> | null;
       };
       const casilla = c?.email_casillas?.marketing ?? c?.email_casillas?.default ?? "noreply";
-      const smtpOk = Boolean(c?.smtp_configurado);
+      const smtpOk = c?.email_proveedor === "smtp" && Boolean(c?.smtp_configurado);
       const dominio = String(c?.email_dominio ?? "").trim();
       setEnvio({
         puede: Boolean(smtpOk || c?.email_listo),
@@ -230,9 +231,14 @@ export default function EmailCampaignsPage() {
   const [bulkCampaign, setBulkCampaign] = useState<{ emails: string[]; names: string[]; count: number; segment: string } | null>(null);
   const [testEmail, setTestEmail] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
+  const [emailOperationError, setEmailOperationError] = useState("");
   // A/B test state
   const [abMode, setAbMode] = useState(false);
   const [subjectB, setSubjectB] = useState("");
+
+  useEffect(() => {
+    if (!testEmail && user?.email) setTestEmail(user.email);
+  }, [testEmail, user?.email]);
 
   // Read bulk selection from CRM sessionStorage on mount
   useEffect(() => {
@@ -428,6 +434,7 @@ export default function EmailCampaignsPage() {
       variant: "default",
     }))) return;
     setSending(camp.id);
+    setEmailOperationError("");
     try {
       await supabase.from("email_campaigns").update({ status: "sending" }).eq("id", camp.id);
       setCampaigns(prev => prev.map(c => c.id === camp.id ? { ...c, status: "sending" } : c));
@@ -445,11 +452,18 @@ export default function EmailCampaignsPage() {
         },
       });
 
-      if (error) throw error;
-      toast.success(`Enviado a ${data?.sent ?? audience.length} contactos`);
+      if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
+      if (data?.warning?.error) {
+        setEmailOperationError(data.warning.error);
+        toast.warning(`Se enviaron ${data?.sent ?? 0}; ${data?.failed ?? 0} no pudieron entregarse.`);
+      } else {
+        toast.success(`Enviado a ${data?.sent ?? audience.length} contactos`);
+      }
       load();
-    } catch {
-      toast.error("Error al enviar campaña");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo enviar la campaña";
+      setEmailOperationError(message);
+      toast.error(message);
       await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", camp.id);
       load();
     } finally {
@@ -498,6 +512,17 @@ export default function EmailCampaignsPage() {
           ) : undefined
         }
       />
+
+      {emailOperationError && (
+        <div role="alert" className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-foreground">El correo necesita atención</p>
+            <p className="mt-0.5 text-muted-foreground">{emailOperationError}</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setEmailOperationError("")}>Cerrar</Button>
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 w-fit border border-border">
@@ -920,6 +945,8 @@ export default function EmailCampaignsPage() {
                 onClick={async () => {
                   if (!activeOrg || !subject || !bodyHtml) return;
                   setSendingTest(true);
+                  setEmailOperationError("");
+                  let draftId: string | null = null;
                   try {
                     // Insert a temp draft and send to test email
                     const brandedHtml = buildBrandedEmail(bodyHtml.trim(), orgSettings.logo_url, orgSettings.business_name);
@@ -929,15 +956,22 @@ export default function EmailCampaignsPage() {
                       sent_count: 0, failed_count: 0,
                     }).select().single();
                     if (draft) {
-                      await supabase.functions.invoke("send-email-campaign", {
+                      draftId = draft.id;
+                      const { data, error } = await supabase.functions.invoke("send-email-campaign", {
                         body: { campaignId: draft.id, subject: `[PRUEBA] ${subject.trim()}`, bodyHtml: brandedHtml,
-                          recipients: [{ email: testEmail, name: "Prueba" }], orgName: orgSettings.business_name },
+                          recipients: [{ email: testEmail, name: "Prueba" }], testOnly: true },
                       });
-                      await supabase.from("email_campaigns").delete().eq("id", draft.id);
+                      if (error || data?.error) throw new Error(await mensajeDeEdgeFunction(error, data));
                     }
                     toast.success(`Email de prueba enviado a ${testEmail}`);
-                  } catch { toast.error("Error al enviar prueba"); }
-                  finally { setSendingTest(false); }
+                  } catch (error) {
+                    const message = error instanceof Error ? error.message : "No se pudo enviar la prueba";
+                    setEmailOperationError(message);
+                    toast.error(message);
+                  } finally {
+                    if (draftId) await supabase.from("email_campaigns").delete().eq("id", draftId);
+                    setSendingTest(false);
+                  }
                 }}
               >
                 {sendingTest ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { initMercadoPago, Payment } from "@mercadopago/sdk-react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 export interface StorePaymentBrickConfig {
   publicKey: string;
@@ -86,7 +87,7 @@ export default function StorePaymentBrick({ slug, orderNumber, accessToken, conf
             // El token puede haber sido rechazado antes de crear un pago: para
             // otra tarjeta se necesita una clave de idempotencia nueva.
             attemptKey.current = newAttemptKey();
-            const message = result?.error ?? "No se pudo procesar el pago. Revisá los datos o probá otro medio.";
+            const message = await mensajeDeEdgeFunction(error, data, "customer");
             setBrickError(message);
             throw new Error(message);
           }

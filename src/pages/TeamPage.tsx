@@ -15,6 +15,7 @@ import KPICard from '@/components/shared/KPICard';
 import type { OrgRole } from '@/lib/orgContext';
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
 
 import { plural } from "@/lib/plural";
 interface Member {
@@ -71,6 +72,7 @@ export default function TeamPage() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<OrgRole>('vendedor');
   const [sending, setSending] = useState(false);
+  const [inviteEmailError, setInviteEmailError] = useState('');
 
   const canManage = activeRole === 'owner' || activeRole === 'admin';
 
@@ -97,6 +99,7 @@ export default function TeamPage() {
   const invite = async () => {
     if (!activeOrg || !email.trim()) return;
     setSending(true);
+    setInviteEmailError('');
     try {
       const [authRes, membersRes, invitesRes, limit] = await Promise.all([
         supabase.auth.getUser(),
@@ -132,14 +135,18 @@ export default function TeamPage() {
       // porque al lado hay un "copiar link" y el admin lo mandaba a mano.
       const { data: envio, error: envioErr } = await supabase.functions.invoke(
         'send-team-invite',
-        { body: { invitationId: inv.id, appUrl: window.location.origin } },
+        { body: { invitationId: inv.id } },
       );
-      const falla = (envio as { error?: string } | null)?.error ?? envioErr?.message;
+      const falla = envioErr || (envio as { error?: string } | null)?.error
+        ? await mensajeDeEdgeFunction(envioErr, envio)
+        : '';
 
       // Si el envío falla, la invitación **igual vale**: el link sirve. Lo que
       // no se puede hacer es decir que se mandó cuando no se mandó.
       if (falla) {
-        toast.warning('Invitación creada, pero no se pudo enviar el email. Copiá el link y mandáselo.');
+        const message = `La invitación quedó creada, pero el correo no salió. ${falla}`;
+        setInviteEmailError(message);
+        toast.warning(message);
       } else {
         toast.success(`Invitación enviada a ${email.trim().toLowerCase()}`);
       }
@@ -185,6 +192,16 @@ export default function TeamPage() {
         title="Equipo"
         description="Invitá colaboradores y gestioná roles."
       />
+
+      {inviteEmailError && (
+        <div role="alert" className="flex items-start justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">
+          <div>
+            <p className="font-medium text-foreground">La invitación sigue disponible por enlace</p>
+            <p className="mt-1 text-muted-foreground">{inviteEmailError}</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setInviteEmailError('')}>Cerrar</Button>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
