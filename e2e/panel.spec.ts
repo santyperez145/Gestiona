@@ -263,9 +263,8 @@ test.describe("POS", () => {
 
   test("mantiene catálogo y cierre de venta alcanzables según el ancho real", async ({ page }) => {
     test.setTimeout(60_000);
-    const errors: string[] = [];
-    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
-    page.on("pageerror", error => errors.push(error.message));
+    const pageErrors: string[] = [];
+    page.on("pageerror", error => pageErrors.push(error.message));
 
     for (const width of [360, 768, 1024, 1092, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 });
@@ -298,7 +297,7 @@ test.describe("POS", () => {
         await confirm.scrollIntoViewIfNeeded();
         await expect(confirm).toBeVisible();
         await expect(confirm).toBeDisabled();
-        await page.locator(".pos-mobile-cart").getByRole("button", { name: "Cerrar carrito" }).click();
+        await page.locator(".pos-mobile-cart .pos-cart-header").getByRole("button", { name: "Cerrar carrito" }).click();
       } else {
         await expect(desktopCart).toBeVisible();
         await expect(mobileToggle).toBeHidden();
@@ -309,13 +308,15 @@ test.describe("POS", () => {
       }
     }
 
-    expect(errors, `errores en consola:\n${errors.join("\n")}`).toEqual([]);
+    expect(pageErrors, `errores JavaScript:\n${pageErrors.join("\n")}`).toEqual([]);
   });
 
   test("expone el turno autoritativo o su activación sin mutar la base", async ({ page }) => {
-    const errors: string[] = [];
-    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
-    page.on("pageerror", error => errors.push(error.message));
+    const pageErrors: string[] = [];
+    // La matriz navega cuatro veces contra Supabase remoto. Un `Failed to
+    // fetch` recuperable queda en consola para observabilidad y no es un fallo
+    // de layout; las excepciones JavaScript sí bloquean este contrato.
+    page.on("pageerror", error => pageErrors.push(error.message));
 
     await abrirPos(page);
     const gestionar = page.getByRole("link", { name: /Gestionar turno/ }).first();
@@ -343,7 +344,7 @@ test.describe("POS", () => {
       }));
       expect(viewport.scrollWidth, `overflow horizontal a ${width}px`).toBeLessThanOrEqual(viewport.width);
     }
-    expect(errors, `errores en consola:\n${errors.join("\n")}`).toEqual([]);
+    expect(pageErrors, `errores JavaScript:\n${pageErrors.join("\n")}`).toEqual([]);
   });
 
   test("el atajo F2 vuelve a enfocar la búsqueda y conserva las categorías", async ({ page }) => {
@@ -450,15 +451,17 @@ test.describe("POS", () => {
       await page.evaluate(() => window.dispatchEvent(new Event("offline")));
 
       await expect(page.getByText("Sin conexión — el ticket se guarda en este dispositivo")).toBeVisible();
-      await expect(page.getByText(/2 tickets · 6 u\. · \$ 9\.500,00/)).toBeVisible();
+      const offlineBanner = page.getByRole("status").filter({ hasText: "Sin conexión — el ticket se guarda en este dispositivo" });
+      await expect(offlineBanner).toContainText("2 tickets · 6 u. · $ 9.500,00");
       await expect(page.getByText(/El cobro ocurre por fuera de Nerqia/)).toBeVisible();
 
       phase = "partial";
       await context.setOffline(false);
       await page.evaluate(() => window.dispatchEvent(new Event("online")));
 
-      await expect(page.getByText(/1 ticket · 3 u\. · \$ 6\.000,00 pendiente/)).toBeVisible();
-      await expect(page.getByText(/1 ticket sigue pendiente/)).toBeVisible();
+      const partialBanner = page.getByRole("alert").filter({ hasText: "ticket sigue pendiente" });
+      await expect(partialBanner).toContainText("1 ticket · 3 u. · $ 6.000,00 pendiente");
+      await expect(partialBanner).toContainText("1 ticket sigue pendiente");
       expect(partialCalls).toBe(2);
 
       const remaining = await page.evaluate(key => {

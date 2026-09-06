@@ -223,6 +223,9 @@ exige firma y el portal Stripe heredado responde como retirado.
 - CI y desarrollo quedan alineados sobre Node.js 24 y las acciones oficiales
   vigentes de GitHub. Cuando falla el gate E2E, conserva siete días capturas,
   contexto y traces sin publicar el estado autenticado de la sesión;
+- el cierre del carrito móvil vive en su encabezado operativo y no debajo de
+  banners globales. La verificación responsive distingue excepciones JavaScript
+  de fallos de red recuperables registrados para observabilidad;
 - Dashboard, Analytics, Reportes y P&L comparten ahora un rango civil estable:
   los cambios de período invalidan sus memoizaciones, los límites incluyen el
   día completo y una columna `date` ya no retrocede por conversión UTC en

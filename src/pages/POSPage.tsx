@@ -2524,6 +2524,17 @@ export default function POSPage() {
               <Trash2 className="w-3 h-3" />Limpiar
             </button>
           )}
+          {showCart && (
+            <button
+              type="button"
+              onClick={() => setShowCart(false)}
+              className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground xl:hidden"
+              aria-label="Cerrar carrito"
+              title="Cerrar carrito"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -3911,15 +3922,8 @@ export default function POSPage() {
           {/* Mobile cart slide-up */}
           {showCart && (
             <div className="pos-mobile-cart absolute inset-x-0 bottom-0 z-40 flex h-[min(85dvh,48rem)] flex-col rounded-t-2xl border-t border-border bg-card shadow-2xl xl:hidden">
-              <div className="flex justify-center pt-3 pb-1">
-                <button
-                  onClick={() => setShowCart(false)}
-                  className="text-muted-foreground"
-                  aria-label="Cerrar carrito"
-                  title="Cerrar carrito"
-                >
-                  <ChevronUp className="w-5 h-5" />
-                </button>
+              <div aria-hidden="true" className="flex justify-center pb-1 pt-3">
+                <span className="h-1 w-10 rounded-full bg-border" />
               </div>
               <div className="flex-1 overflow-hidden">
                 {cartPanel}

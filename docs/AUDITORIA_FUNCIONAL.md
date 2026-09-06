@@ -173,6 +173,11 @@ verde.
   “Árabe”, reabre correctamente tras un reload y selecciona el cierre visible
   del carrito móvil. Las trazas/capturas fallidas quedan como artefactos del CI
   durante siete días; la sesión autenticada no se incluye.
+- La primera evidencia descargada encontró un defecto de interacción real: el
+  aviso de suscripción podía cubrir el cierre superior del carrito móvil. El
+  cierre pasó al encabezado del carrito. También corrigió aserciones de moneda
+  demasiado rígidas y separó fallos de red recuperables de excepciones
+  JavaScript.
 - El runtime técnico sube a Node.js 24 y `checkout/setup-node` v7, conforme al
   uso oficial vigente, eliminando la combinación EOL/compatibilidad forzada que
   GitHub ya advertía en cada corrida.

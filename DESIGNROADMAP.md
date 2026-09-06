@@ -83,7 +83,8 @@ contrato visual reconoce esa superposición deliberada y valida primero la
 superficie o el guard de permisos, luego resuelve el prompt; así una pantalla
 válida no aparece rota sólo porque dos elementos accesibles coexisten.
 
-El carrito móvil expone un único cierre accesible mientras está abierto y la
+El carrito móvil expone un único cierre accesible dentro de su encabezado,
+fuera del área que pueden cubrir avisos globales, y la
 barra de categorías tiene nombre semántico. La matriz ya no depende de un rubro
 o una sucursal particular: valida el catálogo y la orientación operativa que
 corresponden a la organización real en 360, 768, 1024, 1092, 1280 y 1440 px.
