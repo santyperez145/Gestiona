@@ -2,6 +2,8 @@ project_id = "hummeopatkniwkyrrhwc"
 
 [auth]
 site_url = "https://nerqia.app"
+minimum_password_length = 10
+password_requirements = "lower_upper_letters_digits"
 additional_redirect_urls = [
   "https://nerqia.app/**",
   "https://www.nerqia.app/**",
