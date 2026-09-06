@@ -282,6 +282,12 @@ test.describe("ficha de producto", () => {
 });
 
 test.describe("carrito", () => {
+  test("el checkout vacío explica el estado como título principal", async ({ page }) => {
+    await page.goto(tienda("/checkout"));
+    await expect(page.getByRole("heading", { level: 1, name: "Tu carrito está vacío" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Ver productos" })).toBeVisible();
+  });
+
   test("el resumen completo no se convierte en un overlay", async ({ page }) => {
     const errores: string[] = [];
     page.on("console", message => { if (message.type() === "error") errores.push(message.text()); });

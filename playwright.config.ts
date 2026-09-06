@@ -24,6 +24,15 @@ if (!Number.isInteger(PORT) || PORT < 1024 || PORT > 65_535) {
 }
 const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${PORT}`;
 const reuseExistingServer = process.env.E2E_REUSE_SERVER === "true";
+const missingLocalRuntime = !process.env.E2E_BASE_URL && (
+  !process.env.VITE_SUPABASE_URL || !process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+);
+if (missingLocalRuntime) {
+  throw new Error(
+    "E2E local requiere VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY. "
+    + "Definilas en el entorno o usá E2E_BASE_URL=https://nerqia.app para el barrido público de sólo lectura.",
+  );
+}
 
 export default defineConfig({
   testDir: "./e2e",

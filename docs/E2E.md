@@ -1,6 +1,6 @@
 # E2E críticos
 
-**Estado:** gate vigente. **Corte:** 2026-09-04.
+**Estado:** gate vigente. **Corte:** 2026-09-06.
 
 La puerta E2E prueba la tienda pública en Chromium de escritorio y teléfono, y
 las superficies críticas del panel con una identidad técnica. Los specs leen la
@@ -21,6 +21,9 @@ base vinculada; no crean ventas, órdenes, envíos ni comprobantes.
 - CI define `E2E_REQUIRE_AUTH=true`: una credencial ausente falla, no saltea.
 - La identidad de CI es miembro `admin` de una organización, no staff de
   plataforma. No tiene acceso a `/platform`.
+- Local falla antes de abrir 72 browsers si faltan las dos variables públicas
+  de Supabase. Una pantalla vacía por `supabaseUrl is required` no se confunde
+  con 72 regresiones de producto.
 
 Esta separación evita dos falsos verdes que existían: levantar la app sin
 conexión a Supabase y saltear silenciosamente todo el panel.
@@ -37,6 +40,18 @@ tipo de bundle que llega a producción y transforma ese caso en una señal útil
 npm run test:e2e:public
 npm run test:e2e:ci
 ~~~
+
+Si esta PC no tiene el runtime público local, el barrido público puede ejecutarse
+contra el artefacto publicado. Los specs interceptan visitas, carritos e inicios
+de checkout y no crean pedidos:
+
+~~~bash
+E2E_BASE_URL=https://nerqia.app npm run test:e2e:public
+~~~
+
+Última evidencia productiva (2026-09-06): **70 aprobados y 2 omitidos** en
+Chromium desktop/mobile. Los dos omitidos requieren que el catálogo real tenga
+un producto completamente agotado; las variantes agotadas sí quedaron cubiertas.
 
 Para reutilizar deliberadamente un servidor local:
 

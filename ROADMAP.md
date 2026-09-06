@@ -193,11 +193,18 @@ exige firma y el portal Stripe heredado responde como retirado.
   en Productos, ceros prematuros en Platform, reentrada destructiva al onboarding,
   títulos aislados y jerarquía del checkout vacío. La matriz viva está en
   [Auditoría funcional](docs/AUDITORIA_FUNCIONAL.md);
+- auditoría pública Playwright 2026-09-06: **70 escenarios desktop/mobile
+  aprobados y 2 omitidos con causa explícita**; el gate ahora falla temprano si
+  el runtime local no tiene Supabase y admite un barrido publicado de sólo
+  lectura. Login, recuperación y checkout vacío sumaron contratos directos;
+- Proveedores/Pagos ya no es un placeholder: presenta hasta 500 movimientos
+  persistidos, total real, proveedor, concepto, método, filtros y error
+  recuperable sin duplicar Compras ni Finance;
 - rutas privadas y shells son lazy; la landing no descarga el panel completo;
 - los deploys no recargan automáticamente: anuncian la versión y actualizan por
   acción explícita;
 - corte técnico 2026-09-05: typecheck, lint con **0 errores/142 warnings
-  conocidos**, **2.787 tests en 308 archivos** (`npm test`), las **76 Edge
+  conocidos**, **2.791 tests en 309 archivos** (`npm test`), las **76 Edge
   Functions** pasan su typecheck y build/PWA permanece verde;
 - el deploy productivo se verifica después de cada push tanto en la tienda
   pública como en Commerce con una sesión autenticada.

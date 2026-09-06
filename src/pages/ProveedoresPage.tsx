@@ -60,6 +60,20 @@ type SupplierDebt = {
   created_at: string;
 };
 
+type SupplierPayment = {
+  id: string;
+  supplier_debt_id: string;
+  amount_ars: number;
+  method: string;
+  note: string | null;
+  paid_at: string;
+  supplier_debts: {
+    supplier_name: string;
+    description: string;
+    supplier_id: string | null;
+  } | null;
+};
+
 const DEBT_EMPTY = { supplier_name: "", supplier_id: "", description: "", amount_ars: "", due_date: "", notes: "" };
 
 export default function ProveedoresPage() {
@@ -92,22 +106,47 @@ export default function ProveedoresPage() {
     "proveedores",
   );
   const [allPurchases, setAllPurchases] = useState<any[]>([]);
+  const [payments, setPayments] = useState<SupplierPayment[]>([]);
+  const [paymentCount, setPaymentCount] = useState(0);
+  const [paymentSearch, setPaymentSearch] = useState("");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [poOpen, setPoOpen] = useState(false);
   const [poSupplierId, setPoSupplierId] = useState<string | undefined>(undefined);
   const [editingNote, setEditingNote] = useState<{ id: string; value: string } | null>(null);
 
   const load = async () => {
-    if (!activeOrg) return;
+    if (!activeOrg) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const [{ data: suppData }, { data: debtData }, { data: purchData }] = await Promise.all([
-      supabase.from("suppliers").select("*").eq("org_id", activeOrg.id).order("name"),
-      supabase.from("supplier_debts").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
-      supabase.from("purchases").select("id, supplier_name:supplier, supplier_id, total_ars, total_usd, date, product_name, quantity").eq("org_id", activeOrg.id).order("date", { ascending: false }),
-    ]);
-    setSuppliers((suppData as Supplier[]) || []);
-    setDebts(debtData || []);
-    setAllPurchases(purchData || []);
-    setLoading(false);
+    setLoadError(null);
+    try {
+      const [supplierResponse, debtResponse, purchaseResponse, paymentResponse] = await Promise.all([
+        supabase.from("suppliers").select("*").eq("org_id", activeOrg.id).order("name"),
+        supabase.from("supplier_debts").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
+        supabase.from("purchases").select("id, supplier_name:supplier, supplier_id, total_ars, total_usd, date, product_name, quantity").eq("org_id", activeOrg.id).order("date", { ascending: false }),
+        supabase
+          .from("supplier_payments")
+          .select("id,supplier_debt_id,amount_ars,method,note,paid_at,supplier_debts(supplier_name,description,supplier_id)", { count: "exact" })
+          .eq("org_id", activeOrg.id)
+          .order("paid_at", { ascending: false })
+          .limit(500),
+      ]);
+      const failed = [supplierResponse.error, debtResponse.error, purchaseResponse.error, paymentResponse.error].find(Boolean);
+      if (failed) throw failed;
+      setSuppliers((supplierResponse.data as Supplier[]) || []);
+      setDebts(debtResponse.data || []);
+      setAllPurchases(purchaseResponse.data || []);
+      setPayments((paymentResponse.data || []) as unknown as SupplierPayment[]);
+      setPaymentCount(paymentResponse.count || 0);
+    } catch (error) {
+      console.error("[Proveedores] no se pudo cargar la operación", error);
+      setLoadError("No pudimos actualizar proveedores, deudas y pagos. Conservamos la última información visible.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [activeOrg]);
@@ -171,6 +210,24 @@ export default function ProveedoresPage() {
 
   const pendingDebts = useMemo(() => debts.filter(d => d.status !== "paid"), [debts]);
   const totalPending = useMemo(() => pendingDebts.reduce((s, d) => s + Number(d.remaining_ars), 0), [pendingDebts]);
+  const paymentFacts = useMemo(() => {
+    const last30Boundary = Date.now() - 30 * 86_400_000;
+    const visibleTotal = payments.reduce((sum, payment) => sum + Number(payment.amount_ars || 0), 0);
+    const last30 = payments
+      .filter(payment => new Date(payment.paid_at).getTime() >= last30Boundary)
+      .reduce((sum, payment) => sum + Number(payment.amount_ars || 0), 0);
+    const suppliersPaid = new Set(payments.map(payment => payment.supplier_debts?.supplier_id || payment.supplier_debts?.supplier_name).filter(Boolean)).size;
+    return { visibleTotal, last30, suppliersPaid };
+  }, [payments]);
+  const filteredPayments = useMemo(() => {
+    const query = paymentSearch.trim().toLocaleLowerCase("es-AR");
+    return payments.filter(payment => {
+      if (paymentMethodFilter !== "all" && payment.method !== paymentMethodFilter) return false;
+      if (!query) return true;
+      return [payment.supplier_debts?.supplier_name, payment.supplier_debts?.description, payment.note, payment.method]
+        .some(value => value?.toLocaleLowerCase("es-AR").includes(query));
+    });
+  }, [paymentMethodFilter, paymentSearch, payments]);
 
   const loadPurchases = async (supplierId: string) => {
     if (purchases[supplierId]) return;
@@ -317,6 +374,16 @@ export default function ProveedoresPage() {
           </div>
         }
       />
+
+      {loadError && (
+        <div role="alert" className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <p className="font-semibold">La actualización quedó incompleta</p>
+            <p className="mt-1 text-xs text-muted-foreground">{loadError}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => void load()}>Reintentar</Button>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -738,9 +805,83 @@ export default function ProveedoresPage() {
 
       {/* ── Pagos Tab ── */}
       {activeTab === 'pagos' && (
-        <div className="bg-card border border-border/60 rounded-xl p-8 text-center">
-          <CreditCard className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">Historial de pagos a proveedores — próximamente</p>
+        <div className="space-y-4 pb-12" aria-label="Historial de pagos a proveedores">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <KPICard label="Pagado visible" value={formatARS(paymentFacts.visibleTotal)} icon={DollarSign} color="success"
+              sub={paymentCount > payments.length ? `últimos ${payments.length} de ${paymentCount}` : `${paymentCount} movimientos`} />
+            <KPICard label="Últimos 30 días" value={formatARS(paymentFacts.last30)} icon={Clock} color="blue" sub="según fecha de pago" />
+            <KPICard label="Proveedores pagados" value={paymentFacts.suppliersPaid} icon={Building2} color="primary" sub="en el historial visible" />
+            <KPICard label="Movimientos" value={paymentCount} icon={CreditCard} color="warning" sub="registrados en total" />
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={paymentSearch}
+                onChange={event => setPaymentSearch(event.target.value)}
+                placeholder="Buscar proveedor, concepto o nota…"
+                className="h-9 pl-9"
+              />
+            </div>
+            <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+              <SelectTrigger className="h-9 w-full bg-card sm:w-48" aria-label="Filtrar pagos por método">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los métodos</SelectItem>
+                <SelectItem value="efectivo">Efectivo</SelectItem>
+                <SelectItem value="transferencia">Transferencia</SelectItem>
+                <SelectItem value="cheque">Cheque</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {loading ? (
+            <div className="space-y-2" aria-label="Cargando pagos">
+              {[1, 2, 3].map(item => <div key={item} className="h-14 animate-pulse rounded-xl bg-muted/40" />)}
+            </div>
+          ) : filteredPayments.length === 0 ? (
+            <div className="rounded-xl border border-border/60 bg-card p-10 text-center">
+              <CreditCard className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
+              <p className="font-medium">{payments.length === 0 ? "Todavía no hay pagos registrados" : "No hay pagos que coincidan"}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {payments.length === 0 ? "Los pagos parciales o totales de Aging AP aparecerán acá." : "Probá otro texto o método de pago."}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-border/60 bg-card">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Fecha</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Proveedor</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Concepto</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Método</th>
+                    <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Importe</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {filteredPayments.map(payment => (
+                    <tr key={payment.id} className="transition-colors hover:bg-muted/20">
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
+                        {new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(payment.paid_at))}
+                      </td>
+                      <td className="px-4 py-3 font-medium">{payment.supplier_debts?.supplier_name || "Proveedor eliminado"}</td>
+                      <td className="max-w-[260px] px-4 py-3">
+                        <p className="truncate">{payment.supplier_debts?.description || "Pago de deuda"}</p>
+                        {payment.note && <p className="mt-0.5 truncate text-xs text-muted-foreground">{payment.note}</p>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant="outline" className="capitalize">{payment.method || "sin informar"}</Badge>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold text-emerald-500">{formatARS(Number(payment.amount_ars))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

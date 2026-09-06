@@ -57,3 +57,14 @@ test('las superficies cambian contenido y sostienen WCAG A/AA', async ({ page })
     throw new Error(detail);
   }
 });
+
+test('acceso y recuperación conservan una identidad de pestaña específica', async ({ page }) => {
+  await page.goto('/login');
+  await expect(page).toHaveTitle('Iniciar sesión | Nerqia');
+  await expect(page.getByRole('heading', { name: 'Bienvenido de vuelta' })).toBeVisible();
+
+  await page.goto('/reset-password');
+  await expect(page).toHaveTitle('Recuperar contraseña | Nerqia');
+  await expect(page.getByRole('heading', { name: 'Enlace inválido' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Solicitar un enlace nuevo' })).toBeVisible();
+});

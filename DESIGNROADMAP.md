@@ -63,6 +63,11 @@ genéricos en superficies aisladas, el título semántico del checkout vacío,
 reentrada al onboarding y ceros transitorios en Platform. La matriz y sus gates
 están en [Auditoría funcional](docs/AUDITORIA_FUNCIONAL.md).
 
+El corte 2026-09-06 agregó evidencia responsive automatizada sobre landing,
+storefront, acceso y checkout (70 casos públicos verdes) y reemplazó el vacío
+visual de Proveedores/Pagos por una superficie operativa con KPIs, filtros,
+tabla, carga, vacío y error recuperable.
+
 ## 5. Arquitectura de información objetivo de Finance
 
 Finance usa el lenguaje de Mendel como referencia de trabajo y el de Nerqia

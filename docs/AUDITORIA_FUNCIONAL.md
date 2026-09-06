@@ -1,6 +1,6 @@
 # Auditoría funcional continua
 
-**Corte:** 2026-09-05. **Entorno:** producción (`nerqia.app`) con sesión real y
+**Corte:** 2026-09-06. **Entorno:** producción (`nerqia.app`) con sesión real y
 tienda pública. Este documento es el registro vigente; los cortes anteriores
 quedan en Git.
 
@@ -143,6 +143,13 @@ verde.
 - El siguiente barrido añade contratos de acción por página: cada CTA se
   clasifica como lectura, borrador reversible, sandbox proveedor o mutación
   productiva aprobada.
+- Proveedores dejó de mostrar un módulo ficticio “próximamente”: Pagos lee los
+  movimientos persistidos, su deuda y proveedor, con búsqueda, método, totales,
+  límite visible explícito y recuperación ante errores.
+- Playwright productivo completó **70 casos públicos** desktop/mobile; dos
+  escenarios dependientes de un producto totalmente agotado se omitieron de
+  forma explícita. Checkout vacío, login y recuperación tienen contratos
+  directos adicionales.
 
 ## Benchmark aplicado
 
