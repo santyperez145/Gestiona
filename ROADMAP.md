@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Corte:** 2026-09-04. **Estado:** documento rector de producto y ejecución.
+**Corte:** 2026-09-05. **Estado:** documento rector de producto y ejecución.
 La historia de entregas vive en Git; este archivo conserva únicamente el estado
 actual, las decisiones vigentes y el trabajo siguiente.
 
@@ -165,6 +165,15 @@ conservan el detalle sólo en observabilidad y muestran copy propio de comprador
 Quedan activar el
 proveedor, Auth SMTP, secreto del webhook y la matriz real de certificación.
 Debe reducir intervención/MTTR con evidencia antes de sumar paneles.
+
+Identidad ya tiene un único contrato de contraseña (10+ caracteres, mayúscula,
+minúscula y número), recuperación compatible con hash/PKCE y sesión válida,
+copy que no enumera cuentas ni expone infraestructura, reautenticación antes
+del cambio desde Perfil y cierre de las demás sesiones. La configuración
+versionada exige cambio seguro; falta certificar alta, confirmación, magic link,
+recuperación y cambio de email con Auth SMTP real. Billing mantiene Mercado Pago
+como único proveedor: alta/baja son server-side, el webhook de suscripciones
+exige firma y el portal Stripe heredado responde como retirado.
 
 ### Experiencia y rendimiento
 

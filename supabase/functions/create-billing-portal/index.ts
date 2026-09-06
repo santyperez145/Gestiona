@@ -1,57 +1,19 @@
-import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20" });
-
-const corsHeaders = {
+// Compatibilidad para clientes antiguos. Nerqia cobra sus planes con Mercado
+// Pago y la gestión vigente vive en /suscripcion + cancel-subscription.
+// Mantener un portal Stripe aparentemente activo duplicaba proveedores,
+// requería un secreto que producción no usa y podía confundir soporte.
+const headers = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json",
 };
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
-
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401, headers: corsHeaders });
-  }
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
-  if (authError || !user) {
-    return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401, headers: corsHeaders });
-  }
-
-  const { orgId, returnUrl } = await req.json();
-  if (!orgId) {
-    return new Response(JSON.stringify({ error: "orgId requerido" }), { status: 400, headers: corsHeaders });
-  }
-
-  // Get stripe_customer_id from subscriptions
-  const { data: sub } = await supabase
-    .from("subscriptions")
-    .select("stripe_customer_id")
-    .eq("org_id", orgId)
-    .maybeSingle();
-
-  if (!sub?.stripe_customer_id) {
-    return new Response(
-      JSON.stringify({ error: "No hay suscripción de Stripe asociada a esta organización" }),
-      { status: 400, headers: corsHeaders },
-    );
-  }
-
-  const session = await stripe.billingPortal.sessions.create({
-    customer: sub.stripe_customer_id,
-    return_url: returnUrl || `${req.headers.get("origin")}/ajustes`,
-  });
-
-  return new Response(
-    JSON.stringify({ url: session.url }),
-    { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-  );
+Deno.serve((req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers });
+  return new Response(JSON.stringify({
+    error: "La gestión del plan se realiza desde Mi plan.",
+    code: "BILLING_PORTAL_RETIRED",
+    use: "/suscripcion",
+  }), { status: 410, headers });
 });

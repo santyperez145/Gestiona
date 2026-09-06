@@ -1,6 +1,6 @@
 # Nerqia — roadmap de diseño
 
-**Corte:** 2026-09-04. Este documento define la dirección visual y los próximos
+**Corte:** 2026-09-05. Este documento define la dirección visual y los próximos
 cierres de experiencia. Producto y prioridad viven en [ROADMAP.md](ROADMAP.md);
 los patrones completos viven en
 [el estándar competitivo](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md).
@@ -138,6 +138,9 @@ Cada vista debe contemplar:
 
 1. WCAG 2.2 AA, teclado, foco y lector.
 2. 360/390/768/1024/1280×720/1440 sin overflow ni solapamientos.
+3. Identidad: alta, acceso, “me olvidé”, recuperación y cambio de clave comparten
+   validación, estados válidos/expirados y lenguaje de cliente; ningún mensaje
+   nombra Supabase, configuración interna o documentación del equipo.
 3. INP/LCP/CLS de campo, presupuesto de assets y lazy boundaries.
 4. Navegación sin recarga y actualización PWA manual segura.
 5. Contraste claro/oscuro y textos largos reales.

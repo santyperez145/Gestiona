@@ -12,6 +12,7 @@ import { User, Lock, Building2, Camera, Save, Crown, ShieldCheck, Mail, Smartpho
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { QRCodeSVG } from 'qrcode.react';
 import PageHeader from '@/components/shared/PageHeader';
+import { authErrorForCustomer, checkPassword, MIN_PASSWORD_LENGTH, passwordValidationMessage } from '@/lib/passwordSecurity';
 
 // ─── MFA types ────────────────────────────────────────────────────────────────
 interface MfaFactor {
@@ -44,6 +45,7 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
+  const passwordCheck = checkPassword(newPassword);
 
   const [newEmail, setNewEmail] = useState('');
   const [savingEmail, setSavingEmail] = useState(false);
@@ -175,14 +177,36 @@ export default function ProfilePage() {
       toast.error('Las contraseñas no coinciden');
       return;
     }
-    if (newPassword.length < 8) {
-      toast.error('La contraseña debe tener al menos 8 caracteres');
+    if (!currentPassword) {
+      toast.error('Ingresá tu contraseña actual');
+      return;
+    }
+    const passwordError = passwordValidationMessage(newPassword);
+    if (passwordError) {
+      toast.error(passwordError);
       return;
     }
     setSavingPassword(true);
+    // Una sesión abierta no demuestra que quien está frente a la pantalla
+    // conoce la clave. Reautenticamos antes de mutar la credencial.
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email: user?.email ?? '',
+      password: currentPassword,
+    });
+    if (reauthError) {
+      console.error('profile-password-reauth:', reauthError);
+      toast.error(authErrorForCustomer(reauthError, 'La contraseña actual no es correcta.'));
+      setSavingPassword(false);
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) toast.error(error.message);
+    if (error) {
+      console.error('profile-password-change:', error);
+      toast.error(authErrorForCustomer(error, 'No pudimos actualizar la contraseña. Intentá nuevamente.'));
+    }
     else {
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' });
+      if (signOutError) console.error('profile-password session cleanup:', signOutError);
       toast.success('Contraseña actualizada');
       setCurrentPassword('');
       setNewPassword('');
@@ -344,11 +368,22 @@ export default function ProfilePage() {
         </p>
         <div className="space-y-3 pb-12">
           <div className="space-y-1.5">
+            <Label>Contraseña actual</Label>
+            <Input
+              type="password" value={currentPassword}
+              onChange={e => setCurrentPassword(e.target.value)}
+              placeholder="Tu contraseña actual"
+              autoComplete="current-password"
+              className="h-9"
+            />
+          </div>
+          <div className="space-y-1.5">
             <Label>Nueva contraseña</Label>
             <Input
               type="password" value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
-              placeholder="Mínimo 8 caracteres"
+              placeholder={`Mínimo ${MIN_PASSWORD_LENGTH} caracteres`}
+              autoComplete="new-password"
               className="h-9"
             />
           </div>
@@ -358,6 +393,7 @@ export default function ProfilePage() {
               type="password" value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
               placeholder="Repetí la contraseña"
+              autoComplete="new-password"
               className="h-9"
               onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
             />
@@ -365,10 +401,18 @@ export default function ProfilePage() {
           {newPassword && confirmPassword && newPassword !== confirmPassword && (
             <p className="text-xs text-destructive">Las contraseñas no coinciden</p>
           )}
+          {newPassword && (
+            <div className="grid grid-cols-2 gap-1 text-[11px] text-muted-foreground" aria-live="polite">
+              <span className={passwordCheck.checks.length ? 'text-emerald-600' : ''}>• {MIN_PASSWORD_LENGTH}+ caracteres</span>
+              <span className={passwordCheck.checks.uppercase ? 'text-emerald-600' : ''}>• Una mayúscula</span>
+              <span className={passwordCheck.checks.lowercase ? 'text-emerald-600' : ''}>• Una minúscula</span>
+              <span className={passwordCheck.checks.number ? 'text-emerald-600' : ''}>• Un número</span>
+            </div>
+          )}
         </div>
         <Button
           onClick={handleChangePassword}
-          disabled={savingPassword || !newPassword || newPassword !== confirmPassword}
+          disabled={savingPassword || !currentPassword || !passwordCheck.valid || newPassword !== confirmPassword}
           size="sm"
         >
           <Lock className="w-3.5 h-3.5 mr-1.5" />

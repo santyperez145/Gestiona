@@ -6,6 +6,9 @@ import { toast } from 'sonner';
 import { KeyRound, CheckCircle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BrandLogo from '@/components/shared/BrandLogo';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/lib/auth';
+import { authErrorForCustomer, checkPassword, MIN_PASSWORD_LENGTH, passwordValidationMessage } from '@/lib/passwordSecurity';
 
 function AuthShell({ children }: { children: React.ReactNode }) {
   return (
@@ -26,35 +29,42 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [isRecovery, setIsRecovery] = useState(false);
+  const { session, loading: authLoading, passwordRecovery } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes('type=recovery')) {
-      setIsRecovery(true);
-    }
-  }, []);
+  const passwordCheck = checkPassword(password);
+  const linkSignalsRecovery = window.location.hash.includes('type=recovery')
+    || new URLSearchParams(window.location.search).has('code');
+  const recoveryReady = Boolean(session && (passwordRecovery || linkSignalsRecovery));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
+    const passwordError = passwordValidationMessage(password);
+    if (passwordError) { toast.error(passwordError); return; }
     if (password !== confirm) { toast.error('Las contraseñas no coinciden'); return; }
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
+      // Invalida el resto de las sesiones sin cerrar ésta, para que un enlace
+      // robado no deje accesos antiguos activos después del cambio.
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' });
+      if (signOutError) console.error('password-recovery session cleanup:', signOutError);
       setSuccess(true);
       toast.success('Contraseña actualizada correctamente');
       setTimeout(() => navigate('/'), 2000);
     } catch (err: any) {
-      toast.error(err.message || 'Error al actualizar la contraseña');
+      console.error('password-recovery:', err);
+      toast.error(authErrorForCustomer(err, 'No pudimos actualizar la contraseña. Solicitá un enlace nuevo e intentá otra vez.'));
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isRecovery) {
+  if (authLoading) {
+    return <AuthShell><p className="text-center text-sm text-muted-foreground">Validando el enlace seguro…</p></AuthShell>;
+  }
+
+  if (!recoveryReady) {
     return (
       <AuthShell>
         <div className="text-center">
@@ -65,10 +75,8 @@ export default function ResetPasswordPage() {
           <p className="text-[12px] text-muted-foreground/55 mb-6 leading-relaxed">
             Este enlace de recuperación no es válido o expiró.
           </p>
-          <Button onClick={() => navigate('/')} variant="outline" className="w-full">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver al inicio
-          </Button>
+          <Button asChild variant="outline" className="w-full"><Link to="/login?mode=forgot">Solicitar un enlace nuevo</Link></Button>
+          <Button onClick={() => navigate('/login')} variant="ghost" className="w-full mt-2"><ArrowLeft className="w-4 h-4 mr-2" />Volver al acceso</Button>
         </div>
       </AuthShell>
     );
@@ -99,7 +107,7 @@ export default function ResetPasswordPage() {
             Nueva contraseña
           </h1>
           <p className="text-[12px] text-muted-foreground/55 mt-1">
-            Ingresá y confirmá tu nueva contraseña.
+            Elegí una clave nueva. Al guardarla vamos a cerrar tus otras sesiones por seguridad.
           </p>
         </div>
 
@@ -116,7 +124,8 @@ export default function ResetPasswordPage() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                minLength={6}
+                minLength={MIN_PASSWORD_LENGTH}
+                autoComplete="new-password"
               />
             </div>
             <div>
@@ -127,8 +136,15 @@ export default function ResetPasswordPage() {
                 onChange={e => setConfirm(e.target.value)}
                 placeholder="••••••••"
                 required
-                minLength={6}
+                minLength={MIN_PASSWORD_LENGTH}
+                autoComplete="new-password"
               />
+            </div>
+            <div className="grid grid-cols-2 gap-1 text-[11px] text-muted-foreground" aria-live="polite">
+              <span className={passwordCheck.checks.length ? 'text-emerald-600' : ''}>• {MIN_PASSWORD_LENGTH}+ caracteres</span>
+              <span className={passwordCheck.checks.uppercase ? 'text-emerald-600' : ''}>• Una mayúscula</span>
+              <span className={passwordCheck.checks.lowercase ? 'text-emerald-600' : ''}>• Una minúscula</span>
+              <span className={passwordCheck.checks.number ? 'text-emerald-600' : ''}>• Un número</span>
             </div>
             <Button type="submit" disabled={loading} className="w-full">
               {loading ? 'Actualizando...' : 'Actualizar contraseña'}

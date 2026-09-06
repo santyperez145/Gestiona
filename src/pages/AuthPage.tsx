@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { ArrowLeft, ArrowRight, BarChart3, Boxes, Check, CircleDollarSign, Mail, ShieldCheck, Sparkles } from 'lucide-react';
 import BrandLogo from '@/components/shared/BrandLogo';
+import { authErrorForCustomer, MIN_PASSWORD_LENGTH, passwordValidationMessage } from '@/lib/passwordSecurity';
 
 const SHOWCASE_ITEMS = [
   { icon: BarChart3, title: 'Ventas y margen', description: 'La señal que importa, al alcance del equipo.' },
@@ -20,10 +21,13 @@ function AuthBrand() {
 }
 
 export default function AuthPage() {
-  const { user, signIn, signUp, signInWithEmailOtp, verifyEmailOtp } = useAuth();
+  const { user, signIn, signUp, signInWithEmailOtp, verifyEmailOtp, requestPasswordReset } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [mode, setMode] = useState<AuthMode>(() => searchParams.get('mode') === 'register' ? 'register' : 'login');
+  const [mode, setMode] = useState<AuthMode>(() => {
+    const requested = searchParams.get('mode');
+    return requested === 'register' || requested === 'forgot' || requested === 'otp' ? requested : 'login';
+  });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -43,9 +47,8 @@ export default function AuthPage() {
     setLoading(true);
     try {
       if (mode === 'forgot') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
-        if (error) throw error;
-        toast.success('Te enviamos un email para restablecer tu contraseña');
+        await requestPasswordReset(email);
+        toast.success('Si existe una cuenta con ese email, vas a recibir un enlace para recuperar el acceso.');
         setMode('login');
       } else if (mode === 'otp') {
         if (!otpSent) {
@@ -66,16 +69,18 @@ export default function AuthPage() {
         toast.success('¡Bienvenido de vuelta!');
       } else {
         if (!name.trim()) { toast.error('Ingresá tu nombre'); setLoading(false); return; }
-        if (password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); setLoading(false); return; }
+        const passwordError = passwordValidationMessage(password);
+        if (passwordError) { toast.error(passwordError); setLoading(false); return; }
         await signUp(email, password, name);
         toast.success('Cuenta creada. Revisá tu email para confirmar.');
       }
     } catch (err: any) {
-      const msg = err?.message || 'Error de autenticación';
-      if (/signups not allowed|user not found|unable to validate/i.test(msg)) {
+      const msg = err?.message || '';
+      console.error('auth-flow:', err);
+      if (mode !== 'forgot' && /signups not allowed|user not found|unable to validate/i.test(msg)) {
         toast.error('No hay una cuenta con ese email. Creá una cuenta primero.');
       } else {
-        toast.error(msg);
+        toast.error(authErrorForCustomer(err, 'No pudimos completar el acceso. Intentá nuevamente.'));
       }
     } finally {
       setLoading(false);
@@ -94,15 +99,17 @@ export default function AuthPage() {
       });
       if (error) {
         if (/provider.*not enabled|unsupported provider/i.test(error.message)) {
-          toast.error('Google todavía no está habilitado en este entorno. Pedile al administrador que siga docs/GOOGLE_OAUTH_SETUP.md.');
+          toast.error('El acceso con Google no está disponible por el momento. Podés ingresar con email.');
         } else if (/redirect/i.test(error.message)) {
-          toast.error('URL de redirección no autorizada. Revisá Redirect URLs en Supabase Auth.');
+          toast.error('No pudimos completar el acceso con Google. Intentá nuevamente desde esta página.');
         } else {
-          toast.error(error.message || 'Error al conectar con Google');
+          console.error('google-auth:', error);
+          toast.error(authErrorForCustomer(error, 'No pudimos conectar con Google. Intentá nuevamente.'));
         }
       }
     } catch (err: any) {
-      toast.error(err.message || 'Error inesperado con Google');
+      console.error('google-auth:', err);
+      toast.error(authErrorForCustomer(err, 'No pudimos conectar con Google. Intentá nuevamente.'));
     } finally {
       setLoading(false);
     }
@@ -193,7 +200,8 @@ export default function AuthPage() {
                       await signInWithEmailOtp(email);
                       toast.success('Te reenviamos el email');
                     } catch (err: any) {
-                      toast.error(err?.message || 'No se pudo reenviar');
+                      console.error('otp-resend:', err);
+                      toast.error(authErrorForCustomer(err, 'No pudimos reenviar el email. Intentá nuevamente.'));
                     } finally {
                       setLoading(false);
                     }
@@ -209,9 +217,7 @@ export default function AuthPage() {
               <Button type="button" variant="outline" className="auth-google" onClick={handleGoogleLogin} disabled={loading}>
                 <span className="auth-google__g">G</span> Continuar con Google
               </Button>
-              <p className="auth-provider-hint">
-                Si Google falla, el dueño debe habilitar el provider en Supabase y completar <code>docs/GOOGLE_OAUTH_SETUP.md</code> (Console + Redirect URLs).
-              </p>
+              <p className="auth-provider-hint">También podés entrar de forma segura con tu email, contraseña o un código de un solo uso.</p>
               <div className="auth-divider"><span>o con email</span></div>
               <div className="auth-tabs" role="tablist" aria-label="Acceso">
                 <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'is-active' : ''} onClick={() => changeMode('login')}>Iniciar sesión</button>
@@ -220,7 +226,8 @@ export default function AuthPage() {
               <form onSubmit={handleSubmit} className="auth-form">
                 {mode === 'register' && <label>Nombre<input value={name} onChange={e => setName(e.target.value)} placeholder="Tu nombre" required /></label>}
                 <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" required autoComplete="email" /></label>
-                <label>Contraseña<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required minLength={6} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
+                <label>Contraseña<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === 'register' ? `Mínimo ${MIN_PASSWORD_LENGTH} caracteres` : 'Tu contraseña'} required minLength={mode === 'register' ? MIN_PASSWORD_LENGTH : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
+                {mode === 'register' && <p className="auth-provider-hint">Usá mayúsculas, minúsculas y al menos un número.</p>}
                 {mode === 'login' && (
                   <div className="auth-form__forgot">
                     <button type="button" onClick={() => changeMode('otp')}>Entrar con enlace o código</button>

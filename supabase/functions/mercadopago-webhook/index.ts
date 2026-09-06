@@ -9,6 +9,7 @@ import {
 } from "../_shared/mercadoPagoOrders.ts";
 import { recordPaymentTransaction } from "../_shared/paymentSettlement.ts";
 import { providerAttemptState, recordPaymentAttempt } from "../_shared/paymentOrchestrator.ts";
+import { tokenDeLaPlataforma } from "../_shared/mpPlataforma.ts";
 
 /**
  * Verifica la firma del webhook de MercadoPago.
@@ -318,12 +319,30 @@ Deno.serve(async (req) => {
     // — el comercio no se cobra a sí mismo.
     if (type === "subscription_preapproval" || type === "subscription_authorized_payment") {
       const suscId = String(body.data?.id || body.id || "");
-      const platformToken = Deno.env.get("MP_PLATFORM_ACCESS_TOKEN");
+      const signature = req.headers.get("x-signature") || "";
+      const requestId = req.headers.get("x-request-id") || "";
+      const signedId = new URL(req.url).searchParams.get("data.id") || suscId;
+      const webhookSecret = Deno.env.get("MP_WEBHOOK_SECRET") || "";
+      if (!webhookSecret) {
+        console.error("MP_WEBHOOK_SECRET no está configurado para suscripciones");
+        return new Response(JSON.stringify({ ok: false, reason: "webhook secret not configured" }), {
+          status: 503, headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (!signature || !requestId
+        || !await verifyMpSignature(signedId, requestId, signature, webhookSecret)) {
+        console.warn(`Firma inválida/ausente para suscripción MP ${suscId}`);
+        return new Response(JSON.stringify({ ok: false, reason: "invalid signature" }), {
+          status: 401, headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const platformToken = await tokenDeLaPlataforma();
 
       if (!suscId || !platformToken) {
         // Sin token no se puede consultar. Se responde 200 igual: un 500 hace
         // que MercadoPago reintente para siempre algo que no va a mejorar solo.
-        console.error(`Webhook de suscripción sin ${!suscId ? "id" : "MP_PLATFORM_ACCESS_TOKEN"}`);
+        console.error(`Webhook de suscripción sin ${!suscId ? "id" : "token de plataforma"}`);
         return new Response(JSON.stringify({ ok: true, reason: "sin configurar" }), {
           headers: { "Content-Type": "application/json" },
         });

@@ -6,12 +6,15 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  passwordRecovery: boolean;
   signUp: (email: string, password: string, name?: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   /** Magic link o código por email. No crea cuenta nueva (login). */
   signInWithEmailOtp: (email: string) => Promise<void>;
   /** Confirma el código de 6–8 dígitos recibido por email. */
   verifyEmailOtp: (email: string, token: string) => Promise<void>;
+  /** Solicita el email de recuperación sin revelar si la cuenta existe. */
+  requestPasswordReset: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -22,10 +25,15 @@ export function authEmailRedirectTo(): string {
   return `${window.location.origin}/`;
 }
 
+export function authPasswordRedirectTo(): string {
+  return `${window.location.origin}/reset-password`;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
 
   useEffect(() => {
     // Initial session load
@@ -36,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true);
       // TOKEN_REFRESHED fires every time the tab regains focus — don't thrash state
       // if it's the same user, only update the session token, not the user object
       if (event === 'TOKEN_REFRESHED') {
@@ -87,15 +96,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
+  const requestPasswordReset = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: authPasswordRedirectTo(),
+    });
+    if (error) throw error;
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    setPasswordRecovery(false);
   };
 
   return (
     <AuthContext.Provider value={{
-      user, session, loading,
-      signUp, signIn, signInWithEmailOtp, verifyEmailOtp, signOut,
+      user, session, loading, passwordRecovery,
+      signUp, signIn, signInWithEmailOtp, verifyEmailOtp, requestPasswordReset, signOut,
     }}>
       {children}
     </AuthContext.Provider>
