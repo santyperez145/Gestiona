@@ -220,12 +220,9 @@ exige firma y el portal Stripe heredado responde como retirado.
 - corte técnico 2026-09-06: typecheck, lint con **0 errores/138 warnings
   conocidos**, **2.802 tests en 311 archivos** (`npm test`), las **76 Edge
   Functions** pasan su typecheck y build/PWA permanece verde;
-- CI y desarrollo quedan alineados sobre Node.js 24 y las acciones oficiales
-  vigentes de GitHub. Cuando falla el gate E2E, conserva siete días capturas,
-  contexto y traces sin publicar el estado autenticado de la sesión;
-- el cierre del carrito móvil vive en su encabezado operativo y no debajo de
-  banners globales. La verificación responsive distingue excepciones JavaScript
-  de fallos de red recuperables registrados para observabilidad;
+- CI y desarrollo usan Node.js 24 y acciones oficiales vigentes. El E2E fallido
+  conserva siete días de evidencia sin sesión autenticada;
+- el carrito móvil conserva su cierre por encima de avisos globales y la matriz separa excepciones JavaScript de fallos de red recuperables;
 - Dashboard, Analytics, Reportes y P&L comparten ahora un rango civil estable:
   los cambios de período invalidan sus memoizaciones, los límites incluyen el
   día completo y una columna `date` ya no retrocede por conversión UTC en
