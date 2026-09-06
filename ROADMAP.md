@@ -200,8 +200,9 @@ exige firma y el portal Stripe heredado responde como retirado.
 - el contrato E2E respeta la arquitectura sin duplicados: Pedidos se prueba en
   su cola canónica, ficha → checkout compara el producto exacto y un permiso
   POS ausente se informa como gate de la identidad técnica, no como diez
-  timeouts engañosos. Queda provisionar POS al usuario E2E y observar Caja en
-  navegador autenticado;
+  timeouts engañosos. La corrida autenticada confirmó que la identidad actual
+  sí alcanza Caja; el locator separa ahora correctamente la superficie del
+  modal de vendedor que coexiste con ella;
 - Proveedores/Pagos ya no es un placeholder: presenta hasta 500 movimientos
   persistidos, total real, proveedor, concepto, método, filtros y error
   recuperable sin duplicar Compras ni Finance;

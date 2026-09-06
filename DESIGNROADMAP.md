@@ -78,6 +78,11 @@ audita como página propia y el editor de Tienda conserva únicamente publicaci�
 catálogo visible, contenido, diseño, pagos y envíos. Esto evita que un test viejo
 obligue a reconstruir duplicaciones que el producto ya retiró.
 
+El POS conserva el buscador montado detrás del prompt opcional de vendedor. El
+contrato visual reconoce esa superposición deliberada y valida primero la
+superficie o el guard de permisos, luego resuelve el prompt; así una pantalla
+válida no aparece rota sólo porque dos elementos accesibles coexisten.
+
 Los filtros globales de fecha conservan la misma selección en URL y ahora
 refrescan todas las métricas dependientes con un único criterio civil inclusivo.
 El período que se ve en el control es exactamente el período de las tarjetas,

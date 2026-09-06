@@ -167,7 +167,7 @@ test.describe("productos", () => {
     await expect(moreActions).toBeVisible();
     await moreActions.click();
     await page.getByRole("menuitem", { name: "Importar Excel/CSV" }).click();
-    const importer = page.getByRole("dialog", { name: "Migrar catálogo" });
+    const importer = page.getByRole("dialog", { name: "Importar catálogo" });
     await expect(importer).toBeVisible();
 
     const fixture = path.resolve("e2e/fixtures/productos-importacion-e2e.csv");
@@ -226,10 +226,14 @@ test.describe("POS", () => {
     const vendedor = page.getByRole("heading", { name: "¿Quién atiende hoy?" });
     const search = page.getByPlaceholder(/Buscar producto/);
     const denied = page.getByRole("heading", { name: "Sin acceso a esta sección" });
-    await expect(vendedor.or(search).or(denied)).toBeVisible();
+    // `pos-root` y el guard son mutuamente excluyentes. El buscador y el modal
+    // de vendedor, en cambio, coexisten en el DOM y no pueden formar un locator
+    // estricto con `or()`.
+    await expect(page.getByTestId("pos-root").or(denied)).toBeVisible();
     if (await denied.isVisible()) {
       test.skip(true, "la identidad E2E no tiene permiso POS; provisionar el módulo en su organización técnica");
     }
+    await vendedor.waitFor({ state: "visible", timeout: 1_000 }).catch(() => undefined);
     if (await vendedor.isVisible()) {
       await page.getByRole("button", { name: "Omitir", exact: true }).click();
     }
