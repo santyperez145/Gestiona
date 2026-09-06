@@ -56,7 +56,8 @@ inventario, clientes, proveedores, compras, ventas, costos, cobros y margen.
 
 Decisiones canónicas: [Commerce OS](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md),
 [Finance](docs/ADR_001_FINANCE_PRODUCT_SURFACE.md) e
-[identidad/dominio](docs/ADR_003_NERQIA_IDENTIDAD_Y_DOMINIO.md).
+[identidad/dominio](docs/ADR_003_NERQIA_IDENTIDAD_Y_DOMINIO.md). La arquitectura
+del control plane de IA vive en [Nerqia Intelligence](docs/NERQIA_INTELLIGENCE.md).
 
 ## 3. Estado actual
 
@@ -89,12 +90,18 @@ Decisiones canónicas: [Commerce OS](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md),
 - migrador único en Productos para Shopify, Tiendanube y planillas propias:
   detecta origen, agrupa variantes e imágenes, conserva identidad externa,
   mueve stock por Kardex y crea redirects por vitrina dentro de una transacción.
+- la ficha de producto conserva carga manual/pegado e incorpora búsqueda de
+  imágenes con licencia comercial server-side, permiso owner/admin, límite de
+  abuso, fuente/licencia visible y selección humana obligatoria.
 
 **Falta para llamarlo Commerce first-level**
 
 - certificar el migrador con archivos reales de comercios, cerrar el mapeo exacto
   de Empretienda, copiar imágenes a storage propio, incorporar clientes y ofrecer
   reversión compensatoria sólo cuando no hubo operaciones posteriores;
+- completar imágenes masivas con matching GTIN/MPN, catálogo/feed autorizado,
+  procedencia durable, copia a Storage, QA y revisión por excepción; Openverse
+  no se autoaplica ni reemplaza un catálogo oficial;
 - validación real con dos vitrinas de una organización y un segundo comercio;
 - certificación live de aprobación/rechazo/timeout/refund en pagos y de etiqueta
   con un transportista contratado;
@@ -187,6 +194,17 @@ exige firma y el portal Stripe heredado responde como retirado.
   conocidos**, **2.755 tests en 301 archivos** (`npm test`) y build/PWA verde;
 - el deploy productivo se verifica después de cada push tanto en la tienda
   pública como en Commerce con una sesión autenticada.
+
+### Nerqia Intelligence
+
+El módulo se diseña como control plane separado y no como un segundo Core:
+señales del Business Graph → plan estructurado → política/aprobación → herramienta
+server-side idempotente → verificación → auditoría. Core y Platform comparten
+infraestructura pero no permisos ni datasets. Precio, publicación, campañas,
+dinero, fiscal, permisos y datos sensibles nunca quedan a discreción de un
+prompt. Primer slice visible: Catalog Steward para imágenes; próximos: jobs
+bulk, catálogo oficial por GTIN/MPN y luego Ventas, Inventario, Margen y Finance
+en shadow mode antes de aumentar autonomía.
 
 ## 4. Gates externos
 

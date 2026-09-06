@@ -86,6 +86,18 @@ const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀'
 const PAGE_SIZE = 30;
 const FULLSCREEN_PRODUCT_WORKSPACE = "flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col overflow-hidden rounded-none border-0 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-6xl sm:rounded-[18px] sm:border";
 
+interface ProductImageCandidate {
+  id: string | null;
+  title: string;
+  url: string;
+  thumbnail: string;
+  source_url: string | null;
+  creator: string | null;
+  provider: string | null;
+  license: string | null;
+  license_version: string | null;
+}
+
 function productLoadErrorMessage(cause: unknown, fallback: string) {
   if (cause instanceof Error && cause.message.trim()) return cause.message;
   if (cause && typeof cause === 'object' && 'message' in cause) {
@@ -2127,6 +2139,10 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
     initialImages.map((u: string) => ({ url: u }))
   );
   const [uploading, setUploading] = useState(false);
+  const [imageSearchOpen, setImageSearchOpen] = useState(false);
+  const [imageSearching, setImageSearching] = useState(false);
+  const [imageCandidates, setImageCandidates] = useState<ProductImageCandidate[]>([]);
+  const [imageSearchError, setImageSearchError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Variants state
   const [variants, setVariants] = useState<any[]>([]);
@@ -2396,6 +2412,38 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
       next.splice(to, 0, it);
       return next;
     });
+  };
+
+  const searchProductImages = async () => {
+    if (!orgId || name.trim().length < 3) {
+      setImageSearchError('Ingresá primero un nombre de producto más específico.');
+      return;
+    }
+    setImageSearching(true);
+    setImageSearchError('');
+    const { data, error } = await supabase.functions.invoke('search-product-images', {
+      body: { org_id: orgId, query: name.trim(), brand: brand.trim(), product_id: product?.id ?? undefined },
+    });
+    if (error || !data?.ok) {
+      console.error('search-product-images:', error ?? data);
+      setImageSearchError(await mensajeDeEdgeFunction(error, data));
+      setImageCandidates([]);
+    } else {
+      setImageCandidates((data.results ?? []) as ProductImageCandidate[]);
+      if (!(data.results ?? []).length) setImageSearchError('No encontramos imágenes abiertas para esa búsqueda. Podés cargar una manualmente.');
+    }
+    setImageSearching(false);
+  };
+
+  const useImageCandidate = (candidate: ProductImageCandidate) => {
+    if (imageItems.some(item => item.url === candidate.url)) {
+      toast.info('Esa imagen ya está agregada.');
+      return;
+    }
+    markDirty();
+    setImageItems(previous => [...previous, { url: candidate.url }].slice(0, 8));
+    setImageSearchOpen(false);
+    toast.success('Imagen agregada. Verificá que corresponda al producto antes de guardar.');
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -2715,7 +2763,12 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
       <div>
         <div className="flex items-center justify-between">
           <label className="text-sm text-muted-foreground">Imágenes del producto (HD, máx 8)</label>
-          <span className="text-[10px] text-muted-foreground/60">La primera es la principal · arrastrá con ◀ ▶</span>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setImageSearchOpen(true)}>
+              <Search className="mr-1.5 h-3.5 w-3.5" /> Buscar imagen
+            </Button>
+            <span className="hidden text-[10px] text-muted-foreground/60 sm:inline">La primera es la principal · ordená con ◀ ▶</span>
+          </div>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-2">
           {imageItems.map((it, idx) => (
@@ -2749,6 +2802,48 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
         </div>
         <p className="text-[10px] text-muted-foreground/60 mt-1">Pegá imágenes con Ctrl+V · se mantienen en calidad original (sin recompresión).</p>
       </div>
+      <Dialog open={imageSearchOpen} onOpenChange={setImageSearchOpen}>
+        <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Buscar una imagen del producto</DialogTitle>
+            <DialogDescription>
+              Buscamos contenido con licencia comercial. Elegí sólo una imagen que represente exactamente el artículo y verificá la licencia en la fuente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <Input value={`${brand ? `${brand} ` : ''}${name}`.trim()} readOnly className="bg-muted" aria-label="Búsqueda de imagen" />
+            <Button type="button" onClick={searchProductImages} disabled={imageSearching || name.trim().length < 3}>
+              {imageSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              <span className="ml-2">Buscar</span>
+            </Button>
+          </div>
+          {imageSearchError && <WorkspaceState kind="empty-filtered" title="Sin resultados utilizables" description={imageSearchError} layout="embedded" />}
+          {imageCandidates.length > 0 && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {imageCandidates.map(candidate => (
+                <article key={candidate.id ?? candidate.url} className="overflow-hidden rounded-lg border border-border bg-card">
+                  <img src={candidate.thumbnail} alt={candidate.title} loading="lazy" className="aspect-square w-full bg-muted object-cover" />
+                  <div className="space-y-2 p-2.5">
+                    <p className="line-clamp-2 text-xs font-medium">{candidate.title}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {[candidate.creator, candidate.license && `${candidate.license.toUpperCase()} ${candidate.license_version ?? ''}`.trim()].filter(Boolean).join(' · ') || 'Fuente abierta'}
+                    </p>
+                    <div className="flex items-center justify-between gap-1">
+                      {candidate.source_url ? (
+                        <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-[10px]" asChild>
+                          <a href={candidate.source_url} target="_blank" rel="noreferrer">Fuente <ExternalLink className="ml-1 h-3 w-3" /></a>
+                        </Button>
+                      ) : <span />}
+                      <Button type="button" size="sm" className="h-7 px-2 text-[10px]" onClick={() => useImageCandidate(candidate)}>Usar</Button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground">La carga manual, pegar desde el portapapeles y las imágenes del CRM importado siguen disponibles.</p>
+        </DialogContent>
+      </Dialog>
       {/* Name + barcode scan */}
       <div>
         <label className="text-sm text-muted-foreground">Nombre *</label>

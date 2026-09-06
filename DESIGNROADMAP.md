@@ -119,6 +119,9 @@ Cada vista debe contemplar:
 2. Converger filtros, columnas, bulk y detalle en índices de alto uso.
 3. Retirar estilos heredados únicamente después de screenshots de regresión.
 4. Medir tiempo a venta, producto, cliente y ajuste de stock.
+5. Ficha de producto: búsqueda de imagen en diálogo compacto con miniaturas,
+   creador/licencia/fuente, selección explícita y carga manual siempre visible;
+   siguiente cierre: cola bulk con revisión por excepción.
 
 ### D3 — Finance
 

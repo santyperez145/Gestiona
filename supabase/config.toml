@@ -41,6 +41,9 @@ verify_jwt = true
 [functions.extract-receipt]
 verify_jwt = true
 
+[functions.search-product-images]
+verify_jwt = true
+
 # Storefront público: la capacidad opaca del pedido se valida dentro de la
 # función. Activar verify_jwt acá bloquearía a compradores anónimos legítimos.
 [functions.store-order-email]
