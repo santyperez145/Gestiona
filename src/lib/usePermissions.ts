@@ -175,7 +175,7 @@ export function usePlatformAccess() {
     /** Finanzas: planes, precios, comisiones, facturación */
     canBilling: platformRole === 'superadmin' || platformRole === 'finance',
     /** Soporte: ver orgs/usuarios, asistir, sin tocar plata ni borrar */
-    canSupport: platformRole !== null,
+    canSupport: platformRole === 'superadmin' || platformRole === 'support',
     canPlatform,
   };
 }

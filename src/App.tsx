@@ -154,7 +154,7 @@ function PlatformRoutes() {
           <Route path="negocio" element={<PlatformBusinessPage />} />
           <Route path="comisiones" element={<PlatformCommissionsPage />} />
           <Route path="afip" element={<PlatformAfipPage />} />
-          <Route path="soporte" element={<PlatformAdminPage section="support" />} />
+          <Route path="soporte" element={platformRole === "superadmin" || platformRole === "support" ? <PlatformAdminPage section="support" /> : <Navigate to="/platform" replace />} />
           <Route path="anuncios" element={<PlatformAnnouncementsPage />} />
           <Route path="sistema" element={<PlatformAdminPage section="system" />} />
           <Route path="mensajeria" element={<PlatformMessagingPage />} />

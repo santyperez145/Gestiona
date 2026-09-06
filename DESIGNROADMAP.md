@@ -174,6 +174,7 @@ Cada vista debe contemplar:
 1. Unificar lista → Merchant 360 → acción sensible.
 2. Hacer visibles error, degradación, retry y SLA por integración.
 3. Diferenciar operación, riesgo, billing y soporte por rol.
+4. Soporte usa inbox + conversación responsive, estado, prioridad, responsable y no leídos; el comercio comparte el mismo hilo sin ver herramientas de staff.
 
 ### D5 — Resiliencia transversal
 

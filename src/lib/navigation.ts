@@ -84,7 +84,7 @@ const NAV_ORDER_BY_GROUP: Record<NavGroupId, string[]> = {
     "/afiliados", "/referidos",
   ],
   reportes: ["/reportes", "/analytics", "/ia"],
-  sistema: ["/alertas", "/integraciones", "/equipo", "/ajustes", "/admin", "/calidad-datos", "/mi-plan", "/perfil"],
+  sistema: ["/soporte", "/alertas", "/integraciones", "/equipo", "/ajustes", "/admin", "/calidad-datos", "/mi-plan", "/perfil"],
 };
 
 function ordenarNavItems(items: NavItem[]): NavItem[] {

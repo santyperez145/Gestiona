@@ -167,15 +167,16 @@ describe("estructura de la navegación", () => {
 
   it("ordena Sistema con operación antes de configuración profunda", () => {
     expect(itemsDe("sistema").map(i => i.to).slice(0, 4)).toEqual([
+      "/soporte",
       "/alertas",
       "/integraciones",
       "/equipo",
-      "/ajustes",
     ]);
   });
 
   it("ordena Sistema con estructura completa", () => {
     expect(itemsDe("sistema").map(i => i.to)).toEqual([
+      "/soporte",
       "/alertas",
       "/integraciones",
       "/equipo",

@@ -161,7 +161,7 @@ settlement, refund y timeline. Faltan certificaciones live y economics con
 costos reales antes de escalar comisión.
 
 Platform tiene shell, MFA, Merchant 360, métricas, operaciones, integraciones,
-comisiones, mensajería, anuncios, soporte consentido y alta idempotente. Correo
+comisiones, mensajería, anuncios, soporte y alta idempotente. El chat comercio–Nerqia tiene cola, responsable, prioridad, no leídos y estados server-side; no mezcla tickets de compradores. Correo
 ya tiene dominio Resend verificado, remitentes por propósito y selección
 explícita Resend/SMTP sin borrar el canal de respaldo. El 2026-09-05 se desplegó
 el contrato de errores por audiencia, idempotencia API/SMTP, campañas limitadas

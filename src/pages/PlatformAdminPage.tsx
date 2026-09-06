@@ -29,6 +29,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import SupportWorkspace from "@/components/support/SupportWorkspace";
 
 import { plural } from "@/lib/plural";
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -1506,6 +1507,12 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
 
         {/* ── SUPPORT TAB ── */}
         <TabsContent value="support" className="mt-4 space-y-5">
+          <SupportWorkspace audience="platform" />
+
+          <div className="pt-1">
+            <h2 className="text-sm font-semibold">Herramientas operativas del caso</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Consultá la organización y la auditoría sin suplantar al comercio.</p>
+          </div>
           <div className="grid gap-5 lg:grid-cols-2">
 
             {/* Org lookup */}

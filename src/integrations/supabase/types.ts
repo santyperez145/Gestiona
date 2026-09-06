@@ -25479,6 +25479,103 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_support_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_kind: string
+          sender_name: string
+          sender_user_id: string | null
+          thread_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_kind: string
+          sender_name: string
+          sender_user_id?: string | null
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_kind?: string
+          sender_name?: string
+          sender_user_id?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_support_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "platform_support_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_support_threads: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          created_at: string
+          created_by: string
+          id: string
+          last_message_at: string
+          last_read_by_org_at: string | null
+          last_read_by_support_at: string | null
+          org_id: string
+          priority: string
+          resolved_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          last_message_at?: string
+          last_read_by_org_at?: string | null
+          last_read_by_support_at?: string | null
+          org_id: string
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          last_message_at?: string
+          last_read_by_org_at?: string | null
+          last_read_by_support_at?: string | null
+          org_id?: string
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_support_threads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_admins: {
         Row: {
           granted_at: string
@@ -55682,6 +55779,63 @@ export type Database = {
       webhook_secret_rotar: {
         Args: { p_org_id: string; p_webhook_id: string }
         Returns: string
+      }
+      create_platform_support_thread: {
+        Args: {
+          p_category?: string
+          p_message?: string
+          p_org_id: string
+          p_priority?: string
+          p_subject: string
+        }
+        Returns: string
+      }
+      list_platform_support_messages: {
+        Args: { p_thread_id: string }
+        Returns: {
+          body: string
+          created_at: string
+          id: string
+          sender_kind: string
+          sender_name: string
+        }[]
+      }
+      list_platform_support_threads: {
+        Args: { p_org_id?: string }
+        Returns: {
+          assigned_name: string
+          assigned_to: string
+          category: string
+          created_at: string
+          created_by: string
+          id: string
+          last_message_at: string
+          latest_message: string
+          org_id: string
+          org_name: string
+          org_slug: string
+          priority: string
+          requester_name: string
+          status: string
+          unread_count: number
+          updated_at: string
+        }[]
+      }
+      mark_platform_support_thread_read: {
+        Args: { p_thread_id: string }
+        Returns: undefined
+      }
+      send_platform_support_message: {
+        Args: { p_message: string; p_thread_id: string }
+        Returns: string
+      }
+      update_platform_support_thread: {
+        Args: {
+          p_assign_to_me?: boolean
+          p_status: string
+          p_thread_id: string
+        }
+        Returns: undefined
       }
       z_nivel_servicio: { Args: { p_nivel: number }; Returns: number }
     }

@@ -77,6 +77,7 @@ verde.
 | `/reportes` | OK | Reportes cargan. |
 | `/analytics` | OK | KPIs y gráficos cargan; contenido pesado queda en presupuesto. |
 | `/ia` | OK | Insights cargan. |
+| `/soporte` | Implementado | Chat comercio–Nerqia por organización; falta ejecutar una conversación productiva con dos usuarios reales. |
 | `/alertas` | OK | Motor de alertas carga. |
 | `/integraciones` | OK | Registro y contratos cargan. |
 | `/equipo` | OK | Miembros e invitación cargan. |
@@ -115,7 +116,7 @@ verde.
 | `/platform/negocio` | OK | GMV y comisión cargan desde evidencia. |
 | `/platform/comisiones` | OK | Revenue carga; primera lectura puede tardar varios segundos. |
 | `/platform/afip` | OK | Estado de certificado carga. |
-| `/platform/soporte` | OK | Organizaciones y auditoría cargan. |
+| `/platform/soporte` | Implementado | Bandeja, conversación, asignación, prioridad y estados; conserva organización y auditoría como herramientas complementarias. |
 | `/platform/anuncios` | OK | Historial y editor cargan. |
 | `/platform/sistema` | OK | Secrets y salud cargan. |
 | `/platform/mensajeria` | OK | Readiness de correo y WhatsApp carga. |
