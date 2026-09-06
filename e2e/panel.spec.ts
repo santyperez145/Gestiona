@@ -63,11 +63,14 @@ test.describe("tienda e-commerce", () => {
     await expect(page.getByRole("heading", { name: "Nerqia Commerce" })).toBeVisible();
 
     for (const pestaña of [
-      "Pedidos",
+      "Publicar",
+      "Productos",
       "Opiniones y preguntas",
+      "Categorías",
       "Páginas",
       "Banners",
       "Diseño y tema",
+      "Pagos y envíos",
     ]) {
       await page.getByRole("button", { name: pestaña, exact: true }).click();
       await expect(page.getByRole("button", { name: pestaña, exact: true })).toBeVisible();
@@ -78,8 +81,10 @@ test.describe("tienda e-commerce", () => {
     // El bug era exactamente éste: la columna quedaba fuera de pantalla dentro
     // de una tabla con scroll horizontal, y el botón dejaba de existir para
     // quien no piensa en scrollear.
-    await page.goto("/tienda-online");
-    await page.getByRole("button", { name: "Pedidos", exact: true }).click();
+    // Pedidos es una cola operativa canónica, no una copia dentro del editor
+    // de la tienda. El alias viejo redirige a esta misma superficie.
+    await page.goto("/pedidos-online");
+    await expect(page.getByRole("heading", { level: 1, name: "Pedidos" })).toBeVisible();
 
     const pagas = page.getByRole("button", { name: /Preparar|Ver envío/ });
     if (!(await pagas.count())) {
@@ -90,7 +95,7 @@ test.describe("tienda e-commerce", () => {
 
   test("la identidad de la tienda se carga por archivo, no por URL", async ({ page }) => {
     await page.goto("/tienda-online");
-    await page.getByRole("button", { name: "Diseño & Tema", exact: true }).click();
+    await page.getByRole("button", { name: "Diseño y tema", exact: true }).click();
 
     await expect(page.getByText("Identidad")).toBeVisible();
     await expect(page.getByText("Elegí, arrastrá o pegá una imagen").first()).toBeVisible();
@@ -156,8 +161,11 @@ test.describe("productos", () => {
     await expect(editor.getByRole("button", { name: /Variantes/ })).toBeVisible();
     await expect(editor.getByRole("button", { name: /Sabores/ })).toHaveCount(0);
     await editor.getByRole("button", { name: "Cerrar" }).click();
+    await expect(editor).toBeHidden();
 
-    await page.getByRole("button", { name: "Más acciones de productos" }).click();
+    const moreActions = page.getByRole("button", { name: "Más acciones de productos" });
+    await expect(moreActions).toBeVisible();
+    await moreActions.click();
     await page.getByRole("menuitem", { name: "Importar Excel/CSV" }).click();
     const importer = page.getByRole("dialog", { name: "Migrar catálogo" });
     await expect(importer).toBeVisible();
@@ -216,11 +224,17 @@ test.describe("POS", () => {
     // El nombre del vendedor es local a este navegador. Puede aparecer en una
     // sesión nueva, pero omitirlo no crea ninguna venta ni cambia la base.
     const vendedor = page.getByRole("heading", { name: "¿Quién atiende hoy?" });
+    const search = page.getByPlaceholder(/Buscar producto/);
+    const denied = page.getByRole("heading", { name: "Sin acceso a esta sección" });
+    await expect(vendedor.or(search).or(denied)).toBeVisible();
+    if (await denied.isVisible()) {
+      test.skip(true, "la identidad E2E no tiene permiso POS; provisionar el módulo en su organización técnica");
+    }
     if (await vendedor.isVisible()) {
       await page.getByRole("button", { name: "Omitir", exact: true }).click();
     }
 
-    await expect(page.getByPlaceholder(/Buscar producto/)).toBeVisible();
+    await expect(search).toBeVisible();
   }
 
   test("abre sin errores y no permite confirmar un carrito vacío", async ({ page }) => {

@@ -342,7 +342,10 @@ test.describe("carrito", () => {
   test("el producto viaja de la ficha al checkout", async ({ page }) => {
     await page.goto(tienda("/productos"));
     const fichas = await fichasVisibles(page);
-    await fichas.first().click();
+    const productHref = await fichas.first().getAttribute("href");
+    expect(productHref, "la card debe enlazar una ficha real").toMatch(/\/producto\//);
+    await page.goto(productHref!);
+    await expect(page).toHaveURL(/\/producto\//);
 
     const titulo = await page.getByRole("heading", { level: 1 }).innerText();
     await page.getByRole("button", { name: /Agregar al carrito/i }).click();
@@ -359,7 +362,7 @@ test.describe("carrito", () => {
     // El resumen tiene que nombrar lo que se agregó. Si el carrito se
     // vaciara al navegar —localStorage por slug— esto lo agarra.
     await expect(page.getByText("Tu pedido")).toBeVisible();
-    await expect(page.locator("body")).toContainText(titulo.split(" ")[0]);
+    await expect(page.locator(".storefront-checkout-summary")).toContainText(titulo);
   });
 
   test("el checkout conserva la acción sin tapar el formulario", async ({ page }) => {

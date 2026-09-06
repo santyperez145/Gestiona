@@ -156,6 +156,12 @@ verde.
   escenarios dependientes de un producto totalmente agotado se omitieron de
   forma explícita. Checkout vacío, login y recuperación tienen contratos
   directos adicionales.
+- El E2E de panel se realineó con las rutas canónicas: Pedidos se verifica en
+  `/pedidos-online`, Diseño usa su nombre vigente y el traslado ficha → checkout
+  espera la URL y el resumen exactos. Si la identidad técnica no tiene permiso
+  POS, el resultado queda omitido con causa accionable en lugar de producir una
+  cascada de falsos timeouts; provisionar ese permiso sigue siendo necesario
+  para recuperar evidencia visual autenticada de Caja.
 
 ## Benchmark aplicado
 

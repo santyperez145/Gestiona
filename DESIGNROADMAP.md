@@ -73,6 +73,11 @@ validaciones transaccionales del servidor a mensajes accionables. Pago simple y
 masivo comparten el mismo lenguaje, progreso y recuperación sin exponer
 detalles internos ni permitir duplicados por doble clic, timeout o reconexión.
 
+La automatización visual también sigue la IA consolidada: la cola de Pedidos se
+audita como página propia y el editor de Tienda conserva únicamente publicación,
+catálogo visible, contenido, diseño, pagos y envíos. Esto evita que un test viejo
+obligue a reconstruir duplicaciones que el producto ya retiró.
+
 ## 5. Arquitectura de información objetivo de Finance
 
 Finance usa el lenguaje de Mendel como referencia de trabajo y el de Nerqia
