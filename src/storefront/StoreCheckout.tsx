@@ -348,7 +348,7 @@ export default function StoreCheckout() {
     return (
       <div className="max-w-6xl mx-auto px-4 py-24 text-center">
         <ShoppingBag className="w-10 h-10 mx-auto mb-3 opacity-30" />
-        <p className="font-medium">Tu carrito está vacío</p>
+        <h1 className="font-medium">Tu carrito está vacío</h1>
         <Link
           to={`${base}/productos`}
           className="inline-block mt-5 px-4 py-2 text-sm font-medium"

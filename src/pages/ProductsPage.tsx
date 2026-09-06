@@ -82,6 +82,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { plural } from "@/lib/plural";
+import { daysSinceKnownDate } from "@/lib/dateFacts";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
 const FULLSCREEN_PRODUCT_WORKSPACE = "flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col overflow-hidden rounded-none border-0 p-0 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-6xl sm:rounded-[18px] sm:border";
@@ -746,7 +747,8 @@ export default function ProductsPage() {
     if (filterMovement === 'no30') {
       const last = lastSaleDate[p.id];
       if (last) {
-        const daysSince = Math.floor((today.getTime() - new Date(last + 'T12:00:00').getTime()) / 86400000);
+        const daysSince = daysSinceKnownDate(last, today);
+        if (daysSince === null) return false;
         if (daysSince < 30) return false;
       }
       // products with no sale data in 60 days always match 'no30'
@@ -1359,15 +1361,15 @@ export default function ProductsPage() {
 
       {/* ── Inventory Aging Panel ─────────────────────────────────── */}
       {(() => {
-        const now = today.getTime();
         const withStock = products.filter(p => p.stock > 0);
-        const aged = withStock.map(p => {
+        const aged = withStock.flatMap(p => {
           const last = lastSaleDate[p.id];
-          const daysSince = last ? Math.floor((now - new Date(last + 'T12:00:00').getTime()) / 86400000) : 999;
+          const daysSince = last ? daysSinceKnownDate(last, today) : 999;
+          if (daysSince === null) return [];
           const costUSD = Number(p.cost_usd || 0);
           const exchangeRate = Number(p.exchange_rate || 900);
           const valueARS = costUSD * exchangeRate * Number(p.stock);
-          return { ...p, daysSince, valueARS };
+          return [{ ...p, daysSince, valueARS }];
         }).filter(p => p.daysSince > 30);
         if (aged.length === 0) return null;
         const buckets = [
@@ -1827,7 +1829,8 @@ export default function ProductsPage() {
                            {(() => {
                              const last = lastSaleDate[p.id];
                              if (!last) return <span className="text-xs text-muted-foreground" title="Sin ventas registradas en 60 días">+60d</span>;
-                             const daysSince = Math.floor((today.getTime() - new Date(last + 'T12:00:00').getTime()) / 86400000);
+                             const daysSince = daysSinceKnownDate(last, today);
+                             if (daysSince === null) return <span className="text-xs text-muted-foreground" title="No pudimos interpretar la fecha de la última venta">—</span>;
                              const color = daysSince >= 30 ? 'text-destructive font-bold' : daysSince >= 14 ? 'text-yellow-400' : 'text-muted-foreground';
                              return <span className={`text-xs ${color}`} title={`Última venta: ${last}`}>{daysSince}d</span>;
                            })()}

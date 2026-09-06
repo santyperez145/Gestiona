@@ -25,6 +25,8 @@ futuro; Git conserva auditorías, evidencia e incidentes cerrados.
 - [Margen](MARGIN_FACTS.md): hechos, confianza y acciones.
 - [Nerqia Intelligence](NERQIA_INTELLIGENCE.md): control plane, autonomía
   gobernada y enriquecimiento de catálogo.
+- [Auditoría funcional](AUDITORIA_FUNCIONAL.md): matriz vigente por ruta,
+  hallazgos productivos y límites de certificación.
 
 ## Decisiones
 

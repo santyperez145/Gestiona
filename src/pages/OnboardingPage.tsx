@@ -17,6 +17,7 @@ import {
 } from '@/lib/businessProfile';
 import { firstProductPath } from '@/lib/activationHandoff';
 import { storeWizardFinishCopy } from '@/lib/storeFirstPublish';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 type FinishDestination = 'pos' | 'online' | 'dashboard' | 'demo';
 
@@ -29,6 +30,7 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 export default function OnboardingPage() {
+  usePageTitle('Configurar negocio');
   const { activeOrg, refresh } = useOrg();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);

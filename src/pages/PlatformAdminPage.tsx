@@ -196,10 +196,13 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
   const [plans, setPlans] = useState<PlanRow[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [platformAdminIds, setPlatformAdminIds] = useState<Set<string>>(new Set());
-  const [loadingOrgs, setLoadingOrgs] = useState(false);
+  const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  const [loadingPlans, setLoadingPlans] = useState(false);
-  const [loadingControlPlane, setLoadingControlPlane] = useState(false);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [loadingControlPlane, setLoadingControlPlane] = useState(true);
+  const [orgMetricsReady, setOrgMetricsReady] = useState(false);
+  const [orgMetricsError, setOrgMetricsError] = useState<string | null>(null);
+  const [plansError, setPlansError] = useState<string | null>(null);
   const [controlPlaneError, setControlPlaneError] = useState<string | null>(null);
   const [controlPlane, setControlPlane] = useState<ControlPlaneSnapshot>({
     health: [], activation: [], cron: [], loadedAt: null,
@@ -252,72 +255,86 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
 
   const loadOrgs = useCallback(async () => {
     setLoadingOrgs(true);
-    const [{ data: orgsData }, { data: subsData }, { data: plansData }, { data: memsData }] = await Promise.all([
-      supabase.from('organizations').select('id,name,slug,created_at,trial_ends_at,plan_id').order('created_at', { ascending: false }),
-      supabase.from('subscriptions').select('org_id,plan_id,status'),
-      supabase.from('plans').select('id,name,price_ars_monthly'),
-      supabase.from('memberships').select('org_id'),
-    ]);
+    setOrgMetricsError(null);
+    try {
+      const [orgsResponse, subsResponse, plansResponse, memsResponse] = await Promise.all([
+        supabase.from('organizations').select('id,name,slug,created_at,trial_ends_at,plan_id').order('created_at', { ascending: false }),
+        supabase.from('subscriptions').select('org_id,plan_id,status'),
+        supabase.from('plans').select('id,name,price_ars_monthly'),
+        supabase.from('memberships').select('org_id'),
+      ]);
+      const failed = [orgsResponse.error, subsResponse.error, plansResponse.error, memsResponse.error].find(Boolean);
+      if (failed) throw failed;
+      const orgsData = orgsResponse.data;
+      const subsData = subsResponse.data;
+      const plansData = plansResponse.data;
+      const memsData = memsResponse.data;
 
-    const planMap = new Map((plansData || []).map(p => [p.id, p]));
-    const subMap = new Map((subsData || []).map(s => [s.org_id, s]));
-    const memCounts: Record<string, number> = {};
-    (memsData || []).forEach(m => { memCounts[m.org_id] = (memCounts[m.org_id] || 0) + 1; });
+      const planMap = new Map((plansData || []).map(p => [p.id, p]));
+      const subMap = new Map((subsData || []).map(s => [s.org_id, s]));
+      const memCounts: Record<string, number> = {};
+      (memsData || []).forEach(m => { memCounts[m.org_id] = (memCounts[m.org_id] || 0) + 1; });
 
-    const enriched: OrgRow[] = (orgsData || []).map(o => {
-      const sub = subMap.get(o.id);
-      const plan = sub ? planMap.get(sub.plan_id) : (o.plan_id ? planMap.get(o.plan_id) : null);
-      return {
-        id: o.id, name: o.name, slug: o.slug,
-        created_at: o.created_at, trial_ends_at: o.trial_ends_at,
-        plan_name: plan?.name || '—',
-        plan_id: sub?.plan_id || o.plan_id || null,
-        plan_price: plan?.price_ars_monthly || 0,
-        member_count: memCounts[o.id] || 0,
-        status: sub?.status || 'trialing',
-      };
-    });
-    setOrgs(enriched);
+      const enriched: OrgRow[] = (orgsData || []).map(o => {
+        const sub = subMap.get(o.id);
+        const plan = sub ? planMap.get(sub.plan_id) : (o.plan_id ? planMap.get(o.plan_id) : null);
+        return {
+          id: o.id, name: o.name, slug: o.slug,
+          created_at: o.created_at, trial_ends_at: o.trial_ends_at,
+          plan_name: plan?.name || '—',
+          plan_id: sub?.plan_id || o.plan_id || null,
+          plan_price: plan?.price_ars_monthly || 0,
+          member_count: memCounts[o.id] || 0,
+          status: sub?.status || 'trialing',
+        };
+      });
+      setOrgs(enriched);
 
-    const activeSubs = (subsData || []).filter(s => s.status === 'active');
+      const activeSubs = (subsData || []).filter(s => s.status === 'active');
     // ⚠️ El MRR se calcula en PESOS. Sumaba `price_usd_monthly`, y los planes
     // que ya tienen precio en pesos lo tienen en 0: el MRR daba 0 con planes
     // cobrando $19.900. `mp-subscribe` sólo cobra ARS.
-    const mrr = activeSubs.reduce((acc, s) => acc + (planMap.get(s.plan_id)?.price_ars_monthly || 0), 0);
-    const everTrialed = enriched.filter(r => r.trial_ends_at).length;
-    const converted = enriched.filter(r => r.status === 'active').length;
+      const mrr = activeSubs.reduce((acc, s) => acc + (planMap.get(s.plan_id)?.price_ars_monthly || 0), 0);
+      const everTrialed = enriched.filter(r => r.trial_ends_at).length;
+      const converted = enriched.filter(r => r.status === 'active').length;
 
     // Growth: orgs created in last 30 days vs prior 30 days
-    const now = Date.now();
-    const last30 = enriched.filter(r => new Date(r.created_at).getTime() > now - 30 * 86400000).length;
-    const prior30 = enriched.filter(r => {
-      const t = new Date(r.created_at).getTime();
-      return t > now - 60 * 86400000 && t <= now - 30 * 86400000;
-    }).length;
-    const growth30d = prior30 > 0 ? Math.round(((last30 - prior30) / prior30) * 100) : (last30 > 0 ? 100 : 0);
+      const now = Date.now();
+      const last30 = enriched.filter(r => new Date(r.created_at).getTime() > now - 30 * 86400000).length;
+      const prior30 = enriched.filter(r => {
+        const t = new Date(r.created_at).getTime();
+        return t > now - 60 * 86400000 && t <= now - 30 * 86400000;
+      }).length;
+      const growth30d = prior30 > 0 ? Math.round(((last30 - prior30) / prior30) * 100) : (last30 > 0 ? 100 : 0);
 
     // Churn rate: canceled in last 30 days / active 30 days ago
-    const canceled30d = (subsData || []).filter(s => s.status === 'canceled').length;
-    const churnRate = activeSubs.length > 0 ? Math.round((canceled30d / (activeSubs.length + canceled30d)) * 100) : 0;
+      const canceled30d = (subsData || []).filter(s => s.status === 'canceled').length;
+      const churnRate = activeSubs.length > 0 ? Math.round((canceled30d / (activeSubs.length + canceled30d)) * 100) : 0;
 
     // ARPU: MRR / active subs
-    const arpu = activeSubs.length > 0 ? Math.round(mrr / activeSubs.length) : 0;
+      const arpu = activeSubs.length > 0 ? Math.round(mrr / activeSubs.length) : 0;
 
-    setStats({
-      orgs: enriched.length,
-      users: 0,
-      mrr,
-      arr: mrr * 12,
-      active: activeSubs.length,
-      trialing: (subsData || []).filter(s => s.status === 'trialing').length,
-      canceled: (subsData || []).filter(s => s.status === 'canceled').length,
-      past_due: (subsData || []).filter(s => s.status === 'past_due').length,
-      trialConversion: everTrialed > 0 ? Math.round((converted / everTrialed) * 100) : 0,
-      growth30d,
-      churnRate,
-      arpu,
-    });
-    setLoadingOrgs(false);
+      setStats({
+        orgs: enriched.length,
+        users: 0,
+        mrr,
+        arr: mrr * 12,
+        active: activeSubs.length,
+        trialing: (subsData || []).filter(s => s.status === 'trialing').length,
+        canceled: (subsData || []).filter(s => s.status === 'canceled').length,
+        past_due: (subsData || []).filter(s => s.status === 'past_due').length,
+        trialConversion: everTrialed > 0 ? Math.round((converted / everTrialed) * 100) : 0,
+        growth30d,
+        churnRate,
+        arpu,
+      });
+      setOrgMetricsReady(true);
+    } catch (error) {
+      console.error('[Platform] no se pudieron cargar las métricas de organizaciones', error);
+      setOrgMetricsError('No pudimos actualizar las métricas de organizaciones y suscripciones.');
+    } finally {
+      setLoadingOrgs(false);
+    }
   }, []);
 
   const loadUsers = useCallback(async () => {
@@ -343,9 +360,17 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
 
   const loadPlans = useCallback(async () => {
     setLoadingPlans(true);
-    const { data } = await supabase.from('plans').select('*').order('sort_order');
-    setPlans((data || []) as PlanRow[]);
-    setLoadingPlans(false);
+    setPlansError(null);
+    try {
+      const { data, error } = await supabase.from('plans').select('*').order('sort_order');
+      if (error) throw error;
+      setPlans((data || []) as PlanRow[]);
+    } catch (error) {
+      console.error('[Platform] no se pudieron cargar los planes', error);
+      setPlansError('No pudimos actualizar los planes de la plataforma.');
+    } finally {
+      setLoadingPlans(false);
+    }
   }, []);
 
   const loadControlPlane = useCallback(async () => {
@@ -775,27 +800,37 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
 
       {tab === 'overview' && (
         <div className="space-y-4">
+          {orgMetricsError && (
+            <div role="alert" className="flex items-start gap-3 rounded-[8px] border border-destructive/30 bg-destructive/10 p-4 text-sm">
+              <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+              <div className="flex-1">
+                <p className="font-medium">Las métricas anteriores siguen visibles</p>
+                <p className="mt-1 text-xs text-muted-foreground">{orgMetricsError}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => void loadOrgs()}>Reintentar</Button>
+            </div>
+          )}
           {/* KPIs — Row 1: Business metrics */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPICard label="Organizaciones" value={stats.orgs} icon={Building2} color="primary"
-              sub={`${stats.trialing} en trial · ${stats.active} activas`} />
-            <KPICard label="MRR" value={`$${stats.mrr.toLocaleString()}`} icon={DollarSign} color="success"
-              sub={`ARR est.: $${stats.arr.toLocaleString()}`} />
-            <KPICard label="Crecimiento 30d" value={`${stats.growth30d >= 0 ? '+' : ''}${stats.growth30d}%`}
+            <KPICard label="Organizaciones" value={orgMetricsReady ? stats.orgs : '—'} icon={Building2} color="primary"
+              sub={orgMetricsReady ? `${stats.trialing} en trial · ${stats.active} activas` : 'Consultando organizaciones…'} />
+            <KPICard label="MRR" value={orgMetricsReady ? `$${stats.mrr.toLocaleString()}` : '—'} icon={DollarSign} color="success"
+              sub={orgMetricsReady ? `ARR est.: $${stats.arr.toLocaleString()}` : 'Consultando suscripciones…'} />
+            <KPICard label="Crecimiento 30d" value={orgMetricsReady ? `${stats.growth30d >= 0 ? '+' : ''}${stats.growth30d}%` : '—'}
               icon={stats.growth30d >= 0 ? TrendingUp : TrendingDown}
               color={stats.growth30d >= 0 ? "success" : "destructive"}
-              sub="nuevas orgs vs 30d previos" />
-            <KPICard label="Conversión trial" value={`${stats.trialConversion}%`} icon={TrendingUp}
+              sub={orgMetricsReady ? 'nuevas orgs vs 30d previos' : 'Esperando evidencia…'} />
+            <KPICard label="Conversión trial" value={orgMetricsReady ? `${stats.trialConversion}%` : '—'} icon={TrendingUp}
               color={stats.trialConversion >= 50 ? "success" : "warning"}
-              sub={`ARPU: $${stats.arpu} · Churn: ${stats.churnRate}%`} />
+              sub={orgMetricsReady ? `ARPU: $${stats.arpu} · Churn: ${stats.churnRate}%` : 'Esperando evidencia…'} />
           </div>
 
           {/* KPIs — Row 2: Health status */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <KPICard label="Activos" value={stats.active} icon={CheckCircle2} color="success" sub="pagos al día" />
-            <KPICard label="En trial" value={stats.trialing} icon={Zap} color="blue" sub="períodos de prueba" />
-            <KPICard label="Pago pendiente" value={stats.past_due} icon={Clock} color="warning" sub="requieren acción" />
-            <KPICard label="Cancelados" value={stats.canceled} icon={XCircle} color="destructive" sub="bajas confirmadas" />
+            <KPICard label="Activos" value={orgMetricsReady ? stats.active : '—'} icon={CheckCircle2} color="success" sub={orgMetricsReady ? 'pagos al día' : 'Consultando…'} />
+            <KPICard label="En trial" value={orgMetricsReady ? stats.trialing : '—'} icon={Zap} color="blue" sub={orgMetricsReady ? 'períodos de prueba' : 'Consultando…'} />
+            <KPICard label="Pago pendiente" value={orgMetricsReady ? stats.past_due : '—'} icon={Clock} color="warning" sub={orgMetricsReady ? 'requieren acción' : 'Consultando…'} />
+            <KPICard label="Cancelados" value={orgMetricsReady ? stats.canceled : '—'} icon={XCircle} color="destructive" sub={orgMetricsReady ? 'bajas confirmadas' : 'Consultando…'} />
           </div>
 
           {/* Control Plane signals — all values come from protected platform views. */}
@@ -951,10 +986,14 @@ export default function PlatformAdminPage({ section = 'overview' }: { section?: 
                   MRR: <span className="font-mono font-bold text-foreground">${stats.mrr.toLocaleString()}</span>
                 </span>
               </div>
-              {plans.filter(p => (p.price_ars_monthly ?? 0) > 0).length === 0 ? (
+              {plansError ? (
+                <div role="alert" className="py-6 text-center text-xs text-destructive">{plansError}</div>
+              ) : loadingPlans ? (
                 <div className="flex items-center justify-center py-6">
                   <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                 </div>
+              ) : plans.filter(p => (p.price_ars_monthly ?? 0) > 0).length === 0 ? (
+                <p className="py-6 text-center text-xs text-muted-foreground">No hay planes pagos configurados.</p>
               ) : (
                 <div className="space-y-2.5">
                   {plans.filter(p => (p.price_ars_monthly ?? 0) > 0).map(p => {

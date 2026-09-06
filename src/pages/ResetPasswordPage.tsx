@@ -9,6 +9,7 @@ import BrandLogo from '@/components/shared/BrandLogo';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { authErrorForCustomer, checkPassword, MIN_PASSWORD_LENGTH, passwordValidationMessage } from '@/lib/passwordSecurity';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 function AuthShell({ children }: { children: React.ReactNode }) {
   return (
@@ -25,6 +26,7 @@ function AuthShell({ children }: { children: React.ReactNode }) {
 }
 
 export default function ResetPasswordPage() {
+  usePageTitle('Recuperar contraseña');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);

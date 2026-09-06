@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, ArrowRight, BarChart3, Boxes, Check, CircleDollarSign, Mail, ShieldCheck, Sparkles } from 'lucide-react';
 import BrandLogo from '@/components/shared/BrandLogo';
 import { authErrorForCustomer, MIN_PASSWORD_LENGTH, passwordValidationMessage } from '@/lib/passwordSecurity';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 const SHOWCASE_ITEMS = [
   { icon: BarChart3, title: 'Ventas y margen', description: 'La señal que importa, al alcance del equipo.' },
@@ -34,6 +35,13 @@ export default function AuthPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  usePageTitle(mode === 'register'
+    ? 'Crear cuenta'
+    : mode === 'forgot'
+      ? 'Recuperar acceso'
+      : mode === 'otp'
+        ? 'Acceso con código'
+        : 'Iniciar sesión');
 
   // `/login` is a public route, so it remains mounted after Supabase creates
   // the session unless we move away explicitly. This also covers opening the

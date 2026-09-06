@@ -41,6 +41,7 @@ import {
   filasDelResultado, rangoDelPreset, type Resultado,
 } from "@/lib/estadoResultados";
 import { formatARS } from "@/lib/supabaseStore";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Preset = "mes" | "mes_anterior" | "30dias" | "anio";
 
@@ -54,6 +55,7 @@ const PRESETS: Array<[Preset, string]> = [
 interface PuntoSerie { fecha: string; ventas: number; costo: number; margen: number; }
 
 export default function LibroPage() {
+  usePageTitle("Libro y resultado");
   const { orgId } = useOrganization();
   const [preset, setPreset] = useState<Preset>("mes");
   const [resultado, setResultado] = useState<Resultado>(RESULTADO_VACIO);

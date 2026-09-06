@@ -249,6 +249,12 @@ function ProtectedRoutes() {
   if (activeOrg && !onboarded && !onOnboardingRoute) {
     return <Navigate to="/onboarding" replace />;
   }
+  // El wizard configura por primera vez nombre, rubro, atributos y canal. Una
+  // organización ya activada los edita desde Ajustes; reabrir el wizard podía
+  // sobrescribir el blueprint y hasta sembrar una demo sobre datos reales.
+  if (activeOrg && onboarded && onOnboardingRoute) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <MfaGate isAdmin={isAdmin} orgRequiresMfa={!!orgRequiresMfa}>

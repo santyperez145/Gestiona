@@ -187,11 +187,17 @@ exige firma y el portal Stripe heredado responde como retirado.
 - un sistema visual claro compartido por organización, Finance y Platform;
 - storefront conserva identidad propia por tienda;
 - navegación, tabs, filtros y selección de organización/tienda persisten;
+- auditoría productiva 2026-09-05: **93 contextos de ruta** recorridos
+  (70 Business/públicos, 2 Finance, 14 Platform y 7 Storefront), sin errores
+  JavaScript propios ni overflow horizontal. El barrido corrigió fecha inválida
+  en Productos, ceros prematuros en Platform, reentrada destructiva al onboarding,
+  títulos aislados y jerarquía del checkout vacío. La matriz viva está en
+  [Auditoría funcional](docs/AUDITORIA_FUNCIONAL.md);
 - rutas privadas y shells son lazy; la landing no descarga el panel completo;
 - los deploys no recargan automáticamente: anuncian la versión y actualizan por
   acción explícita;
 - corte técnico 2026-09-05: typecheck, lint con **0 errores/142 warnings
-  conocidos**, **2.779 tests en 306 archivos** (`npm test`), las **76 Edge
+  conocidos**, **2.787 tests en 308 archivos** (`npm test`), las **76 Edge
   Functions** pasan su typecheck y build/PWA permanece verde;
 - el deploy productivo se verifica después de cada push tanto en la tienda
   pública como en Commerce con una sesión autenticada.
@@ -236,6 +242,8 @@ Estos puntos no se cierran con más código:
 3. Completar datos legales, inventario físico y certificaciones live.
 4. Instrumentar errores, SLO, fraude y funnels sin PII innecesaria.
 5. Incorporar un segundo comercio antes de ampliar el portfolio.
+6. Convertir el barrido de rutas en contratos de acción por pantalla: lectura,
+   borrador reversible, sandbox proveedor o mutación productiva aprobada.
 
 ### P1 — Commerce first-level
 
@@ -277,15 +285,16 @@ partner.
 
 | Orden | Slice | Resultado verificable |
 |---|---|---|
-| 1 | C22.2 Certificar migración | Shopify/Tiendanube/Empretienda reales, clientes, imágenes propias y rollback condicionado. |
-| 2 | C20 Estados de checkout | Cart/order/payment/fulfillment recuperan fallos y concurrencia. |
-| 3 | C23 Operación de pedidos | Cola por SLA, fulfillment y devolución completos. |
-| 4 | C24 Storefront de conversión | Mobile/A11y/performance y búsqueda medidos. |
-| 5 | F5.1 Primer documento Finance | Un original real termina aprobado y entregado al Core. |
-| 6 | F5.2 Políticas y presupuesto | Solicitud bloqueada/aprobada con saldo comprometido. |
-| 7 | M2 Acción de margen | Una recomendación ejecutada muestra resultado atribuible. |
-| 8 | P0 Segundo comercio | Alta, migración y venta sin intervención SQL. |
-| 9 | Economics | Pricing y comisión aprobados con costos reales. |
+| 1 | A1 Contratos de acción | Cada CTA crítica tiene test reversible/sandbox y resultado observable. |
+| 2 | C22.2 Certificar migración | Shopify/Tiendanube/Empretienda reales, clientes, imágenes propias y rollback condicionado. |
+| 3 | C20 Estados de checkout | Cart/order/payment/fulfillment recuperan fallos y concurrencia. |
+| 4 | C23 Operación de pedidos | Cola por SLA, fulfillment y devolución completos. |
+| 5 | C24 Storefront de conversión | Mobile/A11y/performance y búsqueda medidos. |
+| 6 | F5.1 Primer documento Finance | Un original real termina aprobado y entregado al Core. |
+| 7 | F5.2 Políticas y presupuesto | Solicitud bloqueada/aprobada con saldo comprometido. |
+| 8 | M2 Acción de margen | Una recomendación ejecutada muestra resultado atribuible. |
+| 9 | P0 Segundo comercio | Alta, migración y venta sin intervención SQL. |
+| 10 | Economics | Pricing y comisión aprobados con costos reales. |
 
 No se abren tres slices a la vez. Un incidente productivo desplaza el orden.
 

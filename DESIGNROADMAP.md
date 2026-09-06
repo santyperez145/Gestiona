@@ -57,6 +57,12 @@ Primitives preferidas: `Button`, `Input`, `Select`, `Tabs`, `Table`, `Badge`,
 | Finance | Trabajo de gasto, documentos y aprobación; no espejo de Business. | Layout/entitlement e Inbox técnico. | Primer documento real y políticas preventivas. |
 | Platform | Control plane violeta, colas y Merchant 360. | Shell, MFA, áreas operativas; Mensajería separa diagnóstico de staff, acción del comercio y copy del comprador, con alertas persistentes en campañas/SMTP/equipo. | Completar matriz visual autenticada y estados reales de webhook/Auth SMTP. |
 
+El corte productivo 2026-09-05 recorrió 93 contextos de ruta sin overflow
+horizontal ni errores JavaScript propios. Corrigió `NaNd` en Productos, títulos
+genéricos en superficies aisladas, el título semántico del checkout vacío,
+reentrada al onboarding y ceros transitorios en Platform. La matriz y sus gates
+están en [Auditoría funcional](docs/AUDITORIA_FUNCIONAL.md).
+
 ## 5. Arquitectura de información objetivo de Finance
 
 Finance usa el lenguaje de Mendel como referencia de trabajo y el de Nerqia
@@ -144,9 +150,11 @@ Cada vista debe contemplar:
 3. Identidad: alta, acceso, “me olvidé”, recuperación y cambio de clave comparten
    validación, estados válidos/expirados y lenguaje de cliente; ningún mensaje
    nombra Supabase, configuración interna o documentación del equipo.
-3. INP/LCP/CLS de campo, presupuesto de assets y lazy boundaries.
-4. Navegación sin recarga y actualización PWA manual segura.
-5. Contraste claro/oscuro y textos largos reales.
+4. INP/LCP/CLS de campo, presupuesto de assets y lazy boundaries. Productos,
+   Analytics, Finance y comisiones de Platform deben ofrecer estado útil durante
+   sus consultas largas, nunca un canvas vacío ni un cero provisional.
+5. Navegación sin recarga y actualización PWA manual segura.
+6. Contraste claro/oscuro y textos largos reales.
 
 ## 9. Definition of Done visual
 
