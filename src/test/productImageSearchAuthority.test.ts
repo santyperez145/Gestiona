@@ -27,7 +27,7 @@ describe('búsqueda asistida de imágenes', () => {
 
   it('conserva selección humana y carga manual', () => {
     expect(product).toContain("supabase.functions.invoke('search-product-images'");
-    expect(product).toContain('useImageCandidate');
+    expect(product).toContain('selectImageCandidate');
     expect(product).toContain('fileInputRef.current?.click()');
     expect(product).toContain('handlePaste');
   });

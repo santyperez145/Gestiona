@@ -25,7 +25,7 @@ export function authEmailRedirectTo(): string {
   return `${window.location.origin}/`;
 }
 
-export function authPasswordRedirectTo(): string {
+function authPasswordRedirectTo(): string {
   return `${window.location.origin}/reset-password`;
 }
 

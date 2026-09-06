@@ -2435,7 +2435,7 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
     setImageSearching(false);
   };
 
-  const useImageCandidate = (candidate: ProductImageCandidate) => {
+  const selectImageCandidate = (candidate: ProductImageCandidate) => {
     if (imageItems.some(item => item.url === candidate.url)) {
       toast.info('Esa imagen ya está agregada.');
       return;
@@ -2834,7 +2834,7 @@ function ProductForm({ product, settings, userId, orgId, firstUse = false, hando
                           <a href={candidate.source_url} target="_blank" rel="noreferrer">Fuente <ExternalLink className="ml-1 h-3 w-3" /></a>
                         </Button>
                       ) : <span />}
-                      <Button type="button" size="sm" className="h-7 px-2 text-[10px]" onClick={() => useImageCandidate(candidate)}>Usar</Button>
+                      <Button type="button" size="sm" className="h-7 px-2 text-[10px]" onClick={() => selectImageCandidate(candidate)}>Usar</Button>
                     </div>
                   </div>
                 </article>

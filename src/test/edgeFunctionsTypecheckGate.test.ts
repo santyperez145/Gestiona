@@ -17,12 +17,12 @@ describe("guardia de tipos de Edge Functions", () => {
       .filter((entry) => existsSync(resolve(functionsDir, entry.name, "index.ts")))
       .length;
 
-    // 75 al 2026-09-03 (`Get-ChildItem supabase/functions -Directory`, sin
-    // `_shared`). `store-domain` suma el borde server-side que administra el
-    // proveedor sin mandar su token al navegador.
+    // 76 al 2026-09-05 (`Get-ChildItem supabase/functions -Directory`, sin
+    // `_shared`). `search-product-images` suma el borde server-side que busca
+    // candidatos sin exponer el proveedor ni confiar el tenant al navegador.
     // El número está fijo a propósito: agregar una Edge Function tiene que ser
     // una decisión visible, no algo que entra sin que nadie lo note.
-    expect(count).toBe(75);
+    expect(count).toBe(76);
     expect(checker).toContain('readdirSync(functionsDir, { withFileTypes: true })');
     expect(checker).toContain('"check", "--no-lock", ...entries');
     expect(checker).not.toContain("mercadopago-webhook/index.ts");

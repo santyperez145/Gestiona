@@ -1,6 +1,6 @@
 # Índice de documentación
 
-**Estado:** canónico. **Corte:** 2026-09-04.
+**Estado:** canónico. **Corte:** 2026-09-05.
 
 Este índice enumera todos los documentos vigentes. ROADMAP describe presente y
 futuro; Git conserva auditorías, evidencia e incidentes cerrados.
@@ -23,6 +23,8 @@ futuro; Git conserva auditorías, evidencia e incidentes cerrados.
 - [Activación y cohortes](ACTIVACION_COHORTES.md): adopción y medición.
 - [Business Profiler](BUSINESS_PROFILER.md): personalización por comercio.
 - [Margen](MARGIN_FACTS.md): hechos, confianza y acciones.
+- [Nerqia Intelligence](NERQIA_INTELLIGENCE.md): control plane, autonomía
+  gobernada y enriquecimiento de catálogo.
 
 ## Decisiones
 
