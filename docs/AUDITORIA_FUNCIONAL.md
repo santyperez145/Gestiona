@@ -146,6 +146,12 @@ verde.
 - Proveedores dejó de mostrar un módulo ficticio “próximamente”: Pagos lee los
   movimientos persistidos, su deuda y proveedor, con búsqueda, método, totales,
   límite visible explícito y recuperación ante errores.
+- La mutación de esos pagos se consolidó en `record_supplier_payment`: row lock,
+  autorización por organización y permiso, validación de saldo, escritura
+  atómica e idempotencia estable también en lotes. La migración fue aplicada y
+  reconciliada con el proyecto Supabase vinculado; no se generó un pago real
+  durante esta auditoría, por lo que aprobación operativa, rechazo y timeout
+  siguen en el gate de mutaciones productivas.
 - Playwright productivo completó **70 casos públicos** desktop/mobile; dos
   escenarios dependientes de un producto totalmente agotado se omitieron de
   forma explícita. Checkout vacío, login y recuperación tienen contratos

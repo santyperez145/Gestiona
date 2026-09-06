@@ -200,11 +200,17 @@ exige firma y el portal Stripe heredado responde como retirado.
 - Proveedores/Pagos ya no es un placeholder: presenta hasta 500 movimientos
   persistidos, total real, proveedor, concepto, método, filtros y error
   recuperable sin duplicar Compras ni Finance;
+- registrar un pago a proveedor dejó de depender de dos escrituras del
+  navegador: la RPC `record_supplier_payment` bloquea la deuda, valida tenant y
+  permiso de Compras, impide sobrepagos y actualiza pago/saldo en una única
+  transacción. Los reintentos conservan una clave idempotente para no duplicar
+  dinero ante timeout; la migración está aplicada en el proyecto Supabase
+  productivo vinculado. Falta la matriz de pago real aprobada/rechazada;
 - rutas privadas y shells son lazy; la landing no descarga el panel completo;
 - los deploys no recargan automáticamente: anuncian la versión y actualizan por
   acción explícita;
-- corte técnico 2026-09-05: typecheck, lint con **0 errores/142 warnings
-  conocidos**, **2.791 tests en 309 archivos** (`npm test`), las **76 Edge
+- corte técnico 2026-09-06: typecheck, lint con **0 errores/142 warnings
+  conocidos**, **2.797 tests en 310 archivos** (`npm test`), las **76 Edge
   Functions** pasan su typecheck y build/PWA permanece verde;
 - el deploy productivo se verifica después de cada push tanto en la tienda
   pública como en Commerce con una sesión autenticada.
@@ -241,7 +247,8 @@ Estos puntos no se cierran con más código:
 ### P0 — Confiabilidad y evidencia
 
 1. Mantener CI, RLS, autoridad de stock/dinero, cron y libro de migraciones sin
-   brechas.
+   brechas. El pago a proveedores ya usa autoridad transaccional e idempotente;
+   extender el mismo contrato a toda mutación monetaria que aún no lo tenga.
 2. Extender el baseline de ciberseguridad ya aplicado: las RPC tienen contrato
    versionado, los roles web no ejecutan operaciones internas y las auditorías
    de funciones, costo, tenant, stock/plata y RLS cierran en cero. Continúan el

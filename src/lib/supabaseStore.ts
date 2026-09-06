@@ -1115,32 +1115,36 @@ export async function seedProductsForUser(userId: string) {
 export async function addSupplierPaymentDB(
   debtId: string,
   amount: number,
-  opts: { paymentMethod?: string; note?: string } = {},
+  opts: { paymentMethod?: string; note?: string; idempotencyKey: string },
 ) {
-  const { data: debt } = await supabase
-    .from('supplier_debts')
-    .select('org_id, paid_ars, amount_ars, remaining_ars')
-    .eq('id', debtId)
-    .single();
-  if (!debt) throw new Error('Deuda no encontrada');
-
-  const newPaid = Number(debt.paid_ars) + amount;
-  const isFullyPaid = newPaid >= Number(debt.amount_ars) - 0.01;
-
-  await supabase.from('supplier_payments').insert({
-    org_id: debt.org_id,
-    supplier_debt_id: debtId,
-    amount_ars: amount,
-    method: opts.paymentMethod || 'transferencia',
-    note: opts.note || null,
+  const { data, error } = await supabase.rpc('record_supplier_payment', {
+    p_debt_id: debtId,
+    p_amount: amount,
+    p_method: opts.paymentMethod || 'transferencia',
+    p_note: opts.note,
+    p_idempotency_key: opts.idempotencyKey,
   });
-
-  const { error } = await supabase.from('supplier_debts').update({
-    paid_ars: newPaid,
-    status: isFullyPaid ? 'paid' : 'partial',
-  }).eq('id', debtId);
-
-  if (error) throw error;
+  if (error) {
+    const safeMessages = [
+      'Clave de idempotencia inválida',
+      'El importe debe ser mayor a cero',
+      'Método de pago inválido',
+      'Deuda no encontrada',
+      'No pertenecés a esta organización',
+      'No tenés permiso para registrar pagos a proveedores',
+      'La clave de idempotencia ya se usó para otro pago',
+      'La deuda ya está pagada',
+      'El importe supera el saldo pendiente',
+    ];
+    const publicMessage = safeMessages.find(message => error.message.includes(message));
+    if (publicMessage) throw new Error(publicMessage);
+    console.error('[supplier-payment] RPC rejected the operation', {
+      code: error.code,
+      details: error.details,
+    });
+    throw new Error('No pudimos registrar el pago. Reintentá; el sistema no lo duplicará.');
+  }
+  return data;
 }
 
 // ========= CRM SEGMENTS (DB-persisted) =========

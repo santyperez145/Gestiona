@@ -68,6 +68,11 @@ storefront, acceso y checkout (70 casos públicos verdes) y reemplazó el vacío
 visual de Proveedores/Pagos por una superficie operativa con KPIs, filtros,
 tabla, carga, vacío y error recuperable.
 
+El mismo flujo ahora conserva el intento durante un retry y traduce las
+validaciones transaccionales del servidor a mensajes accionables. Pago simple y
+masivo comparten el mismo lenguaje, progreso y recuperación sin exponer
+detalles internos ni permitir duplicados por doble clic, timeout o reconexión.
+
 ## 5. Arquitectura de información objetivo de Finance
 
 Finance usa el lenguaje de Mendel como referencia de trabajo y el de Nerqia

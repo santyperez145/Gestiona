@@ -98,6 +98,8 @@ export default function ProveedoresPage() {
   const [payDebtId, setPayDebtId] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState("transferencia");
+  const [payAttemptKey, setPayAttemptKey] = useState<string | null>(null);
+  const [bulkPaymentKeys, setBulkPaymentKeys] = useState<Record<string, string>>({});
   const [savingDebt, setSavingDebt] = useState(false);
   const [selectedDebtIds, setSelectedDebtIds] = useState<Set<string>>(new Set());
   const [bulkPayLoading, setBulkPayLoading] = useState(false);
@@ -179,15 +181,28 @@ export default function ProveedoresPage() {
     if (!payDebtId || !payAmount || !activeOrg) return;
     const debt = debts.find(d => d.id === payDebtId);
     if (!debt) return;
-    const amount = Math.min(Number(payAmount), debt.remaining_ars);
+    const amount = Number(payAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Ingresá un importe mayor a cero");
+      return;
+    }
+    if (amount > Number(debt.remaining_ars)) {
+      toast.error(`El importe no puede superar ${formatARS(Number(debt.remaining_ars))}`);
+      return;
+    }
+    const idempotencyKey = payAttemptKey || crypto.randomUUID();
+    if (!payAttemptKey) setPayAttemptKey(idempotencyKey);
     setSavingDebt(true);
     try {
-      await addSupplierPaymentDB(payDebtId, amount, { paymentMethod: payMethod });
+      await addSupplierPaymentDB(payDebtId, amount, { paymentMethod: payMethod, idempotencyKey });
       toast.success(`Pago de ${formatARS(amount)} registrado`);
       setPayDebtId(null);
       setPayAmount("");
-      load();
-    } catch (e: any) { toast.error(e.message); }
+      setPayAttemptKey(null);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || "No pudimos registrar el pago. Reintentá sin duplicarlo.");
+    }
     finally { setSavingDebt(false); }
   };
 
@@ -199,12 +214,27 @@ export default function ProveedoresPage() {
     const toMark = pendingDebts.filter(d => selectedDebtIds.has(d.id));
     if (!toMark.length || !activeOrg) return;
     setBulkPayLoading(true);
+    const attemptKeys = Object.fromEntries(toMark.map(debt => [
+      debt.id,
+      bulkPaymentKeys[debt.id] || crypto.randomUUID(),
+    ]));
+    setBulkPaymentKeys(previous => ({ ...previous, ...attemptKeys }));
     try {
-      await Promise.all(toMark.map(d => addSupplierPaymentDB(d.id, Number(d.remaining_ars), { paymentMethod: "transferencia" })));
+      await Promise.all(toMark.map(d => addSupplierPaymentDB(d.id, Number(d.remaining_ars), {
+        paymentMethod: "transferencia",
+        idempotencyKey: attemptKeys[d.id],
+      })));
       toast.success(`${toMark.length} deuda${toMark.length !== 1 ? "s" : ""} marcada${toMark.length !== 1 ? "s" : ""} como pagada${toMark.length !== 1 ? "s" : ""}`);
       setSelectedDebtIds(new Set());
-      load();
-    } catch { toast.error("Error al registrar pagos"); }
+      setBulkPaymentKeys(previous => {
+        const next = { ...previous };
+        toMark.forEach(debt => delete next[debt.id]);
+        return next;
+      });
+      await load();
+    } catch (error: any) {
+      toast.error(error?.message || "No pudimos registrar todos los pagos. Podés reintentar sin duplicar los ya confirmados.");
+    }
     finally { setBulkPayLoading(false); }
   };
 
@@ -785,10 +815,10 @@ export default function ProveedoresPage() {
                               <Button size="sm" className="h-8 text-xs px-3" onClick={handlePayDebt} disabled={savingDebt || !payAmount}>
                                 {savingDebt ? "…" : "Pagar"}
                               </Button>
-                              <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setPayDebtId(null); setPayAmount(""); }}>×</Button>
+                              <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setPayDebtId(null); setPayAmount(""); setPayAttemptKey(null); }}>×</Button>
                             </div>
                           ) : (
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10" onClick={() => { setPayDebtId(d.id); setPayAmount(""); }}>
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10" onClick={() => { setPayDebtId(d.id); setPayAmount(""); setPayAttemptKey(crypto.randomUUID()); }}>
                               <CreditCard className="w-3 h-3" />Registrar pago
                             </Button>
                           )}

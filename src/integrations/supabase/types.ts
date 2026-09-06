@@ -41048,6 +41048,7 @@ export type Database = {
         Row: {
           amount_ars: number
           id: string
+          idempotency_key: string | null
           method: string
           note: string | null
           org_id: string
@@ -41057,6 +41058,7 @@ export type Database = {
         Insert: {
           amount_ars: number
           id?: string
+          idempotency_key?: string | null
           method?: string
           note?: string | null
           org_id: string
@@ -41066,6 +41068,7 @@ export type Database = {
         Update: {
           amount_ars?: number
           id?: string
+          idempotency_key?: string | null
           method?: string
           note?: string | null
           org_id?: string
@@ -55116,6 +55119,16 @@ export type Database = {
           p_status?: string
         }
         Returns: string
+      }
+      record_supplier_payment: {
+        Args: {
+          p_amount: number
+          p_debt_id: string
+          p_idempotency_key: string
+          p_method: string
+          p_note?: string
+        }
+        Returns: Json
       }
       record_rule_fire: { Args: { p_rule_id: string }; Returns: undefined }
       record_stock_movement: {
