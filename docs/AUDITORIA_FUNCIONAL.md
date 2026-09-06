@@ -162,6 +162,11 @@ verde.
   POS, el resultado queda omitido con causa accionable en lugar de producir una
   cascada de falsos timeouts; provisionar ese permiso sigue siendo necesario
   para recuperar evidencia visual autenticada de Caja.
+- El contrato de filtros detectó una inconsistencia transversal: las fechas
+  PostgreSQL `YYYY-MM-DD` podían retroceder por UTC y algunas memoizaciones no
+  dependían del predicado vigente. Se centralizó el rango civil inclusivo y se
+  conectó a Dashboard, Analytics, P&L y el informe de vendedores con pruebas de
+  límites, datos inválidos y ausencia de filtro.
 
 ## Benchmark aplicado
 

@@ -1324,7 +1324,7 @@ export default function Dashboard() {
       // raw passthrough
       rawSales: sales, rawDebts: debts, rawExpenses: expenses, rawPurchases: allPurchases, rawSettings: settings,
     };
-  }, [rawData, filterCat, dateFrom, dateTo, locationStockMap, storeId]);
+  }, [rawData, filterCat, dateFrom, inRange, locationStockMap, storeId]);
 
   // Browser notification for critical stock alert (once per session per threshold breach)
   useEffect(() => {

@@ -121,7 +121,7 @@ export default function PLDashboardPage() {
     let out = hasDateFilter ? expenses.filter(e => inRange(e.date)) : expenses;
     if (storeId) out = out.filter(e => e.location_id === storeId);
     return out;
-  }, [expenses, hasDateFilter, dateFrom, dateTo, storeId]);
+  }, [expenses, hasDateFilter, inRange, storeId]);
 
   // ── El resultado sale del ledger, no del navegador ──────────────────────
   //

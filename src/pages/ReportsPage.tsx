@@ -1265,15 +1265,19 @@ function Row({ label, value, bold, negative, dim, highlight }: { label: string; 
 // ─────────────────────────────────────────────────────────────
 function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; period: PeriodKey }) {
   const { from, to, label } = getPeriodRange(period);
+  const fromMs = from.getTime();
+  const toMs = to.getTime();
   const [commissionRate, setCommissionRate] = useState(5);
-  const inRange = (d: string) => { const x = new Date(d); return x >= from && x <= to; };
 
   const sellerMap = useMemo(() => {
     const map: Record<string, { name: string; role: string; totalARS: number; profit: number; count: number; customers: Set<string>; byMonth: Record<string, number> }> = {};
     const memberByUserId: Record<string, any> = {};
     members.forEach(m => { memberByUserId[m.user_id] = m; });
 
-    sales.filter(s => inRange(s.date)).forEach(s => {
+    sales.filter(s => {
+      const timestamp = new Date(s.date).getTime();
+      return timestamp >= fromMs && timestamp <= toMs;
+    }).forEach(s => {
       const uid = s.user_id || 'unknown';
       if (!map[uid]) {
         const m = memberByUserId[uid];
@@ -1293,7 +1297,7 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
       map[uid].byMonth[mo] = (map[uid].byMonth[mo] || 0) + Number(s.total_ars);
     });
     return map;
-  }, [sales, members, period]);
+  }, [sales, members, fromMs, toMs]);
 
   const rows = useMemo(() =>
     Object.entries(sellerMap)

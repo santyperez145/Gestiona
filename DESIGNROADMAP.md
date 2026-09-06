@@ -78,6 +78,11 @@ audita como página propia y el editor de Tienda conserva únicamente publicaci�
 catálogo visible, contenido, diseño, pagos y envíos. Esto evita que un test viejo
 obligue a reconstruir duplicaciones que el producto ya retiró.
 
+Los filtros globales de fecha conservan la misma selección en URL y ahora
+refrescan todas las métricas dependientes con un único criterio civil inclusivo.
+El período que se ve en el control es exactamente el período de las tarjetas,
+tablas y gráficos, también para fechas sin hora y zona argentina.
+
 ## 5. Arquitectura de información objetivo de Finance
 
 Finance usa el lenguaje de Mendel como referencia de trabajo y el de Nerqia

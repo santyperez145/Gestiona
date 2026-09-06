@@ -462,7 +462,7 @@ export default function ResumenView() {
       rentabilidad, paymentChannels, channelTrendData, channelKeys: Object.keys(channelMonthly),
       sellerStats,
     };
-  }, [rawData, year, dateFrom, dateTo, storeId]);
+  }, [rawData, year, dateFrom, inRange, storeId]);
 
   const trendDailyData = useMemo(() => {
     if (!rawData) return [];

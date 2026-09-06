@@ -9,7 +9,7 @@
  * Use the `useDateRangeFilter()` hook in the page to read the selected range
  * and filter its data — `inRange(dateValue)` is a convenience helper for that.
  */
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -19,6 +19,7 @@ import { format, startOfMonth, startOfYear, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
+import { businessDateInRange } from "@/lib/dateRange";
 
 export const DATE_RANGE_PARAM_FROM = "df";
 export const DATE_RANGE_PARAM_TO = "dt";
@@ -45,8 +46,10 @@ function toParam(d: Date) {
  */
 export function useDateRangeFilter() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const from = parseParamDate(searchParams.get(DATE_RANGE_PARAM_FROM));
-  const to = parseParamDate(searchParams.get(DATE_RANGE_PARAM_TO));
+  const fromValue = searchParams.get(DATE_RANGE_PARAM_FROM);
+  const toValue = searchParams.get(DATE_RANGE_PARAM_TO);
+  const from = useMemo(() => parseParamDate(fromValue), [fromValue]);
+  const to = useMemo(() => parseParamDate(toValue), [toValue]);
 
   const setRange = (nextFrom: Date | undefined, nextTo: Date | undefined) => {
     setSearchParams(
@@ -63,19 +66,11 @@ export function useDateRangeFilter() {
   };
 
   /** True if `dateVal` falls within the selected range (always true when no filter is active). */
-  const inRange = (dateVal: string | Date | null | undefined): boolean => {
-    if (!from && !to) return true;
-    if (!dateVal) return false;
-    const d = new Date(dateVal);
-    if (isNaN(d.getTime())) return true;
-    if (from && d < from) return false;
-    if (to) {
-      const end = new Date(to);
-      end.setHours(23, 59, 59, 999);
-      if (d > end) return false;
-    }
-    return true;
-  };
+  const inRange = useCallback(
+    (dateVal: string | Date | null | undefined): boolean =>
+      businessDateInRange(dateVal, from, to),
+    [from, to],
+  );
 
   return { from, to, setRange, inRange, active: !!from || !!to };
 }
