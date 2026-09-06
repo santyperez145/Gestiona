@@ -43,7 +43,8 @@ describe('ciclo de recuperación y cambio', () => {
   it('acepta recuperación PKCE o hash sólo con sesión válida', () => {
     expect(auth).toContain("event === 'PASSWORD_RECOVERY'");
     expect(reset).toContain("new URLSearchParams(window.location.search).has('code')");
-    expect(reset).toContain('Boolean(session && (passwordRecovery || linkSignalsRecovery))');
+    expect(reset).toContain('Boolean(session && passwordRecovery)');
+    expect(reset).toContain('setLinkValidationTimedOut(true), 4_000');
   });
 
   it('reautentica cambios iniciados desde perfil y cierra otras sesiones', () => {

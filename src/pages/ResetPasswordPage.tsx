@@ -29,12 +29,22 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [linkValidationTimedOut, setLinkValidationTimedOut] = useState(false);
   const { session, loading: authLoading, passwordRecovery } = useAuth();
   const navigate = useNavigate();
   const passwordCheck = checkPassword(password);
   const linkSignalsRecovery = window.location.hash.includes('type=recovery')
     || new URLSearchParams(window.location.search).has('code');
-  const recoveryReady = Boolean(session && (passwordRecovery || linkSignalsRecovery));
+  // Sólo PASSWORD_RECOVERY es autoridad. La presencia de `?code=` o un hash
+  // se usa para mostrar “validando”, nunca para saltear la reautenticación: un
+  // usuario ya logueado podría fabricar ese parámetro a mano.
+  const recoveryReady = Boolean(session && passwordRecovery);
+
+  useEffect(() => {
+    if (!linkSignalsRecovery || recoveryReady) return;
+    const timer = window.setTimeout(() => setLinkValidationTimedOut(true), 4_000);
+    return () => window.clearTimeout(timer);
+  }, [linkSignalsRecovery, recoveryReady]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +70,7 @@ export default function ResetPasswordPage() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || (linkSignalsRecovery && !recoveryReady && !linkValidationTimedOut)) {
     return <AuthShell><p className="text-center text-sm text-muted-foreground">Validando el enlace seguro…</p></AuthShell>;
   }
 
