@@ -161,6 +161,11 @@ test.describe("productos", () => {
     await expect(editor.getByRole("button", { name: /Variantes/ })).toBeVisible();
     await expect(editor.getByRole("button", { name: /Sabores/ })).toHaveCount(0);
     await editor.getByRole("button", { name: "Cerrar" }).click();
+    const discard = page.getByRole("alertdialog", { name: "¿Descartar los cambios del producto?" });
+    await discard.waitFor({ state: "visible", timeout: 500 }).catch(() => undefined);
+    if (await discard.isVisible()) {
+      await discard.getByRole("button", { name: "Descartar cambios" }).click();
+    }
     await expect(editor).toBeHidden();
 
     const moreActions = page.getByRole("button", { name: "Más acciones de productos" });
@@ -218,8 +223,8 @@ test.describe("gastos", () => {
 });
 
 test.describe("POS", () => {
-  async function abrirPos(page: Page) {
-    await page.goto("/caja");
+  async function abrirPos(page: Page, navegar = true) {
+    if (navegar) await page.goto("/caja");
 
     // El nombre del vendedor es local a este navegador. Puede aparecer en una
     // sesión nueva, pero omitirlo no crea ninguna venta ni cambia la base.
@@ -251,12 +256,13 @@ test.describe("POS", () => {
     await expect(page.getByRole("button", { name: /Confirmar venta/ })).toBeDisabled();
     await expect(
       page.getByRole("link", { name: /Gestionar turno/ }).first()
-        .or(page.getByRole("link", { name: "Configurar sucursal" }).first()),
+        .or(page.getByText("Caja todavía no tiene una sucursal", { exact: true })),
     ).toBeVisible();
     expect(errors, `errores en consola:\n${errors.join("\n")}`).toEqual([]);
   });
 
   test("mantiene catálogo y cierre de venta alcanzables según el ancho real", async ({ page }) => {
+    test.setTimeout(60_000);
     const errors: string[] = [];
     page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
     page.on("pageerror", error => errors.push(error.message));
@@ -292,7 +298,7 @@ test.describe("POS", () => {
         await confirm.scrollIntoViewIfNeeded();
         await expect(confirm).toBeVisible();
         await expect(confirm).toBeDisabled();
-        await page.getByRole("button", { name: "Cerrar carrito" }).first().click();
+        await page.locator(".pos-mobile-cart").getByRole("button", { name: "Cerrar carrito" }).click();
       } else {
         await expect(desktopCart).toBeVisible();
         await expect(mobileToggle).toBeHidden();
@@ -313,11 +319,12 @@ test.describe("POS", () => {
 
     await abrirPos(page);
     const gestionar = page.getByRole("link", { name: /Gestionar turno/ }).first();
+    const sinSucursal = page.getByText("Caja todavía no tiene una sucursal", { exact: true });
+    await expect(gestionar.or(sinSucursal)).toBeVisible();
     if (await gestionar.isVisible()) {
       await gestionar.click();
       await expect(page).toHaveURL(/\/caja\/turno\?location=/);
     } else {
-      await expect(page.getByRole("link", { name: "Configurar sucursal" }).first()).toBeVisible();
       await page.goto("/caja/turno");
     }
 
@@ -345,8 +352,9 @@ test.describe("POS", () => {
     const search = page.getByPlaceholder(/Buscar producto/);
     await page.keyboard.press("F2");
     await expect(search).toBeFocused();
-    await expect(page.getByRole("button", { name: "Todo", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Árabe", exact: true })).toBeVisible();
+    const categories = page.getByRole("region", { name: "Categorías del catálogo" });
+    await expect(categories.getByRole("button", { name: "Todo", exact: true })).toBeVisible();
+    expect(await categories.getByRole("button").count()).toBeGreaterThan(0);
   });
 
   test("recupera dos tickets offline y deja visible una sincronización parcial sin escribir en producción", async ({ page, context }) => {
@@ -434,7 +442,12 @@ test.describe("POS", () => {
         { key: queueKey, value: queue },
       );
       await page.reload();
+      await abrirPos(page, false);
       await context.setOffline(true);
+      // Chromium aplica el bloqueo de red de inmediato, pero no todas sus
+      // versiones notifican el cambio de `navigator.onLine` en el mismo tick.
+      // El evento es el contrato web que escucha el POS.
+      await page.evaluate(() => window.dispatchEvent(new Event("offline")));
 
       await expect(page.getByText("Sin conexión — el ticket se guarda en este dispositivo")).toBeVisible();
       await expect(page.getByText(/2 tickets · 6 u\. · \$ 9\.500,00/)).toBeVisible();
@@ -442,6 +455,7 @@ test.describe("POS", () => {
 
       phase = "partial";
       await context.setOffline(false);
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
 
       await expect(page.getByText(/1 ticket · 3 u\. · \$ 6\.000,00 pendiente/)).toBeVisible();
       await expect(page.getByText(/1 ticket sigue pendiente/)).toBeVisible();

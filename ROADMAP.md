@@ -202,7 +202,9 @@ exige firma y el portal Stripe heredado responde como retirado.
   POS ausente se informa como gate de la identidad técnica, no como diez
   timeouts engañosos. La corrida autenticada confirmó que la identidad actual
   sí alcanza Caja; el locator separa ahora correctamente la superficie del
-  modal de vendedor que coexiste con ella;
+  modal de vendedor que coexiste con ella. El POS también prueba seis anchos,
+  categorías derivadas del catálogo real, organización sin sucursal, cola
+  offline y sincronización parcial sin escribir en producción;
 - Proveedores/Pagos ya no es un placeholder: presenta hasta 500 movimientos
   persistidos, total real, proveedor, concepto, método, filtros y error
   recuperable sin duplicar Compras ni Finance;
@@ -218,6 +220,9 @@ exige firma y el portal Stripe heredado responde como retirado.
 - corte técnico 2026-09-06: typecheck, lint con **0 errores/138 warnings
   conocidos**, **2.802 tests en 311 archivos** (`npm test`), las **76 Edge
   Functions** pasan su typecheck y build/PWA permanece verde;
+- CI y desarrollo quedan alineados sobre Node.js 24 y las acciones oficiales
+  vigentes de GitHub. Cuando falla el gate E2E, conserva siete días capturas,
+  contexto y traces sin publicar el estado autenticado de la sesión;
 - Dashboard, Analytics, Reportes y P&L comparten ahora un rango civil estable:
   los cambios de período invalidan sus memoizaciones, los límites incluyen el
   día completo y una columna `date` ya no retrocede por conversión UTC en

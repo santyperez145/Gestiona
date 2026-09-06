@@ -37,7 +37,7 @@ están en [ROADMAP.md](ROADMAP.md).
 
 ## Inicio local
 
-Requisitos: Node.js 20 o superior, npm y acceso al proyecto Supabase cuando se
+Requisitos: Node.js 24 o superior, npm y acceso al proyecto Supabase cuando se
 necesiten datos reales.
 
 ```bash

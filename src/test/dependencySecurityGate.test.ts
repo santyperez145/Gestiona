@@ -48,8 +48,8 @@ describe("dependencias sin alertas productivas conocidas", () => {
     expect(ci).toContain("run: npm audit");
   });
 
-  it("la versión mínima de Node coincide con Vite 8", () => {
-    expect(pkg.engines.node).toBe(">=20.19.0");
+  it("la versión mínima de Node usa la línea LTS del CI", () => {
+    expect(pkg.engines.node).toBe(">=24.0.0");
   });
 
   it("la paleta global tiene un solo dueño y no duplica listeners ni bundle", () => {

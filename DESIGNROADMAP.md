@@ -83,6 +83,12 @@ contrato visual reconoce esa superposición deliberada y valida primero la
 superficie o el guard de permisos, luego resuelve el prompt; así una pantalla
 válida no aparece rota sólo porque dos elementos accesibles coexisten.
 
+El carrito móvil expone un único cierre accesible mientras está abierto y la
+barra de categorías tiene nombre semántico. La matriz ya no depende de un rubro
+o una sucursal particular: valida el catálogo y la orientación operativa que
+corresponden a la organización real en 360, 768, 1024, 1092, 1280 y 1440 px.
+Los fallos visuales del CI conservan captura y trace durante siete días.
+
 Los filtros globales de fecha conservan la misma selección en URL y ahora
 refrescan todas las métricas dependientes con un único criterio civil inclusivo.
 El período que se ve en el control es exactamente el período de las tarjetas,

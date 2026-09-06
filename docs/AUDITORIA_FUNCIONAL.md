@@ -168,6 +168,14 @@ verde.
   dependían del predicado vigente. Se centralizó el rango civil inclusivo y se
   conectó a Dashboard, Analytics, P&L y el informe de vendedores con pruebas de
   límites, datos inválidos y ausencia de filtro.
+- El barrido autenticado dejó de asumir datos accidentales del comercio: el
+  POS reconoce organizaciones con o sin sucursal, categorías reales en vez de
+  “Árabe”, reabre correctamente tras un reload y selecciona el cierre visible
+  del carrito móvil. Las trazas/capturas fallidas quedan como artefactos del CI
+  durante siete días; la sesión autenticada no se incluye.
+- El runtime técnico sube a Node.js 24 y `checkout/setup-node` v7, conforme al
+  uso oficial vigente, eliminando la combinación EOL/compatibilidad forzada que
+  GitHub ya advertía en cada corrida.
 
 ## Benchmark aplicado
 

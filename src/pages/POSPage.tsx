@@ -3678,6 +3678,8 @@ export default function POSPage() {
             variant={showCart ? "default" : "outline"}
             className="xl:hidden h-9 relative shrink-0"
             aria-label={showCart ? "Cerrar carrito" : "Abrir carrito"}
+            aria-hidden={showCart || undefined}
+            tabIndex={showCart ? -1 : undefined}
             title={showCart ? "Cerrar carrito" : "Abrir carrito"}
             onClick={() => setShowCart(!showCart)}
           >
@@ -3691,7 +3693,7 @@ export default function POSPage() {
         </div>
 
         {/* Category pills */}
-        <div className="pos-category-bar shrink-0 flex gap-2 px-4 py-2 overflow-x-auto scrollbar-hide border-b border-border/50 bg-card/40">
+        <div role="region" aria-label="Categorías del catálogo" className="pos-category-bar shrink-0 flex gap-2 px-4 py-2 overflow-x-auto scrollbar-hide border-b border-border/50 bg-card/40">
           {cats.map((c) => (
             <button
               key={c.value}
