@@ -253,7 +253,18 @@ export default function StoreProduct() {
         />
 
         {/* ── Datos y compra ──────────────────────────────────────── */}
-        <div className="storefront-pdp__buy">
+        <div className="storefront-pdp__buy storefront-pdp__buybox">
+          <nav className="storefront-pdp__crumb mb-3 text-xs" aria-label="Ubicación" style={{ color: "hsl(var(--st-muted))" }}>
+            <Link to={`${base}/productos`}>Catálogo</Link>
+            {p.category ? (
+              <>
+                <span aria-hidden="true"> / </span>
+                <Link to={`${base}/productos?cat=${encodeURIComponent(p.category)}`}>
+                  {getCategoryLabel(p.category)}
+                </Link>
+              </>
+            ) : null}
+          </nav>
           {p.brand && (
             <p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: "hsl(var(--st-muted))" }}>{p.brand}</p>
           )}

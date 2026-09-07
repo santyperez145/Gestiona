@@ -303,7 +303,7 @@ export default function DripSequencesTab() {
           <p className="text-sm text-muted-foreground">Automatizá el nurturing de clientes con drip campaigns</p>
         </div>
         {canManage && (
-          <Button onClick={() => { setShowForm(!showForm); initFormWithTrigger("welcome"); }} className="gradient-gold text-primary-foreground">
+          <Button onClick={() => { setShowForm(!showForm); initFormWithTrigger("welcome"); }} className="text-primary-foreground">
             <Plus className="w-4 h-4 mr-2" />Nueva secuencia
           </Button>
         )}

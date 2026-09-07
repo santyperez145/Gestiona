@@ -1196,7 +1196,7 @@ export default function ProductsPage() {
       )}
 
       {/* KPI row */}
-      <div className="workspace-products-kpis grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="workspace-products-kpis commerce-metric-ledger grid grid-cols-2 md:grid-cols-5">
         <KPICard label="Total productos" value={products.length} icon={Package} color="primary"
           sub={productLimit ? `${products.length}/${productLimit} del plan` : `${filtered.length} visibles`} />
         <KPICard label="Inversión total" value={formatUSD(totalValue)} icon={DollarSign} color="blue"

@@ -1093,7 +1093,7 @@ export default function EcommerceStorePage() {
 
       {/* KPIs: un $0 y un 0% no son analítica. Aparecen cuando hubo tráfico. */}
       {performance ? (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="commerce-metric-ledger grid grid-cols-2 lg:grid-cols-4">
         {kpis.map(k => (
           <KPICard key={k.label} label={k.label} value={k.value} sub={k.sub} icon={k.icon} color={k.color} trend={k.trend ?? undefined} />
         ))}
@@ -1301,8 +1301,8 @@ export default function EcommerceStorePage() {
                       <span className="font-semibold text-foreground">{f.pct}%</span>
                     </div>
                   </div>
-                  <div className="h-2 bg-muted rounded-full">
-                    <div className={`h-2 rounded-full ${f.color}`} style={{ width: `${f.pct}%` }} />
+                  <div className="h-1.5 bg-muted">
+                    <div className={`h-1.5 ${f.color}`} style={{ width: `${f.pct}%` }} />
                   </div>
                 </div>
               ))}
@@ -1340,7 +1340,7 @@ export default function EcommerceStorePage() {
                 <button
                   type="button"
                   key={o.id}
-                  className="flex w-full items-center justify-between rounded-lg bg-muted/20 p-3 text-left hover:bg-muted/30"
+                  className="flex w-full items-center justify-between border-b border-border/50 py-3 text-left hover:bg-muted/20"
                   onClick={() => navigate(`/pedidos-online?pedido=${o.id}`)}
                 >
                   <div>
@@ -1504,16 +1504,16 @@ export default function EcommerceStorePage() {
                 const preview = resolveTheme(t.id, null);
                 return (
                   <button key={t.id} type="button" onClick={() => setSelectedTheme(t.id)}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${selectedTheme === t.id ? "border-primary" : "border-border/40 hover:border-primary/40"}`}>
+                    className={`p-3 border text-left ${selectedTheme === t.id ? "border-primary" : "border-border/40 hover:border-primary/40"}`}>
                     <div
-                      className="w-full h-12 rounded-lg mb-2 overflow-hidden border"
+                      className="w-full h-12 mb-2 overflow-hidden border"
                       style={{
                         background: hsl(preview.vars, "--st-bg"),
                         borderColor: hsl(preview.vars, "--st-border"),
                       }}
                     >
                       <div className="h-4" style={{ background: hsl(preview.vars, "--st-header") }} />
-                      <div className="mx-2 mt-1.5 h-2 w-8 rounded-full" style={{ background: hsl(preview.vars, "--st-accent") }} />
+                      <div className="mx-2 mt-1.5 h-2 w-8" style={{ background: hsl(preview.vars, "--st-accent") }} />
                     </div>
                     <p className="text-xs font-semibold">{t.label}</p>
                     <p className="text-[10px] text-muted-foreground">{t.hint}</p>
@@ -1545,7 +1545,7 @@ export default function EcommerceStorePage() {
                   <button
                     key={f.id}
                     onClick={() => setStoreForm(p => ({ ...p, font: f.id }))}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${elegida ? "border-primary" : "border-border/40 hover:border-primary/40"}`}
+                    className={`p-3 border text-left ${elegida ? "border-primary" : "border-border/40 hover:border-primary/40"}`}
                   >
                     {/* La previa se renderiza con la fuente real: elegir a ciegas
                         por el nombre es cómo se termina con una tienda ilegible. */}
@@ -1700,7 +1700,7 @@ export default function EcommerceStorePage() {
                 className="w-10 h-10 rounded-lg border border-border cursor-pointer" />
               <Input value={storeForm.primary_color} onChange={e => setStoreForm(p => ({ ...p, primary_color: e.target.value }))}
                 className="h-9 font-mono w-32" maxLength={7} />
-              <div className="w-8 h-8 rounded-full border border-border/40" style={{ background: storeForm.primary_color }} />
+              <div className="w-8 h-8 border border-border/40" style={{ background: storeForm.primary_color }} />
             </div>
           </div>
         </div>

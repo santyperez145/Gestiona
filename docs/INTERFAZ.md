@@ -11,9 +11,11 @@ en [DESIGNROADMAP.md](../DESIGNROADMAP.md) y la evaluación completa en
 - UI de trabajo clara, sobria y densa — Commerce OS, no CRM genérico.
 - Cobalto Nerqia (`#173aef`) para acción/foco; colores semánticos para estados.
 - Syne en titulares; IBM Plex Sans en interfaz; IBM Plex Mono en números.
-- Radios de 8 px, bordes suaves y sombras mínimas.
+- Radios de 8 px en primitives; ledger, métricas y vitrina a 2 px.
+- KPI y MetricCard son celdas de ledger (`commerce-metric-ledger`): sin lift, glow ni valor pintado.
 - Sin cards anidadas, orbes, gradientes decorativos ni kits violeta.
 - Storefront adapta la marca del comercio; no hereda el chrome administrativo.
+- Ficha pública: caja de compra `storefront-pdp__buybox`. Catálogo WhatsApp: grilla editorial `catalog-vitrina-card`.
 
 Los tokens viven en `src/index.css` y Tailwind. No introducir colores o
 espaciados locales cuando existe un token semántico.
@@ -68,7 +70,8 @@ no sustituye jerarquía.
 ### Tienda
 
 StoreLayout es mobile-first. Producto, variantes, imágenes, precio,
-disponibilidad, entrega y compra deben ser visibles y verificables. Cada tema
+disponibilidad, entrega y compra deben ser visibles y verificables. La ficha
+tiene caja de compra sticky en desktop y barra fija en mobile. Cada tema
 usa tokens/versionado, no CSS arbitrario inyectado.
 
 ## Densidad y medidas

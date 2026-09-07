@@ -211,7 +211,7 @@ export default function ProductBundlesPage() {
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
             {isAdmin && (
-              <Button className="gradient-gold text-primary-foreground gap-2"
+              <Button className="text-primary-foreground gap-2"
                 onClick={() => { setEditing(null); setForm(emptyForm()); setShowForm(true); }}>
                 <Plus className="w-4 h-4" /> Nuevo bundle
               </Button>
@@ -221,7 +221,7 @@ export default function ProductBundlesPage() {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="commerce-metric-ledger grid grid-cols-2 sm:grid-cols-4">
         <KPICard label="Activos" value={kpis.active} icon={Layers} color="primary" />
         <KPICard label="Total Vendidos" value={kpis.totalSold} icon={ShoppingBag} color="success" />
         <KPICard label="Destacados" value={kpis.featured} icon={Star} color="warning" />
@@ -276,7 +276,7 @@ export default function ProductBundlesPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancelar</Button>
-              <Button className="flex-1 gradient-gold text-primary-foreground gap-1.5" onClick={handleSave} disabled={saving}>
+              <Button className="flex-1 text-primary-foreground gap-1.5" onClick={handleSave} disabled={saving}>
                 {saving ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
                 {editing ? 'Guardar' : 'Crear bundle'}
               </Button>
@@ -446,7 +446,7 @@ export default function ProductBundlesPage() {
                               className="w-16 bg-muted text-xs h-8"
                               placeholder="Cant."
                             />
-                            <Button size="sm" className="h-8 gradient-gold text-primary-foreground text-xs" onClick={() => addItem(bundle.id)}>
+                            <Button size="sm" className="h-8 text-primary-foreground text-xs" onClick={() => addItem(bundle.id)}>
                               Agregar
                             </Button>
                           </div>

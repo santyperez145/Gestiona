@@ -2753,7 +2753,7 @@
   .light .workspace-metric-card,
   .light .workspace-kpi-card {
     background: hsl(0 0% 100%);
-    box-shadow: 0 1px 2px hsl(222 20% 10% / 0.04), 0 8px 18px -14px hsl(222 20% 10% / 0.18);
+    box-shadow: none;
   }
 
   .workspace-page .rounded-xl {
@@ -4743,26 +4743,85 @@
 
   .workspace-page .rounded-xl,
   .workspace-page .rounded-2xl {
-    border-radius: 12px;
+    border-radius: 2px;
   }
 
   .workspace-metric-card,
   .workspace-kpi-card {
-    min-height: 116px;
-    border-radius: 12px;
+    min-height: 104px;
+    border-radius: 0;
     background: hsl(var(--card));
     border-color: hsl(var(--border) / 0.82);
-    box-shadow: var(--shadow-kpi);
+    box-shadow: none;
+  }
+
+  .commerce-metric-ledger {
+    display: grid;
+    gap: 1px;
+    background: hsl(var(--border) / 0.7);
+    border: 1px solid hsl(var(--border) / 0.7);
+  }
+
+  .commerce-metric-ledger > * {
+    min-width: 0;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .catalog-vitrina-filter {
+    position: relative;
+    background: transparent;
+    color: hsl(var(--muted-foreground));
+    letter-spacing: -0.01em;
+  }
+
+  .catalog-vitrina-filter:hover {
+    color: hsl(var(--foreground));
+  }
+
+  .catalog-vitrina-filter.is-active {
+    color: hsl(var(--primary));
+  }
+
+  .catalog-vitrina-filter.is-active::after {
+    content: "";
+    position: absolute;
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 0;
+    height: 2px;
+    background: hsl(var(--primary));
+  }
+
+  .catalog-vitrina-card {
+    border: 1px solid hsl(var(--border) / 0.75);
+    background: hsl(var(--card));
+  }
+
+  .storefront-pdp__buybox {
+    border: 1px solid hsl(var(--st-border) / 0.85);
+    background: hsl(var(--st-bg));
+    padding: 1.25rem 1.35rem 1.4rem;
+  }
+
+  @media (min-width: 768px) {
+    .storefront-pdp__buybox {
+      position: sticky;
+      top: 1.25rem;
+    }
+  }
+
+  .storefront-pdp__crumb a:hover {
+    text-decoration: underline;
   }
 
   .dashboard-command-center {
-    padding: 1.35rem 1.35rem 0;
+    padding: 1.15rem 1.15rem 0;
     border: 1px solid hsl(var(--border) / 0.82);
-    border-radius: 16px;
-    background:
-      linear-gradient(160deg, hsl(var(--primary) / 0.06), transparent 45%),
-      hsl(var(--card) / 0.88);
-    box-shadow: var(--shadow-card);
+    border-radius: 2px;
+    background: hsl(var(--card));
+    box-shadow: none;
   }
 
   .dashboard-command-center .workspace-page-header {

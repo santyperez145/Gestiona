@@ -152,7 +152,7 @@ export default function MarketingPage() {
             <InstagramStoryGenerator />
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
+                <Button className="font-semibold">
                   <Sparkles className="w-4 h-4 mr-2" />Generar con IA
                 </Button>
               </DialogTrigger>
@@ -503,7 +503,7 @@ function AIImageGenerator({ products }: { products: any[] }) {
             <Button
               onClick={generate}
               disabled={loading}
-              className="w-full gradient-gold text-primary-foreground font-bold"
+              className="w-full text-primary-foreground font-bold"
             >
               {loading ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generando imagen...</>
@@ -785,7 +785,7 @@ function UTMLinkBuilder() {
               <Input value={content} onChange={e => setContent(e.target.value)} placeholder="banner_rojo" className="text-sm" />
             </div>
           </div>
-          <Button onClick={build} size="sm" className="gradient-gold text-primary-foreground font-semibold"><Link2 className="w-3.5 h-3.5 mr-1.5" />Generar Link</Button>
+          <Button onClick={build} size="sm" className="text-primary-foreground font-semibold"><Link2 className="w-3.5 h-3.5 mr-1.5" />Generar Link</Button>
           {generated && (
             <div className="bg-muted/50 rounded-lg p-3 flex items-start gap-2">
               <p className="text-xs font-mono break-all flex-1 text-emerald-400">{generated}</p>
@@ -828,7 +828,7 @@ function AIContentForm({ onGenerate, generating, postTypes, themes }: { onGenera
           ))}
         </div>
       </div>
-      <Button onClick={() => onGenerate(postType, theme || 'promoción general')} disabled={generating} className="w-full gradient-gold text-primary-foreground font-semibold">
+      <Button onClick={() => onGenerate(postType, theme || 'promoción general')} disabled={generating} className="w-full text-primary-foreground font-semibold">
         {generating ? (
           <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />Generando...</>
         ) : (
@@ -880,7 +880,7 @@ function ManualPostForm({ userId, onSave, postTypes }: { userId: string; onSave:
         <label className="text-sm text-muted-foreground">Contenido</label>
         <Textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Texto del post..." rows={6} className="bg-muted border-border" />
       </div>
-      <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">Crear Publicación</Button>
+      <Button type="submit" className="w-full text-primary-foreground font-semibold">Crear Publicación</Button>
     </form>
   );
 }

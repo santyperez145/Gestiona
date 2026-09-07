@@ -70,7 +70,7 @@ export default function BrandKnowledgeTab() {
         </div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
           <DialogTrigger asChild>
-            <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
+            <Button className="font-semibold">
               <Plus className="w-4 h-4 mr-2" />Nueva marca
             </Button>
           </DialogTrigger>
@@ -212,7 +212,7 @@ function BrandForm({ editItem, onSave }: { editItem?: any; onSave: () => void })
         <label className="text-xs text-muted-foreground">Descripción / regla para IA</label>
         <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Cuándo recomendarlo, mensajes clave..." className="bg-muted border-border" />
       </div>
-      <Button type="submit" disabled={saving} className="w-full gradient-gold text-primary-foreground font-semibold">
+      <Button type="submit" disabled={saving} className="w-full text-primary-foreground font-semibold">
         {saving ? 'Guardando...' : editItem ? 'Guardar cambios' : 'Agregar marca'}
       </Button>
     </form>

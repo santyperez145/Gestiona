@@ -3551,7 +3551,7 @@ export default function Dashboard() {
                       <span className="text-muted-foreground shrink-0 text-xs">{p.qty}u · <span className="text-emerald-400">{formatARS(p.profit)}</span></span>
                     </div>
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full rounded-full gradient-gold" style={{ width: `${(p.revenue / maxRev) * 100}%` }} />
+                      <div className="h-full bg-primary" style={{ width: `${(p.revenue / maxRev) * 100}%` }} />
                     </div>
                   </div>
                 );

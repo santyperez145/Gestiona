@@ -41,13 +41,12 @@ export default function MetricCard({
       tabIndex={onClick ? 0 : undefined}
       data-tone={tone}
       className={cn(
-        "workspace-metric-card group relative overflow-hidden rounded-[8px] border border-border/80 bg-card px-4 py-3.5",
-        "shadow-kpi transition-all duration-200 hover:-translate-y-px hover:border-primary/35 hover:shadow-card",
-        live && "border-emerald-500/35 ring-1 ring-emerald-500/10",
+        "workspace-metric-card group relative overflow-hidden border border-border/80 bg-card px-4 py-3.5",
+        live && "border-emerald-500/35",
         onClick && "cursor-pointer",
       )}
     >
-      <div className={cn("absolute inset-x-0 bottom-0 h-[2px] opacity-70 transition-opacity group-hover:opacity-100", colors.bar)} />
+      <div className={cn("absolute inset-x-0 bottom-0 h-[2px]", colors.bar)} />
       <div className="workspace-metric-card__content flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
@@ -55,8 +54,8 @@ export default function MetricCard({
               {label}
             </p>
             {live && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-[4px] bg-emerald-500/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-emerald-700 dark:text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="inline-flex shrink-0 items-center gap-1 border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-emerald-700 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 bg-emerald-500" />
                 En vivo
               </span>
             )}
@@ -66,7 +65,7 @@ export default function MetricCard({
           </p>
           {sub && <p className="mt-2 truncate text-[11px] leading-snug text-muted-foreground/75">{sub}</p>}
         </div>
-        <span className={cn("workspace-metric-card__icon flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] transition-transform duration-200 group-hover:scale-105", colors.icon)}>
+        <span className={cn("workspace-metric-card__icon flex h-8 w-8 shrink-0 items-center justify-center", colors.icon)}>
           <Icon className="h-4 w-4" />
         </span>
       </div>

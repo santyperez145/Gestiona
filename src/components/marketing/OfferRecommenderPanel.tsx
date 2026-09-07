@@ -202,7 +202,7 @@ export default function OfferRecommenderPanel() {
           <h2 className="text-xl font-display font-bold flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" /> Recomendador de ofertas IA</h2>
           <p className="text-sm text-muted-foreground">Generar no alcanza: el valor está en aplicar y medir. Cero hardcodeos.</p>
         </div>
-        <Button onClick={generate} disabled={loading || !canEditMarketing} className="gradient-gold text-primary-foreground">
+        <Button onClick={generate} disabled={loading || !canEditMarketing} className="text-primary-foreground">
           {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
           Generar recomendaciones
         </Button>

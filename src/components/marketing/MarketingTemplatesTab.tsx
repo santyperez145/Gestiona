@@ -113,7 +113,7 @@ function TemplateForm({
         {form.is_public && <Globe className="w-4 h-4 text-emerald-400" />}
       </label>
       <div className="flex gap-2 pt-2">
-        <Button type="submit" className="flex-1 gradient-gold text-primary-foreground font-semibold" disabled={saving}>
+        <Button type="submit" className="flex-1 text-primary-foreground font-semibold" disabled={saving}>
           {saving ? "Guardando…" : "Guardar template"}
         </Button>
         <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
@@ -202,7 +202,7 @@ export default function MarketingTemplatesTab() {
           <h2 className="font-display text-lg font-bold">Marketplace de Templates</h2>
           <p className="text-sm text-muted-foreground">Descubrí y compartí templates de marketing con la comunidad</p>
         </div>
-        <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
+        <Button className="font-semibold" onClick={() => setShowForm(true)}>
           <Plus className="w-4 h-4 mr-2" />Crear template
         </Button>
       </div>

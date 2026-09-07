@@ -16,18 +16,15 @@ interface KPICardProps {
 }
 
 const colorMap: Record<ColorVariant, {
-  bar:    string;   // left accent bar color
-  icon:   string;   // icon color
-  value:  string;   // value text color
-  glow:   string;   // hover glow class
+  bar: string;
+  icon: string;
 }> = {
-  primary:     { bar: "bg-primary",     icon: "text-primary",     value: "text-primary",     glow: "hover:shadow-[0_0_32px_-4px_hsl(230_87%_51%/0.22)]" },
-  success:     { bar: "bg-emerald-500", icon: "text-emerald-400", value: "text-emerald-400", glow: "hover:shadow-[0_0_32px_-4px_hsl(160_60%_50%/0.2)]" },
-  destructive: { bar: "bg-destructive", icon: "text-destructive", value: "text-destructive", glow: "hover:shadow-[0_0_32px_-4px_hsl(0_68%_50%/0.2)]" },
-  warning:     { bar: "bg-yellow-500",  icon: "text-yellow-400",  value: "text-yellow-400",  glow: "hover:shadow-[0_0_32px_-4px_hsl(48_96%_53%/0.2)]" },
-  blue:        { bar: "bg-blue-500",    icon: "text-blue-400",    value: "text-blue-400",    glow: "hover:shadow-[0_0_32px_-4px_hsl(210_90%_60%/0.2)]" },
-  /* Alias legacy: violeta genérico → cobalto Commerce OS */
-  purple:      { bar: "bg-primary",     icon: "text-primary",     value: "text-primary",     glow: "hover:shadow-[0_0_32px_-4px_hsl(230_87%_51%/0.22)]" },
+  primary:     { bar: "bg-primary",     icon: "text-primary" },
+  success:     { bar: "bg-emerald-500", icon: "text-emerald-600 dark:text-emerald-400" },
+  destructive: { bar: "bg-destructive", icon: "text-destructive" },
+  warning:     { bar: "bg-yellow-500",  icon: "text-yellow-600 dark:text-yellow-400" },
+  blue:        { bar: "bg-blue-500",    icon: "text-blue-600 dark:text-blue-400" },
+  purple:      { bar: "bg-primary",     icon: "text-primary" },
 };
 
 export default function KPICard({
@@ -39,66 +36,42 @@ export default function KPICard({
     <div
       onClick={onClick}
       className={cn(
-        /* Base */
-        "workspace-kpi-card relative group overflow-hidden rounded-[8px]",
-        "bg-card border border-border/80",
-        "shadow-kpi transition-all duration-200",
-        /* Hover */
-        "hover:border-primary/30 hover:-translate-y-px",
-        c.glow,
+        "workspace-kpi-card relative overflow-hidden bg-card border border-border/80",
         onClick && "cursor-pointer select-none",
       )}
     >
-      {/* ── Left accent bar ─────────────────────────────── */}
-      <div className={cn(
-        "absolute left-0 top-0 bottom-0 w-[2px] transition-all duration-300",
-        c.bar,
-        "opacity-80 group-hover:opacity-100",
-      )} />
-
-      {/* ── Inner highlight (top edge) ───────────────────── */}
-      <div className="absolute top-0 left-[3px] right-0 h-px bg-gradient-to-r from-white/6 via-white/4 to-transparent" />
+      <div className={cn("absolute left-0 top-0 bottom-0 w-[2px]", c.bar)} />
 
       <div className="pl-5 pr-4 pt-4 pb-3.5">
-        {/* ── Top row: label + icon ─────────────────────── */}
         <div className="flex items-start justify-between gap-2 mb-2">
-          <span className={cn(
-            "text-[10px] font-semibold uppercase tracking-[0.12em] leading-none",
-            "text-muted-foreground/70 font-display",
-          )}>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] leading-none text-muted-foreground font-display">
             {label}
           </span>
-          <Icon className={cn("w-[15px] h-[15px] shrink-0 mt-0.5 opacity-60 group-hover:opacity-90 transition-opacity", c.icon)} />
+          <Icon className={cn("w-[15px] h-[15px] shrink-0 mt-0.5 opacity-55", c.icon)} />
         </div>
 
-        {/* ── Value — large mono number ────────────────── */}
-        <p className={cn(
-        "text-[1.5rem] font-bold leading-none tracking-tight data-num animate-number-up",
-          c.value,
-        )}>
+        <p className="text-[1.5rem] font-bold leading-none tracking-tight data-num text-foreground">
           {value}
         </p>
 
-        {/* ── Bottom row: sub + trend ───────────────────── */}
         <div className="flex items-end justify-between gap-2 mt-2 min-h-[18px]">
           {sub && (
-            <p className="text-[11px] text-muted-foreground/55 leading-snug flex-1 truncate">
+            <p className="text-[11px] text-muted-foreground leading-snug flex-1 truncate">
               {sub}
             </p>
           )}
           {trend && (
             <span className={cn(
               "shrink-0 flex max-w-full items-center gap-0.5 text-[11px] font-bold leading-none font-mono",
-              trend.value >= 0 ? "text-emerald-400" : "text-destructive",
+              trend.value >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
             )} aria-label={`${trend.value >= 0 ? "Subió" : "Bajó"} ${Math.abs(trend.value).toFixed(1)}% ${trend.label}`}>
               <span className="text-[10px]">{trend.value >= 0 ? "↑" : "↓"}</span>
               {Math.abs(trend.value).toFixed(1)}%
-              <span aria-hidden="true" className="hidden font-normal text-muted-foreground/50 ml-0.5 text-[10px] sm:inline">{trend.label}</span>
+              <span aria-hidden="true" className="hidden font-normal text-muted-foreground/70 ml-0.5 text-[10px] sm:inline">{trend.label}</span>
             </span>
           )}
         </div>
 
-        {/* ── Footer slot ──────────────────────────────── */}
         {footer && (
           <div className="mt-3 pt-2.5 border-t border-border/50">
             {footer}

@@ -979,7 +979,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
   const businessName = settings?.business_name || '';
 
   return (
-    <div className="space-y-5 pb-12">
+    <div className={`catalog-vitrina space-y-5 pb-12 ${isPublic ? "" : "workspace-page"}`}>
       {/* Hidden QR for printing */}
       <div className="hidden">
         <QRCodeSVG
@@ -1022,7 +1022,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
 
       {/* Stats bar */}
       {products.length > 0 && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="commerce-metric-ledger grid grid-cols-2 lg:grid-cols-4">
           <KPICard label="Productos" value={products.length} icon={Package} color="primary" sub={`${filtered.length} mostrando`} />
           <KPICard label="Categorías" value={[...new Set(products.map(p => p.category))].length} icon={Layers} color="blue" sub="tipos distintos" />
           <KPICard label="Marcas" value={[...new Set(products.map(p => p.brand).filter(Boolean))].length} icon={Tag} color="purple" sub="en catálogo" />
@@ -1033,10 +1033,9 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       <div className="flex flex-col gap-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar producto o marca..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-muted border-border" />
+          <Input placeholder="Buscar producto o marca..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        {/* Dynamic category pills */}
-        <div className="flex gap-2 flex-wrap">
+        <div className="commerce-store-tabs flex gap-1 flex-wrap w-fit max-w-full" role="tablist" aria-label="Categorías del catálogo">
           {[
             { value: 'all', label: 'Todos', count: products.length },
             ...[...new Set(products.map(p => p.category))].map(c => ({
@@ -1047,11 +1046,10 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
           ].map(cat => (
             <button
               key={cat.value}
+              type="button"
               onClick={() => setFilterCat(cat.value)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
-                filterCat === cat.value
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                  : 'bg-muted border-border hover:border-primary/40 text-muted-foreground hover:text-foreground'
+              className={`catalog-vitrina-filter min-h-11 px-3 py-1.5 text-sm font-semibold ${
+                filterCat === cat.value ? "is-active" : ""
               }`}
             >
               {cat.label} <span className="opacity-60">({cat.count})</span>
@@ -1109,10 +1107,10 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
                         key={it.value}
                         type="button"
                         onClick={() => group.set(active ? group.sel.filter(v => v !== it.value) : [...group.sel, it.value])}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                        className={`px-2.5 py-1 text-[11px] font-medium border ${
                           active
                             ? 'bg-primary text-primary-foreground border-primary'
-                            : 'bg-muted border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                            : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
                         }`}
                       >
                         {it.label}
@@ -1142,65 +1140,57 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
             const hasDiscount = effDiscPrice != null && effDiscPrice < Number(p.sale_price_ars);
             const discountPct = hasDiscount ? Math.round((1 - (effDiscPrice as number) / Number(p.sale_price_ars)) * 100) : 0;
             return (
-            <div key={p.id} className="bg-card border border-border/60 rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 group">
-              <div className="aspect-square bg-muted/60 flex items-center justify-center relative overflow-hidden">
+            <article key={p.id} className="catalog-vitrina-card group flex flex-col overflow-hidden">
+              <div className="aspect-[4/5] bg-muted/40 flex items-center justify-center relative overflow-hidden">
                 {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
+                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover group-hover:opacity-[0.92] transition-opacity" />
                 ) : (
                   <Package className="w-12 h-12 text-muted-foreground/20" />
                 )}
-                {/* Badges */}
                 <div className="absolute top-2 left-2 flex flex-col gap-1">
                   {hasDiscount && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-destructive text-destructive-foreground font-bold flex items-center gap-1">
+                    <span className="px-2 py-0.5 text-[10px] bg-destructive text-destructive-foreground font-bold flex items-center gap-1">
                       <Tag className="w-3 h-3" />-{discountPct}%
                     </span>
                   )}
                 </div>
                 <div className="absolute top-2 right-2">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-background/80 backdrop-blur-sm font-medium border border-border/40">
+                  <span className="px-2 py-0.5 text-[10px] bg-background/90 font-medium border border-border/40">
                     {getCategoryLabel(p.category)}
                   </span>
                 </div>
-                {/* Low stock warning */}
                 {!isPublic && p.stock <= 3 && p.stock > 0 && (
                   <div className="absolute bottom-2 left-2">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/80 text-white font-bold backdrop-blur-sm">
-                      ¡{p.stock} u.!
+                    <span className="px-2 py-0.5 text-[10px] bg-amber-600 text-white font-bold">
+                      {p.stock} u.
                     </span>
                   </div>
                 )}
               </div>
-              <div className="p-3">
-                <div className="flex items-start justify-between mb-0.5">
-                  <h3 className="font-semibold text-sm leading-tight flex-1 line-clamp-2">{p.name}</h3>
+              <div className="p-3 flex flex-col gap-1.5">
+                <div className="flex items-start justify-between">
+                  <h3 className="font-semibold text-sm leading-tight flex-1 line-clamp-2 tracking-tight">{p.name}</h3>
                   <span className="text-xs text-muted-foreground ml-1 shrink-0">{GENDER_ICONS[p.gender]}</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-2.5">{p.brand}</p>
-                <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">{p.brand}</p>
+                <div className="space-y-1 pt-1">
                   {hasDiscount ? (
                     <>
-                      <div className="bg-primary/8 border border-primary/15 rounded-lg px-2.5 py-2">
-                        <span className="text-base font-bold text-primary">{formatARS(Number(effDiscPrice))}</span>
-                        <p className="text-[10px] text-primary/70 mt-0.5">{promo ? promo.promo.name : 'Efectivo / Transferencia'}</p>
-                      </div>
-                      <div className="px-1">
-                        <span className="text-xs text-muted-foreground line-through">{formatARS(Number(p.sale_price_ars))}</span>
-                        {textoDeCuotas(cuotasOfrecidas, Number(p.sale_price_ars), formatARS) && (
-                          <p className="text-[10px] text-muted-foreground/60">
-                            Tarjeta {textoDeCuotas(cuotasOfrecidas, Number(p.sale_price_ars), formatARS)}
-                          </p>
-                        )}
-                      </div>
+                      <p className="text-base font-bold tracking-tight">{formatARS(Number(effDiscPrice))}</p>
+                      <p className="text-[10px] text-muted-foreground">{promo ? promo.promo.name : 'Efectivo / Transferencia'}</p>
+                      <p className="text-xs text-muted-foreground line-through">{formatARS(Number(p.sale_price_ars))}</p>
+                      {textoDeCuotas(cuotasOfrecidas, Number(p.sale_price_ars), formatARS) && (
+                        <p className="text-[10px] text-muted-foreground/70">
+                          Tarjeta {textoDeCuotas(cuotasOfrecidas, Number(p.sale_price_ars), formatARS)}
+                        </p>
+                      )}
                     </>
                   ) : (
-                    <div className="bg-primary/8 border border-primary/15 rounded-lg px-2.5 py-2">
-                      <span className="text-base font-bold text-primary">{formatARS(Number(p.sale_price_ars))}</span>
-                    </div>
+                    <p className="text-base font-bold tracking-tight">{formatARS(Number(p.sale_price_ars))}</p>
                   )}
                   {!isPublic && (
                     <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
-                      <span className={`text-[10px] font-medium ${p.stock === 0 ? 'text-destructive' : p.stock <= 3 ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                      <span className={`text-[10px] font-medium ${p.stock === 0 ? 'text-destructive' : p.stock <= 3 ? 'text-amber-600' : 'text-muted-foreground'}`}>
                         Stock: {p.stock}
                       </span>
                       <span className="text-[10px] text-muted-foreground">{getGenderLabel(p.gender)}</span>
@@ -1208,7 +1198,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
                   )}
                 </div>
               </div>
-            </div>
+            </article>
             );
           })}
         </div>

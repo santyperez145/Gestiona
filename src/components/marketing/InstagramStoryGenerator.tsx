@@ -815,7 +815,7 @@ export function InstagramStoryGenerator() {
                 </div>
 
                 <Button onClick={downloadStory} disabled={!product || rendering}
-                  className="w-full gradient-gold text-primary-foreground font-semibold shadow-gold">
+                  className="w-full font-semibold">
                   <Download className="w-4 h-4 mr-2" />Descargar Historia (1080×1920)
                 </Button>
               </div>
@@ -935,7 +935,7 @@ export function InstagramStoryGenerator() {
               )}
 
               <Button onClick={generateBulk} disabled={bulkGenerating || bulkSelectedIds.size === 0}
-                className="w-full gradient-gold text-primary-foreground font-semibold shadow-gold">
+                className="w-full font-semibold">
                 {bulkGenerating
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generando {bulkDone}/{bulkSelectedIds.size}…</>
                   : <><Layers className="w-4 h-4 mr-2" />Generar {bulkSelectedIds.size > 0 ? bulkSelectedIds.size : ""} historia{bulkSelectedIds.size !== 1 ? "s" : ""} (1080×1920)</>

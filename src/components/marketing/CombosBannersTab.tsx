@@ -103,7 +103,7 @@ function BundlesTab() {
         </div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
           <DialogTrigger asChild>
-            <Button className="gradient-gold text-primary-foreground font-semibold">
+            <Button className="text-primary-foreground font-semibold">
               <Plus className="w-4 h-4 mr-2" />Nuevo kit
             </Button>
           </DialogTrigger>
@@ -364,7 +364,7 @@ function BundleForm({ orgId, products, editItem, onSave }: {
         </div>
       </div>
 
-      <Button type="submit" disabled={saving} className="w-full gradient-gold text-primary-foreground font-semibold">
+      <Button type="submit" disabled={saving} className="w-full text-primary-foreground font-semibold">
         {saving ? "Guardando..." : editItem ? "Actualizar kit" : "Crear kit"}
       </Button>
     </form>
@@ -394,7 +394,7 @@ function CombosTab() {
       <div className="flex justify-end mb-4">
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
           <DialogTrigger asChild>
-            <Button className="gradient-gold text-primary-foreground font-semibold"><Plus className="w-4 h-4 mr-2" />Nuevo combo</Button>
+            <Button className="text-primary-foreground font-semibold"><Plus className="w-4 h-4 mr-2" />Nuevo combo</Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editItem ? 'Editar combo' : 'Crear combo'}</DialogTitle></DialogHeader>
@@ -509,7 +509,7 @@ function ComboForm({ products, editItem, userId, onSave }: { products: any[]; ed
         </div>
       </div>
       {savings > 0 && <p className="text-xs text-emerald-400">Ahorro: {formatARS(savings)} ({((savings / original) * 100).toFixed(0)}%)</p>}
-      <Button type="submit" disabled={saving} className="w-full gradient-gold text-primary-foreground font-semibold">
+      <Button type="submit" disabled={saving} className="w-full text-primary-foreground font-semibold">
         {saving ? 'Guardando...' : 'Guardar combo'}
       </Button>
     </form>
@@ -533,7 +533,7 @@ function BannersTab() {
       <div className="flex justify-end mb-4">
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
           <DialogTrigger asChild>
-            <Button className="gradient-gold text-primary-foreground font-semibold"><Plus className="w-4 h-4 mr-2" />Nuevo banner</Button>
+            <Button className="text-primary-foreground font-semibold"><Plus className="w-4 h-4 mr-2" />Nuevo banner</Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editItem ? 'Editar banner' : 'Crear banner'}</DialogTitle></DialogHeader>
@@ -633,7 +633,7 @@ function BannerForm({ editItem, userId, onSave }: { editItem?: any; userId: stri
         <p className="font-bold">{title || 'Vista previa'}</p>
         {subtitle && <p className="text-sm opacity-90">{subtitle}</p>}
       </div>
-      <Button type="submit" disabled={saving} className="w-full gradient-gold text-primary-foreground font-semibold">
+      <Button type="submit" disabled={saving} className="w-full text-primary-foreground font-semibold">
         {saving ? 'Guardando...' : 'Guardar banner'}
       </Button>
     </form>

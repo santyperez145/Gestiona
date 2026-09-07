@@ -509,7 +509,7 @@ function FlowForm({
       <div className="flex gap-2 pt-2">
         <Button
           type="submit"
-          className="flex-1 gradient-gold text-primary-foreground font-semibold"
+          className="flex-1 text-primary-foreground font-semibold"
           disabled={saving || incompatibleAction}
         >
           {saving ? "Guardando…" : "Guardar flujo"}
@@ -734,7 +734,7 @@ export default function AutomationFlowsTab() {
             {runningFlowId === "__all__" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
             Ejecutar todos
           </Button>
-          <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"
+          <Button className="font-semibold"
             onClick={() => { setEditingFlow(null); setShowForm(true); }}>
             <Plus className="w-4 h-4 mr-2" />Nuevo flujo
           </Button>
@@ -801,7 +801,7 @@ export default function AutomationFlowsTab() {
             Empezá con una plantilla (stock bajo, cliente inactivo o deuda). Se evalúan cada día a las 08:00; preferí email si WhatsApp todavía no está listo.
           </p>
           <Button
-            className="mt-4 gradient-gold text-primary-foreground font-semibold"
+            className="mt-4 text-primary-foreground font-semibold"
             onClick={() => setShowForm(true)}
           >
             <Plus className="w-4 h-4 mr-2" />Crear flujo personalizado

@@ -258,4 +258,27 @@ describe('contrato visual transversal de Gestión', () => {
         'pages/PurchasesPage.tsx': 1, // cámara fullscreen de compras
       });
   });
+
+  it('métricas y vitrina dejan el cromo SaaS genérico', () => {
+    const kpi = source('src/components/shared/KPICard.tsx');
+    const metric = source('src/components/shared/MetricCard.tsx');
+    const catalog = source('src/pages/CatalogPage.tsx');
+    const store = source('src/pages/EcommerceStorePage.tsx');
+    const pdp = source('src/storefront/StoreProduct.tsx');
+    const css = source('src/index.css');
+
+    expect(kpi).not.toContain('hover:-translate-y');
+    expect(kpi).not.toMatch(/hover:shadow/);
+    expect(kpi).not.toContain('glow');
+    expect(metric).not.toContain('hover:-translate-y');
+    expect(metric).not.toContain('shadow-kpi');
+    expect(catalog).toContain('catalog-vitrina-card');
+    expect(catalog).toContain('catalog-vitrina-filter');
+    expect(catalog).not.toContain('hover:-translate-y-0.5');
+    expect(store).toContain('commerce-metric-ledger');
+    expect(pdp).toContain('storefront-pdp__buybox');
+    expect(pdp).toContain('storefront-pdp__crumb');
+    expect(css).toContain('.commerce-metric-ledger');
+    expect(css).toContain('.storefront-pdp__buybox');
+  });
 });
