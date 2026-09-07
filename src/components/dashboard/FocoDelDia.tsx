@@ -313,14 +313,14 @@ export default function FocoDelDia(p: Props) {
     : variacion.sentido === "baja" ? "text-destructive" : "text-muted-foreground";
 
   return (
-    <section className="mb-6 grid gap-4 lg:grid-cols-3">
+    <section className="commerce-home-foco mb-6 grid gap-4 lg:grid-cols-3">
       {/* ── Cómo viene el mes ────────────────────────────────────────────── */}
-      <div className="design-surface relative overflow-hidden p-5 lg:col-span-1">
+      <div className="commerce-home-foco__pulse design-surface relative overflow-hidden p-5 lg:col-span-1">
         <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary font-display">
           Ventas del mes
         </p>
-        <p className="mt-2 text-3xl font-bold tracking-[-0.03em] tabular-nums">{formatARS(p.ventasMes)}</p>
+        <p className="mt-2 text-3xl font-display font-bold tracking-[-0.03em] tabular-nums">{formatARS(p.ventasMes)}</p>
 
         <p className={`text-sm mt-1.5 flex items-center gap-1 ${colorVariacion}`}>
           <FlechaVariacion className="w-4 h-4" />
@@ -345,13 +345,13 @@ export default function FocoDelDia(p: Props) {
       </div>
 
       {/* ── Para hacer ahora ─────────────────────────────────────────────── */}
-      <div className="design-surface p-5 lg:col-span-2">
+      <div className="commerce-home-foco__queue design-surface p-5 lg:col-span-2">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
-            Para hacer ahora
+          <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider font-display">
+            Cola de la tienda
           </p>
           {pendientes.length > 0 && (
-            <span className={`text-[10px] px-2 py-0.5 rounded-full bg-muted/40 font-semibold ${COLOR_URGENCIA[nivel]}`}>
+            <span className={`text-[10px] px-2 py-0.5 rounded-md bg-primary/10 font-semibold ${COLOR_URGENCIA[nivel]}`}>
               {pendientes.length}
             </span>
           )}
@@ -362,7 +362,7 @@ export default function FocoDelDia(p: Props) {
           // que disimular con un dibujo.
           <p className="text-sm text-muted-foreground flex items-center gap-2 py-2">
             <Check className="w-4 h-4 text-emerald-400" />
-            Nada pendiente. El stock está cubierto y no hay deudas vencidas.
+            Nada pendiente. Stock cubierto y sin deudas vencidas.
           </p>
         ) : (
           <ul className="divide-y divide-border/60">

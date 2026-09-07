@@ -1524,18 +1524,18 @@ export default function Dashboard() {
       <div className="dashboard-command-center">
         <div className="dashboard-command-center__eyebrow">
           <span className="status-dot bg-emerald-500" />
-          <span>Centro de control</span>
+          <span>Commerce</span>
           <span className="dashboard-command-center__divider" />
           <span>{activeOrg?.name || "Organización activa"}</span>
         </div>
         <PageHeader
-          icon={LayoutDashboard}
-          eyebrow="Inicio / Commerce"
+          icon={ShoppingBag}
+          eyebrow="Inicio · Tienda y operación"
           title={greeting}
           description={filterCat === 'all'
             ? (activationReadiness?.effectiveGoal === 'online'
-              ? 'Publicá la tienda, conectá el cobro y operá stock y mostrador en el mismo negocio.'
-              : 'Una lectura de ventas, stock y caja. La tienda queda en el menú diario para publicar cuando el canal sea online.')
+              ? 'Pedidos, stock y cobro en una sola lectura. Publicá y operá la tienda sin salir del Business Core.'
+              : 'Ventas, stock y caja. La tienda online queda a un clic cuando el canal esté listo.')
             : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
           actions={
             <>

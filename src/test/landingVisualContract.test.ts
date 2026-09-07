@@ -4,11 +4,14 @@ import { resolve } from 'node:path';
 
 const page = readFileSync(resolve(process.cwd(), 'src/pages/LandingPage.tsx'), 'utf8');
 const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
-const landingV4 = css.split('/* Landing v4:')[1]?.split('.auth-shell {')[0] ?? '';
+const landingCommerce = css.split('/* Landing Commerce OS:')[1]?.split('.auth-shell {')[0] ?? '';
 
 describe('contrato visual de la landing de Nerqia', () => {
-  it('presenta la tienda online como puerta principal en el H1', () => {
-    expect(page).toContain('<h1><span>Nerqia</span>, tu tienda online conectada a todo tu negocio.</h1>');
+  it('presenta la marca y la tienda online como puerta principal en el hero', () => {
+    expect(page).toContain('landing-brand-kicker');
+    expect(page).toContain('>Nerqia</p>');
+    expect(page).toContain('<h1>Creá tu tienda online y vendé hoy.</h1>');
+    expect(page).toContain('sin ser un CRM más');
   });
 
   it('usa una escena inmersiva de ecommerce y no vuelve al hero dividido', () => {
@@ -38,15 +41,16 @@ describe('contrato visual de la landing de Nerqia', () => {
     expect(page).toContain("useState<(typeof SURFACES)[number]['id']>('tienda')");
   });
 
-  it('usa color plano y evita gradientes u orbes decorativos', () => {
-    expect(landingV4).toContain('background: hsl(var(--landing-berry));');
-    expect(landingV4).not.toContain('linear-gradient');
+  it('ancla el hero en cobalto Commerce OS con tipografía de marca', () => {
+    expect(landingCommerce).toContain('--landing-gold: 230 87% 51%');
+    expect(landingCommerce).toContain('linear-gradient(145deg');
+    expect(landingCommerce).toContain('.landing-brand-kicker');
     expect(page).not.toMatch(/glow|orb/i);
   });
 
   it('conserva continuidad en notebooks anchos de poca altura', () => {
-    expect(landingV4).toContain('@media (min-width: 821px) and (max-height: 780px)');
-    expect(landingV4).toContain('transform: scale(0.72);');
-    expect(landingV4).toContain('transform-origin: top left;');
+    expect(landingCommerce).toContain('@media (min-width: 821px) and (max-height: 780px)');
+    expect(landingCommerce).toContain('transform: scale(0.72);');
+    expect(landingCommerce).toContain('transform-origin: top left;');
   });
 });

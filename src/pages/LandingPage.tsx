@@ -5,7 +5,6 @@ import {
   ArrowUpRight,
   Boxes,
   Check,
-  ChevronRight,
   CircleDollarSign,
   Layers3,
   Menu,
@@ -215,23 +214,30 @@ export default function LandingPage() {
         <section className="landing-hero">
           <div className="landing-container landing-hero__inner">
             <div className="landing-hero__copy">
-              <p className="landing-eyebrow"><span className="landing-eyebrow__dot" /> Tu tienda online, conectada de verdad</p>
-              <h1><span>Nerqia</span>, tu tienda online conectada a todo tu negocio.</h1>
-              <p className="landing-hero__lead">Creá una tienda preparada para vender y crecer. Cada pedido comparte productos, stock y clientes con Gestión, mientras Finance explica costos, cobros y margen real.</p>
+              <p className="landing-brand-kicker">Nerqia</p>
+              <h1>Creá tu tienda online y vendé hoy.</h1>
+              <p className="landing-hero__lead">
+                Checkout, stock y margen en una sola operación — como la competencia seria, sin ser un CRM más.
+              </p>
               <div className="landing-hero__actions">
-                <Link to="/login?mode=register" className="landing-button landing-button--primary">Crear mi tienda gratis <ArrowRight /></Link>
-                <a href="#tienda" className="landing-button landing-button--outline">Ver cómo funciona <ChevronRight /></a>
+                <Link to="/login?mode=register" className="landing-button landing-button--primary">
+                  Crear mi tienda gratis <ArrowRight />
+                </Link>
+                <a href="#tienda" className="landing-button landing-button--outline">
+                  Ver cómo funciona
+                </a>
               </div>
               <div className="landing-checks">{CHECKS.map(check => <span key={check}><Check /> {check}</span>)}</div>
             </div>
             <StorefrontPreview />
           </div>
-          <div className="landing-hero__signal" aria-label="Canales conectados">
-            <div className="landing-container">
-              <span>Tienda online</span><i /><span>Gestión</span><i /><span>Finance</span><i /><span>Todos tus canales</span><i /><strong>Una sola operación</strong>
-            </div>
-          </div>
         </section>
+
+        <div className="landing-hero__signal" aria-label="Qué conecta Nerqia">
+          <div className="landing-container">
+            <span>Tienda online</span><i /><span>Pedidos</span><i /><span>Stock</span><i /><span>Finance</span><i /><strong>Una sola verdad</strong>
+          </div>
+        </div>
 
         <section className="landing-proof" id="tienda">
           <div className="landing-container">
