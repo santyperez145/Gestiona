@@ -246,6 +246,41 @@ export default function CommerceConversionAnalytics() {
               })}
             </CardContent>
           </Card>
+
+          {/* IA Attribution Insights */}
+          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-background">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                IA Attribution Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-background border border-border/50">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 mt-2" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Email tiene 2.5x más conversión que Directo</p>
+                    <p className="text-xs text-muted-foreground mt-1">IA analizó attribution first-touch vs last-touch. Considera invertir más en email</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-background border border-border/50">
+                  <div className="h-2 w-2 rounded-full bg-amber-500 mt-2" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Social convierte menos pero tiene mayor ticket promedio</p>
+                    <p className="text-xs text-muted-foreground mt-1">IA detectó que Social trae clientes de mayor valor. Considera retargeting</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-background border border-border/50">
+                  <div className="h-2 w-2 rounded-full bg-blue-500 mt-2" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">SEO tiene 40% de tráfico pero solo 10% de conversiones</p>
+                    <p className="text-xs text-muted-foreground mt-1">IA sugiere optimizar landing pages de SEO para mejorar conversión</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

@@ -224,6 +224,26 @@ export default function FinanceDashboard() {
                 </Button>
               </div>
             </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-background border border-border/50">
+              <div className="h-2 w-2 rounded-full bg-purple-500 mt-2" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">Deuda técnica detectada: Centro de costo X tiene deuda creciente</p>
+                <p className="text-xs text-muted-foreground mt-1">IA detectó patrón de deuda creciente sin correspondencia en revenue. Revisa presupuesto</p>
+                <Button size="sm" variant="outline" className="mt-2 h-7 text-xs">
+                  Revisar Presupuesto
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-background border border-border/50">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 mt-2" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">Optimización de impuestos: Aplicar deducciones reduces 5% IVA</p>
+                <p className="text-xs text-muted-foreground mt-1">IA analizó patterns de gastos. Sugerencia de aplicar deducciones fiscales</p>
+                <Button size="sm" variant="outline" className="mt-2 h-7 text-xs">
+                  Ver Deducciones
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Zap, TrendingUp, DollarSign, Clock, Package, BarChart3, CheckCircle, ArrowRight, AlertTriangle } from "lucide-react";
+import { Sparkles, Zap, TrendingUp, DollarSign, Clock, Package, BarChart3, CheckCircle, ArrowRight, AlertTriangle, Users, Heart, Target, Flame, PieChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Insight {
@@ -28,7 +28,7 @@ interface Insight {
   evidence: string;
   action: string;
   impact: "high" | "medium" | "low";
-  category: "pricing" | "timing" | "product" | "stock" | "competition";
+  category: "pricing" | "timing" | "product" | "stock" | "competition" | "segmentation" | "churn" | "ltv" | "ab_testing" | "cross_sell";
 }
 
 const INSIGHTS: Insight[] = [
@@ -57,7 +57,7 @@ const INSIGHTS: Insight[] = [
     evidence: "Basado en 45 pedidos. Correlación de 0.85. Bundle sugerido: X + Y = $125 (vs $135 individual)",
     action: "Crear Bundle",
     impact: "medium",
-    category: "product",
+    category: "cross_sell",
   },
   {
     id: "4",
@@ -77,6 +77,51 @@ const INSIGHTS: Insight[] = [
     impact: "medium",
     category: "competition",
   },
+  {
+    id: "6",
+    title: "Segmentación: clientes VIP tienen 3x más LTV",
+    description: "IA identificó segmento de clientes con >$500 LTV. Considera programa de fidelización específico",
+    evidence: "Basado en 124 clientes. Segmento VIP: 12% de clientes, 38% de revenue. LTV promedio: $650 vs $200",
+    action: "Crear Programa VIP",
+    impact: "high",
+    category: "segmentation",
+  },
+  {
+    id: "7",
+    title: "Churn prediction: 15 clientes en riesgo de churn",
+    description: "IA detectó patrón de comportamiento que precede al churn. Considera campaña de retención",
+    evidence: "Basado en historial de 89 clientes. Features: inactividad >30 días, <2 pedidos últimos 3 meses, ticket promedio <$50",
+    action: "Lanzar Campaña de Retención",
+    impact: "high",
+    category: "churn",
+  },
+  {
+    id: "8",
+    title: "LTV prediction: clientes nuevos tienen $350 LTV potencial",
+    description: "IA predice LTV basado en first purchase. First purchase >$80 tiene 2.5x más LTV",
+    evidence: "Basado en 67 clientes nuevos. First purchase >$80: LTV promedio $420 vs $170. Correlación: 0.72",
+    action: "Ver Predicción LTV",
+    impact: "medium",
+    category: "ltv",
+  },
+  {
+    id: "9",
+    title: "A/B testing: imagen de producto B convierte 18% más",
+    description: "Test A/B entre imágenes de producto. Imagen B tiene 18% más conversión",
+    evidence: "Basado en 234 visitas. Imagen A: 2.1% conversión. Imagen B: 2.5% conversión. Significancia: p<0.05",
+    action: "Aplicar Imagen B",
+    impact: "medium",
+    category: "ab_testing",
+  },
+  {
+    id: "10",
+    title: "Cross-sell matrix: Upsell óptimo en checkout",
+    description: "IA generó matriz de cross-sell. Top upsell: producto complementario al checkout",
+    evidence: "Basado en 78 carritos. Upsell aceptado en 23% de casos. Ticket promedio: +15% con upsell",
+    action: "Configurar Upsell",
+    impact: "medium",
+    category: "cross_sell",
+  },
 ];
 
 const CATEGORY_ICONS = {
@@ -85,6 +130,11 @@ const CATEGORY_ICONS = {
   product: Package,
   stock: TrendingUp,
   competition: BarChart3,
+  segmentation: Users,
+  churn: Heart,
+  ltv: PieChart,
+  ab_testing: Target,
+  cross_sell: Flame,
 };
 
 const CATEGORY_LABELS = {
@@ -93,6 +143,11 @@ const CATEGORY_LABELS = {
   product: "Producto",
   stock: "Stock",
   competition: "Competencia",
+  segmentation: "Segmentación",
+  churn: "Churn",
+  ltv: "LTV",
+  ab_testing: "A/B Testing",
+  cross_sell: "Cross-Sell",
 };
 
 function InsightCard({ insight }: { insight: Insight }) {
