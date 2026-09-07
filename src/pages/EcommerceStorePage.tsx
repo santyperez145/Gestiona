@@ -994,6 +994,7 @@ export default function EcommerceStorePage() {
     <div className="workspace-page workspace-ecommerce space-y-6 pb-12">
       <PageHeader
         icon={ShoppingBag}
+        eyebrow="Commerce · Canal de venta"
         title="Tienda online"
         description="Publicá la vitrina, cobrá y gestioná envíos. El núcleo del Commerce OS — no un panel genérico."
         actions={

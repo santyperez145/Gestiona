@@ -28,42 +28,44 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
   const imagen = p.image_url;
 
   return (
-    <div
-      className="storefront-product-card group flex flex-col overflow-hidden border transition-shadow hover:shadow-lg"
+    <article
+      className="storefront-product-card group flex flex-col overflow-hidden"
       data-has-sold-out-variants={resumenVariantes.agotadas > 0 ? "true" : undefined}
       data-variant-count={tieneVariantes ? variantes.length : undefined}
-      style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
+      style={{ background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
     >
-      <Link to={productUrl} className="storefront-product-card__media relative block aspect-square overflow-hidden bg-black/5">
-        <div aria-hidden="true" className="absolute inset-0 grid place-items-center opacity-20">
-          <ShoppingBag className="w-8 h-8" />
-        </div>
-        {imagen && (
+      <div className="storefront-product-card__media relative">
+        <Link to={productUrl} className="relative block aspect-[4/5] overflow-hidden" style={{ background: "hsl(var(--st-muted) / 0.1)" }}>
+          <div aria-hidden="true" className="absolute inset-0 grid place-items-center opacity-15">
+            <ShoppingBag className="w-7 h-7" />
+          </div>
+          {imagen && (
             <img
               src={imagen}
               alt={p.name}
               {...atributosDeImagenVitrina("tarjeta")}
               onLoad={mostrarImagenValida}
               onError={ocultarImagenRota}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
             />
           )}
+        </Link>
 
         {off > 0 && (
           <span
-            className="absolute top-2 left-2 px-2 py-0.5 text-[11px] font-bold"
-            style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+            className="storefront-product-card__badge absolute top-2.5 left-2.5 px-2 py-0.5 text-[10px] font-bold tracking-wide"
+            style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "calc(var(--st-radius) * 0.55)" }}
           >
             −{off}%
           </span>
         )}
-        {/* El corazón va sobre la imagen pero fuera del <Link>: adentro,
-            cada clic navegaría a la ficha además de guardar. */}
+
         <button
+          type="button"
           onClick={e => { e.preventDefault(); e.stopPropagation(); toggle(p.id); }}
           aria-label={deseado ? "Quitar de mis deseos" : "Guardar en mis deseos"}
           aria-pressed={deseado}
-          className="absolute bottom-2 right-2 p-2 min-h-11 min-w-11 grid place-items-center rounded-full bg-white/85 hover:bg-white transition-colors"
+          className="absolute bottom-2.5 right-2.5 p-2 min-h-11 min-w-11 grid place-items-center rounded-full bg-white/90 shadow-sm hover:bg-white transition-colors"
         >
           <Heart
             className={`w-4 h-4 ${deseado ? "fill-current" : ""}`}
@@ -72,34 +74,26 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         </button>
 
         {sinStock ? (
-          <span
-            className="absolute top-2 right-2 px-2 py-0.5 text-[11px] font-medium bg-black/70 text-white"
-            style={{ borderRadius: "var(--st-radius)" }}
-          >
+          <span className="absolute top-2.5 right-2.5 px-2 py-0.5 text-[10px] font-semibold bg-black/75 text-white rounded-md">
             Sin stock
           </span>
         ) : stockVisible <= 3 ? (
-          <span
-            className="absolute top-2 right-2 px-2 py-0.5 text-[11px] font-medium bg-black/70 text-white"
-            style={{ borderRadius: "var(--st-radius)" }}
-          >
-            {stockVisible === 1 ? "¡Última!" : `¡Últimas ${stockVisible}!`}
+          <span className="absolute top-2.5 right-2.5 px-2 py-0.5 text-[10px] font-semibold bg-black/75 text-white rounded-md">
+            {stockVisible === 1 ? "Última" : `Últimas ${stockVisible}`}
           </span>
         ) : null}
-      </Link>
+      </div>
 
-      <div className="storefront-product-card__content p-3 flex flex-col flex-1">
+      <div className="storefront-product-card__content flex flex-col flex-1 px-0.5 pt-3 pb-1">
         {p.brand && (
-          <p className="text-[11px] uppercase tracking-wide" style={{ color: "hsl(var(--st-muted))" }}>{p.brand}</p>
+          <p className="text-[10px] uppercase tracking-[0.12em] mb-0.5" style={{ color: "hsl(var(--st-muted))" }}>{p.brand}</p>
         )}
-        <Link to={productUrl} className="text-sm font-medium leading-snug line-clamp-2 hover:underline">
+        <Link to={productUrl} className="text-[0.92rem] font-semibold leading-snug line-clamp-2 hover:opacity-80 transition-opacity">
           {p.name}
         </Link>
 
-        {/* Sólo si hay opiniones: cinco estrellas vacías en un producto nuevo
-            transmiten lo contrario de lo que se busca. */}
         {opiniones && (
-          <div className="mt-1 flex items-center gap-1">
+          <div className="mt-1.5 flex items-center gap-1">
             <Stars value={opiniones.avg} size={12} />
             <span className="text-[11px]" style={{ color: "hsl(var(--st-muted))" }}>
               ({opiniones.count})
@@ -107,9 +101,9 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
           </div>
         )}
 
-        <div className="mt-2 flex items-baseline gap-2" aria-live="polite">
-          <span className="text-base font-bold">
-            {resumenVariantes.desde && <span className="mr-1 text-xs font-medium">Desde</span>}
+        <div className="mt-2.5 flex items-baseline gap-2" aria-live="polite">
+          <span className="text-[1.05rem] font-bold tracking-tight">
+            {resumenVariantes.desde && <span className="mr-1 text-[11px] font-medium opacity-70">Desde</span>}
             {fmt(price)}
           </span>
           {off > 0 && (
@@ -118,41 +112,42 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         </div>
 
         {!sinStock ? (
-          <div className="mt-3 space-y-2">
+          <div className="mt-3.5 space-y-2">
             {tieneVariantes ? (
               <>
                 <p className="text-[11px]" style={{ color: "hsl(var(--st-muted))" }}>
                   {resumenVariantes.disponibles.length} disponible{resumenVariantes.disponibles.length === 1 ? "" : "s"}
                   {resumenVariantes.agotadas > 0 ? ` · ${resumenVariantes.agotadas} agotada${resumenVariantes.agotadas === 1 ? "" : "s"}` : ""}
                 </p>
-              <Link
-                to={productUrl}
-                  className="storefront-product-card__add grid min-h-11 w-full place-items-center py-2 text-center text-sm font-medium transition-opacity hover:opacity-90"
+                <Link
+                  to={productUrl}
+                  className="storefront-product-card__add grid min-h-11 w-full place-items-center py-2.5 text-center text-sm font-semibold transition-opacity hover:opacity-90"
                   style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
-              >
+                >
                   {textoCtaVariante(tipoVariante).replace(/^Elegí/, "Elegir")}
-              </Link>
+                </Link>
               </>
             ) : (
               <button
+                type="button"
                 onClick={() => addToCart(p)}
-                className="storefront-product-card__add w-full min-h-11 py-2 text-sm font-medium transition-opacity hover:opacity-90"
+                className="storefront-product-card__add w-full min-h-11 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
                 style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
               >
-                Agregar
+                Agregar al carrito
               </button>
             )}
           </div>
         ) : (
           <Link
             to={productUrl}
-            className="mt-3 w-full min-h-11 grid place-items-center py-2 text-sm font-medium text-center border"
+            className="mt-3.5 w-full min-h-11 grid place-items-center py-2.5 text-sm font-semibold text-center border transition-colors"
             style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
           >
             {tieneVariantes ? "Ver opciones y avisos" : "Avisame cuando vuelva"}
           </Link>
         )}
       </div>
-    </div>
+    </article>
   );
 }

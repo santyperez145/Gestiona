@@ -972,14 +972,24 @@
     border: 1px solid hsl(var(--border) / 0.9);
     background: hsl(var(--card));
     box-shadow: var(--shadow-card);
-    border-radius: 8px;
-    padding: 0.35rem;
+    border-radius: 10px;
+    padding: 0.4rem;
   }
 
   .workspace-ecommerce .flex.flex-wrap.gap-1.bg-muted\/30 > button {
-    border-radius: 6px;
-    min-height: 2.5rem;
+    border-radius: 7px;
+    min-height: 2.55rem;
     font-family: var(--font-body);
+    font-weight: 600;
+  }
+
+  .workspace-ecommerce .page-header__title {
+    letter-spacing: -0.04em;
+  }
+
+  .workspace-ecommerce > .design-surface,
+  .workspace-ecommerce .design-surface {
+    border-radius: 12px;
   }
 
   .workspace-sidebar {
@@ -4207,26 +4217,44 @@
   }
 
   .storefront-product-card {
-    box-shadow: 0 10px 24px -24px hsl(var(--st-accent) / 0.85);
-    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    border: 0;
+    box-shadow: none;
+    transition: transform 180ms ease;
   }
 
   .storefront-product-card:hover {
-    transform: translateY(-2px);
-    border-color: hsl(var(--st-accent) / 0.45) !important;
-    box-shadow: 0 18px 30px -24px hsl(var(--st-accent) / 0.95);
+    transform: translateY(-3px);
+    border-color: transparent !important;
+    box-shadow: none;
   }
 
   .storefront-product-card__media {
-    background: hsl(var(--st-muted) / 0.12);
+    overflow: hidden;
+    border-radius: calc(var(--st-radius) + 2px);
+    background: hsl(var(--st-muted) / 0.1);
   }
 
   .storefront-product-card__content {
-    background: hsl(var(--st-surface));
+    background: transparent;
   }
 
   .storefront-product-card__add {
-    box-shadow: 0 8px 16px -12px hsl(var(--st-accent) / 0.95);
+    letter-spacing: -0.01em;
+    box-shadow: 0 10px 22px -16px hsl(var(--st-accent) / 0.9);
+  }
+
+  .storefront-section__title {
+    letter-spacing: -0.03em;
+    font-weight: 750;
+  }
+
+  .storefront-hero__title {
+    letter-spacing: -0.045em;
+    max-width: 14ch;
+  }
+
+  .storefront-hero__cta {
+    box-shadow: 0 14px 28px -18px hsl(var(--st-accent) / 0.85);
   }
 
   .storefront-skeleton-bone {
@@ -5919,8 +5947,21 @@
   }
 
   .auth-shell .auth-form-icon {
-    background: hsl(252 92% 95%);
-    color: hsl(252 72% 48%);
+    background: hsl(230 70% 95%);
+    color: hsl(230 87% 51%);
+  }
+
+  .auth-shell .auth-showcase {
+    background:
+      linear-gradient(145deg, hsl(225 32% 9%) 0%, hsl(230 55% 16%) 52%, hsl(230 72% 28%) 100%);
+  }
+
+  .auth-shell .auth-submit {
+    background: hsl(230 87% 51%);
+  }
+
+  .auth-shell .auth-submit:hover {
+    background: hsl(230 87% 44%);
   }
 
   .dashboard-context-bar {
