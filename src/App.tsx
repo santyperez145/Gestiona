@@ -2,7 +2,7 @@ import { lazy, Suspense, useState, useEffect } from "react";
 import * as Sentry from "@sentry/react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
-import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation, useNavigationType } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -348,6 +348,16 @@ function OrganizationScope() {
   const client = useQueryClient();
   const requestedScope = activeOrg?.id ?? "public";
   const [readyScope, setReadyScope] = useState(requestedScope);
+
+  // Scroll to top al cambiar de ruta (solo en PUSH navigation, no en POP)
+  const location = useLocation();
+  const navigationType = useNavigationType();
+
+  useEffect(() => {
+    if (navigationType === "PUSH") {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    }
+  }, [location.pathname, navigationType]);
 
   useEffect(() => {
     if (requestedScope === readyScope) return;

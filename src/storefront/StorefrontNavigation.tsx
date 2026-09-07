@@ -33,9 +33,12 @@ export function storefrontScrollTarget(
   navigationType: NavigationType,
   savedPosition?: number,
 ): number {
-  return navigationType === "POP" && Number.isFinite(savedPosition)
-    ? Math.max(0, Number(savedPosition))
-    : 0;
+  // Solo restaurar scroll en POP (atrás/adelante del navegador)
+  // PUSH/PUSH navigation (clic en links) siempre va al top
+  if (navigationType === "POP" && Number.isFinite(savedPosition)) {
+    return Math.max(0, Number(savedPosition));
+  }
+  return 0;
 }
 
 /**
