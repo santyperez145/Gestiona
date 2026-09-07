@@ -11,9 +11,11 @@ traducir el patrón — no copiar assets, textos ni pantallas enteras.
 ## Fuentes obligatorias
 
 1. [`docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md`](docs/ESTANDAR_EXPERIENCIA_COMPETITIVA.md)
-2. [`docs/COMPARACION.md`](docs/COMPARACION.md) (reverificar antes de citar)
-3. [`docs/ESTRATEGIA.md`](docs/ESTRATEGIA.md) — diferencial de margen por canal
-4. Canon Commerce OS: [`docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md`](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md)
+2. [`docs/ESTRATEGIA.md`](docs/ESTRATEGIA.md) — diferencial de margen por canal
+3. Canon Commerce OS: [`docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md`](docs/ADR_002_COMMERCE_OPERATING_SYSTEM.md)
+
+Las citas a competidores se verifican en el momento (fuentes oficiales + fecha).
+El histórico de tablas comparativas vive en Git; no se reintroduce como doc vivo.
 
 ## Roles en una sola cabeza
 

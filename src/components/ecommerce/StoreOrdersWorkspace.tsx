@@ -244,12 +244,14 @@ export default function StoreOrdersWorkspace({
         error={ordersError}
         selectedId={pedidoId}
         publicStoreUrl={publicStoreUrl}
+        confirmingPaid={confirmingPaid}
         onRetry={() => { void onReload(); }}
         onInspect={order => openPedido(order.id)}
         onPrepare={order => {
           const full = orders.find(o => o.id === order.id) ?? inspectedOrder;
           if (full) setEnvioDe(full);
         }}
+        onConfirmPaid={order => { void confirmarPagoManual(order); }}
         canBulkEdit={canEditEcommerce}
         bulkBusy={bulkBusy}
         bulkResult={bulkResult}

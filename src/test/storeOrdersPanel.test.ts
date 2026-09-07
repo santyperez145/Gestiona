@@ -83,4 +83,11 @@ describe("cola de pedidos en Commerce", () => {
     expect(panel).toContain("onInspect");
     expect(panel).toContain('aria-label={`Ver detalle de ${o.order_number}`}');
   });
+
+  it("la cola acredita transferencia/efectivo sin abrir el detalle", () => {
+    expect(panel).toContain("onConfirmPaid");
+    expect(panel).toContain("storeOrderManualPayActionLabel");
+    expect(panel).toContain("Acciones");
+    expect(workspace).toContain("onConfirmPaid={order => { void confirmarPagoManual(order); }}");
+  });
 });

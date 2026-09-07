@@ -1,6 +1,6 @@
 # Nerqia Commerce OS — roadmap
 
-**Corte:** 2026-09-05. **Estado:** documento rector de producto y ejecución.
+**Corte:** 2026-09-07. **Estado:** documento rector de producto y ejecución.
 La historia de entregas vive en Git; este archivo conserva únicamente el estado
 actual, las decisiones vigentes y el trabajo siguiente.
 
@@ -78,7 +78,8 @@ del control plane de IA vive en [Nerqia Intelligence](docs/NERQIA_INTELLIGENCE.m
 - SEO, sitemap, metadata, dominio propio/subdominio, temas versionados, favicon
   por tienda y navegación SPA con scroll/restauración accesible, páginas, banners, menú, reseñas y preguntas;
 - pedidos y recuperación como colas propias, con búsqueda, filtros, detalle y
-  acciones masivas controladas;
+  acciones masivas controladas; la cola `vista=pago` acredita transferencia/
+  efectivo desde la fila (misma RPC que el inspector), sin abrir el detalle;
 - analítica first-party mínima, disclosure legal, adquisición y embudo;
 - varias vitrinas por organización con exactamente una principal. Configuración,
   dominio, páginas, menú, pedidos, recuperación, reseñas, preguntas y analítica

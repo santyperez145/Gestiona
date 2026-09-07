@@ -6,6 +6,7 @@ import {
   HORAS_PAGO_DIGITAL_VIVO,
   isStorePaymentActionableNow,
   isStorePaymentReversed,
+  storeOrderManualPayActionLabel,
   storeOrderPaymentLabel,
 } from "@/lib/storeOrderPayment";
 
@@ -46,6 +47,14 @@ describe("estados de pago de la tienda", () => {
       payment_status: "paid",
       payment_method: "transferencia",
     })).toBe(false);
+    expect(storeOrderManualPayActionLabel({
+      payment_status: "pending",
+      payment_method: "transferencia",
+    })).toBe("Marcar cobrado");
+    expect(storeOrderManualPayActionLabel({
+      payment_status: "pending",
+      payment_method: "gestiona_pay",
+    })).toBe("");
   });
 
   it("expone etiquetas operativas en español", () => {

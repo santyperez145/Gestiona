@@ -1,9 +1,10 @@
 # Índice de documentación
 
-**Estado:** canónico. **Corte:** 2026-09-05.
+**Estado:** canónico. **Corte:** 2026-09-07.
 
-Este índice enumera todos los documentos vigentes. ROADMAP describe presente y
-futuro; Git conserva auditorías, evidencia e incidentes cerrados.
+Este índice enumera los documentos vigentes. ROADMAP describe presente y futuro;
+Git conserva auditorías, evidencia e incidentes cerrados. No se versionan dumps
+SQL one-off bajo `docs/` (van a `supabase/verificaciones` o se descartan).
 
 ## Empezar
 

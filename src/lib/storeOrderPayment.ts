@@ -50,6 +50,14 @@ export function canConfirmManualStorePayment(input: {
   return esMedioPagoManualTienda(input.payment_method);
 }
 
+/** CTA de cola (Shopify unpaid / Tiendanube pendiente): no obliga a abrir el detalle. */
+export function storeOrderManualPayActionLabel(input: {
+  payment_status?: StoreOrderPaymentStatus | null;
+  payment_method?: string | null;
+}) {
+  return canConfirmManualStorePayment(input) ? "Marcar cobrado" : "";
+}
+
 /**
  * ¿El Foco / Pulse debe gritar este cobro?
  *

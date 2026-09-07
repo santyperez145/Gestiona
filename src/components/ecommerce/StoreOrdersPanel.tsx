@@ -39,10 +39,16 @@ import {
   type StoreOrderSort,
   type StoreOrderView,
 } from "@/lib/storeOrderQueue";
-import { canFulfillStoreOrder, storeOrderPaymentLabel, storeOrderPaymentTone } from "@/lib/storeOrderPayment";
+import {
+  canConfirmManualStorePayment,
+  canFulfillStoreOrder,
+  storeOrderManualPayActionLabel,
+  storeOrderPaymentLabel,
+  storeOrderPaymentTone,
+} from "@/lib/storeOrderPayment";
 import { storeOrdersEmptyShareCopy } from "@/lib/storeFirstPublish";
 import { toast } from "sonner";
-import { Download, Eye, Loader2, PackageCheck, Search, Store, Truck, X } from "lucide-react";
+import { Banknote, Download, Eye, Loader2, PackageCheck, Search, Store, Truck, X } from "lucide-react";
 
 interface Props {
   orders: StoreOrderQueueRow[];
@@ -51,9 +57,12 @@ interface Props {
   selectedId?: string | null;
   /** Link público de la tienda: empty-first-use puede copiarlo (ATM). */
   publicStoreUrl?: string | null;
+  confirmingPaid?: boolean;
   onRetry: () => void;
   onInspect: (order: StoreOrderQueueRow) => void;
   onPrepare: (order: StoreOrderQueueRow) => void;
+  /** Transferencia/efectivo: misma RPC que el inspector, desde la fila. */
+  onConfirmPaid?: (order: StoreOrderQueueRow) => void;
   canBulkEdit: boolean;
   bulkBusy: boolean;
   bulkResult: StoreOrderBulkResponse | null;
@@ -102,7 +111,8 @@ function downloadCsv(rows: StoreOrderQueueRow[]) {
 }
 
 export default function StoreOrdersPanel({
-  orders, loading, error, selectedId, publicStoreUrl, onRetry, onInspect, onPrepare,
+  orders, loading, error, selectedId, publicStoreUrl, confirmingPaid = false,
+  onRetry, onInspect, onPrepare, onConfirmPaid,
   canBulkEdit, bulkBusy, bulkResult, onDismissBulkResult, onBulkFulfill,
 }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -375,7 +385,7 @@ export default function StoreOrdersPanel({
                       <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">{h}</th>
                     ))}
                     <th className="sticky right-0 bg-muted/20 px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground backdrop-blur">
-                      Envío
+                      Acciones
                     </th>
                   </tr>
                 </thead>
@@ -388,9 +398,11 @@ export default function StoreOrdersPanel({
                       bulkSelected={selectedIds.has(o.id)}
                       canBulkEdit={canBulkEdit}
                       bulkBusy={bulkBusy}
+                      confirmingPaid={confirmingPaid}
                       onToggle={toggleOrder}
                       onInspect={onInspect}
                       onPrepare={onPrepare}
+                      onConfirmPaid={onConfirmPaid}
                     />
                   ))}
                 </tbody>
@@ -407,9 +419,11 @@ export default function StoreOrdersPanel({
                 bulkSelected={selectedIds.has(o.id)}
                 canBulkEdit={canBulkEdit}
                 bulkBusy={bulkBusy}
+                confirmingPaid={confirmingPaid}
                 onToggle={toggleOrder}
                 onInspect={onInspect}
                 onPrepare={onPrepare}
+                onConfirmPaid={onConfirmPaid}
               />
             ))}
           </div>
@@ -425,20 +439,26 @@ function OrderRow({
   bulkSelected,
   canBulkEdit,
   bulkBusy,
+  confirmingPaid,
   onToggle,
   onInspect,
   onPrepare,
+  onConfirmPaid,
 }: {
   order: StoreOrderQueueRow;
   selected: boolean;
   bulkSelected: boolean;
   canBulkEdit: boolean;
   bulkBusy: boolean;
+  confirmingPaid: boolean;
   onToggle: (orderId: string) => void;
   onInspect: (order: StoreOrderQueueRow) => void;
   onPrepare: (order: StoreOrderQueueRow) => void;
+  onConfirmPaid?: (order: StoreOrderQueueRow) => void;
 }) {
   const canShip = canFulfillStoreOrder(o.payment_status);
+  const canConfirmPaid = Boolean(onConfirmPaid) && canConfirmManualStorePayment(o);
+  const payLabel = storeOrderManualPayActionLabel(o);
   const bulkSelectable = isStoreOrderBulkSelectable(o);
   return (
     <tr
@@ -488,6 +508,18 @@ function OrderRow({
             <Eye className="h-3 w-3" />
             Detalle
           </Button>
+          {canConfirmPaid ? (
+            <Button
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs"
+              disabled={confirmingPaid || bulkBusy}
+              aria-label={`${payLabel} ${o.order_number}`}
+              onClick={e => { e.stopPropagation(); onConfirmPaid?.(o); }}
+            >
+              {confirmingPaid ? <Loader2 className="h-3 w-3 animate-spin" /> : <Banknote className="h-3 w-3" />}
+              {payLabel}
+            </Button>
+          ) : null}
           {canShip ? (
             <Button
               size="sm"
@@ -511,20 +543,26 @@ function OrderCard({
   bulkSelected,
   canBulkEdit,
   bulkBusy,
+  confirmingPaid,
   onToggle,
   onInspect,
   onPrepare,
+  onConfirmPaid,
 }: {
   order: StoreOrderQueueRow;
   selected: boolean;
   bulkSelected: boolean;
   canBulkEdit: boolean;
   bulkBusy: boolean;
+  confirmingPaid: boolean;
   onToggle: (orderId: string) => void;
   onInspect: (order: StoreOrderQueueRow) => void;
   onPrepare: (order: StoreOrderQueueRow) => void;
+  onConfirmPaid?: (order: StoreOrderQueueRow) => void;
 }) {
   const canShip = canFulfillStoreOrder(o.payment_status);
+  const canConfirmPaid = Boolean(onConfirmPaid) && canConfirmManualStorePayment(o);
+  const payLabel = storeOrderManualPayActionLabel(o);
   const bulkSelectable = isStoreOrderBulkSelectable(o);
   return (
     <div className={`rounded-xl border bg-card p-4 ${selected || bulkSelected ? "border-primary/40" : "border-border/60"}`}>
@@ -559,6 +597,18 @@ function OrderCard({
         <p className="mt-2 font-mono text-[11px] text-muted-foreground">{o.tracking_number}</p>
       )}
       <div className="mt-3 flex flex-col gap-2">
+        {canConfirmPaid && (
+          <Button
+            size="sm"
+            className="h-11 w-full gap-1.5"
+            disabled={confirmingPaid || bulkBusy}
+            aria-label={`${payLabel} ${o.order_number}`}
+            onClick={() => onConfirmPaid?.(o)}
+          >
+            {confirmingPaid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />}
+            {payLabel}
+          </Button>
+        )}
         <Button
           size="sm"
           variant="outline"

@@ -29,11 +29,17 @@ describe("confirmar pago manual de tienda", () => {
     expect(migracion).toContain("NOT IN ('transferencia', 'efectivo')");
   });
 
-  it("el inspector ofrece Marcar como cobrado y la página llama la RPC", () => {
+  it("el inspector y la cola ofrecen Marcar cobrado; la página llama la RPC", () => {
     expect(inspector).toContain("canConfirmManualStorePayment");
     expect(inspector).toContain("Marcar como cobrado");
     expect(page).toContain("confirmar_pago_manual_tienda");
     expect(page).toContain("onConfirmPaid");
     expect(page).toContain("useConfirmDialog");
+    const panel = leer("src/components/ecommerce/StoreOrdersPanel.tsx");
+    const payment = leer("src/lib/storeOrderPayment.ts");
+    expect(panel).toContain("canConfirmManualStorePayment");
+    expect(panel).toContain("storeOrderManualPayActionLabel");
+    expect(panel).toContain("onConfirmPaid");
+    expect(payment).toContain('"Marcar cobrado"');
   });
 });
