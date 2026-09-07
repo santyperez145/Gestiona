@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import PageHeader from "@/components/shared/PageHeader";
+import CommercePageHeader from "@/components/commerce/CommercePageHeader";
+import CommerceKPICard from "@/components/commerce/CommerceKPICard";
+import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import {
   DollarSign, TrendingUp, TrendingDown, RefreshCw, Plus, ArrowRight,
   Clock, AlertTriangle, BarChart3, Settings, Globe, Zap

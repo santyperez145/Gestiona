@@ -16,8 +16,9 @@ import {
   ShoppingBag, Zap, Trophy, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import PageHeader from "@/components/shared/PageHeader";
-import KPICard from "@/components/shared/KPICard";
+import CommercePageHeader from "@/components/commerce/CommercePageHeader";
+import CommerceKPICard from "@/components/commerce/CommerceKPICard";
+import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import LoyaltyPointsTab from "@/components/loyalty/LoyaltyPointsTab";
 
 /* ─────────────────────────── types ─────────────────────────── */

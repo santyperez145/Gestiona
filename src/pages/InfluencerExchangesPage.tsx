@@ -11,12 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Gift, Instagram, Users, BarChart3, CheckCircle, Edit, FileSpreadsheet, TrendingUp, DollarSign, Target, Megaphone, Copy, Tag, RefreshCw, Link2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import PageHeader from "@/components/shared/PageHeader";
+import CommercePageHeader from "@/components/commerce/CommercePageHeader";
+import CommerceKPICard from "@/components/commerce/CommerceKPICard";
+import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
-import KPICard from "@/components/shared/KPICard";
 import { logAudit } from "@/lib/auditLog";
 import { listExchangeConfigs, ExchangeConfig } from "@/lib/marketingExtraDB";
 import { usePageTitle } from "@/hooks/usePageTitle";

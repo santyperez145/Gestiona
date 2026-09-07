@@ -12,10 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Edit, Copy, DollarSign, TrendingUp, Users, Award, Instagram } from 'lucide-react';
-import PageHeader from '@/components/shared/PageHeader';
+import CommercePageHeader from '@/components/commerce/CommercePageHeader';
+import CommerceKPICard from '@/components/commerce/CommerceKPICard';
+import CommerceEmptyState from '@/components/commerce/CommerceEmptyState';
 import { toast } from 'sonner';
-import KPICard from '@/components/shared/KPICard';
-import EmptyState from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/PageSkeleton';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import InfluencerExchangesPage from './InfluencerExchangesPage';

@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import CommercePageHeader from "@/components/commerce/CommercePageHeader";
+import CommerceKPICard from "@/components/commerce/CommerceKPICard";
+import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import {
   Gift,
   Package,
