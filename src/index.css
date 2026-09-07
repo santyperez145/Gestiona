@@ -4044,8 +4044,31 @@
   }
 
   .storefront-hero {
-    min-height: 21rem;
+    min-height: 22rem;
     isolation: isolate;
+  }
+
+  .storefront-hero__scrim {
+    background: linear-gradient(105deg, hsl(225 28% 8% / 0.72) 0%, hsl(225 28% 8% / 0.35) 48%, transparent 78%);
+    pointer-events: none;
+  }
+
+  .storefront-hero:has(.storefront-hero__image) .storefront-hero__title {
+    color: hsl(0 0% 100%);
+  }
+
+  .storefront-hero:has(.storefront-hero__image) .storefront-hero__aside {
+    background: hsl(0 0% 100% / 0.12);
+    border-color: hsl(0 0% 100% / 0.22);
+    color: hsl(0 0% 100%);
+    backdrop-filter: blur(10px);
+  }
+
+  .design-surface {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.88);
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
   }
 
   .storefront-hero--ambient::before {

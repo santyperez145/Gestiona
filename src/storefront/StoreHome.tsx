@@ -212,7 +212,8 @@ function Hero({
           className="storefront-hero__image absolute inset-0 w-full h-full object-cover"
         />
       )}
-      <div className="storefront-hero__content relative max-w-6xl mx-auto px-4 py-16 sm:py-24">
+      {bannerUrl && <div className="storefront-hero__scrim absolute inset-0" aria-hidden="true" />}
+      <div className="storefront-hero__content relative max-w-6xl mx-auto px-4 py-16 sm:py-24 lg:py-28">
         <div className="storefront-hero__copy">
           {logoUrl ? (
             <img
@@ -221,18 +222,18 @@ function Hero({
               {...atributosDeImagenVitrina("logo")}
               onLoad={mostrarImagenValida}
               onError={ocultarImagenRota}
-              className="storefront-hero__logo mb-4 h-12 w-12 sm:h-14 sm:w-14 object-contain"
+              className="storefront-hero__logo mb-5 h-12 w-12 sm:h-14 sm:w-14 object-contain"
             />
           ) : null}
-          <h1 className="storefront-hero__title text-3xl sm:text-5xl font-bold tracking-tight">{storeName}</h1>
+          <h1 className="storefront-hero__title text-3xl sm:text-5xl lg:text-[3.35rem] font-bold tracking-tight">{storeName}</h1>
           {description && (
-            <p className="mt-3 text-base sm:text-lg max-w-2xl" style={{ color: "hsl(var(--st-muted))" }}>
+            <p className="mt-4 text-base sm:text-lg max-w-xl leading-relaxed" style={{ color: bannerUrl ? "hsl(0 0% 100% / 0.88)" : "hsl(var(--st-muted))" }}>
               {description}
             </p>
           )}
           <Link
             to={`${base}/productos`}
-            className="storefront-hero__cta inline-flex min-h-11 items-center gap-2 mt-7 px-6 py-3 font-medium transition-opacity hover:opacity-90"
+            className="storefront-hero__cta inline-flex min-h-12 items-center gap-2 mt-8 px-7 py-3.5 font-semibold transition-opacity hover:opacity-90"
             style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
           >
             Explorar catálogo <ArrowRight className="w-4 h-4" />

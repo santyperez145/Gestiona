@@ -40,9 +40,8 @@ export default function OnboardingPage() {
   const [rubrosError, setRubrosError] = useState('');
   const [cargandoRubros, setCargandoRubros] = useState(true);
   const [rubroCode, setRubroCode] = useState('');
-  // Violeta del workspace, no el dorado de la perfumería: el dorado es branding
-  // de un comercio puntual, nunca el color con el que arranca otro.
-  const [color, setColor] = useState('#6E4DEE');
+  // Cobalto Nerqia (#173aef): no violeta genérico ni dorado de un rubro.
+  const [color, setColor] = useState('#173aef');
   const [savingDestination, setSavingDestination] = useState<FinishDestination | null>(null);
 
   useEffect(() => {
@@ -70,7 +69,7 @@ export default function OnboardingPage() {
 
   useEffect(() => { cargarRubros(); }, [cargarRubros]);
 
-  const colorPalette = Array.from(new Set(industries.map((industry) => industry.default_color).concat(['#6E4DEE','#3B82F6','#10B981','#EF4444','#8B5CF6','#EC4899','#F59E0B','#D4A843'])));
+  const colorPalette = Array.from(new Set(industries.map((industry) => industry.default_color).concat(['#173aef','#0F766E','#1D4ED8','#B45309','#BE123C','#334155','#059669','#C2410C'])));
   const selectedIndustry = industries.find((industry) => industry.code === rubroCode) || null;
   const selectedTemplates = parseProductTypeTemplates(selectedIndustry?.product_type_templates);
   const selectedProfileSummary = summarizeBusinessProfile(selectedTemplates);
