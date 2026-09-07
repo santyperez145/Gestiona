@@ -401,11 +401,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* Headers específicos por superficie */}
+      {/* Headers específicos por superficie — DESHABILITADOS TEMPORALMENTE
       <CommerceHeader />
       <BusinessHeader />
       <FinanceHeader />
       <PlatformHeader />
+      */}
 
       <main className={`workspace-main flex-1 w-full bg-background transition-all duration-300 ${immersiveRoute ? 'flex h-dvh min-h-0 flex-col overflow-hidden' : 'min-h-screen overflow-auto'} ${effectiveCollapsed ? 'md:ml-[78px]' : 'md:ml-[248px]'} ${collapsed ? 'lg:ml-[78px]' : 'lg:ml-[248px]'}`}>
         {/* Desktop command bar: a stable orientation point across every module. */}
