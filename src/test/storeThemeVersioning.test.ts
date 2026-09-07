@@ -9,6 +9,7 @@ const migration = readFileSync(
 const provider = readFileSync(join(process.cwd(), 'src/storefront/storeContext.tsx'), 'utf8');
 const page = readFileSync(join(process.cwd(), 'src/pages/EcommerceStorePage.tsx'), 'utf8');
 const storefront = readFileSync(join(process.cwd(), 'src/pages/StorefrontPage.tsx'), 'utf8');
+const leer = (relative: string) => readFileSync(join(process.cwd(), relative), 'utf8');
 
 describe('publicación versionada del tema', () => {
   it('conserva una sola versión publicada y una sola borrador por tienda', () => {
@@ -37,6 +38,13 @@ describe('publicación versionada del tema', () => {
   it('inicializa el historial de tiendas futuras', () => {
     expect(migration).toContain('trg_seed_store_theme_version');
     expect(migration).toContain('AFTER INSERT ON public.ecommerce_stores');
+  });
+
+  it('versiona el favicon junto con el diseño y lo expone sin datos privados', () => {
+    const branding = leer('supabase/migrations/20260906000040_storefront_navigation_branding.sql');
+    expect(branding).toContain('favicon_url');
+    expect(branding).toContain('sync_store_favicon_from_published_theme');
+    expect(branding).toContain('GRANT EXECUTE ON FUNCTION public.get_store_by_slug(text) TO anon, authenticated');
   });
 
   it('desactiva telemetría y persistencia remota durante la preview', () => {

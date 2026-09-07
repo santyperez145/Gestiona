@@ -118,6 +118,8 @@ function page(o: {
   url: string;
   homeUrl: string;
   image?: string;
+  favicon?: string;
+  themeColor?: string;
   siteName: string;
   sitemap: string;
   type?: "website" | "product";
@@ -147,6 +149,8 @@ function page(o: {
 <meta name="description" content="${esc(o.description)}">
 <link rel="canonical" href="${esc(o.url)}">
 <link rel="sitemap" type="application/xml" href="${esc(o.sitemap)}">
+${o.favicon ? `<link rel="icon" href="${esc(o.favicon)}">` : ""}
+${o.themeColor ? `<meta name="theme-color" content="${esc(o.themeColor)}">` : ""}
 <meta name="robots" content="${indexable ? "index,follow" : "noindex,nofollow"}">
 
 <meta property="og:type" content="${o.type === "product" ? "product" : "website"}">
@@ -279,6 +283,12 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const storeName = store.name ?? "Tienda online";
+  const storePageBrand = {
+    favicon: store.favicon_url ?? store.logo_url ?? undefined,
+    themeColor: /^#[0-9a-f]{6}$/i.test(String(store.primary_color ?? ""))
+      ? String(store.primary_color)
+      : undefined,
+  };
   const websiteReference = { "@id": `${homeUrl}/#website` };
   const storeReference = { "@id": `${homeUrl}/#store` };
 
@@ -289,6 +299,7 @@ export default async function handler(req: Request): Promise<Response> {
       url: `${origin}${path.split("?")[0]}`,
       homeUrl,
       siteName: storeName,
+      ...storePageBrand,
       sitemap,
       indexable: false,
     }), 200, "private, no-store");
@@ -302,6 +313,7 @@ export default async function handler(req: Request): Promise<Response> {
       url: productUrl,
       homeUrl,
       siteName: storeName,
+      ...storePageBrand,
       sitemap,
       indexable: false,
       breadcrumbs: [
@@ -345,6 +357,7 @@ export default async function handler(req: Request): Promise<Response> {
           homeUrl,
           image: p.image_url ?? store.logo_url ?? undefined,
           siteName: storeName,
+          ...storePageBrand,
           sitemap,
           type: "product",
           breadcrumbs,
@@ -399,6 +412,7 @@ export default async function handler(req: Request): Promise<Response> {
         url: `${homeUrl}/productos`,
         homeUrl,
         siteName: storeName,
+        ...storePageBrand,
         sitemap,
         indexable: false,
       }), 503, "private, no-store", { "Retry-After": "300" });
@@ -448,6 +462,7 @@ export default async function handler(req: Request): Promise<Response> {
       homeUrl,
       image: store.banner_url ?? store.logo_url ?? undefined,
       siteName: storeName,
+      ...storePageBrand,
       sitemap,
       breadcrumbs,
       discoverySections: [{ heading: "Productos de esta página", links: productLinks }],
@@ -492,6 +507,7 @@ export default async function handler(req: Request): Promise<Response> {
         url: `${homeUrl}/pagina/${encodeURIComponent(ruta.pageSlug)}`,
         homeUrl,
         siteName: storeName,
+        ...storePageBrand,
         sitemap,
         indexable: false,
       }), 503, "private, no-store", { "Retry-After": "300" });
@@ -504,6 +520,7 @@ export default async function handler(req: Request): Promise<Response> {
         url: `${homeUrl}/pagina/${encodeURIComponent(ruta.pageSlug)}`,
         homeUrl,
         siteName: storeName,
+        ...storePageBrand,
         sitemap,
         indexable: false,
       }), 404, "public, max-age=60");
@@ -516,6 +533,7 @@ export default async function handler(req: Request): Promise<Response> {
       homeUrl,
       image: store.logo_url ?? undefined,
       siteName: storeName,
+      ...storePageBrand,
       sitemap,
       breadcrumbs: [{ href: homeUrl, label: storeName }, { href: pageUrl, label: pagina.title }],
       datos: storeStructuredGraph({
@@ -541,6 +559,7 @@ export default async function handler(req: Request): Promise<Response> {
       url: legalUrl,
       homeUrl,
       siteName: storeName,
+      ...storePageBrand,
       sitemap,
       breadcrumbs: [{ href: homeUrl, label: storeName }, { href: legalUrl, label: "Arrepentimiento" }],
       datos: storeStructuredGraph({
@@ -568,6 +587,7 @@ export default async function handler(req: Request): Promise<Response> {
       url: homeUrl,
       homeUrl,
       siteName: storeName,
+      ...storePageBrand,
       sitemap,
       indexable: false,
     }), 503, "private, no-store", { "Retry-After": "300" });
@@ -591,6 +611,7 @@ export default async function handler(req: Request): Promise<Response> {
     homeUrl,
     image: store.banner_url ?? store.logo_url ?? undefined,
     siteName: storeName,
+    ...storePageBrand,
     sitemap,
     discoverySections: [
       { heading: "Categorías", links: categoryLinks },

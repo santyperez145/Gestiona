@@ -267,6 +267,7 @@ export default function EcommerceStorePage() {
       primary_color: config.primary_color,
       font: config.font,
       logo_url: config.logo_url,
+      favicon_url: config.favicon_url,
       banner_url: config.banner_url,
       storefront_layout: config.storefront_layout,
     } : current);
@@ -706,6 +707,7 @@ export default function EcommerceStorePage() {
       primary_color: store.primary_color,
       font: store.font,
       logo_url: store.logo_url,
+      favicon_url: store.favicon_url,
       banner_url: store.banner_url,
       storefront_layout: store.storefront_layout,
     } : themeEditorConfig;
@@ -726,6 +728,7 @@ export default function EcommerceStorePage() {
       font: publishedDesign.font,
       description: storeForm.description || null,
       logo_url: publishedDesign.logo_url || null,
+      favicon_url: publishedDesign.favicon_url || null,
       banner_url: publishedDesign.banner_url || null,
       notification_email: storeForm.notification_email || null,
       meta_pixel_id: storeForm.meta_pixel_id || null,
@@ -1564,7 +1567,7 @@ export default function EcommerceStorePage() {
             <h3 className="font-semibold flex items-center gap-2">
               <ImageIcon className="w-4 h-4 text-primary" />Identidad
             </h3>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <ImageUpload
                 value={storeForm.logo_url || null}
                 onChange={url => setStoreForm(p => ({ ...p, logo_url: url ?? "" }))}
@@ -1573,7 +1576,17 @@ export default function EcommerceStorePage() {
                 preset="logo"
                 alto="h-24"
                 etiqueta="Logo"
-                ayuda="Cuadrado. Se ve en el encabezado y al compartir el link."
+                ayuda="Se ve en el encabezado de todas las páginas de la tienda."
+              />
+              <ImageUpload
+                value={storeForm.favicon_url || null}
+                onChange={url => setStoreForm(p => ({ ...p, favicon_url: url ?? "" }))}
+                orgId={orgId ?? null}
+                carpeta="tienda/favicon"
+                preset="favicon"
+                alto="h-24"
+                etiqueta="Ícono de pestaña"
+                ayuda="Se recorta cuadrado y optimiza a PNG para navegador y celular."
               />
               <ImageUpload
                 value={storeForm.banner_url || null}
@@ -1583,7 +1596,7 @@ export default function EcommerceStorePage() {
                 preset="banner"
                 alto="h-24"
                 etiqueta="Portada"
-                ayuda="Fondo del encabezado, cuando no hay banners cargados."
+                ayuda="Portada de la tienda y vista previa al compartir el enlace."
               />
             </div>
           </div>

@@ -96,6 +96,8 @@ describe("rutas públicas de la tienda", () => {
     expect(pagina).toContain("tituloDeRutaTienda");
     expect(pagina).toContain("parseRutaTienda");
     expect(pagina).not.toContain("document.title = store.meta_title");
+    expect(pagina).toContain("applyStorefrontDocumentBrand");
+    expect(leer("api/og.ts")).toContain('o.favicon ? `<link rel="icon"');
   });
 });
 

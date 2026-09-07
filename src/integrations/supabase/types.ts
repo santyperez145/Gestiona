@@ -12013,6 +12013,7 @@ export type Database = {
           description: string | null
           domain: string | null
           first_party_analytics_enabled: boolean
+          favicon_url: string | null
           font: string | null
           free_shipping_above: number | null
           fulfillment_location_id: string | null
@@ -12063,6 +12064,7 @@ export type Database = {
           description?: string | null
           domain?: string | null
           first_party_analytics_enabled?: boolean
+          favicon_url?: string | null
           font?: string | null
           free_shipping_above?: number | null
           fulfillment_location_id?: string | null
@@ -12113,6 +12115,7 @@ export type Database = {
           description?: string | null
           domain?: string | null
           first_party_analytics_enabled?: boolean
+          favicon_url?: string | null
           font?: string | null
           free_shipping_above?: number | null
           fulfillment_location_id?: string | null
@@ -54196,6 +54199,7 @@ export type Database = {
           banner_url: string
           currency: string
           description: string
+          favicon_url: string
           font: string
           free_shipping_above: number
           ga_measurement_id: string
@@ -54394,6 +54398,7 @@ export type Database = {
           banner_url: string
           currency: string
           description: string
+          favicon_url: string
           font: string
           free_shipping_above: number
           ga_measurement_id: string

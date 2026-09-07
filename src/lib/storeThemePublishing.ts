@@ -7,6 +7,7 @@ export type StoreThemeConfig = {
   primary_color: string;
   font: string | null;
   logo_url: string | null;
+  favicon_url: string | null;
   banner_url: string | null;
   storefront_layout: Json | null;
 };
@@ -32,6 +33,7 @@ type ThemeEditorSource = {
   primary_color: string;
   font: string | null;
   logo_url: string;
+  favicon_url: string;
   banner_url: string;
   storefront_layout: unknown;
 };
@@ -54,6 +56,7 @@ export function storeThemeConfigFromEditor(
     primary_color: editor.primary_color.trim().toUpperCase(),
     font: nullableText(editor.font),
     logo_url: nullableText(editor.logo_url),
+    favicon_url: nullableText(editor.favicon_url),
     banner_url: nullableText(editor.banner_url),
     storefront_layout: (isRecord(editor.storefront_layout)
       ? editor.storefront_layout
@@ -72,6 +75,7 @@ export function parseStoreThemeConfig(value: unknown): StoreThemeConfig | null {
     primary_color: value.primary_color.toUpperCase(),
     font: nullableText(value.font),
     logo_url: nullableText(value.logo_url),
+    favicon_url: nullableText(value.favicon_url),
     banner_url: nullableText(value.banner_url),
     storefront_layout: (layout ?? null) as Json | null,
   };
@@ -130,6 +134,7 @@ export function applyStoreThemeConfig(
     primary_color: config.primary_color,
     font: config.font ?? 'sistema',
     logo_url: config.logo_url ?? '',
+    favicon_url: config.favicon_url ?? '',
     banner_url: config.banner_url ?? '',
     storefront_layout: parseStorefrontLayout(config.storefront_layout),
   };

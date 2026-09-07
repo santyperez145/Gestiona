@@ -53,7 +53,7 @@ Primitives preferidas: `Button`, `Input`, `Select`, `Tabs`, `Table`, `Badge`,
 | Landing | Tienda online como señal principal; Gestión y Finance continúan el mismo pedido. | Publicada y validada en 360/768/1024/1280×720/1440. | Conversión real y copy basado en evidencia. |
 | Business | Workspace claro, rail persistente, topbar, tabs y tablas densas. | Shell y primitives transversales; páginas críticas migradas. | Eliminar CSS heredado y cerrar estados restantes. |
 | Commerce admin | Configuración, rendimiento, voz, catálogo, páginas, diseño, pagos/envíos. | Selector de tienda compartido con Pedidos; datos reales en producción. | Surtido multi-tienda y responsive autenticado. |
-| Storefront | Marca del comercio, catálogo mobile-first y checkout confiable. | Tema, variantes, carrito, checkout, SEO y resiliencia de medios. | Performance de campo y test con compradores. |
+| Storefront | Marca del comercio, catálogo mobile-first y checkout confiable. | Tema, favicon/Apple icon/color de navegador, navegación SPA con inicio arriba y restauración al volver, variantes, carrito, checkout, SEO y resiliencia. | Performance de campo y test con compradores. |
 | Finance | Trabajo de gasto, documentos y aprobación; no espejo de Business. | Layout/entitlement e Inbox técnico. | Primer documento real y políticas preventivas. |
 | Platform | Control plane violeta, colas y Merchant 360. | Shell, MFA, áreas operativas; Mensajería separa diagnóstico de staff, acción del comercio y copy del comprador, con alertas persistentes en campañas/SMTP/equipo. | Completar matriz visual autenticada y estados reales de webhook/Auth SMTP. |
 

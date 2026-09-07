@@ -55,6 +55,7 @@ export type StoreFormDraft = {
   ga_measurement_id: string;
   tiktok_pixel_id: string;
   logo_url: string;
+  favicon_url: string;
   banner_url: string;
   shipping_mode: string;
   pickup_enabled: boolean;
@@ -185,6 +186,7 @@ export function storeDraftInicial(
     ga_measurement_id: "",
     tiktok_pixel_id: "",
     logo_url: "",
+    favicon_url: "",
     banner_url: "",
     shipping_mode: "zones",
     // Retiro primero: sin tarifas el comprador igual puede cerrar.
@@ -227,6 +229,7 @@ type FilaTienda = {
   ga_measurement_id?: string | null;
   tiktok_pixel_id?: string | null;
   logo_url?: string | null;
+  favicon_url?: string | null;
   banner_url?: string | null;
   shipping_mode?: string | null;
   pickup_enabled?: boolean | null;
@@ -271,6 +274,7 @@ export function storeFormDesdeFila(
     ga_measurement_id: data.ga_measurement_id ?? "",
     tiktok_pixel_id: data.tiktok_pixel_id ?? "",
     logo_url: data.logo_url ?? "",
+    favicon_url: data.favicon_url ?? "",
     banner_url: data.banner_url ?? "",
     shipping_mode: data.shipping_mode ?? base.shipping_mode,
     pickup_enabled: data.pickup_enabled ?? false,

@@ -44,6 +44,8 @@ import {
 import { canonicalStorefrontPath, parseRutaTienda, tituloDeRutaTienda } from "@/lib/storefrontSeo";
 import { nombreDeCategoria } from "@/lib/storeCategories";
 import { hostedStoreUrl } from "@/lib/storefrontHost";
+import { applyStorefrontDocumentBrand } from "@/lib/storefrontDocumentBrand";
+import StorefrontNavigation from "@/storefront/StorefrontNavigation";
 
 function tituloPrivadoDeRuta(pathname: string): string | null {
   if (pathname.includes("/checkout")) return "Checkout";
@@ -124,6 +126,16 @@ function StoreShell({ expectedSlug, previewMode }: { expectedSlug: string; previ
   // `api/og`. Acá es lo que ve el comprador al cambiar de ficha.
   useEffect(() => {
     if (!store) return;
+    return applyStorefrontDocumentBrand({
+      faviconUrl: store.favicon_url,
+      logoUrl: store.logo_url,
+      primaryColor: store.primary_color,
+      storeName: store.name,
+    });
+  }, [store]);
+
+  useEffect(() => {
+    if (!store) return;
     const ruta = parseRutaTienda(
       pathname,
       new URLSearchParams(search),
@@ -199,6 +211,7 @@ function StoreShell({ expectedSlug, previewMode }: { expectedSlug: string; previ
 
   return (
     <StoreTrackingRuntimeProvider ready={trackingRuntimeReady}>
+      <StorefrontNavigation slug={store.slug} />
       <StoreLayout>
         {previewMode ? (
           <aside

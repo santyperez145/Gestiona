@@ -45,6 +45,7 @@ export interface StoreInfo {
   theme: string | null;
   primary_color: string | null;
   logo_url: string | null;
+  favicon_url: string | null;
   banner_url: string | null;
   currency: string | null;
   payment_methods: string[] | null;

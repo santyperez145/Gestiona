@@ -14,6 +14,7 @@ const config: StoreThemeConfig = {
   primary_color: '#AABBCC',
   font: 'inter',
   logo_url: 'https://cdn.test/logo.png',
+  favicon_url: 'https://cdn.test/favicon.png',
   banner_url: null,
   storefront_layout: { sections: [{ id: 'featured', enabled: true }] },
 };
@@ -24,6 +25,7 @@ describe('storeThemePublishing', () => {
       primary_color: '#aabbcc',
       font: 'inter',
       logo_url: ' https://cdn.test/logo.png ',
+      favicon_url: ' https://cdn.test/favicon.png ',
       banner_url: '',
       storefront_layout: config.storefront_layout,
     })).toEqual(config);
@@ -46,7 +48,7 @@ describe('storeThemePublishing', () => {
   it('aplica un snapshot sin borrar campos ajenos al diseño', () => {
     const result = applyStoreThemeConfig({
       ...storeDraftInicial(),
-      primary_color: '#000000', font: 'sistema', logo_url: '', banner_url: '',
+      primary_color: '#000000', font: 'sistema', logo_url: '', favicon_url: '', banner_url: '',
       name: 'La tienda',
     }, config);
     expect(result.name).toBe('La tienda');

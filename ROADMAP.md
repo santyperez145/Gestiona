@@ -75,8 +75,8 @@ del control plane de IA vive en [Nerqia Intelligence](docs/NERQIA_INTELLIGENCE.m
   idempotencia;
 - retiro, zonas/tarifas, despacho, tracking, devoluciones legales y emails
   transaccionales;
-- SEO, sitemap, metadata, dominio propio/subdominio, temas versionados, páginas,
-  banners, menú, reseñas y preguntas;
+- SEO, sitemap, metadata, dominio propio/subdominio, temas versionados, favicon
+  por tienda y navegación SPA con scroll/restauración accesible, páginas, banners, menú, reseñas y preguntas;
 - pedidos y recuperación como colas propias, con búsqueda, filtros, detalle y
   acciones masivas controladas;
 - analítica first-party mínima, disclosure legal, adquisición y embudo;
@@ -106,8 +106,8 @@ del control plane de IA vive en [Nerqia Intelligence](docs/NERQIA_INTELLIGENCE.m
 - certificación live de aprobación/rechazo/timeout/refund en pagos y de etiqueta
   con un transportista contratado;
 - completar datos legales, pesos, fotos y tarifario del comercio productivo;
-- separar build/deploy del storefront sólo cuando la medición justifique el
-  costo operativo;
+- conservar el shell SPA rápido y evaluar SSR/híbrido sólo si indexación o Web
+  Vitals de campo justifican separar el build/deploy del storefront;
 - medir conversión, abandono, performance de campo y tiempo a primera venta.
 
 ### Business Core

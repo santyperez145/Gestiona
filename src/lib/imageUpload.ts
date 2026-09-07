@@ -22,6 +22,10 @@ export interface Limites {
   maxLado: number;
   /** Calidad JPEG/WebP, 0 a 1. */
   calidad: number;
+  /** El favicon se recorta al centro: navegadores y buscadores exigen cuadrado. */
+  recorte?: "cuadrado";
+  /** PNG preserva transparencia y tiene compatibilidad universal como favicon. */
+  formato?: "png";
 }
 
 /** Un producto se mira de cerca; un logo se ve chico. */
@@ -29,6 +33,7 @@ export const PRESETS = {
   banner:   { maxLado: 2000, calidad: 0.82 },
   producto: { maxLado: 1600, calidad: 0.85 },
   logo:     { maxLado: 512,  calidad: 0.9  },
+  favicon:  { maxLado: 128,  calidad: 0.9, recorte: "cuadrado", formato: "png" },
 } satisfies Record<string, Limites>;
 
 /**
@@ -112,17 +117,22 @@ export async function comprimirImagen(file: File, limites: Limites): Promise<Fil
 
   try {
     const bitmap = await createImageBitmap(file);
-    const escala = escalaPara(bitmap.width, bitmap.height, limites.maxLado);
+    const ladoFuente = Math.min(bitmap.width, bitmap.height);
+    const fuenteAncho = limites.recorte === "cuadrado" ? ladoFuente : bitmap.width;
+    const fuenteAlto = limites.recorte === "cuadrado" ? ladoFuente : bitmap.height;
+    const fuenteX = limites.recorte === "cuadrado" ? (bitmap.width - ladoFuente) / 2 : 0;
+    const fuenteY = limites.recorte === "cuadrado" ? (bitmap.height - ladoFuente) / 2 : 0;
+    const escala = escalaPara(fuenteAncho, fuenteAlto, limites.maxLado);
 
-    const ancho = Math.round(bitmap.width * escala);
-    const alto = Math.round(bitmap.height * escala);
+    const ancho = Math.round(fuenteAncho * escala);
+    const alto = Math.round(fuenteAlto * escala);
 
     const canvas = document.createElement("canvas");
     canvas.width = ancho;
     canvas.height = alto;
     const ctx = canvas.getContext("2d");
     if (!ctx) return file;
-    ctx.drawImage(bitmap, 0, 0, ancho, alto);
+    ctx.drawImage(bitmap, fuenteX, fuenteY, fuenteAncho, fuenteAlto, 0, 0, ancho, alto);
     bitmap.close?.();
 
     /**
@@ -149,20 +159,25 @@ export async function comprimirImagen(file: File, limites: Limites): Promise<Fil
     const codificar = (tipo: string) =>
       new Promise<Blob | null>(res => canvas.toBlob(res, tipo, limites.calidad));
 
-    let blob = await codificar("image/webp");
-    let salida = "image/webp";
-
-    if (!blob || blob.type !== "image/webp") {
-      // El navegador no sabe WebP: se vuelve al criterio anterior, que conserva
-      // la transparencia del PNG aunque pese más.
-      salida = file.type === "image/png" ? "image/png" : "image/jpeg";
-      blob = await codificar(salida);
+    let salida = limites.formato === "png" ? "image/png" : "image/webp";
+    let blob: Blob | null;
+    if (limites.formato === "png") {
+      blob = await codificar("image/png");
+      if (blob && blob.type !== "image/png") blob = null;
+    } else {
+      blob = await codificar("image/webp");
+      if (!blob || blob.type !== "image/webp") {
+        // El navegador no sabe WebP: se vuelve al criterio anterior, que conserva
+        // la transparencia del PNG aunque pese más.
+        salida = file.type === "image/png" ? "image/png" : "image/jpeg";
+        blob = await codificar(salida);
+      }
     }
     if (!blob) return file;
 
     // Si comprimir no ayudó, se sube el original: recomprimir un JPEG ya
     // optimizado sólo suma artefactos.
-    if (blob.size >= file.size && escala === 1) return file;
+    if (blob.size >= file.size && escala === 1 && !limites.recorte && !limites.formato) return file;
 
     // La extensión sigue al formato real, no al del archivo original: subir un
     // WebP llamado `.png` hace que el navegador confíe en el nombre y algunos

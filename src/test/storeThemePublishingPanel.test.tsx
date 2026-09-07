@@ -22,6 +22,7 @@ const publishedConfig: StoreThemeConfig = {
   primary_color: '#111111',
   font: 'sistema',
   logo_url: null,
+  favicon_url: null,
   banner_url: null,
   storefront_layout: { sections: [] },
 };
