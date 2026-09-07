@@ -15,7 +15,7 @@ import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories, saveSettingsDB } from "@/lib/supabaseStore";
-import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard, Sparkles, ScanLine } from "lucide-react";
+import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard, Sparkles, ScanLine, ShoppingCart } from "lucide-react";
 import MetricCard from "@/components/shared/MetricCard";
 import PageHeader from "@/components/shared/PageHeader";
 import WorkspaceViewTabs from "@/components/shared/WorkspaceViewTabs";
@@ -50,6 +50,13 @@ import CommerceDashboardKPICard from "@/components/commerce/CommerceDashboardKPI
 import CommerceSalesChart from "@/components/commerce/CommerceSalesChart";
 
 import { plural } from "@/lib/plural";
+import CommerceQuickActions from "@/components/commerce/CommerceQuickActions";
+import CommercePeriodComparison from "@/components/commerce/CommercePeriodComparison";
+import CommerceInventoryAlerts from "@/components/commerce/CommerceInventoryAlerts";
+import CommerceFinancialSummary from "@/components/commerce/CommerceFinancialSummary";
+import CommerceChannelPerformance from "@/components/commerce/CommerceChannelPerformance";
+import CommerceTopProducts from "@/components/commerce/CommerceTopProducts";
+import CommerceActivityFeed from "@/components/commerce/CommerceActivityFeed";
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
 type ActivationRow = Database['public']['Views']['organization_activation_readiness']['Row'];
@@ -2885,7 +2892,6 @@ export default function Dashboard() {
             />
           ))}
         </div>
-        </div>
       </section>
 
       {/* Realtime last sale banner */}
@@ -3269,13 +3275,6 @@ export default function Dashboard() {
           title="Alertas de Inventario"
         />
       )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Stock Heatmap */}
       {stats.products?.length > 0 && (
@@ -3595,7 +3594,6 @@ export default function Dashboard() {
           orgId={activeOrg.id}
         />
       )}
-        </div>
     </div>
   );
 }

@@ -42,7 +42,7 @@ export default function CommerceMarketTrendAnalysis({
       <CardContent>
         <div className="space-y-4">
           {trends.map((trend, index) => {
-            const trendIcon = trend.trend === "up" ? ArrowUpRight : trend.trend === "down" ? ArrowDownRight : TrendingUp;
+            const TrendIcon = trend.trend === "up" ? ArrowUpRight : trend.trend === "down" ? ArrowDownRight : TrendingUp;
             const trendColor = trend.trend === "up" ? "text-emerald-600" : trend.trend === "down" ? "text-red-600" : "text-muted-foreground";
             const trendBg = trend.trend === "up" ? "bg-emerald-500/10" : trend.trend === "down" ? "bg-red-500/10" : "bg-muted";
             const impactClass = trend.impact ? impactColors[trend.impact] : "";
@@ -53,7 +53,7 @@ export default function CommerceMarketTrendAnalysis({
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-sm">{trend.category}</p>
                     <div className={cn("flex items-center gap-1 text-xs font-medium", trendColor)}>
-                      <trendIcon className="h-3 w-3" />
+                      <TrendIcon className="h-3 w-3" />
                       {trend.percentage > 0 ? "+" : ""}
                       {trend.percentage}%
                     </div>
@@ -69,7 +69,7 @@ export default function CommerceMarketTrendAnalysis({
                     </Badge>
                   )}
                   <div className={cn("p-2 rounded-lg", trendBg)}>
-                    <trendIcon className={cn("h-4 w-4", trendColor)} />
+                    <TrendIcon className={cn("h-4 w-4", trendColor)} />
                   </div>
                 </div>
               </div>

@@ -25,6 +25,8 @@ import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import { useSearchParams } from "react-router-dom";
 import PlannerView from "@/components/marketing/PlannerView";
 import { useOrg } from "@/lib/orgContext";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 export default function MarketingPage() {
   usePageTitle("Marketing");

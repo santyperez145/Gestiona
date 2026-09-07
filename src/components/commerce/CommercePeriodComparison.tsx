@@ -4,7 +4,7 @@
  * Diseño moderno con comparación de ventas entre períodos
  */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Calendar } from "lucide-react";
+import { TrendingUp, TrendingDown, Calendar, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PeriodData {
@@ -36,7 +36,7 @@ export default function CommercePeriodComparison({
           {periods.map((period, index) => {
             const trend = period.change > 0 ? "up" : period.change < 0 ? "down" : "neutral";
             const trendColor = trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-600" : "text-muted-foreground";
-            const trendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Target;
+            const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Target;
 
             return (
               <div key={index} className="space-y-2">
@@ -45,7 +45,7 @@ export default function CommercePeriodComparison({
                     <p className="font-medium text-sm">{period.label}</p>
                     {period.change !== 0 && (
                       <div className={cn("flex items-center gap-1 text-xs font-medium", trendColor)}>
-                        <trendIcon className="h-3 w-3" />
+                        <TrendIcon className="h-3 w-3" />
                         {period.change > 0 ? "+" : ""}
                         {period.change}%
                       </div>

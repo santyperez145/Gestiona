@@ -19,6 +19,9 @@ import FinanceEmptyState from "@/components/finance/FinanceEmptyState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 import { plural } from "@/lib/plural";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import EmptyState from "@/components/shared/EmptyState";
 const DEFAULT_DEBT_TEMPLATE = "Hola {{nombre}}! 👋 Te recordamos que tenés una deuda pendiente de {{monto}}. Cuando puedas, coordenemos el pago. ¡Muchas gracias!";
 
 function getWaDebtTemplate(orgId?: string): string {

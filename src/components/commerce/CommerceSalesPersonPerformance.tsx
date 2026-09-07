@@ -4,7 +4,7 @@
  * Diseño moderno con análisis de rendimiento de vendedores
  */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, TrendingUp, ShoppingCart, DollarSign, Target } from "lucide-react";
+import { Users, TrendingUp, ShoppingCart, DollarSign, Target, TrendingDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 

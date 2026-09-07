@@ -4,7 +4,7 @@
  * Diseño moderno con análisis de oportunidades y potencial
  */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lightbulb, TrendingUp, Target, Zap } from "lucide-react";
+import { Lightbulb, TrendingUp, Target, Zap, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 

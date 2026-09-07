@@ -30,6 +30,8 @@ import {
   TrendingUp, TrendingDown, Wallet, RefreshCw, Download,
   Search, ArrowUpCircle, ArrowDownCircle, Filter, X,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Movement = {

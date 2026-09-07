@@ -28,7 +28,7 @@ export default function CommerceDashboardKPICard({
   highlight = false,
   live = false,
 }: CommerceDashboardKPICardProps) {
-  const trendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
+  const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
   const trendColor = trend === "up" ? "text-emerald-400" : trend === "down" ? "text-red-400" : "text-muted-foreground";
 
   return (
@@ -100,7 +100,7 @@ export default function CommerceDashboardKPICard({
                 highlight && "text-white"
               )}
             >
-              <trendIcon className="h-3 w-3" />
+              <TrendIcon className="h-3 w-3" />
               {change > 0 ? "+" : ""}
               {change}%
             </div>

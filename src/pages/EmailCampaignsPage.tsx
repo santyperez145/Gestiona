@@ -30,6 +30,8 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { orgViewKey, usePersistedState } from "@/hooks/usePersistedState";
 import DripSequencesTab from "@/components/marketing/DripSequencesTab";
 import { mensajeDeEdgeFunction } from "@/lib/edgeErrors";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 // ─── Email Templates ──────────────────────────────────────────────────────────
 

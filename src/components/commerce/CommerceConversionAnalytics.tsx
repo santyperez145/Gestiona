@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Users, ShoppingCart, DollarSign, Clock, ArrowRight, Globe, Mail, Social, Search } from "lucide-react";
+import { TrendingUp, Users, ShoppingCart, DollarSign, Clock, ArrowRight, Globe, Mail, Share2, Search, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FunnelStep {
@@ -55,7 +55,7 @@ interface AttributionSource {
 const ATTRIBUTION_SOURCES: AttributionSource[] = [
   { source: "Directo", icon: Globe, visits: 450, conversions: 67, revenue: 12300, conversionRate: 14.9 },
   { source: "Email", icon: Mail, visits: 320, conversions: 48, revenue: 8900, conversionRate: 15.0 },
-  { source: "Social", icon: Social, visits: 280, conversions: 28, revenue: 5200, conversionRate: 10.0 },
+  { source: "Social", icon: Share2, visits: 280, conversions: 28, revenue: 5200, conversionRate: 10.0 },
   { source: "SEO", icon: Search, visits: 200, conversions: 25, revenue: 4600, conversionRate: 12.5 },
 ];
 

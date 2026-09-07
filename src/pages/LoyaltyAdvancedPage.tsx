@@ -20,6 +20,8 @@ import CommercePageHeader from "@/components/commerce/CommercePageHeader";
 import CommerceKPICard from "@/components/commerce/CommerceKPICard";
 import CommerceEmptyState from "@/components/commerce/CommerceEmptyState";
 import LoyaltyPointsTab from "@/components/loyalty/LoyaltyPointsTab";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 /* ─────────────────────────── types ─────────────────────────── */
 interface LoyaltyProgram {

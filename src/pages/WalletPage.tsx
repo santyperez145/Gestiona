@@ -40,6 +40,7 @@ import {
   leerSaldo, validarRetiro, validarCbu, formatearCbu, explicarPendiente,
   saldoVacio, ESTADO_RETIRO, type SaldoBilletera, type EstadoRetiro,
 } from "@/lib/wallet";
+import PageHeader from "@/components/shared/PageHeader";
 
 interface CuentaBancaria {
   id: string;

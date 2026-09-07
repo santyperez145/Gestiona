@@ -14,6 +14,8 @@ import FinanceEmptyState from "@/components/finance/FinanceEmptyState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 import { plural } from "@/lib/plural";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 type Installment = {
   id: string;
   sale_id: string;

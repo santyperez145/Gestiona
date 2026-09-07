@@ -25,6 +25,8 @@ import {
   whatsappCampaignChannelReady,
   whatsappCampaignSendSucceeded,
 } from "@/lib/whatsappCampaignHonesty";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 // ─── Template library ─────────────────────────────────────────────────────────
 const WA_TEMPLATES = [

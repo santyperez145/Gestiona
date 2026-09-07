@@ -4,7 +4,7 @@
  * Diseño moderno con análisis de rendimiento por ubicación/sucursal
  */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, TrendingUp, ShoppingCart, DollarSign } from "lucide-react";
+import { MapPin, TrendingUp, ShoppingCart, DollarSign, TrendingDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 

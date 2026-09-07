@@ -4,7 +4,7 @@
  * Diseño moderno con análisis de eficiencia operativa
  */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Zap, Clock, Target } from "lucide-react";
+import { TrendingUp, Zap, Clock, Target, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 

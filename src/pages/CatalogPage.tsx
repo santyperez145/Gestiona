@@ -22,6 +22,9 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 
 import { plural } from "@/lib/plural";
 import { enlaceCanonicoDeVitrina } from "@/lib/storeFirstPublish";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import EmptyState from "@/components/shared/EmptyState";
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 
 function fmtARS(n: number) {

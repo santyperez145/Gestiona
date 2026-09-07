@@ -20,6 +20,8 @@ import {
 import FinancePageHeader from "@/components/finance/FinancePageHeader";
 import FinanceKPICard from "@/components/finance/FinanceKPICard";
 import FinanceEmptyState from "@/components/finance/FinanceEmptyState";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 interface CashflowEntry {
   id: string;

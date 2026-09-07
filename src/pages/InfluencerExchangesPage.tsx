@@ -23,6 +23,9 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import SettlementsTab from "@/components/influencers/SettlementsTab";
 import { calcInfluencerROI, calcCPM, calcFulfillmentRate } from "@/lib/businessCalc";
 import { Wallet } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import EmptyState from "@/components/shared/EmptyState";
 
 export default function InfluencerExchangesPage() {
   usePageTitle("Canjes & Influencers");

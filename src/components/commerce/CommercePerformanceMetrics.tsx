@@ -36,7 +36,7 @@ export default function CommercePerformanceMetrics({
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {metrics.map((metric, index) => {
-            const trendIcon = metric.trend === "up" ? TrendingUp : metric.trend === "down" ? TrendingDown : Target;
+            const TrendIcon = metric.trend === "up" ? TrendingUp : metric.trend === "down" ? TrendingDown : Target;
             const trendColor = metric.trend === "up" ? "text-emerald-600" : metric.trend === "down" ? "text-red-600" : "text-muted-foreground";
             const Icon = metric.icon || Target;
 
@@ -56,7 +56,7 @@ export default function CommercePerformanceMetrics({
                   </div>
                   {metric.change !== undefined && (
                     <div className={cn("flex items-center gap-1 text-xs font-medium", trendColor)}>
-                      <trendIcon className="h-3 w-3" />
+                      <TrendIcon className="h-3 w-3" />
                       {metric.change > 0 ? "+" : ""}
                       {metric.change}%
                     </div>

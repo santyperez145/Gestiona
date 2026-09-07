@@ -34,6 +34,9 @@ import {
 } from "@/lib/expenseReceipts";
 
 import { plural } from "@/lib/plural";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import EmptyState from "@/components/shared/EmptyState";
 
 function ExpenseReceiptLink({
   reference,

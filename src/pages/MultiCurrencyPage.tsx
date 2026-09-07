@@ -16,6 +16,7 @@ import {
   Clock, AlertTriangle, BarChart3, Settings, Globe, Zap
 } from "lucide-react";
 import CurrencyHistoryTab from "@/components/currency/CurrencyHistoryTab";
+import PageHeader from "@/components/shared/PageHeader";
 
 const CURRENCIES_INFO: Record<string, { name: string; symbol: string; flag: string }> = {
   ARS: { name: "Peso Argentino",   symbol: "$",   flag: "🇦🇷" },

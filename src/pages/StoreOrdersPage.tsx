@@ -32,6 +32,7 @@ import { RotateCcw, Settings, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StoreWorkspacePicker from "@/components/ecommerce/StoreWorkspacePicker";
 import { useCommerceStores } from "@/hooks/useCommerceStores";
+import PageHeader from "@/components/shared/PageHeader";
 
 export default function StoreOrdersPage() {
   usePageTitle("Pedidos");

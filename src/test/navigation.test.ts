@@ -71,7 +71,7 @@ describe("estructura de la navegación", () => {
     expect(grupoDeRuta("/pedidos-online")).toBe("diario");
     expect(grupoDeRuta("/envios")).toBe("commerce");
     expect(grupoDeRuta("/cupones")).toBe("commerce");
-    expect(grupoDeRuta("/kardex")).toBe("compras");
+    expect(grupoDeRuta("/kardex")).toBe("business");
     expect(grupoDeRuta("/no-existe")).toBeNull();
   });
 
@@ -89,22 +89,22 @@ describe("estructura de la navegación", () => {
       "/links-de-pago",
       "/cupones",
       "/promociones",
+      "/ia-commerce",
+      "/pricing-dinamico",
     ]);
   });
 
-  it("ordena Trabajo por uso diario", () => {
-    expect(itemsDe("trabajo").map(i => i.to)).toEqual([
-      "/tareas",
-      "/calendario",
-    ]);
+  it("Tareas y Calendario son utilidades del usuario: van en Sistema", () => {
+    expect(itemsDe("sistema").map(i => i.to)).toEqual(
+      expect.arrayContaining(["/tareas", "/calendario"]),
+    );
   });
 
-  it("ordena Compras por pipeline de inventario", () => {
-    expect(itemsDe("compras").map(i => i.to)).toEqual([
+  it("ordena Business por pipeline de inventario", () => {
+    expect(itemsDe("business").map(i => i.to)).toEqual([
       "/compras",
       "/ordenes-compra",
       "/proveedores",
-      "/planificacion",
       "/kardex",
       "/transferencias",
       "/sucursales",
@@ -112,21 +112,24 @@ describe("estructura de la navegación", () => {
       "/bundles",
       "/listas-precios",
       "/valuacion-inventario",
+      "/planificacion",
+      "/ia-business",
     ]);
   });
 
-  it("ordena Cobranzas por documento", () => {
-    expect(itemsDe("cobranzas").map(i => i.to)).toEqual([
+  it("las cobranzas viven en Finance y respetan el orden del documento", () => {
+    const finanzas = itemsDe("finance").map(i => i.to);
+    const cobranzas = ["/deudas", "/presupuestos", "/cuotas", "/facturas", "/devoluciones"];
+    expect(finanzas.slice(0, cobranzas.length)).toEqual(cobranzas);
+  });
+
+  it("ordena Finance por ciclo de autoridad", () => {
+    expect(itemsDe("finance").map(i => i.to)).toEqual([
       "/deudas",
       "/presupuestos",
       "/cuotas",
       "/facturas",
       "/devoluciones",
-    ]);
-  });
-
-  it("ordena Finanzas por ciclo de autoridad", () => {
-    expect(itemsDe("finanzas").map(i => i.to)).toEqual([
       "/billetera",
       "/movimientos",
       "/cash-flow",
@@ -140,6 +143,7 @@ describe("estructura de la navegación", () => {
       "/multi-divisa",
       "/cheques",
       "/suscripciones",
+      "/ia-finance",
     ]);
   });
 
@@ -185,6 +189,8 @@ describe("estructura de la navegación", () => {
       "/calidad-datos",
       "/mi-plan",
       "/perfil",
+      "/tareas",
+      "/calendario",
     ]);
   });
 });

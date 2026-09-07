@@ -21,6 +21,9 @@ import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import InfluencerExchangesPage from './InfluencerExchangesPage';
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { enlaceInfluencerConRef } from '@/lib/storeFirstPublish';
+import KPICard from "@/components/shared/KPICard";
+import EmptyState from "@/components/shared/EmptyState";
+import PageHeader from "@/components/shared/PageHeader";
 
 const TIER_COLORS: Record<string, string> = {
   nano: 'bg-zinc-500/20 text-zinc-300',

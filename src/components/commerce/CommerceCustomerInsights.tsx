@@ -36,7 +36,7 @@ export default function CommerceCustomerInsights({
       <CardContent>
         <div className="space-y-4">
           {insights.map((insight, index) => {
-            const trendIcon = insight.trend === "up" ? TrendingUp : insight.trend === "down" ? TrendingUp : TrendingUp;
+            const TrendIcon = insight.trend === "up" ? TrendingUp : insight.trend === "down" ? TrendingUp : TrendingUp;
             const trendColor = insight.trend === "up" ? "text-emerald-600" : insight.trend === "down" ? "text-red-600" : "text-muted-foreground";
             const Icon = insight.icon || Users;
 
@@ -57,7 +57,7 @@ export default function CommerceCustomerInsights({
                   <p className="font-semibold">{insight.value}</p>
                   {insight.change !== undefined && (
                     <div className="flex items-center gap-1 text-xs font-medium">
-                      <trendIcon className={`h-3 w-3 ${trendColor}`} />
+                      <TrendIcon className={`h-3 w-3 ${trendColor}`} />
                       <span className={trendColor}>
                         {insight.change > 0 ? "+" : ""}
                         {insight.change}%

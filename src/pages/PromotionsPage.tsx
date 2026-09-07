@@ -22,6 +22,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { format, formatDistanceToNow, differenceInSeconds, isPast, isFuture } from "date-fns";
 import { es } from "date-fns/locale";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type PromoStatus = 'scheduled' | 'active' | 'paused' | 'ended' | 'cancelled';

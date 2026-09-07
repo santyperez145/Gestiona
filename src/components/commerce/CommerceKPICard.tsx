@@ -30,7 +30,7 @@ export default function CommerceKPICard({
   action,
   description,
 }: CommerceKPICardProps) {
-  const trendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
+  const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
   const trendColor = trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-600" : "text-muted-foreground";
 
   return (
@@ -43,7 +43,7 @@ export default function CommerceKPICard({
           </div>
           {change !== undefined && (
             <div className={cn("flex items-center gap-1 text-xs font-medium", trendColor)}>
-              <trendIcon className="h-3 w-3" />
+              <TrendIcon className="h-3 w-3" />
               {change > 0 ? "+" : ""}{change}%
             </div>
           )}

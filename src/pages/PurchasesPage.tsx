@@ -60,6 +60,7 @@ import { useModulePermissions } from "@/lib/usePermissions";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 import { plural } from "@/lib/plural";
+import EmptyState from "@/components/shared/EmptyState";
 const PAGE_SIZE = 20;
 
 export default function PurchasesPage() {
