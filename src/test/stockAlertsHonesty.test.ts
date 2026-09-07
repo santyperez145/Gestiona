@@ -4,7 +4,9 @@ import { resolve } from "node:path";
 import {
   countPendingStockAlerts,
   filterPendingStockAlerts,
+  stockAlertChannelCopy,
   stockAlertState,
+  stockAlertStateLabel,
   stockAlertsByProduct,
   stockAlertsQueueHref,
 } from "@/lib/stockAlerts";
@@ -13,10 +15,19 @@ import { construirPendientes } from "@/lib/dashboardFocus";
 const ROOT = process.cwd();
 
 describe("avisos de reposición (Back in stock)", () => {
-  it("distingue pendiente, listo para avisar y enviado", () => {
+  it("distingue pendiente, listo, canal no listo y enviado", () => {
     expect(stockAlertState({ notified_at: "2026-09-01", product_stock: 0 })).toBe("enviado");
     expect(stockAlertState({ notified_at: null, product_stock: 3 })).toBe("listo_para_avisar");
     expect(stockAlertState({ notified_at: null, product_stock: 0 })).toBe("pendiente");
+    expect(stockAlertState(
+      { notified_at: null, product_stock: 3 },
+      { ready: false },
+    )).toBe("canal_no_listo");
+    expect(stockAlertState(
+      { notified_at: null, product_stock: 3 },
+      { ready: true },
+    )).toBe("listo_para_avisar");
+    expect(stockAlertStateLabel("canal_no_listo")).toMatch(/email no configurado/i);
   });
 
   it("la cola sólo muestra no notificados y agrupa demanda", () => {
@@ -42,6 +53,36 @@ describe("avisos de reposición (Back in stock)", () => {
     expect(stockAlertsByProduct(rows)[0]).toMatchObject({
       productId: "p1", waiting: 0, ready: 1,
     });
+    expect(stockAlertsByProduct(rows, { ready: false })[0]).toMatchObject({
+      productId: "p1", waiting: 1, ready: 0,
+    });
+  });
+
+  it("no promete aviso automático sin canal de email", () => {
+    expect(stockAlertChannelCopy({
+      channel: { ready: false, merchantSmtp: false, platformEmail: false },
+    }).title).toMatch(/no puede salir/i);
+    expect(stockAlertChannelCopy({
+      channel: { ready: true, merchantSmtp: false, platformEmail: true },
+    }).body).toMatch(/plataforma/i);
+
+    const panel = readFileSync(
+      resolve(ROOT, "src/components/ecommerce/StockAlertsPanel.tsx"),
+      "utf8",
+    );
+    expect(panel).toContain("emailChannel");
+    expect(panel).toContain("stockAlertChannelCopy");
+    const recovery = readFileSync(
+      resolve(ROOT, "src/components/ecommerce/StoreRecoveryWorkspace.tsx"),
+      "utf8",
+    );
+    expect(recovery).toContain("loadEmailChannel");
+    expect(recovery).toContain("emailChannel={emailChannel}");
+    const cron = readFileSync(
+      resolve(ROOT, "supabase/functions/notify-back-in-stock/index.ts"),
+      "utf8",
+    );
+    expect(cron).toContain("sin canal de email");
   });
 
   it("Foco y Pedidos aterrizan en Recuperación → reposición", () => {

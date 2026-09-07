@@ -1,14 +1,16 @@
 /**
  * Cola de avisos «Avisame cuando vuelva» (Shopify / Klaviyo Back in stock).
- * Vive bajo el tab Carritos: misma superficie de recuperación, sin ruta nueva.
+ * Vive bajo Recuperación: misma superficie que carritos, sin ruta nueva.
  */
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import WorkspaceState from "@/components/shared/WorkspaceState";
+import type { AbandonedEmailChannel } from "@/lib/abandonedCarts";
 import {
   countPendingStockAlerts,
   filterPendingStockAlerts,
+  stockAlertChannelCopy,
   stockAlertState,
   stockAlertStateLabel,
   stockAlertStateTone,
@@ -20,6 +22,8 @@ interface Props {
   alerts: StockAlertRow[];
   loading: boolean;
   error: string | null;
+  /** null = readiness aún no conocida; no forzar «aviso pendiente» mentiroso. */
+  emailChannel?: AbandonedEmailChannel | null;
   onRetry: () => void;
 }
 
@@ -34,9 +38,12 @@ function whenLabel(iso: string): string {
   });
 }
 
-export default function StockAlertsPanel({ alerts, loading, error, onRetry }: Props) {
+export default function StockAlertsPanel({
+  alerts, loading, error, emailChannel = null, onRetry,
+}: Props) {
   const rows = filterPendingStockAlerts(alerts);
   const pending = countPendingStockAlerts(alerts);
+  const channel = stockAlertChannelCopy({ channel: emailChannel });
 
   if (loading) {
     return <WorkspaceState kind="initial-loading" title="Cargando avisos de reposición" loadingRows={4} />;
@@ -65,9 +72,17 @@ export default function StockAlertsPanel({ alerts, loading, error, onRetry }: Pr
 
   return (
     <div className="space-y-3">
+      <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+        <p className="text-xs font-medium">{channel.title}</p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">{channel.body}</p>
+        {channel.href ? (
+          <Button type="button" variant="link" className="mt-1 h-auto p-0 text-[11px]" asChild>
+            <Link to={channel.href}>Abrir Mensajería</Link>
+          </Button>
+        ) : null}
+      </div>
       <p className="text-xs text-muted-foreground">
         {pending} {pending === 1 ? "persona esperando" : "personas esperando"} stock.
-        El correo sale solo cuando hay unidades otra vez (una vez por pedido).
       </p>
       <div className="rounded-lg border border-border/60 overflow-hidden">
         <div className="overflow-x-auto">
@@ -83,7 +98,7 @@ export default function StockAlertsPanel({ alerts, loading, error, onRetry }: Pr
             </thead>
             <tbody>
               {rows.map((row) => {
-                const state = stockAlertState(row);
+                const state = stockAlertState(row, emailChannel);
                 return (
                   <tr key={row.id} className="border-b border-border/40 last:border-0">
                     <td className="px-3 py-2.5">{row.email}</td>

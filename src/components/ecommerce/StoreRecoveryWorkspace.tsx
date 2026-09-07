@@ -1,6 +1,9 @@
 /**
  * Recuperación operativa (abandonados + reposición) — misma cola que el Foco.
  * Vive en `/pedidos-online?cola=recuperacion` para no enterrar GMV en Ajustes.
+ *
+ * El canal de email (`recovery_email_channel_ready`) se carga una vez por org
+ * y alimenta ambas colas: no prometemos aviso automático sin SMTP/plataforma.
  */
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -46,42 +49,47 @@ export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Pr
   const [stockAlertsLoading, setStockAlertsLoading] = useState(true);
   const [stockAlertsError, setStockAlertsError] = useState<string | null>(null);
 
+  const loadEmailChannel = useCallback(async () => {
+    if (!orgId) {
+      setEmailChannel(null);
+      return;
+    }
+    const { data, error } = await supabase.rpc("recovery_email_channel_ready", {
+      p_org_id: orgId,
+    });
+    if (error) {
+      const code = (error as { code?: string }).code;
+      if (code === "42883" || code === "PGRST202") {
+        console.warn("StoreRecoveryWorkspace / canal email: RPC aún no aplicada");
+        setEmailChannel(null);
+        return;
+      }
+      console.error("StoreRecoveryWorkspace / canal email:", error);
+      setEmailChannel({ ready: false, merchantSmtp: false, platformEmail: false });
+      return;
+    }
+    setEmailChannel(parseRecoveryEmailChannel(data));
+  }, [orgId]);
+
   const loadAbandoned = useCallback(async () => {
     if (!orgId || !storeId) {
       setAbandonedCartRows([]);
       setAbandonedCarts(0);
-      setEmailChannel(null);
       setAbandonedLoading(false);
       return;
     }
     setAbandonedLoading(true);
     setAbandonedError(null);
-    const [{ data, error }, channelRes] = await Promise.all([
-      supabase
-        .from("ecommerce_cart_sessions")
-        .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, expires_at, updated_at, created_at")
-        .eq("org_id", orgId)
-        .eq("store_id", storeId),
-      supabase.rpc("recovery_email_channel_ready", { p_org_id: orgId }),
-    ]);
+    const { data, error } = await supabase
+      .from("ecommerce_cart_sessions")
+      .select("id, status, items, customer_email, subtotal, total, abandoned_email_sent, recovery_token, expires_at, updated_at, created_at")
+      .eq("org_id", orgId)
+      .eq("store_id", storeId);
     if (error) {
       console.error("StoreRecoveryWorkspace / carritos:", error);
       setAbandonedError(error.message);
       setAbandonedLoading(false);
       return;
-    }
-    if (channelRes.error) {
-      // Relación/RPC ausente (deploy a medias): no inventar readiness.
-      const code = (channelRes.error as { code?: string }).code;
-      if (code === "42883" || code === "PGRST202") {
-        console.warn("StoreRecoveryWorkspace / canal email: RPC aún no aplicada");
-        setEmailChannel(null);
-      } else {
-        console.error("StoreRecoveryWorkspace / canal email:", channelRes.error);
-        setEmailChannel({ ready: false, merchantSmtp: false, platformEmail: false });
-      }
-    } else {
-      setEmailChannel(parseRecoveryEmailChannel(channelRes.data));
     }
     const rows = (data ?? []) as AbandonedCartRow[];
     const queue = filterAbandonedCartsForQueue(rows);
@@ -131,8 +139,15 @@ export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Pr
     setStockAlertsLoading(false);
   }, [orgId, storeId]);
 
+  useEffect(() => { void loadEmailChannel(); }, [loadEmailChannel]);
   useEffect(() => { void loadAbandoned(); }, [loadAbandoned]);
   useEffect(() => { void loadStockAlerts(); }, [loadStockAlerts]);
+
+  const reloadAll = () => {
+    void loadEmailChannel();
+    void loadAbandoned();
+    void loadStockAlerts();
+  };
 
   const setVista = (next: RecoveryVista) => {
     setSearchParams((prev) => {
@@ -173,7 +188,8 @@ export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Pr
           alerts={stockAlertRows}
           loading={stockAlertsLoading}
           error={stockAlertsError}
-          onRetry={() => { void loadStockAlerts(); }}
+          emailChannel={emailChannel}
+          onRetry={reloadAll}
         />
       ) : (
         <AbandonedCartsPanel
@@ -182,7 +198,7 @@ export default function StoreRecoveryWorkspace({ orgId, storeId, storeSlug }: Pr
           error={abandonedError}
           storeSlug={storeSlug}
           emailChannel={emailChannel}
-          onRetry={() => { void loadAbandoned(); }}
+          onRetry={reloadAll}
         />
       )}
     </div>

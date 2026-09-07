@@ -53,7 +53,7 @@ REVOKE ALL ON FUNCTION public.recovery_email_channel_ready(uuid) FROM PUBLIC, an
 GRANT EXECUTE ON FUNCTION public.recovery_email_channel_ready(uuid) TO authenticated, service_role;
 
 COMMENT ON FUNCTION public.recovery_email_channel_ready(uuid) IS
-  'Si el cron de carritos abandonados puede enviar email (SMTP comercio o correo plataforma). Sin secretos.';
+  'Si el cron de carritos abandonados o back-in-stock puede enviar email (SMTP comercio o correo plataforma). Sin secretos.';
 
 DO $$
 BEGIN
