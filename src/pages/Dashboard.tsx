@@ -3493,28 +3493,19 @@ export default function Dashboard() {
             </div>
           ) : <p className="text-muted-foreground text-sm py-4 text-center">Sin ventas este mes</p>}
 
-          {/* Canal de ventas — only show if there are 2+ distinct sources */}
+          {/* Canal de ventas — Moderno */}
           {(stats.salesByChannel || []).length > 1 && (
-            <div className="mt-4 pt-4 border-t border-border">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2.5">Canal de ventas este mes</p>
-              <div className="space-y-1.5">
-                {(stats.salesByChannel as { source: string; total: number }[]).map(({ source, total }) => {
-                  const label: Record<string, string> = { manual: "Registro manual", pos: "POS", tiendanube: "Tiendanube", api: "API" };
-                  const pct = stats.monthSalesARS > 0 ? (total / stats.monthSalesARS) * 100 : 0;
-                  return (
-                    <div key={source}>
-                      <div className="flex justify-between text-xs mb-0.5">
-                        <span className="text-muted-foreground capitalize">{label[source] || source}</span>
-                        <span className="font-medium">{pct.toFixed(0)}%</span>
-                      </div>
-                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full rounded-full bg-primary/60" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <CommerceChannelPerformance
+              channels={stats.salesByChannel.map((ch: any) => ({
+                name: ch.source === "manual" ? "Registro manual" : ch.source === "pos" ? "POS" : ch.source === "tiendanube" ? "Tienda Online" : ch.source === "api" ? "API" : ch.source,
+                sales: ch.total,
+                orders: ch.total,
+                revenue: ch.total,
+                color: ch.source === "pos" ? "hsl(142, 76%, 36%)" : ch.source === "tiendanube" ? "hsl(var(--primary))" : "hsl(38, 92%, 50%)",
+                icon: ch.source === "pos" ? "pos" as const : ch.source === "tiendanube" ? "online" as const : "marketplace" as const,
+              }))}
+              title="Rendimiento por Canal"
+            />
           )}
         </div>
       </div>
