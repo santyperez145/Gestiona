@@ -329,7 +329,7 @@ export default function CohortesView() {
               {categoryRev.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-6">Sin datos de ventas por categoría</p>
               ) : categoryRev.map((c, i) => {
-                const colors = ["bg-primary", "bg-blue-400", "bg-purple-400", "bg-emerald-400", "bg-yellow-400"];
+                const colors = ["bg-primary", "bg-blue-400", "bg-primary", "bg-emerald-400", "bg-yellow-400"];
                 return (
                   <div key={c.name}>
                     <div className="flex items-center justify-between text-xs mb-1">

@@ -321,7 +321,7 @@ export default function AdvancedWebhooksPanel() {
         <KPICard label="Tasa de éxito"    value={`${kpis.successRate}%`}           icon={CheckCircle} color={kpis.successRate >= 95 ? "success" : kpis.successRate >= 80 ? "warning" : "destructive"} />
       </div>
 
-      <div className="flex items-start gap-3 p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/15 text-sm">
+      <div className="flex items-start gap-3 p-3.5 rounded-xl bg-primary/5 border border-purple-500/15 text-sm">
         <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
         <p className="text-muted-foreground">
           Cada endpoint recibe POST firmados con HMAC-SHA256, timestamp contra replay,

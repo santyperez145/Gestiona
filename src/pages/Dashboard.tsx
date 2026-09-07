@@ -1418,7 +1418,7 @@ export default function Dashboard() {
     { label: "Inversión", value: formatUSD(stats.totalPurchasesUSD), sub: formatARS(stats.totalPurchasesARS), icon: TrendingDown, tone: "yellow" },
     { label: "Deudas", value: formatARS(stats.totalDebtsARS), sub: `${stats.pendingDebts} activas`, icon: AlertCircle, tone: "red" },
     { label: "Inventario", value: `${stats.totalStock} uds`, sub: formatUSD(stats.inventoryValueUSD), icon: Package, tone: "blue" },
-    { label: "Ticket promedio", value: formatARS(stats.avgSaleARS), sub: "Por venta", icon: ShoppingBag, tone: "violet" },
+    { label: "Ticket promedio", value: formatARS(stats.avgSaleARS), sub: "Por venta", icon: ShoppingBag, tone: "blue" },
     { label: "Stock crítico", value: `${stats.lowStock} / ${stats.outOfStock}`, sub: "Bajo / agotado", icon: BarChart3, tone: stats.lowStock > 0 ? "red" : "green" },
     { label: "Productos nuevos", value: stats.newProductsCount, sub: stats.newProductsCount > 0 ? `${stats.newProductNames.join(", ")}${stats.newProductsCount > 3 ? "…" : ""}` : "Últimos 30 días", icon: Sparkles, tone: "amber" },
     { label: "Próximos ingresos", value: stats.upcomingRestocks.length, sub: stats.upcomingRestocks[0] ? `Próx: ${stats.upcomingRestocks[0].name}` : "Sin ingresos programados", icon: Clock, tone: "blue" },

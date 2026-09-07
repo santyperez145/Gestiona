@@ -301,7 +301,7 @@ export default function InventoryValuationPage() {
           </Card>
           <div className="flex gap-3 text-xs text-muted-foreground items-center">
             <span className="flex items-center gap-1"><span className="w-2 h-2 bg-blue-500 rounded-full" />FIFO: primeras capas se consumen primero</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-purple-500 rounded-full" />LIFO: últimas capas se consumen primero</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-primary rounded-full" />LIFO: últimas capas se consumen primero</span>
           </div>
         </TabsContent>
 

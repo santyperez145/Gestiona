@@ -404,7 +404,7 @@ export default function WarehouseZonesTab() {
                           <div key={zone.id} className="border-t">
                             <div className="flex items-center gap-3 px-8 py-3 cursor-pointer hover:bg-muted/40" onClick={() => setExpandedZone(isZoneExp ? null : zone.id)}>
                               {isZoneExp ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
-                              <MapPin className="w-4 h-4 text-purple-500" />
+                              <MapPin className="w-4 h-4 text-primary" />
                               <span className="font-medium text-foreground text-sm">{zone.name}</span>
                               <Badge className={`text-xs ${ztc.color}`}>{ztc.label}</Badge>
                               <span className="text-xs text-muted-foreground ml-auto">{zoneBins.length} posiciones · {zoneStock.toLocaleString("es-AR")} u.</span>
